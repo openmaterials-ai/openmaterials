@@ -21,7 +21,7 @@ from omai.spec import (
     cross_state_total_factor,
     cross_state_unit_factor,
 )
-from omai.spec.thermal_transport import (
+from omai.thermal_transport.materialized import (
     KALDO_COMPUTE_LINEWIDTH,
     KALDO_HEAT_CAPACITY,
     KALDO_LINEWIDTH,

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from omai.abstract import State, Operation, topological_order
-from omai.abstract.thermal_transport import (
+from omai.thermal_transport.symbolic import (
     EDGES,
     NODES,
     LINEWIDTH,
@@ -27,7 +27,7 @@ def test_edge_count():
 
 
 def test_provide_potential_is_nullary():
-    from omai.abstract.thermal_transport import provide_potential
+    from omai.thermal_transport.symbolic import provide_potential
 
     assert provide_potential.is_nullary()
     assert len(provide_potential.outputs) == 1

@@ -10,13 +10,13 @@ not an abstract-operation property).
 
 from __future__ import annotations
 
-from omai.abstract.thermal_transport import (
+from omai.spec.adapter import OperationAdapterSpec, StateAdapterSpec
+from omai.thermal_transport.symbolic import (
     HEAT_CAPACITY,
     LINEWIDTH,
     compute_heat_capacity,
     compute_linewidth,
 )
-from omai.spec.adapter import OperationAdapterSpec, StateAdapterSpec
 
 
 # ---------------------------------------------------------------------------
