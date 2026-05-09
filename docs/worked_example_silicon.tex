@@ -492,7 +492,7 @@ both.
 \begin{kaldobox}
 \begin{verbatim}
 phonons = Phonons(..., third_bandwidth=sigma, broadening_shape='gauss')
-phonons.bandwidth      # the linewidth Gamma_qν, shape (n_q, n_modes)
+phonons.bandwidth      # the linewidth Gamma_q,nu, shape (n_q, n_modes)
 \end{verbatim}
 \textbf{Gaussian kernel} (\texttt{kaldo/controllers/dirac\_kernel.py}):
 \begin{equation}
@@ -630,9 +630,9 @@ $\Gamma_{\mathbf{q}\nu}$ (per mode within q) & --- & --- & $\langle\cdot\rangle 
 \end{tabular}
 \end{center}
 
-\noindent The codes compute the same gauge-invariant total scattering rate. They differ purely
+\noindent The codes compute the same contracted total scattering rate. They differ purely
 in how the contribution from each (q, q', q'') triplet is assigned to ``the mode at q,'' ``the
-mode at q','' or ``the mode at q'.'' The total $\sum \Gamma$ is invariant under this
+mode at q','' or ``the mode at q'.'' The total $\sum \Gamma$ is stable under this
 redistribution; the per-mode values are not.
 
 \paragraph{Why this explains the RTA-vs-direct asymmetry.} RTA computes $\kappa$ as
@@ -647,6 +647,50 @@ much less sensitive to it. This predicts the asymmetry observed at all $\sigma$ 
 
 The 4--6\% RTA residual is the redistribution effect projected onto $c \cdot v^2$, and not a
 deeper physical disagreement.
+
+\paragraph{Investigating the per-mode redistribution mechanism.} A series of controlled tests
+ruled out several candidate mechanisms before localizing the residual.
+
+\begin{itemize}[leftmargin=2em, itemsep=0.4em]
+  \item \textbf{Eigenbasis degeneracy averaging} (phono3py applies
+        \texttt{average\_by\_degeneracy}; kaldo does not). Tested by applying degeneracy
+        averaging to kaldo's per-mode $\Gamma$ output. Result: std/mean stayed at 3.37\%
+        (essentially unchanged). Kaldo's eigendecomposition already produces near-symmetric
+        values for degenerate modes, so the averaging step is not the redistribution source.
+  \item \textbf{Energy-conservation cutoff} (kaldo truncates the Gaussian at $2\sigma$;
+        phono3py defaults to no cutoff). Tested by monkey-patching kaldo to use a $50\sigma$
+        threshold (effectively no cutoff). Result: per-mode std/mean changed from 3.37\% to
+        3.38\%; total $\Sigma\Gamma$ changed from 1.0005 to 1.0048 (a 0.4\% shift consistent
+        with the lost Gaussian tail). The cutoff explains $<$0.5\% of the variation, not the
+        bulk of it.
+  \item \textbf{Per-mode pattern is frequency-correlated.} At a fixed q-point with non-degenerate
+        modes (e.g.\ q-index 64 with $\omega\in\{1.0, 1.0, 2.75, 16.33, 16.60, 16.60\}$ THz),
+        the kaldo/$4\pi$/phono3py ratio is monotone in mode frequency: $0.90 \to 0.80 \to 1.01
+        \to 1.06$. Low-$\omega$ modes have kaldo$<$ph3; high-$\omega$ modes have kaldo$>$ph3.
+        This is the signature of a redistribution that systematically shifts weight \emph{between
+        modes within the same q}, not a per-mode bookkeeping error.
+\end{itemize}
+
+\paragraph{Mechanism: BZ-symmetry attribution differs between adapters.} Reading the kernels
+side-by-side:
+
+\begin{itemize}[leftmargin=2em, itemsep=0.3em]
+  \item \textbf{phono3py} (\texttt{phonon3/imag\_self\_energy.py:788}) iterates over
+        \emph{symmetry-reduced} triplets with explicit weights $w$:
+        $\Gamma \mathrel{{+}{=}} \big[(1+n_2+n_3)\,g_1 + (n_2-n_3)\,(g_2 - g_3)\big] \cdot |V_3|^2 \cdot w$.
+  \item \textbf{kaldo} (\texttt{controllers/anharmonic.py:55--57}) iterates over the
+        \emph{full} grid (no symmetry reduction) with population factor $0.5(1+n_1+n_2)$ for
+        decay (the $0.5$ corrects for ordered-pair double-counting) and $(n_1-n_2)$ for
+        absorption.
+\end{itemize}
+
+The two formulations are equivalent at the level of the integrated $\Sigma\Gamma$, which is why
+the total agrees to $5\times 10^{-4}$. They are \emph{not} equivalent at the per-mode level: a
+scattering event with a symmetry-related partner is computed once in phono3py and attributed via
+weight $w$ to a representative mode, whereas kaldo enumerates all symmetry-equivalent triplets
+and distributes the contribution across the equivalent modes. For modes that have many
+symmetry-equivalent decay/absorption channels, this redistributes per-mode $\Gamma$ in a
+frequency-dependent way --- which is the pattern we observe empirically.
 
 \paragraph{Located: structural prefactor difference in the $\Gamma$ formula.} Reading the actual
 kernels:
@@ -677,49 +721,50 @@ explains why direct agrees better than RTA at fixed $\sigma$.
 $\sigma$-normalisation finding:
 
 \medskip
-\noindent\textsc{Principle (numerics).} \emph{Same numerical materialisation does not imply same
-numerical value across adapters.} \texttt{HeatCapacity}, \texttt{Linewidth}, and similar derived
-states carry implicit \emph{unit conventions} and \emph{prefactor conventions} that vary across
-codes. The substrate's \texttt{Materialization} type must include a \texttt{unit\_convention} field
-on its discretisation scheme.
+\noindent\textsc{Principle (units belong to materializations).} \emph{Abstract states are
+unit-free; the materialization carries the unit declaration.} \texttt{HeatCapacity},
+\texttt{Linewidth}, and similar derived states are emitted by codes in code-specific units
+(kaldo's $\Gamma$ in angular-frequency THz; phono3py's in linear-frequency THz; kaldo's
+$C_v$ in J/K; phono3py's in eV/K). The factor of $4\pi$ between the two linewidths and the
+factor of $e$ between the two heat capacities are not physics discrepancies---they are
+adapter-level unit declarations that the substrate must require so that comparison after
+canonical conversion is well-defined. (See \S Principle 2 in the substrate document.)
 
 \medskip
-\noindent\textsc{Principle (gauge-invariance).} \emph{Some abstract states have only their
-\textbf{aggregate} value invariant across adapters; per-mode values are gauge-dependent.} kaldo
-and phono3py both compute the same $\sum_{\mathbf{q},\nu}\Gamma_{\mathbf{q}\nu}$ to numerical
-precision, but the per-mode $\Gamma_{\mathbf{q}\nu}$ are mode-dependent gauge-redistributions of
-the same total. This is not a code bug; it is a real freedom in the bookkeeping of how a
-$(q, q', q'')$ scattering event is attributed to the modes participating in it. The substrate
-must distinguish two kinds of materialisation observables:
+\noindent\textsc{Principle (cross-code agreement is at the observable layer).} kaldo and
+phono3py both compute the same $\sum_{\mathbf{q},\nu}\Gamma_{\mathbf{q}\nu}$ to $5\times
+10^{-4}$, but the per-mode $\Gamma_{\mathbf{q}\nu}$ disagree by 3.4\% std/mean. This is
+not a physical gauge freedom; it is a bookkeeping artifact of how a sum over a Brillouin
+zone is decomposed---phono3py iterates over symmetry-reduced triplets with explicit
+weights, kaldo iterates over the full grid. The two sums equal the same total, but the
+per-mode attribution of each triplet's contribution differs. Cross-code agreement is
+therefore required at the observable layer, not at the raw-array layer:
 \begin{description}[leftmargin=2em, itemsep=0.4em]
-  \item[\textsc{gauge-invariant}] -- $\kappa$, $\sum_{\mathbf{q},\nu}\Gamma_{\mathbf{q}\nu}$,
-        anything contracted over the full mode-sum. These are well-defined cross-adapter and
-        their numerical equality after unit conversion is a meaningful test.
-  \item[\textsc{gauge-dependent}] -- per-mode $\Gamma_{\mathbf{q}\nu}$, per-mode lifetimes
-        $\tau_{\mathbf{q}\nu}$, RTA mode-resolved $\kappa_{\mathbf{q}\nu}$. These vary across
-        adapters by a redistribution that integrates to identity. Cross-adapter equality is
-        \emph{not} expected; comparing them tells us about the adapter's bookkeeping, not about
-        the physics.
+  \item[Tight comparison protocol] -- $\kappa$, $\sum_{\mathbf{q},\nu}\Gamma_{\mathbf{q}\nu}$,
+        any contracted scalar or tensor. Numerical agreement after unit conversion is a
+        real physics check.
+  \item[Not directly comparable] -- per-mode $\Gamma_{\mathbf{q}\nu}$, per-mode lifetimes
+        $\tau_{\mathbf{q}\nu}$, RTA mode-resolved $\kappa_{\mathbf{q}\nu}$. These depend on
+        the adapter's BZ summation choice. Comparing them at the array level confuses
+        bookkeeping with physics; the substrate should refuse the comparison or explicitly
+        flag it as a diagnostic only.
 \end{description}
-The \texttt{Materialization} type should therefore carry a \texttt{gauge\_class} field on the
-abstract state (or equivalently, on the materialisation's discretisation scheme). The substrate's
-cross-adapter alignment machinery should treat numerical agreement on gauge-invariant
-materialisations as a real physics check, and numerical agreement on gauge-dependent ones as a
-diagnostic of bookkeeping conventions only.
-
-This also predicts the RTA-vs-direct asymmetry: $\kappa_{\rm direct}$ is gauge-invariant (the
-collision matrix's off-diagonals capture the redistribution); $\kappa_{\rm RTA}$ is
-gauge-dependent (it weights per-mode $\tau$ by per-mode $c \cdot v^2$, so redistribution propagates
-into the answer). Empirically: kaldo/phono3py $\kappa_{\rm direct}$ ratio $\approx 1.00 \pm 0.03$;
-$\kappa_{\rm RTA}$ ratio $\approx 1.04 \pm 0.06$ across $\sigma$.
+The \texttt{Materialization} type therefore exposes \emph{observables}, each with a
+declared comparison protocol, rather than raw arrays for direct numerical comparison. This
+also explains the RTA-vs-direct asymmetry: $\kappa_{\rm direct}$ is a tight-protocol
+observable (the collision matrix's off-diagonals capture the redistribution implicitly);
+$\kappa_{\rm RTA}$ inherits the loose-protocol per-mode $\Gamma$ through its
+$c \cdot v^2 / \Gamma$ weighting, so it carries a wider tolerance. Empirically:
+kaldo/phono3py $\kappa_{\rm direct}$ ratio $\approx 1.00 \pm 0.03$; $\kappa_{\rm RTA}$
+ratio $\approx 1.04 \pm 0.06$ across $\sigma$.
 
 \medskip
 This is also a falsifiable substrate prediction: when ShengBTE is added, its
-\texttt{Linewidth} materialisation will exhibit (a) its own constant unit offset (likely a different
-multiple of $\pi$) and (b) its own per-mode pattern reflecting its own symmetry-distribution
-choice. The substrate's job is to expose both --- the constant factor as a unit label, the
-per-mode variation as a \texttt{permutation\_distribution} parameter --- so that cross-code
-comparison after adapter alignment is meaningful.
+\texttt{Linewidth} materialisation will declare its own units (a different multiple of
+$\pi$ relative to angular vs.\ linear convention) and exhibit its own per-mode pattern
+reflecting its own BZ-summation choice. The substrate exposes the units as adapter-level
+declarations and the per-mode array as a not-directly-comparable observable; only the
+contracted observables are required to match.
 
 % =================================================================================
 \section{\texttt{ThermalConductivity} (brief)}

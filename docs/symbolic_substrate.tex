@@ -72,6 +72,12 @@ their alternatives or justifications; supporting definitions follow in later sec
         the numeric world (discretized arrays, computed values, discretization errors).
         They are connected by exactly one bridge: the materialization functor.
 
+  \item \textbf{Abstract states are unit-free.} Dimensionful quantities (frequency,
+        energy, length, time) exist at the abstract layer, but specific unit choices
+        (THz vs eV vs rad/s, \AA{} vs Bohr) do not. Unit choice belongs to the
+        materialization and is declared by the adapter that produced it; the substrate
+        normalizes to a canonical unit before any cross-materialization comparison.
+
   \item \textbf{The atom is a symbolic operation.} The atomic unit of meaning is a typed
         transformation between abstract states, not an instruction in an input file, an
         equation, or an algorithm.
@@ -92,12 +98,24 @@ their alternatives or justifications; supporting definitions follow in later sec
   \item \textbf{Operation identity is parameterized.} An operation is identified by its
         name together with the parameters that affect physics. Different physics-affecting
         parameter values produce different operations and therefore different output
-        states.
+        states. Function-family parameterizations (e.g., Gaussian broadening by standard
+        deviation vs.\ by half-width) are canonicalized at the abstract layer to a single
+        choice; adapters translate to their internal convention.
 
   \item \textbf{Discretization belongs to materialization.} Mesh densities, supercell
         sizes, displacement steps, and broadenings live on the materialization, not on
         the abstract state. Convergence is a relationship between an abstract state and
         a family of its materializations.
+
+  \item \textbf{Cross-code agreement is at the observable layer.} Two materializations
+        of the same abstract state produced by different adapters need not agree
+        numerically at intermediate decompositions (per-mode linewidths, basis-dependent
+        intermediate sums); they must agree at extracted observables. Each abstract
+        observable carries a comparison protocol declaring its expected tolerance
+        across adapters. Contracted scalars and tensors (e.g., $\kappa^{\alpha\beta}$,
+        $\Sigma\Gamma_{q\nu}$) carry tight protocols; per-mode arrays whose values
+        depend on summation order or symmetry-reduction choices carry loose or
+        not-comparable protocols.
 
   \item \textbf{Errors are designed-for.} Approximation errors live on operations;
         discretization errors live on materializations. The type system reserves slots
@@ -211,6 +229,12 @@ cross-code comparisons well-defined.
 We collect the formal definitions implied by the decisions above.
 
 \subsection{Abstract state}
+
+An abstract state $s$ is unit-free: its physics type carries the dimension of any
+quantity it represents (a frequency, an energy density, a tensor of given rank), but no
+unit choice. Numerical content and units appear only at materialization time.
+
+\medskip
 
 An abstract state $s$ is a tuple $(\tau, \pi)$ where:
 \begin{itemize}[leftmargin=2em]
@@ -364,16 +388,56 @@ giving the asymptotic dependence of the discretization error on these parameters
 \subsection{Materialization}
 
 A materialization $m$ of an abstract state $s = (\tau, \pi)$ is a tuple
-$(s, \Sigma, x, \epsilon_{\text{disc}})$ where:
+$(s, \Sigma, x, U, \epsilon_{\text{disc}})$ where:
 \begin{itemize}[leftmargin=2em]
   \item $s$ is the abstract state being materialized (a back-reference);
   \item $\Sigma$ is a discretization scheme;
   \item $x$ is a concrete numerical object whose representation is compatible with $\tau$ (e.g.,
         a 4-D array if $\tau = \texttt{Dispersion}$, a scalar if $\tau = \texttt{ThermalConductivity}$);
+  \item $U$ is the \emph{unit declaration}: a mapping from each dimensionful quantity in $\tau$
+        to the unit in which it is expressed in $x$ (e.g., for \texttt{Dispersion},
+        \{\texttt{frequency}: linear THz, \texttt{group\_velocity}: \AA{}$\cdot$THz\}). The
+        adapter that produced $m$ supplies $U$;
   \item $\epsilon_{\text{disc}} = \epsilon_{\Sigma}$ instantiated at the chosen parameters.
 \end{itemize}
 The materialization carries no approximation error of its own; that information is recovered via
 $s$ and its provenance $\pi$.
+
+\paragraph{Why $U$ is part of the materialization.} Different codes express the same
+physics in different units (e.g., kaldo's linewidth is in angular-frequency THz while
+phono3py's is in linear-frequency THz, a factor of $4\pi$; kaldo's heat capacity is in
+J/K, phono3py's in eV/K, a factor of $e$). A materialization without $U$ is unsafe to
+compare against another; with $U$, the substrate can convert both to a canonical unit
+before any comparison and surface unit mismatches as adapter conformance failures rather
+than as numerical mysteries.
+
+\subsection{Observable extraction and comparison protocols}
+
+Cross-adapter agreement is checked at the observable layer, not at the raw materialization
+layer. An \emph{observable} is a pure function $\mathcal{Q} : x \mapsto y$ that extracts a
+physically meaningful quantity from the numerical content $x$ of a materialization (a
+contraction, a peak position, an integrated quantity). Each abstract state declares its
+observables; each observable carries a \emph{comparison protocol} specifying how two
+extractions $y_1$, $y_2$ from materializations of the same abstract state by different
+adapters are compared---typically a tolerance, but possibly a richer relation (e.g., ``equal
+up to a permutation of degenerate modes'' or ``not directly comparable, contraction
+required'').
+
+The protocol records the substrate's claim about which extractions are stable across
+adapter choices and which are not. A contracted scalar like $\kappa^{\alpha\beta}$ or
+$\Sigma\Gamma_{q\nu}$ has a tight tolerance: disagreement is a real discrepancy that must
+be diagnosed. A per-mode array whose values depend on the summation order in the
+underlying sum (e.g., per-mode $\Gamma_{q\nu}$ in a Brillouin-zone integration that one
+adapter handles by symmetry-reduced triplets and another handles by enumeration) is
+explicitly marked as not-directly-comparable: numerical disagreement at the mode level is
+expected and not a substrate failure, even though the contracted total agrees.
+
+\paragraph{Why this is the right level.} Two adapters that disagree at the observable
+layer disagree about physics. Two adapters that disagree at the raw-materialization
+layer but agree at the observable layer disagree only about bookkeeping---the order in
+which a sum is decomposed, the basis in which a tensor is written. The substrate's job
+is to make this distinction structural: by declaring which observables are
+adapter-invariant, the substrate states what it is asking for and what it is not.
 
 \subsection{Materialization functor}
 
