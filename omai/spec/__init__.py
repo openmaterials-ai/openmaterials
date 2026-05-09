@@ -1,33 +1,36 @@
-"""omai.spec — symbolic adapter conformance for the substrate.
+"""omai.spec — materialization-layer adapter conformance.
 
-Substrate-level declarations of what each adapter (kaldo, phono3py, ...)
-computes: which units it emits, which conventions it uses, which Brillouin-zone
-summation strategy it follows. The substrate uses these to predict cross-adapter
-conversion factors and surface mismatches at spec-load time, before any run.
+Adapter specs declare, for one code, what units and conventions its
+materialization carries (per State) and what algorithmic / discretization
+choices its implementation makes (per Operation). The substrate uses these
+to predict cross-adapter unit factors and convention mismatches at spec-
+load time, before any code is run.
 
-See docs/symbolic_substrate.tex (Principles 2, 6, 7 and "Observable extraction
-and comparison protocols") for the architectural motivation.
+See docs/symbolic_substrate.tex (Principles 2, 6, 7) for the architectural
+motivation. Specific State / Operation instances live alongside the
+abstract DAG (e.g. omai.abstract.thermal_transport); adapter specs for
+those live in domain submodules of this package.
 """
 
-from .core import (
-    AdapterSpec,
-    Operation,
-    cross_adapter_convention_match,
-    cross_adapter_total_factor,
-    cross_adapter_unit_factor,
-    output_convention_factor,
+from omai.spec.adapter import (
+    OperationAdapterSpec,
+    StateAdapterSpec,
+    cross_operation_algorithmic_match,
+    cross_operation_discretization_match,
+    cross_state_convention_match,
+    cross_state_total_factor,
+    cross_state_unit_factor,
 )
-from .operations import COMPUTE_HEAT_CAPACITY, COMPUTE_SCATTERING_RATES
-from .units import conversion_factor
+from omai.spec.units import Unit, conversion_factor
 
 __all__ = [
-    "AdapterSpec",
-    "COMPUTE_HEAT_CAPACITY",
-    "COMPUTE_SCATTERING_RATES",
-    "Operation",
+    "OperationAdapterSpec",
+    "StateAdapterSpec",
+    "Unit",
     "conversion_factor",
-    "cross_adapter_convention_match",
-    "cross_adapter_total_factor",
-    "cross_adapter_unit_factor",
-    "output_convention_factor",
+    "cross_operation_algorithmic_match",
+    "cross_operation_discretization_match",
+    "cross_state_convention_match",
+    "cross_state_total_factor",
+    "cross_state_unit_factor",
 ]
