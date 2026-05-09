@@ -574,6 +574,51 @@ first was the q-mesh shift convention exposed at the \texttt{Dispersion} stage; 
 one is exposed at \texttt{ScatteringRates}. Both are silent unless the substrate forces
 the comparison.
 
+\paragraph{Per-mode diagnostic at matched stdev.} Forcing matched effective stdev
+($\sigma_p = 0.10$~THz, $\sigma_k = \sqrt{2}\cdot 0.10$~THz), we extracted the per-mode
+materializations of \texttt{HeatCapacity} and \texttt{Linewidth} from each code on the
+same q-mesh, aligned them by q-grid permutation, and computed mode-by-mode ratios:
+
+\begin{itemize}[leftmargin=2em, itemsep=2pt]
+  \item \textbf{Heat capacity ratio is constant:} $c_v^{\rm kaldo}/c_v^{\rm ph3} = 1.6022\times 10^{-19}$
+        (relative std $6\times 10^{-6}$, i.e.\ to numerical precision). This is exactly the elementary
+        charge $e$ in J/eV, identifying the convention difference: kaldo stores $c_v$ in $\mathrm{J/K}$
+        per mode, phono3py in $\mathrm{eV/K}$ per mode. Each code uses its own units consistently inside
+        its $\kappa$ formula, so the final $\kappa$ in $\mathrm{W/m\,K}$ agrees, but the materialised
+        state has two different numerical realisations.
+  \item \textbf{Linewidth ratio has a constant offset of $4\pi$ plus per-mode variation:} mean
+        $\Gamma^{\rm kaldo}/\Gamma^{\rm ph3} = 12.483 \approx 4\pi$ (with $4\pi \approx 12.566$);
+        relative std $0.034$, range $[9.5, 13.8]$. The constant is an angular-vs-linear-frequency
+        convention (kaldo's Gaussian $\delta$-replacement integrates against $\omega$ where
+        phono3py's integrates against $\nu = \omega/2\pi$, propagating a $(2\pi)^2 = 4\pi^2$ through
+        the kernel norm \emph{and} a $2\pi$ from the Gaussian $\sigma$ width into the conversion).
+        The 3.4\% per-mode variation is \emph{not} a unit issue --- it is a genuine algorithmic
+        difference, most plausibly in the q-space normalisation of $|V_3|^2$ or the placement of the
+        scattering matrix elements in the integration.
+\end{itemize}
+
+The per-mode $\Gamma$ variation is the source of the residual $\sim$5\% RTA gap. Direct/LBTE
+absorbs more of this into the off-diagonal collision matrix and converges to within 0.4\% --- which
+explains why direct agrees better than RTA at fixed $\sigma$.
+
+\paragraph{What the substrate learns from this.} The principle is larger than the
+$\sigma$-normalisation finding:
+
+\medskip
+\noindent\textit{Same numerical materialisation does not imply same numerical value across
+adapters.} \texttt{HeatCapacity}, \texttt{Linewidth}, and similar derived states carry implicit
+\emph{unit conventions} and \emph{prefactor conventions} that vary across codes. The substrate's
+\texttt{Materialization} type must include a \texttt{unit\_convention} field on its
+discretisation scheme. Cross-adapter comparisons must convert before equating; raw numerical
+equality is meaningless across adapter boundaries.
+
+\medskip
+This is also a falsifiable substrate prediction: when ShengBTE is added, its
+\texttt{Linewidth} materialisation will have its own offset and its own per-mode pattern.
+The substrate should expose both --- the constant unit factor as a label, the per-mode
+variation as a second-order discrepancy attributable to specific operation parameters
+(symmetry weighting, $|V_3|^2$ normalisation, $\delta$-placement) yet to be enumerated.
+
 % =================================================================================
 \section{\texttt{ThermalConductivity} (brief)}
 % =================================================================================
