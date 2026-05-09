@@ -6,7 +6,7 @@ import math
 
 import pytest
 
-from omai.spec import (
+from omai.materialization import (
     conversion_factor,
     cross_operation_algorithmic_match,
     cross_operation_discretization_match,

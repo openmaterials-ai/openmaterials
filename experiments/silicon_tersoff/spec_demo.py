@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import math
 
-from omai.spec import (
+from omai.materialization import (
     cross_operation_algorithmic_match,
     cross_operation_discretization_match,
     cross_state_total_factor,

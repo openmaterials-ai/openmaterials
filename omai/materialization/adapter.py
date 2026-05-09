@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 
 from omai.abstract.operation import Operation
 from omai.abstract.state import State
-from omai.spec.units import conversion_factor
+from omai.materialization.units import conversion_factor
 
 
 @dataclass(frozen=True)
