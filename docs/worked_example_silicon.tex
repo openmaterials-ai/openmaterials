@@ -614,6 +614,40 @@ same q-mesh, aligned them by q-grid permutation, and computed mode-by-mode ratio
         N-vs-U processes, and population branches.
 \end{itemize}
 
+\paragraph{Definitive: per-mode redistribution, not different physics.} A controlled diagnostic
+reveals the codes agree on the \emph{total} scattering volume to numerical precision but
+redistribute it across modes differently:
+\begin{center}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{l c c c}
+\toprule
+quantity & kaldo$/4\pi$ & phono3py & ratio \\
+\midrule
+$\sum_{\mathbf{q},\nu}\Gamma_{\mathbf{q}\nu}$ (total) & 205.19 & 205.09 & 1.0005 \\
+$\sum_{\nu}\Gamma_{\mathbf{q}\nu}$ (per-q sum) & --- & --- & $\langle\cdot\rangle = 0.9996$, std $= 1.0\%$ \\
+$\Gamma_{\mathbf{q}\nu}$ (per mode within q) & --- & --- & $\langle\cdot\rangle = 0.99$, std $= 3.4\%$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent The codes compute the same gauge-invariant total scattering rate. They differ purely
+in how the contribution from each (q, q', q'') triplet is assigned to ``the mode at q,'' ``the
+mode at q','' or ``the mode at q'.'' The total $\sum \Gamma$ is invariant under this
+redistribution; the per-mode values are not.
+
+\paragraph{Why this explains the RTA-vs-direct asymmetry.} RTA computes $\kappa$ as
+$\sum c_{q\nu} v_{q\nu}^2 / (2\Gamma_{q\nu})$, a per-mode-weighted sum that is sensitive to
+which modes ``own'' which scattering channels. Direct/LBTE solves the full collision matrix; the
+off-diagonal terms capture the inter-mode redistribution implicitly, so $\kappa_{\rm direct}$ is
+much less sensitive to it. This predicts the asymmetry observed at all $\sigma$ values:
+\begin{itemize}[leftmargin=2em, itemsep=2pt]
+  \item $\kappa_{\rm direct}$: kaldo/phono3py ratio $\approx 1.00 \pm 0.03$ (insensitive)
+  \item $\kappa_{\rm RTA}$: kaldo/phono3py ratio $\approx 1.04 \pm 0.06$ (sensitive)
+\end{itemize}
+
+The 4--6\% RTA residual is the redistribution effect projected onto $c \cdot v^2$, and not a
+deeper physical disagreement.
+
 \paragraph{Located: structural prefactor difference in the $\Gamma$ formula.} Reading the actual
 kernels:
 
@@ -650,16 +684,34 @@ codes. The substrate's \texttt{Materialization} type must include a \texttt{unit
 on its discretisation scheme.
 
 \medskip
-\noindent\textsc{Principle (counting).} \emph{Two adapters that compute the same abstract operation
-may distribute the operation's prefactor across structurally different sub-channels.} kaldo and
-phono3py both compute the same $\Gamma_{q\nu}$ as a sum over $(q', q'', \nu', \nu'')$ triplets, but
-they distribute the 3-phonon permutation-symmetry factor (the ``18'' in phono3py's prefactor)
-differently. The ``correct'' total is the same; the per-mode contributions are not. The substrate's
-\texttt{compute\_scattering\_rates} operation must therefore expose, in addition to
-\texttt{broadening\_kind} and \texttt{sigma}, a \texttt{permutation\_distribution} parameter
-recording how the symmetry factor is split. Without it, two materialisations of
-\texttt{ScatteringRates} with the same nominal operation identity diverge by mode-dependent
-multiples of $\pi$.
+\noindent\textsc{Principle (gauge-invariance).} \emph{Some abstract states have only their
+\textbf{aggregate} value invariant across adapters; per-mode values are gauge-dependent.} kaldo
+and phono3py both compute the same $\sum_{\mathbf{q},\nu}\Gamma_{\mathbf{q}\nu}$ to numerical
+precision, but the per-mode $\Gamma_{\mathbf{q}\nu}$ are mode-dependent gauge-redistributions of
+the same total. This is not a code bug; it is a real freedom in the bookkeeping of how a
+$(q, q', q'')$ scattering event is attributed to the modes participating in it. The substrate
+must distinguish two kinds of materialisation observables:
+\begin{description}[leftmargin=2em, itemsep=0.4em]
+  \item[\textsc{gauge-invariant}] -- $\kappa$, $\sum_{\mathbf{q},\nu}\Gamma_{\mathbf{q}\nu}$,
+        anything contracted over the full mode-sum. These are well-defined cross-adapter and
+        their numerical equality after unit conversion is a meaningful test.
+  \item[\textsc{gauge-dependent}] -- per-mode $\Gamma_{\mathbf{q}\nu}$, per-mode lifetimes
+        $\tau_{\mathbf{q}\nu}$, RTA mode-resolved $\kappa_{\mathbf{q}\nu}$. These vary across
+        adapters by a redistribution that integrates to identity. Cross-adapter equality is
+        \emph{not} expected; comparing them tells us about the adapter's bookkeeping, not about
+        the physics.
+\end{description}
+The \texttt{Materialization} type should therefore carry a \texttt{gauge\_class} field on the
+abstract state (or equivalently, on the materialisation's discretisation scheme). The substrate's
+cross-adapter alignment machinery should treat numerical agreement on gauge-invariant
+materialisations as a real physics check, and numerical agreement on gauge-dependent ones as a
+diagnostic of bookkeeping conventions only.
+
+This also predicts the RTA-vs-direct asymmetry: $\kappa_{\rm direct}$ is gauge-invariant (the
+collision matrix's off-diagonals capture the redistribution); $\kappa_{\rm RTA}$ is
+gauge-dependent (it weights per-mode $\tau$ by per-mode $c \cdot v^2$, so redistribution propagates
+into the answer). Empirically: kaldo/phono3py $\kappa_{\rm direct}$ ratio $\approx 1.00 \pm 0.03$;
+$\kappa_{\rm RTA}$ ratio $\approx 1.04 \pm 0.06$ across $\sigma$.
 
 \medskip
 This is also a falsifiable substrate prediction: when ShengBTE is added, its
