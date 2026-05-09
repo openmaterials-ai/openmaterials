@@ -1,0 +1,38 @@
+# external code clones (reference only; not part of this project)
+kaldo/
+kaldo-examples/
+phonopy/
+phono3py/
+shengbte/
+lammps/
+q-e/
+PhysLean/
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# latex build artifacts
+docs/*.aux
+docs/*.log
+docs/*.out
+docs/*.toc
+docs/*.fls
+docs/*.fdb_latexmk
+docs/*.synctex.gz
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*~
