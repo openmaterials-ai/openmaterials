@@ -92,6 +92,69 @@ def test_compute_force_constants_2_carries_formula():
     assert compute_force_constants_2.formula is not None
 
 
+def test_every_derived_edge_has_a_sympy_formula():
+    """All non-source edges must carry a sympy-typed formula."""
+    import sympy
+
+    sources = {"provide_potential", "provide_temperature"}
+    for op in EDGES:
+        if op.name in sources:
+            assert op.formula is None, f"source {op.name} should have no formula"
+        else:
+            assert isinstance(op.formula, sympy.Basic), (
+                f"derived edge {op.name} formula should be sympy, got {type(op.formula)}"
+            )
+
+
+def test_every_observable_declares_indices():
+    """Each observable carries an explicit index signature (possibly empty)."""
+    for state in NODES:
+        for obs in state.observables:
+            assert isinstance(obs.indices, tuple), (
+                f"{state.name}.{obs.name} indices should be a tuple"
+            )
+
+
+def test_specific_observable_indices():
+    """Spot-check the index signatures match the formulas."""
+    from omai.thermal_transport.symbolic import (
+        DYNAMICAL_MATRIX,
+        FREQUENCY_STATE,
+        GROUP_VELOCITY,
+        LINEWIDTH,
+        THERMAL_CONDUCTIVITY_STATE,
+    )
+
+    assert FREQUENCY_STATE.observables[0].indices == ("q", "nu")
+    assert DYNAMICAL_MATRIX.observables[0].indices == ("i", "j", "q")
+    assert GROUP_VELOCITY.observables[0].indices == ("alpha", "q", "nu")
+    assert LINEWIDTH.observables[0].indices == ("q", "nu")
+    assert THERMAL_CONDUCTIVITY_STATE.observables[0].indices == ("alpha", "beta")
+
+
+def test_heat_capacity_formula_has_omega_T_kB_hbar():
+    """The heat-capacity formula must reference its declared ingredients."""
+    import sympy
+
+    f = compute_heat_capacity.formula
+    free = {str(s) for s in f.free_symbols}
+    assert "T" in free
+    assert "k_B" in free
+    assert r"\hbar" in free
+
+
+def test_kappa_formula_is_double_sum_over_q_and_nu():
+    """contract_kappa's Sum has two bound variables (q and nu), unlike the buggy old version."""
+    import sympy
+
+    f = contract_kappa.formula
+    sums = list(f.atoms(sympy.Sum))
+    assert len(sums) == 1
+    bounds = sums[0].limits
+    bound_vars = {str(b[0]) for b in bounds}
+    assert bound_vars == {r"\mathbf{q}", r"\nu"}
+
+
 def test_topological_order_detects_cycles():
     """Inject a synthetic cycle and ensure it raises."""
     a = State(physics_type=NODES[0].physics_type, name="A")

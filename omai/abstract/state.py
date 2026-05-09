@@ -27,6 +27,19 @@ from omai.abstract.physics_types import PhysicsType
 class Observable:
     name: str
     dimension: Dimension
+    indices: tuple[str, ...] = ()
+    """Symbolic index signature: which indices the observable carries.
+
+    Examples:
+      omega:  ("q", "nu")            — phonon frequency at wavevector q, branch ν
+      v:      ("alpha", "q", "nu")   — Cartesian-α component of group velocity
+      Phi^2:  ("i", "j", "R")        — atomic-pair force constant at lattice vector R
+      kappa:  ("alpha", "beta")      — Cartesian rank-2 tensor
+
+    Empty for scalar / opaque observables (Temperature, Potential).
+    The indices listed here must match those used in the sympy formula
+    on any operation that produces this observable.
+    """
 
 
 @dataclass(frozen=True)
