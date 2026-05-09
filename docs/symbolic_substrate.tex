@@ -9,7 +9,7 @@
 \usepackage{tikz}
 \usepackage{xcolor}
 \usepackage{titlesec}
-\usepackage{microtype}
+\usepackage[expansion=false]{microtype}
 \usepackage{caption}
 \usetikzlibrary{arrows.meta,positioning,fit,backgrounds,shapes.geometric,shadows}
 
@@ -24,7 +24,7 @@
 \newcommand{\numr}[1]{\textcolor{numcol}{#1}}
 
 \title{A Symbolic Substrate for Computational Materials Science:\\
-       Design Notes, Decisions, and First-Demonstration Plan}
+       Principles and First-Demonstration Plan}
 \author{G. Barbalinardo \\
         \small University of California, Davis}
 \date{\today}
@@ -35,7 +35,7 @@
 
 \begin{abstract}
 This document records the design of a typed substrate for computational materials science
-workflows, together with the decisions and trade-offs that produced it. Workflows are directed
+workflows, organized around a small set of principles. Workflows are directed
 acyclic graphs of \emph{abstract physics states} connected by \emph{symbolic operations}, and
 concrete numerical results are \emph{materializations}---typed projections of abstract states
 into a discretization scheme. The substrate's abstract root is the \emph{Born--Oppenheimer
@@ -59,6 +59,65 @@ considered, and what we deferred.
 \tableofcontents
 
 \bigskip
+
+\section{Principles}
+\label{sec:principles}
+
+The substrate is built on a small set of commitments. They are stated here without
+their alternatives or justifications; supporting definitions follow in later sections.
+
+\begin{enumerate}[leftmargin=2.5em, itemsep=0.4em]
+  \item \textbf{Two worlds, one bridge.} The substrate keeps the abstract physics world
+        (typed states, symbolic operations, approximation errors) strictly separate from
+        the numeric world (discretized arrays, computed values, discretization errors).
+        They are connected by exactly one bridge: the materialization functor.
+
+  \item \textbf{The atom is a symbolic operation.} The atomic unit of meaning is a typed
+        transformation between abstract states, not an instruction in an input file, an
+        equation, or an algorithm.
+
+  \item \textbf{States are typed witnesses.} A state is the typed claim that an abstract
+        physics object exists with a particular history---not the data the object would
+        have when computed. Numerical content lives in the materialization, separate
+        from the witness.
+
+  \item \textbf{Workflows are directed acyclic graphs.} A workflow is a graph of states
+        connected by operations, not a linear sequence. Cross-code comparison reduces
+        to graph alignment over the same abstract template.
+
+  \item \textbf{Identity is type plus provenance.} An abstract state is identified by its
+        physics type and the ordered chain of operations that produced it. Two states
+        with the same type but different histories are different states.
+
+  \item \textbf{Operation identity is parameterized.} An operation is identified by its
+        name together with the parameters that affect physics. Different physics-affecting
+        parameter values produce different operations and therefore different output
+        states.
+
+  \item \textbf{Discretization belongs to materialization.} Mesh densities, supercell
+        sizes, displacement steps, and broadenings live on the materialization, not on
+        the abstract state. Convergence is a relationship between an abstract state and
+        a family of its materializations.
+
+  \item \textbf{Errors are designed-for.} Approximation errors live on operations;
+        discretization errors live on materializations. The type system reserves slots
+        for both; symbolic composition of error formulas is a Phase~2 capability.
+
+  \item \textbf{The abstract root is the potential.} Every materialization in the substrate
+        ultimately traces back to the Born--Oppenheimer potential of the material. Force
+        constants of every order are derived states obtained by extracting derivatives of
+        the potential and truncating the Taylor expansion. The upstream is stubbed in
+        Phase~1.
+
+  \item \textbf{Lean-compatible by structure.} The substrate is implemented in Python
+        but designed so that its types transliterate cleanly into Lean. Three disciplines
+        protect this option: closed unions for physics types, no Python-encoded physics
+        invariants, operation parameters always recorded in output state metadata.
+       
+\end{enumerate}
+
+\bigskip
+
 
 \section{Background and Motivation}
 \label{sec:motivation}
@@ -146,125 +205,58 @@ cross-code comparisons well-defined.
 
 \medskip
 
-\paragraph{Origin of the principle.}
-The two-world separation was originally raised as a side remark in the brainstorm: ``I always
-want to separate the abstract world from the numeric world.'' It was elevated to the central
-architectural principle when we noticed it was implicit in every other decision we had made
-(materialization as central operation, discretization as a property of materialization not of
-state, errors decomposable into approximation and discretization parts). All subsequent design
-follows from it.
+\section{Formal Definitions}
+\label{sec:defs}
 
-\section{Decisions and Definitions}
-\label{sec:decisions}
+We collect the formal definitions implied by the decisions above.
 
-We document each design decision, what was chosen, and what was considered as alternatives. The
-order is roughly the chronological order in which the decisions were made, since later decisions
-sometimes depend on earlier ones.
+\subsection{Abstract state}
 
-\subsection{Decision 1: The atomic unit is a symbolic operation, not an instruction}
-\label{ssec:atom}
-
-\textbf{Chosen:} The atomic unit of meaning in the substrate is a \emph{symbolic operation}: a
-typed transformation between abstract states, each carrying an associated approximation-error
-formula. An instruction in an input file is a downstream artifact, not the primary entity.
-
-\textbf{Considered:}
+An abstract state $s$ is a tuple $(\tau, \pi)$ where:
 \begin{itemize}[leftmargin=2em]
-  \item \emph{Instruction-level (the MCG approach).} Atomic unit = a single line in an input file
-        or a single API call. \textbf{Rejected} because instructions are syntactic, not semantic;
-        two codes that compute the same physics use different instructions, and a graph indexed
-        by instructions cannot see the underlying equivalence.
-  \item \emph{Algorithm-level.} Atomic unit = a complete iterative algorithm (e.g., the iterative
-        BTE solve). \textbf{Rejected as the primary atom} because algorithms have internal
-        structure (sub-states, intermediate quantities) that the substrate should expose.
-        Algorithms re-emerge in the substrate as composed sequences of operations, not as
-        primitives.
-  \item \emph{Equation-level.} Atomic unit = a single equation as a string of symbols.
-        \textbf{Rejected} because an equation alone has no notion of input/output direction or
-        composition; it is an algebraic relationship, not a transformation.
+  \item $\tau$ is a \emph{physics type} drawn from a finite registry: derived types
+        include \texttt{ForceConstantOperator[order=$n$]}, \texttt{ForceConstants[order=$n$]},
+        \texttt{Dispersion}, \texttt{ScatteringRates}, \texttt{BoltzmannSolution},
+        \texttt{ThermalConductivity}; parameter types include \texttt{Potential} (the abstract
+        root, stubbed in Phase 1), \texttt{LatticeConstant},
+        \texttt{Temperature}, \texttt{Pressure}, and measured-observable types;
+  \item $\pi$ is the \emph{provenance}: an ordered list $[\mathcal{O}_1, \mathcal{O}_2,
+        \ldots, \mathcal{O}_n]$ of symbolic operations whose composition produced $s$, or the
+        empty list if $s$ is given (a parameter state, see below).
 \end{itemize}
+Two abstract states $(\tau_1, \pi_1)$ and $(\tau_2, \pi_2)$ are equal iff $\tau_1 = \tau_2$ and
+$\pi_1 = \pi_2$. The composed approximation error on $s$ (a Phase 2 capability) would be
+\begin{equation}
+  \epsilon_{\text{approx}}(s) = \mathrm{compose}\bigl(\epsilon_{\mathcal{O}_1},\, \epsilon_{\mathcal{O}_2},\, \ldots,\, \epsilon_{\mathcal{O}_n}\bigr).
+\end{equation}
 
-\textbf{Why it matters:} the choice of atom determines what operations the substrate must support
-natively. Symbolic operations, being typed transformations with explicit input/output states,
-admit composition (operation $\circ$ operation), error tracking (each operation carries its
-$O(\cdot)$), and projection (each operation has corresponding implementations in different codes).
-Instructions and equations do not.
-
-\subsection{Decision 2: The unit of identity is the state, not the token}
-\label{ssec:state-vs-token}
-
-\textbf{Chosen:} The substrate is organized around \emph{states}. A workflow is a graph of states
-connected by operations; an operation moves the system from one state to another. Token-style
-sequence prediction is rejected as a primary model.
-
-\textbf{Considered:}
+\paragraph{Derived versus parameter states.} Abstract states fall into two kinds:
 \begin{itemize}[leftmargin=2em]
-  \item \emph{Token sequence (LLM-style).} The system as a stream of tokens; meaning is positional
-        in the stream. \textbf{Rejected} because physics workflows have enduring state that
-        persists across operations and is consumed by multiple downstream operations. Tokens are
-        too thin a substrate for this; a sequence model cannot express ``these two operations
-        share the same input state.''
+  \item \emph{Derived states} have non-empty provenance: they are produced by symbolic operations
+        from other states. Examples: \texttt{ForceConstants[order=$n$]} (derived from
+        \texttt{Potential} via \texttt{extract\_derivative} and \texttt{trunc\_n};
+       ), \texttt{Dispersion}, \texttt{ScatteringRates},
+        \texttt{BoltzmannSolution}, the computed $\kappa$.
+  \item \emph{Parameter states} have empty provenance: they are empirical inputs (lattice
+        constant, temperature, pressure, applied field), the abstract \texttt{Potential} itself
+        (Phase 1 stubs the upstream of the potential), or measured observables (a thermal
+        conductivity reported from a TDTR experiment, a Raman peak). The materialization of a
+        parameter state is the value supplied externally (e.g., $5.43\,\textup{\AA}$ for the
+        lattice constant of silicon, or $T = 300\,\text{K}$); its discretization scheme is
+        trivial (a singleton choice rather than a refinable mesh) but its error is still
+        meaningful (experimental uncertainty, or definitional precision).
 \end{itemize}
+Both kinds inhabit the same type and follow the same machinery for materialization. Parameter
+states are the architectural answer to several otherwise awkward cases: empirical inputs
+(``where does the lattice constant live?''), experimental observables (``how does a measured
+$\kappa(T)$ enter the substrate?''), and the unmodeled abstract root in Phase 1 (``what is the
+silicon potential, before we differentiate it?''). All three are materializations of parameter
+states; the second is what makes the unified theory-experiment comparison framework native
+rather than bolted-on; the third is how Phase 1 stubs the upstream of \texttt{Potential} without
+yet modeling it in detail.
 
-\textbf{Why it matters:} state-as-unit forces us to confront the question \emph{what is a state
-made of?}---which is exactly the right question, because the answer determines the type system,
-the error-tracking story, and the cross-code alignment story. Token-based framings sidestep this
-question and produce systems that look powerful (large state-action spaces) but lack semantic
-depth.
 
-\subsection{Decision 3: A workflow is a directed acyclic graph, not a sequence}
-\label{ssec:dag}
-
-\textbf{Chosen:} A workflow is a finite directed acyclic graph $W = (V, E)$ where vertices $V$
-are states and edges $E$ are operations.
-
-\textbf{Considered:}
-\begin{itemize}[leftmargin=2em]
-  \item \emph{Linear sequence.} Workflow = list of (state, operation) pairs.
-        \textbf{Rejected} because real workflows have shared dependencies (one state consumed by
-        multiple downstream operations), convergent dependencies (multiple states feeding into a
-        single operation), and ``diamond'' patterns (a state branching into two paths that
-        recombine at a later state). None of these can be expressed as sequences.
-  \item \emph{General directed graph (cycles allowed).} \textbf{Rejected} because cycles in the
-        operation graph would require fixed-point semantics that complicate type-checking and
-        error composition. Iterative algorithms (e.g., self-consistent BTE) are represented as
-        unrolled DAGs with explicit iteration count, or as a single composite operation whose
-        internal cycles are hidden behind a fixed-point witness.
-\end{itemize}
-
-\textbf{Why it matters:} two graphs over the same set of state types can be aligned by graph
-isomorphism. This is the technical mechanism that enables cross-code comparison: kaldo's graph,
-phono3py's graph, and ShengBTE's graph share an abstract template, and aligning them reduces to
-finding the largest common subgraph. A linear-sequence framing would not support this.
-
-\subsection{Decision 4: States are typed witnesses, not values}
-\label{ssec:witness}
-
-\textbf{Chosen:} A state is a typed \emph{witness}: an object asserting the existence of an
-abstract physics quantity satisfying certain properties, optionally accompanied by a numerical
-realization (in the numeric world). A state is not, in the substrate's eyes, a numpy array or a
-scalar; those are projections of states, not states themselves.
-
-\textbf{Considered:}
-\begin{itemize}[leftmargin=2em]
-  \item \emph{Value-as-state.} A state is a concrete numerical object (a 4-D array, a list of
-        bands, a scalar). Operations transform values to values. \textbf{Rejected} because values
-        carry no semantic content: a 4-D array of $\omega(q,\nu)$ values does not assert
-        ``this is a phonon dispersion under harmonic approximation,'' so the substrate cannot
-        check whether subsequent operations are physically meaningful for it.
-  \item \emph{Pure proof object (Lean-style).} A state is a typed proof in a theorem prover, with
-        no numerical content at all. \textbf{Rejected as the substrate's primary representation}
-        because it disconnects the substrate from numerical computation; we would never run
-        anything. Reserved as a future projection target, not the substrate itself.
-\end{itemize}
-
-\textbf{Why it matters:} witness-as-state lets us assert, type-check, and compose physical claims
-without requiring full formal proofs. It is the middle ground between fully formal (Lean) and
-fully informal (numpy). Errors, approximations, and provenance attach to witnesses naturally;
-they do not attach naturally to bare values.
-
-\subsubsection{What ``witness-as-state'' means, concretely}
-\label{ssec:witness-explained}
+\paragraph{What ``witness-as-state'' means, concretely.}
 
 The phrase \emph{witness-as-state} comes from the Curry--Howard correspondence in type theory:
 a typed value is read as evidence (a ``witness'') for a proposition. We borrow the intuition
@@ -315,53 +307,21 @@ when present, lives in the materialization, separated from the witness by the ab
 boundary. Operations between abstract states are operations between witnesses, with no numerics
 involved; they are essentially structural moves on a graph of typed assertions.
 
-\subsection{Decision 5: State identity is type plus provenance ($\alpha$ + provenance)}
-\label{ssec:identity}
 
-\textbf{Chosen:} An abstract state $s$ is a tuple $(\tau, \pi)$ where $\tau$ is a physics type
-(\texttt{Dispersion}, \texttt{ForceConstants}, etc.) and $\pi$ is the \emph{approximation
-provenance}: an ordered sequence of operations whose composition produced $s$. Two states are
-equal iff their types are equal and their provenances are equal. Discretization is \emph{not} a
-component of identity in the abstract world; it lives in the materialization.
+\subsection{Symbolic operation}
 
-\textbf{Considered:}
-\begin{itemize}[leftmargin=2em]
-  \item \emph{Type alone (model $\alpha$).} Identity is just $\tau$. \textbf{Rejected} because
-        two states with the same type but different approximation history have different total
-        approximation errors and should be distinguishable.
-  \item \emph{Type + discretization (model $\beta$).} Identity is $\tau$ together with the
-        discretization parameters. \textbf{Rejected} because it conflates physics with numerics:
-        the abstract dispersion of silicon is one physical fact; the numerical estimates of it
-        are many. Putting discretization in the type forced the substrate to lose the
-        abstract-vs-numeric separation that is its central principle. (See \S\ref{ssec:why-not-beta}.)
-  \item \emph{Type + discretization + provenance (model $\gamma$).} \textbf{Rejected as
-        identity} because it is too tight: any difference of implementation, even one that does
-        not affect physics, makes states unequal. Recovered partially by \emph{provenance} alone
-        in the abstract world: equivalence under discretization is a separate question handled
-        by materialization.
-\end{itemize}
+A symbolic operation $\mathcal{O}$ is a typed map between abstract states,
+\begin{equation}
+  \mathcal{O} : \tau_{\text{in}_1} \times \tau_{\text{in}_2} \times \cdots \to \tau_{\text{out}},
+\end{equation}
+equipped with an approximation error formula $\epsilon_{\mathcal{O}}$. The error is a symbolic
+expression in physical small parameters (e.g., $\lambda$ for the strength of a perturbation, $T/T^*$
+for a Sommerfeld expansion). Exact operations have $\epsilon_{\mathcal{O}} = 0$. Approximating
+operations have $\epsilon_{\mathcal{O}} = O(p^k)$ for some parameter $p$ and order $k$ that
+depend on the operation.
 
-\textbf{Why provenance is essential:} provenance is the carrier of approximation error.
-Each operation in $\pi$ contributes its own error formula $\epsilon_{\mathcal{O}}$. The total
-approximation error on $s$ is the composition of these along $\pi$. Without provenance, errors
-cannot be tracked; the substrate would have no way to distinguish, say, ``the dispersion computed
-via direct diagonalization of an exact harmonic operator'' from ``the dispersion computed by
-truncating a fourth-order Taylor expansion at second order.'' Both are
-\texttt{Dispersion[harmonic]} by type but they have different error histories.
 
-\subsubsection{Why model $\beta$ is wrong even though it looks reasonable}
-\label{ssec:why-not-beta}
-
-It is tempting to put discretization in the type because convergence claims feel like properties
-of states (``dispersion at mesh $4{\times}4{\times}4$ is converged to within $\delta$''). But this
-is a category error: convergence is not a property of one state, it is a relationship between an
-abstract state and its materializations as a discretization parameter is varied. Putting
-discretization in the type concretizes a relation that should remain relational, and it forces
-every type to know about every discretization scheme. The right model is to keep abstract states
-discretization-free and treat convergence as a theorem about families of materializations.
-
-\subsubsection{What ``operation'' means in provenance: parameterized identity}
-\label{ssec:parameterized-operation-identity}
+\paragraph{Operation identity is parameterized.}\label{ssec:parameterized-operation-identity}
 
 Several operations in the substrate carry method choices that affect physics: the scattering
 processes included (3-phonon only, or 3-phonon plus isotopic, or with boundary scattering), the
@@ -385,353 +345,6 @@ enforce this dependence. Third, the substrate is structurally compatible with de
 theory: when transliterated to a system like Lean, the parameter values lift to type-level
 indices and the dependence becomes formal.
 
-\subsection{Decision 6: Discretization is a property of materialization, not of state}
-\label{ssec:discretization}
-
-\textbf{Chosen:} A discretization scheme $\Sigma = (N_1, \ldots, h_1, \ldots)$ together with an
-error model $\epsilon_{\Sigma}(N_1, \ldots; h_1, \ldots)$ is part of a materialization, not of an
-abstract state. Continuum-to-discrete is an operation that lives at the abstract/numeric
-boundary, not within the abstract world.
-
-\textbf{Considered:}
-\begin{itemize}[leftmargin=2em]
-  \item \emph{Refinement types (discretization in the type).} See \S\ref{ssec:why-not-beta}.
-  \item \emph{Implicit (discretization in the operation).} The state has no discretization, but
-        every operation takes a mesh as a parameter. \textbf{Rejected} because it conflates
-        operation parameters with state parameters; the same operation should be usable at any
-        discretization, and the discretization should travel with the materialized output.
-\end{itemize}
-
-\textbf{Why it matters:} this is the technical instantiation of the two-worlds principle. Without
-this decision, the abstract/numeric separation cannot be maintained.
-
-\subsection{Decision 7: Errors are designed-for, but full composition is deferred to Phase 2}
-\label{ssec:errors}
-
-\textbf{Chosen:} The substrate is designed to support quantified, symbolic, composable errors at
-every layer---approximation errors on operations, discretization errors on materializations,
-combined into total errors at the abstract/numeric boundary. The Phase 1 implementation, however,
-deliberately defers the implementation of error composition. Operations and materializations
-carry their type signatures, names, and provenance, so that error metadata can be added later
-without redesigning the type system. But the symbolic algebra of error composition---what
-$O(\lambda^4)$ composed with $O(N^{-2})$ actually evaluates to under various operation
-types---is not part of the Phase 1 substrate.
-
-\textbf{Why we defer:} the error-composition algebra is itself a research subproblem rather than
-an engineering task. Composing two errors in independent small parameters is well-defined;
-composing two errors in the same parameter requires care; composing constant-offset errors
-(e.g., basis-set incompleteness) with asymptotic ones requires a different rule again. Designing
-the algebra requires concrete worked examples; building the substrate first and discovering the
-composition cases organically is a healthier ordering than designing the algebra in advance.
-
-\textbf{What remains in Phase 1:} the type system retains the \emph{shape} required for errors:
-operations carry an optional approximation-metadata field, discretization schemes carry an
-optional error-model field, and the materialization type has a slot for total error. These slots
-are populated with placeholder values in Phase 1 (operation names, mesh parameters without error
-models, etc.) and the type system is designed so that adding error formulas later does not
-require type changes elsewhere.
-
-\textbf{Considered:}
-\begin{itemize}[leftmargin=2em]
-  \item \emph{Numeric-only errors.} Errors are scalars (e.g., a single $\pm \delta$ on each
-        result). \textbf{Rejected} as the long-term target because the substrate cannot then
-        explain \emph{which} approximation or \emph{which} discretization is responsible; the
-        diagnostic value of explicit symbolic forms is the substrate's distinctive feature.
-  \item \emph{Worst-case-only.} Track only the largest error term at each step.
-        \textbf{Rejected} for the same reason: it loses the decomposability that distinguishes a
-        result converged in discretization but uncertain in approximation from one fully
-        approximated but undersampled.
-  \item \emph{Skip errors entirely.} Build a substrate without any error machinery, even as
-        placeholders. \textbf{Rejected} because retrofitting errors later would require type
-        changes throughout. The Phase 1 type system reserves the slots even though it does not
-        yet populate them.
-\end{itemize}
-
-\textbf{Why it still matters:} the long-term promise of the substrate is a workflow that yields
-``$\kappa = 138 \pm 6.3\,\mathrm{W/(m\,K)}$, decomposing as $\pm 2.1$ from the k-mesh, $\pm 3.8$
-from the truncation of the perturbation series, $\pm 0.4$ from the displacement step''---a
-qualitatively new artifact in the field. Phase 1 builds the substrate that will eventually
-produce this; Phase 1 itself produces the central value and a structural diagnosis of where
-codes diverge, but not the symbolic decomposition.
-
-\subsection{Decision 8: PhysLean is a reference target, not a foundation}
-\label{ssec:physlean}
-
-\textbf{Chosen:} The substrate does not depend on PhysLean for its initial implementation. The
-abstract layer is designed to be \emph{compatible} with PhysLean (its types should embeddable
-into Lean for verification), but PhysLean is not on the build path or the dependency graph.
-
-\textbf{Considered:}
-\begin{itemize}[leftmargin=2em]
-  \item \emph{Live inside PhysLean.} Contribute kaldo-relevant physics as a PhysLean module
-        (e.g., \texttt{PhysLean/CondensedMatter/PhononTransport}). \textbf{Deferred.} PhysLean is
-        a small community whose conventions are designed for proof libraries, not for
-        computational specification. Adopting their type design would constrain the substrate
-        in ways orthogonal to its purpose.
-  \item \emph{Live alongside PhysLean.} Build a Lean library that imports PhysLean for shared
-        primitives. \textbf{Deferred.} Reasonable but premature: we have not yet decided whether
-        the abstract layer will be implemented in Lean at all in the near term. The right time
-        to make this decision is after the substrate's Python prototype has stabilized.
-  \item \emph{Live in parallel; ignore PhysLean.} \textbf{Rejected} as a final position because it
-        forecloses the verification story. We may rebuild some primitives that PhysLean already
-        has, but we should not redesign them in ways that make later integration impossible.
-  \item \emph{Write our own metalanguage.} Build a typed DSL specialized for materials physics.
-        \textbf{Deferred} for the same reason as Lean integration: we do not yet know whether
-        the substrate's needs are sufficiently divergent from existing typed-language
-        infrastructure to justify rolling our own. If the eventual Lean integration is
-        unworkable, this option re-opens.
-\end{itemize}
-
-\textbf{Why it matters:} the verification-via-Lean story is the substrate's long-term ambition,
-not its short-term deliverable. We commit to keeping that ambition reachable but we do not pay
-its cost on Day 1.
-
-\subsubsection{Three design disciplines that keep Lean transliteration cheap}
-\label{ssec:lean-disciplines}
-
-``Lean-compatible'' is structural rather than syntactic. The substrate's Python implementation
-will not be Lean code, but it should be \emph{shaped} so that the Lean version is a
-transliteration rather than a redesign. We commit to three disciplines that protect this option.
-
-\begin{enumerate}[leftmargin=2em]
-  \item \textbf{Closed unions for physics types.} The registry of physics types
-        (\texttt{Potential}, \texttt{ForceConstants}, \texttt{Dispersion},
-        \texttt{ScatteringRates}, \ldots) is exhaustive and closed---implemented in Python via
-        sealed enums or tagged unions, not via open class inheritance. Lean represents these as
-        inductive types with a fixed list of constructors; closed unions in Python preserve this
-        structure exactly. Open inheritance would require redesign at the Lean stage.
-  \item \textbf{No physics invariants encoded in Python types.} Properties such as ``a
-        force-constant tensor is symmetric under the appropriate index exchanges'' or ``the
-        eigenvectors of a dynamical matrix are orthonormal'' are documented as informal
-        invariants on each type but \emph{not} enforced by the Python type system. In Lean these
-        invariants become formal proof obligations attached to the corresponding types. Trying
-        to encode them in Python (via runtime assertions or pydantic validators) creates a layer
-        of checks that does not transliterate and risks coupling the implementation to
-        Python-specific idioms.
-  \item \textbf{Operation parameters always recorded in output state metadata.} When an operation
-        carries parameters that affect physics (\S\ref{ssec:parameterized-operation-identity}),
-        Python's type system will not enforce the dependence of the output type on those
-        parameters, but the output state's metadata must still record them. In Lean these
-        parameters lift to type-level indices, and the type-level dependence is enforced
-        formally; in Python they are runtime metadata that downstream operations and provenance
-        machinery treat as part of the operation's identity.
-\end{enumerate}
-
-These disciplines are inexpensive to follow from day one and prohibitive to retrofit. They keep
-the transliteration cost low without committing the substrate to Lean tooling we do not yet
-need.
-
-\subsection{Decision 9: Demo is three-code unification at overlap level B}
-\label{ssec:demo}
-
-\textbf{Chosen:} The first demonstration is the unification of three established lattice
-thermal-transport codes (kaldo, phono3py, ShengBTE) within the substrate, at \emph{overlap level
-B}: each code contributes a small DAG of $\sim$10--15 nodes corresponding to canonical
-intermediate quantities that the code already exposes internally. Examples: force constants,
-dynamical matrix, dispersion, group velocities, scattering rates, BTE solution, mode-resolved
-$\kappa$, total $\kappa$.
-
-\textbf{Considered:}
-\begin{itemize}[leftmargin=2em]
-  \item \emph{Overlap level A: boundary-only.} Each code is a black box with two nodes
-        (\texttt{ForceConstants} in, $\kappa$ out). \textbf{Rejected} because it gives no
-        diagnostic insight: when two codes disagree, the substrate cannot localize the
-        divergence.
-  \item \emph{Overlap level C: full execution graph.} Every internal computation is a node.
-        \textbf{Rejected} because the codes do not expose this level cleanly, the resulting
-        graphs would have hundreds of nodes per code, and the cross-code alignment problem
-        becomes impractical.
-\end{itemize}
-
-\textbf{Why it matters:} level B is the granularity at which physicists already think about
-phonon-transport workflows. The canonical intermediates are textbook quantities. Each code
-internally computes most of them; a few require minor patches or output-file parsing to extract.
-The size is small enough that adapter work is feasible, and the alignment is rich enough to be
-diagnostically useful.
-
-\subsection{Decision 10: The abstract root is the potential, not the force constants}
-\label{ssec:potential-root}
-
-\textbf{Chosen:} The abstract DAG is rooted at \texttt{Potential}---a typed witness for the
-Born--Oppenheimer potential energy surface $V(\{\mathbf{R}_i\})$ of a material as a continuum
-mathematical object. Force constants of every order are \emph{derived} states obtained by
-extracting derivatives of the potential and truncating the Taylor expansion at a chosen order.
-Every materialization in the substrate ultimately traces back to \texttt{Potential}.
-
-\textbf{The Taylor structure.} The potential's Taylor expansion around an equilibrium
-configuration,
-\begin{equation}
-  V(\{\mathbf{R}_i\}) = V_0 + \sum_{n \geq 2} \frac{1}{n!} \sum_{i_1,\ldots,i_n} \Phi^{(n)}_{i_1\ldots i_n}\, u_{i_1} \cdots u_{i_n},
-\end{equation}
-defines a hierarchy of operators $\Phi^{(n)} = \partial^n V / \partial u^n |_0$. The substrate
-treats:
-\begin{itemize}[leftmargin=2em]
-  \item $V$ itself as the abstract root state \texttt{Potential};
-  \item $\mathrm{trunc}_n(V)$, the truncation of the Taylor expansion at order $n$, as a
-        symbolic operation with approximation error $O(u^{n+1})$;
-  \item $\Phi^{(n)} = \mathrm{extract\_derivative}(V, n)$ as a symbolic operation producing an
-        abstract \texttt{ForceConstantOperator} of order $n$, exact in the abstract world (the
-        Taylor coefficients of an analytic function are well-defined regardless of how they are
-        numerically obtained);
-  \item the materialization of $\Phi^{(n)}$ on a chosen supercell with a chosen displacement
-        scheme as the \texttt{ForceConstants[order=$n$]} we previously treated as a parameter.
-\end{itemize}
-
-\textbf{Why this is the right root.} Three reasons motivate the change from the more pragmatic
-``force constants as parameter state'' framing.
-
-\begin{enumerate}[leftmargin=2em]
-  \item \emph{Single source.} Every materialization the substrate produces---force constants,
-        dispersion, scattering rates, $\kappa$---ultimately traces back to a single abstract
-        object: the potential of this material. This is philosophically correct (the
-        Born--Oppenheimer approximation is precisely the statement that everything follows from
-        $V(\{\mathbf{R}_i\})$) and architecturally clean (no orphan parameter states scattered
-        around the DAG).
-  \item \emph{Cross-method comparison becomes structural.} ``DFT-DFPT-derived force constants
-        vs.\ LAMMPS-Tersoff-finite-difference vs.\ MACE-MP-0-autodiff'' are no longer three
-        different parameter states, but three different materializations of the \emph{same}
-        derived state, differing only in the materialization functor used to compute the
-        derivative. The substrate makes this comparison first-class.
-  \item \emph{Approximation order becomes first-class.} The truncation of the Taylor series at
-        order $n$ has a known approximation error and explicit alternatives (third-order,
-        fourth-order, etc.). Including or excluding four-phonon scattering is then a single
-        truncation choice rather than a method change. Future codes that compute fourth-order
-        terms (FourPhonon, ALMA-BTE) materialize from the same abstract DAG with a different
-        truncation choice.
-\end{enumerate}
-
-\textbf{Considered:}
-\begin{itemize}[leftmargin=2em]
-  \item \emph{Force constants as parameter state} (the pragmatic alternative). The DAG starts
-        at \texttt{ForceConstants[order=2]} and \texttt{ForceConstants[order=3]} as parameter
-        states, with provenance metadata describing how they were produced.
-        \textbf{Considered, not chosen} because it disconnects the substrate from the physics
-        that justifies the force-constant approximation: the choice of truncation order, the
-        method of derivative extraction, and the underlying potential are all collapsed into
-        opaque metadata. The substrate that follows from this choice is correct but shallow.
-        Adopting the potential as root preserves the same Phase 1 scope (see below) but with a
-        principled architecture instead of a pragmatic one.
-  \item \emph{Structure as parameter state.} The DAG starts at the unrelaxed crystal
-        structure, with vc-relax, supercell choice, basis-set selection, and so on as upstream
-        operations. \textbf{Rejected for Phase 1} because it expands the scope to full DFT
-        workflow management, most of which is not specific to thermal transport. The substrate
-        does not preclude this elaboration in later phases.
-\end{itemize}
-
-\textbf{What this means for Phase 1: the upstream is stubbed.} Adopting the potential as root
-does not require us to model the full upstream in Phase 1. The Phase 1 scope is:
-
-\begin{itemize}[leftmargin=2em]
-  \item \texttt{Potential} is declared as an abstract type and is the formal root of the DAG.
-  \item The upstream operations \texttt{trunc\_n} and \texttt{extract\_derivative} are
-        declared as symbolic operations with their type signatures and named approximation
-        errors, but their internal symbolic mechanics are not implemented.
-  \item Each adapter (kaldo, phono3py, ShengBTE) is required to declare which potential it
-        materializes from and which derivative-extraction method it uses, recorded as
-        provenance on the resulting force-constant materialization.
-  \item The substrate does not yet \emph{compute} anything at the upstream level (no symbolic
-        differentiation, no truncation algebra, no error propagation across the upstream
-        operations). The upstream is a typed scaffold whose contents are populated by
-        downstream materializations.
-\end{itemize}
-
-This stubbed approach lets us start the Phase 1 demonstration at force-constant materialization
-(the practical entry point of all three codes) while keeping the architecture honest about where
-the abstract root really lives. Phase 2 elaborates the upstream: explicit modeling of
-parametric, ML, and DFT-functional potentials; explicit operations for derivative extraction
-(DFPT, finite difference, autodiff); cross-method studies of force-constant production from the
-same potential.
-
-\subsection{Decision 11: Future extensions land cleanly in the same framework}
-\label{ssec:extensions}
-
-The substrate is designed so that the following extensions are additive and do not require
-redesign:
-
-\begin{itemize}[leftmargin=2em]
-  \item \textbf{Experimental data as a fourth functor.} Measured observables (e.g., Raman
-        peaks, neutron-scattering structure factors, time-domain thermoreflectance $\kappa$)
-        become \emph{materializations of abstract states} produced by an experimental functor
-        rather than a computational one. Theory-experiment comparison is then graph-alignment
-        between materializations sharing a common abstract parent, exactly as for cross-code
-        comparison.
-  \item \textbf{LLM operating over typed states.} A learning layer above the substrate is an
-        agent whose action space is the set of symbolic operations on the substrate's typed
-        state graph. Workflow construction becomes a sequence of typed actions whose
-        well-formedness is checkable by the substrate, mitigating the drift problem of
-        text-token agents.
-  \item \textbf{Paper-parsing as a third source.} Papers describe physics in the abstract world
-        plus enough numerical detail to reproduce it. A paper-to-substrate parser produces an
-        abstract DAG (from the equations) plus a discretization scheme (from the methods
-        section). This is harder than code-parsing because of notation drift and omitted
-        details; it is the right Phase III ambition, not Phase I work.
-\end{itemize}
-
-These extensions are documented here not to commit to them now but to verify that the substrate's
-shape does not preclude them.
-
-\section{Formal Definitions}
-\label{sec:defs}
-
-We collect the formal definitions implied by the decisions above.
-
-\subsection{Abstract state}
-
-An abstract state $s$ is a tuple $(\tau, \pi)$ where:
-\begin{itemize}[leftmargin=2em]
-  \item $\tau$ is a \emph{physics type} drawn from a finite registry: derived types
-        include \texttt{ForceConstantOperator[order=$n$]}, \texttt{ForceConstants[order=$n$]},
-        \texttt{Dispersion}, \texttt{ScatteringRates}, \texttt{BoltzmannSolution},
-        \texttt{ThermalConductivity}; parameter types include \texttt{Potential} (the abstract
-        root, stubbed in Phase 1; see~\S\ref{ssec:potential-root}), \texttt{LatticeConstant},
-        \texttt{Temperature}, \texttt{Pressure}, and measured-observable types;
-  \item $\pi$ is the \emph{provenance}: an ordered list $[\mathcal{O}_1, \mathcal{O}_2,
-        \ldots, \mathcal{O}_n]$ of symbolic operations whose composition produced $s$, or the
-        empty list if $s$ is given (a parameter state, see below).
-\end{itemize}
-Two abstract states $(\tau_1, \pi_1)$ and $(\tau_2, \pi_2)$ are equal iff $\tau_1 = \tau_2$ and
-$\pi_1 = \pi_2$. The composed approximation error on $s$ (a Phase 2 capability; see
-\S\ref{ssec:errors}) would be
-\begin{equation}
-  \epsilon_{\text{approx}}(s) = \mathrm{compose}\bigl(\epsilon_{\mathcal{O}_1},\, \epsilon_{\mathcal{O}_2},\, \ldots,\, \epsilon_{\mathcal{O}_n}\bigr).
-\end{equation}
-
-\paragraph{Derived versus parameter states.} Abstract states fall into two kinds:
-\begin{itemize}[leftmargin=2em]
-  \item \emph{Derived states} have non-empty provenance: they are produced by symbolic operations
-        from other states. Examples: \texttt{ForceConstants[order=$n$]} (derived from
-        \texttt{Potential} via \texttt{extract\_derivative} and \texttt{trunc\_n};
-        see~\S\ref{ssec:potential-root}), \texttt{Dispersion}, \texttt{ScatteringRates},
-        \texttt{BoltzmannSolution}, the computed $\kappa$.
-  \item \emph{Parameter states} have empty provenance: they are empirical inputs (lattice
-        constant, temperature, pressure, applied field), the abstract \texttt{Potential} itself
-        (Phase 1 stubs the upstream of the potential), or measured observables (a thermal
-        conductivity reported from a TDTR experiment, a Raman peak). The materialization of a
-        parameter state is the value supplied externally (e.g., $5.43\,\textup{\AA}$ for the
-        lattice constant of silicon, or $T = 300\,\text{K}$); its discretization scheme is
-        trivial (a singleton choice rather than a refinable mesh) but its error is still
-        meaningful (experimental uncertainty, or definitional precision).
-\end{itemize}
-Both kinds inhabit the same type and follow the same machinery for materialization. Parameter
-states are the architectural answer to several otherwise awkward cases: empirical inputs
-(``where does the lattice constant live?''), experimental observables (``how does a measured
-$\kappa(T)$ enter the substrate?''), and the unmodeled abstract root in Phase 1 (``what is the
-silicon potential, before we differentiate it?''). All three are materializations of parameter
-states; the second is what makes the unified theory-experiment comparison framework native
-rather than bolted-on; the third is how Phase 1 stubs the upstream of \texttt{Potential} without
-yet modeling it in detail.
-
-\subsection{Symbolic operation}
-
-A symbolic operation $\mathcal{O}$ is a typed map between abstract states,
-\begin{equation}
-  \mathcal{O} : \tau_{\text{in}_1} \times \tau_{\text{in}_2} \times \cdots \to \tau_{\text{out}},
-\end{equation}
-equipped with an approximation error formula $\epsilon_{\mathcal{O}}$. The error is a symbolic
-expression in physical small parameters (e.g., $\lambda$ for the strength of a perturbation, $T/T^*$
-for a Sommerfeld expansion). Exact operations have $\epsilon_{\mathcal{O}} = 0$. Approximating
-operations have $\epsilon_{\mathcal{O}} = O(p^k)$ for some parameter $p$ and order $k$ that
-depend on the operation.
 
 \subsection{Abstract workflow}
 
@@ -788,6 +401,43 @@ $\epsilon_{\text{disc}}(m)$ are recovered separately, so a result that is conver
 discretization but uncertain in approximation is distinguishable from one that is fully
 approximated but undersampled.
 
+
+\section{Lean-compatibility disciplines}
+\label{sec:lean-disciplines}
+
+``Lean-compatible'' is structural rather than syntactic. The substrate's Python implementation
+will not be Lean code, but it should be \emph{shaped} so that the Lean version is a
+transliteration rather than a redesign. We commit to three disciplines that protect this option.
+
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{Closed unions for physics types.} The registry of physics types
+        (\texttt{Potential}, \texttt{ForceConstants}, \texttt{Dispersion},
+        \texttt{ScatteringRates}, \ldots) is exhaustive and closed---implemented in Python via
+        sealed enums or tagged unions, not via open class inheritance. Lean represents these as
+        inductive types with a fixed list of constructors; closed unions in Python preserve this
+        structure exactly. Open inheritance would require redesign at the Lean stage.
+  \item \textbf{No physics invariants encoded in Python types.} Properties such as ``a
+        force-constant tensor is symmetric under the appropriate index exchanges'' or ``the
+        eigenvectors of a dynamical matrix are orthonormal'' are documented as informal
+        invariants on each type but \emph{not} enforced by the Python type system. In Lean these
+        invariants become formal proof obligations attached to the corresponding types. Trying
+        to encode them in Python (via runtime assertions or pydantic validators) creates a layer
+        of checks that does not transliterate and risks coupling the implementation to
+        Python-specific idioms.
+  \item \textbf{Operation parameters always recorded in output state metadata.} When an operation
+        carries parameters that affect physics (\S\ref{ssec:parameterized-operation-identity}),
+        Python's type system will not enforce the dependence of the output type on those
+        parameters, but the output state's metadata must still record them. In Lean these
+        parameters lift to type-level indices, and the type-level dependence is enforced
+        formally; in Python they are runtime metadata that downstream operations and provenance
+        machinery treat as part of the operation's identity.
+\end{enumerate}
+
+These disciplines are inexpensive to follow from day one and prohibitive to retrofit. They keep
+the transliteration cost low without committing the substrate to Lean tooling we do not yet
+need.
+
+
 \section{First Demonstration: Lattice Thermal Transport}
 \label{sec:demo}
 
@@ -798,7 +448,7 @@ transport equation.
 \subsection{The abstract DAG}
 
 The abstract DAG begins at \texttt{Potential} (the Born--Oppenheimer potential of the material,
-treated as a parameter state in Phase 1; see~\S\ref{ssec:potential-root}) and exposes the
+treated as a parameter state in Phase 1) and exposes the
 following canonical states:
 
 \begin{itemize}[leftmargin=2em]
@@ -1020,7 +670,7 @@ We have committed to Python for Sprint 1. The trade-offs were:
         the start. Rejected for Sprint 1 because the foreign-function interface to existing
         Python codes adds friction proportional to the substrate's surface, and we want
         substrate iteration to be cheap.
-  \item \emph{Lean.} Considered (\S\ref{ssec:physlean}) and deferred. Not the right tool for
+  \item \emph{Lean.} Considered as a future projection target and deferred. Not the right tool for
         running scientific computations; reserved as a verification target.
 \end{itemize}
 
