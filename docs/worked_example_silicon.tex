@@ -586,38 +586,88 @@ same q-mesh, aligned them by q-grid permutation, and computed mode-by-mode ratio
         per mode, phono3py in $\mathrm{eV/K}$ per mode. Each code uses its own units consistently inside
         its $\kappa$ formula, so the final $\kappa$ in $\mathrm{W/m\,K}$ agrees, but the materialised
         state has two different numerical realisations.
-  \item \textbf{Linewidth ratio has a constant offset of $4\pi$ plus per-mode variation:} mean
-        $\Gamma^{\rm kaldo}/\Gamma^{\rm ph3} = 12.483 \approx 4\pi$ (with $4\pi \approx 12.566$);
-        relative std $0.034$, range $[9.5, 13.8]$. The constant is an angular-vs-linear-frequency
-        convention (kaldo's Gaussian $\delta$-replacement integrates against $\omega$ where
-        phono3py's integrates against $\nu = \omega/2\pi$, propagating a $(2\pi)^2 = 4\pi^2$ through
-        the kernel norm \emph{and} a $2\pi$ from the Gaussian $\sigma$ width into the conversion).
-        The 3.4\% per-mode variation is \emph{not} a unit issue --- it is a genuine algorithmic
-        difference, most plausibly in the q-space normalisation of $|V_3|^2$ or the placement of the
-        scattering matrix elements in the integration.
+  \item \textbf{Linewidth ratio has a $4\pi$ leading offset plus mode-dependent multiples of $\pi$:}
+        the ratio $\Gamma^{\rm kaldo}/\Gamma^{\rm ph3}$ averages $12.48 \approx 4\pi$, but a
+        mode-resolved breakdown is much richer. Sorting frequencies within each q-point and binning
+        by mode index (lowest to highest):
+        \begin{center}
+        \renewcommand{\arraystretch}{1.1}
+        \footnotesize
+        \begin{tabular}{c|c|c|c}
+        \toprule
+        mode & mean $\langle\omega\rangle$ (THz) & mean ratio$/4\pi$ & approx convention factor \\
+        \midrule
+        0 (TA-like)        & 2.6  & 1.12 & $4\pi \times 1$  \\
+        1 (TA-like)        & 3.1  & 0.97 & $4\pi \times 1$  \\
+        2 (mid-optical)    & 8.5  & 1.80 & $\sim 7\pi$      \\
+        3 (high-optical)   & 13.7 & 1.99 & $8\pi \times 1$  \\
+        4 (TO-near-max)    & 15.9 & 0.86 & $\sim 3.4\pi$    \\
+        5 (LO-near-max)    & 16.0 & 0.57 & $\sim 2.3\pi$    \\
+        \bottomrule
+        \end{tabular}
+        \end{center}
+        The pattern is more structured than a simple unit-conversion: the leading $4\pi$ is the
+        angular-vs-linear-frequency convention (kaldo's Gaussian $\delta$-replacement integrates
+        against $\omega$ where phono3py's integrates against $\nu = \omega/2\pi$), but the
+        per-mode multipliers are themselves multiples of $\pi$, suggesting that the codes
+        distribute the 3-phonon permutation-symmetry prefactor differently across modes,
+        N-vs-U processes, and population branches.
+\end{itemize}
+
+\paragraph{Located: structural prefactor difference in the $\Gamma$ formula.} Reading the actual
+kernels:
+
+\begin{description}[leftmargin=2em, itemsep=0.4em]
+  \item[kaldo] (\texttt{kaldo/phonons.py:1101}):
+        $\Gamma$ prefactor $= \pi\hbar/4 \cdot \mathtt{GAMMA\_TO\_THZ}\,/\,\omega$ with the
+        $|V_3|^2$ tensor itself carrying a factor $1/(\omega'\omega'')$.
+  \item[phono3py] (\texttt{phono3py/phonon3/imag\_self\_energy.py:200}):
+        $\Gamma$ prefactor $= 18\pi /(\hbar\,\mathrm{eV})^2 /(2\pi\,\mathrm{THz})^2 \cdot \mathrm{eV}^2$
+        with $|V_3|^2$ carrying a factor $1/(8\,\omega\omega'\omega'')$.
+\end{description}
+
+Both formulas are nominally equivalent; the difference is in the bookkeeping. \textbf{phono3py
+carries an explicit factor of 18 from 3-phonon permutation symmetry; kaldo absorbs the same
+permutation symmetry differently through \texttt{GAMMA\_TO\_THZ} and an external $1/\omega$.} Two
+adapters that nominally compute ``the same'' linewidth produce numerically different values for
+modes where the permutation counting matters differently (e.g.\ degenerate triplets, N-process
+vs U-process splits, near-degenerate modes at zone-edge). The 4--6\% RTA $\kappa$ residual is
+the integral of these per-mode multiplicative discrepancies under the BTE solver.
 \end{itemize}
 
 The per-mode $\Gamma$ variation is the source of the residual $\sim$5\% RTA gap. Direct/LBTE
 absorbs more of this into the off-diagonal collision matrix and converges to within 0.4\% --- which
 explains why direct agrees better than RTA at fixed $\sigma$.
 
-\paragraph{What the substrate learns from this.} The principle is larger than the
+\paragraph{What the substrate learns from this.} Two principles, larger than the
 $\sigma$-normalisation finding:
 
 \medskip
-\noindent\textit{Same numerical materialisation does not imply same numerical value across
-adapters.} \texttt{HeatCapacity}, \texttt{Linewidth}, and similar derived states carry implicit
-\emph{unit conventions} and \emph{prefactor conventions} that vary across codes. The substrate's
-\texttt{Materialization} type must include a \texttt{unit\_convention} field on its
-discretisation scheme. Cross-adapter comparisons must convert before equating; raw numerical
-equality is meaningless across adapter boundaries.
+\noindent\textsc{Principle (numerics).} \emph{Same numerical materialisation does not imply same
+numerical value across adapters.} \texttt{HeatCapacity}, \texttt{Linewidth}, and similar derived
+states carry implicit \emph{unit conventions} and \emph{prefactor conventions} that vary across
+codes. The substrate's \texttt{Materialization} type must include a \texttt{unit\_convention} field
+on its discretisation scheme.
+
+\medskip
+\noindent\textsc{Principle (counting).} \emph{Two adapters that compute the same abstract operation
+may distribute the operation's prefactor across structurally different sub-channels.} kaldo and
+phono3py both compute the same $\Gamma_{q\nu}$ as a sum over $(q', q'', \nu', \nu'')$ triplets, but
+they distribute the 3-phonon permutation-symmetry factor (the ``18'' in phono3py's prefactor)
+differently. The ``correct'' total is the same; the per-mode contributions are not. The substrate's
+\texttt{compute\_scattering\_rates} operation must therefore expose, in addition to
+\texttt{broadening\_kind} and \texttt{sigma}, a \texttt{permutation\_distribution} parameter
+recording how the symmetry factor is split. Without it, two materialisations of
+\texttt{ScatteringRates} with the same nominal operation identity diverge by mode-dependent
+multiples of $\pi$.
 
 \medskip
 This is also a falsifiable substrate prediction: when ShengBTE is added, its
-\texttt{Linewidth} materialisation will have its own offset and its own per-mode pattern.
-The substrate should expose both --- the constant unit factor as a label, the per-mode
-variation as a second-order discrepancy attributable to specific operation parameters
-(symmetry weighting, $|V_3|^2$ normalisation, $\delta$-placement) yet to be enumerated.
+\texttt{Linewidth} materialisation will exhibit (a) its own constant unit offset (likely a different
+multiple of $\pi$) and (b) its own per-mode pattern reflecting its own symmetry-distribution
+choice. The substrate's job is to expose both --- the constant factor as a unit label, the
+per-mode variation as a \texttt{permutation\_distribution} parameter --- so that cross-code
+comparison after adapter alignment is meaningful.
 
 % =================================================================================
 \section{\texttt{ThermalConductivity} (brief)}
