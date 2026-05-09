@@ -30,9 +30,18 @@ docs/*.fls
 docs/*.fdb_latexmk
 docs/*.synctex.gz
 
+# run outputs (large, regenerable, per-execution)
+runs/
+
+# experiment scratch (generated displaced supercells, force files, etc.)
+experiments/*/scratch/
+experiments/*/__pycache__/
+
 # editors / OS
 .vscode/
 .idea/
 .DS_Store
 *.swp
 *~
+log.lammps
+experiments/*/log.lammps

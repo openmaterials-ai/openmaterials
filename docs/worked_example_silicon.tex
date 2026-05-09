@@ -1,0 +1,503 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage[hidelinks]{hyperref}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage[expansion=false]{microtype}
+\usepackage{tcolorbox}
+\tcbuselibrary{breakable}
+
+\definecolor{abstrcol}{HTML}{2C5F8A}
+\definecolor{kaldocol}{HTML}{8B3A3A}
+\definecolor{phonocol}{HTML}{2D6A4F}
+
+\titleformat{\section}{\Large\bfseries\color{abstrcol}}{\thesection}{1em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{1em}{}
+
+\newtcolorbox{abstractbox}{
+  colback=abstrcol!4, colframe=abstrcol, boxrule=0.4pt, arc=2pt,
+  fonttitle=\bfseries\color{white}, title=Abstract, coltitle=white,
+  colbacktitle=abstrcol, breakable
+}
+\newtcolorbox{kaldobox}{
+  colback=kaldocol!4, colframe=kaldocol, boxrule=0.4pt, arc=2pt,
+  fonttitle=\bfseries\color{white}, title=Materialization in kaldo, coltitle=white,
+  colbacktitle=kaldocol, breakable
+}
+\newtcolorbox{phonobox}{
+  colback=phonocol!4, colframe=phonocol, boxrule=0.4pt, arc=2pt,
+  fonttitle=\bfseries\color{white}, title=Materialization in phonopy / phono3py, coltitle=white,
+  colbacktitle=phonocol, breakable
+}
+
+\title{Worked Example: Silicon, kaldo vs.\ phonopy}
+\author{}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\noindent\emph{This document maps the substrate's abstract states and operations onto the
+concrete materializations produced by kaldo and phonopy/phono3py for crystalline silicon. It is
+the first contact between the architecture (\texttt{docs/symbolic\_substrate.pdf}) and real
+physics. Equations are precise where kaldo and phonopy actually differ and sketchy where they
+do not. The exercise stops at \texttt{Dispersion}; scattering rates and the BTE solver are the
+next deliverable.}
+
+\bigskip
+
+\section{Setup}
+
+\paragraph{System.} Crystalline silicon, diamond structure, primitive cell with two atoms per
+unit cell.
+
+\paragraph{Scope.} Lattice thermal transport via the linearized Boltzmann transport equation,
+restricted to the harmonic approximation plus three-phonon scattering. Quantum statistics
+($f_{\text{BE}}$). Quasi-harmonic Green--Kubo and four-phonon scattering deferred to later
+phases.
+
+\paragraph{Reference codes.}
+\begin{itemize}[leftmargin=2em, itemsep=0pt]
+  \item \textbf{kaldo} (Python). High-level API: \texttt{ForceConstants}, \texttt{Phonons},
+        \texttt{Conductivity}. Lazy evaluation; intermediate states exposed as attributes.
+  \item \textbf{phonopy + phono3py} (Python+C). CLI-driven workflow, intermediate quantities in
+        HDF5 files. Phonopy handles harmonic; phono3py handles anharmonic transport.
+\end{itemize}
+
+\paragraph{Conventions.} Notation follows kaldo where it is unambiguous. Index conventions are
+not fixed at this stage; they become precise when adapters land.
+
+\paragraph{Notation.} $V$ is the Born--Oppenheimer potential; $\{\mathbf{R}_i\}$ are atomic
+positions; $u_i$ are displacements from equilibrium; $M_\alpha$ are atomic masses; $\mathbf{q}$
+is a wavevector; $\nu$ is a band index.
+
+% =================================================================================
+\section{Initial state: \texttt{Potential}}
+% =================================================================================
+
+\begin{abstractbox}
+The initial state is the Born--Oppenheimer potential energy surface,
+\begin{equation}
+  V(\{\mathbf{R}_i\}) \;=\; V_0 \;+\; \sum_{n \geq 2} \frac{1}{n!} \sum_{i_1,\ldots,i_n}
+  \Phi^{(n)}_{i_1\ldots i_n}\, u_{i_1} \cdots u_{i_n},
+\end{equation}
+treated as a continuum mathematical object (an analytic function of the atomic positions in a
+neighborhood of equilibrium).
+
+\medskip
+\textbf{Substrate type:} \texttt{POTENTIAL} (parameter state, empty provenance).\\
+\textbf{Materialization:} the externally-supplied potential. In Phase 1 the upstream is stubbed:
+the materialization is an opaque label identifying the choice of potential, not a modeled
+object.
+\end{abstractbox}
+
+\begin{kaldobox}
+kaldo does not represent the potential as a first-class object. The user supplies the potential
+by handing kaldo a \emph{folder of pre-computed force constants} (see next section); the
+potential itself is implicit, accessed only through its second and third derivatives.
+
+\medskip
+For the Tersoff path (\texttt{kaldo-examples/empirical\_potentials/silicon\_clathrate\_Tersoff\_LAMMPS}),
+the potential is realized as a LAMMPS pair-style declaration in \texttt{in.Si46}:
+\begin{verbatim}
+pair_style    tersoff
+pair_coeff    * * forcefields/Si.tersoff Si
+\end{verbatim}
+The materialization label is therefore \texttt{tersoff(Si.tersoff)}. The potential is callable
+(LAMMPS evaluates forces on demand) but not symbolically inspectable.
+\end{kaldobox}
+
+\begin{phonobox}
+Phonopy/phono3py likewise does not represent the potential as a first-class object. The user
+supplies displacements (generated by \texttt{phonopy -d} or \texttt{phono3py -d}) and externally
+runs a force calculator (VASP, QE, LAMMPS) on the displaced supercells. The potential is
+implicit in whichever code computed those forces.
+
+\medskip
+For the canonical phono3py silicon example (\texttt{phono3py/example/Si-PBE}), the potential is
+QE/PBE with norm-conserving pseudopotentials. The materialization label is
+\texttt{dft(QE, PBE, Si.UPF, ecut=...)}. As with kaldo, the potential is callable through the
+external code but not symbolically inspectable.
+\end{phonobox}
+
+\paragraph{Architectural note.} Both adapters expose \texttt{Potential} as an opaque label
+upstream of the first computed state. This validates Phase~1's stubbed-upstream choice. Neither
+code lets us extract the Taylor coefficients of $V$ symbolically; both require numerical
+sampling. The real architectural strain shows up at the next state.
+
+% =================================================================================
+\section{\texttt{ForceConstants[order=2]}}
+% =================================================================================
+
+\begin{abstractbox}
+The harmonic force constants are the second derivative of the potential at equilibrium,
+\begin{equation}
+  \Phi^{(2)}_{i\alpha,\,j\beta} \;=\; \left.\frac{\partial^2 V}{\partial u_{i\alpha}\,\partial u_{j\beta}}\right|_{0},
+\end{equation}
+indexed by atom pairs $(i,j)$ and Cartesian components $(\alpha,\beta)$, evaluated on a
+finite supercell.
+
+\medskip
+\textbf{Substrate type:} \texttt{FORCE\_CONSTANTS}, with type-level parameter \texttt{order=2}.\\
+\textbf{Provenance (Phase 1, stubbed):} a single operation
+\texttt{extract\_derivative\_and\_truncate(\,Potential,\, order=2,\, method=$M$\,)} producing
+this state. The parameter $M \in \{\,\texttt{finite\_difference\_lammps},
+\texttt{dfpt},\,$\\$\texttt{finite\_difference\_qe}, \texttt{autodiff}, \dots\}$ is part of the
+operation's identity; different $M$ produce different states (same type, different provenance).\\
+\textbf{Approximation error:} truncation of the Taylor expansion at order 2 introduces
+$O(u^3)$ error in the energy and $O(u^2)$ error in derived spectral quantities; these errors
+attach to the operation, not to this state.\\
+\textbf{Discretization (lives on the materialization):} supercell $N_1{\times}N_2{\times}N_3$,
+finite-difference displacement step $\delta$ (when $M$ is a finite-difference method).
+\end{abstractbox}
+
+\begin{kaldobox}
+kaldo loads pre-computed force constants from a folder:
+\begin{verbatim}
+forceconstants = ForceConstants.from_folder(
+    folder='fc_Si46',
+    supercell=(3, 3, 3),
+    format='lammps',
+)
+\end{verbatim}
+\textbf{Format-specific files} (Tersoff path): \texttt{Dyn.form} (binary, LAMMPS PHONON output)
+plus \texttt{replicated\_atoms.xyz}.\\
+\textbf{Internal storage:} \texttt{forceconstants.second} is a \texttt{SecondOrder} object
+wrapping a numpy array of shape $(n_{\text{rep\,atoms}}, 3, n_{\text{rep\,atoms}}, 3)$.\\
+\textbf{Underlying method ($M$):} for the Tersoff example, $M = $ \texttt{finite\_difference\_lammps}.
+LAMMPS's \texttt{dynamical\_matrix} command computes
+$\Phi^{(2)}$ by central-differencing forces with displacement $\delta = 10^{-5}$~\AA{}
+(\texttt{eskm 0.00001} in \texttt{in.Si46}).
+\end{kaldobox}
+
+\begin{phonobox}
+phonopy generates displacements, the user runs an external force calculator, and phonopy
+assembles the result into \texttt{fc2.hdf5}:
+\begin{verbatim}
+phonopy -d --dim 2 2 2 -c POSCAR-unitcell --pa auto   # generate displacements
+# (run VASP/QE/LAMMPS on each disp-XXXXX/POSCAR)
+phonopy -f disp-{00001..NNNN}/vasprun.xml             # collect forces
+phonopy --writefc                                     # produce fc2.hdf5
+\end{verbatim}
+\textbf{File:} \texttt{fc2.hdf5} (HDF5 with named datasets).\\
+\textbf{Internal storage:} numpy array of shape
+$(n_{\text{atoms\,super}}, n_{\text{atoms\,super}}, 3, 3)$ accessible as
+\texttt{phonopy.force\_constants}.\\
+\textbf{Underlying method ($M$):} typically \texttt{finite\_difference\_$\langle$ext\_code$\rangle$}
+with phonopy's symmetry-reduced displacement set; the displacement magnitude defaults to
+\texttt{0.01}~\AA{} (overridable via \texttt{--amplitude}).
+\end{phonobox}
+
+\paragraph{Architectural strain (worth flagging).} The abstract framing
+``$\Phi^{(2)} = \partial^2 V / \partial u^2$'' suggests symbolic differentiation, but neither
+code performs it. Both numerically sample $V$ at displaced configurations and apply
+finite-difference rules. This is the Tersoff/Taylor mismatch flagged in the planning
+discussion.
+
+\medskip
+The substrate handles this honestly because \emph{the method of derivative extraction is a
+parameter on the operation's identity}. The same abstract \texttt{ForceConstants[order=2]} type
+admits multiple operations:
+\begin{itemize}[leftmargin=2em, itemsep=0pt]
+  \item \texttt{extract\_derivative\_and\_truncate(method=finite\_difference\_lammps,\,$\delta$=$10^{-5}$)}
+  \item \texttt{extract\_derivative\_and\_truncate(method=finite\_difference\_qe,\,$\delta$=$10^{-2}$)}
+  \item \texttt{extract\_derivative\_and\_truncate(method=dfpt,\,$\epsilon_{\text{conv}}$=$\dots$)}
+  \item \texttt{extract\_derivative\_and\_truncate(method=autodiff)}
+\end{itemize}
+Each is a distinct operation (parameterized identity, \S3.5.1 of the design doc); each produces
+a state with the same physics type but different provenance. ``Same physics object, computed
+differently'' becomes a structural distinction in the substrate, not a metadata tag.
+
+% =================================================================================
+\section{\texttt{ForceConstants[order=3]}}
+% =================================================================================
+
+\begin{abstractbox}
+The cubic force constants are the third derivative,
+\begin{equation}
+  \Phi^{(3)}_{i\alpha,\,j\beta,\,k\gamma} \;=\; \left.\frac{\partial^3 V}{\partial u_{i\alpha}\,\partial u_{j\beta}\,\partial u_{k\gamma}}\right|_{0}.
+\end{equation}
+
+\medskip
+\textbf{Substrate type:} \texttt{FORCE\_CONSTANTS}, type-level parameter \texttt{order=3}.\\
+\textbf{Provenance:} \texttt{extract\_derivative\_and\_truncate(\,Potential,\, order=3,\, method=$M'$\,)}.
+The method $M'$ for third-order is typically \emph{different} from the second-order method:
+DFPT does not extend cleanly to third order, so $M'$ is usually finite difference even when $M$
+is DFPT.\\
+\textbf{Approximation error:} truncation at order 3 introduces $O(u^4)$ error
+(four-phonon and higher scattering, anharmonic renormalization, etc.).\\
+\textbf{Discretization:} a third-order supercell $N'_1{\times}N'_2{\times}N'_3$,
+displacement step $\delta'$. Crucially, $N' \neq N$ in general --- the third-order supercell is
+typically smaller than the second-order one because the cost scales worse.
+\end{abstractbox}
+
+\begin{kaldobox}
+\begin{verbatim}
+forceconstants = ForceConstants.from_folder(
+    folder='fc_DFT',
+    supercell=(8, 8, 8),       # 2nd-order supercell
+    third_supercell=(3, 3, 3),  # 3rd-order supercell
+    format='qe-sheng',
+)
+\end{verbatim}
+\textbf{Format-specific files:} \texttt{FORCE\_CONSTANTS\_3RD} (Sheng-style plain text) for QE
+path; \texttt{THIRD} (binary) for the LAMMPS path.\\
+\textbf{Internal storage:} \texttt{forceconstants.third} is a \texttt{ThirdOrder} object;
+internal layout uses the \texttt{thirdorder.py} sparse convention by default.\\
+\textbf{Underlying method ($M'$):} finite-difference of forces, supercell typically
+$3{\times}3{\times}3$ for affordability.
+\end{kaldobox}
+
+\begin{phonobox}
+phono3py mirrors the phonopy workflow at third order:
+\begin{verbatim}
+phono3py -d --dim 2 2 2 -c POSCAR-unitcell             # 3rd-order displacements
+phono3py --cf3 disp-{00001..NNNNN}/vasprun.xml         # collect forces
+phono3py-load                                           # produce fc3.hdf5
+\end{verbatim}
+\textbf{File:} \texttt{fc3.hdf5}.\\
+\textbf{Internal storage:} numpy array of shape
+$(n_{\text{atoms\,super}},)^3 \times (3,3,3)$ accessible via
+\texttt{Phono3py.fc3} (compact form available too).\\
+\textbf{Underlying method ($M'$):} finite-difference, displacement amplitude default
+\texttt{0.03}~\AA{} for third order (larger than the second-order default to improve signal
+relative to higher-order noise).
+\end{phonobox}
+
+\paragraph{Note on supercell asymmetry.} Both codes accept different supercells for second and
+third order. In the substrate, this means \texttt{ForceConstants[order=2]} and
+\texttt{ForceConstants[order=3]} are independent derived states with independent
+discretizations on their materializations. They share the same \texttt{Potential} as an
+upstream parameter but are otherwise unrelated by the abstract DAG. Good test of the
+type-level \texttt{order} parameter doing real work.
+
+% =================================================================================
+\section{Correction operation: \texttt{enforce\_acoustic\_sum\_rule}}
+% =================================================================================
+
+\begin{abstractbox}
+A correction operation that takes a force-constant tensor and returns a corrected one with
+exact translational invariance enforced:
+\begin{equation}
+  \tilde{\Phi}^{(2)}_{i\alpha,\,j\beta}(R) \;\;\text{such that}\;\;
+  \sum_{R} \tilde{\Phi}^{(2)}_{i\alpha,\,j\beta}(R) \;=\; 0
+  \quad \forall\, i, \alpha, \beta.
+\end{equation}
+This is Newton's third law in real space: the crystal's energy is invariant under uniform
+translation, so the rows and columns of the FC tensor must each sum to zero. Numerical FCs from
+finite-difference (or, less severely, from DFPT) violate this approximately; uncorrected, the
+violation appears as small spurious imaginary frequencies near $\mathbf{q}=0$.
+
+\medskip
+\textbf{Substrate type signature:}
+\texttt{enforce\_acoustic\_sum\_rule\,:\,FC[order=$n$]\,$\to$\,FC[order=$n$]}.\\
+\textbf{Operation parameters:}\\[2pt]
+\quad \texttt{variant}\,$\in$\,$\{$\texttt{simple\_subtract}, \texttt{iterative\_lstsq},
+\texttt{born\_huang}$\}$.\\
+\textbf{Approximation error:} $\epsilon_{\mathcal{O}} = 0$ in the abstract world (the operation
+is exact on the abstract object). The correction's effect on the materialization is bounded by
+$|\sum_R \Phi(R)|$ before enforcement, which is itself a discretization-error indicator for the
+input FC tensor.\\
+\textbf{Provenance:} the input and output have the same physics type \texttt{FORCE\_CONSTANTS}
+with the same \texttt{order}, but the output's provenance is the input's extended by this
+operation. They are formally distinct states (Decision 5) and downstream operations consume the
+ASR-enforced output, not the raw input.
+
+\medskip
+\textit{This is the first ``correction operation'' in the worked example. Its shape---input and
+output share the same physics type, distinguished only by an additional provenance entry---is the
+template for all corrections (LO--TO splitting on \texttt{DynamicalMatrix}, permutation
+symmetrization on \texttt{FORCE\_CONSTANTS[order=3]}, etc.).}
+\end{abstractbox}
+
+\begin{kaldobox}
+kaldo enforces ASR at FC load via a flag on \texttt{from\_folder}:
+\begin{verbatim}
+forceconstants = ForceConstants.from_folder(
+    ...
+    is_acoustic_sum=True,    # <-- triggers ASR
+)
+\end{verbatim}
+Internally, kaldo applies a simple residual-subtraction variant: for each $(i,\alpha,j,\beta)$,
+the residual $\sum_R \Phi^{(2)}(R)$ is divided over the on-site terms ($R = 0$) so that the new
+sum is zero exactly.\\
+\textbf{Variant:} \texttt{simple\_subtract}.\\
+\textbf{Timing:} at FC load (before any q-space computation).\\
+\textbf{Default:} \emph{off}. The user must opt in.
+\end{kaldobox}
+
+\begin{phonobox}
+phonopy enforces ASR via the \texttt{--fc-symmetry} flag, applied during
+\texttt{phonopy --writefc}:
+\begin{verbatim}
+phonopy --fc-symmetry --writefc
+\end{verbatim}
+The implementation iteratively projects out residual translations and applies permutation
+symmetry $(i,\alpha)\leftrightarrow(j,\beta)$, looping until both invariances hold simultaneously
+within a tolerance.\\
+\textbf{Variant:} \texttt{iterative\_lstsq} (combined with permutation symmetrization, which we
+treat as a separate operation).\\
+\textbf{Timing:} at FC write (before \texttt{fc2.hdf5} is produced).\\
+\textbf{Default:} on (when \texttt{--writefc} is invoked) for current versions; off in older
+phonopy.
+\end{phonobox}
+
+\paragraph{Cross-code structural observation.} kaldo and phonopy apply ASR \emph{at different
+points in their internal pipelines} (load vs.\ write) and use \emph{different variants} (simple
+subtraction vs.\ iterative). In the substrate, both adapters declare the same abstract operation
+\texttt{enforce\_acoustic\_sum\_rule}, with the variant carried as an operation parameter. The
+internal-pipeline timing is invisible to the substrate; what the substrate sees is that both
+adapters' FC materializations downstream of \texttt{enforce\_asr} can be aligned. The variant
+parameter makes the methodological difference visible without forcing the substrate to know
+where, internally, the codes apply it.
+
+\paragraph{Note on order=3.} Acoustic-sum-rule-like enforcement on third-order FCs (more
+properly, permutation symmetrization plus the order=3 acoustic invariance) is a separate
+correction operation in the substrate, with the same shape:
+\texttt{enforce\_acoustic\_sum\_rule\,:\,FC[order=3]\,$\to$\,FC[order=3]}. We do not detail it
+here because kaldo applies it implicitly via \texttt{thirdorder.py}'s convention, while
+phono3py applies it during \texttt{fc3.hdf5} production. The cross-code variant comparison
+follows the same pattern as for order=2.
+
+% =================================================================================
+\section{\texttt{DynamicalMatrix}}
+% =================================================================================
+
+\begin{abstractbox}
+The dynamical matrix is the mass-weighted Fourier transform of the harmonic force constants,
+\begin{equation}
+  D_{\alpha\beta}^{\,ij}(\mathbf{q})
+  \;=\; \frac{1}{\sqrt{M_i M_j}} \sum_{\mathbf{R}} \Phi^{(2)}_{i\alpha,\,j\beta}(\mathbf{R})\,
+        e^{\,i\mathbf{q}\cdot\mathbf{R}}.
+\end{equation}
+
+\medskip
+\textbf{Substrate type:} \texttt{DYNAMICAL\_MATRIX}.\\
+\textbf{Operation:} \texttt{compute\_dynamical\_matrix(\,ForceConstants[order=2]\,)}, structural
+operation, no approximation, $\epsilon_{\mathcal{O}} = 0$. The expected input is the ASR-enforced
+\texttt{ForceConstants[order=2]} produced by \texttt{enforce\_acoustic\_sum\_rule}; consuming the
+raw FC tensor is structurally legal but produces a dynamical matrix with non-zero acoustic-mode
+frequencies at $\mathbf{q}=0$, which downstream operations may flag.\\
+\textbf{Discretization:} q-mesh $K_1{\times}K_2{\times}K_3$ on which $D(\mathbf{q})$ is sampled.
+
+\medskip
+\textit{Sketchy on purpose.} kaldo and phonopy do not disagree on what the dynamical matrix is.
+The only divergence at this stage is whether LO--TO splitting has been added (relevant for
+polar materials, irrelevant for silicon). A separate operation
+\texttt{apply\_lo\_to\_correction} would handle this where it matters; we omit it here for
+silicon.
+\end{abstractbox}
+
+\begin{kaldobox}
+Computed lazily on access:
+\begin{verbatim}
+phonons = Phonons(forceconstants=fc, kpts=[14, 14, 14], temperature=300, ...)
+phonons.dynmat                       # triggers computation
+\end{verbatim}
+Internal Cython kernel: \texttt{kaldo/observables/harmonic\_with\_q.py}.
+\end{kaldobox}
+
+\begin{phonobox}
+\begin{verbatim}
+phonopy.run_band_structure(paths=...)        # or
+phonopy.dynamical_matrix.set_dynamical_matrix(q)
+phonopy.dynamical_matrix.dynamical_matrix    # 2x2 block per atom pair
+\end{verbatim}
+Implementation: \texttt{phonopy/harmonic/dynamical\_matrix.py}.
+\end{phonobox}
+
+% =================================================================================
+\section{\texttt{Dispersion}}
+% =================================================================================
+
+\begin{abstractbox}
+The dispersion is the eigenstructure of the dynamical matrix,
+\begin{equation}
+  D(\mathbf{q})\,\mathbf{e}_{\mathbf{q}\nu} \;=\; \omega^2_{\mathbf{q}\nu}\,\mathbf{e}_{\mathbf{q}\nu},
+  \qquad \omega_{\mathbf{q}\nu} \geq 0,\; \mathbf{e}\cdot\mathbf{e}^* = 1.
+\end{equation}
+The state carries the mode frequencies $\omega_{\mathbf{q}\nu}$, the polarization vectors
+$\mathbf{e}_{\mathbf{q}\nu}$, and the group velocities
+$\mathbf{v}_{\mathbf{q}\nu} = \nabla_{\mathbf{q}}\,\omega_{\mathbf{q}\nu}$ (derived from
+Hellmann--Feynman or finite-differencing on the q-mesh).
+
+\medskip
+\textbf{Substrate type:} \texttt{DISPERSION}.\\
+\textbf{Operation:} \texttt{compute\_dispersion(\,DynamicalMatrix\,)}, structural operation,
+$\epsilon_{\mathcal{O}} = 0$.\\
+\textbf{Discretization:} same q-mesh as \texttt{DynamicalMatrix}.
+
+\medskip
+\textit{Sketchy on purpose.} Hermitian eigendecomposition is unambiguous. Group-velocity
+extraction has a small implementation choice (analytic via Hellmann--Feynman vs.\
+finite-difference on the mesh) but the difference is negligible for silicon at standard mesh
+densities.
+\end{abstractbox}
+
+\begin{kaldobox}
+\begin{verbatim}
+phonons.frequency        # shape (n_q, n_modes), units THz
+phonons.eigenvectors     # shape (n_q, n_modes, n_modes)
+phonons.velocity         # group velocities, shape (n_q, n_modes, 3)
+\end{verbatim}
+Frequencies are stored in THz internally. Group velocities computed via Hellmann--Feynman
+inside \texttt{harmonic\_with\_q.py}.
+\end{kaldobox}
+
+\begin{phonobox}
+\begin{verbatim}
+phonopy.set_band_structure(paths=...)
+phonopy.get_band_structure_dict()      # returns {'frequencies', 'eigenvectors', 'group_velocities', ...}
+\end{verbatim}
+Frequencies in THz. Group velocities via the \texttt{group\_velocity} module (Hellmann--Feynman).
+\end{phonobox}
+
+% =================================================================================
+\section{What we learned}
+% =================================================================================
+
+The first contact between architecture and physics surfaced four observations.
+
+\begin{enumerate}[leftmargin=2em]
+  \item \textbf{The upstream stub is honest.} Both kaldo and phonopy treat the potential as an
+        opaque label. The user supplies it externally (Tersoff parameters, DFT functional, ML
+        weights) and neither code symbolically inspects $V$. Phase~1's stubbed-upstream choice
+        matches both adapters exactly: \texttt{Potential} is a parameter state with an
+        opaque-label materialization, and the upstream operations are recorded as provenance
+        only.
+  \item \textbf{The Tersoff/Taylor mismatch is not a bug; it's a feature of the parameterized
+        operation identity.} The same abstract derivative-extraction operation admits multiple
+        methods (finite difference, DFPT, autodiff). Each method is a distinct operation
+        identity. Materializations of the same \texttt{ForceConstants[order=$n$]} type
+        produced by different methods carry different provenance and are formally distinct ---
+        which is exactly what we want for cross-method comparison.
+  \item \textbf{Second- and third-order force constants are independent derived states.}
+        Different supercells, different methods, independent discretizations. The type-level
+        \texttt{order} parameter is doing real work in the substrate; \texttt{FORCE\_CONSTANTS}
+        with no \texttt{order} parameter would be ambiguous.
+  \item \textbf{Structural operations (Fourier, eigendecomposition) are unambiguous.} kaldo and
+        phonopy implement them in different files, in different languages, with different
+        internal data layouts, but both produce the same abstract state. These operations are
+        good places to validate the materialization-functor alignment machinery before
+        introducing operations where the codes actually disagree.
+  \item \textbf{Correction operations have a uniform shape.} \texttt{enforce\_acoustic\_sum\_rule}
+        (and the LO--TO splitting, permutation symmetrization, and Born--Huang invariance
+        operations that will follow) all share the pattern $\tau \to \tau$: same input and
+        output type, distinguished only by an additional provenance entry on the output. By
+        Decision 5 (identity = type + provenance), input and output are formally distinct
+        states despite sharing a type. This pattern lets us factor cross-code disagreements that
+        live in correction \emph{variants} and \emph{timing}, not in the operation's structural
+        type signature.
+\end{enumerate}
+
+\paragraph{No architectural revisions required at this stage.} The substrate's commitments
+(Principles 1, 3, 5, 6, 7, 9) survive the contact with this fragment of the workflow. The
+discriminative test --- whether the substrate exposes the broadening, scattering-process, and
+BTE-solver choices where kaldo and phono3py actually diverge --- comes in the next deliverable
+when we extend the worked example through \texttt{ScatteringRates} and \texttt{BoltzmannSolution}.
+
+\end{document}
