@@ -161,13 +161,13 @@ def main() -> None:
 
     print()
     print(
-        "  Note: any disagreement in kappa most plausibly originates from\n"
-        "  the broadening choice on the scattering-rates operation.\n"
-        "  kaldo: default Gaussian (sigma derived from q-mesh).\n"
-        "  phono3py: default tetrahedron (sigma=None) -- no broadening.\n"
-        "  Aligning broadening should bring them closer; cross-code\n"
-        "  comparison surfaces this divergence as a candidate for the\n"
-        "  scattering-rates operation parameter."
+        "  Both codes are now explicitly forced to Gaussian broadening with\n"
+        "  the same numerical sigma (set in seed.BROADENING_SIGMA_THZ).\n"
+        "  Any residual kappa gap is therefore not from differing broadening\n"
+        "  *defaults* but from the codes' differing internal use of sigma\n"
+        "  (e.g., placement in the energy-conservation delta function,\n"
+        "  per-mode adaptive corrections, or scattering-matrix normalization).\n"
+        "  This residual is the next substrate-relevant discrimination."
     )
 
     # ----- Save the comparison -----

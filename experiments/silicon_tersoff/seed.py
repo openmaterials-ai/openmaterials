@@ -81,8 +81,16 @@ KMESH = (8, 8, 8)
 # Finite-difference displacement (used when each code runs forces via ASE)
 FD_DISPLACEMENT = 0.01  # Å -- phonopy default; reasonable for Si
 
-# Temperature for any thermal property (not used in the first run).
+# Temperature for any thermal property.
 TEMPERATURE = 300  # K
+
+# Broadening for the three-phonon scattering matrix elements.
+#   kaldo:    third_bandwidth=BROADENING_SIGMA_THZ, broadening_shape='gauss'
+#   phono3py: run_thermal_conductivity(sigmas=[BROADENING_SIGMA_THZ])
+# Forcing both codes to a common Gaussian sigma isolates the broadening
+# choice as a controlled variable; without this, kaldo defaults to an
+# adaptive bandwidth and phono3py defaults to the tetrahedron method.
+BROADENING_SIGMA_THZ = 0.1
 
 
 # ---------------------------------------------------------------------------

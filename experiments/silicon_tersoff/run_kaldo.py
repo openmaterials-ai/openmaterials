@@ -19,6 +19,7 @@ from pathlib import Path
 import numpy as np
 
 from seed import (
+    BROADENING_SIGMA_THZ,
     FD_DISPLACEMENT,
     KMESH,
     RUNS_DIR,
@@ -73,6 +74,8 @@ def main() -> None:
         kpts=list(KMESH),
         is_classic=False,
         temperature=TEMPERATURE,
+        third_bandwidth=BROADENING_SIGMA_THZ,
+        broadening_shape="gauss",
         folder=str(OUT / "phonons"),
         storage="memory",
     )

@@ -81,12 +81,30 @@ the absolute value is not.
    minimal displacement set (1 displacement for diamond Si in this cell). Both
    reproduce the same FC2 to within ~10⁻³ THz in the dispersion.
 
+## Aligned broadening (Gaussian, σ = 0.1 THz default)
+
+Both codes are now forced to Gaussian broadening with σ set in
+`seed.BROADENING_SIGMA_THZ`. With this, the codes' broadening *defaults*
+differ only by interpretation, not by category. `sigma_sweep.py`
+exercises σ ∈ {0.05, 0.10, 0.20, 0.50, 1.00} THz and reports kaldo /
+phono3py ratios:
+
+| σ (THz) | RTA ratio | direct/LBTE ratio |
+|---:|---:|---:|
+| 0.05 | 1.314 | 1.222 |
+| 0.10 | 1.163 | 1.107 |
+| 0.20 | 1.078 | 1.065 |
+| 0.50 | 1.146 | 1.143 |
+| 1.00 | 1.195 | 1.169 |
+
+The codes track each other monotonically (κ decreases with σ in both)
+but kaldo is systematically higher than phono3py across all σ, with the
+gap minimized near σ ≈ 0.2 THz (~7%). The residual is structural — even
+with the same numerical σ, the two codes use σ slightly differently in
+the energy-conservation delta function and/or the Gaussian normalization.
+
 ## What this experiment does NOT yet exercise
 
-- Aligned broadening across codes. Each runs with its default choice. The
-  ~10% kappa discrepancy is the substrate-relevant signal here. Aligning
-  broadening (e.g., both Gaussian with the same sigma) should close the gap
-  and is the natural next discriminative test.
 - Acoustic-sum-rule enforcement. Both codes ran with their respective
   defaults (kaldo: off; phonopy/phono3py: on internally during FC
   production).

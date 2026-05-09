@@ -20,6 +20,7 @@ from phono3py import Phono3py
 from phonopy.structure.atoms import PhonopyAtoms
 
 from seed import (
+    BROADENING_SIGMA_THZ,
     FD_DISPLACEMENT,
     KMESH,
     RUNS_DIR,
@@ -132,6 +133,7 @@ def main() -> None:
     print("[phono3py] running thermal conductivity (RTA) ...")
     t5 = time.time()
     ph3.mesh_numbers = list(KMESH)
+    ph3.sigmas = [BROADENING_SIGMA_THZ]   # Gaussian broadening, matched to kaldo
     ph3.init_phph_interaction()
     ph3.run_thermal_conductivity(
         is_LBTE=False,            # RTA
