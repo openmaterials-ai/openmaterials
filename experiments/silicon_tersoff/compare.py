@@ -1,6 +1,7 @@
-"""Compare kaldo's and phonopy's dispersion materializations.
+"""Compare kaldo's and phonopy/phono3py's materializations.
 
-Reads frequencies, eigenvectors, group velocities, and q-points from both runs
+Reads dispersion (frequencies, eigenvectors, group velocities, q-points) from kaldo
+and phonopy, plus thermal conductivity (RTA + full BTE) from kaldo and phono3py,
 and reports where they agree / disagree.
 """
 
@@ -20,6 +21,32 @@ def load_run(name: str) -> dict[str, np.ndarray]:
         "group_velocities": np.load(base / "group_velocities_AT.npy"),
         "q_points": np.load(base / "q_points.npy"),
     }
+
+
+def load_kappa(name: str, scheme: str) -> np.ndarray | None:
+    """Load kappa tensor from a code's output. Returns 3x3 tensor if available, else None.
+
+    kaldo stores 3x3; phono3py stores Voigt-6 (xx, yy, zz, yz, xz, xy).
+    """
+    base = RUNS_DIR / name
+    if name == "kaldo":
+        f = base / f"kappa_{scheme}_tensor_WmK.npy"
+        return np.load(f) if f.exists() else None
+    if name == "phono3py":
+        f = base / f"kappa_{scheme}_voigt_WmK.npy"
+        if not f.exists():
+            return None
+        v = np.asarray(np.load(f)).reshape(-1)[:6]
+        # Voigt -> 3x3
+        t = np.array(
+            [
+                [v[0], v[5], v[4]],
+                [v[5], v[1], v[3]],
+                [v[4], v[3], v[2]],
+            ]
+        )
+        return t
+    return None
 
 
 def _wrap_q(q: np.ndarray) -> np.ndarray:
@@ -111,6 +138,38 @@ def main() -> None:
     print(f"    kaldo:   min={k_min.min():.4f} THz   (Gamma if grid includes 0,0,0)")
     print(f"    phonopy: min={p_min.min():.4f} THz   (Gamma if grid includes 0,0,0)")
 
+    # ----- Thermal conductivity comparison -----
+    print()
+    print("-" * 64)
+    print("  thermal conductivity (W/m/K, average of xx/yy/zz)")
+    print("-" * 64)
+    kappa_lines: list[str] = []
+    for k_scheme, p_scheme in [("rta", "rta"), ("inverse", "lbte")]:
+        K = load_kappa("kaldo", k_scheme)
+        P = load_kappa("phono3py", p_scheme)
+        k_avg = float("nan") if K is None else float(np.mean(np.diag(K)))
+        p_avg = float("nan") if P is None else float(np.mean(np.diag(P)))
+        line = (
+            f"  {k_scheme:>10s} (kaldo {k_scheme}, phono3py {p_scheme}): "
+            f"kaldo {k_avg:8.3f}  phono3py {p_avg:8.3f}"
+        )
+        if k_avg == k_avg and p_avg == p_avg:
+            ratio = k_avg / p_avg
+            line += f"  ratio kaldo/phono3py = {ratio:5.3f}"
+        print(line)
+        kappa_lines.append(line)
+
+    print()
+    print(
+        "  Note: any disagreement in kappa most plausibly originates from\n"
+        "  the broadening choice on the scattering-rates operation.\n"
+        "  kaldo: default Gaussian (sigma derived from q-mesh).\n"
+        "  phono3py: default tetrahedron (sigma=None) -- no broadening.\n"
+        "  Aligning broadening should bring them closer; cross-code\n"
+        "  comparison surfaces this divergence as a candidate for the\n"
+        "  scattering-rates operation parameter."
+    )
+
     # ----- Save the comparison -----
     out = RUNS_DIR / "comparison"
     out.mkdir(exist_ok=True)
@@ -119,11 +178,15 @@ def main() -> None:
     summary = (
         f"silicon-Tersoff cross-code comparison\n"
         f"-------------------------------------\n"
-        f"max |delta omega|    = {abs_diff.max():.6f} THz\n"
-        f"mean |delta omega|   = {abs_diff.mean():.6f} THz\n"
-        f"median |delta omega| = {np.median(abs_diff):.6f} THz\n"
-        f"RMS delta omega      = {np.sqrt((diff**2).mean()):.6f} THz\n"
-        f"q-grid aligned       = {perm is not None}\n"
+        f"DISPERSION\n"
+        f"  max |delta omega|    = {abs_diff.max():.6f} THz\n"
+        f"  mean |delta omega|   = {abs_diff.mean():.6f} THz\n"
+        f"  median |delta omega| = {np.median(abs_diff):.6f} THz\n"
+        f"  RMS delta omega      = {np.sqrt((diff**2).mean()):.6f} THz\n"
+        f"  q-grid aligned       = {perm is not None}\n"
+        f"\n"
+        f"THERMAL CONDUCTIVITY (W/m/K, avg of xx/yy/zz)\n"
+        + "\n".join(kappa_lines) + "\n"
     )
     (out / "summary.txt").write_text(summary)
 

@@ -9,13 +9,13 @@ ASE seed and the same Tersoff potential. Outputs are written to
 
 - `seed.py` — single source of truth: Si Atoms (diamond, 2-atom primitive),
   ASE-LAMMPS-Tersoff calculator, supercell / k-mesh / FD-displacement choices.
-- `run_kaldo.py` — kaldo path. Computes FC2 via finite difference using the
-  ASE calculator, then dispersion.
-- `run_phonopy.py` — phonopy path. Generates symmetry-reduced displaced
-  supercells, computes forces with the same calculator, assembles FC2,
-  computes dispersion on the same Gamma-centered grid as kaldo.
-- `compare.py` — loads both runs, aligns q-points, computes frequency
-  differences sorted within each q.
+- `run_kaldo.py` — kaldo path. FC2 + FC3 via finite difference, dispersion,
+  thermal conductivity (RTA + direct inversion).
+- `run_phonopy.py` — phonopy path. Harmonic only: FC2 + dispersion.
+- `run_phono3py.py` — phono3py path. FC2 + FC3 via symmetry-reduced
+  displacements, RTA + LBTE thermal conductivity.
+- `compare.py` — loads kaldo/phonopy/phono3py runs, aligns q-points,
+  computes dispersion frequency differences and kappa ratios.
 - `Si.tersoff` — Tersoff parameter file (copy of LAMMPS distribution's).
 
 ## Running
@@ -24,10 +24,11 @@ The kaldo conda env contains all required packages:
 
 ```bash
 conda activate kaldo
-CUDA_VISIBLE_DEVICES="" python seed.py        # smoke test
-CUDA_VISIBLE_DEVICES="" python run_kaldo.py
-CUDA_VISIBLE_DEVICES="" python run_phonopy.py
-python compare.py
+CUDA_VISIBLE_DEVICES="" python seed.py            # smoke test
+CUDA_VISIBLE_DEVICES="" python run_kaldo.py       # FC2+FC3+dispersion+kappa
+CUDA_VISIBLE_DEVICES="" python run_phonopy.py     # FC2+dispersion (harmonic only)
+CUDA_VISIBLE_DEVICES="" python run_phono3py.py    # FC2+FC3+kappa
+python compare.py                                  # cross-code summary
 ```
 
 `CUDA_VISIBLE_DEVICES=""` is required because kaldo imports TensorFlow which
@@ -44,12 +45,30 @@ in this conda env.
 
 ## Reference numbers
 
-For Si Tersoff at the chosen discretization (4×4×4 supercell, 8×8×8 mesh):
+For Si Tersoff at the chosen discretization (4×4×4 FC2 supercell,
+3×3×3 FC3 supercell, 8×8×8 q-mesh, 300 K):
 
 - Cohesive energy: 4.63 eV/atom
 - Highest LO frequency (Γ): 16.66 THz
 - Acoustic frequencies at Γ: ≈0 (within numerical precision)
-- Cross-code |Δω| (after q-point alignment): max 1.2×10⁻³ THz, mean 5×10⁻⁴ THz
+- Cross-code dispersion |Δω| (after q-grid alignment): max 1.2×10⁻³ THz,
+  mean 5×10⁻⁴ THz
+- Thermal conductivity (avg of xx/yy/zz):
+
+| Scheme | kaldo | phono3py | kaldo / phono3py |
+|---|---|---|---|
+| RTA | 15.76 | 17.48 | 0.902 |
+| Direct (kaldo "inverse" / phono3py "LBTE") | 19.69 | 21.89 | 0.900 |
+
+The ~10% kaldo↔phono3py difference is consistent across schemes, most
+plausibly attributable to the broadening choice on the scattering-rates
+operation: kaldo defaults to Gaussian, phono3py to tetrahedron. The ~1.25
+RTA-to-direct ratio in both codes confirms internal physics consistency.
+
+These κ values are well below the published Si Tersoff value (~250 W/m·K)
+because of mesh under-convergence (literature uses 16×16×16+). Both codes
+are equally under-converged at 8×8×8; the cross-code ratio is meaningful,
+the absolute value is not.
 
 ## Known cross-code differences exposed by this run
 
@@ -64,9 +83,16 @@ For Si Tersoff at the chosen discretization (4×4×4 supercell, 8×8×8 mesh):
 
 ## What this experiment does NOT yet exercise
 
-- 3rd-order force constants (FC3) and thermal conductivity. Adding these
-  requires phono3py and kaldo's `forceconstants.third.calculate(...)`.
-- Acoustic-sum-rule enforcement. Both codes ran with their respective defaults
-  (kaldo: off; phonopy: on internally during FC production).
-- Cross-code substrate adapters. Outputs are saved as plain numpy arrays in
-  `runs/`; wrapping them as substrate `Materialization` objects is the next step.
+- Aligned broadening across codes. Each runs with its default choice. The
+  ~10% kappa discrepancy is the substrate-relevant signal here. Aligning
+  broadening (e.g., both Gaussian with the same sigma) should close the gap
+  and is the natural next discriminative test.
+- Acoustic-sum-rule enforcement. Both codes ran with their respective
+  defaults (kaldo: off; phonopy/phono3py: on internally during FC
+  production).
+- Mesh convergence. 8×8×8 is too coarse for absolute-κ comparison with
+  literature; we check cross-code agreement at fixed (small) mesh.
+- Isotopic scattering. Both runs used `is_isotope=False`.
+- Cross-code substrate adapters. Outputs are saved as plain numpy arrays
+  in `runs/`; wrapping them as substrate `Materialization` objects is the
+  next architectural step.
