@@ -18,21 +18,23 @@ class PhysicsType(str, Enum):
     `omai.abstract.state.AbstractState`.
     """
 
-    # --- parameter types (no upstream operations modeled in Phase 1) ---
+    # --- parameter / source types (outputs of nullary `provide_*` operations) ---
     POTENTIAL = "Potential"
-    LATTICE_CONSTANT = "LatticeConstant"
     TEMPERATURE = "Temperature"
+    LATTICE_CONSTANT = "LatticeConstant"
     PRESSURE = "Pressure"
     STRUCTURE = "Structure"
 
     # --- derived types in the thermal-transport scope ---
-    FORCE_CONSTANT_OPERATOR = "ForceConstantOperator"
-    FORCE_CONSTANTS = "ForceConstants"
+    # Each is one observable = one node in the abstract DAG.
+    FORCE_CONSTANTS = "ForceConstants"            # parameterized by order (=2 or =3)
     DYNAMICAL_MATRIX = "DynamicalMatrix"
-    DISPERSION = "Dispersion"
-    GROUP_VELOCITIES = "GroupVelocities"
-    SCATTERING_RATES = "ScatteringRates"
-    BOLTZMANN_SOLUTION = "BoltzmannSolution"
+    FREQUENCY = "Frequency"
+    EIGENVECTORS = "Eigenvectors"
+    GROUP_VELOCITY = "GroupVelocity"
+    HEAT_CAPACITY = "HeatCapacity"
+    LINEWIDTH = "Linewidth"
+    MEAN_FREE_DISPLACEMENT = "MeanFreeDisplacement"
     THERMAL_CONDUCTIVITY = "ThermalConductivity"
 
     # --- experimental/measured observables ---

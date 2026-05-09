@@ -13,6 +13,7 @@ authors = [{ name = "G. Barbalinardo", email = "barbalinardo@ucdavis.edu" }]
 dependencies = [
     "pydantic>=2.5",
     "numpy>=1.26",
+    "sympy>=1.12",
 ]
 
 [project.optional-dependencies]
