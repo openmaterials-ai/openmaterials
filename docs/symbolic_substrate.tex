@@ -85,12 +85,14 @@ their alternatives or justifications; supporting definitions follow in later sec
         what it computes. The formula is the substrate's claim, machine-readable and
         Lean-projectable, against which adapter conformance can be checked.
 
-  \item \textbf{States are typed witnesses; equivalently, observables are nodes.} A state
-        is the typed claim that an abstract physics object exists with a particular
-        history---not the data the object would have when computed. In practice each
-        state corresponds to a single observable, so the substrate uses ``state'',
-        ``observable'', and ``node'' interchangeably. Each observable declares an index
-        signature (e.g.\ $\omega(\mathbf{q},\nu)$ has indices $(\mathbf{q}, \nu)$;
+  \item \textbf{States are typed witnesses; nodes are Observables or HiddenStates.}
+        A state is the typed claim that an abstract physics object exists with a
+        particular history. The substrate splits states into two structural kinds:
+        \emph{Observables} (gauge-invariant, first-class, required to agree across
+        adapters) and \emph{HiddenStates} (gauge-dependent intermediate scaffolding
+        whose per-element values reflect basis / phase / BZ-summation choices the
+        substrate does not pin down). Each state declares fields, and each field has an
+        index signature (e.g.\ $\omega(\mathbf{q},\nu)$ has indices $(\mathbf{q}, \nu)$;
         $\kappa^{\alpha\beta}$ has $(\alpha, \beta)$). Numerical content lives in the
         materialization, separate from the witness.
 
@@ -114,15 +116,15 @@ their alternatives or justifications; supporting definitions follow in later sec
         the abstract state. Convergence is a relationship between an abstract state and
         a family of its materializations.
 
-  \item \textbf{Cross-code agreement is at the observable layer.} Two materializations
-        of the same abstract state produced by different adapters need not agree
-        numerically at intermediate decompositions (per-mode linewidths, basis-dependent
-        intermediate sums); they must agree at extracted observables. Each abstract
-        observable carries a comparison protocol declaring its expected tolerance
-        across adapters. Contracted scalars and tensors (e.g., $\kappa^{\alpha\beta}$,
-        $\Sigma\Gamma_{q\nu}$) carry tight protocols; per-mode arrays whose values
-        depend on summation order or symmetry-reduction choices carry loose or
-        not-comparable protocols.
+  \item \textbf{Cross-code agreement is required at Observable nodes only.} Two
+        adapters' materializations of an Observable must agree (after unit and
+        convention conversion) to within the observable's declared tolerance.
+        Materializations of a HiddenState are not cross-code comparable per-element;
+        the substrate's \texttt{compare} returns the status \texttt{NOT\_COMPARABLE}
+        and reports residuals as diagnostic information only. To make a HiddenState
+        cross-code comparable, contract it into an Observable (e.g., per-mode
+        $\Gamma_{q\nu}$ is a HiddenState; $\sum_{q\nu}\Gamma$ contracted via the
+        BZ sum is an Observable that does agree).
 
   \item \textbf{Errors are designed-for.} Approximation errors live on operations;
         discretization errors live on materializations. The type system reserves slots
@@ -251,26 +253,34 @@ unit choice. Numerical content and units appear only at materialization time.
 
 \medskip
 
-An abstract state $s$ is a tuple $(\tau, \pi, \mathcal{I})$ where:
+An abstract state $s$ is a tuple $(\kappa, \tau, \pi, F)$ where:
 \begin{itemize}[leftmargin=2em]
-  \item $\tau$ is a \emph{physics type} drawn from a finite registry: derived types
-        include \texttt{ForceConstants[order=$n$]}, \texttt{DynamicalMatrix},
-        \texttt{Frequency}, \texttt{Eigenvectors}, \texttt{GroupVelocity},
-        \texttt{HeatCapacity}, \texttt{Linewidth}, \texttt{MeanFreeDisplacement},
-        \texttt{ThermalConductivity}; source types include \texttt{Potential} (the
-        abstract root, stubbed in Phase 1), \texttt{Temperature},
-        \texttt{LatticeConstant}, \texttt{Pressure}, and measured-observable types;
+  \item $\kappa \in \{\textsc{Observable}, \textsc{HiddenState}\}$ is the
+        \emph{gauge-invariance kind}: Observables are gauge-invariant and cross-code
+        comparable; HiddenStates carry gauge freedom (eigenvector phase, BZ-summation
+        choice, degenerate-subspace rotation, …) that the substrate doesn't pin down,
+        so their per-element values differ across adapters by design;
+  \item $\tau$ is a \emph{physics type} drawn from a finite registry. Derived types in
+        the thermal-transport scope include \texttt{ForceConstants[order=$n$]},
+        \texttt{DynamicalMatrix}, \texttt{Frequency}, \texttt{Eigenvectors},
+        \texttt{GroupVelocity}, \texttt{HeatCapacity}, \texttt{Linewidth},
+        \texttt{MeanFreeDisplacement}, \texttt{ThermalConductivity}; sources include
+        \texttt{Potential}, \texttt{Temperature}. Some types are further parameterized
+        by upstream operation choices (e.g., \texttt{ThermalConductivity[bte\_solver=
+        rta]} is a HiddenState since RTA's $1/\Gamma$ non-linearity breaks gauge
+        invariance, whereas \texttt{ThermalConductivity[bte\_solver=direct\_inverse]}
+        is an Observable because the full LBTE preserves it);
   \item $\pi$ is the \emph{provenance}: an ordered list $[\mathcal{O}_1, \mathcal{O}_2,
         \ldots, \mathcal{O}_n]$ of symbolic operations whose composition produced $s$.
         Provenance is never empty---source states have a single nullary operation
         (\texttt{provide\_potential}, \texttt{provide\_temperature}, \ldots);
-  \item $\mathcal{I}$ is the \emph{index signature}: the tuple of named indices the
-        observable carries (e.g., $\omega$ has $\mathcal{I} = (\mathbf{q}, \nu)$;
-        $v$ has $(\alpha, \mathbf{q}, \nu)$; $\kappa$ has $(\alpha, \beta)$).
-        Empty for scalar / opaque observables.
+  \item $F = (f_1, f_2, \ldots)$ is the state's tuple of \emph{fields}. Each field has
+        a name, a dimension (frequency, energy, length, …), and an index signature
+        (e.g., $\omega$ has indices $(\mathbf{q}, \nu)$; $v$ has $(\alpha, \mathbf{q},
+        \nu)$; $\kappa$ has $(\alpha, \beta)$).
 \end{itemize}
-Two abstract states are equal iff $\tau_1 = \tau_2$ and $\pi_1 = \pi_2$. The composed
-approximation error on $s$ (a Phase 2 capability) would be
+Two abstract states are equal iff their names match. The composed approximation error
+on $s$ (a Phase 2 capability) would be
 \begin{equation}
   \epsilon_{\text{approx}}(s) = \mathrm{compose}\bigl(\epsilon_{\mathcal{O}_1},\, \epsilon_{\mathcal{O}_2},\, \ldots,\, \epsilon_{\mathcal{O}_n}\bigr).
 \end{equation}
@@ -369,8 +379,9 @@ equipped with three pieces of metadata:
 \begin{itemize}[leftmargin=2em]
   \item a \emph{symbolic formula} $\mathcal{F}_\mathcal{O}$ stating what the operation
         computes, encoded as a sympy expression for closed-form ops or a sympy.Eq for
-        implicit ones (eigenvalue equations, linear systems). Source operations
-        (\texttt{provide\_*}) carry $\mathcal{F}_\mathcal{O} = \emptyset$;
+        implicit ones (eigenvalue equations, linear systems). \emph{Every} operation
+        carries a formula---source operations have identity formulas (e.g.,
+        \texttt{provide\_temperature}: $T = T_{\text{provided}}$);
   \item an \emph{approximation error formula} $\epsilon_{\mathcal{O}}$, a symbolic
         expression in physical small parameters (e.g., $\lambda$ for the strength of a
         perturbation, $T/T^*$ for a Sommerfeld expansion). Exact operations have
@@ -430,57 +441,62 @@ giving the asymptotic dependence of the discretization error on these parameters
 
 \subsection{Materialization}
 
-A materialization $m$ of an abstract state $s = (\tau, \pi)$ is a tuple
-$(s, \Sigma, x, U, \epsilon_{\text{disc}})$ where:
-\begin{itemize}[leftmargin=2em]
-  \item $s$ is the abstract state being materialized (a back-reference);
-  \item $\Sigma$ is a discretization scheme;
-  \item $x$ is a concrete numerical object whose representation is compatible with $\tau$ (e.g.,
-        a 4-D array if $\tau = \texttt{Dispersion}$, a scalar if $\tau = \texttt{ThermalConductivity}$);
-  \item $U$ is the \emph{unit declaration}: a mapping from each dimensionful quantity in $\tau$
-        to the unit in which it is expressed in $x$ (e.g., for \texttt{Dispersion},
-        \{\texttt{frequency}: linear THz, \texttt{group\_velocity}: \AA{}$\cdot$THz\}). The
-        adapter that produced $m$ supplies $U$;
-  \item $\epsilon_{\text{disc}} = \epsilon_{\Sigma}$ instantiated at the chosen parameters.
-\end{itemize}
-The materialization carries no approximation error of its own; that information is recovered via
-$s$ and its provenance $\pi$.
+A materialization $m$ is a runtime data class wrapping one adapter's emission of one
+field on one state:
+\begin{equation*}
+  m = (\textsc{StateAdapterSpec}, \texttt{field\_name}, x)
+\end{equation*}
+where \textsc{StateAdapterSpec} carries the abstract state $s$, the adapter name, and
+the adapter's declarations (units of each field, convention overrides, notes);
+\texttt{field\_name} selects which field of $s$ is materialized; and $x$ is a concrete
+\texttt{numpy.ndarray}. The discretization scheme $\Sigma$ and discretization error
+$\epsilon_{\text{disc}}$ are deferred to Phase 2.
 
-\paragraph{Why $U$ is part of the materialization.} Different codes express the same
-physics in different units (e.g., kaldo's linewidth is in angular-frequency THz while
-phono3py's is in linear-frequency THz, a factor of $4\pi$; kaldo's heat capacity is in
-J/K, phono3py's in eV/K, a factor of $e$). A materialization without $U$ is unsafe to
-compare against another; with $U$, the substrate can convert both to a canonical unit
-before any comparison and surface unit mismatches as adapter conformance failures rather
-than as numerical mysteries.
+\paragraph{Why the adapter spec is part of the materialization.} Different codes
+express the same physics in different units (kaldo's linewidth is in angular-frequency
+THz while phono3py's is in linear-frequency THz; kaldo's heat capacity is in J/K,
+phono3py's in eV/K) and under different conventions (kaldo's $\Gamma$ is the linewidth
+$2\,\text{Im}\,\Sigma$ while phono3py's is $\text{Im}\,\Sigma$ directly). A raw array
+without its adapter spec is unsafe to compare against another. With the spec attached,
+the substrate computes the cross-adapter conversion factor mechanically and surfaces
+unit / convention mismatches as type-level declarations rather than as numerical
+mysteries.
 
-\subsection{Observable extraction and comparison protocols}
+\subsection{Cross-adapter comparison: \texttt{compare}}
 
-Cross-adapter agreement is checked at the observable layer, not at the raw materialization
-layer. An \emph{observable} is a pure function $\mathcal{Q} : x \mapsto y$ that extracts a
-physically meaningful quantity from the numerical content $x$ of a materialization (a
-contraction, a peak position, an integrated quantity). Each abstract state declares its
-observables; each observable carries a \emph{comparison protocol} specifying how two
-extractions $y_1$, $y_2$ from materializations of the same abstract state by different
-adapters are compared---typically a tolerance, but possibly a richer relation (e.g., ``equal
-up to a permutation of degenerate modes'' or ``not directly comparable, contraction
-required'').
+The bridge from spec to verified empirical fact is the function
+\begin{equation*}
+  \texttt{compare}(m_a, m_b; \text{rtol}, \text{atol}, \text{contraction})
+  \;\to\; \textsc{ComparisonResult}
+\end{equation*}
+which takes two materializations of the same state and field, applies the cross-adapter
+conversion factor derived from their declared units and conventions, optionally
+contracts both arrays via a user-supplied callable (e.g.\ \texttt{numpy.sum}), and
+reports residuals together with a \emph{status} drawn from five values:
+\begin{description}[leftmargin=2.5em, itemsep=0.2em]
+  \item[\textsc{Expected\_Pass}] the state is an Observable; the arrays agree within
+        $(\text{rtol}, \text{atol})$. The substrate's prediction holds.
+  \item[\textsc{Expected\_Loose}] the user predicted disagreement (override) and the
+        arrays disagree. Useful for intermediate contractions of a HiddenState that the
+        user knows is only partially gauge-invariant.
+  \item[\textsc{Not\_Comparable}] the state is a HiddenState and no contraction was
+        supplied. The substrate refuses to make a pass/fail verdict; residuals are
+        still computed and returned for diagnostic inspection, but they carry no
+        normative weight.
+  \item[\textsc{Unexpected\_Fail}] the state is an Observable but the arrays disagree.
+        \emph{Real anomaly}: either the spec is missing a convention, or the codes
+        genuinely compute different physics, or rtol is too strict.
+  \item[\textsc{Unexpected\_Pass}] the user predicted disagreement and the arrays
+        agreed. Rare; the per-element protocol may be tighter than declared.
+\end{description}
 
-The protocol records the substrate's claim about which extractions are stable across
-adapter choices and which are not. A contracted scalar like $\kappa^{\alpha\beta}$ or
-$\Sigma\Gamma_{q\nu}$ has a tight tolerance: disagreement is a real discrepancy that must
-be diagnosed. A per-mode array whose values depend on the summation order in the
-underlying sum (e.g., per-mode $\Gamma_{q\nu}$ in a Brillouin-zone integration that one
-adapter handles by symmetry-reduced triplets and another handles by enumeration) is
-explicitly marked as not-directly-comparable: numerical disagreement at the mode level is
-expected and not a substrate failure, even though the contracted total agrees.
-
-\paragraph{Why this is the right level.} Two adapters that disagree at the observable
-layer disagree about physics. Two adapters that disagree at the raw-materialization
-layer but agree at the observable layer disagree only about bookkeeping---the order in
-which a sum is decomposed, the basis in which a tensor is written. The substrate's job
-is to make this distinction structural: by declaring which observables are
-adapter-invariant, the substrate states what it is asking for and what it is not.
+The status taxonomy separates three things that earlier versions of the substrate
+conflated: the substrate's \emph{prediction} (would these agree?), the empirical
+\emph{outcome} (did they?), and whether the comparison is even \emph{meaningful} for
+the given state kind. Only \textsc{Unexpected\_Fail} flags an anomaly that needs
+investigation; \textsc{Expected\_Pass} and \textsc{Expected\_Loose} are successful
+predictions; \textsc{Not\_Comparable} is a HiddenState saying ``don't ask this
+question.''
 
 \subsection{Materialization functor}
 
@@ -554,55 +570,65 @@ transport equation.
 
 \subsection{The abstract DAG}
 
-The abstract DAG has 12 nodes (states / observables) and 11 edges (operations). Two
-nodes (\texttt{Potential}, \texttt{Temperature}) are sources, produced by nullary
-\texttt{provide\_*} operations.
+The abstract DAG has 14 nodes and 13 edges. Two source nodes (\texttt{Potential},
+\texttt{Temperature}) are produced by nullary \texttt{provide\_*} operations; the
+\texttt{MeanFreeDisplacement} and \texttt{ThermalConductivity} states are each split
+into two parameterized variants by the upstream \texttt{bte\_solver} choice (one
+gauge-invariant, one not).
 
-\paragraph{Nodes.}
+\paragraph{Nodes (Observable / HiddenState):}
 \begin{itemize}[leftmargin=2em, itemsep=0.2em]
-  \item \texttt{Potential}: the abstract root, materialized in Phase 1 as a stubbed
-        source state (the silicon potential, the LAMMPS-Tersoff potential, or the QE-PBE
-        potential, as an opaque label);
-  \item \texttt{Temperature}: source state, scalar $T$;
-  \item \texttt{ForceConstants[order=2]}, \texttt{ForceConstants[order=3]}: harmonic and
-        cubic interatomic force constants $\Phi^{(n)}$;
-  \item \texttt{DynamicalMatrix}: the Bloch sum $D_{ij}(\mathbf{q})$;
-  \item \texttt{Frequency}: $\omega(\mathbf{q},\nu)$, indices $(\mathbf{q},\nu)$;
-  \item \texttt{Eigenvectors}: $e(\mathbf{q},\nu)$, indices $(i, \mathbf{q},\nu)$;
-  \item \texttt{GroupVelocity}: $v^\alpha(\mathbf{q},\nu)$, indices
-        $(\alpha, \mathbf{q}, \nu)$;
-  \item \texttt{HeatCapacity}: $c(\mathbf{q},\nu, T)$, indices $(\mathbf{q}, \nu)$;
-  \item \texttt{Linewidth}: $\Gamma(\mathbf{q},\nu, T)$, indices $(\mathbf{q}, \nu)$;
-  \item \texttt{MeanFreeDisplacement}: $F^\alpha(\mathbf{q},\nu, T)$, indices
-        $(\alpha, \mathbf{q}, \nu)$;
-  \item \texttt{ThermalConductivity}: $\kappa^{\alpha\beta}(T)$, indices
-        $(\alpha, \beta)$.
+  \item \texttt{Potential} (\textbf{O}): the abstract root, stubbed in Phase 1;
+  \item \texttt{Temperature} (\textbf{O}): scalar source $T$;
+  \item \texttt{ForceConstants[order=2]} (\textbf{O}), \texttt{[order=3]} (\textbf{O}):
+        real-space interatomic force constants $\Phi^{(n)}$;
+  \item \texttt{DynamicalMatrix} (\textbf{O}): Bloch sum $D_{ij}(\mathbf{q})$;
+  \item \texttt{Frequency} (\textbf{O}): $\omega(\mathbf{q},\nu)$, eigenvalues
+        (gauge-invariant);
+  \item \texttt{Eigenvectors} (\textbf{H}): $e(\mathbf{q},\nu)$, phase $+$
+        degenerate-subspace freedom;
+  \item \texttt{GroupVelocity} (\textbf{H}): $v^\alpha(\mathbf{q},\nu)$, inherits
+        eigenvector freedom at degenerate $\omega$;
+  \item \texttt{HeatCapacity} (\textbf{O}): $c(\mathbf{q},\nu, T) = (\hbar\omega)^2 /
+        (4 k_B T^2 \sinh^2(\hbar\omega / 2 k_B T))$;
+  \item \texttt{Linewidth} (\textbf{H}): per-mode $\Gamma(\mathbf{q},\nu, T)$,
+        BZ-summation redistribution;
+  \item \texttt{MeanFreeDisplacement[bte\_solver=rta]} (\textbf{H}): RTA
+        $F = v/(2\Gamma)$, inherits Linewidth's looseness;
+  \item \texttt{MeanFreeDisplacement[bte\_solver=direct\_inverse]} (\textbf{O}): full
+        LBTE solution, gauge-invariant;
+  \item \texttt{ThermalConductivity[bte\_solver=rta]} (\textbf{H}): the $1/\Gamma$
+        non-linearity propagates Linewidth's looseness into $\kappa_\text{RTA}$;
+  \item \texttt{ThermalConductivity[bte\_solver=direct\_inverse]} (\textbf{O}):
+        LBTE off-diagonals preserve gauge-invariance.
 \end{itemize}
 
 \paragraph{Edges.} Verb-headed names; each carries a sympy formula:
 \begin{itemize}[leftmargin=2em, itemsep=0.2em]
-  \item \texttt{provide\_potential}: $() \to$ \texttt{Potential};
-  \item \texttt{provide\_temperature}: $() \to$ \texttt{Temperature};
-  \item \texttt{compute\_force\_constants[order=2]}, \texttt{[order=3]}:
-        \texttt{Potential} $\to$ \texttt{ForceConstants[order=$n$]} (stubbed in Phase~1);
-  \item \texttt{compute\_dynamical\_matrix}: \texttt{ForceConstants[order=2]} $\to$
-        \texttt{DynamicalMatrix};
-  \item \texttt{compute\_dispersion}: \texttt{DynamicalMatrix} $\to$
-        (\texttt{Frequency}, \texttt{Eigenvectors})  [multi-output, implicit equation];
-  \item \texttt{compute\_group\_velocity}: (\texttt{DynamicalMatrix},
-        \texttt{Frequency}, \texttt{Eigenvectors}) $\to$ \texttt{GroupVelocity};
-  \item \texttt{compute\_heat\_capacity}: (\texttt{Frequency}, \texttt{Temperature})
-        $\to$ \texttt{HeatCapacity};
-  \item \texttt{compute\_linewidth}: (\texttt{Frequency}, \texttt{Eigenvectors},
-        \texttt{ForceConstants[order=3]}, \texttt{Temperature}) $\to$ \texttt{Linewidth},
-        with parameter $\sigma$ (broadening) and algorithmic convention
-        \texttt{broadening\_param};
-  \item \texttt{solve\_bte}: (\texttt{Frequency}, \texttt{GroupVelocity},
-        \texttt{Linewidth}, \texttt{Temperature}) $\to$ \texttt{MeanFreeDisplacement},
-        with algorithmic convention \texttt{bte\_solver} $\in$ \{rta, iterative,
-        direct\_inverse\};
-  \item \texttt{contract\_kappa}: (\texttt{HeatCapacity}, \texttt{GroupVelocity},
-        \texttt{MeanFreeDisplacement}) $\to$ \texttt{ThermalConductivity}.
+  \item \texttt{provide\_potential} (identity), \texttt{provide\_temperature} (identity);
+  \item \texttt{compute\_force\_constants[order=2]}, \texttt{[order=3]} (stubbed):
+        $\Phi^{(n)} = \partial^n V / \partial u^n |_{u=0}$;
+  \item \texttt{compute\_dynamical\_matrix}: Bloch sum
+        $D_{ij}(\mathbf{q}) = \frac{1}{\sqrt{M_i M_j}}\sum_R \Phi^{(2)}_{ij}(R)\,
+        e^{i\mathbf{q}\cdot R}$;
+  \item \texttt{compute\_dispersion} (multi-output): eigenvalue equation
+        $\sum_j D_{ij}(\mathbf{q})\, e_{j,q,\nu} = \omega^2_{q,\nu}\, e_{i,q,\nu}$;
+  \item \texttt{compute\_group\_velocity}: Hellmann--Feynman
+        $v^\alpha_{q,\nu} = \frac{1}{2\omega_{q,\nu}} e^\dagger_{q,\nu}\,
+        \partial D / \partial q^\alpha\, e_{q,\nu}$;
+  \item \texttt{compute\_heat\_capacity}: closed form above;
+  \item \texttt{compute\_linewidth}: triple BZ sum (Fermi's golden rule); algorithmic
+        convention \texttt{broadening\_param} $\in$ \{stdev, halfwidth\};
+  \item \texttt{solve\_bte[bte\_solver=rta]}: closed form $F = v/(2\Gamma)$;
+  \item \texttt{solve\_bte[bte\_solver=direct\_inverse]}: implicit linear system
+        $\sum_{q'\nu'} \mathcal{M}_{q\nu,q'\nu'}\, F^\alpha_{q'\nu'} = c_{q\nu}\,
+        v^\alpha_{q\nu}$;
+  \item \texttt{contract\_kappa[bte\_solver=rta]} and \texttt{[bte\_solver=
+        direct\_inverse]}: same BZ contraction
+        $\kappa^{\alpha\beta} = \frac{1}{V N_q}\sum c\, v^\alpha\, F^\beta$;
+        the two operations differ only in their input and output state types,
+        ensuring $\kappa_\text{RTA}$ is typed as a HiddenState and $\kappa_\text{LBTE}$
+        as an Observable.
 \end{itemize}
 
 Edges are exact symbolic operations (Fourier transform, eigendecomposition, mode
@@ -648,11 +674,13 @@ adapter-level steps recorded as provenance, not modeled by the substrate.
 \node[abstractnode] (HC) at ( 9, -5.6) {HeatCapacity};
 \node[abstractnode] (LW) at ( 1.5, -5.6) {Linewidth};
 
-% BTE
-\node[abstractnode] (MFD) at (-1.5, -7.0) {MeanFreeDisplacement};
+% BTE — split by bte_solver
+\node[abstractnode, fill=gray!25] (MFDR) at (-3.5, -7.0) {MFD[bte\_solver=rta]};
+\node[abstractnode]               (MFDI) at ( 1.0, -7.0) {MFD[bte\_solver=direct\_inverse]};
 
-% kappa
-\node[abstractnode] (KAP) at ( 4, -8.4) {ThermalConductivity};
+% kappa — split by bte_solver
+\node[abstractnode, fill=gray!25] (KAPR) at ( 2.0, -8.6) {$\kappa$[bte\_solver=rta]};
+\node[abstractnode]               (KAPI) at ( 7.0, -8.6) {$\kappa$[bte\_solver=direct\_inverse]};
 
 % --- arrows ---
 \draw[stubedge] (POT) -- node[oplabel] {compute\_force\_constants[2]} (FC2);
@@ -669,48 +697,96 @@ adapter-level steps recorded as provenance, not modeled by the substrate.
 \draw[arr] (TMP.south) to[bend left=15] node[oplabel] {} (LW.east);
 \draw[arr] (FRQ.east) to[bend right=10] node[oplabel, pos=0.4] {compute\_heat\_capacity} (HC.west);
 \draw[arr] (TMP) -- (HC);
-\draw[arr] (FRQ.south) to[bend right=30] node[oplabel, pos=0.6] {} (MFD.west);
-\draw[arr] (GV) -- (MFD);
-\draw[arr] (LW) -- node[oplabel] {solve\_bte} (MFD);
-\draw[arr] (TMP.south) to[bend left=30] node[oplabel] {} (MFD.east);
-\draw[arr] (HC.south) to[bend left=15] node[oplabel] {contract\_kappa} (KAP.east);
-\draw[arr] (GV.south) to[bend right=30] node[oplabel, pos=0.6] {} (KAP.west);
-\draw[arr] (MFD) -- (KAP);
+% solve_bte to two MFDs
+\draw[arr] (LW.south west) to[bend right=10] node[oplabel, pos=0.5] {solve\_bte[rta]} (MFDR.north);
+\draw[arr] (LW.south) -- node[oplabel] {solve\_bte[direct]} (MFDI.north);
+\draw[arr] (FRQ.south) to[bend right=40] (MFDR.west);
+\draw[arr] (GV.south) to[bend right=10] (MFDR.west);
+\draw[arr] (TMP.south) to[bend left=40] (MFDI.east);
+% contract_kappa to two kappas
+\draw[arr] (MFDR.south) -- node[oplabel] {contract\_kappa[rta]} (KAPR.north);
+\draw[arr] (MFDI.south) -- node[oplabel] {contract\_kappa[direct]} (KAPI.north);
+\draw[arr] (HC.south) to[bend left=10] (KAPI.east);
+\draw[arr] (GV.south east) to[bend right=20] (KAPR.west);
 
 \end{tikzpicture}%
 }
-\caption{The abstract DAG for lattice thermal transport: 12 nodes (states / observables)
-and 11 edges (operations). The two darker boxes (\texttt{Potential},
-\texttt{Temperature}) are source nodes, produced by nullary \texttt{provide\_*}
-operations. Dashed edges from \texttt{Potential} to \texttt{ForceConstants} represent
-upstream operations declared in the substrate but stubbed in Phase 1. Each remaining
-edge carries a symbolic formula (sympy expression or sympy.Eq). The DAG is uniform: every
-node is the output of some operation; cross-code comparison reduces to graph alignment
-over this template plus per-state observable extraction. Adapter-specific
-materializations attach to each node and are not shown for clarity.}
+\caption{The abstract DAG for lattice thermal transport: 14 nodes and 13 edges. The
+two darker top boxes (\texttt{Potential}, \texttt{Temperature}) are source nodes;
+the dashed edges from \texttt{Potential} represent the stubbed Phase-1 upstream.
+\texttt{MeanFreeDisplacement} and $\kappa$ split into two parameterized variants by
+\texttt{bte\_solver}: the gray-shaded \texttt{[rta]} variants are HiddenStates
+(RTA's $1/\Gamma$ non-linearity breaks gauge invariance), the unshaded
+\texttt{[direct\_inverse]} variants are Observables (the full LBTE preserves it).
+Each derived edge carries a sympy formula; sources carry identity formulas. All
+nodes are outputs of some operation; cross-code comparison happens at Observable
+nodes (after the substrate's spec-derived unit and convention conversion). Other
+HiddenStates (\texttt{Eigenvectors}, \texttt{GroupVelocity}, \texttt{Linewidth})
+are not visually distinguished in this diagram but are gauge-dependent in the same
+sense.}
 \label{fig:dag}
 \end{figure}
 
-\subsection{The three materialization functors}
+\subsection{Materialization functors (codes)}
 
-Each of the three codes defines a materialization functor:
+Each adapter is a materialization functor over the abstract DAG. Phase 1 supplies two:
 
 \begin{itemize}[leftmargin=2em]
   \item \textbf{kaldo} (Python). Computes harmonic and anharmonic phonon transport from
-        force constants, supporting iterative BTE, RTA, and the Wigner formulation. Most
-        intermediate states are exposed via Python attributes on the \texttt{Phonons} object.
-  \item \textbf{phono3py} (C/Python). Computes lattice thermal conductivity from third-order
-        force constants, with extensive support for finite-displacement and DFPT pipelines.
-        Intermediate quantities are exposed in HDF5 outputs.
-  \item \textbf{ShengBTE} (Fortran/MPI). Solves the full linearized BTE with iterative
-        self-consistency, exposing intermediate quantities in plain-text output files.
+        force constants, supporting iterative BTE, RTA, and the Wigner formulation.
+        Most intermediate states are exposed via Python attributes on the
+        \texttt{Phonons} object. kaldo's \texttt{Conductivity(method='inverse')}
+        realizes the canonical \texttt{bte\_solver=direct\_inverse}.
+  \item \textbf{phono3py} (C/Python). Computes lattice thermal conductivity from
+        third-order force constants. Intermediate quantities are exposed in HDF5
+        outputs. \texttt{run\_thermal\_conductivity(is\_LBTE=True)} realizes the
+        canonical \texttt{bte\_solver=direct\_inverse}.
+  \item \textbf{ShengBTE} (Fortran/MPI; deferred). Solves the full linearized BTE with
+        iterative self-consistency. Adapter declaration is a half-day exercise once
+        ShengBTE is included in the runs.
 \end{itemize}
 
-For each code, a thin adapter reads the code's natural output (Python attribute, HDF5 dataset, or
-text file), constructs the corresponding materialization, and tags it with the abstract state it
-realizes. The first concrete demonstrable result of the substrate is to run all three codes on a
-single material (silicon) at a single discretization, and to display the three materialized DAGs
-aligned to the shared abstract template.
+Each adapter spec declares per-state units, convention overrides, and notes
+(\texttt{StateAdapterSpec}), plus per-operation parameter units, algorithmic-convention
+overrides, and discretization choices (\texttt{OperationAdapterSpec}). Differences
+from the substrate's canonical declarations surface as conversion factors at
+spec-load time.
+
+\subsection{Verification on silicon (Tersoff potential)}
+\label{ssec:silicon-verification}
+
+The substrate's symbolic predictions have been verified end-to-end against numerical
+runs of kaldo and phono3py on silicon at the Tersoff potential, $8\times 8\times 8$
+q-mesh, $T = 300\,\text{K}$, broadening stdev $0.1\,\text{THz}$:
+
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+Observable / contraction & Substrate prediction & Empirical residual \\
+\midrule
+\texttt{Frequency} per-mode (\textbf{O})            & factor $1$ (both linear THz)  & $5\times 10^{-4}$ \\
+\texttt{HeatCapacity} per-mode (\textbf{O})         & factor $1/e \approx 6\times 10^{18}$ & $3\times 10^{-5}$ \\
+$\sum_{q\nu}\Gamma$ contracted (\textbf{O})          & factor $1/(4\pi)$              & $5\times 10^{-4}$ \\
+$\kappa$\texttt{[bte\_solver=direct\_inverse]} (\textbf{O}) & factor $1$                & $4\times 10^{-3}$ \\
+\midrule
+\texttt{Linewidth} per-mode (\textbf{H})            & \textsc{Not\_Comparable} & 25\% (diagnostic only) \\
+$\kappa$\texttt{[bte\_solver=rta]} (\textbf{H})     & \textsc{Not\_Comparable} & 4\% (diagnostic only) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+All Observable comparisons pass at $\le 1\%$ tolerance; all HiddenState per-element
+comparisons return \textsc{Not\_Comparable}. The $1/(4\pi)$ factor on $\Gamma$
+decomposes into $1/(2\pi)$ unit (kaldo angular vs phono3py linear THz) and $1/2$
+convention (kaldo $\Gamma = 2\,\text{Im}\,\Sigma$, phono3py $\Gamma = \text{Im}\,\Sigma$).
+Both factors were derived by the substrate from declared adapter specs, then
+applied mechanically to the diagnostic data.
+
+The 4\% disagreement on $\kappa_\text{RTA}$ is the substrate's structural prediction
+working as designed: RTA's approximation breaks $\kappa$'s gauge invariance via the
+$1/\Gamma$ non-linearity, so the per-mode Linewidth redistribution propagates into
+$\kappa$. Typing $\kappa_\text{RTA}$ as a HiddenState makes this a non-anomaly; the
+gauge-invariant $\kappa_\text{LBTE}$ agrees to 0.4\%.
 
 \subsection{Phase 1 scientific capabilities}
 
@@ -744,35 +820,49 @@ oriented but is deferred to Phase 2.
 \section{Implementation layout}
 \label{sec:layout}
 
-The Python package \texttt{omai} factors the substrate into three top-level
-sub-packages plus one per domain:
+The Python package \texttt{omai} factors the substrate into two substrate sub-packages
+plus one per domain:
 
 \begin{itemize}[leftmargin=2em, itemsep=0.3em]
-  \item \texttt{omai.abstract}: substrate machinery for the abstract world.
-        \texttt{State}, \texttt{Operation}, \texttt{Observable}, \texttt{Parameter},
-        \texttt{Dimension} (class), \texttt{PhysicsType} (closed enum), and
+  \item \texttt{omai.abstract} --- substrate machinery for the abstract world.
+        \texttt{State} (base class), \texttt{Observable} and \texttt{HiddenState}
+        (subclasses), \texttt{Field}, \texttt{Operation}, \texttt{Parameter},
+        \texttt{Dimension}, \texttt{PhysicsType} (closed enum), and
         \texttt{topological\_order}. Code-agnostic and domain-agnostic.
-  \item \texttt{omai.materialization}: the bridge. \texttt{Unit} class with the unit
-        registry plus strict same-dimension \texttt{conversion\_factor};
-        \texttt{StateAdapterSpec} and \texttt{OperationAdapterSpec} with cross-state /
-        cross-operation comparison helpers. Code-agnostic.
-  \item \texttt{omai.thermal\_transport}: the lattice-thermal-transport domain.
+  \item \texttt{omai.materialization} --- the bridge.
     \begin{itemize}[leftmargin=1.2em]
-      \item \texttt{symbolic.py}: the 12 nodes and 11 edges of \S\ref{sec:demo} as
-            \texttt{State} and \texttt{Operation} instances, with sympy formulas on
-            every derived edge.
+      \item \texttt{units.py}: the \texttt{Unit} class, named unit instances, strict
+            same-dimension \texttt{conversion\_factor}.
+      \item \texttt{adapter.py}: \texttt{StateAdapterSpec} and
+            \texttt{OperationAdapterSpec}, plus cross-state and cross-operation
+            comparison helpers (\texttt{cross\_state\_unit\_factor},
+            \texttt{cross\_state\_total\_factor}, \texttt{cross\_operation\_*}).
+      \item \texttt{instance.py}: the \texttt{Materialization} runtime data class
+            and \texttt{materialize()} constructor.
+      \item \texttt{compare.py}: \texttt{compare()} with the five-status
+            \texttt{ComparisonResult}.
+    \end{itemize}
+    Code-agnostic.
+  \item \texttt{omai.thermal\_transport} --- the lattice-thermal-transport domain.
+    \begin{itemize}[leftmargin=1.2em]
+      \item \texttt{symbolic/nodes.py}: the 14 states as \texttt{Observable} or
+            \texttt{HiddenState} instances with their fields.
+      \item \texttt{symbolic/edges.py}: the 13 operations with sympy formulas;
+            sympy symbols and \texttt{IndexedBase} declarations.
       \item \texttt{materialized/kaldo.py}, \texttt{materialized/phono3py.py}:
-            per-code adapter specs (one file per code), each declaring units,
-            conventions, and discretization choices for the abstract DAG.
+            per-code adapter specs (one file per code), declaring units,
+            conventions, and discretization choices.
+      \item \texttt{visualize.py}: emits \texttt{docs/dag.html}, an interactive
+            single-file visualization (Mermaid layered diagram, click-to-details
+            panels, MathJax-rendered formulas) reflecting the current substrate.
     \end{itemize}
 \end{itemize}
 
 \noindent The split mirrors the substrate's architectural commitment: \texttt{abstract}
-and \texttt{materialization} are the substrate's two worlds plus its bridge;
+is the abstract world; \texttt{materialization} is the bridge to the numeric world;
 \texttt{thermal\_transport} is the first domain instantiated against them. Future
-domains (electronic transport, optical response, etc.) follow the same two-file pattern
-in their own folder; no change to \texttt{abstract} or \texttt{materialization} is
-required to add one.
+domains (electronic transport, optical response, …) follow the same pattern in their
+own folder; no change to the substrate-level packages is required to add one.
 
 \section{Open Questions and Deferred Decisions}
 \label{sec:open}
