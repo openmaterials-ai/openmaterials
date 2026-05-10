@@ -22,10 +22,12 @@ from omai.thermal_transport.symbolic.nodes import (
     GROUP_VELOCITY,
     HEAT_CAPACITY,
     LINEWIDTH,
-    MEAN_FREE_DISPLACEMENT,
+    MEAN_FREE_DISPLACEMENT_DIRECT,
+    MEAN_FREE_DISPLACEMENT_RTA,
     POTENTIAL,
     TEMPERATURE_STATE,
-    THERMAL_CONDUCTIVITY_STATE,
+    THERMAL_CONDUCTIVITY_DIRECT,
+    THERMAL_CONDUCTIVITY_RTA,
 )
 
 
@@ -60,6 +62,7 @@ _c = sp.IndexedBase("c")
 _Gamma = sp.IndexedBase(r"\Gamma")
 _F = sp.IndexedBase("F")
 _kappa = sp.IndexedBase(r"\kappa")
+_M_collision = sp.IndexedBase(r"\mathcal{M}")
 
 _V_pot = sp.Function("V")
 _u_set = sp.Symbol(r"\{u\}")
@@ -144,10 +147,22 @@ _LW_FORMULA = sp.Eq(
     ),
 )
 
-# F^α_{q,ν} = v^α_{q,ν} / (2 Γ_{q,ν})  [RTA closed form]
-_BTE_FORMULA = sp.Eq(
+# RTA closed form: F^α_{q,ν} = v^α_{q,ν} / (2 Γ_{q,ν})
+_BTE_RTA_FORMULA = sp.Eq(
     _F[_alpha, _q, _nu],
     _v[_alpha, _q, _nu] / (2 * _Gamma[_q, _nu]),
+)
+
+# LBTE / direct-inverse implicit equation: Σ_{q'ν'} M_{qν, q'ν'} F^α_{q'ν'} = c_{qν} v^α_{qν}
+# M is the full collision matrix; the off-diagonals capture inter-mode redistribution
+# that RTA drops. Solving M·F = c·v preserves κ's gauge invariance.
+_BTE_DIRECT_FORMULA = sp.Eq(
+    sp.Sum(
+        _M_collision[_q, _nu, _qp, _nu_p] * _F[_alpha, _qp, _nu_p],
+        (_qp, 1, _N_q),
+        (_nu_p, 1, _N_modes),
+    ),
+    _c[_q, _nu] * _v[_alpha, _q, _nu],
 )
 
 # κ^{αβ} = (1 / V_cell N_q) Σ_{q,ν} c_{q,ν} v^α_{q,ν} F^β_{q,ν}
@@ -250,27 +265,49 @@ compute_linewidth = Operation(
     ),
 )
 
-solve_bte = Operation(
-    name="solve_bte",
+solve_bte_rta = Operation(
+    name="solve_bte[bte_solver=rta]",
     inputs=(FREQUENCY_STATE, GROUP_VELOCITY, LINEWIDTH, TEMPERATURE_STATE),
-    outputs=(MEAN_FREE_DISPLACEMENT,),
+    outputs=(MEAN_FREE_DISPLACEMENT_RTA,),
     algorithmic_conventions={"bte_solver": "rta"},
-    formula=_BTE_FORMULA,
+    formula=_BTE_RTA_FORMULA,
     description=(
-        "BTE solution. The formula shown is the RTA closed-form. The "
-        "iterative / direct (LBTE) solvers solve the implicit linear "
-        "system M·F = c·v over the full collision matrix M; the off-"
-        "diagonal terms capture inter-mode redistribution. Choice of "
-        "solver is the bte_solver algorithmic convention."
+        "Relaxation-time approximation: F = v / (2Γ). Closed-form per "
+        "mode. Drops the off-diagonal terms of the collision matrix, so "
+        "κ_RTA inherits Linewidth's gauge-dependence."
     ),
 )
 
-contract_kappa = Operation(
-    name="contract_kappa",
-    inputs=(HEAT_CAPACITY, GROUP_VELOCITY, MEAN_FREE_DISPLACEMENT),
-    outputs=(THERMAL_CONDUCTIVITY_STATE,),
+solve_bte_direct = Operation(
+    name="solve_bte[bte_solver=direct_inverse]",
+    inputs=(FREQUENCY_STATE, GROUP_VELOCITY, LINEWIDTH, TEMPERATURE_STATE),
+    outputs=(MEAN_FREE_DISPLACEMENT_DIRECT,),
+    algorithmic_conventions={"bte_solver": "direct_inverse"},
+    formula=_BTE_DIRECT_FORMULA,
+    description=(
+        "Full linearized BTE: solve M·F = c·v for F, where M is the full "
+        "collision matrix. The off-diagonals capture inter-mode "
+        "redistribution; κ obtained from this F is gauge-invariant."
+    ),
+)
+
+contract_kappa_rta = Operation(
+    name="contract_kappa[bte_solver=rta]",
+    inputs=(HEAT_CAPACITY, GROUP_VELOCITY, MEAN_FREE_DISPLACEMENT_RTA),
+    outputs=(THERMAL_CONDUCTIVITY_RTA,),
     formula=_KAPPA_FORMULA,
-    description="Per-mode contraction over the BZ to the thermal-conductivity tensor.",
+    description=(
+        "Per-mode contraction with F from RTA. The 1/Γ non-linearity "
+        "propagates Linewidth's gauge-dependence into κ_RTA."
+    ),
+)
+
+contract_kappa_direct = Operation(
+    name="contract_kappa[bte_solver=direct_inverse]",
+    inputs=(HEAT_CAPACITY, GROUP_VELOCITY, MEAN_FREE_DISPLACEMENT_DIRECT),
+    outputs=(THERMAL_CONDUCTIVITY_DIRECT,),
+    formula=_KAPPA_FORMULA,
+    description="Per-mode contraction with the LBTE F; result is gauge-invariant.",
 )
 
 
@@ -284,6 +321,8 @@ EDGES: tuple[Operation, ...] = (
     compute_group_velocity,
     compute_heat_capacity,
     compute_linewidth,
-    solve_bte,
-    contract_kappa,
+    solve_bte_rta,
+    solve_bte_direct,
+    contract_kappa_rta,
+    contract_kappa_direct,
 )

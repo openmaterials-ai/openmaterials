@@ -1,22 +1,27 @@
 """Abstract nodes of the lattice thermal-transport DAG.
 
-Twelve nodes, split into Observables (gauge-invariant, cross-code-comparable)
+Fourteen nodes, split into Observables (gauge-invariant, cross-code-comparable)
 and HiddenStates (adapter-internal scaffolding, not cross-code-comparable
-per-element). The taxonomy:
+per-element). MeanFreeDisplacement and ThermalConductivity are parameterized
+by the upstream `bte_solver` choice: the RTA variants are HiddenStates (the
+approximation breaks gauge invariance), the direct-inverse / iterative
+variants are Observables (the full LBTE solution preserves it).
 
-  Observables (8):
+  Observables (9):
     Potential, Temperature       — sources, scalar / opaque
     ForceConstants[order=2/3]    — real-space tensors, well-defined
     DynamicalMatrix              — Bloch sum, well-defined in standard basis
     Frequency                    — eigenvalues, basis-invariant
     HeatCapacity                 — function of ω and T, well-defined
-    ThermalConductivity          — contracted tensor, gauge-invariant
+    MeanFreeDisplacement[direct] — full LBTE solution; gauge-invariant
+    ThermalConductivity[direct]  — contracted tensor; gauge-invariant
 
-  HiddenStates (4):
+  HiddenStates (5):
     Eigenvectors                 — phase + degenerate-subspace rotation
     GroupVelocity                — inherits eigenvector rotation at degenerate ω
-    Linewidth                    — BZ-summation redistribution; basis at degen.
-    MeanFreeDisplacement         — inherits Linewidth's looseness via the BTE
+    Linewidth                    — BZ-summation redistribution
+    MeanFreeDisplacement[rta]    — RTA closed form; inherits Linewidth's looseness
+    ThermalConductivity[rta]     — RTA κ; inherits MFD[rta]'s looseness via 1/Γ
 """
 
 from __future__ import annotations
@@ -91,10 +96,27 @@ HEAT_CAPACITY = Observable(
     fields=(Field("c", ENERGY_PER_TEMPERATURE, indices=("q", "nu")),),
 )
 
-THERMAL_CONDUCTIVITY_STATE = Observable(
+THERMAL_CONDUCTIVITY_DIRECT = Observable(
     physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
-    name="ThermalConductivity",
+    name="ThermalConductivity[bte_solver=direct_inverse]",
     fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    type_parameters={"bte_solver": "direct_inverse"},
+    description=(
+        "Lattice thermal conductivity from the direct/iterative LBTE solver. "
+        "Gauge-invariant: the collision matrix's off-diagonals preserve "
+        "invariance under per-mode Γ redistribution."
+    ),
+)
+
+MEAN_FREE_DISPLACEMENT_DIRECT = Observable(
+    physics_type=PhysicsType.MEAN_FREE_DISPLACEMENT,
+    name="MeanFreeDisplacement[bte_solver=direct_inverse]",
+    fields=(Field("F", LENGTH, indices=("alpha", "q", "nu")),),
+    type_parameters={"bte_solver": "direct_inverse"},
+    description=(
+        "F obtained from the full linearized BTE (direct inversion or "
+        "iterative solution). Gauge-invariant by construction."
+    ),
 )
 
 
@@ -141,13 +163,27 @@ LINEWIDTH = HiddenState(
     ),
 )
 
-MEAN_FREE_DISPLACEMENT = HiddenState(
+MEAN_FREE_DISPLACEMENT_RTA = HiddenState(
     physics_type=PhysicsType.MEAN_FREE_DISPLACEMENT,
-    name="MeanFreeDisplacement",
+    name="MeanFreeDisplacement[bte_solver=rta]",
     fields=(Field("F", LENGTH, indices=("alpha", "q", "nu")),),
+    type_parameters={"bte_solver": "rta"},
     description=(
-        "Per-mode mean free displacement F_qν entering the BTE solution. "
-        "Inherits Linewidth's per-element looseness via the BTE solver."
+        "F = v / (2Γ) under the relaxation-time approximation. Inherits "
+        "Linewidth's per-element looseness via the 1/Γ weighting."
+    ),
+)
+
+THERMAL_CONDUCTIVITY_RTA = HiddenState(
+    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
+    name="ThermalConductivity[bte_solver=rta]",
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    type_parameters={"bte_solver": "rta"},
+    description=(
+        "Lattice thermal conductivity from the RTA. The 1/Γ weighting is "
+        "non-linear in Γ, so RTA κ inherits Linewidth's gauge-dependence "
+        "(unlike the LBTE solution, which preserves gauge-invariance via "
+        "off-diagonal collision terms)."
     ),
 )
 
@@ -163,6 +199,8 @@ NODES: tuple[State, ...] = (
     GROUP_VELOCITY,
     HEAT_CAPACITY,
     LINEWIDTH,
-    MEAN_FREE_DISPLACEMENT,
-    THERMAL_CONDUCTIVITY_STATE,
+    MEAN_FREE_DISPLACEMENT_RTA,
+    MEAN_FREE_DISPLACEMENT_DIRECT,
+    THERMAL_CONDUCTIVITY_RTA,
+    THERMAL_CONDUCTIVITY_DIRECT,
 )

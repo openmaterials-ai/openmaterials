@@ -34,13 +34,15 @@ from omai.thermal_transport.materialized import (
     KALDO_GROUP_VELOCITY,
     KALDO_HEAT_CAPACITY,
     KALDO_LINEWIDTH,
-    KALDO_THERMAL_CONDUCTIVITY,
+    KALDO_THERMAL_CONDUCTIVITY_DIRECT,
+    KALDO_THERMAL_CONDUCTIVITY_RTA,
     PHONO3PY_COMPUTE_LINEWIDTH,
     PHONO3PY_FREQUENCY,
     PHONO3PY_GROUP_VELOCITY,
     PHONO3PY_HEAT_CAPACITY,
     PHONO3PY_LINEWIDTH,
-    PHONO3PY_THERMAL_CONDUCTIVITY,
+    PHONO3PY_THERMAL_CONDUCTIVITY_DIRECT,
+    PHONO3PY_THERMAL_CONDUCTIVITY_RTA,
 )
 
 
@@ -174,7 +176,7 @@ def main() -> None:
     print(f"  per-q Σ_ν Γ_qν (rtol=2e-2):                {per_q.summary()}")
     print(f"  total Σ_qν Γ contracted (rtol=1e-2):       {total.summary()}")
 
-    section("ThermalConductivity κ: kaldo vs phono3py (RTA and direct/LBTE)")
+    section("ThermalConductivity κ: parameterized by bte_solver")
     csv_path = (
         Path(__file__).resolve().parent.parent.parent
         / "runs"
@@ -185,38 +187,55 @@ def main() -> None:
     if not csv_path.exists():
         print(f"  κ CSV not found at {csv_path}; skipping.")
     else:
-        kaldo_rta = ph3_rta = kaldo_lbte = ph3_lbte = None
+        kaldo_rta = ph3_rta = kaldo_direct = ph3_direct = None
         with open(csv_path) as f:
             for row in csv.DictReader(f):
                 if abs(float(row["effective_stdev_THz"]) - 0.10) < 1e-4:
                     kaldo_rta = float(row["kaldo_rta"])
                     ph3_rta = float(row["phono3py_rta"])
-                    kaldo_lbte = float(row["kaldo_inv"])
-                    ph3_lbte = float(row["phono3py_lbte"])
+                    kaldo_direct = float(row["kaldo_inv"])
+                    ph3_direct = float(row["phono3py_lbte"])
                     break
         if kaldo_rta is None:
             print(f"  no σ=0.10 row in {csv_path}; skipping.")
         else:
-            mk = materialize(KALDO_THERMAL_CONDUCTIVITY, "kappa", np.array(kaldo_rta))
-            mp = materialize(PHONO3PY_THERMAL_CONDUCTIVITY, "kappa", np.array(ph3_rta))
+            # κ[bte_solver=rta] is a HiddenState → NOT_COMPARABLE per-element
+            mk = materialize(
+                KALDO_THERMAL_CONDUCTIVITY_RTA, "kappa", np.array(kaldo_rta)
+            )
+            mp = materialize(
+                PHONO3PY_THERMAL_CONDUCTIVITY_RTA, "kappa", np.array(ph3_rta)
+            )
             r_rta = compare(mk, mp, rtol=0.01)
-            mk = materialize(KALDO_THERMAL_CONDUCTIVITY, "kappa", np.array(kaldo_lbte))
-            mp = materialize(PHONO3PY_THERMAL_CONDUCTIVITY, "kappa", np.array(ph3_lbte))
-            r_lbte = compare(mk, mp, rtol=0.01)
-            print(f"  κ_RTA  (kaldo={kaldo_rta:.2f}, ph3={ph3_rta:.2f}, rtol=1e-2):")
+            # κ[bte_solver=direct_inverse] is an Observable → tight comparison
+            mk = materialize(
+                KALDO_THERMAL_CONDUCTIVITY_DIRECT, "kappa", np.array(kaldo_direct)
+            )
+            mp = materialize(
+                PHONO3PY_THERMAL_CONDUCTIVITY_DIRECT, "kappa", np.array(ph3_direct)
+            )
+            r_direct = compare(mk, mp, rtol=0.01)
+            print(
+                f"  κ[bte_solver=rta]            "
+                f"(kaldo={kaldo_rta:.2f}, ph3={ph3_rta:.2f}):"
+            )
             print(f"    {r_rta.summary()}")
-            print(f"  κ_LBTE (kaldo={kaldo_lbte:.2f}, ph3={ph3_lbte:.2f}, rtol=1e-2):")
-            print(f"    {r_lbte.summary()}")
             print(
-                "  → κ_RTA inherits the per-mode Γ redistribution noise (~4%);"
+                f"  κ[bte_solver=direct_inverse] "
+                f"(kaldo={kaldo_direct:.2f}, ph3={ph3_direct:.2f}, rtol=1e-2):"
+            )
+            print(f"    {r_direct.summary()}")
+            print(
+                "  → κ[rta] is a HiddenState: RTA's 1/Γ non-linearity inherits"
             )
             print(
-                "    κ_LBTE absorbs it via off-diagonal collision terms (<0.5%)."
+                "    Linewidth's gauge-dependence. Per-element disagreement is"
             )
+            print("    diagnostic, not anomalous.")
             print(
-                "    The bte_solver convention (rta vs direct_inverse) "
-                "structurally explains the gap."
+                "  → κ[direct] is an Observable: the LBTE off-diagonals cancel"
             )
+            print("    the redistribution, so κ is gauge-invariant.")
 
     print()
     print("=" * 70)

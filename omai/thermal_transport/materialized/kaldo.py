@@ -24,7 +24,8 @@ from omai.thermal_transport.symbolic.nodes import (
     GROUP_VELOCITY,
     HEAT_CAPACITY,
     LINEWIDTH,
-    THERMAL_CONDUCTIVITY_STATE,
+    THERMAL_CONDUCTIVITY_DIRECT,
+    THERMAL_CONDUCTIVITY_RTA,
 )
 
 
@@ -67,13 +68,23 @@ KALDO_HEAT_CAPACITY = StateAdapterSpec(
 )
 
 
-KALDO_THERMAL_CONDUCTIVITY = StateAdapterSpec(
-    state=THERMAL_CONDUCTIVITY_STATE,
+KALDO_THERMAL_CONDUCTIVITY_RTA = StateAdapterSpec(
+    state=THERMAL_CONDUCTIVITY_RTA,
+    adapter_name="kaldo",
+    observable_units={"kappa": "W_per_m_per_K"},
+    notes="Conductivity(method='rta').conductivity in W/(m·K), tensor shape (3, 3).",
+)
+
+
+KALDO_THERMAL_CONDUCTIVITY_DIRECT = StateAdapterSpec(
+    state=THERMAL_CONDUCTIVITY_DIRECT,
     adapter_name="kaldo",
     observable_units={"kappa": "W_per_m_per_K"},
     notes=(
-        "Conductivity(method='rta'|'inverse'|'sc').conductivity in "
-        "W/(m·K), tensor shape (3, 3) per direction."
+        "Conductivity(method='inverse').conductivity in W/(m·K), tensor "
+        "shape (3, 3). kaldo's 'inverse' method realizes the substrate's "
+        "canonical bte_solver=direct_inverse. 'sc' (self-consistent "
+        "iterative) is an alternative realization of the same canonical."
     ),
 )
 

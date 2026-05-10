@@ -24,7 +24,8 @@ from omai.thermal_transport.symbolic.nodes import (
     GROUP_VELOCITY,
     HEAT_CAPACITY,
     LINEWIDTH,
-    THERMAL_CONDUCTIVITY_STATE,
+    THERMAL_CONDUCTIVITY_DIRECT,
+    THERMAL_CONDUCTIVITY_RTA,
 )
 
 
@@ -64,13 +65,25 @@ PHONO3PY_HEAT_CAPACITY = StateAdapterSpec(
 )
 
 
-PHONO3PY_THERMAL_CONDUCTIVITY = StateAdapterSpec(
-    state=THERMAL_CONDUCTIVITY_STATE,
+PHONO3PY_THERMAL_CONDUCTIVITY_RTA = StateAdapterSpec(
+    state=THERMAL_CONDUCTIVITY_RTA,
     adapter_name="phono3py",
     observable_units={"kappa": "W_per_m_per_K"},
     notes=(
-        "thermal_conductivity.kappa in W/(m·K), shape "
-        "(n_sigma, n_temp, 6) Voigt notation; xx/yy/zz are the first three."
+        "run_thermal_conductivity(is_LBTE=False) yields kappa in W/(m·K), "
+        "Voigt-tensor shape; xx/yy/zz are the first three components."
+    ),
+)
+
+
+PHONO3PY_THERMAL_CONDUCTIVITY_DIRECT = StateAdapterSpec(
+    state=THERMAL_CONDUCTIVITY_DIRECT,
+    adapter_name="phono3py",
+    observable_units={"kappa": "W_per_m_per_K"},
+    notes=(
+        "run_thermal_conductivity(is_LBTE=True) yields kappa in W/(m·K). "
+        "phono3py's `is_LBTE=True` realizes the substrate's canonical "
+        "bte_solver=direct_inverse."
     ),
 )
 

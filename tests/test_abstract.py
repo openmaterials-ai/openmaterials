@@ -9,21 +9,23 @@ from omai.thermal_transport.symbolic import (
     EDGES,
     NODES,
     LINEWIDTH,
-    THERMAL_CONDUCTIVITY_STATE,
+    THERMAL_CONDUCTIVITY_DIRECT,
+    THERMAL_CONDUCTIVITY_RTA,
     compute_dispersion,
     compute_force_constants_2,
     compute_heat_capacity,
     compute_linewidth,
-    contract_kappa,
+    contract_kappa_direct,
+    contract_kappa_rta,
 )
 
 
 def test_node_count():
-    assert len(NODES) == 12
+    assert len(NODES) == 14
 
 
 def test_edge_count():
-    assert len(EDGES) == 11
+    assert len(EDGES) == 13
 
 
 def test_provide_potential_is_nullary():
@@ -52,8 +54,18 @@ def test_compute_linewidth_inputs():
 
 
 def test_contract_kappa_inputs():
-    input_names = {s.name for s in contract_kappa.inputs}
-    assert input_names == {"HeatCapacity", "GroupVelocity", "MeanFreeDisplacement"}
+    direct_inputs = {s.name for s in contract_kappa_direct.inputs}
+    assert direct_inputs == {
+        "HeatCapacity",
+        "GroupVelocity",
+        "MeanFreeDisplacement[bte_solver=direct_inverse]",
+    }
+    rta_inputs = {s.name for s in contract_kappa_rta.inputs}
+    assert rta_inputs == {
+        "HeatCapacity",
+        "GroupVelocity",
+        "MeanFreeDisplacement[bte_solver=rta]",
+    }
 
 
 def test_topological_order_is_valid():
@@ -71,7 +83,7 @@ def test_thermal_conductivity_is_terminal():
     """No edge has ThermalConductivity as an input."""
     for op in EDGES:
         for inp in op.inputs:
-            assert inp != THERMAL_CONDUCTIVITY_STATE
+            assert inp not in (THERMAL_CONDUCTIVITY_RTA, THERMAL_CONDUCTIVITY_DIRECT)
 
 
 def test_linewidth_state_has_gamma_definition_convention():
@@ -122,14 +134,14 @@ def test_specific_field_indices():
         FREQUENCY_STATE,
         GROUP_VELOCITY,
         LINEWIDTH,
-        THERMAL_CONDUCTIVITY_STATE,
+        THERMAL_CONDUCTIVITY_DIRECT,
     )
 
     assert FREQUENCY_STATE.fields[0].indices == ("q", "nu")
     assert DYNAMICAL_MATRIX.fields[0].indices == ("i", "j", "q")
     assert GROUP_VELOCITY.fields[0].indices == ("alpha", "q", "nu")
     assert LINEWIDTH.fields[0].indices == ("q", "nu")
-    assert THERMAL_CONDUCTIVITY_STATE.fields[0].indices == ("alpha", "beta")
+    assert THERMAL_CONDUCTIVITY_DIRECT.fields[0].indices == ("alpha", "beta")
 
 
 def test_observable_vs_hidden_state_classification():
@@ -142,20 +154,26 @@ def test_observable_vs_hidden_state_classification():
         GROUP_VELOCITY,
         HEAT_CAPACITY,
         LINEWIDTH,
-        MEAN_FREE_DISPLACEMENT,
+        MEAN_FREE_DISPLACEMENT_DIRECT,
+        MEAN_FREE_DISPLACEMENT_RTA,
         POTENTIAL,
         TEMPERATURE_STATE,
-        THERMAL_CONDUCTIVITY_STATE,
+        THERMAL_CONDUCTIVITY_DIRECT,
+        THERMAL_CONDUCTIVITY_RTA,
     )
 
     for state in (
         POTENTIAL, TEMPERATURE_STATE, FORCE_CONSTANTS_2,
-        FREQUENCY_STATE, HEAT_CAPACITY, THERMAL_CONDUCTIVITY_STATE,
+        FREQUENCY_STATE, HEAT_CAPACITY,
+        MEAN_FREE_DISPLACEMENT_DIRECT, THERMAL_CONDUCTIVITY_DIRECT,
     ):
         assert isinstance(state, Observable), f"{state.name} should be Observable"
         assert state.is_observable
 
-    for state in (EIGENVECTORS, GROUP_VELOCITY, LINEWIDTH, MEAN_FREE_DISPLACEMENT):
+    for state in (
+        EIGENVECTORS, GROUP_VELOCITY, LINEWIDTH,
+        MEAN_FREE_DISPLACEMENT_RTA, THERMAL_CONDUCTIVITY_RTA,
+    ):
         assert isinstance(state, HiddenState), f"{state.name} should be HiddenState"
         assert not state.is_observable
 
@@ -175,7 +193,9 @@ def test_kappa_formula_is_double_sum_over_q_and_nu():
     """contract_kappa's Sum has two bound variables (q and nu), unlike the buggy old version."""
     import sympy
 
-    f = contract_kappa.formula
+    # Both RTA and direct variants share the same κ contraction formula
+    f = contract_kappa_direct.formula
+    assert contract_kappa_rta.formula is f
     sums = list(f.atoms(sympy.Sum))
     assert len(sums) == 1
     bounds = sums[0].limits
