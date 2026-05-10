@@ -99,33 +99,77 @@ def _collect_specs() -> tuple[
     return kaldo_state_specs, phono3py_state_specs, kaldo_op_specs, phono3py_op_specs
 
 
+_LAYER_LABELS = {
+    0: "Sources",
+    1: "Force constants",
+    2: "Harmonic",
+    3: "Dispersion",
+    4: "Mode-resolved",
+    5: "BTE solution",
+    6: "κ (observable)",
+}
+
+
+def _compute_layers() -> dict[str, int]:
+    """Topological layer of each node: layer = 1 + max(input_layer)."""
+    producer: dict[str, object] = {}
+    for op in EDGES:
+        for out in op.outputs:
+            producer[out.name] = op
+
+    cache: dict[str, int] = {}
+
+    def layer_of(state_name: str) -> int:
+        if state_name in cache:
+            return cache[state_name]
+        op = producer.get(state_name)
+        if op is None or not op.inputs:
+            cache[state_name] = 0
+            return 0
+        L = 1 + max(layer_of(inp.name) for inp in op.inputs)
+        cache[state_name] = L
+        return L
+
+    for state in NODES:
+        layer_of(state.name)
+    return cache
+
+
 def _mermaid_diagram(
     kaldo_states: dict[str, StateAdapterSpec],
     phono3py_states: dict[str, StateAdapterSpec],
 ) -> str:
-    lines = ["flowchart TD"]
+    layers = _compute_layers()
+    by_layer: dict[int, list[State]] = {}
     for state in NODES:
-        nid = _mermaid_id(state)
-        label = _short_label(state)
-        badges = []
-        if state.name in kaldo_states:
-            badges.append("K")
-        if state.name in phono3py_states:
-            badges.append("P")
-        badge = f" [{'/'.join(badges)}]" if badges else ""
-        cls = _gauge_class(state)
-        lines.append(f'  {nid}["{label}{badge}"]:::{cls}')
+        by_layer.setdefault(layers[state.name], []).append(state)
+
+    lines = ["flowchart TD"]
+
+    for layer_idx in sorted(by_layer):
+        label = _LAYER_LABELS.get(layer_idx, f"Layer {layer_idx}")
+        lines.append(f'  subgraph L{layer_idx}["{label}"]')
+        lines.append("    direction LR")
+        for state in by_layer[layer_idx]:
+            nid = _mermaid_id(state)
+            short = _short_label(state)
+            badges = []
+            if state.name in kaldo_states:
+                badges.append("K")
+            if state.name in phono3py_states:
+                badges.append("P")
+            badge = f" [{'/'.join(badges)}]" if badges else ""
+            cls = _gauge_class(state)
+            lines.append(f'    {nid}["{short}{badge}"]:::{cls}')
+        lines.append("  end")
 
     for op in EDGES:
         for inp in op.inputs:
             for out in op.outputs:
                 from_id = _mermaid_id(inp)
                 to_id = _mermaid_id(out)
-                op_label = op.name.split("[")[0]  # short verb-headed name
+                op_label = op.name.split("[")[0]
                 lines.append(f"  {from_id} -->|{op_label}| {to_id}")
-
-    # Edges for nullary (source) operations: synthetic origin node "_src" not needed;
-    # sources appear as nodes with no upstream — Mermaid handles that fine.
 
     lines.append("")
     lines.append("  classDef observable fill:#3f7fc1,stroke:#2c5d8f,color:#fff,stroke-width:1px")

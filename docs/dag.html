@@ -70,20 +70,41 @@
   <div id="diagram">
     <pre class="mermaid">
 flowchart TD
-  Potential["Potential"]:::observable
-  Temperature["Temperature"]:::observable
-  ForceConstants_order_2["ForceConstants<br/>[order=2]"]:::observable
-  ForceConstants_order_3["ForceConstants<br/>[order=3]"]:::observable
-  DynamicalMatrix["DynamicalMatrix"]:::observable
-  Frequency["Frequency [K/P]"]:::observable
-  Eigenvectors["Eigenvectors"]:::hidden
-  GroupVelocity["GroupVelocity [K/P]"]:::hidden
-  HeatCapacity["HeatCapacity [K/P]"]:::observable
-  Linewidth["Linewidth [K/P]"]:::hidden
-  MeanFreeDisplacement_bte_solver_rta["MeanFreeDisplacement<br/>[bte_solver=rta]"]:::hidden
-  MeanFreeDisplacement_bte_solver_direct_inverse["MeanFreeDisplacement<br/>[bte_solver=direct_inverse]"]:::observable
-  ThermalConductivity_bte_solver_rta["ThermalConductivity<br/>[bte_solver=rta] [K/P]"]:::hidden
-  ThermalConductivity_bte_solver_direct_inverse["ThermalConductivity<br/>[bte_solver=direct_inverse] [K/P]"]:::observable
+  subgraph L0["Sources"]
+    direction LR
+    Potential["Potential"]:::observable
+    Temperature["Temperature"]:::observable
+  end
+  subgraph L1["Force constants"]
+    direction LR
+    ForceConstants_order_2["ForceConstants<br/>[order=2]"]:::observable
+    ForceConstants_order_3["ForceConstants<br/>[order=3]"]:::observable
+  end
+  subgraph L2["Harmonic"]
+    direction LR
+    DynamicalMatrix["DynamicalMatrix"]:::observable
+  end
+  subgraph L3["Dispersion"]
+    direction LR
+    Frequency["Frequency [K/P]"]:::observable
+    Eigenvectors["Eigenvectors"]:::hidden
+  end
+  subgraph L4["Mode-resolved"]
+    direction LR
+    GroupVelocity["GroupVelocity [K/P]"]:::hidden
+    HeatCapacity["HeatCapacity [K/P]"]:::observable
+    Linewidth["Linewidth [K/P]"]:::hidden
+  end
+  subgraph L5["BTE solution"]
+    direction LR
+    MeanFreeDisplacement_bte_solver_rta["MeanFreeDisplacement<br/>[bte_solver=rta]"]:::hidden
+    MeanFreeDisplacement_bte_solver_direct_inverse["MeanFreeDisplacement<br/>[bte_solver=direct_inverse]"]:::observable
+  end
+  subgraph L6["κ (observable)"]
+    direction LR
+    ThermalConductivity_bte_solver_rta["ThermalConductivity<br/>[bte_solver=rta] [K/P]"]:::hidden
+    ThermalConductivity_bte_solver_direct_inverse["ThermalConductivity<br/>[bte_solver=direct_inverse] [K/P]"]:::observable
+  end
   Potential -->|compute_force_constants| ForceConstants_order_2
   Potential -->|compute_force_constants| ForceConstants_order_3
   ForceConstants_order_2 -->|compute_dynamical_matrix| DynamicalMatrix
