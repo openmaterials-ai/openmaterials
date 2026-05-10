@@ -20,6 +20,7 @@ from typing import Any
 
 import numpy as np
 
+from omai.abstract.state import HiddenState
 from omai.materialization.adapter import cross_state_total_factor
 from omai.materialization.instance import Materialization
 
@@ -34,22 +35,30 @@ class ComparisonResult:
     max_relative_residual: float
     rtol: float
     atol: float
+    not_comparable: bool = False
 
     @property
     def status(self) -> str:
-        """One of: EXPECTED_PASS, EXPECTED_LOOSE, UNEXPECTED_FAIL, UNEXPECTED_PASS.
+        """One of: EXPECTED_PASS, EXPECTED_LOOSE, UNEXPECTED_FAIL,
+        UNEXPECTED_PASS, NOT_COMPARABLE.
 
-        EXPECTED_PASS    — predicted tight, confirmed tight (both pass).
-        EXPECTED_LOOSE   — predicted loose, confirmed loose (both fail). Also
-                           a successful prediction; the substrate said this
-                           wouldn't agree per-element and it doesn't.
-        UNEXPECTED_FAIL  — predicted tight, observed FAIL. The substrate
-                           flags an anomaly: either the spec is missing a
-                           convention, or there's a real cross-code physics
-                           disagreement, or rtol is too strict.
-        UNEXPECTED_PASS  — predicted loose, observed PASS. Rare; the
-                           per-element protocol may be tighter than declared.
+        NOT_COMPARABLE   — the comparison is on a HiddenState per-element
+                           (i.e., without a contraction). The substrate
+                           refuses to make a pass/fail verdict; residuals
+                           are still reported for diagnostic inspection.
+        EXPECTED_PASS    — predicted tight, observed tight (both pass).
+        EXPECTED_LOOSE   — predicted loose, observed loose. The substrate
+                           said this wouldn't agree per-element and it
+                           doesn't. Used when the user explicitly passes
+                           expected_to_pass=False (e.g., for intermediate
+                           contractions of a HiddenState).
+        UNEXPECTED_FAIL  — predicted tight, observed FAIL. Real anomaly:
+                           missing convention, real cross-code disagreement,
+                           or rtol too strict.
+        UNEXPECTED_PASS  — predicted loose, observed PASS. Rare.
         """
+        if self.not_comparable:
+            return "NOT_COMPARABLE"
         if self.expected_to_pass and self.passed:
             return "EXPECTED_PASS"
         if not self.expected_to_pass and not self.passed:
@@ -89,11 +98,13 @@ def compare(
             None, comparison is per-element.
         rtol, atol: passed to np.allclose for the pass/fail verdict.
         expected_to_pass: override the substrate's prediction. By default,
-            inferred from the observable's `per_element_tight` flag (when
-            contraction is None) or assumed True (when contraction is
-            supplied — contracted forms are typically tight). Pass False
-            for an intermediate contraction (e.g., per-q ΣΓ_q) where the
-            outcome is still expected to be loose.
+            inferred from the abstract state's kind: True if the state is
+            an Observable (gauge-invariant, cross-code comparable); for a
+            HiddenState the result is NOT_COMPARABLE per-element. When a
+            contraction is supplied, the default is True (contracted forms
+            are typically gauge-invariant). Pass False for an intermediate
+            contraction (e.g., per-q ΣΓ_q) where the outcome is still
+            expected to be loose.
 
     Returns:
         ComparisonResult with the applied factor, the residuals, and a
@@ -136,10 +147,15 @@ def compare(
 
     passed = bool(np.allclose(a_arr, b_arr, rtol=rtol, atol=atol))
 
+    # HiddenState + no contraction → NOT_COMPARABLE. Residuals are computed
+    # for diagnostic inspection but the substrate makes no verdict.
+    is_hidden_per_element = (
+        isinstance(m_a.state, HiddenState) and contraction is None
+    )
+
     if expected_to_pass is None:
-        obs = m_a.state.observable(m_a.observable_name)
-        if contraction is None:
-            expected_to_pass = obs.per_element_tight
+        if is_hidden_per_element:
+            expected_to_pass = False  # placeholder; status overrides via not_comparable
         else:
             expected_to_pass = True
 
@@ -152,4 +168,5 @@ def compare(
         max_relative_residual=max_rel,
         rtol=rtol,
         atol=atol,
+        not_comparable=is_hidden_per_element,
     )

@@ -50,14 +50,29 @@ def test_compare_identical_data_passes():
     assert r.max_relative_residual == 0.0
 
 
-def test_compare_status_expected_loose_for_per_element_loose_observable():
-    """Linewidth declares per_element_tight=False; per-element compare on
-    disagreeing data should report EXPECTED_LOOSE (not UNEXPECTED_FAIL)."""
+def test_compare_status_not_comparable_for_hidden_state_per_element():
+    """Linewidth is a HiddenState; per-element compare returns NOT_COMPARABLE.
+    Residuals are computed for diagnostic inspection but the substrate makes
+    no pass/fail verdict."""
     a = np.array([1.0, 2.0, 3.0])
-    b = np.array([1.1, 2.05, 2.85])  # disagrees per-element
+    b = np.array([1.1, 2.05, 2.85])
     ma = materialize(PHONO3PY_LINEWIDTH, "Gamma", a)
     mb = materialize(PHONO3PY_LINEWIDTH, "Gamma", b)
     r = compare(ma, mb, rtol=1e-3)
+    assert r.not_comparable
+    assert r.status == "NOT_COMPARABLE"
+    assert r.max_relative_residual > 0  # residual still computed
+
+
+def test_compare_status_expected_loose_for_intermediate_contraction():
+    """User-overridden expected_to_pass=False on a contracted HiddenState
+    comparison yields EXPECTED_LOOSE."""
+    a = np.array([1.0, 2.0, 3.0])
+    b = np.array([0.5, 1.5, 3.5])  # same sum
+    ma = materialize(PHONO3PY_LINEWIDTH, "Gamma", a)
+    mb = materialize(PHONO3PY_LINEWIDTH, "Gamma", b)
+    # Identity contraction (not a real reduction) with expected_to_pass=False
+    r = compare(ma, mb, contraction=lambda x: x, rtol=1e-3, expected_to_pass=False)
     assert not r.passed
     assert r.expected_to_pass is False
     assert r.status == "EXPECTED_LOOSE"

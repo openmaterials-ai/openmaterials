@@ -61,8 +61,8 @@ class StateAdapterSpec:
         """Multiplicative factor scaling this adapter's output of `observable`
         relative to canonical, due to the adapter's declared convention values."""
         factor = 1.0
-        for conv_name, conv_value, obs_name, f in self.state.convention_factors:
-            if obs_name != observable_name:
+        for conv_name, conv_value, field_name, f in self.state.convention_factors:
+            if field_name != observable_name:
                 continue
             if self.declared_convention(conv_name) == conv_value:
                 factor *= f

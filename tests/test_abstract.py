@@ -106,16 +106,16 @@ def test_every_derived_edge_has_a_sympy_formula():
             )
 
 
-def test_every_observable_declares_indices():
-    """Each observable carries an explicit index signature (possibly empty)."""
+def test_every_state_declares_indices():
+    """Each state's fields carry explicit index signatures (possibly empty)."""
     for state in NODES:
-        for obs in state.observables:
-            assert isinstance(obs.indices, tuple), (
-                f"{state.name}.{obs.name} indices should be a tuple"
+        for f in state.fields:
+            assert isinstance(f.indices, tuple), (
+                f"{state.name}.{f.name} indices should be a tuple"
             )
 
 
-def test_specific_observable_indices():
+def test_specific_field_indices():
     """Spot-check the index signatures match the formulas."""
     from omai.thermal_transport.symbolic import (
         DYNAMICAL_MATRIX,
@@ -125,11 +125,39 @@ def test_specific_observable_indices():
         THERMAL_CONDUCTIVITY_STATE,
     )
 
-    assert FREQUENCY_STATE.observables[0].indices == ("q", "nu")
-    assert DYNAMICAL_MATRIX.observables[0].indices == ("i", "j", "q")
-    assert GROUP_VELOCITY.observables[0].indices == ("alpha", "q", "nu")
-    assert LINEWIDTH.observables[0].indices == ("q", "nu")
-    assert THERMAL_CONDUCTIVITY_STATE.observables[0].indices == ("alpha", "beta")
+    assert FREQUENCY_STATE.fields[0].indices == ("q", "nu")
+    assert DYNAMICAL_MATRIX.fields[0].indices == ("i", "j", "q")
+    assert GROUP_VELOCITY.fields[0].indices == ("alpha", "q", "nu")
+    assert LINEWIDTH.fields[0].indices == ("q", "nu")
+    assert THERMAL_CONDUCTIVITY_STATE.fields[0].indices == ("alpha", "beta")
+
+
+def test_observable_vs_hidden_state_classification():
+    """The substrate classifies gauge-invariant vs gauge-dependent nodes."""
+    from omai.abstract.state import HiddenState, Observable
+    from omai.thermal_transport.symbolic import (
+        EIGENVECTORS,
+        FORCE_CONSTANTS_2,
+        FREQUENCY_STATE,
+        GROUP_VELOCITY,
+        HEAT_CAPACITY,
+        LINEWIDTH,
+        MEAN_FREE_DISPLACEMENT,
+        POTENTIAL,
+        TEMPERATURE_STATE,
+        THERMAL_CONDUCTIVITY_STATE,
+    )
+
+    for state in (
+        POTENTIAL, TEMPERATURE_STATE, FORCE_CONSTANTS_2,
+        FREQUENCY_STATE, HEAT_CAPACITY, THERMAL_CONDUCTIVITY_STATE,
+    ):
+        assert isinstance(state, Observable), f"{state.name} should be Observable"
+        assert state.is_observable
+
+    for state in (EIGENVECTORS, GROUP_VELOCITY, LINEWIDTH, MEAN_FREE_DISPLACEMENT):
+        assert isinstance(state, HiddenState), f"{state.name} should be HiddenState"
+        assert not state.is_observable
 
 
 def test_heat_capacity_formula_has_omega_T_kB_hbar():

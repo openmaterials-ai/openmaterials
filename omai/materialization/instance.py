@@ -45,7 +45,7 @@ def materialize(
     Coerces `data` to np.ndarray. Raises KeyError if `observable_name` isn't
     one of the state's observables.
     """
-    state_adapter_spec.state.observable(observable_name)  # raises KeyError if absent
+    state_adapter_spec.state.field(observable_name)  # raises KeyError if absent
     arr = np.asarray(data)
     return Materialization(
         state_adapter_spec=state_adapter_spec,

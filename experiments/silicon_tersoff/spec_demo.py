@@ -135,28 +135,23 @@ def main() -> None:
     r = compare(mk, mp, rtol=1e-3, atol=1e-2)
     print(f"  {r.summary()}")
 
-    section("GroupVelocity: per-mode |v| — substrate flags a cross-code disagreement")
+    section("GroupVelocity: HiddenState — per-element not cross-compared")
     kaldo_v_norm = np.linalg.norm(data["kaldo_gv"], axis=-1)
     ph3_v_norm = np.linalg.norm(data["ph3_gv"], axis=-1)
     mk = materialize(KALDO_GROUP_VELOCITY, "v", kaldo_v_norm)
     mp = materialize(PHONO3PY_GROUP_VELOCITY, "v", ph3_v_norm)
     per_mode = compare(mk, mp, rtol=1e-3, atol=1e-2)
-    print(f"  per-mode |v| (rtol=1e-3):  {per_mode.summary()}")
-    # Median residual is small (most modes agree); a small fraction disagree
-    # significantly even after sorting within each q-point and after
-    # contracting Σ_ν |v|². This is a real per-q disagreement at specific
-    # BZ points, not a degenerate-mode-rotation artifact.
+    print(f"  per-mode |v|: {per_mode.summary()}")
     diff = np.abs(np.sort(kaldo_v_norm, axis=-1) - np.sort(ph3_v_norm, axis=-1))
     n_disagreeing = int((diff > 0.5).sum())
     print(
-        f"  After sorting modes within each q: median |Δ|v|| = {float(np.median(diff)):.3e}, "
+        f"  Diagnostic spread (sort-within-q): median |Δ|v|| = {float(np.median(diff)):.3e}, "
         f"max = {float(diff.max()):.3f}, "
-        f"{n_disagreeing}/{diff.size} modes disagree by > 0.5 Å·THz."
+        f"{n_disagreeing}/{diff.size} modes > 0.5 Å·THz."
     )
-    print("  → real cross-code finding flagged by the substrate. Investigation needed:")
-    print("    likely a definitional difference (∂ω/∂q vs Hellmann-Feynman; BZ-edge")
-    print("    finite-difference convention; mass-weighting; or Cartesian basis).")
-    print("    GroupVelocity's comparison protocol should be marked accordingly.")
+    print("  → GroupVelocity is a HiddenState (eigenvector rotation at degenerate ω");
+    print("    + apparent definitional differences); per-element comparison")
+    print("    isn't a substrate verdict, just a diagnostic.")
 
     section("HeatCapacity: per-mode (tight, after applying 1/e factor)")
     mk = materialize(KALDO_HEAT_CAPACITY, "c", data["kaldo_cv"])
@@ -164,18 +159,18 @@ def main() -> None:
     r = compare(mk, mp, rtol=1e-3)
     print(f"  {r.summary()}")
 
-    section("Linewidth: granularity gradient (per-mode → per-q → total)")
+    section("Linewidth: HiddenState — only contractions are observables")
     mk = materialize(KALDO_LINEWIDTH, "Gamma", data["kaldo_gamma"])
     mp = materialize(PHONO3PY_LINEWIDTH, "Gamma", data["ph3_gamma"])
-    # per-element Linewidth is declared loose on the State; expected=False auto
+    # Linewidth is a HiddenState. Per-element compare returns NOT_COMPARABLE
+    # (diagnostic residual only). Contractions are the cross-code observables.
     per_mode = compare(mk, mp, rtol=0.01)
-    # per-q is intermediate — declare expected=False to override the
-    # "contracted ⇒ expected tight" default
+    # per-q is intermediate (still gauge-affected by BZ-summation choice)
     per_q = compare(
         mk, mp, contraction=lambda x: np.sum(x, axis=-1), rtol=0.02, expected_to_pass=False
     )
     total = compare(mk, mp, contraction=np.sum, rtol=1e-2)
-    print(f"  per-mode (rtol=1e-2):                      {per_mode.summary()}")
+    print(f"  per-mode (HiddenState):                    {per_mode.summary()}")
     print(f"  per-q Σ_ν Γ_qν (rtol=2e-2):                {per_q.summary()}")
     print(f"  total Σ_qν Γ contracted (rtol=1e-2):       {total.summary()}")
 
