@@ -79,13 +79,20 @@ their alternatives or justifications; supporting definitions follow in later sec
         normalizes to a canonical unit before any cross-materialization comparison.
 
   \item \textbf{The atom is a symbolic operation.} The atomic unit of meaning is a typed
-        transformation between abstract states, not an instruction in an input file, an
-        equation, or an algorithm.
+        transformation between abstract states, not an instruction in an input file or an
+        algorithm. Every operation carries a \emph{symbolic formula}---a sympy expression
+        (closed-form output) or sympy.Eq (implicit equation defining the output)---stating
+        what it computes. The formula is the substrate's claim, machine-readable and
+        Lean-projectable, against which adapter conformance can be checked.
 
-  \item \textbf{States are typed witnesses.} A state is the typed claim that an abstract
-        physics object exists with a particular history---not the data the object would
-        have when computed. Numerical content lives in the materialization, separate
-        from the witness.
+  \item \textbf{States are typed witnesses; equivalently, observables are nodes.} A state
+        is the typed claim that an abstract physics object exists with a particular
+        history---not the data the object would have when computed. In practice each
+        state corresponds to a single observable, so the substrate uses ``state'',
+        ``observable'', and ``node'' interchangeably. Each observable declares an index
+        signature (e.g.\ $\omega(\mathbf{q},\nu)$ has indices $(\mathbf{q}, \nu)$;
+        $\kappa^{\alpha\beta}$ has $(\alpha, \beta)$). Numerical content lives in the
+        materialization, separate from the witness.
 
   \item \textbf{Workflows are directed acyclic graphs.} A workflow is a graph of states
         connected by operations, not a linear sequence. Cross-code comparison reduces
@@ -126,6 +133,14 @@ their alternatives or justifications; supporting definitions follow in later sec
         constants of every order are derived states obtained by extracting derivatives of
         the potential and truncating the Taylor expansion. The upstream is stubbed in
         Phase~1.
+
+  \item \textbf{Sources are produced by nullary operations.} Source states (the
+        potential, but also temperature, lattice constant, etc.)\ are the outputs of
+        nullary \texttt{provide\_*} operations rather than nodes with empty provenance.
+        This unifies the DAG: every node is the output of some operation, and the
+        substrate has no special ``input'' category. The materialization of a source
+        state carries the externally supplied value (e.g., $T = 300\,\mathrm{K}$); the
+        operation is just a structural tag.
 
   \item \textbf{Lean-compatible by structure.} The substrate is implemented in Python
         but designed so that its types transliterate cleanly into Lean. Three disciplines
@@ -236,48 +251,60 @@ unit choice. Numerical content and units appear only at materialization time.
 
 \medskip
 
-An abstract state $s$ is a tuple $(\tau, \pi)$ where:
+An abstract state $s$ is a tuple $(\tau, \pi, \mathcal{I})$ where:
 \begin{itemize}[leftmargin=2em]
   \item $\tau$ is a \emph{physics type} drawn from a finite registry: derived types
-        include \texttt{ForceConstantOperator[order=$n$]}, \texttt{ForceConstants[order=$n$]},
-        \texttt{Dispersion}, \texttt{ScatteringRates}, \texttt{BoltzmannSolution},
-        \texttt{ThermalConductivity}; parameter types include \texttt{Potential} (the abstract
-        root, stubbed in Phase 1), \texttt{LatticeConstant},
-        \texttt{Temperature}, \texttt{Pressure}, and measured-observable types;
+        include \texttt{ForceConstants[order=$n$]}, \texttt{DynamicalMatrix},
+        \texttt{Frequency}, \texttt{Eigenvectors}, \texttt{GroupVelocity},
+        \texttt{HeatCapacity}, \texttt{Linewidth}, \texttt{MeanFreeDisplacement},
+        \texttt{ThermalConductivity}; source types include \texttt{Potential} (the
+        abstract root, stubbed in Phase 1), \texttt{Temperature},
+        \texttt{LatticeConstant}, \texttt{Pressure}, and measured-observable types;
   \item $\pi$ is the \emph{provenance}: an ordered list $[\mathcal{O}_1, \mathcal{O}_2,
-        \ldots, \mathcal{O}_n]$ of symbolic operations whose composition produced $s$, or the
-        empty list if $s$ is given (a parameter state, see below).
+        \ldots, \mathcal{O}_n]$ of symbolic operations whose composition produced $s$.
+        Provenance is never empty---source states have a single nullary operation
+        (\texttt{provide\_potential}, \texttt{provide\_temperature}, \ldots);
+  \item $\mathcal{I}$ is the \emph{index signature}: the tuple of named indices the
+        observable carries (e.g., $\omega$ has $\mathcal{I} = (\mathbf{q}, \nu)$;
+        $v$ has $(\alpha, \mathbf{q}, \nu)$; $\kappa$ has $(\alpha, \beta)$).
+        Empty for scalar / opaque observables.
 \end{itemize}
-Two abstract states $(\tau_1, \pi_1)$ and $(\tau_2, \pi_2)$ are equal iff $\tau_1 = \tau_2$ and
-$\pi_1 = \pi_2$. The composed approximation error on $s$ (a Phase 2 capability) would be
+Two abstract states are equal iff $\tau_1 = \tau_2$ and $\pi_1 = \pi_2$. The composed
+approximation error on $s$ (a Phase 2 capability) would be
 \begin{equation}
   \epsilon_{\text{approx}}(s) = \mathrm{compose}\bigl(\epsilon_{\mathcal{O}_1},\, \epsilon_{\mathcal{O}_2},\, \ldots,\, \epsilon_{\mathcal{O}_n}\bigr).
 \end{equation}
 
-\paragraph{Derived versus parameter states.} Abstract states fall into two kinds:
+\paragraph{Source versus derived states.} Abstract states fall into two kinds, both
+produced by some operation:
 \begin{itemize}[leftmargin=2em]
-  \item \emph{Derived states} have non-empty provenance: they are produced by symbolic operations
-        from other states. Examples: \texttt{ForceConstants[order=$n$]} (derived from
-        \texttt{Potential} via \texttt{extract\_derivative} and \texttt{trunc\_n};
-       ), \texttt{Dispersion}, \texttt{ScatteringRates},
-        \texttt{BoltzmannSolution}, the computed $\kappa$.
-  \item \emph{Parameter states} have empty provenance: they are empirical inputs (lattice
-        constant, temperature, pressure, applied field), the abstract \texttt{Potential} itself
-        (Phase 1 stubs the upstream of the potential), or measured observables (a thermal
-        conductivity reported from a TDTR experiment, a Raman peak). The materialization of a
-        parameter state is the value supplied externally (e.g., $5.43\,\textup{\AA}$ for the
-        lattice constant of silicon, or $T = 300\,\text{K}$); its discretization scheme is
-        trivial (a singleton choice rather than a refinable mesh) but its error is still
-        meaningful (experimental uncertainty, or definitional precision).
+  \item \emph{Source states} are the outputs of \emph{nullary} operations
+        (\texttt{provide\_potential}, \texttt{provide\_temperature}, \ldots): operations
+        with no abstract-state inputs. They are empirical inputs (lattice constant,
+        temperature, pressure, applied field), the abstract \texttt{Potential} itself
+        (Phase 1 stubs the upstream of the potential), or measured observables (a
+        thermal conductivity reported from a TDTR experiment, a Raman peak). The
+        materialization of a source state carries the externally supplied value (e.g.,
+        $5.43\,\textup{\AA}$ for the lattice constant of silicon, or $T = 300\,\text{K}$);
+        its discretization scheme is trivial (a singleton choice rather than a refinable
+        mesh) but its error is still meaningful (experimental uncertainty, or
+        definitional precision).
+  \item \emph{Derived states} are the outputs of operations that consume one or more
+        upstream states. Examples: \texttt{ForceConstants[order=$n$]} (derived from
+        \texttt{Potential} via \texttt{compute\_force\_constants[order=$n$]}, currently
+        stubbed), \texttt{Frequency} and \texttt{Eigenvectors} (multi-output of
+        \texttt{compute\_dispersion}), \texttt{Linewidth},
+        \texttt{MeanFreeDisplacement}, the computed $\kappa$.
 \end{itemize}
-Both kinds inhabit the same type and follow the same machinery for materialization. Parameter
-states are the architectural answer to several otherwise awkward cases: empirical inputs
-(``where does the lattice constant live?''), experimental observables (``how does a measured
-$\kappa(T)$ enter the substrate?''), and the unmodeled abstract root in Phase 1 (``what is the
-silicon potential, before we differentiate it?''). All three are materializations of parameter
-states; the second is what makes the unified theory-experiment comparison framework native
-rather than bolted-on; the third is how Phase 1 stubs the upstream of \texttt{Potential} without
-yet modeling it in detail.
+Both kinds follow the same machinery for materialization. The unification of source and
+derived states under the same ``output of an operation'' rule answers several otherwise
+awkward cases: empirical inputs (``where does the lattice constant live?''), experimental
+observables (``how does a measured $\kappa(T)$ enter the substrate?''), and the unmodeled
+abstract root in Phase 1 (``what is the silicon potential, before we differentiate
+it?''). All three are materializations of source states whose provenance is a single
+nullary operation; the second is what makes the unified theory--experiment comparison
+framework native rather than bolted on; the third is how Phase 1 stubs the upstream of
+\texttt{Potential} without yet modeling it in detail.
 
 
 \paragraph{What ``witness-as-state'' means, concretely.}
@@ -336,13 +363,29 @@ involved; they are essentially structural moves on a graph of typed assertions.
 
 A symbolic operation $\mathcal{O}$ is a typed map between abstract states,
 \begin{equation}
-  \mathcal{O} : \tau_{\text{in}_1} \times \tau_{\text{in}_2} \times \cdots \to \tau_{\text{out}},
+  \mathcal{O} : \tau_{\text{in}_1} \times \tau_{\text{in}_2} \times \cdots \to (\tau_{\text{out}_1}, \ldots, \tau_{\text{out}_m}),
 \end{equation}
-equipped with an approximation error formula $\epsilon_{\mathcal{O}}$. The error is a symbolic
-expression in physical small parameters (e.g., $\lambda$ for the strength of a perturbation, $T/T^*$
-for a Sommerfeld expansion). Exact operations have $\epsilon_{\mathcal{O}} = 0$. Approximating
-operations have $\epsilon_{\mathcal{O}} = O(p^k)$ for some parameter $p$ and order $k$ that
-depend on the operation.
+equipped with three pieces of metadata:
+\begin{itemize}[leftmargin=2em]
+  \item a \emph{symbolic formula} $\mathcal{F}_\mathcal{O}$ stating what the operation
+        computes, encoded as a sympy expression for closed-form ops or a sympy.Eq for
+        implicit ones (eigenvalue equations, linear systems). Source operations
+        (\texttt{provide\_*}) carry $\mathcal{F}_\mathcal{O} = \emptyset$;
+  \item an \emph{approximation error formula} $\epsilon_{\mathcal{O}}$, a symbolic
+        expression in physical small parameters (e.g., $\lambda$ for the strength of a
+        perturbation, $T/T^*$ for a Sommerfeld expansion). Exact operations have
+        $\epsilon_{\mathcal{O}} = 0$; approximating operations have
+        $\epsilon_{\mathcal{O}} = O(p^k)$ for some parameter $p$ and order $k$;
+  \item a possibly empty set of \emph{algorithmic conventions} (per
+        \S\ref{ssec:parameterized-operation-identity}) and \emph{parameters}
+        (dimensioned but unit-free at the abstract layer).
+\end{itemize}
+Multi-output operations (e.g.\ \texttt{compute\_dispersion} producing
+\texttt{Frequency} and \texttt{Eigenvectors} together) are first-class. The formula
+$\mathcal{F}_\mathcal{O}$ is the substrate's machine-readable claim about what the
+operation produces: adapter conformance can be expressed as ``the adapter's runtime
+behavior matches $\mathcal{F}_\mathcal{O}$ under its declared unit and convention
+choices,'' in principle automatable rather than reverse-engineered from kernels.
 
 
 \paragraph{Operation identity is parameterized.}\label{ssec:parameterized-operation-identity}
@@ -511,110 +554,140 @@ transport equation.
 
 \subsection{The abstract DAG}
 
-The abstract DAG begins at \texttt{Potential} (the Born--Oppenheimer potential of the material,
-treated as a parameter state in Phase 1) and exposes the
-following canonical states:
+The abstract DAG has 12 nodes (states / observables) and 11 edges (operations). Two
+nodes (\texttt{Potential}, \texttt{Temperature}) are sources, produced by nullary
+\texttt{provide\_*} operations.
 
-\begin{itemize}[leftmargin=2em]
-  \item \texttt{Potential}: the abstract root, materialized in Phase 1 as a stubbed parameter
-        state (the silicon potential, the LAMMPS-Tersoff potential, or the QE-PBE potential, as
-        an opaque label rather than a modeled object);
-  \item \texttt{ForceConstants[order=$n$]}: a typed witness that the $n$-th-order interatomic
-        force constants exist as the $n$-th derivative of \texttt{Potential} after truncation of
-        the Taylor expansion at a specified order. Derived from \texttt{Potential} via
-        \texttt{trunc\_n} composed with \texttt{extract\_derivative} (operations declared but
-        not deeply modeled in Phase 1);
-  \item \texttt{DynamicalMatrix}: the Fourier transform of \texttt{ForceConstants[order=2]},
-        parametrized by wavevector $\mathbf{q}$;
-  \item \texttt{Dispersion}: the eigenstructure of \texttt{DynamicalMatrix}, giving frequencies
-        $\omega(\mathbf{q}, \nu)$, polarization vectors, and group velocities $v(\mathbf{q}, \nu)$;
-  \item \texttt{ScatteringRates}: the inverse phonon lifetimes $\tau^{-1}(\mathbf{q}, \nu, T)$
-        under specified scattering processes (3-phonon, isotopic, boundary, etc.); built from
-        \texttt{Dispersion} and \texttt{ForceConstants[order=3]};
-  \item \texttt{BoltzmannSolution}: the steady-state distribution-function deviation from
-        equilibrium under a small temperature gradient, obtained from \texttt{Dispersion} and
-        \texttt{ScatteringRates} either in the relaxation-time approximation or by full iterative
-        solution;
-  \item \texttt{ThermalConductivity}: the contracted observable, $\kappa^{\alpha\beta}(T)$, a
-        symmetric second-rank tensor.
+\paragraph{Nodes.}
+\begin{itemize}[leftmargin=2em, itemsep=0.2em]
+  \item \texttt{Potential}: the abstract root, materialized in Phase 1 as a stubbed
+        source state (the silicon potential, the LAMMPS-Tersoff potential, or the QE-PBE
+        potential, as an opaque label);
+  \item \texttt{Temperature}: source state, scalar $T$;
+  \item \texttt{ForceConstants[order=2]}, \texttt{ForceConstants[order=3]}: harmonic and
+        cubic interatomic force constants $\Phi^{(n)}$;
+  \item \texttt{DynamicalMatrix}: the Bloch sum $D_{ij}(\mathbf{q})$;
+  \item \texttt{Frequency}: $\omega(\mathbf{q},\nu)$, indices $(\mathbf{q},\nu)$;
+  \item \texttt{Eigenvectors}: $e(\mathbf{q},\nu)$, indices $(i, \mathbf{q},\nu)$;
+  \item \texttt{GroupVelocity}: $v^\alpha(\mathbf{q},\nu)$, indices
+        $(\alpha, \mathbf{q}, \nu)$;
+  \item \texttt{HeatCapacity}: $c(\mathbf{q},\nu, T)$, indices $(\mathbf{q}, \nu)$;
+  \item \texttt{Linewidth}: $\Gamma(\mathbf{q},\nu, T)$, indices $(\mathbf{q}, \nu)$;
+  \item \texttt{MeanFreeDisplacement}: $F^\alpha(\mathbf{q},\nu, T)$, indices
+        $(\alpha, \mathbf{q}, \nu)$;
+  \item \texttt{ThermalConductivity}: $\kappa^{\alpha\beta}(T)$, indices
+        $(\alpha, \beta)$.
 \end{itemize}
 
-Edges are exact symbolic operations (Fourier transform, eigendecomposition, mode contraction) or
-approximating ones (truncation of the Taylor expansion at second or third order, the
-relaxation-time approximation, the harmonic approximation). Each approximating edge carries an
-explicit error formula. The Phase 1 demonstration exercises the path from \texttt{ForceConstants}
-downward; the upstream operations from \texttt{Potential} to \texttt{ForceConstants} are
-declared but executed only as opaque adapter-level steps recorded as provenance, not modeled by
-the substrate.
+\paragraph{Edges.} Verb-headed names; each carries a sympy formula:
+\begin{itemize}[leftmargin=2em, itemsep=0.2em]
+  \item \texttt{provide\_potential}: $() \to$ \texttt{Potential};
+  \item \texttt{provide\_temperature}: $() \to$ \texttt{Temperature};
+  \item \texttt{compute\_force\_constants[order=2]}, \texttt{[order=3]}:
+        \texttt{Potential} $\to$ \texttt{ForceConstants[order=$n$]} (stubbed in Phase~1);
+  \item \texttt{compute\_dynamical\_matrix}: \texttt{ForceConstants[order=2]} $\to$
+        \texttt{DynamicalMatrix};
+  \item \texttt{compute\_dispersion}: \texttt{DynamicalMatrix} $\to$
+        (\texttt{Frequency}, \texttt{Eigenvectors})  [multi-output, implicit equation];
+  \item \texttt{compute\_group\_velocity}: (\texttt{DynamicalMatrix},
+        \texttt{Frequency}, \texttt{Eigenvectors}) $\to$ \texttt{GroupVelocity};
+  \item \texttt{compute\_heat\_capacity}: (\texttt{Frequency}, \texttt{Temperature})
+        $\to$ \texttt{HeatCapacity};
+  \item \texttt{compute\_linewidth}: (\texttt{Frequency}, \texttt{Eigenvectors},
+        \texttt{ForceConstants[order=3]}, \texttt{Temperature}) $\to$ \texttt{Linewidth},
+        with parameter $\sigma$ (broadening) and algorithmic convention
+        \texttt{broadening\_param};
+  \item \texttt{solve\_bte}: (\texttt{Frequency}, \texttt{GroupVelocity},
+        \texttt{Linewidth}, \texttt{Temperature}) $\to$ \texttt{MeanFreeDisplacement},
+        with algorithmic convention \texttt{bte\_solver} $\in$ \{rta, iterative,
+        direct\_inverse\};
+  \item \texttt{contract\_kappa}: (\texttt{HeatCapacity}, \texttt{GroupVelocity},
+        \texttt{MeanFreeDisplacement}) $\to$ \texttt{ThermalConductivity}.
+\end{itemize}
+
+Edges are exact symbolic operations (Fourier transform, eigendecomposition, mode
+contraction) or approximating ones (truncation of the Taylor expansion at second or
+third order, the relaxation-time approximation when chosen). Each approximating edge
+carries an explicit error formula (Phase~2 capability). The Phase 1 demonstration
+exercises the path from \texttt{ForceConstants} downward; the upstream operations from
+\texttt{Potential} to \texttt{ForceConstants} are declared but executed only as opaque
+adapter-level steps recorded as provenance, not modeled by the substrate.
 
 \begin{figure}[t]
 \centering
-\resizebox{\textwidth}{!}{%
+\resizebox{0.95\textwidth}{!}{%
 \begin{tikzpicture}[
   >=Latex,
-  abstractnode/.style={draw, rounded corners=2pt, minimum width=1.8cm, minimum height=0.7cm,
-                       font=\footnotesize, fill=abstrcol!12, inner sep=2pt},
-  rootnode/.style={draw, rounded corners=2pt, minimum width=1.6cm, minimum height=0.7cm,
-                   font=\footnotesize, fill=abstrcol!22, inner sep=2pt, thick},
-  stubnode/.style={draw, dashed, rounded corners=2pt, minimum width=1.6cm, minimum height=0.55cm,
-                   font=\scriptsize\itshape, fill=abstrcol!5, inner sep=2pt},
-  matnode/.style={draw, rounded corners=2pt, minimum width=1.5cm, minimum height=0.5cm,
-                  font=\scriptsize, fill=numcol!12, inner sep=1.5pt},
+  node distance=0.3cm,
+  abstractnode/.style={draw, rounded corners=2pt, minimum width=1.7cm, minimum height=0.55cm,
+                       font=\scriptsize, fill=abstrcol!12, inner sep=2pt},
+  sourcenode/.style={draw, rounded corners=2pt, minimum width=1.7cm, minimum height=0.55cm,
+                     font=\scriptsize, fill=abstrcol!25, inner sep=2pt, thick},
+  stubedge/.style={->, thick, dashed},
   arr/.style={->, thick},
-  stubarr/.style={->, thick, dashed},
-  thinarr/.style={->, dashed, gray, thin},
-  oplabel/.style={font=\tiny, midway, above},
-  rowlabel/.style={font=\footnotesize\itshape, anchor=east},
+  oplabel/.style={font=\tiny\itshape, sloped, midway, above=-1pt, fill=white, inner sep=1pt},
 ]
 
-\node[rootnode]     (POT)   at (-2.7,0) {potential};
-\node[stubnode]     (STUB)  at (-1.0,0.7) {extract+trunc};
-\node[abstractnode] (FC)    at ( 0.0,0) {force consts};
-\node[abstractnode] (DM)    at ( 2.7,0) {dyn.\ matrix};
-\node[abstractnode] (DISP)  at ( 5.4,0) {dispersion};
-\node[abstractnode] (SR)    at ( 8.1,0) {scatt.\ rates};
-\node[abstractnode] (BTE)   at (10.8,0) {BTE soln};
-\node[abstractnode] (KAPPA) at (13.5,0) {$\kappa$};
+% Source row
+\node[sourcenode] (POT) at (0, 0) {Potential};
+\node[sourcenode] (TMP) at (12, 0) {Temperature};
 
-\draw[stubarr] (POT)  -- (FC);
-\draw[arr] (FC)   -- node[oplabel] {Fourier}   (DM);
-\draw[arr] (DM)   -- node[oplabel] {diag.}     (DISP);
-\draw[arr] (DISP) -- node[oplabel] {3-ph tr.}  (SR);
-\draw[arr] (SR)   -- node[oplabel] {assemble}  (BTE);
-\draw[arr] (BTE)  -- node[oplabel] {integrate} (KAPPA);
+% FC row
+\node[abstractnode] (FC2) at (-1.5, -1.4) {FC[order=2]};
+\node[abstractnode] (FC3) at ( 1.5, -1.4) {FC[order=3]};
 
-\node[rowlabel] at (-4.0,0) {abstract};
+% Dynamical matrix
+\node[abstractnode] (DM)  at (-1.5, -2.8) {DynamicalMatrix};
 
-\foreach \name/\xpos/\labelk/\labelp/\labels in {
-  FCm/0.0/{FC$^{\text{kaldo}}$}/{FC$^{\text{ph3}}$}/{FC$^{\text{sh}}$},
-  Dm/5.4/{disp$^{\text{kaldo}}$}/{disp$^{\text{ph3}}$}/{disp$^{\text{sh}}$},
-  Km/13.5/{$\kappa^{\text{kaldo}}$}/{$\kappa^{\text{ph3}}$}/{$\kappa^{\text{sh}}$}
-}{
-  \node[matnode] (\name K) at (\xpos,-1.8) {\labelk};
-  \node[matnode] (\name P) at (\xpos,-2.5) {\labelp};
-  \node[matnode] (\name S) at (\xpos,-3.2) {\labels};
-}
+% Frequency / Eigenvectors
+\node[abstractnode] (FRQ) at (-3, -4.2) {Frequency};
+\node[abstractnode] (EIG) at ( 0, -4.2) {Eigenvectors};
 
-\node[rowlabel] at (-4.0,-2.5) {materialized};
+% Mode-resolved
+\node[abstractnode] (GV) at (-4.5, -5.6) {GroupVelocity};
+\node[abstractnode] (HC) at ( 9, -5.6) {HeatCapacity};
+\node[abstractnode] (LW) at ( 1.5, -5.6) {Linewidth};
 
-\foreach \src/\dst in {FC/FCmK, FC/FCmP, FC/FCmS,
-                       DISP/DmK, DISP/DmP, DISP/DmS,
-                       KAPPA/KmK, KAPPA/KmP, KAPPA/KmS}{
-  \draw[thinarr] (\src.south) -- (\dst.north);
-}
+% BTE
+\node[abstractnode] (MFD) at (-1.5, -7.0) {MeanFreeDisplacement};
+
+% kappa
+\node[abstractnode] (KAP) at ( 4, -8.4) {ThermalConductivity};
+
+% --- arrows ---
+\draw[stubedge] (POT) -- node[oplabel] {compute\_force\_constants[2]} (FC2);
+\draw[stubedge] (POT) -- node[oplabel] {compute\_force\_constants[3]} (FC3);
+\draw[arr] (FC2) -- node[oplabel] {compute\_dynamical\_matrix} (DM);
+\draw[arr] (DM)  -- node[oplabel] {compute\_dispersion} (FRQ);
+\draw[arr] (DM.east) to[bend left=10] node[oplabel] {compute\_dispersion} (EIG.north);
+\draw[arr] (DM.south east) to[bend right=20] node[oplabel, pos=0.3] {compute\_group\_velocity} (GV.north east);
+\draw[arr] (FRQ) -- (GV);
+\draw[arr] (EIG) -- (GV);
+\draw[arr] (FRQ.south) to[bend right=20] node[oplabel, pos=0.4] {compute\_linewidth} (LW.west);
+\draw[arr] (EIG) -- (LW);
+\draw[arr] (FC3) -- (LW);
+\draw[arr] (TMP.south) to[bend left=15] node[oplabel] {} (LW.east);
+\draw[arr] (FRQ.east) to[bend right=10] node[oplabel, pos=0.4] {compute\_heat\_capacity} (HC.west);
+\draw[arr] (TMP) -- (HC);
+\draw[arr] (FRQ.south) to[bend right=30] node[oplabel, pos=0.6] {} (MFD.west);
+\draw[arr] (GV) -- (MFD);
+\draw[arr] (LW) -- node[oplabel] {solve\_bte} (MFD);
+\draw[arr] (TMP.south) to[bend left=30] node[oplabel] {} (MFD.east);
+\draw[arr] (HC.south) to[bend left=15] node[oplabel] {contract\_kappa} (KAP.east);
+\draw[arr] (GV.south) to[bend right=30] node[oplabel, pos=0.6] {} (KAP.west);
+\draw[arr] (MFD) -- (KAP);
 
 \end{tikzpicture}%
 }
-\caption{Abstract DAG for lattice thermal conductivity (top, blue) and three of its
-materializations (bottom, orange) at selected canonical states (force constants, dispersion,
-$\kappa$). The DAG is rooted at the abstract \texttt{Potential}; the dashed
-\textit{extract+trunc} edge to \texttt{ForceConstants} represents the upstream operations
-(extraction of the $n$-th derivative of $V$ and truncation of the Taylor expansion at order $n$),
-which are declared in the substrate but stubbed in Phase 1. Each abstract state has up to one
-materialization per code (kaldo, phono3py, ShengBTE); intermediate states between the three
-shown follow the same pattern. Discretization choices and code-specific operations live in the
-materialized graphs but not in the abstract one. Cross-code reconciliation reduces to comparing
-materializations sharing a common abstract parent.}
+\caption{The abstract DAG for lattice thermal transport: 12 nodes (states / observables)
+and 11 edges (operations). The two darker boxes (\texttt{Potential},
+\texttt{Temperature}) are source nodes, produced by nullary \texttt{provide\_*}
+operations. Dashed edges from \texttt{Potential} to \texttt{ForceConstants} represent
+upstream operations declared in the substrate but stubbed in Phase 1. Each remaining
+edge carries a symbolic formula (sympy expression or sympy.Eq). The DAG is uniform: every
+node is the output of some operation; cross-code comparison reduces to graph alignment
+over this template plus per-state observable extraction. Adapter-specific
+materializations attach to each node and are not shown for clarity.}
 \label{fig:dag}
 \end{figure}
 
@@ -667,6 +740,39 @@ oriented but is deferred to Phase 2.
         error of the chosen mesh. The architecture supports this; the implementation of the
         composition algebra is a research problem reserved for Phase 2.
 \end{itemize}
+
+\section{Implementation layout}
+\label{sec:layout}
+
+The Python package \texttt{omai} factors the substrate into three top-level
+sub-packages plus one per domain:
+
+\begin{itemize}[leftmargin=2em, itemsep=0.3em]
+  \item \texttt{omai.abstract}: substrate machinery for the abstract world.
+        \texttt{State}, \texttt{Operation}, \texttt{Observable}, \texttt{Parameter},
+        \texttt{Dimension} (class), \texttt{PhysicsType} (closed enum), and
+        \texttt{topological\_order}. Code-agnostic and domain-agnostic.
+  \item \texttt{omai.materialization}: the bridge. \texttt{Unit} class with the unit
+        registry plus strict same-dimension \texttt{conversion\_factor};
+        \texttt{StateAdapterSpec} and \texttt{OperationAdapterSpec} with cross-state /
+        cross-operation comparison helpers. Code-agnostic.
+  \item \texttt{omai.thermal\_transport}: the lattice-thermal-transport domain.
+    \begin{itemize}[leftmargin=1.2em]
+      \item \texttt{symbolic.py}: the 12 nodes and 11 edges of \S\ref{sec:demo} as
+            \texttt{State} and \texttt{Operation} instances, with sympy formulas on
+            every derived edge.
+      \item \texttt{materialized/kaldo.py}, \texttt{materialized/phono3py.py}:
+            per-code adapter specs (one file per code), each declaring units,
+            conventions, and discretization choices for the abstract DAG.
+    \end{itemize}
+\end{itemize}
+
+\noindent The split mirrors the substrate's architectural commitment: \texttt{abstract}
+and \texttt{materialization} are the substrate's two worlds plus its bridge;
+\texttt{thermal\_transport} is the first domain instantiated against them. Future
+domains (electronic transport, optical response, etc.) follow the same two-file pattern
+in their own folder; no change to \texttt{abstract} or \texttt{materialization} is
+required to add one.
 
 \section{Open Questions and Deferred Decisions}
 \label{sec:open}
