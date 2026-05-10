@@ -24,16 +24,22 @@ from omai.materialization.adapter import (
     cross_state_total_factor,
     cross_state_unit_factor,
 )
+from omai.materialization.compare import ComparisonResult, compare
+from omai.materialization.instance import Materialization, materialize
 from omai.materialization.units import Unit, conversion_factor
 
 __all__ = [
+    "ComparisonResult",
+    "Materialization",
     "OperationAdapterSpec",
     "StateAdapterSpec",
     "Unit",
+    "compare",
     "conversion_factor",
     "cross_operation_algorithmic_match",
     "cross_operation_discretization_match",
     "cross_state_convention_match",
     "cross_state_total_factor",
     "cross_state_unit_factor",
+    "materialize",
 ]

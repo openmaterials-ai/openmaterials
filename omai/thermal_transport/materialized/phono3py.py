@@ -16,10 +16,28 @@ from __future__ import annotations
 
 from omai.materialization.adapter import OperationAdapterSpec, StateAdapterSpec
 from omai.thermal_transport.symbolic import (
+    FREQUENCY_STATE,
+    GROUP_VELOCITY,
     HEAT_CAPACITY,
     LINEWIDTH,
     compute_heat_capacity,
     compute_linewidth,
+)
+
+
+PHONO3PY_FREQUENCY = StateAdapterSpec(
+    state=FREQUENCY_STATE,
+    adapter_name="phono3py",
+    observable_units={"omega": "linear_THz"},
+    notes="thermal_conductivity.frequencies in linear THz, shape (n_q, n_modes).",
+)
+
+
+PHONO3PY_GROUP_VELOCITY = StateAdapterSpec(
+    state=GROUP_VELOCITY,
+    adapter_name="phono3py",
+    observable_units={"v": "angstrom_linear_THz"},
+    notes="thermal_conductivity.group_velocities in Å·THz, shape (n_q, n_modes, 3).",
 )
 
 

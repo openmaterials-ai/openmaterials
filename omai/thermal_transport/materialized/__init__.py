@@ -13,12 +13,16 @@ location is the corresponding submodule (e.g.
 from omai.thermal_transport.materialized.kaldo import (
     KALDO_COMPUTE_HEAT_CAPACITY,
     KALDO_COMPUTE_LINEWIDTH,
+    KALDO_FREQUENCY,
+    KALDO_GROUP_VELOCITY,
     KALDO_HEAT_CAPACITY,
     KALDO_LINEWIDTH,
 )
 from omai.thermal_transport.materialized.phono3py import (
     PHONO3PY_COMPUTE_HEAT_CAPACITY,
     PHONO3PY_COMPUTE_LINEWIDTH,
+    PHONO3PY_FREQUENCY,
+    PHONO3PY_GROUP_VELOCITY,
     PHONO3PY_HEAT_CAPACITY,
     PHONO3PY_LINEWIDTH,
 )
@@ -26,10 +30,14 @@ from omai.thermal_transport.materialized.phono3py import (
 __all__ = [
     "KALDO_COMPUTE_HEAT_CAPACITY",
     "KALDO_COMPUTE_LINEWIDTH",
+    "KALDO_FREQUENCY",
+    "KALDO_GROUP_VELOCITY",
     "KALDO_HEAT_CAPACITY",
     "KALDO_LINEWIDTH",
     "PHONO3PY_COMPUTE_HEAT_CAPACITY",
     "PHONO3PY_COMPUTE_LINEWIDTH",
+    "PHONO3PY_FREQUENCY",
+    "PHONO3PY_GROUP_VELOCITY",
     "PHONO3PY_HEAT_CAPACITY",
     "PHONO3PY_LINEWIDTH",
 ]
