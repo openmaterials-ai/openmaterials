@@ -72,6 +72,8 @@ _u_k_Rp = sp.Symbol("u_k(R')")
 _n_BE = sp.Function("n_{BE}")
 _delta = sp.Function(r"\delta")
 _V3sq = sp.Function("|V_3|^2")
+_V_provided = sp.Symbol(r"V_{\mathrm{provided}}")
+_T_provided = sp.Symbol(r"T_{\mathrm{provided}}", positive=True)
 
 
 # ---------------------------------------------------------------------------
@@ -185,7 +187,7 @@ provide_potential = Operation(
     name="provide_potential",
     inputs=(),
     outputs=(POTENTIAL,),
-    formula=None,
+    formula=sp.Eq(_V_pot(_u_set), _V_provided),
     description="Source: an opaque label for the chosen potential (Tersoff, PBE, ...).",
 )
 
@@ -194,7 +196,7 @@ provide_temperature = Operation(
     inputs=(),
     outputs=(TEMPERATURE_STATE,),
     parameters=(Parameter("temperature", TEMPERATURE),),
-    formula=None,
+    formula=sp.Eq(_T, _T_provided),
     description="Source: the temperature at which subsequent T-dependent observables are evaluated.",
 )
 

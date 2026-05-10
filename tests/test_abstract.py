@@ -104,18 +104,14 @@ def test_compute_force_constants_2_carries_formula():
     assert compute_force_constants_2.formula is not None
 
 
-def test_every_derived_edge_has_a_sympy_formula():
-    """All non-source edges must carry a sympy-typed formula."""
+def test_every_edge_has_a_sympy_formula():
+    """Every edge — sources included — carries a sympy formula."""
     import sympy
 
-    sources = {"provide_potential", "provide_temperature"}
     for op in EDGES:
-        if op.name in sources:
-            assert op.formula is None, f"source {op.name} should have no formula"
-        else:
-            assert isinstance(op.formula, sympy.Basic), (
-                f"derived edge {op.name} formula should be sympy, got {type(op.formula)}"
-            )
+        assert isinstance(op.formula, sympy.Basic), (
+            f"edge {op.name} formula should be sympy, got {type(op.formula)}"
+        )
 
 
 def test_every_state_declares_indices():
