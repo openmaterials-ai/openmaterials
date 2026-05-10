@@ -167,16 +167,17 @@ def main() -> None:
     section("Linewidth: granularity gradient (per-mode → per-q → total)")
     mk = materialize(KALDO_LINEWIDTH, "Gamma", data["kaldo_gamma"])
     mp = materialize(PHONO3PY_LINEWIDTH, "Gamma", data["ph3_gamma"])
+    # per-element Linewidth is declared loose on the State; expected=False auto
     per_mode = compare(mk, mp, rtol=0.01)
-    per_q = compare(mk, mp, contraction=lambda x: np.sum(x, axis=-1), rtol=0.02)
+    # per-q is intermediate — declare expected=False to override the
+    # "contracted ⇒ expected tight" default
+    per_q = compare(
+        mk, mp, contraction=lambda x: np.sum(x, axis=-1), rtol=0.02, expected_to_pass=False
+    )
     total = compare(mk, mp, contraction=np.sum, rtol=1e-2)
     print(f"  per-mode (rtol=1e-2):                      {per_mode.summary()}")
     print(f"  per-q Σ_ν Γ_qν (rtol=2e-2):                {per_q.summary()}")
     print(f"  total Σ_qν Γ contracted (rtol=1e-2):       {total.summary()}")
-    print(
-        "  → per-mode loose (BZ-summation redistributes within q); per-q tighter;"
-    )
-    print("    total tightest. Substrate exposes the granularity gradient.")
 
     section("ThermalConductivity κ: kaldo vs phono3py (RTA and direct/LBTE)")
     csv_path = (

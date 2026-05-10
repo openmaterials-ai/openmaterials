@@ -70,7 +70,9 @@ FREQUENCY_STATE = State(
 EIGENVECTORS = State(
     physics_type=PhysicsType.EIGENVECTORS,
     name="Eigenvectors",
-    observables=(Observable("e", DIMENSIONLESS, indices=("i", "q", "nu")),),
+    observables=(
+        Observable("e", DIMENSIONLESS, indices=("i", "q", "nu"), per_element_tight=False),
+    ),
     description=(
         "Per-mode eigenvectors of the dynamical matrix. Phase- and "
         "degenerate-subspace-rotation freedom: not directly comparable across "
@@ -81,7 +83,13 @@ EIGENVECTORS = State(
 GROUP_VELOCITY = State(
     physics_type=PhysicsType.GROUP_VELOCITY,
     name="GroupVelocity",
-    observables=(Observable("v", LENGTH_TIMES_FREQUENCY, indices=("alpha", "q", "nu")),),
+    observables=(
+        Observable("v", LENGTH_TIMES_FREQUENCY, indices=("alpha", "q", "nu"), per_element_tight=False),
+    ),
+    description=(
+        "Per-mode group velocity inherits eigenvector-rotation freedom at "
+        "degenerate ω; per-element comparison is not tight in general."
+    ),
 )
 
 HEAT_CAPACITY = State(
@@ -93,7 +101,9 @@ HEAT_CAPACITY = State(
 LINEWIDTH = State(
     physics_type=PhysicsType.LINEWIDTH,
     name="Linewidth",
-    observables=(Observable("Gamma", FREQUENCY, indices=("q", "nu")),),
+    observables=(
+        Observable("Gamma", FREQUENCY, indices=("q", "nu"), per_element_tight=False),
+    ),
     canonical_conventions={
         "gamma_definition": "imag_self_energy",
     },
@@ -105,8 +115,13 @@ LINEWIDTH = State(
 MEAN_FREE_DISPLACEMENT = State(
     physics_type=PhysicsType.MEAN_FREE_DISPLACEMENT,
     name="MeanFreeDisplacement",
-    observables=(Observable("F", LENGTH, indices=("alpha", "q", "nu")),),
-    description="Per-mode mean free displacement F_qν entering the BTE solution.",
+    observables=(
+        Observable("F", LENGTH, indices=("alpha", "q", "nu"), per_element_tight=False),
+    ),
+    description=(
+        "Per-mode mean free displacement F_qν entering the BTE solution; "
+        "inherits the per-mode looseness of Linewidth (via the BTE solver)."
+    ),
 )
 
 THERMAL_CONDUCTIVITY_STATE = State(

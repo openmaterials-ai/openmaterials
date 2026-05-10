@@ -40,6 +40,17 @@ class Observable:
     The indices listed here must match those used in the sympy formula
     on any operation that produces this observable.
     """
+    per_element_tight: bool = True
+    """Whether per-element comparison across adapters is expected to agree.
+
+    True (default): the observable's per-element values are stable across
+    adapter choices, so cross-adapter agreement should be tight.
+
+    False: the observable's per-element values are gauge-dependent
+    (eigenvector phase, BZ-summation choice, degenerate-subspace rotation,
+    etc.); only contracted forms are stable. compare() with no contraction
+    is then expected to fail; that failure is informative, not anomalous.
+    """
 
 
 @dataclass(frozen=True)

@@ -50,6 +50,55 @@ def test_compare_identical_data_passes():
     assert r.max_relative_residual == 0.0
 
 
+def test_compare_status_expected_loose_for_per_element_loose_observable():
+    """Linewidth declares per_element_tight=False; per-element compare on
+    disagreeing data should report EXPECTED_LOOSE (not UNEXPECTED_FAIL)."""
+    a = np.array([1.0, 2.0, 3.0])
+    b = np.array([1.1, 2.05, 2.85])  # disagrees per-element
+    ma = materialize(PHONO3PY_LINEWIDTH, "Gamma", a)
+    mb = materialize(PHONO3PY_LINEWIDTH, "Gamma", b)
+    r = compare(ma, mb, rtol=1e-3)
+    assert not r.passed
+    assert r.expected_to_pass is False
+    assert r.status == "EXPECTED_LOOSE"
+
+
+def test_compare_status_expected_pass_for_per_element_tight_observable():
+    """HeatCapacity declares per_element_tight=True; identical data should
+    yield EXPECTED_PASS."""
+    arr = np.array([1.0, 2.0, 3.0])
+    ma = materialize(PHONO3PY_HEAT_CAPACITY, "c", arr)
+    mb = materialize(PHONO3PY_HEAT_CAPACITY, "c", arr)
+    r = compare(ma, mb, rtol=1e-9)
+    assert r.passed
+    assert r.expected_to_pass is True
+    assert r.status == "EXPECTED_PASS"
+
+
+def test_compare_status_unexpected_fail_for_tight_observable_that_disagrees():
+    """HeatCapacity declares per_element_tight=True; disagreeing data
+    should yield UNEXPECTED_FAIL — a real anomaly the substrate flags."""
+    a = np.array([1.0, 2.0, 3.0])
+    b = np.array([2.0, 4.0, 6.0])
+    ma = materialize(PHONO3PY_HEAT_CAPACITY, "c", a)
+    mb = materialize(PHONO3PY_HEAT_CAPACITY, "c", b)
+    r = compare(ma, mb, rtol=1e-3)
+    assert not r.passed
+    assert r.expected_to_pass is True
+    assert r.status == "UNEXPECTED_FAIL"
+
+
+def test_compare_status_override_via_kwarg():
+    """User can force expected_to_pass=False for intermediate contractions
+    (e.g., per-q Σ on a per-element-loose observable)."""
+    a = np.array([1.0, 1.0])
+    b = np.array([1.0, 2.0])
+    ma = materialize(PHONO3PY_LINEWIDTH, "Gamma", a)
+    mb = materialize(PHONO3PY_LINEWIDTH, "Gamma", b)
+    r = compare(ma, mb, contraction=np.sum, rtol=1e-3, expected_to_pass=False)
+    assert r.expected_to_pass is False
+
+
 # --- compare: factor application ---
 
 

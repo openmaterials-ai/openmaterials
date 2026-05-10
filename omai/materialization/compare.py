@@ -27,6 +27,7 @@ from omai.materialization.instance import Materialization
 @dataclass(frozen=True)
 class ComparisonResult:
     passed: bool
+    expected_to_pass: bool
     factor: float
     contracted: bool
     max_absolute_residual: float
@@ -34,11 +35,34 @@ class ComparisonResult:
     rtol: float
     atol: float
 
+    @property
+    def status(self) -> str:
+        """One of: EXPECTED_PASS, EXPECTED_LOOSE, UNEXPECTED_FAIL, UNEXPECTED_PASS.
+
+        EXPECTED_PASS    — predicted tight, confirmed tight (both pass).
+        EXPECTED_LOOSE   — predicted loose, confirmed loose (both fail). Also
+                           a successful prediction; the substrate said this
+                           wouldn't agree per-element and it doesn't.
+        UNEXPECTED_FAIL  — predicted tight, observed FAIL. The substrate
+                           flags an anomaly: either the spec is missing a
+                           convention, or there's a real cross-code physics
+                           disagreement, or rtol is too strict.
+        UNEXPECTED_PASS  — predicted loose, observed PASS. Rare; the
+                           per-element protocol may be tighter than declared.
+        """
+        if self.expected_to_pass and self.passed:
+            return "EXPECTED_PASS"
+        if not self.expected_to_pass and not self.passed:
+            return "EXPECTED_LOOSE"
+        if self.expected_to_pass and not self.passed:
+            return "UNEXPECTED_FAIL"
+        return "UNEXPECTED_PASS"
+
     def summary(self) -> str:
-        verdict = "PASS" if self.passed else "FAIL"
+        status = self.status
         contraction = " (contracted)" if self.contracted else " (per-element)"
         return (
-            f"[{verdict}]{contraction} factor={self.factor:.6e}, "
+            f"[{status}]{contraction} factor={self.factor:.6e}, "
             f"max_abs={self.max_absolute_residual:.3e}, "
             f"max_rel={self.max_relative_residual:.3e}, "
             f"rtol={self.rtol:.0e}, atol={self.atol:.0e}"
@@ -52,6 +76,7 @@ def compare(
     contraction: Callable[[np.ndarray], Any] | None = None,
     rtol: float = 1e-3,
     atol: float = 0.0,
+    expected_to_pass: bool | None = None,
 ) -> ComparisonResult:
     """Apply the spec-predicted factor to A's data and compare to B's.
 
@@ -63,10 +88,16 @@ def compare(
             comparison (e.g., np.sum to compare contracted scalars). When
             None, comparison is per-element.
         rtol, atol: passed to np.allclose for the pass/fail verdict.
+        expected_to_pass: override the substrate's prediction. By default,
+            inferred from the observable's `per_element_tight` flag (when
+            contraction is None) or assumed True (when contraction is
+            supplied — contracted forms are typically tight). Pass False
+            for an intermediate contraction (e.g., per-q ΣΓ_q) where the
+            outcome is still expected to be loose.
 
     Returns:
-        ComparisonResult with the applied factor and the maximum relative
-        residual observed.
+        ComparisonResult with the applied factor, the residuals, and a
+        status reflecting how the outcome lined up with the prediction.
     """
     if m_a.state != m_b.state:
         raise ValueError(
@@ -105,8 +136,16 @@ def compare(
 
     passed = bool(np.allclose(a_arr, b_arr, rtol=rtol, atol=atol))
 
+    if expected_to_pass is None:
+        obs = m_a.state.observable(m_a.observable_name)
+        if contraction is None:
+            expected_to_pass = obs.per_element_tight
+        else:
+            expected_to_pass = True
+
     return ComparisonResult(
         passed=passed,
+        expected_to_pass=expected_to_pass,
         factor=factor,
         contracted=contraction is not None,
         max_absolute_residual=max_abs,
