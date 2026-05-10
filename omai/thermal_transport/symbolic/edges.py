@@ -1,82 +1,66 @@
-"""Abstract DAG for lattice thermal transport.
+"""Operations (edges) of the lattice thermal-transport DAG.
 
-Twelve nodes (states) and eleven edges (operations) producing the lattice
-thermal conductivity κ(T) from the Born-Oppenheimer potential and a chosen
-temperature.
-
-Every edge carries a symbolic formula as a sympy expression. Indexed
-observables use sympy.IndexedBase; index ranges in BZ sums use sympy.Sum
-with explicit dummies. Implicit equations (dispersion eigenvalue problem,
-LBTE linear system) use sympy.Eq.
-
-Each Observable is annotated with its index signature so the indices used
-in the formulas have an explicit declaration.
-
-This is the Phase 1 substrate target. Adapters (kaldo, phono3py, ShengBTE,
-...) declare their unit/convention/discretization choices against these
-abstract nodes and operations.
+Each Operation declares its inputs, output(s), parameters, algorithmic
+conventions, and a sympy formula stating what it computes. The sympy
+symbols and IndexedBase used by the formulas live in this module too —
+they are the substantive content of "what is computed", and the indices
+they use match the index signatures declared on observables in `nodes`.
 """
 
 from __future__ import annotations
 
 import sympy as sp
 
-from omai.abstract.dimensions import (
-    DIMENSIONLESS,
-    ENERGY_PER_LENGTH_CUBED,
-    ENERGY_PER_LENGTH_SQUARED,
-    ENERGY_PER_TEMPERATURE,
-    FREQUENCY,
-    LENGTH,
-    LENGTH_TIMES_FREQUENCY,
-    OPAQUE,
-    TEMPERATURE,
-    THERMAL_CONDUCTIVITY,
-)
+from omai.abstract.dimensions import FREQUENCY, TEMPERATURE
 from omai.abstract.operation import Operation, Parameter
-from omai.abstract.physics_types import PhysicsType
-from omai.abstract.state import Observable, State
+from omai.thermal_transport.symbolic.nodes import (
+    DYNAMICAL_MATRIX,
+    EIGENVECTORS,
+    FORCE_CONSTANTS_2,
+    FORCE_CONSTANTS_3,
+    FREQUENCY_STATE,
+    GROUP_VELOCITY,
+    HEAT_CAPACITY,
+    LINEWIDTH,
+    MEAN_FREE_DISPLACEMENT,
+    POTENTIAL,
+    TEMPERATURE_STATE,
+    THERMAL_CONDUCTIVITY_STATE,
+)
 
 
 # ---------------------------------------------------------------------------
 # Symbols and indexed bases used by the formulas below
 # ---------------------------------------------------------------------------
 
-# Index dummies (integer-valued; used as bound variables in Sums)
 _i, _j, _k = sp.symbols("i j k", integer=True)
 _alpha, _beta = sp.symbols(r"\alpha \beta", integer=True)
 _nu, _nu_p, _nu_pp = sp.symbols(r"\nu \nu' \nu''", integer=True)
 
-# Wavevector / lattice-vector labels (treated as opaque labels at the
-# abstract layer; concrete codes interpret them as 3-vectors over a mesh)
 _q, _qp = sp.symbols(r"\mathbf{q} \mathbf{q'}")
 _R, _Rp = sp.symbols(r"\mathbf{R} \mathbf{R'}")
 
-# Physical scalars
 _T = sp.Symbol("T", positive=True)
 _hbar = sp.Symbol(r"\hbar", positive=True)
 _kB = sp.Symbol("k_B", positive=True)
 _V_cell = sp.Symbol("V_{cell}", positive=True)
-_N_atoms = sp.Symbol("N", positive=True, integer=True)  # atoms in the primitive cell
+_N_atoms = sp.Symbol("N", positive=True, integer=True)
 _N_q = sp.Symbol("N_q", positive=True, integer=True)
 _N_modes = 3 * _N_atoms
 
-# Indexed observables (each matches the index signature on the corresponding
-# Observable below)
-_M = sp.IndexedBase("M")                          # M[i]: atomic mass
-_Phi2 = sp.IndexedBase(r"\Phi^{(2)}")             # Phi2[i, j, R]
-_Phi3 = sp.IndexedBase(r"\Phi^{(3)}")             # Phi3[i, j, k, R, R']
-_D = sp.IndexedBase("D")                          # D[i, j, q]
-_dDdq = sp.IndexedBase(r"\partial D/\partial q")  # dDdq[i, j, alpha, q]
-_omega = sp.IndexedBase(r"\omega")                # omega[q, nu]
-_e = sp.IndexedBase("e")                          # e[i, q, nu]
-_v = sp.IndexedBase("v")                          # v[alpha, q, nu]
-_c = sp.IndexedBase("c")                          # c[q, nu]
-_Gamma = sp.IndexedBase(r"\Gamma")                # Gamma[q, nu]
-_F = sp.IndexedBase("F")                          # F[alpha, q, nu]
-_kappa = sp.IndexedBase(r"\kappa")                # kappa[alpha, beta]
+_M = sp.IndexedBase("M")
+_Phi2 = sp.IndexedBase(r"\Phi^{(2)}")
+_Phi3 = sp.IndexedBase(r"\Phi^{(3)}")
+_D = sp.IndexedBase("D")
+_dDdq = sp.IndexedBase(r"\partial D/\partial q")
+_omega = sp.IndexedBase(r"\omega")
+_e = sp.IndexedBase("e")
+_v = sp.IndexedBase("v")
+_c = sp.IndexedBase("c")
+_Gamma = sp.IndexedBase(r"\Gamma")
+_F = sp.IndexedBase("F")
+_kappa = sp.IndexedBase(r"\kappa")
 
-# Auxiliary functions and symbols
 _V_pot = sp.Function("V")
 _u_set = sp.Symbol(r"\{u\}")
 _u_i_0 = sp.Symbol("u_i(0)")
@@ -88,123 +72,10 @@ _V3sq = sp.Function("|V_3|^2")
 
 
 # ---------------------------------------------------------------------------
-# Nodes (states)
+# Formulas
 # ---------------------------------------------------------------------------
 
-POTENTIAL = State(
-    physics_type=PhysicsType.POTENTIAL,
-    name="Potential",
-    observables=(Observable("potential", OPAQUE, indices=()),),
-    description="Born-Oppenheimer potential of the material; in Phase 1 an opaque label.",
-)
-
-TEMPERATURE_STATE = State(
-    physics_type=PhysicsType.TEMPERATURE,
-    name="Temperature",
-    observables=(Observable("temperature", TEMPERATURE, indices=()),),
-)
-
-FORCE_CONSTANTS_2 = State(
-    physics_type=PhysicsType.FORCE_CONSTANTS,
-    name="ForceConstants[order=2]",
-    observables=(Observable("phi", ENERGY_PER_LENGTH_SQUARED, indices=("i", "j", "R")),),
-    type_parameters={"order": 2},
-)
-
-FORCE_CONSTANTS_3 = State(
-    physics_type=PhysicsType.FORCE_CONSTANTS,
-    name="ForceConstants[order=3]",
-    observables=(Observable("phi", ENERGY_PER_LENGTH_CUBED, indices=("i", "j", "k", "R", "R'")),),
-    type_parameters={"order": 3},
-)
-
-DYNAMICAL_MATRIX = State(
-    physics_type=PhysicsType.DYNAMICAL_MATRIX,
-    name="DynamicalMatrix",
-    observables=(Observable("D", FREQUENCY, indices=("i", "j", "q")),),
-    description=(
-        "D(q) such that D e_qν = ω²_qν e_qν. Entries are dimensionally "
-        "frequency² (mass-weighted Hessian); codes typically store the "
-        "matrix with eigenvalues that are ω², not ω."
-    ),
-)
-
-FREQUENCY_STATE = State(
-    physics_type=PhysicsType.FREQUENCY,
-    name="Frequency",
-    observables=(Observable("omega", FREQUENCY, indices=("q", "nu")),),
-)
-
-EIGENVECTORS = State(
-    physics_type=PhysicsType.EIGENVECTORS,
-    name="Eigenvectors",
-    observables=(Observable("e", DIMENSIONLESS, indices=("i", "q", "nu")),),
-    description=(
-        "Per-mode eigenvectors of the dynamical matrix. Phase- and "
-        "degenerate-subspace-rotation freedom: not directly comparable across "
-        "adapters at the per-mode level."
-    ),
-)
-
-GROUP_VELOCITY = State(
-    physics_type=PhysicsType.GROUP_VELOCITY,
-    name="GroupVelocity",
-    observables=(Observable("v", LENGTH_TIMES_FREQUENCY, indices=("alpha", "q", "nu")),),
-)
-
-HEAT_CAPACITY = State(
-    physics_type=PhysicsType.HEAT_CAPACITY,
-    name="HeatCapacity",
-    observables=(Observable("c", ENERGY_PER_TEMPERATURE, indices=("q", "nu")),),
-)
-
-LINEWIDTH = State(
-    physics_type=PhysicsType.LINEWIDTH,
-    name="Linewidth",
-    observables=(Observable("Gamma", FREQUENCY, indices=("q", "nu")),),
-    canonical_conventions={
-        "gamma_definition": "imag_self_energy",
-    },
-    convention_factors=(
-        ("gamma_definition", "linewidth_2x_imag_self_energy", "Gamma", 2.0),
-    ),
-)
-
-MEAN_FREE_DISPLACEMENT = State(
-    physics_type=PhysicsType.MEAN_FREE_DISPLACEMENT,
-    name="MeanFreeDisplacement",
-    observables=(Observable("F", LENGTH, indices=("alpha", "q", "nu")),),
-    description="Per-mode mean free displacement F_qν entering the BTE solution.",
-)
-
-THERMAL_CONDUCTIVITY_STATE = State(
-    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
-    name="ThermalConductivity",
-    observables=(Observable("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
-)
-
-
-NODES: tuple[State, ...] = (
-    POTENTIAL,
-    TEMPERATURE_STATE,
-    FORCE_CONSTANTS_2,
-    FORCE_CONSTANTS_3,
-    DYNAMICAL_MATRIX,
-    FREQUENCY_STATE,
-    EIGENVECTORS,
-    GROUP_VELOCITY,
-    HEAT_CAPACITY,
-    LINEWIDTH,
-    MEAN_FREE_DISPLACEMENT,
-    THERMAL_CONDUCTIVITY_STATE,
-)
-
-
-# ---------------------------------------------------------------------------
-# Formulas (one per derived edge; sources have None)
-# ---------------------------------------------------------------------------
-
-# Φ²_{ij}(R) = ∂²V/(∂u_i(0) ∂u_j(R))  evaluated at u=0
+# Φ²_{ij}(R) = ∂²V/(∂u_i(0) ∂u_j(R)) at u=0
 _FC2_FORMULA = sp.Eq(
     _Phi2[_i, _j, _R],
     sp.Derivative(_V_pot(_u_set), _u_i_0, _u_j_R),
@@ -223,7 +94,7 @@ _DM_FORMULA = sp.Eq(
     / sp.sqrt(_M[_i] * _M[_j]),
 )
 
-# Eigenvalue equation, free i: Σ_j D_{ij}(q) e_{j,q,ν} = ω²_{q,ν} e_{i,q,ν}
+# Σ_j D_{ij}(q) e_{j,q,ν} = ω²_{q,ν} e_{i,q,ν}  (free i)
 _DISP_FORMULA = sp.Eq(
     sp.Sum(_D[_i, _j, _q] * _e[_j, _q, _nu], (_j, 1, _N_modes)),
     _omega[_q, _nu] ** 2 * _e[_i, _q, _nu],
@@ -273,8 +144,7 @@ _LW_FORMULA = sp.Eq(
     ),
 )
 
-# F^α_{q,ν} = v^α_{q,ν} / (2 Γ_{q,ν})  [RTA closed form; bte_solver=rta]
-# LBTE alternative is an implicit linear system (see description).
+# F^α_{q,ν} = v^α_{q,ν} / (2 Γ_{q,ν})  [RTA closed form]
 _BTE_FORMULA = sp.Eq(
     _F[_alpha, _q, _nu],
     _v[_alpha, _q, _nu] / (2 * _Gamma[_q, _nu]),
@@ -293,7 +163,7 @@ _KAPPA_FORMULA = sp.Eq(
 
 
 # ---------------------------------------------------------------------------
-# Edges (operations)
+# Operations
 # ---------------------------------------------------------------------------
 
 provide_potential = Operation(
@@ -369,9 +239,7 @@ compute_linewidth = Operation(
     inputs=(FREQUENCY_STATE, EIGENVECTORS, FORCE_CONSTANTS_3, TEMPERATURE_STATE),
     outputs=(LINEWIDTH,),
     parameters=(Parameter("broadening_sigma", FREQUENCY),),
-    algorithmic_conventions={
-        "broadening_param": "stdev",
-    },
+    algorithmic_conventions={"broadening_param": "stdev"},
     formula=_LW_FORMULA,
     description=(
         "Imaginary self-energy from three-phonon scattering (Fermi's golden "
@@ -386,9 +254,7 @@ solve_bte = Operation(
     name="solve_bte",
     inputs=(FREQUENCY_STATE, GROUP_VELOCITY, LINEWIDTH, TEMPERATURE_STATE),
     outputs=(MEAN_FREE_DISPLACEMENT,),
-    algorithmic_conventions={
-        "bte_solver": "rta",
-    },
+    algorithmic_conventions={"bte_solver": "rta"},
     formula=_BTE_FORMULA,
     description=(
         "BTE solution. The formula shown is the RTA closed-form. The "

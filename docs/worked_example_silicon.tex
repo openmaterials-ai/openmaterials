@@ -144,7 +144,7 @@ finite supercell.
 \medskip
 \textbf{Substrate type:} \texttt{FORCE\_CONSTANTS}, with type-level parameter \texttt{order=2}.\\
 \textbf{Provenance (Phase 1, stubbed):} a single operation
-\texttt{extract\_derivative\_and\_truncate(\,Potential,\, order=2,\, method=$M$\,)} producing
+\texttt{compute\_force\_constants[order=2](\,Potential,\, method=$M$\,)} producing
 this state. The parameter $M \in \{\,\texttt{finite\_difference\_lammps},
 \texttt{dfpt},\,$\\$\texttt{finite\_difference\_qe}, \texttt{autodiff}, \dots\}$ is part of the
 operation's identity; different $M$ produce different states (same type, different provenance).\\
@@ -203,10 +203,10 @@ The substrate handles this honestly because \emph{the method of derivative extra
 parameter on the operation's identity}. The same abstract \texttt{ForceConstants[order=2]} type
 admits multiple operations:
 \begin{itemize}[leftmargin=2em, itemsep=0pt]
-  \item \texttt{extract\_derivative\_and\_truncate(method=finite\_difference\_lammps,\,$\delta$=$10^{-5}$)}
-  \item \texttt{extract\_derivative\_and\_truncate(method=finite\_difference\_qe,\,$\delta$=$10^{-2}$)}
-  \item \texttt{extract\_derivative\_and\_truncate(method=dfpt,\,$\epsilon_{\text{conv}}$=$\dots$)}
-  \item \texttt{extract\_derivative\_and\_truncate(method=autodiff)}
+  \item \texttt{compute\_force\_constants[order=2](method=finite\_difference\_lammps,\,$\delta$=$10^{-5}$)}
+  \item \texttt{compute\_force\_constants[order=2](method=finite\_difference\_qe,\,$\delta$=$10^{-2}$)}
+  \item \texttt{compute\_force\_constants[order=2](method=dfpt,\,$\epsilon_{\text{conv}}$=$\dots$)}
+  \item \texttt{compute\_force\_constants[order=2](method=autodiff)}
 \end{itemize}
 Each is a distinct operation (parameterized identity, \S3.5.1 of the design doc); each produces
 a state with the same physics type but different provenance. ``Same physics object, computed
@@ -224,7 +224,7 @@ The cubic force constants are the third derivative,
 
 \medskip
 \textbf{Substrate type:} \texttt{FORCE\_CONSTANTS}, type-level parameter \texttt{order=3}.\\
-\textbf{Provenance:} \texttt{extract\_derivative\_and\_truncate(\,Potential,\, order=3,\, method=$M'$\,)}.
+\textbf{Provenance:} \texttt{compute\_force\_constants[order=3](\,Potential,\, method=$M'$\,)}.
 The method $M'$ for third-order is typically \emph{different} from the second-order method:
 DFPT does not extend cleanly to third order, so $M'$ is usually finite difference even when $M$
 is DFPT.\\
@@ -411,7 +411,7 @@ Implementation: \texttt{phonopy/harmonic/dynamical\_matrix.py}.
 \end{phonobox}
 
 % =================================================================================
-\section{\texttt{Dispersion}}
+\section{\texttt{Frequency} and \texttt{Eigenvectors} (formerly bundled as \texttt{Dispersion})}
 % =================================================================================
 
 \begin{abstractbox}
@@ -457,7 +457,7 @@ Frequencies in THz. Group velocities via the \texttt{group\_velocity} module (He
 \end{phonobox}
 
 % =================================================================================
-\section{\texttt{ScatteringRates} and a cross-code $\sigma$-normalization finding}
+\section{\texttt{Linewidth} (formerly \texttt{ScatteringRates}) and a cross-code $\sigma$-normalization finding}
 % =================================================================================
 
 \begin{abstractbox}
@@ -570,8 +570,8 @@ structurally rather than allow it to silently propagate as a numerical mystery.
 
 \medskip
 This is the second ``hidden'' methodological difference the experiment surfaced. The
-first was the q-mesh shift convention exposed at the \texttt{Dispersion} stage; this
-one is exposed at \texttt{ScatteringRates}. Both are silent unless the substrate forces
+first was the q-mesh shift convention exposed at the \texttt{Frequency} stage; this
+one is exposed at \texttt{Linewidth}. Both are silent unless the substrate forces
 the comparison.
 
 \paragraph{Per-mode diagnostic at matched stdev.} Forcing matched effective stdev

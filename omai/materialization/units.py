@@ -20,6 +20,7 @@ from omai.abstract.dimensions import (
     ENERGY_PER_TEMPERATURE,
     FREQUENCY,
     LENGTH_TIMES_FREQUENCY,
+    THERMAL_CONDUCTIVITY,
 )
 
 
@@ -47,9 +48,20 @@ EV_PER_K = Unit("eV_per_K", ENERGY_PER_TEMPERATURE, _E)
 ANGSTROM_LINEAR_THZ = Unit("angstrom_linear_THz", LENGTH_TIMES_FREQUENCY, 1.0)
 
 
+# Canonical thermal-conductivity unit: W/(m·K).
+W_PER_M_PER_K = Unit("W_per_m_per_K", THERMAL_CONDUCTIVITY, 1.0)
+
+
 UNITS: dict[str, Unit] = {
     u.name: u
-    for u in [LINEAR_THZ, ANGULAR_THZ, J_PER_K, EV_PER_K, ANGSTROM_LINEAR_THZ]
+    for u in [
+        LINEAR_THZ,
+        ANGULAR_THZ,
+        J_PER_K,
+        EV_PER_K,
+        ANGSTROM_LINEAR_THZ,
+        W_PER_M_PER_K,
+    ]
 }
 
 

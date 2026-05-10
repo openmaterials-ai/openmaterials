@@ -15,13 +15,16 @@ References to the phono3py API (https://phonopy.github.io/phono3py/):
 from __future__ import annotations
 
 from omai.materialization.adapter import OperationAdapterSpec, StateAdapterSpec
-from omai.thermal_transport.symbolic import (
+from omai.thermal_transport.symbolic.edges import (
+    compute_heat_capacity,
+    compute_linewidth,
+)
+from omai.thermal_transport.symbolic.nodes import (
     FREQUENCY_STATE,
     GROUP_VELOCITY,
     HEAT_CAPACITY,
     LINEWIDTH,
-    compute_heat_capacity,
-    compute_linewidth,
+    THERMAL_CONDUCTIVITY_STATE,
 )
 
 
@@ -58,6 +61,17 @@ PHONO3PY_HEAT_CAPACITY = StateAdapterSpec(
     adapter_name="phono3py",
     observable_units={"c": "eV_per_K"},
     notes="thermal_conductivity.mode_heat_capacities in eV/K per mode.",
+)
+
+
+PHONO3PY_THERMAL_CONDUCTIVITY = StateAdapterSpec(
+    state=THERMAL_CONDUCTIVITY_STATE,
+    adapter_name="phono3py",
+    observable_units={"kappa": "W_per_m_per_K"},
+    notes=(
+        "thermal_conductivity.kappa in W/(m·K), shape "
+        "(n_sigma, n_temp, 6) Voigt notation; xx/yy/zz are the first three."
+    ),
 )
 
 

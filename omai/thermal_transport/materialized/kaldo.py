@@ -15,13 +15,16 @@ References to the kaldo API (https://nanotheorygroup.github.io/kaldo/):
 from __future__ import annotations
 
 from omai.materialization.adapter import OperationAdapterSpec, StateAdapterSpec
-from omai.thermal_transport.symbolic import (
+from omai.thermal_transport.symbolic.edges import (
+    compute_heat_capacity,
+    compute_linewidth,
+)
+from omai.thermal_transport.symbolic.nodes import (
     FREQUENCY_STATE,
     GROUP_VELOCITY,
     HEAT_CAPACITY,
     LINEWIDTH,
-    compute_heat_capacity,
-    compute_linewidth,
+    THERMAL_CONDUCTIVITY_STATE,
 )
 
 
@@ -61,6 +64,17 @@ KALDO_HEAT_CAPACITY = StateAdapterSpec(
     adapter_name="kaldo",
     observable_units={"c": "J_per_K"},
     notes="Phonons.heat_capacity in J/K per mode.",
+)
+
+
+KALDO_THERMAL_CONDUCTIVITY = StateAdapterSpec(
+    state=THERMAL_CONDUCTIVITY_STATE,
+    adapter_name="kaldo",
+    observable_units={"kappa": "W_per_m_per_K"},
+    notes=(
+        "Conductivity(method='rta'|'inverse'|'sc').conductivity in "
+        "W/(m·K), tensor shape (3, 3) per direction."
+    ),
 )
 
 

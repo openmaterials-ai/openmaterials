@@ -17,6 +17,7 @@ from omai.thermal_transport.materialized.kaldo import (
     KALDO_GROUP_VELOCITY,
     KALDO_HEAT_CAPACITY,
     KALDO_LINEWIDTH,
+    KALDO_THERMAL_CONDUCTIVITY,
 )
 from omai.thermal_transport.materialized.phono3py import (
     PHONO3PY_COMPUTE_HEAT_CAPACITY,
@@ -25,6 +26,7 @@ from omai.thermal_transport.materialized.phono3py import (
     PHONO3PY_GROUP_VELOCITY,
     PHONO3PY_HEAT_CAPACITY,
     PHONO3PY_LINEWIDTH,
+    PHONO3PY_THERMAL_CONDUCTIVITY,
 )
 
 __all__ = [
@@ -34,10 +36,12 @@ __all__ = [
     "KALDO_GROUP_VELOCITY",
     "KALDO_HEAT_CAPACITY",
     "KALDO_LINEWIDTH",
+    "KALDO_THERMAL_CONDUCTIVITY",
     "PHONO3PY_COMPUTE_HEAT_CAPACITY",
     "PHONO3PY_COMPUTE_LINEWIDTH",
     "PHONO3PY_FREQUENCY",
     "PHONO3PY_GROUP_VELOCITY",
     "PHONO3PY_HEAT_CAPACITY",
     "PHONO3PY_LINEWIDTH",
+    "PHONO3PY_THERMAL_CONDUCTIVITY",
 ]
