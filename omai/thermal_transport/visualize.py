@@ -81,26 +81,26 @@ _PIPELINES = [
 # ---------------------------------------------------------------------------
 
 
-SYMBOLIC_COL_WIDTH = 520              # primary lane — extra-wide
-MAT_COL_WIDTH = 600                   # plenty of room for long API names + arrows
-COLUMN_GAP = 40
-LEFT_PAD = 32
-RIGHT_PAD = 24
+SYMBOLIC_COL_WIDTH = 620              # primary lane — extra-wide
+MAT_COL_WIDTH = 720                   # plenty of room for long API names + arrow spread
+COLUMN_GAP = 44
+LEFT_PAD = 36
+RIGHT_PAD = 28
 TOP_PAD = 64
 STAGE_HEADER_H = 38
-ROW_HEIGHT = 76                       # more vertical room → cleaner arrow curves
+ROW_HEIGHT = 82                       # more vertical room for arrow curves
 
 # Materialized circle (smaller, secondary)
 MAT_NODE_RADIUS = 8
-MAT_CIRCLE_BAND_LEFT = 24
-MAT_CIRCLE_BAND_WIDTH = 90            # wider band → arrows fan out more
-MAT_LABEL_START = MAT_CIRCLE_BAND_LEFT + MAT_CIRCLE_BAND_WIDTH + 28
+MAT_CIRCLE_BAND_LEFT = 26
+MAT_CIRCLE_BAND_WIDTH = 150           # much wider band → arrows fan out clearly
+MAT_LABEL_START = MAT_CIRCLE_BAND_LEFT + MAT_CIRCLE_BAND_WIDTH + 32
 
 # Symbolic circle (larger, primary)
 SYM_NODE_RADIUS = 12
-SYM_CIRCLE_BAND_LEFT = 28
-SYM_CIRCLE_BAND_WIDTH = 110           # generous spread for the primary DAG
-SYM_LABEL_START = SYM_CIRCLE_BAND_LEFT + SYM_CIRCLE_BAND_WIDTH + 34
+SYM_CIRCLE_BAND_LEFT = 30
+SYM_CIRCLE_BAND_WIDTH = 180           # generous spread for the primary DAG
+SYM_LABEL_START = SYM_CIRCLE_BAND_LEFT + SYM_CIRCLE_BAND_WIDTH + 36
 
 
 # ---------------------------------------------------------------------------
