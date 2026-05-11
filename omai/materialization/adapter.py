@@ -1,19 +1,19 @@
 """Materialization-layer adapter specs.
 
-A StateAdapterSpec declares one code's claim about a node (abstract State):
+A StateAdapterSpec declares one code's claim about a node (symbolic State):
   * the unit each observable is in (within that code's natural emission)
   * the convention each observable carries (overrides of canonical)
 
-An OperationAdapterSpec declares one code's claim about an edge (abstract
+An OperationAdapterSpec declares one code's claim about an edge (symbolic
 Operation):
   * the unit each parameter is in (within that code's API surface)
   * the algorithmic-convention overrides
   * the discretization choices the code makes (e.g., BZ summation strategy);
     these don't change *what* is computed, only *how*, so they live here
-    rather than on the abstract Operation.
+    rather than on the symbolic Operation.
 
 Cross-adapter agreement is checked at the State level (the observable layer,
-per substrate Principle 7). Operation-level adapter specs are diagnostic:
+per Principle 7). Operation-level adapter specs are diagnostic:
 they describe how each code performs the operation; mismatches don't yield
 a numerical conversion factor but flag where the codes do something
 algorithmically different.
@@ -23,8 +23,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from omai.abstract.operation import Operation
-from omai.abstract.state import State
+from omai.symbolic.operation import Operation
+from omai.symbolic.state import State
 from omai.materialization.units import conversion_factor
 
 
@@ -40,7 +40,7 @@ class StateAdapterSpec:
         unit = self.observable_units.get(observable_name)
         if unit is not None:
             return unit
-        # Canonical unit isn't declared at the abstract level (the abstract
+        # Canonical unit isn't declared at the symbolic level (the symbolic
         # layer is unit-free); the materialization layer either declares a
         # unit or refuses to compare.
         raise KeyError(

@@ -1,10 +1,10 @@
-"""Tests for the abstract layer (states, operations, DAG structure)."""
+"""Tests for the symbolic layer (states, operations, DAG structure)."""
 
 from __future__ import annotations
 
 import pytest
 
-from omai.abstract import State, Operation, topological_order
+from omai.symbolic import State, Operation, topological_order
 from omai.thermal_transport.symbolic import (
     EDGES,
     NODES,
@@ -100,7 +100,7 @@ def test_linewidth_convention_factor_table():
 
 
 def test_compute_force_constants_2_carries_formula():
-    """The substrate's symbolic-substrate promise: every edge carries a formula."""
+    """The symbolic layer's symbolic promise: every edge carries a formula."""
     assert compute_force_constants_2.formula is not None
 
 
@@ -140,18 +140,18 @@ def test_specific_field_indices():
     assert THERMAL_CONDUCTIVITY_DIRECT.fields[0].indices == ("alpha", "beta")
 
 
-def test_substrate_validates_clean():
-    """The thermal-transport substrate satisfies all discipline invariants."""
-    from omai.abstract import validate_substrate
+def test_symbolic_validates_clean():
+    """The thermal-transport DAG satisfies all discipline invariants."""
+    from omai.symbolic import validate_dag
 
-    errors = validate_substrate(NODES, EDGES)
-    assert errors == [], f"substrate violations:\n  " + "\n  ".join(errors)
+    errors = validate_dag(NODES, EDGES)
+    assert errors == [], f"discipline violations:\n  " + "\n  ".join(errors)
 
 
 def test_validator_flags_missing_gauge_group():
     """A scaffolding HiddenState without a gauge_group is rejected."""
-    from omai.abstract import validate_substrate
-    from omai.abstract.state import HiddenState
+    from omai.symbolic import validate_dag
+    from omai.symbolic.state import HiddenState
     from omai.thermal_transport.symbolic.nodes import POTENTIAL  # any Observable
 
     bad = HiddenState(
@@ -159,14 +159,14 @@ def test_validator_flags_missing_gauge_group():
         name="BadHiddenState",
         # gauge_group="" by default
     )
-    errors = validate_substrate((POTENTIAL, bad), ())
+    errors = validate_dag((POTENTIAL, bad), ())
     assert any("gauge_group" in e for e in errors)
 
 
 def test_validator_flags_dangling_contraction_name():
     """A scaffolding HiddenState that names a non-existent Observable is rejected."""
-    from omai.abstract import validate_substrate
-    from omai.abstract.state import HiddenState
+    from omai.symbolic import validate_dag
+    from omai.symbolic.state import HiddenState
     from omai.thermal_transport.symbolic.nodes import POTENTIAL
 
     bad = HiddenState(
@@ -176,13 +176,13 @@ def test_validator_flags_dangling_contraction_name():
         kind="scaffolding",
         gauge_invariant_contractions=("DoesNotExist",),
     )
-    errors = validate_substrate((POTENTIAL, bad), ())
+    errors = validate_dag((POTENTIAL, bad), ())
     assert any("DoesNotExist" in e for e in errors)
 
 
 def test_observable_vs_hidden_state_classification():
-    """The substrate classifies gauge-invariant vs gauge-dependent nodes."""
-    from omai.abstract.state import HiddenState, Observable
+    """The symbolic layer classifies gauge-invariant vs gauge-dependent nodes."""
+    from omai.symbolic.state import HiddenState, Observable
     from omai.thermal_transport.symbolic import (
         EIGENVECTORS,
         FORCE_CONSTANTS_2,

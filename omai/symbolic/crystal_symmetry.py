@@ -1,13 +1,13 @@
-"""Abstract crystal symmetry at the substrate level.
+"""Symbolic crystal symmetry at the symbolic level.
 
-A `SymmetryGroup` is the substrate's *symbolic* declaration of a crystal
-symmetry: a name, an order, and (optionally) a description. The substrate
+A `SymmetryGroup` is the symbolic layer's *symbolic* declaration of a crystal
+symmetry: a name, an order, and (optionally) a description. The symbolic layer
 does **not** enumerate group elements or store concrete rotation matrices.
 That work — extracting symmetries from a crystal structure, applying them
 to tensors, building irreducible-BZ reductions — belongs to the materials
 codes (phonopy, kaldo, ShengBTE, …), typically via spglib.
 
-The substrate's role here is to *name* the group so that:
+The symbolic layer's role here is to *name* the group so that:
 
   * operations can declare which symmetry group they assume as a
     parameterized identity (`compute_force_constants[order=2,
@@ -18,8 +18,8 @@ The substrate's role here is to *name* the group so that:
   * cross-code comparison can refuse to compare two materializations
     whose declared symmetry groups disagree.
 
-This is parallel to how `Potential` is declared abstractly (a label,
-Phase 1 stub) without the substrate modeling its functional form.
+This is parallel to how `Potential` is declared symbolically (a label,
+Phase 1 stub) without the symbolic layer modeling its functional form.
 """
 
 from __future__ import annotations
@@ -29,11 +29,11 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class SymmetryGroup:
-    """An abstract finite subgroup of O(3) ⋉ ℝ³ acting on a crystal.
+    """A finite subgroup of O(3) ⋉ ℝ³ acting on a crystal (symbolic).
 
     Declared by Hermann-Mauguin / Schoenflies symbol plus order. No
     element data: concrete matrices and group products are the codes'
-    responsibility, not the substrate's.
+    responsibility, not the symbolic layer's.
     """
 
     name: str

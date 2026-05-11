@@ -1,7 +1,7 @@
-"""Substrate-discipline validator.
+"""DAG-discipline validator.
 
 Walks a node + edge set and checks the structural invariants that the
-substrate's architectural commitments imply but that the type system
+architectural commitments imply but that the type system
 alone can't enforce:
 
   * Every HiddenState declares a gauge_group (non-empty string).
@@ -16,22 +16,22 @@ alone can't enforce:
     node set.
 
 Returns a list of human-readable violation strings; empty list means
-the substrate is internally consistent.
+the symbolic layer is internally consistent.
 """
 
 from __future__ import annotations
 
-from omai.abstract.operation import Operation
-from omai.abstract.state import HiddenState, Observable, State
+from omai.symbolic.operation import Operation
+from omai.symbolic.state import HiddenState, Observable, State
 
 _VALID_KINDS = {"scaffolding", "approximation"}
 
 
-def validate_substrate(
+def validate_dag(
     nodes: tuple[State, ...] | list[State],
     edges: tuple[Operation, ...] | list[Operation],
 ) -> list[str]:
-    """Return a list of substrate-discipline violations (empty if clean)."""
+    """Return a list of DAG-discipline violations (empty if clean)."""
     errors: list[str] = []
 
     # Name uniqueness

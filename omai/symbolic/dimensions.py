@@ -1,6 +1,6 @@
-"""Physical dimensions for the abstract layer.
+"""Physical dimensions for the symbolic layer.
 
-The abstract layer is unit-free (substrate Principle 2): observables and
+The symbolic layer is unit-free (Principle 2): observables and
 parameters carry a *dimension* but no unit choice. Units appear only on
 materializations, declared by adapters.
 

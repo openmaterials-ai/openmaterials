@@ -1,19 +1,19 @@
-"""Abstract nodes (states) of the DAG.
+"""Symbolic nodes (states) of the DAG.
 
 Two concrete kinds, both inheriting from `State`:
 
   Observable    — a gauge-invariant first-class node. Cross-code agreement
                   is REQUIRED at this node (after spec-derived unit and
-                  convention conversion). The substrate's compare() returns
+                  convention conversion). The symbolic layer's compare() returns
                   pass/fail verdicts here.
 
-  HiddenState   — an adapter-internal, gauge-dependent abstract node. Not
+  HiddenState   — an adapter-internal, gauge-dependent symbolic node. Not
                   cross-code comparable per-element. Useful as a name for
                   computational scaffolding (per-mode arrays in a basis-
                   dependent representation, intermediate sums) that an
                   adapter produces on its way to an Observable, but whose
                   per-element content is determined by gauge / basis /
-                  summation choices that the substrate does not pin down.
+                  summation choices that the symbolic layer does not pin down.
                   compare() on a HiddenState without a contraction returns
                   status=NOT_COMPARABLE.
 
@@ -27,8 +27,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field as dc_field
 
-from omai.abstract.dimensions import Dimension
-from omai.abstract.physics_types import PhysicsType
+from omai.symbolic.dimensions import Dimension
+from omai.symbolic.physics_types import PhysicsType
 
 
 @dataclass(frozen=True)
@@ -52,7 +52,7 @@ class Field:
 
 @dataclass(frozen=True, eq=False)
 class State:
-    """Base class for abstract DAG nodes. Use Observable or HiddenState directly."""
+    """Base class for symbolic DAG nodes. Use Observable or HiddenState directly."""
 
     physics_type: PhysicsType
     name: str
@@ -95,24 +95,24 @@ class Observable(State):
 
 @dataclass(frozen=True, eq=False)
 class HiddenState(State):
-    """An adapter-internal, gauge-dependent abstract node.
+    """An adapter-internal, gauge-dependent symbolic node.
 
     Not cross-code comparable per-element. Adapters can name and
     materialize HiddenStates for inspection within a single run, but
-    the substrate refuses to make a pass/fail verdict on a per-element
+    the symbolic layer refuses to make a pass/fail verdict on a per-element
     comparison across adapters; the per-element values reflect gauge /
-    basis / summation choices that the substrate does not pin down.
+    basis / summation choices that the symbolic layer does not pin down.
 
     To compare two adapters' HiddenState materializations meaningfully,
     contract them into an Observable (or pass a contraction callable
     to compare()).
 
-    Discipline fields (substrate-enforced via validate_substrate):
+    Discipline fields (validated via validate_dag):
 
       gauge_group: a named identifier for the gauge equivalence that
         acts on this state. Free-form for Level 1; in Level 2 this is
         an actual GaugeAction with a sympy transformation that the
-        substrate uses to prove invariance of downstream Observables.
+        symbolic layer uses to prove invariance of downstream Observables.
 
       kind: 'scaffolding' if this HiddenState is consumed by a downstream
         operation that produces an Observable (so the gauge orbit is

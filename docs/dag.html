@@ -561,7 +561,7 @@ const NODE_DATA = {
         "kappa": "W_per_m_per_K"
       },
       "observable_convention_overrides": {},
-      "notes": "Conductivity(method='inverse').conductivity in W/(m\u00b7K), tensor shape (3, 3). kaldo's 'inverse' method realizes the substrate's canonical bte_solver=direct_inverse. 'sc' (self-consistent iterative) is an alternative realization of the same canonical."
+      "notes": "Conductivity(method='inverse').conductivity in W/(m\u00b7K), tensor shape (3, 3). kaldo's 'inverse' method realizes the symbolic layer's canonical bte_solver=direct_inverse. 'sc' (self-consistent iterative) is an alternative realization of the same canonical."
     },
     "phono3py_spec": {
       "adapter": "phono3py",
@@ -569,7 +569,7 @@ const NODE_DATA = {
         "kappa": "W_per_m_per_K"
       },
       "observable_convention_overrides": {},
-      "notes": "run_thermal_conductivity(is_LBTE=True) yields kappa in W/(m\u00b7K). phono3py's `is_LBTE=True` realizes the substrate's canonical bte_solver=direct_inverse."
+      "notes": "run_thermal_conductivity(is_LBTE=True) yields kappa in W/(m\u00b7K). phono3py's `is_LBTE=True` realizes the symbolic layer's canonical bte_solver=direct_inverse."
     },
     "cross_state_total_factors": {
       "kappa": 1.0

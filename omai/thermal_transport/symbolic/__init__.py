@@ -1,4 +1,4 @@
-"""Lattice thermal-transport: the abstract DAG.
+"""Lattice thermal-transport: the symbolic DAG.
 
   * `nodes`  — fourteen States (observables / hidden states in the DAG)
   * `edges`  — thirteen Operations (calculations in the DAG, with sympy formulas)

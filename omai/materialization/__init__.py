@@ -1,6 +1,6 @@
-"""omai.materialization — the bridge between abstract states and concrete data.
+"""omai.materialization — the bridge between symbolic states and concrete data.
 
-Per substrate Principle 1, the materialization functor connects the abstract
+Per Principle 1, the materialization functor connects the symbolic
 world (typed witnesses with no numerical content) to the numeric world
 (discretized arrays in concrete units). This package contains the
 materialization-layer machinery:
@@ -8,7 +8,7 @@ materialization-layer machinery:
   * `units` — concrete unit choices that materializations carry, with
     strict same-dimension conversion
   * `adapter` — StateAdapterSpec and OperationAdapterSpec, which declare
-    how a particular code's outputs map onto abstract states (units,
+    how a particular code's outputs map onto symbolic states (units,
     conventions, discretization choices)
 
 Domain instances of these specs (kaldo, phono3py, ShengBTE, ...) live

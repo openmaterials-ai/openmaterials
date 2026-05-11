@@ -1,10 +1,10 @@
 """Materialization: a single concrete realization of one observable.
 
 A `Materialization` wraps a numerical array with the metadata that makes it
-comparable across adapters: which abstract state it materializes, which
+comparable across adapters: which symbolic state it materializes, which
 adapter produced it, and which observable on that state it represents.
 
-The substrate doc defines a materialization as `(s, Σ, x, U, ε_disc)`; this
+The symbolic layer doc defines a materialization as `(s, Σ, x, U, ε_disc)`; this
 class is the runtime representation. `Σ` (discretization scheme) and
 `ε_disc` (discretization error) are deferred — the materialization carries
 the array and its adapter spec, which together provide units and

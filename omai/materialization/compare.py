@@ -1,12 +1,12 @@
 """Cross-adapter comparison of Materializations.
 
-`compare` takes two materializations of the same abstract state and observable
+`compare` takes two materializations of the same symbolic state and observable
 (produced by different adapters), applies the spec-derived conversion factor
 (unit + convention) from `cross_state_total_factor`, optionally contracts the
 arrays via a user-provided callable, and reports a numerical residual against
 a tolerance.
 
-This is the loop closure of the substrate's symbolic claim. The adapter specs
+This is the loop closure of the symbolic layer's symbolic claim. The adapter specs
 *predict* a conversion factor; `compare` *applies* it to real data and *checks*
 that the codes agree to the spec'd tolerance. Disagreement at this layer is a
 real adapter conformance failure, not a numerical mystery.
@@ -20,7 +20,7 @@ from typing import Any
 
 import numpy as np
 
-from omai.abstract.state import HiddenState
+from omai.symbolic.state import HiddenState
 from omai.materialization.adapter import cross_state_total_factor
 from omai.materialization.instance import Materialization
 
@@ -43,12 +43,12 @@ class ComparisonResult:
         UNEXPECTED_PASS, NOT_COMPARABLE.
 
         NOT_COMPARABLE   — the comparison is on a HiddenState per-element
-                           (i.e., without a contraction). The substrate
+                           (i.e., without a contraction). compare()
                            refuses to make a pass/fail verdict; residuals
                            are still reported for diagnostic inspection.
         EXPECTED_PASS    — predicted tight, observed tight (both pass).
-        EXPECTED_LOOSE   — predicted loose, observed loose. The substrate
-                           said this wouldn't agree per-element and it
+        EXPECTED_LOOSE   — predicted loose, observed loose. The symbolic
+                           layer said this wouldn't agree per-element and it
                            doesn't. Used when the user explicitly passes
                            expected_to_pass=False (e.g., for intermediate
                            contractions of a HiddenState).
@@ -92,13 +92,13 @@ def compare(
     Both materializations must wrap the same state and observable.
 
     Args:
-        m_a, m_b: materializations from two adapters of the same abstract state.
+        m_a, m_b: materializations from two adapters of the same symbolic state.
         contraction: optional callable applied to both arrays before
             comparison (e.g., np.sum to compare contracted scalars). When
             None, comparison is per-element.
         rtol, atol: passed to np.allclose for the pass/fail verdict.
-        expected_to_pass: override the substrate's prediction. By default,
-            inferred from the abstract state's kind: True if the state is
+        expected_to_pass: override the symbolic layer's prediction. By default,
+            inferred from the symbolic state's kind: True if the state is
             an Observable (gauge-invariant, cross-code comparable); for a
             HiddenState the result is NOT_COMPARABLE per-element. When a
             contraction is supplied, the default is True (contracted forms
@@ -148,7 +148,7 @@ def compare(
     passed = bool(np.allclose(a_arr, b_arr, rtol=rtol, atol=atol))
 
     # HiddenState + no contraction → NOT_COMPARABLE. Residuals are computed
-    # for diagnostic inspection but the substrate makes no verdict.
+    # for diagnostic inspection but the symbolic layer makes no verdict.
     is_hidden_per_element = (
         isinstance(m_a.state, HiddenState) and contraction is None
     )

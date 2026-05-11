@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sympy as sp
 
-from omai.abstract import GaugeAction, check_invariance
+from omai.symbolic import GaugeAction, check_invariance
 from omai.thermal_transport.symbolic.edges import (
     compute_dynamical_matrix,
     compute_group_velocity,
@@ -57,13 +57,13 @@ def test_gauge_action_fails_invariance_when_eigenvector_appears_unpaired():
     assert not U1_PHASE_ON_EIGENVECTOR.verifies_invariance(expr)
 
 
-# === Abstract SymmetryGroup ===
+# === Symbolic SymmetryGroup ===
 
 
 def test_symmetry_group_is_just_a_named_declaration():
     """SymmetryGroup carries name and order only — no concrete element data."""
-    from omai.abstract import SymmetryGroup
-    from omai.abstract.crystal_symmetry import OH, CI, C1
+    from omai.symbolic import SymmetryGroup
+    from omai.symbolic.crystal_symmetry import OH, CI, C1
 
     assert OH.name == "Oh"
     assert OH.order == 48

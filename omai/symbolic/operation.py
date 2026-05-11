@@ -1,16 +1,16 @@
-"""Abstract operations (edges in the DAG).
+"""Symbolic operations (edges in the DAG).
 
-An Operation is a typed transformation between abstract states. It declares
+An Operation is a typed transformation between symbolic states. It declares
 its input states, output state(s), parameters (dimensioned but unit-free),
 algorithmic conventions (canonical-valued semantic choices that change *what*
 is computed, as opposed to *how*), and a symbolic formula.
 
-The formula is the substrate's claim about what the operation produces: a
+The formula is the symbolic layer's claim about what the operation produces: a
 sympy expression for closed-form ops, a sympy.Eq for implicit ones, or a
 LaTeX string for ones whose formal sympy encoding is awkward (typically
 indexed sums over the Brillouin zone).
 
-The substrate's symbolic-substrate promise is that every edge carries this
+The symbolic layer's symbolic promise is that every edge carries this
 formula, so adapter conformance can be expressed as a statement comparable
 against the formula rather than reverse-engineered from kernels.
 """
@@ -21,8 +21,8 @@ from dataclasses import dataclass, field
 
 import sympy
 
-from omai.abstract.dimensions import Dimension
-from omai.abstract.state import State
+from omai.symbolic.dimensions import Dimension
+from omai.symbolic.state import State
 
 __all__ = ["Operation", "Parameter", "topological_order"]
 
@@ -47,7 +47,7 @@ class Operation:
     description: str = ""
 
     def __hash__(self) -> int:
-        # Identity by name: operations are singletons in the substrate registry.
+        # Identity by name: operations are singletons in the symbolic layer registry.
         return hash(self.name)
 
     def __eq__(self, other: object) -> bool:

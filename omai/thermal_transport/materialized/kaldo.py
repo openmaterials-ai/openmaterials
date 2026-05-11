@@ -1,8 +1,8 @@
 """kaldo adapter specs for the thermal-transport DAG.
 
-Constructed against the abstract DAG in
+Constructed against the symbolic DAG in
 `omai.thermal_transport.symbolic`. Cross-code comparison happens at the
-substrate level (Principle 7) via the shared abstract states; differences
+symbolic level (Principle 7) via the shared states; differences
 surface as unit factors, convention mismatches, and discretization choice
 mismatches.
 
@@ -82,7 +82,7 @@ KALDO_THERMAL_CONDUCTIVITY_DIRECT = StateAdapterSpec(
     observable_units={"kappa": "W_per_m_per_K"},
     notes=(
         "Conductivity(method='inverse').conductivity in W/(m·K), tensor "
-        "shape (3, 3). kaldo's 'inverse' method realizes the substrate's "
+        "shape (3, 3). kaldo's 'inverse' method realizes the symbolic layer's "
         "canonical bte_solver=direct_inverse. 'sc' (self-consistent "
         "iterative) is an alternative realization of the same canonical."
     ),

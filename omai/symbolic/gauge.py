@@ -1,11 +1,11 @@
 """Symbolic gauge actions and invariance proofs.
 
 A GaugeAction is a sympy-encoded transformation acting on a pattern in
-formulas. Given a formula F and a gauge action g, the substrate can
+formulas. Given a formula F and a gauge action g, the symbolic layer can
 mechanically check whether F is invariant under g via symbolic
 substitution + simplification.
 
-This is Level 2 of the gauge-invariance enforcement (see substrate doc).
+This is Level 2 of the gauge-invariance enforcement (see the documentation).
 It works cleanly for:
 
   * simple symbolic substitutions (e.g., U(1) phase: e → exp(iθ) e)
@@ -19,7 +19,7 @@ It does NOT (yet) handle:
   * data-dependent gauges (gauges that only act at specific data points
     like degenerate ω) — requires runtime knowledge of degeneracies
 
-For those, the substrate falls back to Level 1 structural declarations.
+For those, the symbolic layer falls back to Level 1 structural declarations.
 """
 
 from __future__ import annotations
@@ -80,7 +80,7 @@ def check_invariance(
 
     Returns a dict mapping each gauge action's name to True/False.
     Useful for building tables of "this operation preserves these gauges"
-    that the substrate can use to propagate invariance claims through
+    that the symbolic layer can use to propagate invariance claims through
     the DAG.
     """
     return {g.name: g.verifies_invariance(operation_formula) for g in gauge_actions}

@@ -1,6 +1,6 @@
 """Generate an interactive HTML visualization of the thermal-transport DAG.
 
-Walks the abstract layer (omai.thermal_transport.symbolic) and the materialized
+Walks the symbolic layer (omai.thermal_transport.symbolic) and the materialized
 adapter specs (omai.thermal_transport.materialized.{kaldo,phono3py}) and emits
 a single self-contained HTML file:
 
@@ -26,7 +26,7 @@ from pathlib import Path
 
 import sympy as sp
 
-from omai.abstract.state import HiddenState, Observable, State
+from omai.symbolic.state import HiddenState, Observable, State
 from omai.materialization.adapter import (
     OperationAdapterSpec,
     StateAdapterSpec,

@@ -2,8 +2,8 @@
 
 Each submodule holds the StateAdapterSpec and OperationAdapterSpec instances
 for one code (kaldo, phono3py, ...). All instances are constructed against
-the shared abstract DAG in `omai.thermal_transport.symbolic`, so cross-code
-agreement is checked at the substrate level (per Principle 7).
+the shared symbolic DAG in `omai.thermal_transport.symbolic`, so cross-code
+agreement is checked at the symbolic level (per Principle 7).
 
 Re-exports the per-code spec instances for convenience; the canonical
 location is the corresponding submodule (e.g.

@@ -52,7 +52,7 @@ def test_compare_identical_data_passes():
 
 def test_compare_status_not_comparable_for_hidden_state_per_element():
     """Linewidth is a HiddenState; per-element compare returns NOT_COMPARABLE.
-    Residuals are computed for diagnostic inspection but the substrate makes
+    Residuals are computed for diagnostic inspection but the symbolic layer makes
     no pass/fail verdict."""
     a = np.array([1.0, 2.0, 3.0])
     b = np.array([1.1, 2.05, 2.85])
@@ -92,7 +92,7 @@ def test_compare_status_expected_pass_for_per_element_tight_observable():
 
 def test_compare_status_unexpected_fail_for_tight_observable_that_disagrees():
     """HeatCapacity declares per_element_tight=True; disagreeing data
-    should yield UNEXPECTED_FAIL — a real anomaly the substrate flags."""
+    should yield UNEXPECTED_FAIL — a real anomaly the symbolic layer flags."""
     a = np.array([1.0, 2.0, 3.0])
     b = np.array([2.0, 4.0, 6.0])
     ma = materialize(PHONO3PY_HEAT_CAPACITY, "c", a)
