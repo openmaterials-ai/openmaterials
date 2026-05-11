@@ -128,10 +128,14 @@ EIGENVECTORS = HiddenState(
     physics_type=PhysicsType.EIGENVECTORS,
     name="Eigenvectors",
     fields=(Field("e", DIMENSIONLESS, indices=("i", "q", "nu")),),
+    gauge_group="U(1)_per_mode × U(d)_per_degenerate_subspace",
+    kind="scaffolding",
+    gauge_invariant_contractions=("Frequency", "ThermalConductivity[bte_solver=direct_inverse]"),
     description=(
-        "Per-mode eigenvectors of the dynamical matrix. Phase- and "
-        "degenerate-subspace-rotation freedom: not directly comparable "
-        "across adapters."
+        "Per-mode eigenvectors of the dynamical matrix. U(1) phase freedom "
+        "per mode plus U(d) rotation within each degenerate subspace; "
+        "per-element values are not directly comparable across adapters. "
+        "Contracted gauge-invariants live in Frequency (eigenvalues) and κ_LBTE."
     ),
 )
 
@@ -139,10 +143,13 @@ GROUP_VELOCITY = HiddenState(
     physics_type=PhysicsType.GROUP_VELOCITY,
     name="GroupVelocity",
     fields=(Field("v", LENGTH_TIMES_FREQUENCY, indices=("alpha", "q", "nu")),),
+    gauge_group="U(d)_per_degenerate_subspace_on_eigenvectors",
+    kind="scaffolding",
+    gauge_invariant_contractions=("ThermalConductivity[bte_solver=direct_inverse]",),
     description=(
-        "Per-mode group velocity. Inherits eigenvector-rotation freedom "
-        "at degenerate ω; per-element comparison is not meaningful in "
-        "general."
+        "Per-mode group velocity. Per-mode v is invariant under U(1) phase, "
+        "but inherits the U(d) rotation freedom at degenerate ω. Contracted "
+        "gauge-invariants live in κ (Σ c v² τ over the BZ)."
     ),
 )
 
@@ -156,9 +163,13 @@ LINEWIDTH = HiddenState(
     convention_factors=(
         ("gamma_definition", "linewidth_2x_imag_self_energy", "Gamma", 2.0),
     ),
+    gauge_group="bz_summation_permutation",
+    kind="scaffolding",
+    gauge_invariant_contractions=("ThermalConductivity[bte_solver=direct_inverse]",),
     description=(
         "Per-mode three-phonon linewidth. Per-element values depend on "
-        "BZ-summation choice; contractions (ΣΓ over modes / over the BZ) "
+        "BZ-summation choice (a permutation gauge: weights redistribute "
+        "between modes but conserve the total). Contractions (ΣΓ, κ_LBTE) "
         "are the gauge-invariant content."
     ),
 )
@@ -168,9 +179,15 @@ MEAN_FREE_DISPLACEMENT_RTA = HiddenState(
     name="MeanFreeDisplacement[bte_solver=rta]",
     fields=(Field("F", LENGTH, indices=("alpha", "q", "nu")),),
     type_parameters={"bte_solver": "rta"},
+    gauge_group="bz_summation_permutation_via_1_over_Gamma",
+    kind="approximation",
+    gauge_invariant_contractions=(),  # terminal — no Observable downstream
     description=(
-        "F = v / (2Γ) under the relaxation-time approximation. Inherits "
-        "Linewidth's per-element looseness via the 1/Γ weighting."
+        "F = v / (2Γ) under the relaxation-time approximation. The 1/Γ "
+        "non-linearity is the gauge-breaking step. Approximation HiddenState: "
+        "terminal; there is no downstream operation that contracts it into "
+        "a gauge-invariant Observable. The LBTE branch (MFD[direct_inverse]) "
+        "is the gauge-invariant analogue."
     ),
 )
 
@@ -179,11 +196,14 @@ THERMAL_CONDUCTIVITY_RTA = HiddenState(
     name="ThermalConductivity[bte_solver=rta]",
     fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
     type_parameters={"bte_solver": "rta"},
+    gauge_group="bz_summation_permutation_via_1_over_Gamma",
+    kind="approximation",
+    gauge_invariant_contractions=(),
     description=(
         "Lattice thermal conductivity from the RTA. The 1/Γ weighting is "
         "non-linear in Γ, so RTA κ inherits Linewidth's gauge-dependence "
         "(unlike the LBTE solution, which preserves gauge-invariance via "
-        "off-diagonal collision terms)."
+        "off-diagonal collision terms). Terminal approximation HiddenState."
     ),
 )
 

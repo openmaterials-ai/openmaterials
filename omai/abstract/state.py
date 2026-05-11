@@ -106,4 +106,27 @@ class HiddenState(State):
     To compare two adapters' HiddenState materializations meaningfully,
     contract them into an Observable (or pass a contraction callable
     to compare()).
+
+    Discipline fields (substrate-enforced via validate_substrate):
+
+      gauge_group: a named identifier for the gauge equivalence that
+        acts on this state. Free-form for Level 1; in Level 2 this is
+        an actual GaugeAction with a sympy transformation that the
+        substrate uses to prove invariance of downstream Observables.
+
+      kind: 'scaffolding' if this HiddenState is consumed by a downstream
+        operation that produces an Observable (so the gauge orbit is
+        eventually summed away); 'approximation' if this HiddenState is
+        terminal — an approximation of an Observable that happens to
+        break gauge invariance, with no downstream Observable to
+        recover from it (e.g., κ[bte_solver=rta]).
+
+      gauge_invariant_contractions: names of Observable nodes in the
+        DAG that capture the gauge-invariant content of this state.
+        Empty for 'approximation' kind. The validator checks each
+        name resolves to an Observable in NODES.
     """
+
+    gauge_group: str = ""
+    kind: str = "scaffolding"  # "scaffolding" or "approximation"
+    gauge_invariant_contractions: tuple[str, ...] = ()

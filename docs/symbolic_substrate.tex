@@ -498,6 +498,65 @@ investigation; \textsc{Expected\_Pass} and \textsc{Expected\_Loose} are successf
 predictions; \textsc{Not\_Comparable} is a HiddenState saying ``don't ask this
 question.''
 
+\subsection{HiddenState discipline and gauge actions}
+\label{ssec:gauge-discipline}
+
+The Observable / HiddenState distinction is load-bearing, so the substrate
+enforces a discipline on how HiddenStates are declared. Each HiddenState
+carries three additional fields:
+
+\begin{itemize}[leftmargin=2em, itemsep=0.2em]
+  \item \texttt{gauge\_group}: a named identifier for the gauge equivalence
+        acting on this state (e.g.\ ``U(1)\_phase\_on\_eigenvector'',
+        ``bz\_summation\_permutation'').
+  \item \texttt{kind}: one of \texttt{scaffolding} (the HiddenState is
+        consumed by a downstream operation producing an Observable, so the
+        gauge orbit is eventually summed away) or \texttt{approximation}
+        (the HiddenState is terminal --- an approximation of an Observable
+        that happens to break gauge invariance, with no downstream recovery;
+        $\kappa$\texttt{[bte\_solver=rta]} is the canonical example).
+  \item \texttt{gauge\_invariant\_contractions}: names of Observables in the
+        DAG that capture this state's gauge-invariant content (empty for
+        \texttt{approximation} kind).
+\end{itemize}
+
+A \texttt{validate\_substrate} function walks the node and edge sets at
+load time and rejects: undeclared gauge groups, invalid kinds, scaffolding
+HiddenStates with empty or non-resolving contractions, approximation
+HiddenStates that incorrectly declare contractions, and edges that
+reference unknown nodes. The thermal-transport substrate passes this
+validator; tests check it on every CI run.
+
+\subsubsection*{Symbolic invariance via \texttt{GaugeAction}}
+
+Beyond named declarations, the substrate supports \emph{symbolic proofs}
+of gauge invariance for the tractable cases. A \texttt{GaugeAction} is a
+sympy-encoded transformation: a pattern to match (e.g., $e_{i, q, \nu}$)
+plus a transform (e.g., $e^{i\theta_{q,\nu}} \cdot e_{i, q, \nu}$). Given
+an operation's sympy formula, the substrate substitutes the gauge action
+and runs \texttt{sympy.simplify} on the difference; if the result is zero,
+the formula is machine-verified invariant.
+
+Example: applying the U(1) phase $e_{i,q,\nu} \to e^{i\theta_{q,\nu}}
+e_{i,q,\nu}$ to
+\begin{equation*}
+  v^\alpha_{q,\nu} = \frac{1}{2\omega_{q,\nu}} \sum_{i,j} e^\dagger_{i,q,\nu}\,
+    \frac{\partial D_{ij}}{\partial q^\alpha}\, e_{j,q,\nu}
+\end{equation*}
+gives $e^{-i\theta_{q,\nu}} \cdot e^{i\theta_{q,\nu}} = 1$, and sympy
+mechanically reduces the difference to zero. This is the substrate's
+first machine-verified physics claim --- per-mode group velocity is
+U(1)-phase invariant, by construction of the formula.
+
+\emph{What's tractable today:} simple symbolic substitutions (U(1)
+phase), finite group actions encoded as patterns over indexed
+expressions (crystal point groups), and other gauges where the
+transformation is algebraically substitutable. \emph{Not tractable
+today:} continuous Lie group actions on subspaces (e.g., U(d) on
+degenerate-subspace), and data-dependent gauges (e.g.\ degenerate-
+subspace rotation that only acts at degenerate $\omega$). For those,
+the substrate falls back to the Level 1 named-gauge declarations.
+
 \subsection{Materialization functor}
 
 A materialization functor $\mathcal{F}$ is associated with a particular code (kaldo, phono3py,
@@ -826,9 +885,12 @@ plus one per domain:
 \begin{itemize}[leftmargin=2em, itemsep=0.3em]
   \item \texttt{omai.abstract} --- substrate machinery for the abstract world.
         \texttt{State} (base class), \texttt{Observable} and \texttt{HiddenState}
-        (subclasses), \texttt{Field}, \texttt{Operation}, \texttt{Parameter},
-        \texttt{Dimension}, \texttt{PhysicsType} (closed enum), and
-        \texttt{topological\_order}. Code-agnostic and domain-agnostic.
+        (subclasses, with gauge-discipline fields on the latter), \texttt{Field},
+        \texttt{Operation}, \texttt{Parameter}, \texttt{Dimension},
+        \texttt{PhysicsType}, \texttt{topological\_order},
+        \texttt{validate\_substrate} (Level 1 discipline enforcement), and
+        \texttt{GaugeAction} / \texttt{check\_invariance} (Level 2 symbolic
+        gauge proofs). Code-agnostic and domain-agnostic.
   \item \texttt{omai.materialization} --- the bridge.
     \begin{itemize}[leftmargin=1.2em]
       \item \texttt{units.py}: the \texttt{Unit} class, named unit instances, strict
@@ -849,6 +911,9 @@ plus one per domain:
             \texttt{HiddenState} instances with their fields.
       \item \texttt{symbolic/edges.py}: the 13 operations with sympy formulas;
             sympy symbols and \texttt{IndexedBase} declarations.
+      \item \texttt{symbolic/gauges.py}: concrete \texttt{GaugeAction}
+            instances for the domain (e.g.\ U(1) phase on Eigenvectors).
+            Mechanically verifies operation formulas are gauge-invariant.
       \item \texttt{materialized/kaldo.py}, \texttt{materialized/phono3py.py}:
             per-code adapter specs (one file per code), declaring units,
             conventions, and discretization choices.

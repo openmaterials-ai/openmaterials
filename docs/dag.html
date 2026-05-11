@@ -314,7 +314,7 @@ const NODE_DATA = {
     "canonical_conventions": {},
     "convention_factors": [],
     "type_parameters": {},
-    "description": "Per-mode eigenvectors of the dynamical matrix. Phase- and degenerate-subspace-rotation freedom: not directly comparable across adapters.",
+    "description": "Per-mode eigenvectors of the dynamical matrix. U(1) phase freedom per mode plus U(d) rotation within each degenerate subspace; per-element values are not directly comparable across adapters. Contracted gauge-invariants live in Frequency (eigenvalues) and \u03ba_LBTE.",
     "kaldo_spec": null,
     "phono3py_spec": null,
     "cross_state_total_factors": {}
@@ -337,7 +337,7 @@ const NODE_DATA = {
     "canonical_conventions": {},
     "convention_factors": [],
     "type_parameters": {},
-    "description": "Per-mode group velocity. Inherits eigenvector-rotation freedom at degenerate \u03c9; per-element comparison is not meaningful in general.",
+    "description": "Per-mode group velocity. Per-mode v is invariant under U(1) phase, but inherits the U(d) rotation freedom at degenerate \u03c9. Contracted gauge-invariants live in \u03ba (\u03a3 c v\u00b2 \u03c4 over the BZ).",
     "kaldo_spec": {
       "adapter": "kaldo",
       "observable_units": {
@@ -422,7 +422,7 @@ const NODE_DATA = {
       }
     ],
     "type_parameters": {},
-    "description": "Per-mode three-phonon linewidth. Per-element values depend on BZ-summation choice; contractions (\u03a3\u0393 over modes / over the BZ) are the gauge-invariant content.",
+    "description": "Per-mode three-phonon linewidth. Per-element values depend on BZ-summation choice (a permutation gauge: weights redistribute between modes but conserve the total). Contractions (\u03a3\u0393, \u03ba_LBTE) are the gauge-invariant content.",
     "kaldo_spec": {
       "adapter": "kaldo",
       "observable_units": {
@@ -465,7 +465,7 @@ const NODE_DATA = {
     "type_parameters": {
       "bte_solver": "rta"
     },
-    "description": "F = v / (2\u0393) under the relaxation-time approximation. Inherits Linewidth's per-element looseness via the 1/\u0393 weighting.",
+    "description": "F = v / (2\u0393) under the relaxation-time approximation. The 1/\u0393 non-linearity is the gauge-breaking step. Approximation HiddenState: terminal; there is no downstream operation that contracts it into a gauge-invariant Observable. The LBTE branch (MFD[direct_inverse]) is the gauge-invariant analogue.",
     "kaldo_spec": null,
     "phono3py_spec": null,
     "cross_state_total_factors": {}
@@ -514,7 +514,7 @@ const NODE_DATA = {
     "type_parameters": {
       "bte_solver": "rta"
     },
-    "description": "Lattice thermal conductivity from the RTA. The 1/\u0393 weighting is non-linear in \u0393, so RTA \u03ba inherits Linewidth's gauge-dependence (unlike the LBTE solution, which preserves gauge-invariance via off-diagonal collision terms).",
+    "description": "Lattice thermal conductivity from the RTA. The 1/\u0393 weighting is non-linear in \u0393, so RTA \u03ba inherits Linewidth's gauge-dependence (unlike the LBTE solution, which preserves gauge-invariance via off-diagonal collision terms). Terminal approximation HiddenState.",
     "kaldo_spec": {
       "adapter": "kaldo",
       "observable_units": {
