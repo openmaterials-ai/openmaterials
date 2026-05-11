@@ -57,28 +57,18 @@ def test_gauge_action_fails_invariance_when_eigenvector_appears_unpaired():
     assert not U1_PHASE_ON_EIGENVECTOR.verifies_invariance(expr)
 
 
-# === Crystal symmetry (inversion) ===
+# === Abstract SymmetryGroup ===
 
 
-def test_symmetrized_fc2_is_inversion_invariant():
-    """The Z/2-symmetrized FC² is provably inversion-invariant in sympy."""
-    from omai.thermal_transport.symbolic.gauges import (
-        CRYSTAL_INVERSION_ON_FC2,
-        symmetrized_fc2,
-    )
+def test_symmetry_group_is_just_a_named_declaration():
+    """SymmetryGroup carries name and order only — no concrete element data."""
+    from omai.abstract import SymmetryGroup
+    from omai.abstract.crystal_symmetry import OH, CI, C1
 
-    phi2_sym = symmetrized_fc2()
-    assert CRYSTAL_INVERSION_ON_FC2.verifies_invariance(phi2_sym), (
-        "symmetrized FC² (Φ²(R) + Φ²(-R))/2 must be inversion-invariant"
-    )
-
-
-def test_bare_fc2_is_not_inversion_invariant():
-    """Un-symmetrized FC² has no inversion symmetry imposed; substrate
-    correctly reports it as NOT invariant under the inversion gauge."""
-    from omai.thermal_transport.symbolic.gauges import CRYSTAL_INVERSION_ON_FC2
-    from omai.thermal_transport.symbolic.edges import _Phi2
-
-    i, j, R = sp.symbols("i j R")
-    expr = _Phi2[i, j, R]
-    assert not CRYSTAL_INVERSION_ON_FC2.verifies_invariance(expr)
+    assert OH.name == "Oh"
+    assert OH.order == 48
+    assert CI.order == 2
+    assert C1.order == 1
+    # No element data: SymmetryGroup has no rotation/translation attributes
+    assert not hasattr(OH, "generators")
+    assert not hasattr(OH, "rotations")

@@ -557,32 +557,29 @@ degenerate-subspace), and data-dependent gauges (e.g.\ degenerate-
 subspace rotation that only acts at degenerate $\omega$). For those,
 the substrate falls back to the Level 1 named-gauge declarations.
 
-\paragraph{Crystal symmetry as data-driven gauges.} The substrate does not
-hardcode any specific point group. Crystal symmetry enters as \emph{data}:
-a \texttt{SymmetryOperation} (3$\times$3 integer rotation matrix plus
-translation, matching spglib's data model) and a \texttt{CrystalPointGroup}
-(a list of generators). Materials adapters that use spglib internally
-translate its output into these substrate-level types; adapters with
-their own analyzer do the same. The substrate is spglib-agnostic but
-spglib-compatible.
+\paragraph{Crystal symmetry as an abstract declaration.} Crystal symmetry
+at the substrate level is purely a \emph{declaration}: a
+\texttt{SymmetryGroup} carries a Hermann-Mauguin / Schoenflies name
+(\texttt{Oh}, \texttt{D6h}, \texttt{Ci}, \ldots) and an order $|G|$.
+No element data --- no rotation matrices, no translation vectors, no
+group-element enumeration --- lives in the substrate.
 
-Given a \texttt{SymmetryOperation}, the factory
-\texttt{fc2\_gauge\_from\_symmetry\_op} builds a \texttt{GaugeAction} for
-its action on $\Phi^{(2)}$ if the rotation is substitution-friendly
-(diagonal in Cartesian indices with $\pm 1$ entries — identity, inversion,
-Cartesian-aligned mirrors with uniform signs). For these, the substrate
-mechanically verifies invariance via sympy. For non-diagonal rotations
-(e.g., 90$^\circ$ around $z$), the factory returns None: the gauge is
-declared at Level 1 but not symbolically verified --- substrate machinery
-to expand the FC$^{(2)}$ index space and prove invariance under coupled
-rotations is research-grade.
+The concrete handling --- extracting symmetry from a structure,
+applying group operations to FC tensors, building irreducible-BZ
+reductions --- belongs to the materials codes (phonopy, kaldo,
+ShengBTE, \ldots), typically via spglib. The substrate's role is just to
+\emph{name} the group so that operations can declare which symmetry they
+assume as a parameterized identity
+(\texttt{compute\_force\_constants[order=2, symmetry=Oh]} differs from
+\texttt{[\ldots, symmetry=C1]}), so adapter specs can declare which
+group a particular run assumed, and so cross-code comparison can refuse
+to compare two materializations whose declared symmetry groups disagree.
 
-The order-2 inversion group $C_i$ is verified end-to-end: the
-$Z/2$-symmetrized $\Phi^{(2)}_\text{sym}(\mathbf{R}) = \tfrac{1}{2}
-(\Phi^{(2)}(\mathbf{R}) + \Phi^{(2)}(-\mathbf{R}))$ is provably invariant;
-the bare un-symmetrized $\Phi^{(2)}$ is correctly flagged as not invariant.
-Other crystal point groups are constructed by the same data path; the
-substrate-level interface is the same.
+This is the same pattern \texttt{Potential} follows: declared abstractly
+as a labelled source state without the substrate modeling its functional
+form. ``How $\Phi^{(2)}$ is computed under crystal symmetry'' is a code
+concern; ``which symmetry group was assumed'' is a substrate-level
+declaration.
 
 \subsection{Materialization functor}
 
