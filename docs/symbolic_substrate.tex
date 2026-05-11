@@ -100,7 +100,7 @@ their alternatives or justifications; supporting definitions follow in later sec
         connected by operations, not a linear sequence. Cross-code comparison reduces
         to graph alignment over the same symbolic template.
 
-  \item \textbf{Identity is type plus provenance.} An symbolic state is identified by its
+  \item \textbf{Identity is type plus provenance.} A symbolic state is identified by its
         physics type and the ordered chain of operations that produced it. Two states
         with the same type but different histories are different states.
 
@@ -238,6 +238,60 @@ holding a Hamiltonian, you know which world you are in and you cannot
 accidentally mix the two. This refusal is what makes errors composable, theorems statable, and
 cross-code comparisons well-defined.
 
+\subsection{The full chain: two layers plus the external codes}
+\label{ssec:two-layer-chain}
+
+In implementation terms, the project has \emph{exactly two layers} under its
+own control plus the external physics codes that produce numerical data.
+Nothing else is a layer: tests, visualization, and experiment scripts are
+supporting infrastructure.
+
+\paragraph{Layer 1 --- symbolic.} Types, declarations, formulas, gauges.
+Machinery in \texttt{omai.symbolic} (the \texttt{State} and
+\texttt{Operation} types, \texttt{Field}, \texttt{Dimension},
+\texttt{GaugeAction}, \texttt{SymmetryGroup}, \texttt{validate\_dag});
+domain instances in \texttt{omai.thermal\_transport.symbolic} (the
+14-node, 13-edge DAG with sympy formulas on each edge, gauge actions).
+No values, no units, no per-code knowledge.
+
+\paragraph{Layer 2 --- materialization.} Per-code declarations plus the
+runtime that operates on actual code outputs. Machinery in
+\texttt{omai.materialization} (the \texttt{StateAdapterSpec} and
+\texttt{OperationAdapterSpec} types, \texttt{Unit} and unit conversions,
+the \texttt{Materialization} runtime data class, \texttt{compare()} with
+its five-status verdicts); domain instances in
+\texttt{omai.thermal\_transport.materialized} (one file per code:
+\texttt{kaldo.py}, \texttt{phono3py.py}).
+
+\paragraph{External codes.} kaldo, phono3py, ShengBTE: do the actual
+physics computation in their own native code, output arrays in their
+native units and conventions.
+
+\paragraph{The chain in motion.} A typical cross-code verification flows
+through these layers like this:
+
+\begin{enumerate}[leftmargin=2em, itemsep=0.2em]
+  \item User invokes the codes externally (e.g.\ kaldo and phono3py),
+        which produce raw output arrays in their own formats.
+  \item User wraps each array via \texttt{materialize(spec, field\_name,
+        array)}: this validates the field exists on the symbolic state
+        and produces a \texttt{Materialization} object tagged with the
+        right adapter spec.
+  \item User calls \texttt{compare(m\_a, m\_b)}. \texttt{compare} consults
+        the symbolic layer for the cross-code factor (units +
+        conventions), applies it, optionally contracts, and consults the
+        symbolic layer again for the state's gauge kind to decide whether
+        a \textsc{Pass}/\textsc{Fail} verdict is even meaningful or the
+        comparison is \textsc{Not\_Comparable}.
+  \item User gets a \texttt{ComparisonResult} with status, residuals,
+        and the applied factor.
+\end{enumerate}
+
+\noindent No additional layers, no other indirection. The two
+substrate-side layers expose their content in matched pairs (machinery
+in \texttt{omai/<layer>/}, domain instances in
+\texttt{omai/<domain>/<layer>/}), and the codes attach at the edge.
+
 \medskip
 
 \section{Formal Definitions}
@@ -247,13 +301,13 @@ We collect the formal definitions implied by the decisions above.
 
 \subsection{Symbolic state}
 
-An symbolic state $s$ is unit-free: its physics type carries the dimension of any
+A symbolic state $s$ is unit-free: its physics type carries the dimension of any
 quantity it represents (a frequency, an energy density, a tensor of given rank), but no
 unit choice. Numerical content and units appear only at materialization time.
 
 \medskip
 
-An symbolic state $s$ is a tuple $(\kappa, \tau, \pi, F)$ where:
+A symbolic state $s$ is a tuple $(\kappa, \tau, \pi, F)$ where:
 \begin{itemize}[leftmargin=2em]
   \item $\kappa \in \{\textsc{Observable}, \textsc{HiddenState}\}$ is the
         \emph{gauge-invariance kind}: Observables are gauge-invariant and cross-code
@@ -426,7 +480,7 @@ indices and the dependence becomes formal.
 
 \subsection{Symbolic workflow}
 
-An symbolic workflow is a finite directed acyclic graph $W = (V, E)$ where $V$ is a set of
+A symbolic workflow is a finite directed acyclic graph $W = (V, E)$ where $V$ is a set of
 symbolic states and $E$ is a set of symbolic operations. The graph is rooted at one or more
 \emph{source} states (typically empirical inputs such as the crystal structure) and terminates
 at one or more \emph{observable} states (e.g., the lattice thermal conductivity).
