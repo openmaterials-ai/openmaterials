@@ -108,7 +108,7 @@ def test_broadening_param_convention_mismatch_surfaced():
         KALDO_COMPUTE_LINEWIDTH, PHONO3PY_COMPUTE_LINEWIDTH, "broadening_param"
     )
     assert matched is False
-    assert "halfwidth" in msg
+    assert "adaptive_velocity_projection" in msg
     assert "stdev" in msg
 
 
@@ -154,3 +154,38 @@ def test_unknown_observable_raises():
 def test_unknown_convention_raises():
     with pytest.raises(KeyError):
         KALDO_LINEWIDTH.declared_convention("not_a_convention")
+
+
+# --- operation adapter factories: kaldo broadening mode parameterization ---
+
+
+def test_kaldo_compute_linewidth_default_factory_matches_module_constant():
+    """Calling the factory with no args yields the same configuration as the
+    module-level constant (kaldo default: adaptive velocity-projection)."""
+    from omai.thermal_transport.materialized import (
+        KALDO_COMPUTE_LINEWIDTH,
+        kaldo_compute_linewidth_spec,
+    )
+    default = kaldo_compute_linewidth_spec()
+    assert default.declared_algorithmic_convention("broadening_param") == \
+        KALDO_COMPUTE_LINEWIDTH.declared_algorithmic_convention("broadening_param")
+    assert default.declared_algorithmic_convention("broadening_param") == \
+        "adaptive_velocity_projection"
+
+
+def test_kaldo_compute_linewidth_factory_halfwidth_mode():
+    """Asking for halfwidth mode produces a spec whose declared convention
+    reflects the fixed-σ kaldo configuration (third_bandwidth=σ set)."""
+    from omai.thermal_transport.materialized import kaldo_compute_linewidth_spec
+    spec = kaldo_compute_linewidth_spec(broadening_param="halfwidth")
+    assert spec.declared_algorithmic_convention("broadening_param") == "halfwidth"
+    # Halfwidth mode should disagree with shengbte's adaptive default; the
+    # cross-operation match must surface that.
+    from omai.materialization.adapter import cross_operation_algorithmic_match
+    from omai.thermal_transport.materialized import SHENGBTE_COMPUTE_LINEWIDTH
+    matched, msg = cross_operation_algorithmic_match(
+        spec, SHENGBTE_COMPUTE_LINEWIDTH, "broadening_param"
+    )
+    assert matched is False
+    assert "halfwidth" in msg
+    assert "adaptive_velocity_projection" in msg

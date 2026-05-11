@@ -33,9 +33,14 @@ class PhysicsType(str, Enum):
     EIGENVECTORS = "Eigenvectors"
     GROUP_VELOCITY = "GroupVelocity"
     HEAT_CAPACITY = "HeatCapacity"
+    VOLUMETRIC_HEAT_CAPACITY = "VolumetricHeatCapacity"
+    MOLAR_HEAT_CAPACITY = "MolarHeatCapacity"
     LINEWIDTH = "Linewidth"
     MEAN_FREE_DISPLACEMENT = "MeanFreeDisplacement"
     THERMAL_CONDUCTIVITY = "ThermalConductivity"
+    PHONON_DOS = "PhononDOS"
+    GRUNEISEN = "Gruneisen"
+    PHASE_SPACE_3PH = "PhaseSpace3Phonon"
 
     # --- experimental/measured observables ---
     MEASURED_THERMAL_CONDUCTIVITY = "MeasuredThermalConductivity"

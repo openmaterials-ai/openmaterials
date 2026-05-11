@@ -281,8 +281,8 @@ through these layers like this:
         the symbolic layer for the cross-code factor (units +
         conventions), applies it, optionally contracts, and consults the
         symbolic layer again for the state's gauge kind to decide whether
-        a \textsc{Pass}/\textsc{Fail} verdict is even meaningful or the
-        comparison is \textsc{Not\_Comparable}.
+        an \textsc{Agree}/\textsc{Disagree} verdict is even meaningful or
+        the comparison is \textsc{Not\_Comparable}.
   \item User gets a \texttt{ComparisonResult} with status, residuals,
         and the applied factor.
 \end{enumerate}
@@ -528,27 +528,27 @@ conversion factor derived from their declared units and conventions, optionally
 contracts both arrays via a user-supplied callable (e.g.\ \texttt{numpy.sum}), and
 reports residuals together with a \emph{status} drawn from five values:
 \begin{description}[leftmargin=2.5em, itemsep=0.2em]
-  \item[\textsc{Expected\_Pass}] the state is an Observable; the arrays agree within
+  \item[\textsc{Expected\_Agree}] the state is an Observable; the arrays agree within
         $(\text{rtol}, \text{atol})$. The symbolic layer's prediction holds.
-  \item[\textsc{Expected\_Loose}] the user predicted disagreement (override) and the
+  \item[\textsc{Expected\_Disagree}] the user predicted disagreement (override) and the
         arrays disagree. Useful for intermediate contractions of a HiddenState that the
         user knows is only partially gauge-invariant.
   \item[\textsc{Not\_Comparable}] the state is a HiddenState and no contraction was
-        supplied. The symbolic layer refuses to make a pass/fail verdict; residuals are
-        still computed and returned for diagnostic inspection, but they carry no
-        normative weight.
-  \item[\textsc{Unexpected\_Fail}] the state is an Observable but the arrays disagree.
-        \emph{Real anomaly}: either the spec is missing a convention, or the codes
-        genuinely compute different physics, or rtol is too strict.
-  \item[\textsc{Unexpected\_Pass}] the user predicted disagreement and the arrays
+        supplied. The symbolic layer refuses to make an agree/disagree verdict;
+        residuals are still computed and returned for diagnostic inspection, but they
+        carry no normative weight.
+  \item[\textsc{Unexpected\_Disagree}] the state is an Observable but the arrays
+        disagree. \emph{Real anomaly}: either the spec is missing a convention, or the
+        codes genuinely compute different physics, or rtol is too strict.
+  \item[\textsc{Unexpected\_Agree}] the user predicted disagreement and the arrays
         agreed. Rare; the per-element protocol may be tighter than declared.
 \end{description}
 
 The status taxonomy separates three things that earlier versions of this framework
 conflated: the symbolic layer's \emph{prediction} (would these agree?), the empirical
 \emph{outcome} (did they?), and whether the comparison is even \emph{meaningful} for
-the given state kind. Only \textsc{Unexpected\_Fail} flags an anomaly that needs
-investigation; \textsc{Expected\_Pass} and \textsc{Expected\_Loose} are successful
+the given state kind. Only \textsc{Unexpected\_Disagree} flags an anomaly that needs
+investigation; \textsc{Expected\_Agree} and \textsc{Expected\_Disagree} are successful
 predictions; \textsc{Not\_Comparable} is a HiddenState saying ``don't ask this
 question.''
 

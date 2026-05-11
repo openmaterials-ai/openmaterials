@@ -44,6 +44,13 @@ class Operation:
     # expression / sympy.Eq, or a LaTeX string for ops whose sympy encoding
     # is awkward. None means "described in prose only" (rare).
     formula: sympy.Basic | str | None = None
+    # Optional auxiliary equations that *define* symbols appearing in the
+    # main formula. E.g., solve_bte_direct's main formula is a linear system
+    # in the collision matrix M; the auxiliary formula defines M in terms of
+    # fundamentals (Γ, |V₃|², occupations, energy-δ). Codes that claim to
+    # implement the Operation must implement both the main formula AND the
+    # auxiliary definitions; mismatches here are real physics disagreement.
+    auxiliary_formulas: tuple[sympy.Basic | str, ...] = ()
     description: str = ""
 
     def __hash__(self) -> int:

@@ -27,8 +27,8 @@ from omai.materialization.instance import Materialization
 
 @dataclass(frozen=True)
 class ComparisonResult:
-    passed: bool
-    expected_to_pass: bool
+    agreed: bool
+    expected_to_agree: bool
     factor: float
     contracted: bool
     max_absolute_residual: float
@@ -39,33 +39,37 @@ class ComparisonResult:
 
     @property
     def status(self) -> str:
-        """One of: EXPECTED_PASS, EXPECTED_LOOSE, UNEXPECTED_FAIL,
-        UNEXPECTED_PASS, NOT_COMPARABLE.
+        """One of: EXPECTED_AGREE, EXPECTED_DISAGREE, UNEXPECTED_DISAGREE,
+        UNEXPECTED_AGREE, NOT_COMPARABLE.
 
-        NOT_COMPARABLE   — the comparison is on a HiddenState per-element
-                           (i.e., without a contraction). compare()
-                           refuses to make a pass/fail verdict; residuals
-                           are still reported for diagnostic inspection.
-        EXPECTED_PASS    — predicted tight, observed tight (both pass).
-        EXPECTED_LOOSE   — predicted loose, observed loose. The symbolic
-                           layer said this wouldn't agree per-element and it
-                           doesn't. Used when the user explicitly passes
-                           expected_to_pass=False (e.g., for intermediate
-                           contractions of a HiddenState).
-        UNEXPECTED_FAIL  — predicted tight, observed FAIL. Real anomaly:
-                           missing convention, real cross-code disagreement,
-                           or rtol too strict.
-        UNEXPECTED_PASS  — predicted loose, observed PASS. Rare.
+        NOT_COMPARABLE      — the comparison is on a HiddenState per-element
+                              (i.e., without a contraction). compare()
+                              refuses to make an agree/disagree verdict;
+                              residuals are still reported for diagnostic
+                              inspection.
+        EXPECTED_AGREE      — predicted to agree, observed agreement.
+        EXPECTED_DISAGREE   — predicted not to agree, observed disagreement.
+                              Used when the user explicitly passes
+                              expected_to_agree=False (e.g., for an
+                              intermediate contraction of a HiddenState
+                              that the user knows is only partially gauge
+                              invariant).
+        UNEXPECTED_DISAGREE — predicted to agree, observed disagreement.
+                              Real anomaly: missing convention, real
+                              cross-code disagreement, or rtol too strict.
+        UNEXPECTED_AGREE    — predicted not to agree, observed agreement.
+                              Rare; the per-element protocol may be
+                              tighter than declared.
         """
         if self.not_comparable:
             return "NOT_COMPARABLE"
-        if self.expected_to_pass and self.passed:
-            return "EXPECTED_PASS"
-        if not self.expected_to_pass and not self.passed:
-            return "EXPECTED_LOOSE"
-        if self.expected_to_pass and not self.passed:
-            return "UNEXPECTED_FAIL"
-        return "UNEXPECTED_PASS"
+        if self.expected_to_agree and self.agreed:
+            return "EXPECTED_AGREE"
+        if not self.expected_to_agree and not self.agreed:
+            return "EXPECTED_DISAGREE"
+        if self.expected_to_agree and not self.agreed:
+            return "UNEXPECTED_DISAGREE"
+        return "UNEXPECTED_AGREE"
 
     def summary(self) -> str:
         status = self.status
@@ -85,7 +89,7 @@ def compare(
     contraction: Callable[[np.ndarray], Any] | None = None,
     rtol: float = 1e-3,
     atol: float = 0.0,
-    expected_to_pass: bool | None = None,
+    expected_to_agree: bool | None = None,
 ) -> ComparisonResult:
     """Apply the spec-predicted factor to A's data and compare to B's.
 
@@ -96,15 +100,15 @@ def compare(
         contraction: optional callable applied to both arrays before
             comparison (e.g., np.sum to compare contracted scalars). When
             None, comparison is per-element.
-        rtol, atol: passed to np.allclose for the pass/fail verdict.
-        expected_to_pass: override the symbolic layer's prediction. By default,
-            inferred from the symbolic state's kind: True if the state is
-            an Observable (gauge-invariant, cross-code comparable); for a
-            HiddenState the result is NOT_COMPARABLE per-element. When a
-            contraction is supplied, the default is True (contracted forms
-            are typically gauge-invariant). Pass False for an intermediate
-            contraction (e.g., per-q ΣΓ_q) where the outcome is still
-            expected to be loose.
+        rtol, atol: passed to np.allclose for the agree/disagree verdict.
+        expected_to_agree: override the symbolic layer's prediction. By
+            default, inferred from the symbolic state's kind: True if the
+            state is an Observable (gauge-invariant, cross-code
+            comparable); for a HiddenState the result is NOT_COMPARABLE
+            per-element. When a contraction is supplied, the default is
+            True (contracted forms are typically gauge-invariant). Pass
+            False for an intermediate contraction (e.g., per-q ΣΓ_q) where
+            the outcome is still expected to disagree.
 
     Returns:
         ComparisonResult with the applied factor, the residuals, and a
@@ -145,7 +149,7 @@ def compare(
     else:
         max_rel = 0.0
 
-    passed = bool(np.allclose(a_arr, b_arr, rtol=rtol, atol=atol))
+    agreed = bool(np.allclose(a_arr, b_arr, rtol=rtol, atol=atol))
 
     # HiddenState + no contraction → NOT_COMPARABLE. Residuals are computed
     # for diagnostic inspection but the symbolic layer makes no verdict.
@@ -153,15 +157,15 @@ def compare(
         isinstance(m_a.state, HiddenState) and contraction is None
     )
 
-    if expected_to_pass is None:
+    if expected_to_agree is None:
         if is_hidden_per_element:
-            expected_to_pass = False  # placeholder; status overrides via not_comparable
+            expected_to_agree = False  # placeholder; status overrides via not_comparable
         else:
-            expected_to_pass = True
+            expected_to_agree = True
 
     return ComparisonResult(
-        passed=passed,
-        expected_to_pass=expected_to_pass,
+        agreed=agreed,
+        expected_to_agree=expected_to_agree,
         factor=factor,
         contracted=contraction is not None,
         max_absolute_residual=max_abs,

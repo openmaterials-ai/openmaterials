@@ -7,6 +7,9 @@ shengbte/
 lammps/
 q-e/
 PhysLean/
+gepa/
+autoresearch/
+rlm/
 
 # python
 __pycache__/
@@ -32,6 +35,13 @@ docs/*.synctex.gz
 
 # run outputs (large, regenerable, per-execution)
 runs/
+
+# shengbte run artifacts inside experiments/ — regenerable from convert.py + ShengBTE
+experiments/silicon_shengbte/BTE.*
+experiments/silicon_shengbte/T*K/
+experiments/silicon_shengbte/FORCE_CONSTANTS_*
+experiments/silicon_shengbte/kaldo_fc3_dump/
+experiments/shengbte_inas_smoke/
 
 # experiment scratch (generated displaced supercells, force files, etc.)
 experiments/*/scratch/

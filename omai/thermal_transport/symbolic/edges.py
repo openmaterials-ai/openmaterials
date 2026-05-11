@@ -21,13 +21,18 @@ from omai.thermal_transport.symbolic.nodes import (
     FREQUENCY_STATE,
     GROUP_VELOCITY,
     HEAT_CAPACITY,
+    GRUNEISEN,
     LINEWIDTH,
     MEAN_FREE_DISPLACEMENT_DIRECT,
     MEAN_FREE_DISPLACEMENT_RTA,
+    MOLAR_HEAT_CAPACITY,
+    PHASE_SPACE_3PH,
+    PHONON_DOS,
     POTENTIAL,
     TEMPERATURE_STATE,
     THERMAL_CONDUCTIVITY_DIRECT,
     THERMAL_CONDUCTIVITY_RTA,
+    VOLUMETRIC_HEAT_CAPACITY,
 )
 
 
@@ -155,10 +160,49 @@ _BTE_RTA_FORMULA = sp.Eq(
     _v[_alpha, _q, _nu] / (2 * _Gamma[_q, _nu]),
 )
 
-# LBTE / direct-inverse implicit equation: Σ_{q'ν'} M_{qν, q'ν'} F^α_{q'ν'} = c_{qν} v^α_{qν}
-# M is the full collision matrix; the off-diagonals capture inter-mode redistribution
-# that RTA drops. Solving M·F = c·v preserves κ's gauge invariance.
-_BTE_DIRECT_FORMULA = sp.Eq(
+# LBTE / direct-inverse: Σ_{q'ν'} M_{qν,q'ν'} F^α_{q'ν'} = c_{qν} v^α_{qν}
+#
+# The collision matrix M is built from the same three-phonon |V₃|² used in
+# compute_linewidth, but with the second mode index (q'ν') held free
+# rather than summed. Explicit form:
+#
+#   M_{qν, q'ν'} = (2 Γ_{qν} / ℏ) δ_{qν,q'ν'}  −  Ξ_{qν, q'ν'}
+#
+# The diagonal term is the RTA scattering rate (2Γ/ℏ with our canonical
+# Γ = Im Σ; the factor 2 comes from the linewidth-vs-scattering-rate
+# relation 1/τ = 2Γ in angular-frequency units). The off-diagonal term Ξ
+# is the "scattering-in" matrix: the same |V₃|² × occupation × energy-δ
+# expression as in Γ_qν, but with q' held free instead of summed.
+# Momentum conservation fixes q'' = q − q' (decay channel) or q'' = q + q'
+# (absorption channel, modulo a reciprocal-lattice vector). Coefficients
+# in front of (1 + n + n) and (n − n) match the standard linearized form
+# (Omini-Sparavigna 1995, Broido et al. 2007); they're scaled relative to
+# Γ_qν's prefactors by a factor of 2 because Ξ contributes through F^α_{q'ν'}
+# in the matrix equation rather than appearing inside the rate at q,ν.
+_om_p = _omega[_qp, _nu_p]
+_om_pp_decay = _omega[_q - _qp, _nu_pp]
+_om_pp_absorption = _omega[_q - _qp, _nu_pp]  # same q'' index under our sign convention
+_n_p_ratio = _n_BE(_om_p / _T)
+_n_pp_ratio = _n_BE(_om_pp_decay / _T)
+_V3_decay = _V3sq(_q, _nu, _qp, _nu_p, _q - _qp, _nu_pp)
+_V3_absorption = _V3sq(_q, _nu, _qp, _nu_p, _q - _qp, _nu_pp)
+_om = _omega[_q, _nu]
+
+_XI_qq = sp.pi / (_N_atoms * _hbar**2) * sp.Sum(
+    _V3_decay * 2 * (1 + _n_p_ratio + _n_pp_ratio)
+    * _delta(_om - _om_p - _om_pp_decay)
+    + _V3_absorption * 4 * (_n_p_ratio - _n_pp_ratio)
+    * _delta(_om + _om_p - _om_pp_absorption),
+    (_nu_pp, 1, _N_modes),
+)
+
+_M_DEFINITION = sp.Eq(
+    _M_collision[_q, _nu, _qp, _nu_p],
+    (2 * _Gamma[_q, _nu] / _hbar) * sp.KroneckerDelta(_q, _qp) * sp.KroneckerDelta(_nu, _nu_p)
+    - _XI_qq,
+)
+
+_BTE_DIRECT_FORMULA_SYSTEM = sp.Eq(
     sp.Sum(
         _M_collision[_q, _nu, _qp, _nu_p] * _F[_alpha, _qp, _nu_p],
         (_qp, 1, _N_q),
@@ -166,6 +210,14 @@ _BTE_DIRECT_FORMULA = sp.Eq(
     ),
     _c[_q, _nu] * _v[_alpha, _q, _nu],
 )
+
+# The Operation's formula carries the linear-system equation. The full
+# definition of M is available as `_M_DEFINITION` for any consumer that
+# wants to render or symbolically substitute it. Together they fully pin
+# down the linearized BTE — modulo the BZ-summation strategy for the
+# inner Σ_{ν''} and the outer Σ_{q'}, which remains an honest
+# discretization choice (declared on per-code OperationAdapterSpecs).
+_BTE_DIRECT_FORMULA = _BTE_DIRECT_FORMULA_SYSTEM
 
 # κ^{αβ} = (1 / V_cell N_q) Σ_{q,ν} c_{q,ν} v^α_{q,ν} F^β_{q,ν}
 _KAPPA_FORMULA = sp.Eq(
@@ -204,16 +256,33 @@ compute_force_constants_2 = Operation(
     name="compute_force_constants[order=2]",
     inputs=(POTENTIAL,),
     outputs=(FORCE_CONSTANTS_2,),
+    algorithmic_conventions={"symmetry_group": "C1"},
     formula=_FC2_FORMULA,
-    description="Second derivative of the potential at equilibrium, after harmonic truncation.",
+    description=(
+        "Second derivative of the potential at equilibrium, after harmonic "
+        "truncation. The space-group symmetry G of the crystal acts on the "
+        "Cartesian indices and lattice vectors, Φ²_{ij}(R) = "
+        "R(g)_{ii'} R(g)_{jj'} Φ²_{i'j'}(g·R); declaring symmetry_group=G "
+        "asserts that the computed tensor is averaged over G, equivalent to "
+        "evaluating only on the irreducible set of displacements. "
+        "symmetry_group=C1 means no reduction (independent calculation on "
+        "every Cartesian displacement)."
+    ),
 )
 
 compute_force_constants_3 = Operation(
     name="compute_force_constants[order=3]",
     inputs=(POTENTIAL,),
     outputs=(FORCE_CONSTANTS_3,),
+    algorithmic_conventions={"symmetry_group": "C1"},
     formula=_FC3_FORMULA,
-    description="Third derivative of the potential at equilibrium, after cubic truncation.",
+    description=(
+        "Third derivative of the potential at equilibrium, after cubic "
+        "truncation. Space-group symmetry G enters analogously to the "
+        "harmonic case, now reducing the set of inequivalent atomic "
+        "triplets (i,j,k; R,R'). symmetry_group=C1 means the full "
+        "non-symmetry-reduced triplet set is sampled."
+    ),
 )
 
 compute_dynamical_matrix = Operation(
@@ -256,14 +325,21 @@ compute_linewidth = Operation(
     inputs=(FREQUENCY_STATE, EIGENVECTORS, FORCE_CONSTANTS_3, TEMPERATURE_STATE),
     outputs=(LINEWIDTH,),
     parameters=(Parameter("broadening_sigma", FREQUENCY),),
-    algorithmic_conventions={"broadening_param": "stdev"},
+    algorithmic_conventions={
+        "broadening_param": "stdev",
+        "symmetry_group": "C1",
+    },
     formula=_LW_FORMULA,
     description=(
         "Imaginary self-energy from three-phonon scattering (Fermi's golden "
         "rule). Energy delta is replaced by a Gaussian of canonical width "
         "σ = stdev. n_BE(ω/T) = (e^{ℏω/k_B T} - 1)^{-1}. q'' is fixed by "
         "crystal momentum conservation: q'' = q - q' (mod a reciprocal "
-        "lattice vector)."
+        "lattice vector). Under crystal symmetry G ⊂ O(3), the BZ sum "
+        "Σ_{q'} can be restricted to the irreducible wedge BZ/G with "
+        "multiplicity weights |G·q'|; symmetry_group=G asserts this "
+        "reduction. symmetry_group=C1 means the full ordered grid is "
+        "summed."
     ),
 )
 
@@ -284,12 +360,26 @@ solve_bte_direct = Operation(
     name="solve_bte[bte_solver=direct_inverse]",
     inputs=(FREQUENCY_STATE, GROUP_VELOCITY, LINEWIDTH, TEMPERATURE_STATE),
     outputs=(MEAN_FREE_DISPLACEMENT_DIRECT,),
-    algorithmic_conventions={"bte_solver": "direct_inverse"},
+    algorithmic_conventions={
+        "bte_solver": "direct_inverse",
+        "symmetry_group": "C1",
+    },
     formula=_BTE_DIRECT_FORMULA,
+    auxiliary_formulas=(_M_DEFINITION,),
     description=(
-        "Full linearized BTE: solve M·F = c·v for F, where M is the full "
-        "collision matrix. The off-diagonals capture inter-mode "
-        "redistribution; κ obtained from this F is gauge-invariant."
+        "Full linearized BTE: solve M·F = c·v for F, where M is the "
+        "linearized three-phonon collision matrix. M has a diagonal (RTA) "
+        "part 2Γ/ℏ and off-diagonal scattering-in terms Ξ built from the "
+        "same |V₃|² as compute_linewidth (see auxiliary_formulas[0] for "
+        "the explicit definition). Off-diagonals capture inter-mode "
+        "redistribution that RTA drops; κ obtained from this F is "
+        "gauge-invariant. Under crystal symmetry G the matrix M "
+        "block-diagonalizes on the irreducible q-set BZ/G, so the linear "
+        "system can be solved on the reduced space and unfolded by G; "
+        "symmetry_group=G asserts this. symmetry_group=C1 means M is "
+        "inverted on the full grid. At finite q-grid, the BZ-summation "
+        "strategy (full vs irreducible) leaks into κ; convergence study "
+        "in supercell+q-mesh is the resolution."
     ),
 )
 
@@ -313,6 +403,135 @@ contract_kappa_direct = Operation(
 )
 
 
+# C_V_vol(T) = (1/V_cell N_q) Σ_qν c_qν(T)
+_C_V_vol = sp.Symbol(r"C_V^{vol}")
+_C_V_mol = sp.Symbol(r"C_V^{mol}")
+_N_A = sp.Symbol("N_A", positive=True)
+
+_CV_VOL_FORMULA = sp.Eq(
+    _C_V_vol,
+    sp.Sum(_c[_q, _nu], (_q, 1, _N_q), (_nu, 1, _N_modes)) / (_V_cell * _N_q),
+)
+
+# C_V_mol(T) = (N_A / N_q) Σ_qν c_qν(T)  (per mole of primitive cells)
+_CV_MOL_FORMULA = sp.Eq(
+    _C_V_mol,
+    _N_A * sp.Sum(_c[_q, _nu], (_q, 1, _N_q), (_nu, 1, _N_modes)) / _N_q,
+)
+
+
+contract_volumetric_heat_capacity = Operation(
+    name="contract_volumetric_heat_capacity",
+    inputs=(HEAT_CAPACITY,),
+    outputs=(VOLUMETRIC_HEAT_CAPACITY,),
+    formula=_CV_VOL_FORMULA,
+    description=(
+        "BZ-and-mode sum of the per-mode heat capacity, divided by cell "
+        "volume. Gauge-invariant (no Linewidth or eigenvector input). "
+        "ShengBTE emits this directly; kaldo/phono3py reach it by "
+        "contracting their per-mode arrays."
+    ),
+)
+
+
+contract_molar_heat_capacity = Operation(
+    name="contract_molar_heat_capacity",
+    inputs=(HEAT_CAPACITY,),
+    outputs=(MOLAR_HEAT_CAPACITY,),
+    formula=_CV_MOL_FORMULA,
+    description=(
+        "BZ-and-mode sum of the per-mode heat capacity, multiplied by "
+        "Avogadro's number and divided by N_q (so the result is C_V per "
+        "mole of primitive unit cells). Phonopy emits this in its "
+        "harmonic thermal_properties output (J/K/mol)."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Additional derived observables: density of states, Grüneisen, phase space.
+# ---------------------------------------------------------------------------
+
+
+_omega_bin = sp.Symbol(r"\omega")
+_g_DOS = sp.Symbol("g")
+_gammaG = sp.IndexedBase(r"\gamma_G")
+_P3_state = sp.IndexedBase(r"P_3")
+
+# g(ω) = (1/N_q) Σ_qν δ(ω − ω_qν)
+_DOS_FORMULA = sp.Eq(
+    _g_DOS,
+    sp.Sum(
+        _delta(_omega_bin - _omega[_q, _nu]),
+        (_q, 1, _N_q),
+        (_nu, 1, _N_modes),
+    ) / _N_q,
+)
+
+# γ_qν = −(1 / (6 ω_qν² M)) Σ_{ij,Δ} Φ³_{ijk,R,R'} · r_k^Δ · e*_iqν e_jqν
+# (Maradudin-Fein, schematic): not fully expanded — references the
+# standard derivative of ω wrt volume.
+_GRUNEISEN_FORMULA = sp.Eq(
+    _gammaG[_q, _nu],
+    -sp.Sum(_Phi3[_i, _j, _k, _R, _Rp], (_i, 1, _N_modes), (_j, 1, _N_modes)) /
+    (6 * _omega[_q, _nu] ** 2),
+)
+
+# P3_qν = (1/N) Σ_{q'ν'ν''} [δ(ω − ω' − ω'') + 2 δ(ω + ω' − ω'')]
+_P3_FORMULA = sp.Eq(
+    _P3_state[_q, _nu],
+    sp.Sum(
+        _delta(_omega[_q, _nu] - _omega[_qp, _nu_p] - _omega[_q - _qp, _nu_pp])
+        + 2 * _delta(_omega[_q, _nu] + _omega[_qp, _nu_p] - _omega[_q - _qp, _nu_pp]),
+        (_qp, 1, _N_q),
+        (_nu_p, 1, _N_modes),
+        (_nu_pp, 1, _N_modes),
+    ) / _N_q,
+)
+
+
+compute_dos = Operation(
+    name="compute_dos",
+    inputs=(FREQUENCY_STATE,),
+    outputs=(PHONON_DOS,),
+    formula=_DOS_FORMULA,
+    description=(
+        "Histogram / smeared sum of phonon frequencies into a 1-D density "
+        "of states. The δ is usually replaced by a Gaussian or tetrahedron "
+        "weight at finite q-mesh. Independent of eigenvectors → "
+        "gauge-invariant."
+    ),
+)
+
+
+compute_gruneisen = Operation(
+    name="compute_gruneisen",
+    inputs=(FORCE_CONSTANTS_2, FORCE_CONSTANTS_3, FREQUENCY_STATE, EIGENVECTORS),
+    outputs=(GRUNEISEN,),
+    formula=_GRUNEISEN_FORMULA,
+    description=(
+        "Mode Grüneisen parameter from FC2, FC3 and the harmonic eigensystem "
+        "(Maradudin-Fein expression). Encodes the volume derivative of "
+        "phonon frequencies. Gauge-invariant per mode because the answer "
+        "only depends on ω_qν, not on the eigenvector phase."
+    ),
+)
+
+
+compute_phase_space_3phonon = Operation(
+    name="compute_phase_space_3phonon",
+    inputs=(FREQUENCY_STATE,),
+    outputs=(PHASE_SPACE_3PH,),
+    formula=_P3_FORMULA,
+    description=(
+        "Three-phonon kinematic phase space: counts the (q',ν',ν'') channels "
+        "satisfying energy + crystal-momentum conservation for the given "
+        "(q, ν). |V₃|² is not included — this is purely a measure of "
+        "scattering availability."
+    ),
+)
+
+
 EDGES: tuple[Operation, ...] = (
     provide_potential,
     provide_temperature,
@@ -327,4 +546,9 @@ EDGES: tuple[Operation, ...] = (
     solve_bte_direct,
     contract_kappa_rta,
     contract_kappa_direct,
+    contract_volumetric_heat_capacity,
+    contract_molar_heat_capacity,
+    compute_dos,
+    compute_gruneisen,
+    compute_phase_space_3phonon,
 )

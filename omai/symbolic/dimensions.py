@@ -24,6 +24,8 @@ ENERGY = Dimension("energy")
 LENGTH = Dimension("length")
 TEMPERATURE = Dimension("temperature")
 ENERGY_PER_TEMPERATURE = Dimension("energy_per_temperature")
+ENERGY_PER_TEMPERATURE_PER_VOLUME = Dimension("energy_per_temperature_per_volume")
+ENERGY_PER_TEMPERATURE_PER_MOLE = Dimension("energy_per_temperature_per_mole")
 LENGTH_TIMES_FREQUENCY = Dimension("length_times_frequency")
 ENERGY_PER_LENGTH_SQUARED = Dimension("energy_per_length_squared")
 ENERGY_PER_LENGTH_CUBED = Dimension("energy_per_length_cubed")
@@ -40,6 +42,8 @@ DIMENSIONS: dict[str, Dimension] = {
         LENGTH,
         TEMPERATURE,
         ENERGY_PER_TEMPERATURE,
+        ENERGY_PER_TEMPERATURE_PER_VOLUME,
+        ENERGY_PER_TEMPERATURE_PER_MOLE,
         LENGTH_TIMES_FREQUENCY,
         ENERGY_PER_LENGTH_SQUARED,
         ENERGY_PER_LENGTH_CUBED,

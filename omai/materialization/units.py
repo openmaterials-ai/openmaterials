@@ -18,6 +18,8 @@ from dataclasses import dataclass
 from omai.symbolic.dimensions import (
     Dimension,
     ENERGY_PER_TEMPERATURE,
+    ENERGY_PER_TEMPERATURE_PER_MOLE,
+    ENERGY_PER_TEMPERATURE_PER_VOLUME,
     FREQUENCY,
     LENGTH_TIMES_FREQUENCY,
     THERMAL_CONDUCTIVITY,
@@ -44,8 +46,18 @@ J_PER_K = Unit("J_per_K", ENERGY_PER_TEMPERATURE, 1.0)
 EV_PER_K = Unit("eV_per_K", ENERGY_PER_TEMPERATURE, _E)
 
 
+# Canonical volumetric heat capacity: J/(m³·K). ShengBTE's BTE.cv.
+J_PER_M3_PER_K = Unit("J_per_m3_per_K", ENERGY_PER_TEMPERATURE_PER_VOLUME, 1.0)
+
+
+# Canonical molar heat capacity: J/(K·mol). Phonopy's thermal-properties output.
+J_PER_K_PER_MOL = Unit("J_per_K_per_mol", ENERGY_PER_TEMPERATURE_PER_MOLE, 1.0)
+
+
 # Canonical group-velocity unit: Å × linear_THz (= Å/ps).
 ANGSTROM_LINEAR_THZ = Unit("angstrom_linear_THz", LENGTH_TIMES_FREQUENCY, 1.0)
+# km/s = nm × THz = 10 × Å × linear_THz. ShengBTE emits group velocities in km/s.
+KM_PER_S = Unit("km_per_s", LENGTH_TIMES_FREQUENCY, 10.0)
 
 
 # Canonical thermal-conductivity unit: W/(m·K).
@@ -59,7 +71,10 @@ UNITS: dict[str, Unit] = {
         ANGULAR_THZ,
         J_PER_K,
         EV_PER_K,
+        J_PER_M3_PER_K,
+        J_PER_K_PER_MOL,
         ANGSTROM_LINEAR_THZ,
+        KM_PER_S,
         W_PER_M_PER_K,
     ]
 }

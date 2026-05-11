@@ -1,18 +1,20 @@
 """Symbolic nodes of the lattice thermal-transport DAG.
 
-Fourteen nodes, split into Observables (gauge-invariant, cross-code-comparable)
+Sixteen nodes, split into Observables (gauge-invariant, cross-code-comparable)
 and HiddenStates (adapter-internal scaffolding, not cross-code-comparable
 per-element). MeanFreeDisplacement and ThermalConductivity are parameterized
 by the upstream `bte_solver` choice: the RTA variants are HiddenStates (the
 approximation breaks gauge invariance), the direct-inverse / iterative
 variants are Observables (the full LBTE solution preserves it).
 
-  Observables (9):
+  Observables (11):
     Potential, Temperature       — sources, scalar / opaque
     ForceConstants[order=2/3]    — real-space tensors, well-defined
     DynamicalMatrix              — Bloch sum, well-defined in standard basis
     Frequency                    — eigenvalues, basis-invariant
-    HeatCapacity                 — function of ω and T, well-defined
+    HeatCapacity                 — per-mode c_qν(T), function of ω and T
+    VolumetricHeatCapacity       — Σ_qν c_qν / (V_cell N_q), J/(m³K)
+    MolarHeatCapacity            — N_A Σ_qν c_qν / N_q, J/(K·mol_of_cells)
     MeanFreeDisplacement[direct] — full LBTE solution; gauge-invariant
     ThermalConductivity[direct]  — contracted tensor; gauge-invariant
 
@@ -31,6 +33,8 @@ from omai.symbolic.dimensions import (
     ENERGY_PER_LENGTH_CUBED,
     ENERGY_PER_LENGTH_SQUARED,
     ENERGY_PER_TEMPERATURE,
+    ENERGY_PER_TEMPERATURE_PER_MOLE,
+    ENERGY_PER_TEMPERATURE_PER_VOLUME,
     FREQUENCY,
     LENGTH,
     LENGTH_TIMES_FREQUENCY,
@@ -94,6 +98,30 @@ HEAT_CAPACITY = Observable(
     physics_type=PhysicsType.HEAT_CAPACITY,
     name="HeatCapacity",
     fields=(Field("c", ENERGY_PER_TEMPERATURE, indices=("q", "nu")),),
+)
+
+VOLUMETRIC_HEAT_CAPACITY = Observable(
+    physics_type=PhysicsType.VOLUMETRIC_HEAT_CAPACITY,
+    name="VolumetricHeatCapacity",
+    fields=(Field("C_V_vol", ENERGY_PER_TEMPERATURE_PER_VOLUME, indices=()),),
+    description=(
+        "Total heat capacity per unit volume at temperature T, "
+        "C_V/V = (1/V_cell N_q) Σ_qν c_qν(T). Scalar in (q, ν); a function "
+        "of T only. ShengBTE emits this directly as BTE.cv; codes that "
+        "emit per-mode HeatCapacity reach it via the contraction edge."
+    ),
+)
+
+MOLAR_HEAT_CAPACITY = Observable(
+    physics_type=PhysicsType.MOLAR_HEAT_CAPACITY,
+    name="MolarHeatCapacity",
+    fields=(Field("C_V_mol", ENERGY_PER_TEMPERATURE_PER_MOLE, indices=()),),
+    description=(
+        "Heat capacity per mole of primitive unit cells at temperature T, "
+        "C_V_mol = (N_A / N_q) Σ_qν c_qν(T). Phonopy emits this as part "
+        "of its harmonic thermal_properties output (J/K/mol). Codes that "
+        "emit per-mode HeatCapacity reach it via the contraction edge."
+    ),
 )
 
 THERMAL_CONDUCTIVITY_DIRECT = Observable(
@@ -174,6 +202,39 @@ LINEWIDTH = HiddenState(
     ),
 )
 
+PHONON_DOS = Observable(
+    physics_type=PhysicsType.PHONON_DOS,
+    name="PhononDOS",
+    fields=(Field("g", FREQUENCY, indices=("omega",)),),
+    description=(
+        "Density of states g(ω) = (1/N_q) Σ_qν δ(ω − ω_qν). A 1-D array "
+        "binned in ω. Gauge-invariant: ω_qν are basis-independent and the "
+        "sum over (q, ν) is uniformly weighted."
+    ),
+)
+
+GRUNEISEN = Observable(
+    physics_type=PhysicsType.GRUNEISEN,
+    name="Gruneisen",
+    fields=(Field("gamma_G", DIMENSIONLESS, indices=("q", "nu")),),
+    description=(
+        "Mode Grüneisen parameter γ_qν = −(V/ω_qν) ∂ω_qν/∂V. Quantifies "
+        "anharmonicity-driven volume dependence; computed from FC2 and FC3 "
+        "via the standard Maradudin-Fein expression. Dimensionless."
+    ),
+)
+
+PHASE_SPACE_3PH = Observable(
+    physics_type=PhysicsType.PHASE_SPACE_3PH,
+    name="PhaseSpace3Phonon",
+    fields=(Field("P3", DIMENSIONLESS, indices=("q", "nu")),),
+    description=(
+        "Three-phonon phase space P3_qν = (1/N) Σ_q'ν'ν'' [δ(ω−ω'−ω'') + "
+        "2 δ(ω+ω'−ω'')] available for scattering channels involving mode "
+        "(q, ν). Doesn't include |V₃|² — purely the kinematic volume."
+    ),
+)
+
 MEAN_FREE_DISPLACEMENT_RTA = HiddenState(
     physics_type=PhysicsType.MEAN_FREE_DISPLACEMENT,
     name="MeanFreeDisplacement[bte_solver=rta]",
@@ -218,7 +279,12 @@ NODES: tuple[State, ...] = (
     EIGENVECTORS,
     GROUP_VELOCITY,
     HEAT_CAPACITY,
+    VOLUMETRIC_HEAT_CAPACITY,
+    MOLAR_HEAT_CAPACITY,
     LINEWIDTH,
+    PHONON_DOS,
+    GRUNEISEN,
+    PHASE_SPACE_3PH,
     MEAN_FREE_DISPLACEMENT_RTA,
     MEAN_FREE_DISPLACEMENT_DIRECT,
     THERMAL_CONDUCTIVITY_RTA,

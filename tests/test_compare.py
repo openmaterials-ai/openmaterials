@@ -40,12 +40,12 @@ def test_materialize_coerces_data_to_ndarray():
 # --- compare: matching identity ---
 
 
-def test_compare_identical_data_passes():
+def test_compare_identical_data_agrees():
     arr = np.array([1.0, 2.0, 3.0])
     mk = materialize(PHONO3PY_LINEWIDTH, "Gamma", arr)
     mp = materialize(PHONO3PY_LINEWIDTH, "Gamma", arr)
     r = compare(mk, mp, rtol=1e-9)
-    assert r.passed
+    assert r.agreed
     assert r.factor == 1.0
     assert r.max_relative_residual == 0.0
 
@@ -53,7 +53,7 @@ def test_compare_identical_data_passes():
 def test_compare_status_not_comparable_for_hidden_state_per_element():
     """Linewidth is a HiddenState; per-element compare returns NOT_COMPARABLE.
     Residuals are computed for diagnostic inspection but the symbolic layer makes
-    no pass/fail verdict."""
+    no agree/disagree verdict."""
     a = np.array([1.0, 2.0, 3.0])
     b = np.array([1.1, 2.05, 2.85])
     ma = materialize(PHONO3PY_LINEWIDTH, "Gamma", a)
@@ -64,54 +64,54 @@ def test_compare_status_not_comparable_for_hidden_state_per_element():
     assert r.max_relative_residual > 0  # residual still computed
 
 
-def test_compare_status_expected_loose_for_intermediate_contraction():
-    """User-overridden expected_to_pass=False on a contracted HiddenState
-    comparison yields EXPECTED_LOOSE."""
+def test_compare_status_expected_disagree_for_intermediate_contraction():
+    """User-overridden expected_to_agree=False on a contracted HiddenState
+    comparison yields EXPECTED_DISAGREE."""
     a = np.array([1.0, 2.0, 3.0])
     b = np.array([0.5, 1.5, 3.5])  # same sum
     ma = materialize(PHONO3PY_LINEWIDTH, "Gamma", a)
     mb = materialize(PHONO3PY_LINEWIDTH, "Gamma", b)
-    # Identity contraction (not a real reduction) with expected_to_pass=False
-    r = compare(ma, mb, contraction=lambda x: x, rtol=1e-3, expected_to_pass=False)
-    assert not r.passed
-    assert r.expected_to_pass is False
-    assert r.status == "EXPECTED_LOOSE"
+    # Identity contraction (not a real reduction) with expected_to_agree=False
+    r = compare(ma, mb, contraction=lambda x: x, rtol=1e-3, expected_to_agree=False)
+    assert not r.agreed
+    assert r.expected_to_agree is False
+    assert r.status == "EXPECTED_DISAGREE"
 
 
-def test_compare_status_expected_pass_for_per_element_tight_observable():
-    """HeatCapacity declares per_element_tight=True; identical data should
-    yield EXPECTED_PASS."""
+def test_compare_status_expected_agree_for_per_element_tight_observable():
+    """HeatCapacity is an Observable (gauge-invariant); identical data should
+    yield EXPECTED_AGREE."""
     arr = np.array([1.0, 2.0, 3.0])
     ma = materialize(PHONO3PY_HEAT_CAPACITY, "c", arr)
     mb = materialize(PHONO3PY_HEAT_CAPACITY, "c", arr)
     r = compare(ma, mb, rtol=1e-9)
-    assert r.passed
-    assert r.expected_to_pass is True
-    assert r.status == "EXPECTED_PASS"
+    assert r.agreed
+    assert r.expected_to_agree is True
+    assert r.status == "EXPECTED_AGREE"
 
 
-def test_compare_status_unexpected_fail_for_tight_observable_that_disagrees():
-    """HeatCapacity declares per_element_tight=True; disagreeing data
-    should yield UNEXPECTED_FAIL — a real anomaly the symbolic layer flags."""
+def test_compare_status_unexpected_disagree_for_observable_that_disagrees():
+    """HeatCapacity is an Observable; disagreeing data should yield
+    UNEXPECTED_DISAGREE — a real anomaly the symbolic layer flags."""
     a = np.array([1.0, 2.0, 3.0])
     b = np.array([2.0, 4.0, 6.0])
     ma = materialize(PHONO3PY_HEAT_CAPACITY, "c", a)
     mb = materialize(PHONO3PY_HEAT_CAPACITY, "c", b)
     r = compare(ma, mb, rtol=1e-3)
-    assert not r.passed
-    assert r.expected_to_pass is True
-    assert r.status == "UNEXPECTED_FAIL"
+    assert not r.agreed
+    assert r.expected_to_agree is True
+    assert r.status == "UNEXPECTED_DISAGREE"
 
 
 def test_compare_status_override_via_kwarg():
-    """User can force expected_to_pass=False for intermediate contractions
-    (e.g., per-q Σ on a per-element-loose observable)."""
+    """User can force expected_to_agree=False for intermediate contractions
+    (e.g., per-q Σ on a HiddenState that's only partially gauge-invariant)."""
     a = np.array([1.0, 1.0])
     b = np.array([1.0, 2.0])
     ma = materialize(PHONO3PY_LINEWIDTH, "Gamma", a)
     mb = materialize(PHONO3PY_LINEWIDTH, "Gamma", b)
-    r = compare(ma, mb, contraction=np.sum, rtol=1e-3, expected_to_pass=False)
-    assert r.expected_to_pass is False
+    r = compare(ma, mb, contraction=np.sum, rtol=1e-3, expected_to_agree=False)
+    assert r.expected_to_agree is False
 
 
 # --- compare: factor application ---
@@ -124,7 +124,7 @@ def test_compare_applies_4pi_factor_for_kaldo_to_phono3py_linewidth():
     mp = materialize(PHONO3PY_LINEWIDTH, "Gamma", phono3py_data)
     mk = materialize(KALDO_LINEWIDTH, "Gamma", kaldo_data)
     r = compare(mk, mp, rtol=1e-9)
-    assert r.passed
+    assert r.agreed
     assert math.isclose(r.factor, 1.0 / (4 * math.pi), rel_tol=1e-9)
     assert r.max_relative_residual < 1e-9
 
@@ -139,7 +139,7 @@ def test_compare_applies_e_factor_for_heat_capacity():
     mk = materialize(KALDO_HEAT_CAPACITY, "c", kaldo_data)
     mp = materialize(PHONO3PY_HEAT_CAPACITY, "c", phono3py_data)
     r = compare(mk, mp, rtol=1e-9)
-    assert r.passed
+    assert r.agreed
 
 
 # --- compare: contraction ---
@@ -153,8 +153,8 @@ def test_compare_with_sum_contraction():
     mb = materialize(PHONO3PY_LINEWIDTH, "Gamma", b)
     per_mode = compare(ma, mb, rtol=1e-9)
     contracted = compare(ma, mb, contraction=np.sum, rtol=1e-9)
-    assert not per_mode.passed
-    assert contracted.passed
+    assert not per_mode.agreed
+    assert contracted.agreed
     assert contracted.contracted is True
 
 
@@ -194,7 +194,7 @@ def test_compare_handles_near_zero_with_atol():
     ma = materialize(PHONO3PY_LINEWIDTH, "Gamma", a)
     mb = materialize(PHONO3PY_LINEWIDTH, "Gamma", b)
     r = compare(ma, mb, rtol=1e-3, atol=1e-6)
-    assert r.passed
+    assert r.agreed
     # Relative residual computed only over entries above atol; the 1e-8 ones
     # are masked out, so max_rel reflects the 1.0 / 2.0 entries (= 0.0)
     assert r.max_relative_residual == 0.0

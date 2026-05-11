@@ -169,7 +169,7 @@ def main() -> None:
     per_mode = compare(mk, mp, rtol=0.01)
     # per-q is intermediate (still gauge-affected by BZ-summation choice)
     per_q = compare(
-        mk, mp, contraction=lambda x: np.sum(x, axis=-1), rtol=0.02, expected_to_pass=False
+        mk, mp, contraction=lambda x: np.sum(x, axis=-1), rtol=0.02, expected_to_agree=False
     )
     total = compare(mk, mp, contraction=np.sum, rtol=1e-2)
     print(f"  per-mode (HiddenState):                    {per_mode.summary()}")

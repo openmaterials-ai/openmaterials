@@ -1,27 +1,28 @@
 """Generate an interactive HTML visualization of the thermal-transport DAG.
 
-Walks the symbolic layer (omai.thermal_transport.symbolic) and the materialized
-adapter specs (omai.thermal_transport.materialized.{kaldo,phono3py}) and emits
-a single self-contained HTML file:
+Layout: four side-by-side per-pipeline DAGs (Symbolic | kaldo |
+phonopy/phono3py | shengbte), each rendered as circles + arrows in one
+unified SVG. Row alignment is preserved across pipelines (a given
+symbolic state sits at the same y in every column); horizontal x-spread
+inside each column is determined by the DAG layer index, so converging
+arrows are visually distinguishable.
 
-  * Mermaid-rendered DAG with Observables in blue and HiddenStates in gray
-  * adapter-coverage badges (K, P) on nodes that have a StateAdapterSpec
-  * click on a node → details panel (fields, indices, conventions, adapter
-    specs, cross-code factor)
-  * click on an edge → details panel (sympy formula via MathJax, inputs,
-    outputs, parameters, algorithmic conventions, adapter discretization
-    choices where present)
+Adapter discovery is automatic: any top-level submodule of
+`omai.thermal_transport.materialized` that exposes module-level
+`StateAdapterSpec` / `OperationAdapterSpec` instances is picked up.
 
 Run:
     python -m omai.thermal_transport.visualize
-to write docs/dag.html. The output is a single HTML file (no build step
-needed at use time; loads Mermaid and MathJax from public CDNs).
+to write docs/dag.html (single self-contained file; no build step).
 """
 
 from __future__ import annotations
 
+import html as _html
+import importlib
+import itertools
 import json
-from dataclasses import asdict
+import pkgutil
 from pathlib import Path
 
 import sympy as sp
@@ -32,71 +33,115 @@ from omai.materialization.adapter import (
     StateAdapterSpec,
     cross_state_total_factor,
 )
-from omai.materialization.units import UNITS
-from omai.thermal_transport.materialized import kaldo as kaldo_specs
-from omai.thermal_transport.materialized import phono3py as phono3py_specs
+from omai.thermal_transport import materialized as materialized_pkg
 from omai.thermal_transport.symbolic import EDGES, NODES
 
 
+_PIPELINES = [
+    {
+        "id": "symbolic",
+        "label": "Symbolic",
+        "color": "#1F2937",
+        "adapters": [],
+        "is_symbolic": True,
+    },
+    {
+        "id": "kaldo",
+        "label": "kaldo",
+        "color": "#DC2626",
+        "adapters": ["kaldo"],
+        "is_symbolic": False,
+    },
+    {
+        "id": "phono3py",
+        "label": "phono3py",
+        "color": "#059669",            # emerald
+        "adapters": ["phono3py"],
+        "is_symbolic": False,
+    },
+    {
+        "id": "phonopy",
+        "label": "phonopy",
+        "color": "#0891B2",            # cyan-teal — adjacent to phono3py
+        "adapters": ["phonopy"],
+        "is_symbolic": False,
+    },
+    {
+        "id": "shengbte",
+        "label": "shengbte",
+        "color": "#7C3AED",
+        "adapters": ["shengbte"],
+        "is_symbolic": False,
+    },
+]
+
+
 # ---------------------------------------------------------------------------
-# Mermaid: short ids and DAG body
+# Layout constants
 # ---------------------------------------------------------------------------
 
-# Mermaid identifiers must be alphanumeric / underscore. Map state names to ids.
-def _mermaid_id(state: State) -> str:
-    return (
-        state.name
-        .replace("[", "_")
-        .replace("]", "")
-        .replace("=", "_")
-        .replace(" ", "")
+
+SYMBOLIC_COL_WIDTH = 520              # primary lane — extra-wide
+MAT_COL_WIDTH = 600                   # plenty of room for long API names + arrows
+COLUMN_GAP = 40
+LEFT_PAD = 32
+RIGHT_PAD = 24
+TOP_PAD = 64
+STAGE_HEADER_H = 38
+ROW_HEIGHT = 76                       # more vertical room → cleaner arrow curves
+
+# Materialized circle (smaller, secondary)
+MAT_NODE_RADIUS = 8
+MAT_CIRCLE_BAND_LEFT = 24
+MAT_CIRCLE_BAND_WIDTH = 90            # wider band → arrows fan out more
+MAT_LABEL_START = MAT_CIRCLE_BAND_LEFT + MAT_CIRCLE_BAND_WIDTH + 28
+
+# Symbolic circle (larger, primary)
+SYM_NODE_RADIUS = 12
+SYM_CIRCLE_BAND_LEFT = 28
+SYM_CIRCLE_BAND_WIDTH = 110           # generous spread for the primary DAG
+SYM_LABEL_START = SYM_CIRCLE_BAND_LEFT + SYM_CIRCLE_BAND_WIDTH + 34
+
+
+# ---------------------------------------------------------------------------
+# Adapter discovery
+# ---------------------------------------------------------------------------
+
+
+def _discover_adapter_modules() -> list[str]:
+    return sorted(
+        info.name
+        for info in pkgutil.iter_modules(materialized_pkg.__path__)
+        if not info.name.startswith("_")
     )
 
 
-def _short_label(state: State) -> str:
-    # Compact display label that fits inside a node box
-    name = state.name
-    if "[" in name:
-        head, params = name.split("[", 1)
-        return f"{head}<br/>[{params.rstrip(']')}]"
-    return name
-
-
-def _gauge_class(state: State) -> str:
-    return "observable" if isinstance(state, Observable) else "hidden"
-
-
 def _collect_specs() -> tuple[
-    dict[str, StateAdapterSpec],
-    dict[str, StateAdapterSpec],
-    dict[str, OperationAdapterSpec],
-    dict[str, OperationAdapterSpec],
+    dict[str, dict[str, StateAdapterSpec]],
+    dict[str, dict[str, OperationAdapterSpec]],
 ]:
-    """Index adapter specs by state/operation name."""
-    kaldo_state_specs: dict[str, StateAdapterSpec] = {}
-    phono3py_state_specs: dict[str, StateAdapterSpec] = {}
-    kaldo_op_specs: dict[str, OperationAdapterSpec] = {}
-    phono3py_op_specs: dict[str, OperationAdapterSpec] = {}
+    state_specs: dict[str, dict[str, StateAdapterSpec]] = {}
+    op_specs: dict[str, dict[str, OperationAdapterSpec]] = {}
 
-    for attr_name in dir(kaldo_specs):
-        if attr_name.startswith("_"):
-            continue
-        obj = getattr(kaldo_specs, attr_name)
-        if isinstance(obj, StateAdapterSpec):
-            kaldo_state_specs[obj.state.name] = obj
-        elif isinstance(obj, OperationAdapterSpec):
-            kaldo_op_specs[obj.operation.name] = obj
+    for mod_name in _discover_adapter_modules():
+        mod = importlib.import_module(
+            f"omai.thermal_transport.materialized.{mod_name}"
+        )
+        for attr in dir(mod):
+            if attr.startswith("_"):
+                continue
+            obj = getattr(mod, attr)
+            if isinstance(obj, StateAdapterSpec):
+                state_specs.setdefault(obj.adapter_name, {})[obj.state.name] = obj
+            elif isinstance(obj, OperationAdapterSpec):
+                op_specs.setdefault(obj.adapter_name, {})[obj.operation.name] = obj
 
-    for attr_name in dir(phono3py_specs):
-        if attr_name.startswith("_"):
-            continue
-        obj = getattr(phono3py_specs, attr_name)
-        if isinstance(obj, StateAdapterSpec):
-            phono3py_state_specs[obj.state.name] = obj
-        elif isinstance(obj, OperationAdapterSpec):
-            phono3py_op_specs[obj.operation.name] = obj
+    return state_specs, op_specs
 
-    return kaldo_state_specs, phono3py_state_specs, kaldo_op_specs, phono3py_op_specs
+
+# ---------------------------------------------------------------------------
+# Layout: compute (x_within_column, y) per (state, column) and layer info
+# ---------------------------------------------------------------------------
 
 
 _LAYER_LABELS = {
@@ -111,7 +156,6 @@ _LAYER_LABELS = {
 
 
 def _compute_layers() -> dict[str, int]:
-    """Topological layer of each node: layer = 1 + max(input_layer)."""
     producer: dict[str, object] = {}
     for op in EDGES:
         for out in op.outputs:
@@ -135,92 +179,547 @@ def _compute_layers() -> dict[str, int]:
     return cache
 
 
-def _mermaid_diagram(
-    kaldo_states: dict[str, StateAdapterSpec],
-    phono3py_states: dict[str, StateAdapterSpec],
-) -> str:
-    layers = _compute_layers()
+def _split_symbolic_name(name: str) -> tuple[str, str | None]:
+    """Split 'ForceConstants[order=2]' into ('ForceConstants', '[order=2]').
+    Non-parameterized names return (name, None)."""
+    if "[" in name:
+        head, rest = name.split("[", 1)
+        return head, "[" + rest
+    return name, None
+
+
+def _band_x(band_left: float, band_width: float,
+            i: int, N: int) -> float:
+    """Place state index i out of N in a horizontal band."""
+    if N == 1:
+        return band_left + band_width / 2
+    return band_left + band_width * i / (N - 1)
+
+
+def _compute_layout(layers: dict[str, int]) -> dict:
     by_layer: dict[int, list[State]] = {}
-    for state in NODES:
-        by_layer.setdefault(layers[state.name], []).append(state)
+    for s in NODES:
+        by_layer.setdefault(layers[s.name], []).append(s)
 
-    lines = ["flowchart TD"]
+    # Y per state
+    state_y: dict[str, float] = {}
+    cursor = TOP_PAD
+    for L in sorted(by_layer):
+        cursor += STAGE_HEADER_H
+        for s in by_layer[L]:
+            state_y[s.name] = cursor + ROW_HEIGHT / 2
+            cursor += ROW_HEIGHT
+        cursor += 6
+    total_height = cursor + 24
 
-    for layer_idx in sorted(by_layer):
-        label = _LAYER_LABELS.get(layer_idx, f"Layer {layer_idx}")
-        lines.append(f'  subgraph L{layer_idx}["{label}"]')
-        lines.append("    direction LR")
-        for state in by_layer[layer_idx]:
-            nid = _mermaid_id(state)
-            short = _short_label(state)
-            badges = []
-            if state.name in kaldo_states:
-                badges.append("K")
-            if state.name in phono3py_states:
-                badges.append("P")
-            badge = f" [{'/'.join(badges)}]" if badges else ""
-            cls = _gauge_class(state)
-            lines.append(f'    {nid}["{short}{badge}"]:::{cls}')
-        lines.append("  end")
+    # Stage header y
+    stage_header_y: dict[int, float] = {}
+    cursor = TOP_PAD
+    for L in sorted(by_layer):
+        stage_header_y[L] = cursor + STAGE_HEADER_H / 2
+        cursor += STAGE_HEADER_H + len(by_layer[L]) * ROW_HEIGHT + 6
 
-    for op in EDGES:
-        for inp in op.inputs:
-            for out in op.outputs:
-                from_id = _mermaid_id(inp)
-                to_id = _mermaid_id(out)
-                op_label = op.name.split("[")[0]
-                lines.append(f"  {from_id} -->|{op_label}| {to_id}")
+    # Per-column geometry (variable widths)
+    column_left: dict[int, float] = {}
+    column_width: dict[int, float] = {}
+    cursor_x = LEFT_PAD
+    for c, p in enumerate(_PIPELINES):
+        w = SYMBOLIC_COL_WIDTH if p["is_symbolic"] else MAT_COL_WIDTH
+        column_left[c] = cursor_x
+        column_width[c] = w
+        cursor_x += w + COLUMN_GAP
+    total_width = cursor_x - COLUMN_GAP + RIGHT_PAD
 
-    lines.append("")
-    lines.append("  classDef observable fill:#3f7fc1,stroke:#2c5d8f,color:#fff,stroke-width:1px")
-    lines.append("  classDef hidden fill:#888,stroke:#666,color:#fff,stroke-width:1px")
-    return "\n".join(lines)
+    # Materialized circles: layer-spread within band
+    circle_x_within_mat: dict[str, float] = {}
+    for L, states in by_layer.items():
+        for i, s in enumerate(states):
+            circle_x_within_mat[s.name] = _band_x(
+                MAT_CIRCLE_BAND_LEFT, MAT_CIRCLE_BAND_WIDTH, i, len(states)
+            )
+
+    # Symbolic circles: same pattern (larger band)
+    circle_x_within_sym: dict[str, float] = {}
+    for L, states in by_layer.items():
+        for i, s in enumerate(states):
+            circle_x_within_sym[s.name] = _band_x(
+                SYM_CIRCLE_BAND_LEFT, SYM_CIRCLE_BAND_WIDTH, i, len(states)
+            )
+
+    return {
+        "state_y": state_y,
+        "stage_header_y": stage_header_y,
+        "column_left": column_left,
+        "column_width": column_width,
+        "circle_x_within_mat": circle_x_within_mat,
+        "circle_x_within_sym": circle_x_within_sym,
+        "total_width": total_width,
+        "total_height": total_height,
+        "by_layer": by_layer,
+        "layers": layers,
+    }
 
 
 # ---------------------------------------------------------------------------
-# JSON data: node and edge details
+# Per-pipeline node label + coverage
 # ---------------------------------------------------------------------------
+
+
+def _pipeline_covers(pipeline: dict, state_name: str,
+                     state_specs: dict[str, dict[str, StateAdapterSpec]]) -> bool:
+    if pipeline["is_symbolic"]:
+        return True
+    return any(state_name in state_specs.get(a, {}) for a in pipeline["adapters"])
+
+
+def _pipeline_label(pipeline: dict, state: State,
+                    state_specs: dict[str, dict[str, StateAdapterSpec]]) -> str:
+    """Return the label text to render at this cell."""
+    if pipeline["is_symbolic"]:
+        return state.name
+    # Pick the first matching adapter's code_api (or adapter_name as fallback)
+    for adapter in pipeline["adapters"]:
+        spec = state_specs.get(adapter, {}).get(state.name)
+        if spec is None:
+            continue
+        if spec.code_api:
+            return next(iter(spec.code_api.values()))
+        return adapter
+    return ""   # not materialized — empty
+
+
+def _pipeline_secondary_label(pipeline: dict, state: State,
+                              state_specs: dict[str, dict[str, StateAdapterSpec]]) -> str:
+    """If multiple adapters in the pipeline cover this state, return the
+    second one's label as a small secondary line."""
+    if pipeline["is_symbolic"] or len(pipeline["adapters"]) <= 1:
+        return ""
+    matched = []
+    for adapter in pipeline["adapters"]:
+        spec = state_specs.get(adapter, {}).get(state.name)
+        if spec is None:
+            continue
+        if spec.code_api:
+            matched.append((adapter, next(iter(spec.code_api.values()))))
+        else:
+            matched.append((adapter, adapter))
+    if len(matched) < 2:
+        return ""
+    return f"{matched[1][0]} · {matched[1][1]}"
+
+
+def _pipeline_primary_adapter_tag(pipeline: dict, state: State,
+                                  state_specs: dict[str, dict[str, StateAdapterSpec]]) -> str:
+    """For multi-adapter columns, indicate which adapter the primary
+    label belongs to (so the reader can disambiguate)."""
+    if pipeline["is_symbolic"] or len(pipeline["adapters"]) <= 1:
+        return ""
+    for adapter in pipeline["adapters"]:
+        if state.name in state_specs.get(adapter, {}):
+            return adapter
+    return ""
+
+
+# ---------------------------------------------------------------------------
+# SVG generation
+# ---------------------------------------------------------------------------
+
+
+def _node_id(state: State) -> str:
+    return (
+        state.name
+        .replace("[", "_").replace("]", "")
+        .replace("=", "_").replace(" ", "")
+        .replace("/", "_")
+    )
+
+
+def _is_input_state(state: State, layers: dict[str, int]) -> bool:
+    """An 'input' state is a layer-0 source (Potential, Temperature) —
+    the DAG's external inputs."""
+    return layers.get(state.name, 0) == 0
+
+
+def _node_attach_points(state: State, c: int, layout: dict) -> tuple[float, float, float, float]:
+    """Return (top_x, top_y, bot_x, bot_y) for arrows attaching to the
+    state's node in column c. Same vertical span for circles and
+    squares — they share the same radius/half-side."""
+    cl = layout["column_left"][c]
+    y = layout["state_y"][state.name]
+    p = _PIPELINES[c]
+    if p["is_symbolic"]:
+        cx = cl + layout["circle_x_within_sym"][state.name]
+        r = SYM_NODE_RADIUS
+    else:
+        cx = cl + layout["circle_x_within_mat"][state.name]
+        r = MAT_NODE_RADIUS
+    return cx, y - r, cx, y + r
+
+
+def _build_svg(
+    layout: dict,
+    state_specs: dict[str, dict[str, StateAdapterSpec]],
+) -> str:
+    width = layout["total_width"]
+    height = layout["total_height"]
+    column_left = layout["column_left"]
+    column_width = layout["column_width"]
+    state_y = layout["state_y"]
+    by_layer = layout["by_layer"]
+    stage_header_y = layout["stage_header_y"]
+    circle_x_within_mat = layout["circle_x_within_mat"]
+
+    parts: list[str] = []
+    parts.append(
+        f'<svg xmlns="http://www.w3.org/2000/svg" '
+        f'width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}" '
+        f'font-family="-apple-system, BlinkMacSystemFont, Inter, \'Segoe UI\', system-ui, sans-serif">'
+    )
+
+    # ---------- defs: per-pipeline arrowheads ----------
+    parts.append('<defs>')
+    for p in _PIPELINES:
+        parts.append(
+            f'<marker id="arrow-{p["id"]}" viewBox="0 0 10 10" refX="9" refY="5" '
+            f'markerWidth="7" markerHeight="7" orient="auto-start-reverse">'
+            f'<path d="M0,1 L9,5 L0,9 z" fill="{p["color"]}" />'
+            f'</marker>'
+        )
+        parts.append(
+            f'<marker id="arrow-{p["id"]}-dim" viewBox="0 0 10 10" refX="9" refY="5" '
+            f'markerWidth="6" markerHeight="6" orient="auto-start-reverse">'
+            f'<path d="M0,1 L9,5 L0,9 z" fill="{p["color"]}" opacity="0.18" />'
+            f'</marker>'
+        )
+    parts.append('</defs>')
+
+    # ---------- background bands for alternating stages ----------
+    bg_band_color = "#F3F4F6"
+    for L_idx, L in enumerate(sorted(by_layer)):
+        if L_idx % 2 == 0:
+            continue
+        band_y_top = stage_header_y[L] - STAGE_HEADER_H / 2
+        band_height = STAGE_HEADER_H + len(by_layer[L]) * ROW_HEIGHT + 4
+        parts.append(
+            f'<rect x="0" y="{band_y_top}" width="{width}" height="{band_height}" '
+            f'fill="{bg_band_color}" opacity="0.55" />'
+        )
+
+    # ---------- subtle column-separator backgrounds for symbolic column ----------
+    # Give the symbolic column a faint tinted background to mark it as
+    # primary, since it's structurally different from the materialized
+    # columns.
+    sym_cl = column_left[0]
+    sym_cw = column_width[0]
+    parts.append(
+        f'<rect x="{sym_cl - 4}" y="{TOP_PAD - 36}" width="{sym_cw + 8}" '
+        f'height="{height - TOP_PAD + 30}" fill="#EFF6FF" opacity="0.45" rx="6" />'
+    )
+
+    # ---------- column header dots + labels ----------
+    for c, p in enumerate(_PIPELINES):
+        cl = column_left[c]
+        cw = column_width[c]
+        parts.append(
+            f'<rect x="{cl}" y="{TOP_PAD - 10}" width="{cw}" height="2.5" '
+            f'fill="{p["color"]}" />'
+        )
+        parts.append(
+            f'<circle cx="{cl + 10}" cy="{TOP_PAD - 26}" r="5.5" fill="{p["color"]}" />'
+        )
+        label_weight = "700" if p["is_symbolic"] else "600"
+        label_size = 14.5 if p["is_symbolic"] else 13.5
+        parts.append(
+            f'<text x="{cl + 23}" y="{TOP_PAD - 20}" font-size="{label_size}" '
+            f'font-weight="{label_weight}" fill="#111827">'
+            f'{_html.escape(p["label"])}</text>'
+        )
+
+    # ---------- stage-header labels (full-width text) ----------
+    for L in sorted(by_layer):
+        y = stage_header_y[L]
+        parts.append(
+            f'<line x1="0" y1="{y - 12}" x2="{width}" y2="{y - 12}" '
+            f'stroke="#D1D5DB" stroke-width="1" stroke-dasharray="3 4" />'
+        )
+        parts.append(
+            f'<text x="{LEFT_PAD}" y="{y + 4}" font-size="11" font-weight="600" '
+            f'fill="#9CA3AF" letter-spacing="0.08em">'
+            f'<tspan fill="#9CA3AF">STAGE {L}</tspan>  '
+            f'<tspan fill="#374151">{_html.escape(_LAYER_LABELS.get(L, ""))}</tspan>'
+            f'</text>'
+        )
+
+    # ---------- edges ----------
+    # Two visual classes:
+    #   * Active edge — both endpoints materialized via an adapter spec
+    #     in this pipeline. Solid, full opacity.
+    #   * Implicit edge — at least one endpoint lives inside the code but
+    #     is not exposed as an adapter spec (e.g., Temperature parameter
+    #     in kaldo, kaldo's internal DynamicalMatrix). The dependency
+    #     is real; the StateAdapterSpec just hasn't been written yet.
+    #     Dashed, dimmed-but-readable.
+    for c, p in enumerate(_PIPELINES):
+        for op in EDGES:
+            if not op.inputs:
+                continue
+            for inp in op.inputs:
+                for out in op.outputs:
+                    sx, _, _, sy = _node_attach_points(inp, c, layout)
+                    tx, ty, _, _ = _node_attach_points(out, c, layout)
+                    if ty <= sy:
+                        continue
+                    src_cov = _pipeline_covers(p, inp.name, state_specs)
+                    tgt_cov = _pipeline_covers(p, out.name, state_specs)
+                    active = src_cov and tgt_cov
+                    op_dy = max((ty - sy) * 0.45, 26)
+                    sy_p = sy + 2
+                    ty_p = ty - 4
+                    d = (
+                        f"M {sx} {sy_p} "
+                        f"C {sx} {sy + op_dy}, {tx} {ty - op_dy}, {tx} {ty_p}"
+                    )
+                    if active:
+                        parts.append(
+                            f'<path d="{d}" stroke="{p["color"]}" stroke-width="1.7" '
+                            f'fill="none" opacity="0.68" '
+                            f'marker-end="url(#arrow-{p["id"]})" '
+                            f'class="edge edge-{p["id"]}" data-op="{op.name}" />'
+                        )
+                    else:
+                        parts.append(
+                            f'<path d="{d}" stroke="{p["color"]}" stroke-width="1.3" '
+                            f'fill="none" opacity="0.42" stroke-dasharray="6 4" '
+                            f'marker-end="url(#arrow-{p["id"]})" '
+                            f'class="edge edge-{p["id"]} edge-implicit" data-op="{op.name}" />'
+                        )
+
+    # ---------- nodes per state per column ----------
+    layers_map = layout["layers"]
+    for c, p in enumerate(_PIPELINES):
+        cl = column_left[c]
+        cw = column_width[c]
+        is_sym = p["is_symbolic"]
+
+        for state in NODES:
+            y = state_y[state.name]
+            covered = _pipeline_covers(p, state.name, state_specs)
+            is_input = _is_input_state(state, layers_map)
+
+            parts.append(
+                f'<g class="node-row" '
+                f'data-state="{_html.escape(state.name)}" '
+                f'data-pipeline="{p["id"]}" '
+                f'style="cursor: pointer;">'
+            )
+            parts.append(
+                f'<rect x="{cl}" y="{y - ROW_HEIGHT / 2}" width="{cw}" '
+                f'height="{ROW_HEIGHT}" fill="transparent" />'
+            )
+
+            # ---- DAG node shape (square for inputs, circle otherwise) ----
+            if is_sym:
+                cx = cl + layout["circle_x_within_sym"][state.name]
+                r = SYM_NODE_RADIUS
+                is_obs = isinstance(state, Observable)
+                if is_obs:
+                    c_fill = "#3B82F6"
+                    c_stroke = "#1D4ED8"
+                    c_sw = 2
+                    c_dash = ""
+                else:
+                    c_fill = "#FFFFFF"
+                    c_stroke = "#64748B"
+                    c_sw = 2
+                    c_dash = ' stroke-dasharray="4 3"'
+                if is_input:
+                    side = r * 1.9
+                    parts.append(
+                        f'<rect x="{cx - side / 2}" y="{y - side / 2}" '
+                        f'width="{side}" height="{side}" rx="3" ry="3" '
+                        f'fill="{c_fill}" stroke="{c_stroke}" stroke-width="{c_sw}"{c_dash} '
+                        f'class="node-shape node-input node-shape-sym" />'
+                    )
+                else:
+                    parts.append(
+                        f'<circle cx="{cx}" cy="{y}" r="{r}" '
+                        f'fill="{c_fill}" stroke="{c_stroke}" stroke-width="{c_sw}"{c_dash} '
+                        f'class="node-shape node-circle node-circle-sym" />'
+                    )
+            else:
+                cx = cl + circle_x_within_mat[state.name]
+                r = MAT_NODE_RADIUS
+                if covered:
+                    c_fill = p["color"]
+                    c_stroke = p["color"]
+                    c_sw = 1.5
+                    c_dash = ""
+                else:
+                    c_fill = "#FFFFFF"
+                    c_stroke = p["color"]
+                    c_sw = 1.0
+                    c_dash = ' stroke-dasharray="3 2" opacity="0.55"'
+                if is_input:
+                    side = r * 2.0
+                    parts.append(
+                        f'<rect x="{cx - side / 2}" y="{y - side / 2}" '
+                        f'width="{side}" height="{side}" rx="2" ry="2" '
+                        f'fill="{c_fill}" stroke="{c_stroke}" stroke-width="{c_sw}"{c_dash} '
+                        f'class="node-shape node-input" />'
+                    )
+                else:
+                    parts.append(
+                        f'<circle cx="{cx}" cy="{y}" r="{r}" '
+                        f'fill="{c_fill}" stroke="{c_stroke}" stroke-width="{c_sw}"{c_dash} '
+                        f'class="node-shape node-circle" />'
+                    )
+
+            # ---- label (to the right of the circle) ----
+            if is_sym:
+                # Split parameterised names into two lines: head + bracketed-tail.
+                head, params = _split_symbolic_name(state.name)
+                label_x = cl + SYM_LABEL_START
+                is_obs = isinstance(state, Observable)
+                # Bigger, bolder font; sans-serif (this is the canonical state name).
+                if params is None:
+                    parts.append(
+                        f'<text x="{label_x}" y="{y + 6}" '
+                        f'font-size="17" font-weight="700" '
+                        f'fill="#0F172A">'
+                        f'{_html.escape(head)}</text>'
+                    )
+                else:
+                    parts.append(
+                        f'<text x="{label_x}" y="{y - 3}" '
+                        f'font-size="17" font-weight="700" '
+                        f'fill="#0F172A">'
+                        f'{_html.escape(head)}</text>'
+                    )
+                    parts.append(
+                        f'<text x="{label_x}" y="{y + 16}" '
+                        f'font-size="12.5" font-weight="500" '
+                        f'font-family="ui-monospace, \'SF Mono\', Monaco, monospace" '
+                        f'fill="#475569">'
+                        f'{_html.escape(params)}</text>'
+                    )
+                # Small "hidden" pill annotation for HiddenStates
+                if not isinstance(state, Observable):
+                    badge_text = "hidden"
+                    badge_x = label_x + max(len(head), len(params or "")) * 8.5 + 12
+                    bw = 6 + len(badge_text) * 6.3
+                    parts.append(
+                        f'<rect x="{badge_x}" y="{y - 8}" width="{bw}" height="13" '
+                        f'rx="3" ry="3" fill="#F1F5F9" stroke="#CBD5E1" />'
+                    )
+                    parts.append(
+                        f'<text x="{badge_x + bw / 2}" y="{y + 2}" '
+                        f'font-size="9" font-weight="600" fill="#64748B" '
+                        f'text-anchor="middle" letter-spacing="0.05em">'
+                        f'{_html.escape(badge_text.upper())}</text>'
+                    )
+            else:
+                label_x = cl + MAT_LABEL_START
+                primary = _pipeline_label(p, state, state_specs)
+                secondary = _pipeline_secondary_label(p, state, state_specs)
+                adapter_tag = _pipeline_primary_adapter_tag(p, state, state_specs)
+                text_color = "#111827" if covered else "#9CA3AF"
+
+                label_text_x = label_x
+                if adapter_tag:
+                    tag_w = 6 + len(adapter_tag) * 6.2
+                    parts.append(
+                        f'<rect x="{label_x}" y="{y - 8}" width="{tag_w}" height="14" '
+                        f'rx="3" ry="3" fill="#F3F4F6" stroke="#E5E7EB" />'
+                    )
+                    parts.append(
+                        f'<text x="{label_x + tag_w / 2}" y="{y + 2.5}" '
+                        f'font-size="9.5" fill="#6B7280" text-anchor="middle">'
+                        f'{_html.escape(adapter_tag)}</text>'
+                    )
+                    label_text_x = label_x + tag_w + 6
+
+                label_text = primary if primary else "—"
+                label_dy = -3 if secondary else 4.5
+                font_family = (
+                    "ui-monospace, 'SF Mono', Monaco, Consolas, monospace"
+                    if primary else
+                    "-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif"
+                )
+                parts.append(
+                    f'<text x="{label_text_x}" y="{y + label_dy}" '
+                    f'font-size="13.5" font-family="{font_family}" '
+                    f'fill="{text_color}">{_html.escape(label_text)}</text>'
+                )
+                if secondary:
+                    parts.append(
+                        f'<text x="{label_text_x}" y="{y + 13}" '
+                        f'font-size="11.5" '
+                        f'font-family="ui-monospace, \'SF Mono\', Monaco, monospace" '
+                        f'fill="#6B7280">{_html.escape(secondary)}</text>'
+                    )
+
+            parts.append('</g>')
+
+    parts.append('</svg>')
+    return "".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# JSON for the details panel (unchanged)
+# ---------------------------------------------------------------------------
+
+
+def _state_spec_to_dict(spec: StateAdapterSpec) -> dict:
+    return {
+        "adapter": spec.adapter_name,
+        "observable_units": dict(spec.observable_units),
+        "observable_convention_overrides": dict(spec.observable_convention_overrides),
+        "code_api": dict(spec.code_api),
+        "notes": spec.notes,
+    }
+
+
+def _op_spec_to_dict(spec: OperationAdapterSpec) -> dict:
+    return {
+        "adapter": spec.adapter_name,
+        "parameter_units": dict(spec.parameter_units),
+        "algorithmic_convention_overrides": dict(spec.algorithmic_convention_overrides),
+        "discretization_choices": dict(spec.discretization_choices),
+        "notes": spec.notes,
+    }
 
 
 def _state_to_json(
     state: State,
-    kaldo_states: dict[str, StateAdapterSpec],
-    phono3py_states: dict[str, StateAdapterSpec],
+    state_specs: dict[str, dict[str, StateAdapterSpec]],
+    adapter_order: list[str],
 ) -> dict:
     fields = [
-        {
-            "name": f.name,
-            "dimension": f.dimension.name,
-            "indices": list(f.indices),
-        }
+        {"name": f.name, "dimension": f.dimension.name, "indices": list(f.indices)}
         for f in state.fields
     ]
     convention_factors = [
         {"convention": c[0], "value": c[1], "field": c[2], "factor": c[3]}
         for c in state.convention_factors
     ]
-
-    def _spec_to_dict(spec: StateAdapterSpec | None) -> dict | None:
-        if spec is None:
-            return None
-        return {
-            "adapter": spec.adapter_name,
-            "observable_units": dict(spec.observable_units),
-            "observable_convention_overrides": dict(spec.observable_convention_overrides),
-            "notes": spec.notes,
-        }
-
-    k = kaldo_states.get(state.name)
-    p = phono3py_states.get(state.name)
-
-    cross_factors: dict[str, float] = {}
-    if k is not None and p is not None:
+    specs = {
+        adapter: _state_spec_to_dict(state_specs[adapter][state.name])
+        for adapter in adapter_order
+        if state.name in state_specs.get(adapter, {})
+    }
+    cross_factors: dict[str, dict[str, float]] = {}
+    for a, b in itertools.combinations(list(specs.keys()), 2):
+        spec_a = state_specs[a][state.name]
+        spec_b = state_specs[b][state.name]
+        per_field: dict[str, float] = {}
         for f in state.fields:
             try:
-                cross_factors[f.name] = cross_state_total_factor(k, p, f.name)
+                per_field[f.name] = cross_state_total_factor(spec_a, spec_b, f.name)
             except Exception:
                 pass
-
+        if per_field:
+            cross_factors[f"{a} → {b}"] = per_field
     return {
         "name": state.name,
         "physics_type": state.physics_type.value,
@@ -230,29 +729,29 @@ def _state_to_json(
         "convention_factors": convention_factors,
         "type_parameters": {k_: str(v_) for k_, v_ in state.type_parameters.items()},
         "description": state.description,
-        "kaldo_spec": _spec_to_dict(k),
-        "phono3py_spec": _spec_to_dict(p),
-        "cross_state_total_factors": cross_factors,
+        "specs": specs,
+        "cross_factors": cross_factors,
     }
 
 
 def _operation_to_json(
     op,
-    kaldo_ops: dict[str, OperationAdapterSpec],
-    phono3py_ops: dict[str, OperationAdapterSpec],
+    op_specs: dict[str, dict[str, OperationAdapterSpec]],
+    adapter_order: list[str],
 ) -> dict:
-    formula_latex = sp.latex(op.formula) if op.formula is not None else None
+    def _to_latex(f):
+        if isinstance(f, sp.Basic):
+            return sp.latex(f)
+        return f if isinstance(f, str) else None
 
-    def _op_spec(spec: OperationAdapterSpec | None) -> dict | None:
-        if spec is None:
-            return None
-        return {
-            "adapter": spec.adapter_name,
-            "parameter_units": dict(spec.parameter_units),
-            "algorithmic_convention_overrides": dict(spec.algorithmic_convention_overrides),
-            "discretization_choices": dict(spec.discretization_choices),
-            "notes": spec.notes,
-        }
+    formula_latex = _to_latex(op.formula) if op.formula is not None else None
+    auxiliary_latex = [_to_latex(f) for f in getattr(op, "auxiliary_formulas", ())]
+
+    specs = {
+        adapter: _op_spec_to_dict(op_specs[adapter][op.name])
+        for adapter in adapter_order
+        if op.name in op_specs.get(adapter, {})
+    }
 
     return {
         "name": op.name,
@@ -264,9 +763,9 @@ def _operation_to_json(
         ],
         "algorithmic_conventions": dict(op.algorithmic_conventions),
         "formula_latex": formula_latex,
+        "auxiliary_latex": auxiliary_latex,
         "description": op.description,
-        "kaldo_spec": _op_spec(kaldo_ops.get(op.name)),
-        "phono3py_spec": _op_spec(phono3py_ops.get(op.name)),
+        "specs": specs,
     }
 
 
@@ -279,48 +778,277 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>omai — lattice thermal-transport DAG</title>
+<title>omai · thermal-transport DAG</title>
 <style>
-  body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-         margin: 0; padding: 0; color: #222; background: #fafafa; }}
-  header {{ padding: 1rem 1.5rem; background: #fff; border-bottom: 1px solid #e0e0e0; }}
-  h1 {{ margin: 0; font-size: 1.15rem; }}
-  .subtitle {{ color: #666; font-size: 0.85rem; margin-top: 0.25rem; }}
-  .badges {{ display: inline-block; margin-left: 0.5rem; font-size: 0.7rem; color: #666; }}
-  main {{ display: grid; grid-template-columns: 1fr 480px; gap: 1.5rem;
-          padding: 1.5rem; min-height: calc(100vh - 80px); }}
-  #diagram {{ background: #fff; border: 1px solid #e0e0e0; border-radius: 4px;
-              padding: 1rem; overflow: auto; }}
-  #details {{ background: #fff; border: 1px solid #e0e0e0; border-radius: 4px;
-              padding: 1rem; overflow-y: auto; max-height: calc(100vh - 130px); }}
-  #details h2 {{ margin-top: 0; font-size: 1rem; }}
-  #details .kind {{ display: inline-block; font-size: 0.7rem; padding: 0.1rem 0.5rem;
-                    border-radius: 3px; color: #fff; margin-left: 0.5rem;
-                    vertical-align: middle; }}
-  #details .kind.Observable {{ background: #3f7fc1; }}
-  #details .kind.HiddenState {{ background: #888; }}
-  #details table {{ width: 100%; border-collapse: collapse; font-size: 0.85rem;
-                   margin: 0.5rem 0; }}
-  #details th, #details td {{ padding: 0.3rem 0.5rem; border-bottom: 1px solid #eee;
-                              text-align: left; vertical-align: top; }}
-  #details th {{ background: #f5f5f5; font-weight: 600; }}
-  #details code {{ background: #f0f0f0; padding: 0 0.25rem; border-radius: 3px;
-                   font-size: 0.85em; }}
-  #details .section {{ margin-top: 1rem; }}
-  #details .section h3 {{ font-size: 0.85rem; text-transform: uppercase;
-                          letter-spacing: 0.05em; color: #888; margin: 0 0 0.4rem 0; }}
-  .formula {{ background: #fafafa; border: 1px solid #eee; padding: 0.75rem;
-              border-radius: 3px; margin: 0.5rem 0; overflow-x: auto; }}
-  .empty {{ color: #999; font-style: italic; font-size: 0.85rem; }}
-  .legend {{ display: flex; gap: 1rem; font-size: 0.8rem; color: #555;
-             margin-top: 0.5rem; flex-wrap: wrap; }}
-  .legend-item {{ display: flex; align-items: center; gap: 0.4rem; }}
-  .swatch {{ width: 12px; height: 12px; border-radius: 2px; display: inline-block; }}
-  .placeholder {{ color: #aaa; padding: 2rem; text-align: center; font-size: 0.9rem; }}
-  /* Mermaid clickable nodes */
-  .node {{ cursor: pointer; }}
+  :root {{
+    --bg: #F9FAFB;
+    --surface: #FFFFFF;
+    --border: #E5E7EB;
+    --border-strong: #D1D5DB;
+    --text: #111827;
+    --text-secondary: #4B5563;
+    --text-muted: #9CA3AF;
+    --observable: #3B82F6;
+    --hidden: #94A3B8;
+    --code-bg: #F3F4F6;
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }}
+  * {{ box-sizing: border-box; }}
+  html, body {{ margin: 0; padding: 0; }}
+  body {{
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
+                 system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }}
+  header {{
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 1.5rem 0.75rem;
+  }}
+  .legend {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem 1.75rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--border);
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+  }}
+  .legend-group {{
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }}
+  .legend-group .label {{
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    font-size: 0.66rem;
+    white-space: nowrap;
+  }}
+  .legend-item {{
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+  }}
+  .legend-item svg {{ flex-shrink: 0; }}
+  .title-row {{
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }}
+  h1 {{
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }}
+  .stats {{
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+  }}
+  .stats span + span {{ margin-left: 0.75rem; }}
+  .stats strong {{ color: var(--text); font-weight: 600; }}
+
+  .layout {{
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 420px;
+    gap: 1.25rem;
+    padding: 1.25rem 1.5rem;
+    align-items: start;
+  }}
+  body.details-collapsed .layout {{ grid-template-columns: minmax(0, 1fr) 40px; }}
+
+  .diagram-wrap {{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    overflow-x: auto;
+    overflow-y: visible;
+    min-width: 0;
+  }}
+  .diagram-wrap svg {{ display: block; }}
+
+  /* node hover */
+  .node-row {{ cursor: pointer; }}
+  .node-row:hover .node-shape {{
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.18));
+  }}
+  .node-row:hover .node-circle {{ r: 9; }}
+  .edge {{ transition: opacity 120ms ease; }}
+  .edge:hover {{ opacity: 0.95 !important; stroke-width: 2.5 !important; }}
+
+  /* details panel */
+  #details-rail {{
+    position: sticky;
+    top: 1rem;
+    align-self: start;
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+  }}
+  body.details-collapsed #details-rail {{ width: 40px; }}
+  .details-toggle {{
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 4;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }}
+  .details-toggle:hover {{ background: var(--code-bg); color: var(--text); }}
+  body.details-collapsed .details-toggle {{ right: 4px; top: 50%; transform: translateY(-50%); }}
+  #details {{
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    padding: 1.25rem;
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+  }}
+  body.details-collapsed #details {{ display: none; }}
+  #details .placeholder {{
+    color: var(--text-muted);
+    padding: 1.5rem 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+  }}
+  #details h2 {{
+    margin: 0 0 0.4rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }}
+  #details h2 .kind {{
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    color: #fff;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }}
+  #details h2 .kind.Observable {{ background: var(--observable); }}
+  #details h2 .kind.HiddenState {{ background: var(--hidden); }}
+  #details > p {{
+    margin: 0 0 1rem;
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+  }}
+  #details .section {{
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--border);
+  }}
+  #details .section h3 {{
+    margin: 0 0 0.45rem;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-weight: 600;
+  }}
+  #details .section.adapter-section h3 {{
+    color: var(--adapter-color, var(--text-muted));
+    display: flex; align-items: center; gap: 0.5rem;
+  }}
+  #details .section.adapter-section h3::before {{
+    content: "";
+    width: 8px; height: 8px; border-radius: 2px;
+    background: var(--adapter-color, var(--text-muted));
+    display: inline-block;
+  }}
+  #details table {{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    margin: 0.35rem 0;
+  }}
+  #details th, #details td {{
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+  }}
+  #details th {{
+    background: var(--code-bg);
+    font-weight: 600;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+  }}
+  #details code {{
+    background: var(--code-bg);
+    padding: 0.05rem 0.35rem;
+    border-radius: 3px;
+    font-size: 0.85em;
+    font-family: ui-monospace, "SF Mono", Monaco, Consolas, monospace;
+  }}
+  #details .empty {{ color: var(--text-muted); font-style: italic; }}
+  #details .notes {{
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-top: 0.4rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--code-bg);
+    border-radius: 4px;
+    border-left: 3px solid var(--adapter-color, var(--border-strong));
+  }}
+  .formula {{
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+    overflow-x: auto;
+  }}
+  .coverage-row {{ display: flex; gap: 0.35rem; flex-wrap: wrap; margin: 0.4rem 0; }}
+  .coverage-chip {{
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+    background: var(--chip-color, var(--border));
+    color: #fff;
+    font-weight: 500;
+  }}
+  footer {{
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    padding: 0.75rem;
+    border-top: 1px solid var(--border);
+  }}
+  @media (max-width: 1100px) {{
+    .layout {{ grid-template-columns: 1fr; }}
+    body.details-collapsed .layout {{ grid-template-columns: 1fr; }}
+    #details-rail {{ position: static; max-height: none; }}
+  }}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <script>
   window.MathJax = {{
     tex: {{ inlineMath: [['$', '$']], displayMath: [['$$', '$$']] }},
@@ -331,46 +1059,132 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
 <body>
+
 <header>
-  <h1>omai &mdash; lattice thermal-transport DAG
-    <span class="badges">{n_observables} Observables &middot; {n_hidden} HiddenStates &middot;
-                          {n_edges} edges</span></h1>
-  <div class="subtitle">click a node or edge for details &middot;
-    <span class="legend">
-      <span class="legend-item"><span class="swatch" style="background:#3f7fc1"></span>Observable (gauge-invariant)</span>
-      <span class="legend-item"><span class="swatch" style="background:#888"></span>HiddenState (adapter-internal)</span>
-      <span class="legend-item">[K] kaldo spec &middot; [P] phono3py spec</span>
+  <div class="title-row">
+    <h1>omai · thermal-transport DAG</h1>
+    <span class="stats">
+      <span><strong>{n_observables}</strong> Observables</span>
+      <span><strong>{n_hidden}</strong> HiddenStates</span>
+      <span><strong>{n_edges}</strong> edges</span>
+      <span><strong>{n_adapters}</strong> adapters</span>
     </span>
   </div>
+  <div class="legend">
+    <div class="legend-group">
+      <span class="label">Symbolic</span>
+      <span class="legend-item">
+        <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2"/></svg>
+        Observable
+      </span>
+      <span class="legend-item">
+        <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#FFFFFF" stroke="#64748B" stroke-width="2" stroke-dasharray="3 2"/></svg>
+        HiddenState
+      </span>
+      <span class="legend-item">
+        <svg width="16" height="16" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2"/></svg>
+        Input (external source)
+      </span>
+    </div>
+    <div class="legend-group">
+      <span class="label">Materialized</span>
+      <span class="legend-item">
+        <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#DC2626" stroke="#DC2626" stroke-width="1.5"/></svg>
+        Adapter spec written
+      </span>
+      <span class="legend-item">
+        <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#FFFFFF" stroke="#DC2626" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.7"/></svg>
+        Implicit (no spec yet)
+      </span>
+    </div>
+    <div class="legend-group">
+      <span class="label">Edges</span>
+      <span class="legend-item">
+        <svg width="36" height="14" viewBox="0 0 36 14">
+          <defs><marker id="lg-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#374151"/></marker></defs>
+          <path d="M2 7 L 28 7" stroke="#374151" stroke-width="1.6" fill="none" marker-end="url(#lg-a)"/>
+        </svg>
+        Active (both endpoints specced)
+      </span>
+      <span class="legend-item">
+        <svg width="36" height="14" viewBox="0 0 36 14">
+          <defs><marker id="lg-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#374151" opacity="0.55"/></marker></defs>
+          <path d="M2 7 L 28 7" stroke="#374151" stroke-width="1.3" stroke-dasharray="6 4" opacity="0.55" fill="none" marker-end="url(#lg-b)"/>
+        </svg>
+        Implicit (endpoint lacks spec)
+      </span>
+    </div>
+    <div class="legend-group">
+      <span class="label">Lanes</span>
+      <span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1F2937"></span> Symbolic</span>
+      <span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#DC2626"></span> kaldo</span>
+      <span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#059669"></span> phono3py</span>
+      <span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#0891B2"></span> phonopy</span>
+      <span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#7C3AED"></span> shengbte</span>
+    </div>
+  </div>
 </header>
-<main>
-  <div id="diagram">
-    <pre class="mermaid">
-{mermaid_source}
-    </pre>
+
+<div class="layout">
+  <div class="diagram-wrap">
+{svg_markup}
   </div>
-  <div id="details">
-    <div class="placeholder">click any node or edge</div>
+
+  <div id="details-rail">
+    <button class="details-toggle" id="details-toggle" title="Hide details panel">›</button>
+    <div id="details">
+      <div class="placeholder">Click a circle (node) or an arrow (edge) for details.</div>
+    </div>
   </div>
-</main>
+</div>
+
+<footer>
+  Generated by <code>python -m omai.thermal_transport.visualize</code>
+</footer>
 
 <script>
 const NODE_DATA = {node_data_json};
 const EDGE_DATA = {edge_data_json};
-const NODE_ID_TO_NAME = {node_id_to_name_json};
-const EDGE_BY_PAIR = {edge_by_pair_json};
+const ADAPTER_COLORS = {adapter_colors_json};
 
 function escapeHtml(s) {{
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }}
+function adapterChip(adapter) {{
+  const c = ADAPTER_COLORS[adapter] || '#9CA3AF';
+  return `<span class="coverage-chip" style="--chip-color: ${{c}}; background: ${{c}}">${{escapeHtml(adapter)}}</span>`;
+}}
 
-function renderNode(name) {{
+// Pipeline → adapter list mapping. Mirrors _PIPELINES in Python.
+const PIPELINE_ADAPTERS = {{
+  symbolic: null,
+  kaldo: ['kaldo'],
+  phono3py: ['phono3py'],
+  phonopy: ['phonopy'],
+  shengbte: ['shengbte'],
+}};
+
+function renderNode(name, pipelineId) {{
   const d = NODE_DATA[name];
   if (!d) return `<div class="empty">no data for ${{escapeHtml(name)}}</div>`;
   let html = `<h2>${{escapeHtml(d.name)}} <span class="kind ${{d.kind}}">${{d.kind}}</span></h2>`;
-  if (d.description) html += `<p>${{escapeHtml(d.description)}}</p>`;
-  html += `<div class="section"><h3>Physics type</h3><code>${{escapeHtml(d.physics_type)}}</code></div>`;
+  // Pipeline context note: when the click came from a per-code column,
+  // we filter the specs shown to just that code's adapters.
+  const allowedAdapters = PIPELINE_ADAPTERS[pipelineId];
+  const filteredSpecs = (allowedAdapters === null || allowedAdapters === undefined)
+    ? d.specs
+    : Object.fromEntries(Object.entries(d.specs).filter(([a, _]) => allowedAdapters.includes(a)));
 
+  if (pipelineId && pipelineId !== 'symbolic') {{
+    html += `<div style="font-size:0.78rem; color: var(--text-secondary); margin-bottom: 0.5rem">`
+          + `Filtered to <strong>${{escapeHtml(pipelineId)}}</strong>. `
+          + `<a href="#" id="show-all-link" style="color: var(--accent-active); text-decoration: underline; cursor: pointer">Show all adapters</a>`
+          + `</div>`;
+  }}
+  if (d.description) html += `<p>${{escapeHtml(d.description)}}</p>`;
+  const adapters = Object.keys(filteredSpecs);
+  if (adapters.length) html += `<div class="coverage-row">${{adapters.map(adapterChip).join('')}}</div>`;
+  html += `<div class="section"><h3>Physics type</h3><code>${{escapeHtml(d.physics_type)}}</code></div>`;
   if (d.fields.length) {{
     html += '<div class="section"><h3>Fields</h3><table><tr><th>name</th><th>dimension</th><th>indices</th></tr>';
     for (const f of d.fields) {{
@@ -380,7 +1194,6 @@ function renderNode(name) {{
     }}
     html += '</table></div>';
   }}
-
   if (Object.keys(d.canonical_conventions).length) {{
     html += '<div class="section"><h3>Canonical conventions</h3><table>';
     for (const [k, v] of Object.entries(d.canonical_conventions)) {{
@@ -388,7 +1201,6 @@ function renderNode(name) {{
     }}
     html += '</table></div>';
   }}
-
   if (d.convention_factors.length) {{
     html += '<div class="section"><h3>Convention factors</h3><table>' +
             '<tr><th>convention</th><th>value</th><th>field</th><th>factor</th></tr>';
@@ -400,35 +1212,42 @@ function renderNode(name) {{
     }}
     html += '</table></div>';
   }}
-
-  for (const [adapter, spec] of [['kaldo', d.kaldo_spec], ['phono3py', d.phono3py_spec]]) {{
-    html += `<div class="section"><h3>${{adapter}}</h3>`;
-    if (!spec) {{
-      html += '<div class="empty">no adapter spec yet</div>';
-    }} else {{
-      if (Object.keys(spec.observable_units).length) {{
-        html += '<table>';
-        for (const [k, v] of Object.entries(spec.observable_units)) {{
-          html += `<tr><td>unit (<code>${{escapeHtml(k)}}</code>)</td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
-        }}
-        for (const [k, v] of Object.entries(spec.observable_convention_overrides)) {{
-          html += `<tr><td>${{escapeHtml(k)}}</td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
-        }}
-        html += '</table>';
+  for (const adapter of adapters) {{
+    const spec = filteredSpecs[adapter];
+    const color = ADAPTER_COLORS[adapter] || '#9CA3AF';
+    html += `<div class="section adapter-section" style="--adapter-color: ${{color}}"><h3>${{escapeHtml(adapter)}}</h3>`;
+    if (Object.keys(spec.code_api || {{}}).length) {{
+      html += '<table>';
+      for (const [k, v] of Object.entries(spec.code_api)) {{
+        html += `<tr><td>API for <code>${{escapeHtml(k)}}</code></td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
       }}
-      if (spec.notes) html += `<p style="font-size:0.85rem; color:#555">${{escapeHtml(spec.notes)}}</p>`;
+      html += '</table>';
+    }}
+    if (Object.keys(spec.observable_units).length || Object.keys(spec.observable_convention_overrides).length) {{
+      html += '<table>';
+      for (const [k, v] of Object.entries(spec.observable_units)) {{
+        html += `<tr><td>unit (<code>${{escapeHtml(k)}}</code>)</td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
+      }}
+      for (const [k, v] of Object.entries(spec.observable_convention_overrides)) {{
+        html += `<tr><td>${{escapeHtml(k)}}</td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
+      }}
+      html += '</table>';
+    }}
+    if (spec.notes) html += `<div class="notes">${{escapeHtml(spec.notes)}}</div>`;
+    html += '</div>';
+  }}
+  if (Object.keys(d.cross_factors).length) {{
+    html += '<div class="section"><h3>Cross-code factors</h3>';
+    for (const [pair, perField] of Object.entries(d.cross_factors)) {{
+      html += `<div style="margin-top:0.5rem"><strong style="font-size:0.78rem; color: var(--text-secondary)">${{escapeHtml(pair)}}</strong>`;
+      html += '<table>';
+      for (const [field, factor] of Object.entries(perField)) {{
+        html += `<tr><td><code>${{escapeHtml(field)}}</code></td><td>${{factor.toExponential(4)}}</td></tr>`;
+      }}
+      html += '</table></div>';
     }}
     html += '</div>';
   }}
-
-  if (Object.keys(d.cross_state_total_factors).length) {{
-    html += '<div class="section"><h3>Cross-code factor (kaldo → phono3py)</h3><table>';
-    for (const [k, v] of Object.entries(d.cross_state_total_factors)) {{
-      html += `<tr><td><code>${{escapeHtml(k)}}</code></td><td>${{v.toExponential(4)}}</td></tr>`;
-    }}
-    html += '</table></div>';
-  }}
-
   return html;
 }}
 
@@ -437,22 +1256,20 @@ function renderEdge(name) {{
   if (!d) return `<div class="empty">no data for ${{escapeHtml(name)}}</div>`;
   let html = `<h2>${{escapeHtml(d.name)}}</h2>`;
   if (d.description) html += `<p>${{escapeHtml(d.description)}}</p>`;
-
+  const adapters = Object.keys(d.specs);
+  if (adapters.length) html += `<div class="coverage-row">${{adapters.map(adapterChip).join('')}}</div>`;
   html += `<div class="section"><h3>Inputs</h3>${{d.inputs.length ?
             '<ul>' + d.inputs.map(s => `<li><code>${{escapeHtml(s)}}</code></li>`).join('') + '</ul>' :
-            '<div class="empty">(no inputs &mdash; nullary source)</div>'}}</div>`;
+            '<div class="empty">(no inputs — nullary source)</div>'}}</div>`;
   html += `<div class="section"><h3>Outputs</h3><ul>` +
           d.outputs.map(s => `<li><code>${{escapeHtml(s)}}</code></li>`).join('') + `</ul></div>`;
-
   if (d.parameters.length) {{
-    html += '<div class="section"><h3>Parameters</h3><table>' +
-            '<tr><th>name</th><th>dimension</th></tr>';
+    html += '<div class="section"><h3>Parameters</h3><table><tr><th>name</th><th>dimension</th></tr>';
     for (const p of d.parameters) {{
       html += `<tr><td><code>${{escapeHtml(p.name)}}</code></td><td>${{escapeHtml(p.dimension)}}</td></tr>`;
     }}
     html += '</table></div>';
   }}
-
   if (Object.keys(d.algorithmic_conventions).length) {{
     html += '<div class="section"><h3>Algorithmic conventions</h3><table>';
     for (const [k, v] of Object.entries(d.algorithmic_conventions)) {{
@@ -460,78 +1277,96 @@ function renderEdge(name) {{
     }}
     html += '</table></div>';
   }}
-
   if (d.formula_latex) {{
     html += `<div class="section"><h3>Formula</h3><div class="formula">$$${{d.formula_latex}}$$</div></div>`;
   }}
-
-  for (const [adapter, spec] of [['kaldo', d.kaldo_spec], ['phono3py', d.phono3py_spec]]) {{
-    html += `<div class="section"><h3>${{adapter}}</h3>`;
-    if (!spec) {{
-      html += '<div class="empty">no operation-adapter spec yet</div>';
-    }} else {{
-      let any = false;
-      let tbl = '<table>';
-      for (const [k, v] of Object.entries(spec.parameter_units)) {{
-        tbl += `<tr><td>unit (<code>${{escapeHtml(k)}}</code>)</td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
-        any = true;
-      }}
-      for (const [k, v] of Object.entries(spec.algorithmic_convention_overrides)) {{
-        tbl += `<tr><td>${{escapeHtml(k)}}</td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
-        any = true;
-      }}
-      for (const [k, v] of Object.entries(spec.discretization_choices)) {{
-        tbl += `<tr><td>${{escapeHtml(k)}}</td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
-        any = true;
-      }}
-      tbl += '</table>';
-      if (any) html += tbl;
-      if (spec.notes) html += `<p style="font-size:0.85rem; color:#555">${{escapeHtml(spec.notes)}}</p>`;
-      if (!any && !spec.notes) html += '<div class="empty">(no parameters or conventions)</div>';
+  if (d.auxiliary_latex && d.auxiliary_latex.length) {{
+    html += `<div class="section"><h3>Auxiliary definitions</h3>`;
+    for (const aux of d.auxiliary_latex) {{
+      if (aux) html += `<div class="formula">$$${{aux}}$$</div>`;
     }}
+    html += `</div>`;
+  }}
+  for (const adapter of adapters) {{
+    const spec = d.specs[adapter];
+    const color = ADAPTER_COLORS[adapter] || '#9CA3AF';
+    html += `<div class="section adapter-section" style="--adapter-color: ${{color}}"><h3>${{escapeHtml(adapter)}}</h3>`;
+    let any = false;
+    let tbl = '<table>';
+    for (const [k, v] of Object.entries(spec.parameter_units)) {{
+      tbl += `<tr><td>unit (<code>${{escapeHtml(k)}}</code>)</td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
+      any = true;
+    }}
+    for (const [k, v] of Object.entries(spec.algorithmic_convention_overrides)) {{
+      tbl += `<tr><td>${{escapeHtml(k)}}</td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
+      any = true;
+    }}
+    for (const [k, v] of Object.entries(spec.discretization_choices)) {{
+      tbl += `<tr><td>${{escapeHtml(k)}} <span style="color:var(--text-muted); font-size:0.7rem">(disc.)</span></td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
+      any = true;
+    }}
+    tbl += '</table>';
+    if (any) html += tbl;
+    if (spec.notes) html += `<div class="notes">${{escapeHtml(spec.notes)}}</div>`;
+    if (!any && !spec.notes) html += '<div class="empty">(no parameters or conventions)</div>';
     html += '</div>';
   }}
-
   return html;
 }}
 
 function showDetails(html) {{
+  if (document.body.classList.contains('details-collapsed')) {{
+    document.body.classList.remove('details-collapsed');
+    const t = document.getElementById('details-toggle');
+    if (t) {{ t.textContent = '›'; t.title = 'Hide details panel'; }}
+  }}
   const panel = document.getElementById('details');
   panel.innerHTML = html;
+  panel.scrollTop = 0;
+  // Wire up the "show all adapters" link if present (when filtered view).
+  const showAll = panel.querySelector('#show-all-link');
+  if (showAll && panel.dataset.state) {{
+    showAll.addEventListener('click', (e) => {{
+      e.preventDefault();
+      panel.dataset.pipeline = 'symbolic';
+      showDetails(renderNode(panel.dataset.state, 'symbolic'));
+    }});
+  }}
   if (window.MathJax && MathJax.typesetPromise) {{
     MathJax.typesetPromise([panel]);
   }}
 }}
 
-document.addEventListener('DOMContentLoaded', async () => {{
-  mermaid.initialize({{ startOnLoad: false, securityLevel: 'loose', flowchart: {{ curve: 'basis' }} }});
-  await mermaid.run({{ querySelector: '.mermaid' }});
-
-  // Wire click handlers on rendered nodes and edges
-  document.querySelectorAll('#diagram .node').forEach(el => {{
-    el.addEventListener('click', () => {{
-      const id = el.id.replace(/^flowchart-/, '').replace(/-\\d+$/, '');
-      const name = NODE_ID_TO_NAME[id];
-      if (name) showDetails(renderNode(name));
-    }});
-  }});
-
-  document.querySelectorAll('#diagram .edgePaths .edgePath, #diagram .edgeLabels .edgeLabel').forEach(el => {{
-    el.style.cursor = 'pointer';
-    el.addEventListener('click', () => {{
-      // Mermaid annotates edge label text with the operation name
-      const lbl = el.querySelector('.edgeLabel, foreignObject span');
-      const text = (lbl ? lbl.textContent : el.textContent).trim();
-      // text is the short name, e.g. "compute_linewidth"; find a matching EDGE_DATA entry
-      let candidate = null;
-      for (const fullName of Object.keys(EDGE_DATA)) {{
-        if (fullName === text || fullName.startsWith(text + '[')) {{
-          if (!candidate || fullName.length > candidate.length) candidate = fullName;
-        }}
+document.addEventListener('DOMContentLoaded', () => {{
+  document.querySelectorAll('.node-row').forEach(g => {{
+    g.addEventListener('click', () => {{
+      const name = g.dataset.state;
+      const pipeline = g.dataset.pipeline || 'symbolic';
+      if (name) {{
+        const panel = document.getElementById('details');
+        panel.dataset.state = name;
+        panel.dataset.pipeline = pipeline;
+        showDetails(renderNode(name, pipeline));
       }}
-      if (candidate) showDetails(renderEdge(candidate));
     }});
   }});
+  document.querySelectorAll('.edge').forEach(p => {{
+    p.style.cursor = 'pointer';
+    p.addEventListener('click', () => {{
+      const op = p.dataset.op;
+      if (op) showDetails(renderEdge(op));
+    }});
+  }});
+
+  const toggle = document.getElementById('details-toggle');
+  if (toggle) {{
+    toggle.addEventListener('click', () => {{
+      document.body.classList.toggle('details-collapsed');
+      const collapsed = document.body.classList.contains('details-collapsed');
+      toggle.textContent = collapsed ? '‹' : '›';
+      toggle.title = collapsed ? 'Show details panel' : 'Hide details panel';
+    }});
+  }}
 }});
 </script>
 </body>
@@ -540,38 +1375,43 @@ document.addEventListener('DOMContentLoaded', async () => {{
 
 
 def render_html(output_path: Path | str) -> Path:
-    kaldo_states, phono3py_states, kaldo_ops, phono3py_ops = _collect_specs()
-    mermaid_source = _mermaid_diagram(kaldo_states, phono3py_states)
+    state_specs, op_specs = _collect_specs()
+    adapter_order = sorted(set(state_specs.keys()) | set(op_specs.keys()))
+    # Adapter colors mirror the per-pipeline palette where possible.
+    colors: dict[str, str] = {}
+    for a in adapter_order:
+        for p in _PIPELINES:
+            if a in p["adapters"]:
+                colors[a] = p["color"]
+                break
+        else:
+            colors[a] = "#9CA3AF"
+
+    layers = _compute_layers()
+    layout = _compute_layout(layers)
+    svg_markup = _build_svg(layout, state_specs)
 
     node_data = {
-        state.name: _state_to_json(state, kaldo_states, phono3py_states)
+        state.name: _state_to_json(state, state_specs, adapter_order)
         for state in NODES
     }
     edge_data = {
-        op.name: _operation_to_json(op, kaldo_ops, phono3py_ops)
+        op.name: _operation_to_json(op, op_specs, adapter_order)
         for op in EDGES
     }
 
     n_observables = sum(1 for s in NODES if isinstance(s, Observable))
     n_hidden = sum(1 for s in NODES if isinstance(s, HiddenState))
 
-    node_id_to_name = {_mermaid_id(state): state.name for state in NODES}
-    # Index edge by (from, to) — useful for click resolution
-    edge_by_pair: dict[str, str] = {}
-    for op in EDGES:
-        for inp in op.inputs:
-            for out in op.outputs:
-                edge_by_pair[f"{_mermaid_id(inp)}->{_mermaid_id(out)}"] = op.name
-
     html = _HTML_TEMPLATE.format(
         n_observables=n_observables,
         n_hidden=n_hidden,
         n_edges=len(EDGES),
-        mermaid_source=mermaid_source,
+        n_adapters=len(adapter_order),
+        svg_markup=svg_markup,
         node_data_json=json.dumps(node_data, indent=2),
         edge_data_json=json.dumps(edge_data, indent=2),
-        node_id_to_name_json=json.dumps(node_id_to_name),
-        edge_by_pair_json=json.dumps(edge_by_pair),
+        adapter_colors_json=json.dumps(colors),
     )
 
     out = Path(output_path)

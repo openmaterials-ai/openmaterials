@@ -34,6 +34,12 @@ class StateAdapterSpec:
     adapter_name: str
     observable_units: dict[str, str] = field(default_factory=dict)
     observable_convention_overrides: dict[str, str] = field(default_factory=dict)
+    # Per-field native API name in the code. Used by tooling (visualization,
+    # docs) to surface what a user actually calls to get this state's data
+    # in the code. Example: kaldo's Linewidth → {"Gamma": "Phonons.bandwidth"};
+    # shengbte's Linewidth → {"Gamma": "BTE.w_anharmonic"}. May be empty for
+    # adapters where the API name lives in prose `notes` instead.
+    code_api: dict[str, str] = field(default_factory=dict)
     notes: str = ""
 
     def declared_unit(self, observable_name: str) -> str:

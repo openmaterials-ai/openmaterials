@@ -2,48 +2,277 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>omai — lattice thermal-transport DAG</title>
+<title>omai · thermal-transport DAG</title>
 <style>
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-         margin: 0; padding: 0; color: #222; background: #fafafa; }
-  header { padding: 1rem 1.5rem; background: #fff; border-bottom: 1px solid #e0e0e0; }
-  h1 { margin: 0; font-size: 1.15rem; }
-  .subtitle { color: #666; font-size: 0.85rem; margin-top: 0.25rem; }
-  .badges { display: inline-block; margin-left: 0.5rem; font-size: 0.7rem; color: #666; }
-  main { display: grid; grid-template-columns: 1fr 480px; gap: 1.5rem;
-          padding: 1.5rem; min-height: calc(100vh - 80px); }
-  #diagram { background: #fff; border: 1px solid #e0e0e0; border-radius: 4px;
-              padding: 1rem; overflow: auto; }
-  #details { background: #fff; border: 1px solid #e0e0e0; border-radius: 4px;
-              padding: 1rem; overflow-y: auto; max-height: calc(100vh - 130px); }
-  #details h2 { margin-top: 0; font-size: 1rem; }
-  #details .kind { display: inline-block; font-size: 0.7rem; padding: 0.1rem 0.5rem;
-                    border-radius: 3px; color: #fff; margin-left: 0.5rem;
-                    vertical-align: middle; }
-  #details .kind.Observable { background: #3f7fc1; }
-  #details .kind.HiddenState { background: #888; }
-  #details table { width: 100%; border-collapse: collapse; font-size: 0.85rem;
-                   margin: 0.5rem 0; }
-  #details th, #details td { padding: 0.3rem 0.5rem; border-bottom: 1px solid #eee;
-                              text-align: left; vertical-align: top; }
-  #details th { background: #f5f5f5; font-weight: 600; }
-  #details code { background: #f0f0f0; padding: 0 0.25rem; border-radius: 3px;
-                   font-size: 0.85em; }
-  #details .section { margin-top: 1rem; }
-  #details .section h3 { font-size: 0.85rem; text-transform: uppercase;
-                          letter-spacing: 0.05em; color: #888; margin: 0 0 0.4rem 0; }
-  .formula { background: #fafafa; border: 1px solid #eee; padding: 0.75rem;
-              border-radius: 3px; margin: 0.5rem 0; overflow-x: auto; }
-  .empty { color: #999; font-style: italic; font-size: 0.85rem; }
-  .legend { display: flex; gap: 1rem; font-size: 0.8rem; color: #555;
-             margin-top: 0.5rem; flex-wrap: wrap; }
-  .legend-item { display: flex; align-items: center; gap: 0.4rem; }
-  .swatch { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
-  .placeholder { color: #aaa; padding: 2rem; text-align: center; font-size: 0.9rem; }
-  /* Mermaid clickable nodes */
-  .node { cursor: pointer; }
+  :root {
+    --bg: #F9FAFB;
+    --surface: #FFFFFF;
+    --border: #E5E7EB;
+    --border-strong: #D1D5DB;
+    --text: #111827;
+    --text-secondary: #4B5563;
+    --text-muted: #9CA3AF;
+    --observable: #3B82F6;
+    --hidden: #94A3B8;
+    --code-bg: #F3F4F6;
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
+                 system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 1.5rem 0.75rem;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem 1.75rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--border);
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+  }
+  .legend-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .legend-group .label {
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    font-size: 0.66rem;
+    white-space: nowrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+  }
+  .legend-item svg { flex-shrink: 0; }
+  .title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  h1 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .stats {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .stats span + span { margin-left: 0.75rem; }
+  .stats strong { color: var(--text); font-weight: 600; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 420px;
+    gap: 1.25rem;
+    padding: 1.25rem 1.5rem;
+    align-items: start;
+  }
+  body.details-collapsed .layout { grid-template-columns: minmax(0, 1fr) 40px; }
+
+  .diagram-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    overflow-x: auto;
+    overflow-y: visible;
+    min-width: 0;
+  }
+  .diagram-wrap svg { display: block; }
+
+  /* node hover */
+  .node-row { cursor: pointer; }
+  .node-row:hover .node-shape {
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.18));
+  }
+  .node-row:hover .node-circle { r: 9; }
+  .edge { transition: opacity 120ms ease; }
+  .edge:hover { opacity: 0.95 !important; stroke-width: 2.5 !important; }
+
+  /* details panel */
+  #details-rail {
+    position: sticky;
+    top: 1rem;
+    align-self: start;
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+  }
+  body.details-collapsed #details-rail { width: 40px; }
+  .details-toggle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 4;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    color: var(--text-secondary);
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .details-toggle:hover { background: var(--code-bg); color: var(--text); }
+  body.details-collapsed .details-toggle { right: 4px; top: 50%; transform: translateY(-50%); }
+  #details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    padding: 1.25rem;
+    flex: 1;
+    overflow-y: auto;
+    position: relative;
+  }
+  body.details-collapsed #details { display: none; }
+  #details .placeholder {
+    color: var(--text-muted);
+    padding: 1.5rem 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+  }
+  #details h2 {
+    margin: 0 0 0.4rem;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  #details h2 .kind {
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 3px;
+    color: #fff;
+    margin-left: 0.5rem;
+    vertical-align: middle;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  #details h2 .kind.Observable { background: var(--observable); }
+  #details h2 .kind.HiddenState { background: var(--hidden); }
+  #details > p {
+    margin: 0 0 1rem;
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+  }
+  #details .section {
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--border);
+  }
+  #details .section h3 {
+    margin: 0 0 0.45rem;
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+  #details .section.adapter-section h3 {
+    color: var(--adapter-color, var(--text-muted));
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  #details .section.adapter-section h3::before {
+    content: "";
+    width: 8px; height: 8px; border-radius: 2px;
+    background: var(--adapter-color, var(--text-muted));
+    display: inline-block;
+  }
+  #details table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    margin: 0.35rem 0;
+  }
+  #details th, #details td {
+    padding: 0.3rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+  }
+  #details th {
+    background: var(--code-bg);
+    font-weight: 600;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+  }
+  #details code {
+    background: var(--code-bg);
+    padding: 0.05rem 0.35rem;
+    border-radius: 3px;
+    font-size: 0.85em;
+    font-family: ui-monospace, "SF Mono", Monaco, Consolas, monospace;
+  }
+  #details .empty { color: var(--text-muted); font-style: italic; }
+  #details .notes {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-top: 0.4rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--code-bg);
+    border-radius: 4px;
+    border-left: 3px solid var(--adapter-color, var(--border-strong));
+  }
+  .formula {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    padding: 0.75rem;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+    overflow-x: auto;
+  }
+  .coverage-row { display: flex; gap: 0.35rem; flex-wrap: wrap; margin: 0.4rem 0; }
+  .coverage-chip {
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+    background: var(--chip-color, var(--border));
+    color: #fff;
+    font-weight: 500;
+  }
+  footer {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    padding: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 1fr; }
+    body.details-collapsed .layout { grid-template-columns: 1fr; }
+    #details-rail { position: static; max-height: none; }
+  }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 <script>
   window.MathJax = {
     tex: { inlineMath: [['$', '$']], displayMath: [['$$', '$$']] },
@@ -54,94 +283,88 @@
         src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
 </head>
 <body>
+
 <header>
-  <h1>omai &mdash; lattice thermal-transport DAG
-    <span class="badges">9 Observables &middot; 5 HiddenStates &middot;
-                          13 edges</span></h1>
-  <div class="subtitle">click a node or edge for details &middot;
-    <span class="legend">
-      <span class="legend-item"><span class="swatch" style="background:#3f7fc1"></span>Observable (gauge-invariant)</span>
-      <span class="legend-item"><span class="swatch" style="background:#888"></span>HiddenState (adapter-internal)</span>
-      <span class="legend-item">[K] kaldo spec &middot; [P] phono3py spec</span>
+  <div class="title-row">
+    <h1>omai · thermal-transport DAG</h1>
+    <span class="stats">
+      <span><strong>14</strong> Observables</span>
+      <span><strong>5</strong> HiddenStates</span>
+      <span><strong>18</strong> edges</span>
+      <span><strong>4</strong> adapters</span>
     </span>
   </div>
+  <div class="legend">
+    <div class="legend-group">
+      <span class="label">Symbolic</span>
+      <span class="legend-item">
+        <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2"/></svg>
+        Observable
+      </span>
+      <span class="legend-item">
+        <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#FFFFFF" stroke="#64748B" stroke-width="2" stroke-dasharray="3 2"/></svg>
+        HiddenState
+      </span>
+      <span class="legend-item">
+        <svg width="16" height="16" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2"/></svg>
+        Input (external source)
+      </span>
+    </div>
+    <div class="legend-group">
+      <span class="label">Materialized</span>
+      <span class="legend-item">
+        <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#DC2626" stroke="#DC2626" stroke-width="1.5"/></svg>
+        Adapter spec written
+      </span>
+      <span class="legend-item">
+        <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#FFFFFF" stroke="#DC2626" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.7"/></svg>
+        Implicit (no spec yet)
+      </span>
+    </div>
+    <div class="legend-group">
+      <span class="label">Edges</span>
+      <span class="legend-item">
+        <svg width="36" height="14" viewBox="0 0 36 14">
+          <defs><marker id="lg-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#374151"/></marker></defs>
+          <path d="M2 7 L 28 7" stroke="#374151" stroke-width="1.6" fill="none" marker-end="url(#lg-a)"/>
+        </svg>
+        Active (both endpoints specced)
+      </span>
+      <span class="legend-item">
+        <svg width="36" height="14" viewBox="0 0 36 14">
+          <defs><marker id="lg-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#374151" opacity="0.55"/></marker></defs>
+          <path d="M2 7 L 28 7" stroke="#374151" stroke-width="1.3" stroke-dasharray="6 4" opacity="0.55" fill="none" marker-end="url(#lg-b)"/>
+        </svg>
+        Implicit (endpoint lacks spec)
+      </span>
+    </div>
+    <div class="legend-group">
+      <span class="label">Lanes</span>
+      <span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1F2937"></span> Symbolic</span>
+      <span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#DC2626"></span> kaldo</span>
+      <span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#059669"></span> phono3py</span>
+      <span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#0891B2"></span> phonopy</span>
+      <span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#7C3AED"></span> shengbte</span>
+    </div>
+  </div>
 </header>
-<main>
-  <div id="diagram">
-    <pre class="mermaid">
-flowchart TD
-  subgraph L0["Sources"]
-    direction LR
-    Potential["Potential"]:::observable
-    Temperature["Temperature"]:::observable
-  end
-  subgraph L1["Force constants"]
-    direction LR
-    ForceConstants_order_2["ForceConstants<br/>[order=2]"]:::observable
-    ForceConstants_order_3["ForceConstants<br/>[order=3]"]:::observable
-  end
-  subgraph L2["Harmonic"]
-    direction LR
-    DynamicalMatrix["DynamicalMatrix"]:::observable
-  end
-  subgraph L3["Dispersion"]
-    direction LR
-    Frequency["Frequency [K/P]"]:::observable
-    Eigenvectors["Eigenvectors"]:::hidden
-  end
-  subgraph L4["Mode-resolved"]
-    direction LR
-    GroupVelocity["GroupVelocity [K/P]"]:::hidden
-    HeatCapacity["HeatCapacity [K/P]"]:::observable
-    Linewidth["Linewidth [K/P]"]:::hidden
-  end
-  subgraph L5["BTE solution"]
-    direction LR
-    MeanFreeDisplacement_bte_solver_rta["MeanFreeDisplacement<br/>[bte_solver=rta]"]:::hidden
-    MeanFreeDisplacement_bte_solver_direct_inverse["MeanFreeDisplacement<br/>[bte_solver=direct_inverse]"]:::observable
-  end
-  subgraph L6["κ (observable)"]
-    direction LR
-    ThermalConductivity_bte_solver_rta["ThermalConductivity<br/>[bte_solver=rta] [K/P]"]:::hidden
-    ThermalConductivity_bte_solver_direct_inverse["ThermalConductivity<br/>[bte_solver=direct_inverse] [K/P]"]:::observable
-  end
-  Potential -->|compute_force_constants| ForceConstants_order_2
-  Potential -->|compute_force_constants| ForceConstants_order_3
-  ForceConstants_order_2 -->|compute_dynamical_matrix| DynamicalMatrix
-  DynamicalMatrix -->|compute_dispersion| Frequency
-  DynamicalMatrix -->|compute_dispersion| Eigenvectors
-  DynamicalMatrix -->|compute_group_velocity| GroupVelocity
-  Frequency -->|compute_group_velocity| GroupVelocity
-  Eigenvectors -->|compute_group_velocity| GroupVelocity
-  Frequency -->|compute_heat_capacity| HeatCapacity
-  Temperature -->|compute_heat_capacity| HeatCapacity
-  Frequency -->|compute_linewidth| Linewidth
-  Eigenvectors -->|compute_linewidth| Linewidth
-  ForceConstants_order_3 -->|compute_linewidth| Linewidth
-  Temperature -->|compute_linewidth| Linewidth
-  Frequency -->|solve_bte| MeanFreeDisplacement_bte_solver_rta
-  GroupVelocity -->|solve_bte| MeanFreeDisplacement_bte_solver_rta
-  Linewidth -->|solve_bte| MeanFreeDisplacement_bte_solver_rta
-  Temperature -->|solve_bte| MeanFreeDisplacement_bte_solver_rta
-  Frequency -->|solve_bte| MeanFreeDisplacement_bte_solver_direct_inverse
-  GroupVelocity -->|solve_bte| MeanFreeDisplacement_bte_solver_direct_inverse
-  Linewidth -->|solve_bte| MeanFreeDisplacement_bte_solver_direct_inverse
-  Temperature -->|solve_bte| MeanFreeDisplacement_bte_solver_direct_inverse
-  HeatCapacity -->|contract_kappa| ThermalConductivity_bte_solver_rta
-  GroupVelocity -->|contract_kappa| ThermalConductivity_bte_solver_rta
-  MeanFreeDisplacement_bte_solver_rta -->|contract_kappa| ThermalConductivity_bte_solver_rta
-  HeatCapacity -->|contract_kappa| ThermalConductivity_bte_solver_direct_inverse
-  GroupVelocity -->|contract_kappa| ThermalConductivity_bte_solver_direct_inverse
-  MeanFreeDisplacement_bte_solver_direct_inverse -->|contract_kappa| ThermalConductivity_bte_solver_direct_inverse
 
-  classDef observable fill:#3f7fc1,stroke:#2c5d8f,color:#fff,stroke-width:1px
-  classDef hidden fill:#888,stroke:#666,color:#fff,stroke-width:1px
-    </pre>
+<div class="layout">
+  <div class="diagram-wrap">
+<svg xmlns="http://www.w3.org/2000/svg" width="3136" height="1840" viewBox="0 0 3136 1840" font-family="-apple-system, BlinkMacSystemFont, Inter, 'Segoe UI', system-ui, sans-serif"><defs><marker id="arrow-symbolic" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#1F2937" /></marker><marker id="arrow-symbolic-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#1F2937" opacity="0.18" /></marker><marker id="arrow-kaldo" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#DC2626" /></marker><marker id="arrow-kaldo-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#DC2626" opacity="0.18" /></marker><marker id="arrow-phono3py" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#059669" /></marker><marker id="arrow-phono3py-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#059669" opacity="0.18" /></marker><marker id="arrow-phonopy" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#0891B2" /></marker><marker id="arrow-phonopy-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#0891B2" opacity="0.18" /></marker><marker id="arrow-shengbte" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#7C3AED" /></marker><marker id="arrow-shengbte-dim" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#7C3AED" opacity="0.18" /></marker></defs><rect x="0" y="260.0" width="3136" height="194" fill="#F3F4F6" opacity="0.55" /><rect x="0" y="576.0" width="3136" height="194" fill="#F3F4F6" opacity="0.55" /><rect x="0" y="1272.0" width="3136" height="346" fill="#F3F4F6" opacity="0.55" /><rect x="28" y="28" width="528" height="1806" fill="#EFF6FF" opacity="0.45" rx="6" /><rect x="32" y="54" width="520" height="2.5" fill="#1F2937" /><circle cx="42" cy="38" r="5.5" fill="#1F2937" /><text x="55" y="44" font-size="14.5" font-weight="700" fill="#111827">Symbolic</text><rect x="592" y="54" width="600" height="2.5" fill="#DC2626" /><circle cx="602" cy="38" r="5.5" fill="#DC2626" /><text x="615" y="44" font-size="13.5" font-weight="600" fill="#111827">kaldo</text><rect x="1232" y="54" width="600" height="2.5" fill="#059669" /><circle cx="1242" cy="38" r="5.5" fill="#059669" /><text x="1255" y="44" font-size="13.5" font-weight="600" fill="#111827">phono3py</text><rect x="1872" y="54" width="600" height="2.5" fill="#0891B2" /><circle cx="1882" cy="38" r="5.5" fill="#0891B2" /><text x="1895" y="44" font-size="13.5" font-weight="600" fill="#111827">phonopy</text><rect x="2512" y="54" width="600" height="2.5" fill="#7C3AED" /><circle cx="2522" cy="38" r="5.5" fill="#7C3AED" /><text x="2535" y="44" font-size="13.5" font-weight="600" fill="#111827">shengbte</text><line x1="0" y1="71.0" x2="3136" y2="71.0" stroke="#D1D5DB" stroke-width="1" stroke-dasharray="3 4" /><text x="32" y="87.0" font-size="11" font-weight="600" fill="#9CA3AF" letter-spacing="0.08em"><tspan fill="#9CA3AF">STAGE 0</tspan>  <tspan fill="#374151">Sources</tspan></text><line x1="0" y1="267.0" x2="3136" y2="267.0" stroke="#D1D5DB" stroke-width="1" stroke-dasharray="3 4" /><text x="32" y="283.0" font-size="11" font-weight="600" fill="#9CA3AF" letter-spacing="0.08em"><tspan fill="#9CA3AF">STAGE 1</tspan>  <tspan fill="#374151">Force constants</tspan></text><line x1="0" y1="463.0" x2="3136" y2="463.0" stroke="#D1D5DB" stroke-width="1" stroke-dasharray="3 4" /><text x="32" y="479.0" font-size="11" font-weight="600" fill="#9CA3AF" letter-spacing="0.08em"><tspan fill="#9CA3AF">STAGE 2</tspan>  <tspan fill="#374151">Harmonic</tspan></text><line x1="0" y1="583.0" x2="3136" y2="583.0" stroke="#D1D5DB" stroke-width="1" stroke-dasharray="3 4" /><text x="32" y="599.0" font-size="11" font-weight="600" fill="#9CA3AF" letter-spacing="0.08em"><tspan fill="#9CA3AF">STAGE 3</tspan>  <tspan fill="#374151">Dispersion</tspan></text><line x1="0" y1="779.0" x2="3136" y2="779.0" stroke="#D1D5DB" stroke-width="1" stroke-dasharray="3 4" /><text x="32" y="795.0" font-size="11" font-weight="600" fill="#9CA3AF" letter-spacing="0.08em"><tspan fill="#9CA3AF">STAGE 4</tspan>  <tspan fill="#374151">Mode-resolved</tspan></text><line x1="0" y1="1279.0" x2="3136" y2="1279.0" stroke="#D1D5DB" stroke-width="1" stroke-dasharray="3 4" /><text x="32" y="1295.0" font-size="11" font-weight="600" fill="#9CA3AF" letter-spacing="0.08em"><tspan fill="#9CA3AF">STAGE 5</tspan>  <tspan fill="#374151">BTE solution</tspan></text><line x1="0" y1="1627.0" x2="3136" y2="1627.0" stroke="#D1D5DB" stroke-width="1" stroke-dasharray="3 4" /><text x="32" y="1643.0" font-size="11" font-weight="600" fill="#9CA3AF" letter-spacing="0.08em"><tspan fill="#9CA3AF">STAGE 6</tspan>  <tspan fill="#374151">κ (observable)</tspan></text><path d="M 60.0 154.0 C 60.0 229.4, 60.0 246.6, 60.0 320.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_force_constants[order=2]" /><path d="M 60.0 154.0 C 60.0 263.6, 170.0 288.4, 170.0 396.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_force_constants[order=3]" /><path d="M 60.0 350.0 C 60.0 425.4, 115.0 442.6, 115.0 516.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_dynamical_matrix" /><path d="M 115.0 546.0 C 115.0 587.2, 60.0 596.8, 60.0 636.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_dispersion" /><path d="M 115.0 546.0 C 115.0 621.4, 170.0 638.6, 170.0 712.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_dispersion" /><path d="M 115.0 546.0 C 115.0 675.4, 60.0 704.6, 60.0 832.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_group_velocity" /><path d="M 60.0 666.0 C 60.0 741.4, 60.0 758.6, 60.0 832.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_group_velocity" /><path d="M 170.0 742.0 C 170.0 783.2, 60.0 792.8, 60.0 832.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_group_velocity" /><path d="M 60.0 666.0 C 60.0 775.6, 82.0 800.4, 82.0 908.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_heat_capacity" /><path d="M 170.0 230.0 C 170.0 535.8, 82.0 604.2, 82.0 908.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_heat_capacity" /><path d="M 60.0 666.0 C 60.0 809.8, 104.0 842.2, 104.0 984.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_linewidth" /><path d="M 170.0 742.0 C 170.0 851.6, 104.0 876.4, 104.0 984.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_linewidth" /><path d="M 170.0 426.0 C 170.0 677.8, 104.0 734.2, 104.0 984.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_linewidth" /><path d="M 170.0 230.0 C 170.0 570.0, 104.0 646.0, 104.0 984.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_linewidth" /><path d="M 60.0 666.0 C 60.0 1034.8, 133.33333333333331 1117.2, 133.33333333333331 1484.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="solve_bte[bte_solver=rta]" /><path d="M 60.0 862.0 C 60.0 1142.6, 133.33333333333331 1205.4, 133.33333333333331 1484.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="solve_bte[bte_solver=rta]" /><path d="M 104.0 1014.0 C 104.0 1226.2, 133.33333333333331 1273.8, 133.33333333333331 1484.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="solve_bte[bte_solver=rta]" /><path d="M 170.0 230.0 C 170.0 795.0, 133.33333333333331 921.0, 133.33333333333331 1484.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="solve_bte[bte_solver=rta]" /><path d="M 60.0 666.0 C 60.0 1069.0, 170.0 1159.0, 170.0 1560.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 60.0 862.0 C 60.0 1176.8, 170.0 1247.2, 170.0 1560.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 104.0 1014.0 C 104.0 1260.4, 170.0 1315.6, 170.0 1560.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 170.0 230.0 C 170.0 829.2, 170.0 962.8, 170.0 1560.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 82.0 938.0 C 82.0 1272.6, 60.0 1347.4, 60.0 1680.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="contract_kappa[bte_solver=rta]" /><path d="M 60.0 862.0 C 60.0 1230.8, 60.0 1313.2, 60.0 1680.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="contract_kappa[bte_solver=rta]" /><path d="M 133.33333333333331 1514.0 C 133.33333333333331 1589.4, 60.0 1606.6, 60.0 1680.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="contract_kappa[bte_solver=rta]" /><path d="M 82.0 938.0 C 82.0 1306.8, 170.0 1389.2, 170.0 1756.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="contract_kappa[bte_solver=direct_inverse]" /><path d="M 60.0 862.0 C 60.0 1265.0, 170.0 1355.0, 170.0 1756.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="contract_kappa[bte_solver=direct_inverse]" /><path d="M 170.0 1590.0 C 170.0 1665.4, 170.0 1682.6, 170.0 1756.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="contract_kappa[bte_solver=direct_inverse]" /><path d="M 82.0 938.0 C 82.0 1116.0, 60.0 1156.0, 60.0 1332.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="contract_volumetric_heat_capacity" /><path d="M 82.0 938.0 C 82.0 1150.2, 96.66666666666666 1197.8, 96.66666666666666 1408.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="contract_molar_heat_capacity" /><path d="M 60.0 666.0 C 60.0 844.0, 126.0 884.0, 126.0 1060.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_dos" /><path d="M 60.0 350.0 C 60.0 704.4000000000001, 148.0 783.5999999999999, 148.0 1136.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_gruneisen" /><path d="M 170.0 426.0 C 170.0 746.2, 148.0 817.8, 148.0 1136.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_gruneisen" /><path d="M 60.0 666.0 C 60.0 878.2, 148.0 925.8, 148.0 1136.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_gruneisen" /><path d="M 170.0 742.0 C 170.0 920.0, 148.0 960.0, 148.0 1136.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_gruneisen" /><path d="M 60.0 666.0 C 60.0 912.4, 170.0 967.6, 170.0 1212.0" stroke="#1F2937" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-symbolic)" class="edge edge-symbolic" data-op="compute_phase_space_3phonon" /><path d="M 616.0 150.0 C 616.0 229.0, 616.0 247.0, 616.0 324.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="compute_force_constants[order=2]" /><path d="M 616.0 150.0 C 616.0 263.2, 706.0 288.8, 706.0 400.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="compute_force_constants[order=3]" /><path d="M 616.0 346.0 C 616.0 425.0, 661.0 443.0, 661.0 520.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="compute_dynamical_matrix" /><path d="M 661.0 542.0 C 661.0 586.8, 616.0 597.2, 616.0 640.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="compute_dispersion" /><path d="M 661.0 542.0 C 661.0 621.0, 706.0 639.0, 706.0 716.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="compute_dispersion" /><path d="M 661.0 542.0 C 661.0 675.0, 616.0 705.0, 616.0 836.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="compute_group_velocity" /><path d="M 616.0 662.0 C 616.0 741.0, 616.0 759.0, 616.0 836.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="compute_group_velocity" /><path d="M 706.0 738.0 C 706.0 782.8, 616.0 793.2, 616.0 836.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="compute_group_velocity" /><path d="M 616.0 662.0 C 616.0 775.2, 634.0 800.8, 634.0 912.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="compute_heat_capacity" /><path d="M 706.0 226.0 C 706.0 535.4000000000001, 634.0 604.5999999999999, 634.0 912.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="compute_heat_capacity" /><path d="M 616.0 662.0 C 616.0 809.4, 652.0 842.6, 652.0 988.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="compute_linewidth" /><path d="M 706.0 738.0 C 706.0 851.2, 652.0 876.8, 652.0 988.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="compute_linewidth" /><path d="M 706.0 422.0 C 706.0 677.4000000000001, 652.0 734.5999999999999, 652.0 988.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="compute_linewidth" /><path d="M 706.0 226.0 C 706.0 569.6, 652.0 646.4, 652.0 988.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="compute_linewidth" /><path d="M 616.0 662.0 C 616.0 1034.4, 676.0 1117.6, 676.0 1488.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="solve_bte[bte_solver=rta]" /><path d="M 616.0 858.0 C 616.0 1142.2, 676.0 1205.8, 676.0 1488.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="solve_bte[bte_solver=rta]" /><path d="M 652.0 1010.0 C 652.0 1225.8, 676.0 1274.2, 676.0 1488.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="solve_bte[bte_solver=rta]" /><path d="M 706.0 226.0 C 706.0 794.6, 676.0 921.4, 676.0 1488.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="solve_bte[bte_solver=rta]" /><path d="M 616.0 662.0 C 616.0 1068.6, 706.0 1159.4, 706.0 1564.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 616.0 858.0 C 616.0 1176.4, 706.0 1247.6, 706.0 1564.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 652.0 1010.0 C 652.0 1260.0, 706.0 1316.0, 706.0 1564.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 706.0 226.0 C 706.0 828.8000000000001, 706.0 963.1999999999999, 706.0 1564.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 634.0 934.0 C 634.0 1272.2, 616.0 1347.8, 616.0 1684.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="contract_kappa[bte_solver=rta]" /><path d="M 616.0 858.0 C 616.0 1230.4, 616.0 1313.6, 616.0 1684.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="contract_kappa[bte_solver=rta]" /><path d="M 676.0 1510.0 C 676.0 1589.0, 616.0 1607.0, 616.0 1684.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="contract_kappa[bte_solver=rta]" /><path d="M 634.0 934.0 C 634.0 1306.4, 706.0 1389.6, 706.0 1760.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="contract_kappa[bte_solver=direct_inverse]" /><path d="M 616.0 858.0 C 616.0 1264.6, 706.0 1355.4, 706.0 1760.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="contract_kappa[bte_solver=direct_inverse]" /><path d="M 706.0 1586.0 C 706.0 1665.0, 706.0 1683.0, 706.0 1760.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="contract_kappa[bte_solver=direct_inverse]" /><path d="M 634.0 934.0 C 634.0 1115.6, 616.0 1156.4, 616.0 1336.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="contract_volumetric_heat_capacity" /><path d="M 634.0 934.0 C 634.0 1149.8, 646.0 1198.2, 646.0 1412.0" stroke="#DC2626" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo" data-op="contract_molar_heat_capacity" /><path d="M 616.0 662.0 C 616.0 843.6, 670.0 884.4, 670.0 1064.0" stroke="#DC2626" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo edge-implicit" data-op="compute_dos" /><path d="M 616.0 346.0 C 616.0 704.0, 688.0 784.0, 688.0 1140.0" stroke="#DC2626" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo edge-implicit" data-op="compute_gruneisen" /><path d="M 706.0 422.0 C 706.0 745.8, 688.0 818.2, 688.0 1140.0" stroke="#DC2626" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo edge-implicit" data-op="compute_gruneisen" /><path d="M 616.0 662.0 C 616.0 877.8, 688.0 926.2, 688.0 1140.0" stroke="#DC2626" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo edge-implicit" data-op="compute_gruneisen" /><path d="M 706.0 738.0 C 706.0 919.6, 688.0 960.4, 688.0 1140.0" stroke="#DC2626" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo edge-implicit" data-op="compute_gruneisen" /><path d="M 616.0 662.0 C 616.0 912.0, 706.0 968.0, 706.0 1216.0" stroke="#DC2626" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-kaldo)" class="edge edge-kaldo edge-implicit" data-op="compute_phase_space_3phonon" /><path d="M 1256.0 150.0 C 1256.0 229.0, 1256.0 247.0, 1256.0 324.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_force_constants[order=2]" /><path d="M 1256.0 150.0 C 1256.0 263.2, 1346.0 288.8, 1346.0 400.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_force_constants[order=3]" /><path d="M 1256.0 346.0 C 1256.0 425.0, 1301.0 443.0, 1301.0 520.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_dynamical_matrix" /><path d="M 1301.0 542.0 C 1301.0 586.8, 1256.0 597.2, 1256.0 640.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_dispersion" /><path d="M 1301.0 542.0 C 1301.0 621.0, 1346.0 639.0, 1346.0 716.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_dispersion" /><path d="M 1301.0 542.0 C 1301.0 675.0, 1256.0 705.0, 1256.0 836.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_group_velocity" /><path d="M 1256.0 662.0 C 1256.0 741.0, 1256.0 759.0, 1256.0 836.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_group_velocity" /><path d="M 1346.0 738.0 C 1346.0 782.8, 1256.0 793.2, 1256.0 836.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_group_velocity" /><path d="M 1256.0 662.0 C 1256.0 775.2, 1274.0 800.8, 1274.0 912.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_heat_capacity" /><path d="M 1346.0 226.0 C 1346.0 535.4000000000001, 1274.0 604.5999999999999, 1274.0 912.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_heat_capacity" /><path d="M 1256.0 662.0 C 1256.0 809.4, 1292.0 842.6, 1292.0 988.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_linewidth" /><path d="M 1346.0 738.0 C 1346.0 851.2, 1292.0 876.8, 1292.0 988.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_linewidth" /><path d="M 1346.0 422.0 C 1346.0 677.4000000000001, 1292.0 734.5999999999999, 1292.0 988.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_linewidth" /><path d="M 1346.0 226.0 C 1346.0 569.6, 1292.0 646.4, 1292.0 988.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_linewidth" /><path d="M 1256.0 662.0 C 1256.0 1034.4, 1316.0 1117.6, 1316.0 1488.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="solve_bte[bte_solver=rta]" /><path d="M 1256.0 858.0 C 1256.0 1142.2, 1316.0 1205.8, 1316.0 1488.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="solve_bte[bte_solver=rta]" /><path d="M 1292.0 1010.0 C 1292.0 1225.8, 1316.0 1274.2, 1316.0 1488.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="solve_bte[bte_solver=rta]" /><path d="M 1346.0 226.0 C 1346.0 794.6, 1316.0 921.4, 1316.0 1488.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="solve_bte[bte_solver=rta]" /><path d="M 1256.0 662.0 C 1256.0 1068.6, 1346.0 1159.4, 1346.0 1564.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 1256.0 858.0 C 1256.0 1176.4, 1346.0 1247.6, 1346.0 1564.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 1292.0 1010.0 C 1292.0 1260.0, 1346.0 1316.0, 1346.0 1564.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 1346.0 226.0 C 1346.0 828.8000000000001, 1346.0 963.1999999999999, 1346.0 1564.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 1274.0 934.0 C 1274.0 1272.2, 1256.0 1347.8, 1256.0 1684.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="contract_kappa[bte_solver=rta]" /><path d="M 1256.0 858.0 C 1256.0 1230.4, 1256.0 1313.6, 1256.0 1684.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="contract_kappa[bte_solver=rta]" /><path d="M 1316.0 1510.0 C 1316.0 1589.0, 1256.0 1607.0, 1256.0 1684.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="contract_kappa[bte_solver=rta]" /><path d="M 1274.0 934.0 C 1274.0 1306.4, 1346.0 1389.6, 1346.0 1760.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="contract_kappa[bte_solver=direct_inverse]" /><path d="M 1256.0 858.0 C 1256.0 1264.6, 1346.0 1355.4, 1346.0 1760.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="contract_kappa[bte_solver=direct_inverse]" /><path d="M 1346.0 1586.0 C 1346.0 1665.0, 1346.0 1683.0, 1346.0 1760.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="contract_kappa[bte_solver=direct_inverse]" /><path d="M 1274.0 934.0 C 1274.0 1115.6, 1256.0 1156.4, 1256.0 1336.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="contract_volumetric_heat_capacity" /><path d="M 1274.0 934.0 C 1274.0 1149.8, 1286.0 1198.2, 1286.0 1412.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="contract_molar_heat_capacity" /><path d="M 1256.0 662.0 C 1256.0 843.6, 1310.0 884.4, 1310.0 1064.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_dos" /><path d="M 1256.0 346.0 C 1256.0 704.0, 1328.0 784.0, 1328.0 1140.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_gruneisen" /><path d="M 1346.0 422.0 C 1346.0 745.8, 1328.0 818.2, 1328.0 1140.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_gruneisen" /><path d="M 1256.0 662.0 C 1256.0 877.8, 1328.0 926.2, 1328.0 1140.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_gruneisen" /><path d="M 1346.0 738.0 C 1346.0 919.6, 1328.0 960.4, 1328.0 1140.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_gruneisen" /><path d="M 1256.0 662.0 C 1256.0 912.0, 1346.0 968.0, 1346.0 1216.0" stroke="#059669" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phono3py)" class="edge edge-phono3py" data-op="compute_phase_space_3phonon" /><path d="M 1896.0 150.0 C 1896.0 229.0, 1896.0 247.0, 1896.0 324.0" stroke="#0891B2" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy" data-op="compute_force_constants[order=2]" /><path d="M 1896.0 150.0 C 1896.0 263.2, 1986.0 288.8, 1986.0 400.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="compute_force_constants[order=3]" /><path d="M 1896.0 346.0 C 1896.0 425.0, 1941.0 443.0, 1941.0 520.0" stroke="#0891B2" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy" data-op="compute_dynamical_matrix" /><path d="M 1941.0 542.0 C 1941.0 586.8, 1896.0 597.2, 1896.0 640.0" stroke="#0891B2" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy" data-op="compute_dispersion" /><path d="M 1941.0 542.0 C 1941.0 621.0, 1986.0 639.0, 1986.0 716.0" stroke="#0891B2" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy" data-op="compute_dispersion" /><path d="M 1941.0 542.0 C 1941.0 675.0, 1896.0 705.0, 1896.0 836.0" stroke="#0891B2" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy" data-op="compute_group_velocity" /><path d="M 1896.0 662.0 C 1896.0 741.0, 1896.0 759.0, 1896.0 836.0" stroke="#0891B2" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy" data-op="compute_group_velocity" /><path d="M 1986.0 738.0 C 1986.0 782.8, 1896.0 793.2, 1896.0 836.0" stroke="#0891B2" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy" data-op="compute_group_velocity" /><path d="M 1896.0 662.0 C 1896.0 775.2, 1914.0 800.8, 1914.0 912.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="compute_heat_capacity" /><path d="M 1986.0 226.0 C 1986.0 535.4000000000001, 1914.0 604.5999999999999, 1914.0 912.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="compute_heat_capacity" /><path d="M 1896.0 662.0 C 1896.0 809.4, 1932.0 842.6, 1932.0 988.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="compute_linewidth" /><path d="M 1986.0 738.0 C 1986.0 851.2, 1932.0 876.8, 1932.0 988.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="compute_linewidth" /><path d="M 1986.0 422.0 C 1986.0 677.4000000000001, 1932.0 734.5999999999999, 1932.0 988.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="compute_linewidth" /><path d="M 1986.0 226.0 C 1986.0 569.6, 1932.0 646.4, 1932.0 988.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="compute_linewidth" /><path d="M 1896.0 662.0 C 1896.0 1034.4, 1956.0 1117.6, 1956.0 1488.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="solve_bte[bte_solver=rta]" /><path d="M 1896.0 858.0 C 1896.0 1142.2, 1956.0 1205.8, 1956.0 1488.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="solve_bte[bte_solver=rta]" /><path d="M 1932.0 1010.0 C 1932.0 1225.8, 1956.0 1274.2, 1956.0 1488.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="solve_bte[bte_solver=rta]" /><path d="M 1986.0 226.0 C 1986.0 794.6, 1956.0 921.4, 1956.0 1488.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="solve_bte[bte_solver=rta]" /><path d="M 1896.0 662.0 C 1896.0 1068.6, 1986.0 1159.4, 1986.0 1564.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 1896.0 858.0 C 1896.0 1176.4, 1986.0 1247.6, 1986.0 1564.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 1932.0 1010.0 C 1932.0 1260.0, 1986.0 1316.0, 1986.0 1564.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 1986.0 226.0 C 1986.0 828.8000000000001, 1986.0 963.1999999999999, 1986.0 1564.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 1914.0 934.0 C 1914.0 1272.2, 1896.0 1347.8, 1896.0 1684.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="contract_kappa[bte_solver=rta]" /><path d="M 1896.0 858.0 C 1896.0 1230.4, 1896.0 1313.6, 1896.0 1684.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="contract_kappa[bte_solver=rta]" /><path d="M 1956.0 1510.0 C 1956.0 1589.0, 1896.0 1607.0, 1896.0 1684.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="contract_kappa[bte_solver=rta]" /><path d="M 1914.0 934.0 C 1914.0 1306.4, 1986.0 1389.6, 1986.0 1760.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="contract_kappa[bte_solver=direct_inverse]" /><path d="M 1896.0 858.0 C 1896.0 1264.6, 1986.0 1355.4, 1986.0 1760.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="contract_kappa[bte_solver=direct_inverse]" /><path d="M 1986.0 1586.0 C 1986.0 1665.0, 1986.0 1683.0, 1986.0 1760.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="contract_kappa[bte_solver=direct_inverse]" /><path d="M 1914.0 934.0 C 1914.0 1115.6, 1896.0 1156.4, 1896.0 1336.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="contract_volumetric_heat_capacity" /><path d="M 1914.0 934.0 C 1914.0 1149.8, 1926.0 1198.2, 1926.0 1412.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="contract_molar_heat_capacity" /><path d="M 1896.0 662.0 C 1896.0 843.6, 1950.0 884.4, 1950.0 1064.0" stroke="#0891B2" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy" data-op="compute_dos" /><path d="M 1896.0 346.0 C 1896.0 704.0, 1968.0 784.0, 1968.0 1140.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="compute_gruneisen" /><path d="M 1986.0 422.0 C 1986.0 745.8, 1968.0 818.2, 1968.0 1140.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="compute_gruneisen" /><path d="M 1896.0 662.0 C 1896.0 877.8, 1968.0 926.2, 1968.0 1140.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="compute_gruneisen" /><path d="M 1986.0 738.0 C 1986.0 919.6, 1968.0 960.4, 1968.0 1140.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="compute_gruneisen" /><path d="M 1896.0 662.0 C 1896.0 912.0, 1986.0 968.0, 1986.0 1216.0" stroke="#0891B2" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-phonopy)" class="edge edge-phonopy edge-implicit" data-op="compute_phase_space_3phonon" /><path d="M 2536.0 150.0 C 2536.0 229.0, 2536.0 247.0, 2536.0 324.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="compute_force_constants[order=2]" /><path d="M 2536.0 150.0 C 2536.0 263.2, 2626.0 288.8, 2626.0 400.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="compute_force_constants[order=3]" /><path d="M 2536.0 346.0 C 2536.0 425.0, 2581.0 443.0, 2581.0 520.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="compute_dynamical_matrix" /><path d="M 2581.0 542.0 C 2581.0 586.8, 2536.0 597.2, 2536.0 640.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="compute_dispersion" /><path d="M 2581.0 542.0 C 2581.0 621.0, 2626.0 639.0, 2626.0 716.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="compute_dispersion" /><path d="M 2581.0 542.0 C 2581.0 675.0, 2536.0 705.0, 2536.0 836.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="compute_group_velocity" /><path d="M 2536.0 662.0 C 2536.0 741.0, 2536.0 759.0, 2536.0 836.0" stroke="#7C3AED" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte" data-op="compute_group_velocity" /><path d="M 2626.0 738.0 C 2626.0 782.8, 2536.0 793.2, 2536.0 836.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="compute_group_velocity" /><path d="M 2536.0 662.0 C 2536.0 775.2, 2554.0 800.8, 2554.0 912.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="compute_heat_capacity" /><path d="M 2626.0 226.0 C 2626.0 535.4000000000001, 2554.0 604.5999999999999, 2554.0 912.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="compute_heat_capacity" /><path d="M 2536.0 662.0 C 2536.0 809.4, 2572.0 842.6, 2572.0 988.0" stroke="#7C3AED" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte" data-op="compute_linewidth" /><path d="M 2626.0 738.0 C 2626.0 851.2, 2572.0 876.8, 2572.0 988.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="compute_linewidth" /><path d="M 2626.0 422.0 C 2626.0 677.4000000000001, 2572.0 734.5999999999999, 2572.0 988.0" stroke="#7C3AED" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte" data-op="compute_linewidth" /><path d="M 2626.0 226.0 C 2626.0 569.6, 2572.0 646.4, 2572.0 988.0" stroke="#7C3AED" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte" data-op="compute_linewidth" /><path d="M 2536.0 662.0 C 2536.0 1034.4, 2596.0 1117.6, 2596.0 1488.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="solve_bte[bte_solver=rta]" /><path d="M 2536.0 858.0 C 2536.0 1142.2, 2596.0 1205.8, 2596.0 1488.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="solve_bte[bte_solver=rta]" /><path d="M 2572.0 1010.0 C 2572.0 1225.8, 2596.0 1274.2, 2596.0 1488.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="solve_bte[bte_solver=rta]" /><path d="M 2626.0 226.0 C 2626.0 794.6, 2596.0 921.4, 2596.0 1488.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="solve_bte[bte_solver=rta]" /><path d="M 2536.0 662.0 C 2536.0 1068.6, 2626.0 1159.4, 2626.0 1564.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 2536.0 858.0 C 2536.0 1176.4, 2626.0 1247.6, 2626.0 1564.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 2572.0 1010.0 C 2572.0 1260.0, 2626.0 1316.0, 2626.0 1564.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 2626.0 226.0 C 2626.0 828.8000000000001, 2626.0 963.1999999999999, 2626.0 1564.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="solve_bte[bte_solver=direct_inverse]" /><path d="M 2554.0 934.0 C 2554.0 1272.2, 2536.0 1347.8, 2536.0 1684.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="contract_kappa[bte_solver=rta]" /><path d="M 2536.0 858.0 C 2536.0 1230.4, 2536.0 1313.6, 2536.0 1684.0" stroke="#7C3AED" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte" data-op="contract_kappa[bte_solver=rta]" /><path d="M 2596.0 1510.0 C 2596.0 1589.0, 2536.0 1607.0, 2536.0 1684.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="contract_kappa[bte_solver=rta]" /><path d="M 2554.0 934.0 C 2554.0 1306.4, 2626.0 1389.6, 2626.0 1760.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="contract_kappa[bte_solver=direct_inverse]" /><path d="M 2536.0 858.0 C 2536.0 1264.6, 2626.0 1355.4, 2626.0 1760.0" stroke="#7C3AED" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte" data-op="contract_kappa[bte_solver=direct_inverse]" /><path d="M 2626.0 1586.0 C 2626.0 1665.0, 2626.0 1683.0, 2626.0 1760.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="contract_kappa[bte_solver=direct_inverse]" /><path d="M 2554.0 934.0 C 2554.0 1115.6, 2536.0 1156.4, 2536.0 1336.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="contract_volumetric_heat_capacity" /><path d="M 2554.0 934.0 C 2554.0 1149.8, 2566.0 1198.2, 2566.0 1412.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="contract_molar_heat_capacity" /><path d="M 2536.0 662.0 C 2536.0 843.6, 2590.0 884.4, 2590.0 1064.0" stroke="#7C3AED" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte" data-op="compute_dos" /><path d="M 2536.0 346.0 C 2536.0 704.0, 2608.0 784.0, 2608.0 1140.0" stroke="#7C3AED" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte" data-op="compute_gruneisen" /><path d="M 2626.0 422.0 C 2626.0 745.8, 2608.0 818.2, 2608.0 1140.0" stroke="#7C3AED" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte" data-op="compute_gruneisen" /><path d="M 2536.0 662.0 C 2536.0 877.8, 2608.0 926.2, 2608.0 1140.0" stroke="#7C3AED" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte" data-op="compute_gruneisen" /><path d="M 2626.0 738.0 C 2626.0 919.6, 2608.0 960.4, 2608.0 1140.0" stroke="#7C3AED" stroke-width="1.3" fill="none" opacity="0.42" stroke-dasharray="6 4" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte edge-implicit" data-op="compute_gruneisen" /><path d="M 2536.0 662.0 C 2536.0 912.0, 2626.0 968.0, 2626.0 1216.0" stroke="#7C3AED" stroke-width="1.7" fill="none" opacity="0.68" marker-end="url(#arrow-shengbte)" class="edge edge-shengbte" data-op="compute_phase_space_3phonon" /><g class="node-row" data-state="Potential" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="102.0" width="520" height="76" fill="transparent" /><rect x="48.6" y="128.6" width="22.799999999999997" height="22.799999999999997" rx="3" ry="3" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2" class="node-shape node-input node-shape-sym" /><text x="204" y="146.0" font-size="17" font-weight="700" fill="#0F172A">Potential</text></g><g class="node-row" data-state="Temperature" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="178.0" width="520" height="76" fill="transparent" /><rect x="158.6" y="204.6" width="22.799999999999997" height="22.799999999999997" rx="3" ry="3" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2" class="node-shape node-input node-shape-sym" /><text x="204" y="222.0" font-size="17" font-weight="700" fill="#0F172A">Temperature</text></g><g class="node-row" data-state="ForceConstants[order=2]" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="298.0" width="520" height="76" fill="transparent" /><circle cx="60.0" cy="336.0" r="12" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2" class="node-shape node-circle node-circle-sym" /><text x="204" y="333.0" font-size="17" font-weight="700" fill="#0F172A">ForceConstants</text><text x="204" y="352.0" font-size="12.5" font-weight="500" font-family="ui-monospace, 'SF Mono', Monaco, monospace" fill="#475569">[order=2]</text></g><g class="node-row" data-state="ForceConstants[order=3]" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="374.0" width="520" height="76" fill="transparent" /><circle cx="170.0" cy="412.0" r="12" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2" class="node-shape node-circle node-circle-sym" /><text x="204" y="409.0" font-size="17" font-weight="700" fill="#0F172A">ForceConstants</text><text x="204" y="428.0" font-size="12.5" font-weight="500" font-family="ui-monospace, 'SF Mono', Monaco, monospace" fill="#475569">[order=3]</text></g><g class="node-row" data-state="DynamicalMatrix" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="494.0" width="520" height="76" fill="transparent" /><circle cx="115.0" cy="532.0" r="12" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2" class="node-shape node-circle node-circle-sym" /><text x="204" y="538.0" font-size="17" font-weight="700" fill="#0F172A">DynamicalMatrix</text></g><g class="node-row" data-state="Frequency" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="614.0" width="520" height="76" fill="transparent" /><circle cx="60.0" cy="652.0" r="12" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2" class="node-shape node-circle node-circle-sym" /><text x="204" y="658.0" font-size="17" font-weight="700" fill="#0F172A">Frequency</text></g><g class="node-row" data-state="Eigenvectors" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="690.0" width="520" height="76" fill="transparent" /><circle cx="170.0" cy="728.0" r="12" fill="#FFFFFF" stroke="#64748B" stroke-width="2" stroke-dasharray="4 3" class="node-shape node-circle node-circle-sym" /><text x="204" y="734.0" font-size="17" font-weight="700" fill="#0F172A">Eigenvectors</text><rect x="318.0" y="720.0" width="43.8" height="13" rx="3" ry="3" fill="#F1F5F9" stroke="#CBD5E1" /><text x="339.9" y="730.0" font-size="9" font-weight="600" fill="#64748B" text-anchor="middle" letter-spacing="0.05em">HIDDEN</text></g><g class="node-row" data-state="GroupVelocity" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="810.0" width="520" height="76" fill="transparent" /><circle cx="60.0" cy="848.0" r="12" fill="#FFFFFF" stroke="#64748B" stroke-width="2" stroke-dasharray="4 3" class="node-shape node-circle node-circle-sym" /><text x="204" y="854.0" font-size="17" font-weight="700" fill="#0F172A">GroupVelocity</text><rect x="326.5" y="840.0" width="43.8" height="13" rx="3" ry="3" fill="#F1F5F9" stroke="#CBD5E1" /><text x="348.4" y="850.0" font-size="9" font-weight="600" fill="#64748B" text-anchor="middle" letter-spacing="0.05em">HIDDEN</text></g><g class="node-row" data-state="HeatCapacity" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="886.0" width="520" height="76" fill="transparent" /><circle cx="82.0" cy="924.0" r="12" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2" class="node-shape node-circle node-circle-sym" /><text x="204" y="930.0" font-size="17" font-weight="700" fill="#0F172A">HeatCapacity</text></g><g class="node-row" data-state="VolumetricHeatCapacity" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="1310.0" width="520" height="76" fill="transparent" /><circle cx="60.0" cy="1348.0" r="12" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2" class="node-shape node-circle node-circle-sym" /><text x="204" y="1354.0" font-size="17" font-weight="700" fill="#0F172A">VolumetricHeatCapacity</text></g><g class="node-row" data-state="MolarHeatCapacity" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="1386.0" width="520" height="76" fill="transparent" /><circle cx="96.66666666666666" cy="1424.0" r="12" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2" class="node-shape node-circle node-circle-sym" /><text x="204" y="1430.0" font-size="17" font-weight="700" fill="#0F172A">MolarHeatCapacity</text></g><g class="node-row" data-state="Linewidth" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="962.0" width="520" height="76" fill="transparent" /><circle cx="104.0" cy="1000.0" r="12" fill="#FFFFFF" stroke="#64748B" stroke-width="2" stroke-dasharray="4 3" class="node-shape node-circle node-circle-sym" /><text x="204" y="1006.0" font-size="17" font-weight="700" fill="#0F172A">Linewidth</text><rect x="292.5" y="992.0" width="43.8" height="13" rx="3" ry="3" fill="#F1F5F9" stroke="#CBD5E1" /><text x="314.4" y="1002.0" font-size="9" font-weight="600" fill="#64748B" text-anchor="middle" letter-spacing="0.05em">HIDDEN</text></g><g class="node-row" data-state="PhononDOS" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="1038.0" width="520" height="76" fill="transparent" /><circle cx="126.0" cy="1076.0" r="12" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2" class="node-shape node-circle node-circle-sym" /><text x="204" y="1082.0" font-size="17" font-weight="700" fill="#0F172A">PhononDOS</text></g><g class="node-row" data-state="Gruneisen" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="1114.0" width="520" height="76" fill="transparent" /><circle cx="148.0" cy="1152.0" r="12" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2" class="node-shape node-circle node-circle-sym" /><text x="204" y="1158.0" font-size="17" font-weight="700" fill="#0F172A">Gruneisen</text></g><g class="node-row" data-state="PhaseSpace3Phonon" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="1190.0" width="520" height="76" fill="transparent" /><circle cx="170.0" cy="1228.0" r="12" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2" class="node-shape node-circle node-circle-sym" /><text x="204" y="1234.0" font-size="17" font-weight="700" fill="#0F172A">PhaseSpace3Phonon</text></g><g class="node-row" data-state="MeanFreeDisplacement[bte_solver=rta]" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="1462.0" width="520" height="76" fill="transparent" /><circle cx="133.33333333333331" cy="1500.0" r="12" fill="#FFFFFF" stroke="#64748B" stroke-width="2" stroke-dasharray="4 3" class="node-shape node-circle node-circle-sym" /><text x="204" y="1497.0" font-size="17" font-weight="700" fill="#0F172A">MeanFreeDisplacement</text><text x="204" y="1516.0" font-size="12.5" font-weight="500" font-family="ui-monospace, 'SF Mono', Monaco, monospace" fill="#475569">[bte_solver=rta]</text><rect x="386.0" y="1492.0" width="43.8" height="13" rx="3" ry="3" fill="#F1F5F9" stroke="#CBD5E1" /><text x="407.9" y="1502.0" font-size="9" font-weight="600" fill="#64748B" text-anchor="middle" letter-spacing="0.05em">HIDDEN</text></g><g class="node-row" data-state="MeanFreeDisplacement[bte_solver=direct_inverse]" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="1538.0" width="520" height="76" fill="transparent" /><circle cx="170.0" cy="1576.0" r="12" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2" class="node-shape node-circle node-circle-sym" /><text x="204" y="1573.0" font-size="17" font-weight="700" fill="#0F172A">MeanFreeDisplacement</text><text x="204" y="1592.0" font-size="12.5" font-weight="500" font-family="ui-monospace, 'SF Mono', Monaco, monospace" fill="#475569">[bte_solver=direct_inverse]</text></g><g class="node-row" data-state="ThermalConductivity[bte_solver=rta]" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="1658.0" width="520" height="76" fill="transparent" /><circle cx="60.0" cy="1696.0" r="12" fill="#FFFFFF" stroke="#64748B" stroke-width="2" stroke-dasharray="4 3" class="node-shape node-circle node-circle-sym" /><text x="204" y="1693.0" font-size="17" font-weight="700" fill="#0F172A">ThermalConductivity</text><text x="204" y="1712.0" font-size="12.5" font-weight="500" font-family="ui-monospace, 'SF Mono', Monaco, monospace" fill="#475569">[bte_solver=rta]</text><rect x="377.5" y="1688.0" width="43.8" height="13" rx="3" ry="3" fill="#F1F5F9" stroke="#CBD5E1" /><text x="399.4" y="1698.0" font-size="9" font-weight="600" fill="#64748B" text-anchor="middle" letter-spacing="0.05em">HIDDEN</text></g><g class="node-row" data-state="ThermalConductivity[bte_solver=direct_inverse]" data-pipeline="symbolic" style="cursor: pointer;"><rect x="32" y="1734.0" width="520" height="76" fill="transparent" /><circle cx="170.0" cy="1772.0" r="12" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2" class="node-shape node-circle node-circle-sym" /><text x="204" y="1769.0" font-size="17" font-weight="700" fill="#0F172A">ThermalConductivity</text><text x="204" y="1788.0" font-size="12.5" font-weight="500" font-family="ui-monospace, 'SF Mono', Monaco, monospace" fill="#475569">[bte_solver=direct_inverse]</text></g><g class="node-row" data-state="Potential" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="102.0" width="600" height="76" fill="transparent" /><rect x="608.0" y="132.0" width="16.0" height="16.0" rx="2" ry="2" fill="#DC2626" stroke="#DC2626" stroke-width="1.5" class="node-shape node-input" /><text x="734" y="144.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">ForceConstants(calculator=&lt;ASE calculator&gt;)</text></g><g class="node-row" data-state="Temperature" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="178.0" width="600" height="76" fill="transparent" /><rect x="698.0" y="208.0" width="16.0" height="16.0" rx="2" ry="2" fill="#DC2626" stroke="#DC2626" stroke-width="1.5" class="node-shape node-input" /><text x="734" y="220.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phonons(temperature=...)</text></g><g class="node-row" data-state="ForceConstants[order=2]" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="298.0" width="600" height="76" fill="transparent" /><circle cx="616.0" cy="336.0" r="8" fill="#DC2626" stroke="#DC2626" stroke-width="1.5" class="node-shape node-circle" /><text x="734" y="340.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">ForceConstants.second.value</text></g><g class="node-row" data-state="ForceConstants[order=3]" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="374.0" width="600" height="76" fill="transparent" /><circle cx="706.0" cy="412.0" r="8" fill="#DC2626" stroke="#DC2626" stroke-width="1.5" class="node-shape node-circle" /><text x="734" y="416.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">ForceConstants.third.value</text></g><g class="node-row" data-state="DynamicalMatrix" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="494.0" width="600" height="76" fill="transparent" /><circle cx="661.0" cy="532.0" r="8" fill="#DC2626" stroke="#DC2626" stroke-width="1.5" class="node-shape node-circle" /><text x="734" y="536.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">HarmonicWithQ(q).dynmat</text></g><g class="node-row" data-state="Frequency" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="614.0" width="600" height="76" fill="transparent" /><circle cx="616.0" cy="652.0" r="8" fill="#DC2626" stroke="#DC2626" stroke-width="1.5" class="node-shape node-circle" /><text x="734" y="656.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phonons.frequency</text></g><g class="node-row" data-state="Eigenvectors" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="690.0" width="600" height="76" fill="transparent" /><circle cx="706.0" cy="728.0" r="8" fill="#DC2626" stroke="#DC2626" stroke-width="1.5" class="node-shape node-circle" /><text x="734" y="732.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phonons.eigenvectors</text></g><g class="node-row" data-state="GroupVelocity" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="810.0" width="600" height="76" fill="transparent" /><circle cx="616.0" cy="848.0" r="8" fill="#DC2626" stroke="#DC2626" stroke-width="1.5" class="node-shape node-circle" /><text x="734" y="852.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phonons.velocity</text></g><g class="node-row" data-state="HeatCapacity" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="886.0" width="600" height="76" fill="transparent" /><circle cx="634.0" cy="924.0" r="8" fill="#DC2626" stroke="#DC2626" stroke-width="1.5" class="node-shape node-circle" /><text x="734" y="928.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phonons.heat_capacity</text></g><g class="node-row" data-state="VolumetricHeatCapacity" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="1310.0" width="600" height="76" fill="transparent" /><circle cx="616.0" cy="1348.0" r="8" fill="#DC2626" stroke="#DC2626" stroke-width="1.5" class="node-shape node-circle" /><text x="734" y="1352.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">np.sum(Phonons.heat_capacity) / (V_cell * n_q_points)</text></g><g class="node-row" data-state="MolarHeatCapacity" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="1386.0" width="600" height="76" fill="transparent" /><circle cx="646.0" cy="1424.0" r="8" fill="#DC2626" stroke="#DC2626" stroke-width="1.5" class="node-shape node-circle" /><text x="734" y="1428.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">N_A * np.sum(Phonons.heat_capacity) / n_q_points</text></g><g class="node-row" data-state="Linewidth" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="962.0" width="600" height="76" fill="transparent" /><circle cx="652.0" cy="1000.0" r="8" fill="#DC2626" stroke="#DC2626" stroke-width="1.5" class="node-shape node-circle" /><text x="734" y="1004.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phonons.bandwidth</text></g><g class="node-row" data-state="PhononDOS" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="1038.0" width="600" height="76" fill="transparent" /><circle cx="670.0" cy="1076.0" r="8" fill="#FFFFFF" stroke="#DC2626" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-circle" /><text x="734" y="1080.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="Gruneisen" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="1114.0" width="600" height="76" fill="transparent" /><circle cx="688.0" cy="1152.0" r="8" fill="#FFFFFF" stroke="#DC2626" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-circle" /><text x="734" y="1156.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="PhaseSpace3Phonon" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="1190.0" width="600" height="76" fill="transparent" /><circle cx="706.0" cy="1228.0" r="8" fill="#FFFFFF" stroke="#DC2626" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-circle" /><text x="734" y="1232.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="MeanFreeDisplacement[bte_solver=rta]" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="1462.0" width="600" height="76" fill="transparent" /><circle cx="676.0" cy="1500.0" r="8" fill="#DC2626" stroke="#DC2626" stroke-width="1.5" class="node-shape node-circle" /><text x="734" y="1504.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Conductivity(method=&#x27;rta&#x27;).mean_free_path</text></g><g class="node-row" data-state="MeanFreeDisplacement[bte_solver=direct_inverse]" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="1538.0" width="600" height="76" fill="transparent" /><circle cx="706.0" cy="1576.0" r="8" fill="#DC2626" stroke="#DC2626" stroke-width="1.5" class="node-shape node-circle" /><text x="734" y="1580.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Conductivity(method=&#x27;inverse&#x27;).mean_free_path</text></g><g class="node-row" data-state="ThermalConductivity[bte_solver=rta]" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="1658.0" width="600" height="76" fill="transparent" /><circle cx="616.0" cy="1696.0" r="8" fill="#DC2626" stroke="#DC2626" stroke-width="1.5" class="node-shape node-circle" /><text x="734" y="1700.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Conductivity(method=&#x27;rta&#x27;).conductivity</text></g><g class="node-row" data-state="ThermalConductivity[bte_solver=direct_inverse]" data-pipeline="kaldo" style="cursor: pointer;"><rect x="592" y="1734.0" width="600" height="76" fill="transparent" /><circle cx="706.0" cy="1772.0" r="8" fill="#DC2626" stroke="#DC2626" stroke-width="1.5" class="node-shape node-circle" /><text x="734" y="1776.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Conductivity(method=&#x27;inverse&#x27;).conductivity</text></g><g class="node-row" data-state="Potential" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="102.0" width="600" height="76" fill="transparent" /><rect x="1248.0" y="132.0" width="16.0" height="16.0" rx="2" ry="2" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-input" /><text x="1374" y="144.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phono3py(...) + ASE calculator or DFT force sets</text></g><g class="node-row" data-state="Temperature" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="178.0" width="600" height="76" fill="transparent" /><rect x="1338.0" y="208.0" width="16.0" height="16.0" rx="2" ry="2" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-input" /><text x="1374" y="220.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phono3py.temperatures</text></g><g class="node-row" data-state="ForceConstants[order=2]" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="298.0" width="600" height="76" fill="transparent" /><circle cx="1256.0" cy="336.0" r="8" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-circle" /><text x="1374" y="340.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phono3py.fc2</text></g><g class="node-row" data-state="ForceConstants[order=3]" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="374.0" width="600" height="76" fill="transparent" /><circle cx="1346.0" cy="412.0" r="8" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-circle" /><text x="1374" y="416.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phono3py.fc3</text></g><g class="node-row" data-state="DynamicalMatrix" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="494.0" width="600" height="76" fill="transparent" /><circle cx="1301.0" cy="532.0" r="8" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-circle" /><text x="1374" y="536.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phono3py.dynamical_matrix</text></g><g class="node-row" data-state="Frequency" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="614.0" width="600" height="76" fill="transparent" /><circle cx="1256.0" cy="652.0" r="8" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-circle" /><text x="1374" y="656.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">thermal_conductivity.frequencies</text></g><g class="node-row" data-state="Eigenvectors" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="690.0" width="600" height="76" fill="transparent" /><circle cx="1346.0" cy="728.0" r="8" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-circle" /><text x="1374" y="732.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">thermal_conductivity.get_eigenvectors()</text></g><g class="node-row" data-state="GroupVelocity" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="810.0" width="600" height="76" fill="transparent" /><circle cx="1256.0" cy="848.0" r="8" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-circle" /><text x="1374" y="852.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">thermal_conductivity.group_velocities</text></g><g class="node-row" data-state="HeatCapacity" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="886.0" width="600" height="76" fill="transparent" /><circle cx="1274.0" cy="924.0" r="8" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-circle" /><text x="1374" y="928.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">thermal_conductivity.mode_heat_capacities</text></g><g class="node-row" data-state="VolumetricHeatCapacity" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="1310.0" width="600" height="76" fill="transparent" /><circle cx="1256.0" cy="1348.0" r="8" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-circle" /><text x="1374" y="1352.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">np.sum(thermal_conductivity.mode_heat_capacities) / (V_cell * n_q)</text></g><g class="node-row" data-state="MolarHeatCapacity" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="1386.0" width="600" height="76" fill="transparent" /><circle cx="1286.0" cy="1424.0" r="8" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-circle" /><text x="1374" y="1428.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">N_A * np.sum(thermal_conductivity.mode_heat_capacities) / n_q</text></g><g class="node-row" data-state="Linewidth" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="962.0" width="600" height="76" fill="transparent" /><circle cx="1292.0" cy="1000.0" r="8" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-circle" /><text x="1374" y="1004.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">thermal_conductivity.gamma</text></g><g class="node-row" data-state="PhononDOS" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="1038.0" width="600" height="76" fill="transparent" /><circle cx="1310.0" cy="1076.0" r="8" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-circle" /><text x="1374" y="1080.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phonopy.get_total_DOS()</text></g><g class="node-row" data-state="Gruneisen" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="1114.0" width="600" height="76" fill="transparent" /><circle cx="1328.0" cy="1152.0" r="8" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-circle" /><text x="1374" y="1156.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phono3py.run_phonon_gruneisen_parameters()</text></g><g class="node-row" data-state="PhaseSpace3Phonon" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="1190.0" width="600" height="76" fill="transparent" /><circle cx="1346.0" cy="1228.0" r="8" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-circle" /><text x="1374" y="1232.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phono3py.run_phonon_phase_space()</text></g><g class="node-row" data-state="MeanFreeDisplacement[bte_solver=rta]" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="1462.0" width="600" height="76" fill="transparent" /><circle cx="1316.0" cy="1500.0" r="8" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-circle" /><text x="1374" y="1504.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">thermal_conductivity.mean_free_paths</text></g><g class="node-row" data-state="MeanFreeDisplacement[bte_solver=direct_inverse]" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="1538.0" width="600" height="76" fill="transparent" /><circle cx="1346.0" cy="1576.0" r="8" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-circle" /><text x="1374" y="1580.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">thermal_conductivity.f_vectors</text></g><g class="node-row" data-state="ThermalConductivity[bte_solver=rta]" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="1658.0" width="600" height="76" fill="transparent" /><circle cx="1256.0" cy="1696.0" r="8" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-circle" /><text x="1374" y="1700.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">run_thermal_conductivity(is_LBTE=False).kappa</text></g><g class="node-row" data-state="ThermalConductivity[bte_solver=direct_inverse]" data-pipeline="phono3py" style="cursor: pointer;"><rect x="1232" y="1734.0" width="600" height="76" fill="transparent" /><circle cx="1346.0" cy="1772.0" r="8" fill="#059669" stroke="#059669" stroke-width="1.5" class="node-shape node-circle" /><text x="1374" y="1776.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">run_thermal_conductivity(is_LBTE=True).kappa</text></g><g class="node-row" data-state="Potential" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="102.0" width="600" height="76" fill="transparent" /><rect x="1888.0" y="132.0" width="16.0" height="16.0" rx="2" ry="2" fill="#0891B2" stroke="#0891B2" stroke-width="1.5" class="node-shape node-input" /><text x="2014" y="144.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phonopy(...) + ASE calculator or FORCE_SETS</text></g><g class="node-row" data-state="Temperature" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="178.0" width="600" height="76" fill="transparent" /><rect x="1978.0" y="208.0" width="16.0" height="16.0" rx="2" ry="2" fill="#0891B2" stroke="#0891B2" stroke-width="1.5" class="node-shape node-input" /><text x="2014" y="220.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phonopy.run_thermal_properties(temperatures=...)</text></g><g class="node-row" data-state="ForceConstants[order=2]" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="298.0" width="600" height="76" fill="transparent" /><circle cx="1896.0" cy="336.0" r="8" fill="#0891B2" stroke="#0891B2" stroke-width="1.5" class="node-shape node-circle" /><text x="2014" y="340.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phonopy.force_constants</text></g><g class="node-row" data-state="ForceConstants[order=3]" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="374.0" width="600" height="76" fill="transparent" /><circle cx="1986.0" cy="412.0" r="8" fill="#FFFFFF" stroke="#0891B2" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-circle" /><text x="2014" y="416.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="DynamicalMatrix" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="494.0" width="600" height="76" fill="transparent" /><circle cx="1941.0" cy="532.0" r="8" fill="#0891B2" stroke="#0891B2" stroke-width="1.5" class="node-shape node-circle" /><text x="2014" y="536.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phonopy.dynamical_matrix</text></g><g class="node-row" data-state="Frequency" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="614.0" width="600" height="76" fill="transparent" /><circle cx="1896.0" cy="652.0" r="8" fill="#0891B2" stroke="#0891B2" stroke-width="1.5" class="node-shape node-circle" /><text x="2014" y="656.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phonopy.get_mesh_dict()[&#x27;frequencies&#x27;]</text></g><g class="node-row" data-state="Eigenvectors" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="690.0" width="600" height="76" fill="transparent" /><circle cx="1986.0" cy="728.0" r="8" fill="#0891B2" stroke="#0891B2" stroke-width="1.5" class="node-shape node-circle" /><text x="2014" y="732.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phonopy.get_mesh_dict()[&#x27;eigenvectors&#x27;]</text></g><g class="node-row" data-state="GroupVelocity" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="810.0" width="600" height="76" fill="transparent" /><circle cx="1896.0" cy="848.0" r="8" fill="#0891B2" stroke="#0891B2" stroke-width="1.5" class="node-shape node-circle" /><text x="2014" y="852.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phonopy.get_mesh_dict()[&#x27;group_velocities&#x27;]</text></g><g class="node-row" data-state="HeatCapacity" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="886.0" width="600" height="76" fill="transparent" /><circle cx="1914.0" cy="924.0" r="8" fill="#FFFFFF" stroke="#0891B2" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-circle" /><text x="2014" y="928.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="VolumetricHeatCapacity" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="1310.0" width="600" height="76" fill="transparent" /><circle cx="1896.0" cy="1348.0" r="8" fill="#0891B2" stroke="#0891B2" stroke-width="1.5" class="node-shape node-circle" /><text x="2014" y="1352.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">get_thermal_properties_dict()[&#x27;heat_capacity&#x27;] / (V_cell * N_A)</text></g><g class="node-row" data-state="MolarHeatCapacity" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="1386.0" width="600" height="76" fill="transparent" /><circle cx="1926.0" cy="1424.0" r="8" fill="#0891B2" stroke="#0891B2" stroke-width="1.5" class="node-shape node-circle" /><text x="2014" y="1428.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">get_thermal_properties_dict()[&#x27;heat_capacity&#x27;]</text></g><g class="node-row" data-state="Linewidth" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="962.0" width="600" height="76" fill="transparent" /><circle cx="1932.0" cy="1000.0" r="8" fill="#FFFFFF" stroke="#0891B2" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-circle" /><text x="2014" y="1004.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="PhononDOS" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="1038.0" width="600" height="76" fill="transparent" /><circle cx="1950.0" cy="1076.0" r="8" fill="#0891B2" stroke="#0891B2" stroke-width="1.5" class="node-shape node-circle" /><text x="2014" y="1080.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">Phonopy.run_total_dos() / .get_total_DOS()</text></g><g class="node-row" data-state="Gruneisen" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="1114.0" width="600" height="76" fill="transparent" /><circle cx="1968.0" cy="1152.0" r="8" fill="#FFFFFF" stroke="#0891B2" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-circle" /><text x="2014" y="1156.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="PhaseSpace3Phonon" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="1190.0" width="600" height="76" fill="transparent" /><circle cx="1986.0" cy="1228.0" r="8" fill="#FFFFFF" stroke="#0891B2" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-circle" /><text x="2014" y="1232.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="MeanFreeDisplacement[bte_solver=rta]" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="1462.0" width="600" height="76" fill="transparent" /><circle cx="1956.0" cy="1500.0" r="8" fill="#FFFFFF" stroke="#0891B2" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-circle" /><text x="2014" y="1504.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="MeanFreeDisplacement[bte_solver=direct_inverse]" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="1538.0" width="600" height="76" fill="transparent" /><circle cx="1986.0" cy="1576.0" r="8" fill="#FFFFFF" stroke="#0891B2" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-circle" /><text x="2014" y="1580.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="ThermalConductivity[bte_solver=rta]" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="1658.0" width="600" height="76" fill="transparent" /><circle cx="1896.0" cy="1696.0" r="8" fill="#FFFFFF" stroke="#0891B2" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-circle" /><text x="2014" y="1700.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="ThermalConductivity[bte_solver=direct_inverse]" data-pipeline="phonopy" style="cursor: pointer;"><rect x="1872" y="1734.0" width="600" height="76" fill="transparent" /><circle cx="1986.0" cy="1772.0" r="8" fill="#FFFFFF" stroke="#0891B2" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-circle" /><text x="2014" y="1776.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="Potential" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="102.0" width="600" height="76" fill="transparent" /><rect x="2528.0" y="132.0" width="16.0" height="16.0" rx="2" ry="2" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-input" /><text x="2654" y="144.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="Temperature" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="178.0" width="600" height="76" fill="transparent" /><rect x="2618.0" y="208.0" width="16.0" height="16.0" rx="2" ry="2" fill="#7C3AED" stroke="#7C3AED" stroke-width="1.5" class="node-shape node-input" /><text x="2654" y="220.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">CONTROL &amp;parameters T=</text></g><g class="node-row" data-state="ForceConstants[order=2]" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="298.0" width="600" height="76" fill="transparent" /><circle cx="2536.0" cy="336.0" r="8" fill="#7C3AED" stroke="#7C3AED" stroke-width="1.5" class="node-shape node-circle" /><text x="2654" y="340.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">FORCE_CONSTANTS_2ND</text></g><g class="node-row" data-state="ForceConstants[order=3]" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="374.0" width="600" height="76" fill="transparent" /><circle cx="2626.0" cy="412.0" r="8" fill="#7C3AED" stroke="#7C3AED" stroke-width="1.5" class="node-shape node-circle" /><text x="2654" y="416.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">FORCE_CONSTANTS_3RD</text></g><g class="node-row" data-state="DynamicalMatrix" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="494.0" width="600" height="76" fill="transparent" /><circle cx="2581.0" cy="532.0" r="8" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-circle" /><text x="2654" y="536.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="Frequency" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="614.0" width="600" height="76" fill="transparent" /><circle cx="2536.0" cy="652.0" r="8" fill="#7C3AED" stroke="#7C3AED" stroke-width="1.5" class="node-shape node-circle" /><text x="2654" y="656.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">BTE.omega</text></g><g class="node-row" data-state="Eigenvectors" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="690.0" width="600" height="76" fill="transparent" /><circle cx="2626.0" cy="728.0" r="8" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-circle" /><text x="2654" y="732.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="GroupVelocity" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="810.0" width="600" height="76" fill="transparent" /><circle cx="2536.0" cy="848.0" r="8" fill="#7C3AED" stroke="#7C3AED" stroke-width="1.5" class="node-shape node-circle" /><text x="2654" y="852.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">BTE.v</text></g><g class="node-row" data-state="HeatCapacity" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="886.0" width="600" height="76" fill="transparent" /><circle cx="2554.0" cy="924.0" r="8" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-circle" /><text x="2654" y="928.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="VolumetricHeatCapacity" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="1310.0" width="600" height="76" fill="transparent" /><circle cx="2536.0" cy="1348.0" r="8" fill="#7C3AED" stroke="#7C3AED" stroke-width="1.5" class="node-shape node-circle" /><text x="2654" y="1352.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">BTE.cv</text></g><g class="node-row" data-state="MolarHeatCapacity" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="1386.0" width="600" height="76" fill="transparent" /><circle cx="2566.0" cy="1424.0" r="8" fill="#7C3AED" stroke="#7C3AED" stroke-width="1.5" class="node-shape node-circle" /><text x="2654" y="1428.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">BTE.cv * V_cell * N_A</text></g><g class="node-row" data-state="Linewidth" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="962.0" width="600" height="76" fill="transparent" /><circle cx="2572.0" cy="1000.0" r="8" fill="#7C3AED" stroke="#7C3AED" stroke-width="1.5" class="node-shape node-circle" /><text x="2654" y="1004.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">BTE.w_anharmonic</text></g><g class="node-row" data-state="PhononDOS" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="1038.0" width="600" height="76" fill="transparent" /><circle cx="2590.0" cy="1076.0" r="8" fill="#7C3AED" stroke="#7C3AED" stroke-width="1.5" class="node-shape node-circle" /><text x="2654" y="1080.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">BTE.dos</text></g><g class="node-row" data-state="Gruneisen" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="1114.0" width="600" height="76" fill="transparent" /><circle cx="2608.0" cy="1152.0" r="8" fill="#7C3AED" stroke="#7C3AED" stroke-width="1.5" class="node-shape node-circle" /><text x="2654" y="1156.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">BTE.gruneisen</text></g><g class="node-row" data-state="PhaseSpace3Phonon" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="1190.0" width="600" height="76" fill="transparent" /><circle cx="2626.0" cy="1228.0" r="8" fill="#7C3AED" stroke="#7C3AED" stroke-width="1.5" class="node-shape node-circle" /><text x="2654" y="1232.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">BTE.P3</text></g><g class="node-row" data-state="MeanFreeDisplacement[bte_solver=rta]" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="1462.0" width="600" height="76" fill="transparent" /><circle cx="2596.0" cy="1500.0" r="8" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-circle" /><text x="2654" y="1504.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="MeanFreeDisplacement[bte_solver=direct_inverse]" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="1538.0" width="600" height="76" fill="transparent" /><circle cx="2626.0" cy="1576.0" r="8" fill="#FFFFFF" stroke="#7C3AED" stroke-width="1.0" stroke-dasharray="3 2" opacity="0.55" class="node-shape node-circle" /><text x="2654" y="1580.5" font-size="13.5" font-family="-apple-system, BlinkMacSystemFont, Inter, system-ui, sans-serif" fill="#9CA3AF">—</text></g><g class="node-row" data-state="ThermalConductivity[bte_solver=rta]" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="1658.0" width="600" height="76" fill="transparent" /><circle cx="2536.0" cy="1696.0" r="8" fill="#7C3AED" stroke="#7C3AED" stroke-width="1.5" class="node-shape node-circle" /><text x="2654" y="1700.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">BTE.KappaTensorVsT_RTA</text></g><g class="node-row" data-state="ThermalConductivity[bte_solver=direct_inverse]" data-pipeline="shengbte" style="cursor: pointer;"><rect x="2512" y="1734.0" width="600" height="76" fill="transparent" /><circle cx="2626.0" cy="1772.0" r="8" fill="#7C3AED" stroke="#7C3AED" stroke-width="1.5" class="node-shape node-circle" /><text x="2654" y="1776.5" font-size="13.5" font-family="ui-monospace, 'SF Mono', Monaco, Consolas, monospace" fill="#111827">BTE.KappaTensorVsT_CONV</text></g></svg>
   </div>
-  <div id="details">
-    <div class="placeholder">click any node or edge</div>
+
+  <div id="details-rail">
+    <button class="details-toggle" id="details-toggle" title="Hide details panel">›</button>
+    <div id="details">
+      <div class="placeholder">Click a circle (node) or an arrow (edge) for details.</div>
+    </div>
   </div>
-</main>
+</div>
+
+<footer>
+  Generated by <code>python -m omai.thermal_transport.visualize</code>
+</footer>
 
 <script>
 const NODE_DATA = {
@@ -160,9 +383,36 @@ const NODE_DATA = {
     "convention_factors": [],
     "type_parameters": {},
     "description": "Born-Oppenheimer potential of the material; in Phase 1 an opaque label.",
-    "kaldo_spec": null,
-    "phono3py_spec": null,
-    "cross_state_total_factors": {}
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "potential": "ForceConstants(calculator=<ASE calculator>)"
+        },
+        "notes": "kaldo consumes an ASE-compatible calculator (LAMMPS+Tersoff, Quantum ESPRESSO, GPAW, or any custom calc.Calculator). Forces are obtained from the calculator during FC finite-difference."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "potential": "Phono3py(...) + ASE calculator or DFT force sets"
+        },
+        "notes": "phono3py consumes a force source: either an ASE calculator wired through Phono3py.run_force_calculator(), or precomputed forces (VASP/ABINIT/QE FORCE_SETS files)."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "potential": "Phonopy(...) + ASE calculator or FORCE_SETS"
+        },
+        "notes": "phonopy consumes either an ASE calculator (via Phonopy.set_forces_from_calculator() or equivalent) or precomputed forces in FORCE_SETS/vasprun.xml format."
+      }
+    },
+    "cross_factors": {}
   },
   "Temperature": {
     "name": "Temperature",
@@ -179,9 +429,45 @@ const NODE_DATA = {
     "convention_factors": [],
     "type_parameters": {},
     "description": "",
-    "kaldo_spec": null,
-    "phono3py_spec": null,
-    "cross_state_total_factors": {}
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "temperature": "Phonons(temperature=...)"
+        },
+        "notes": "Scalar parameter passed to the Phonons constructor."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "temperature": "Phono3py.temperatures"
+        },
+        "notes": "Array of temperatures passed via run_thermal_conductivity(temperatures=[...])."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "temperature": "Phonopy.run_thermal_properties(temperatures=...)"
+        },
+        "notes": "Temperature grid for thermal_properties output, in K."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "temperature": "CONTROL &parameters T="
+        },
+        "notes": "Set in the CONTROL file under &parameters via T= (or T_min/T_max/T_step)."
+      }
+    },
+    "cross_factors": {}
   },
   "ForceConstants[order=2]": {
     "name": "ForceConstants[order=2]",
@@ -204,9 +490,45 @@ const NODE_DATA = {
       "order": "2"
     },
     "description": "",
-    "kaldo_spec": null,
-    "phono3py_spec": null,
-    "cross_state_total_factors": {}
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "phi": "ForceConstants.second.value"
+        },
+        "notes": "kaldo stores FC2 as a numpy array under ForceConstants.second.value, shape (n_supercell_atoms, 3, n_supercell_atoms, 3) in eV/\u00c5\u00b2."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "phi": "Phono3py.fc2"
+        },
+        "notes": "Phono3py.fc2: ndarray of shape (n_supercell_atoms, n_supercell_atoms, 3, 3) in eV/\u00c5\u00b2. Built by Phono3py.produce_fc2()."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "phi": "Phonopy.force_constants"
+        },
+        "notes": "Phonopy.force_constants: ndarray of shape (n_satom, n_satom, 3, 3) in eV/\u00c5\u00b2. Produced by Phonopy.produce_force_constants()."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "phi": "FORCE_CONSTANTS_2ND"
+        },
+        "notes": "Read from the FORCE_CONSTANTS_2ND file (phonopy ASCII format) or espresso.ifc2 (Quantum ESPRESSO format). In eV/\u00c5\u00b2. Supercell size declared via &crystal scell=."
+      }
+    },
+    "cross_factors": {}
   },
   "ForceConstants[order=3]": {
     "name": "ForceConstants[order=3]",
@@ -231,9 +553,36 @@ const NODE_DATA = {
       "order": "3"
     },
     "description": "",
-    "kaldo_spec": null,
-    "phono3py_spec": null,
-    "cross_state_total_factors": {}
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "phi": "ForceConstants.third.value"
+        },
+        "notes": "kaldo stores FC3 as a sparse COO array under ForceConstants.third.value, in eV/\u00c5\u00b3."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "phi": "Phono3py.fc3"
+        },
+        "notes": "Phono3py.fc3: ndarray of shape (n_supercell_atoms, n_supercell_atoms, n_supercell_atoms, 3, 3, 3) in eV/\u00c5\u00b3. Built by Phono3py.produce_fc3()."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "phi": "FORCE_CONSTANTS_3RD"
+        },
+        "notes": "Read from the FORCE_CONSTANTS_3RD file (sparse triplet format described in the ShengBTE README). Typically produced by thirdorder.py or thirdorder_espresso.py. In eV/\u00c5\u00b3."
+      }
+    },
+    "cross_factors": {}
   },
   "DynamicalMatrix": {
     "name": "DynamicalMatrix",
@@ -254,9 +603,36 @@ const NODE_DATA = {
     "convention_factors": [],
     "type_parameters": {},
     "description": "D(q) such that D e_q\u03bd = \u03c9\u00b2_q\u03bd e_q\u03bd. Entries are dimensionally frequency\u00b2 (mass-weighted Hessian); codes typically store the matrix with eigenvalues that are \u03c9\u00b2, not \u03c9.",
-    "kaldo_spec": null,
-    "phono3py_spec": null,
-    "cross_state_total_factors": {}
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "D": "HarmonicWithQ(q).dynmat"
+        },
+        "notes": "kaldo builds D(q) per q-point inside HarmonicWithQ. There is no global cached array; instantiate HarmonicWithQ for the desired q to access its `dynmat` attribute (units: angular_THz\u00b2)."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "D": "Phono3py.dynamical_matrix"
+        },
+        "notes": "phono3py builds the DynamicalMatrix object for each q-point internally. The dynamical_matrix attribute exposes the object; per-q matrices are obtained by calling .run(q)."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "D": "Phonopy.dynamical_matrix"
+        },
+        "notes": "Phonopy.dynamical_matrix: DynamicalMatrix object; per-q matrices are obtained by calling .run(q)."
+      }
+    },
+    "cross_factors": {}
   },
   "Frequency": {
     "name": "Frequency",
@@ -276,24 +652,71 @@ const NODE_DATA = {
     "convention_factors": [],
     "type_parameters": {},
     "description": "",
-    "kaldo_spec": {
-      "adapter": "kaldo",
-      "observable_units": {
-        "omega": "linear_THz"
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "observable_units": {
+          "omega": "linear_THz"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "omega": "Phonons.frequency"
+        },
+        "notes": "Phonons.frequency in linear THz, shape (n_q, n_modes)."
       },
-      "observable_convention_overrides": {},
-      "notes": "Phonons.frequency in linear THz, shape (n_q, n_modes)."
-    },
-    "phono3py_spec": {
-      "adapter": "phono3py",
-      "observable_units": {
-        "omega": "linear_THz"
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {
+          "omega": "linear_THz"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "omega": "thermal_conductivity.frequencies"
+        },
+        "notes": "thermal_conductivity.frequencies in linear THz, shape (n_q, n_modes)."
       },
-      "observable_convention_overrides": {},
-      "notes": "thermal_conductivity.frequencies in linear THz, shape (n_q, n_modes)."
+      "phonopy": {
+        "adapter": "phonopy",
+        "observable_units": {
+          "omega": "linear_THz"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "omega": "Phonopy.get_mesh_dict()['frequencies']"
+        },
+        "notes": "Phonopy.get_mesh_dict()['frequencies'] in linear THz, shape (n_q, n_modes). Same convention as phono3py (which depends on phonopy for the harmonic side)."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "observable_units": {
+          "omega": "angular_THz"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "omega": "BTE.omega"
+        },
+        "notes": "BTE.omega: phonon angular frequencies in rad/ps (= angular_THz), shape (n_q_irr, n_modes) over the irreducible wedge."
+      }
     },
-    "cross_state_total_factors": {
-      "omega": 1.0
+    "cross_factors": {
+      "kaldo \u2192 phono3py": {
+        "omega": 1.0
+      },
+      "kaldo \u2192 phonopy": {
+        "omega": 1.0
+      },
+      "kaldo \u2192 shengbte": {
+        "omega": 6.283185307179586
+      },
+      "phono3py \u2192 phonopy": {
+        "omega": 1.0
+      },
+      "phono3py \u2192 shengbte": {
+        "omega": 6.283185307179586
+      },
+      "phonopy \u2192 shengbte": {
+        "omega": 6.283185307179586
+      }
     }
   },
   "Eigenvectors": {
@@ -315,9 +738,36 @@ const NODE_DATA = {
     "convention_factors": [],
     "type_parameters": {},
     "description": "Per-mode eigenvectors of the dynamical matrix. U(1) phase freedom per mode plus U(d) rotation within each degenerate subspace; per-element values are not directly comparable across adapters. Contracted gauge-invariants live in Frequency (eigenvalues) and \u03ba_LBTE.",
-    "kaldo_spec": null,
-    "phono3py_spec": null,
-    "cross_state_total_factors": {}
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "e": "Phonons.eigenvectors"
+        },
+        "notes": "Phonons.eigenvectors: complex array of shape (n_q, n_modes, n_modes). Carries the U(1) phase + degenerate-subspace rotation freedom; per-element cross-code comparison is NOT_COMPARABLE."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "e": "thermal_conductivity.get_eigenvectors()"
+        },
+        "notes": "Eigenvectors of D(q) for each q on the BZ mesh, exposed by the thermal_conductivity object after run_thermal_conductivity() has been called. Carries the U(1) phase + degenerate-subspace rotation freedom \u2014 per-element cross-code comparison is NOT_COMPARABLE."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "e": "Phonopy.get_mesh_dict()['eigenvectors']"
+        },
+        "notes": "Eigenvectors of D(q) for each q on the mesh. Phase + degenerate-subspace rotation freedom; per-element cross-code comparison is NOT_COMPARABLE."
+      }
+    },
+    "cross_factors": {}
   },
   "GroupVelocity": {
     "name": "GroupVelocity",
@@ -338,24 +788,71 @@ const NODE_DATA = {
     "convention_factors": [],
     "type_parameters": {},
     "description": "Per-mode group velocity. Per-mode v is invariant under U(1) phase, but inherits the U(d) rotation freedom at degenerate \u03c9. Contracted gauge-invariants live in \u03ba (\u03a3 c v\u00b2 \u03c4 over the BZ).",
-    "kaldo_spec": {
-      "adapter": "kaldo",
-      "observable_units": {
-        "v": "angstrom_linear_THz"
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "observable_units": {
+          "v": "angstrom_linear_THz"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "v": "Phonons.velocity"
+        },
+        "notes": "Phonons.velocity in \u00c5\u00b7THz, shape (n_q, n_modes, 3)."
       },
-      "observable_convention_overrides": {},
-      "notes": "Phonons.velocity in \u00c5\u00b7THz, shape (n_q, n_modes, 3)."
-    },
-    "phono3py_spec": {
-      "adapter": "phono3py",
-      "observable_units": {
-        "v": "angstrom_linear_THz"
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {
+          "v": "angstrom_linear_THz"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "v": "thermal_conductivity.group_velocities"
+        },
+        "notes": "thermal_conductivity.group_velocities in \u00c5\u00b7THz, shape (n_q, n_modes, 3)."
       },
-      "observable_convention_overrides": {},
-      "notes": "thermal_conductivity.group_velocities in \u00c5\u00b7THz, shape (n_q, n_modes, 3)."
+      "phonopy": {
+        "adapter": "phonopy",
+        "observable_units": {
+          "v": "angstrom_linear_THz"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "v": "Phonopy.get_mesh_dict()['group_velocities']"
+        },
+        "notes": "Available when the mesh is run with with_group_velocities=True. Same convention as phono3py (\u00c5\u00b7THz, shape (n_q, n_modes, 3))."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "observable_units": {
+          "v": "km_per_s"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "v": "BTE.v"
+        },
+        "notes": "BTE.v: mode group velocities in km/s, shape (n_q_irr, n_modes, 3). BTE.v_full is the full-grid analogue. 1 km/s = 1 nm\u00b7THz = 10 \u00c5\u00b7THz."
+      }
     },
-    "cross_state_total_factors": {
-      "v": 1.0
+    "cross_factors": {
+      "kaldo \u2192 phono3py": {
+        "v": 1.0
+      },
+      "kaldo \u2192 phonopy": {
+        "v": 1.0
+      },
+      "kaldo \u2192 shengbte": {
+        "v": 0.1
+      },
+      "phono3py \u2192 phonopy": {
+        "v": 1.0
+      },
+      "phono3py \u2192 shengbte": {
+        "v": 0.1
+      },
+      "phonopy \u2192 shengbte": {
+        "v": 0.1
+      }
     }
   },
   "HeatCapacity": {
@@ -376,25 +873,149 @@ const NODE_DATA = {
     "convention_factors": [],
     "type_parameters": {},
     "description": "",
-    "kaldo_spec": {
-      "adapter": "kaldo",
-      "observable_units": {
-        "c": "J_per_K"
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "observable_units": {
+          "c": "J_per_K"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "c": "Phonons.heat_capacity"
+        },
+        "notes": "Phonons.heat_capacity in J/K per mode."
       },
-      "observable_convention_overrides": {},
-      "notes": "Phonons.heat_capacity in J/K per mode."
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {
+          "c": "eV_per_K"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "c": "thermal_conductivity.mode_heat_capacities"
+        },
+        "notes": "thermal_conductivity.mode_heat_capacities in eV/K per mode."
+      }
     },
-    "phono3py_spec": {
-      "adapter": "phono3py",
-      "observable_units": {
-        "c": "eV_per_K"
-      },
-      "observable_convention_overrides": {},
-      "notes": "thermal_conductivity.mode_heat_capacities in eV/K per mode."
-    },
-    "cross_state_total_factors": {
-      "c": 6.241509074460763e+18
+    "cross_factors": {
+      "kaldo \u2192 phono3py": {
+        "c": 6.241509074460763e+18
+      }
     }
+  },
+  "VolumetricHeatCapacity": {
+    "name": "VolumetricHeatCapacity",
+    "physics_type": "VolumetricHeatCapacity",
+    "kind": "Observable",
+    "fields": [
+      {
+        "name": "C_V_vol",
+        "dimension": "energy_per_temperature_per_volume",
+        "indices": []
+      }
+    ],
+    "canonical_conventions": {},
+    "convention_factors": [],
+    "type_parameters": {},
+    "description": "Total heat capacity per unit volume at temperature T, C_V/V = (1/V_cell N_q) \u03a3_q\u03bd c_q\u03bd(T). Scalar in (q, \u03bd); a function of T only. ShengBTE emits this directly as BTE.cv; codes that emit per-mode HeatCapacity reach it via the contraction edge.",
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "C_V_vol": "np.sum(Phonons.heat_capacity) / (V_cell * n_q_points)"
+        },
+        "notes": "Derived from the per-mode form (no native API for the volumetric contraction). One-line application of contract_volumetric_heat_capacity to Phonons.heat_capacity."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "C_V_vol": "np.sum(thermal_conductivity.mode_heat_capacities) / (V_cell * n_q)"
+        },
+        "notes": "Derived: one-line contraction of mode_heat_capacities (eV/K) / (V_cell \u00d7 N_q), with eV\u2192J conversion. No native phono3py output."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "C_V_vol": "get_thermal_properties_dict()['heat_capacity'] / (V_cell * N_A)"
+        },
+        "notes": "Derived from the molar form: divide phonopy's J/(K\u00b7mol) by (V_cell \u00d7 N_A) \u2014 i.e., per-cell volume times Avogadro \u2014 to get J/(m\u00b3\u00b7K)."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "observable_units": {
+          "C_V_vol": "J_per_m3_per_K"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "C_V_vol": "BTE.cv"
+        },
+        "notes": "BTE.cv: total specific heat per unit volume at temperature T, in J/(m\u00b3\u00b7K). Already contracted: this is what ShengBTE prints to BTE.cv (per-T directory) and BTE.cvVsT (consolidated). To compare against kaldo or phono3py at this Observable, contract their per-mode HeatCapacity via contract_volumetric_heat_capacity (c_q\u03bd \u2192 \u03a3_q\u03bd c_q\u03bd / (V_cell N_q))."
+      }
+    },
+    "cross_factors": {}
+  },
+  "MolarHeatCapacity": {
+    "name": "MolarHeatCapacity",
+    "physics_type": "MolarHeatCapacity",
+    "kind": "Observable",
+    "fields": [
+      {
+        "name": "C_V_mol",
+        "dimension": "energy_per_temperature_per_mole",
+        "indices": []
+      }
+    ],
+    "canonical_conventions": {},
+    "convention_factors": [],
+    "type_parameters": {},
+    "description": "Heat capacity per mole of primitive unit cells at temperature T, C_V_mol = (N_A / N_q) \u03a3_q\u03bd c_q\u03bd(T). Phonopy emits this as part of its harmonic thermal_properties output (J/K/mol). Codes that emit per-mode HeatCapacity reach it via the contraction edge.",
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "C_V_mol": "N_A * np.sum(Phonons.heat_capacity) / n_q_points"
+        },
+        "notes": "Derived from the per-mode form. One-line application of contract_molar_heat_capacity to Phonons.heat_capacity."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "C_V_mol": "N_A * np.sum(thermal_conductivity.mode_heat_capacities) / n_q"
+        },
+        "notes": "Derived: one-line contraction of mode_heat_capacities \u00d7 Avogadro / N_q, with eV\u2192J unit conversion. No native phono3py output."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "observable_units": {
+          "C_V_mol": "J_per_K_per_mol"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "C_V_mol": "get_thermal_properties_dict()['heat_capacity']"
+        },
+        "notes": "Phonopy.get_thermal_properties_dict()['heat_capacity'] in J/(K\u00b7mol), one entry per temperature on the requested T-grid. phonopy's 'mol' is per mole of primitive unit cells (so for a two-atom cell like Si, divide by 2 to get per mole of atoms / formula units). The result is already contracted: phonopy internally sums per-mode c_q\u03bd over the q-mesh, multiplies by Avogadro's number, and divides by N_q. Cross-code comparison with kaldo or phono3py at this Observable requires contracting their per-mode HeatCapacity via contract_molar_heat_capacity."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "C_V_mol": "BTE.cv * V_cell * N_A"
+        },
+        "notes": "Derived from BTE.cv (volumetric, J/m\u00b3K) by multiplying by cell volume and Avogadro's number to get J/(K\u00b7mol of primitive cells)."
+      }
+    },
+    "cross_factors": {}
   },
   "Linewidth": {
     "name": "Linewidth",
@@ -423,27 +1044,184 @@ const NODE_DATA = {
     ],
     "type_parameters": {},
     "description": "Per-mode three-phonon linewidth. Per-element values depend on BZ-summation choice (a permutation gauge: weights redistribute between modes but conserve the total). Contractions (\u03a3\u0393, \u03ba_LBTE) are the gauge-invariant content.",
-    "kaldo_spec": {
-      "adapter": "kaldo",
-      "observable_units": {
-        "Gamma": "angular_THz"
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "observable_units": {
+          "Gamma": "angular_THz"
+        },
+        "observable_convention_overrides": {
+          "gamma_definition": "linewidth_2x_imag_self_energy"
+        },
+        "code_api": {
+          "Gamma": "Phonons.bandwidth"
+        },
+        "notes": "Phonons.bandwidth array is in angular THz, defined as the linewidth Gamma = 2 Im Sigma (factor of 2 from the linewidth-vs-self-energy convention)."
       },
-      "observable_convention_overrides": {
-        "gamma_definition": "linewidth_2x_imag_self_energy"
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {
+          "Gamma": "linear_THz"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "Gamma": "thermal_conductivity.gamma"
+        },
+        "notes": "thermal_conductivity.gamma in linear THz, defined as the imaginary self-energy Gamma = Im Sigma (no factor of 2)."
       },
-      "notes": "Phonons.bandwidth array is in angular THz, defined as the linewidth Gamma = 2 Im Sigma (factor of 2 from the linewidth-vs-self-energy convention)."
+      "shengbte": {
+        "adapter": "shengbte",
+        "observable_units": {
+          "Gamma": "angular_THz"
+        },
+        "observable_convention_overrides": {
+          "gamma_definition": "linewidth_2x_imag_self_energy"
+        },
+        "code_api": {
+          "Gamma": "BTE.w_anharmonic"
+        },
+        "notes": "BTE.w_anharmonic: three-phonon scattering rate in ps\u207b\u00b9 (numerically equal to angular_THz; rad and dimensionless rotation are identified). Outputs are on the irreducible wedge; full-grid values are recovered via the BTE.qpoints_full \u2192 BTE.qpoints mapping."
+      }
     },
-    "phono3py_spec": {
-      "adapter": "phono3py",
-      "observable_units": {
-        "Gamma": "linear_THz"
+    "cross_factors": {
+      "kaldo \u2192 phono3py": {
+        "Gamma": 0.07957747154594767
       },
-      "observable_convention_overrides": {},
-      "notes": "thermal_conductivity.gamma in linear THz, defined as the imaginary self-energy Gamma = Im Sigma (no factor of 2)."
-    },
-    "cross_state_total_factors": {
-      "Gamma": 0.07957747154594767
+      "kaldo \u2192 shengbte": {
+        "Gamma": 1.0
+      },
+      "phono3py \u2192 shengbte": {
+        "Gamma": 12.566370614359172
+      }
     }
+  },
+  "PhononDOS": {
+    "name": "PhononDOS",
+    "physics_type": "PhononDOS",
+    "kind": "Observable",
+    "fields": [
+      {
+        "name": "g",
+        "dimension": "frequency",
+        "indices": [
+          "omega"
+        ]
+      }
+    ],
+    "canonical_conventions": {},
+    "convention_factors": [],
+    "type_parameters": {},
+    "description": "Density of states g(\u03c9) = (1/N_q) \u03a3_q\u03bd \u03b4(\u03c9 \u2212 \u03c9_q\u03bd). A 1-D array binned in \u03c9. Gauge-invariant: \u03c9_q\u03bd are basis-independent and the sum over (q, \u03bd) is uniformly weighted.",
+    "specs": {
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "g": "Phonopy.get_total_DOS()"
+        },
+        "notes": "DOS via the parent Phonopy object's run_total_dos/get_total_DOS."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "g": "Phonopy.run_total_dos() / .get_total_DOS()"
+        },
+        "notes": "Phonopy.run_total_dos() computes g(\u03c9); access the array via .get_total_DOS() which returns (frequencies, DOS)."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "g": "BTE.dos"
+        },
+        "notes": "BTE.dos: phonon density of states vs angular frequency (rad/ps)."
+      }
+    },
+    "cross_factors": {}
+  },
+  "Gruneisen": {
+    "name": "Gruneisen",
+    "physics_type": "Gruneisen",
+    "kind": "Observable",
+    "fields": [
+      {
+        "name": "gamma_G",
+        "dimension": "dimensionless",
+        "indices": [
+          "q",
+          "nu"
+        ]
+      }
+    ],
+    "canonical_conventions": {},
+    "convention_factors": [],
+    "type_parameters": {},
+    "description": "Mode Gr\u00fcneisen parameter \u03b3_q\u03bd = \u2212(V/\u03c9_q\u03bd) \u2202\u03c9_q\u03bd/\u2202V. Quantifies anharmonicity-driven volume dependence; computed from FC2 and FC3 via the standard Maradudin-Fein expression. Dimensionless.",
+    "specs": {
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "gamma_G": "Phono3py.run_phonon_gruneisen_parameters()"
+        },
+        "notes": "phono3py computes mode Gr\u00fcneisen via the Maradudin-Fein expression using fc2 and fc3. Stored on Phono3py.phonon_gruneisen_parameter."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "gamma_G": "BTE.gruneisen"
+        },
+        "notes": "BTE.gruneisen: per-mode Gr\u00fcneisen \u03b3_q\u03bd, irreducible-wedge ordering. BTE.gruneisenVsT_total is the T-weighted total."
+      }
+    },
+    "cross_factors": {}
+  },
+  "PhaseSpace3Phonon": {
+    "name": "PhaseSpace3Phonon",
+    "physics_type": "PhaseSpace3Phonon",
+    "kind": "Observable",
+    "fields": [
+      {
+        "name": "P3",
+        "dimension": "dimensionless",
+        "indices": [
+          "q",
+          "nu"
+        ]
+      }
+    ],
+    "canonical_conventions": {},
+    "convention_factors": [],
+    "type_parameters": {},
+    "description": "Three-phonon phase space P3_q\u03bd = (1/N) \u03a3_q'\u03bd'\u03bd'' [\u03b4(\u03c9\u2212\u03c9'\u2212\u03c9'') + 2 \u03b4(\u03c9+\u03c9'\u2212\u03c9'')] available for scattering channels involving mode (q, \u03bd). Doesn't include |V\u2083|\u00b2 \u2014 purely the kinematic volume.",
+    "specs": {
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "P3": "Phono3py.run_phonon_phase_space()"
+        },
+        "notes": "Phono3py.phonon_phase_space contains the per-mode P3 array after run_phonon_phase_space() is called."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "P3": "BTE.P3"
+        },
+        "notes": "BTE.P3: three-phonon kinematic phase space per irreducible (q, \u03bd). BTE.P3_plus / BTE.P3_minus split absorption vs decay channels."
+      }
+    },
+    "cross_factors": {}
   },
   "MeanFreeDisplacement[bte_solver=rta]": {
     "name": "MeanFreeDisplacement[bte_solver=rta]",
@@ -466,9 +1244,27 @@ const NODE_DATA = {
       "bte_solver": "rta"
     },
     "description": "F = v / (2\u0393) under the relaxation-time approximation. The 1/\u0393 non-linearity is the gauge-breaking step. Approximation HiddenState: terminal; there is no downstream operation that contracts it into a gauge-invariant Observable. The LBTE branch (MFD[direct_inverse]) is the gauge-invariant analogue.",
-    "kaldo_spec": null,
-    "phono3py_spec": null,
-    "cross_state_total_factors": {}
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "F": "Conductivity(method='rta').mean_free_path"
+        },
+        "notes": "kaldo computes F = v / (2\u0393) per-mode under RTA. Exposed as the mean_free_path attribute of a Conductivity(method='rta') instance."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "F": "thermal_conductivity.mean_free_paths"
+        },
+        "notes": "After run_thermal_conductivity(is_LBTE=False), the thermal_conductivity object exposes mean_free_paths (per mode, RTA closed form v_q\u03bd / 2\u0393_q\u03bd)."
+      }
+    },
+    "cross_factors": {}
   },
   "MeanFreeDisplacement[bte_solver=direct_inverse]": {
     "name": "MeanFreeDisplacement[bte_solver=direct_inverse]",
@@ -491,9 +1287,27 @@ const NODE_DATA = {
       "bte_solver": "direct_inverse"
     },
     "description": "F obtained from the full linearized BTE (direct inversion or iterative solution). Gauge-invariant by construction.",
-    "kaldo_spec": null,
-    "phono3py_spec": null,
-    "cross_state_total_factors": {}
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "F": "Conductivity(method='inverse').mean_free_path"
+        },
+        "notes": "Full LBTE F: kaldo solves M\u00b7F = c\u00b7v via scipy.linalg.solve and exposes the result through Conductivity(method='inverse').mean_free_path."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "F": "thermal_conductivity.f_vectors"
+        },
+        "notes": "After run_thermal_conductivity(is_LBTE=True), the thermal_conductivity object holds the F vector from the inverted collision matrix (used internally to contract \u03ba_LBTE)."
+      }
+    },
+    "cross_factors": {}
   },
   "ThermalConductivity[bte_solver=rta]": {
     "name": "ThermalConductivity[bte_solver=rta]",
@@ -515,24 +1329,51 @@ const NODE_DATA = {
       "bte_solver": "rta"
     },
     "description": "Lattice thermal conductivity from the RTA. The 1/\u0393 weighting is non-linear in \u0393, so RTA \u03ba inherits Linewidth's gauge-dependence (unlike the LBTE solution, which preserves gauge-invariance via off-diagonal collision terms). Terminal approximation HiddenState.",
-    "kaldo_spec": {
-      "adapter": "kaldo",
-      "observable_units": {
-        "kappa": "W_per_m_per_K"
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "observable_units": {
+          "kappa": "W_per_m_per_K"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "kappa": "Conductivity(method='rta').conductivity"
+        },
+        "notes": "Conductivity(method='rta').conductivity in W/(m\u00b7K), tensor shape (3, 3)."
       },
-      "observable_convention_overrides": {},
-      "notes": "Conductivity(method='rta').conductivity in W/(m\u00b7K), tensor shape (3, 3)."
-    },
-    "phono3py_spec": {
-      "adapter": "phono3py",
-      "observable_units": {
-        "kappa": "W_per_m_per_K"
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {
+          "kappa": "W_per_m_per_K"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "kappa": "run_thermal_conductivity(is_LBTE=False).kappa"
+        },
+        "notes": "run_thermal_conductivity(is_LBTE=False) yields kappa in W/(m\u00b7K), Voigt-tensor shape; xx/yy/zz are the first three components."
       },
-      "observable_convention_overrides": {},
-      "notes": "run_thermal_conductivity(is_LBTE=False) yields kappa in W/(m\u00b7K), Voigt-tensor shape; xx/yy/zz are the first three components."
+      "shengbte": {
+        "adapter": "shengbte",
+        "observable_units": {
+          "kappa": "W_per_m_per_K"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "kappa": "BTE.KappaTensorVsT_RTA"
+        },
+        "notes": "BTE.KappaTensorVsT_RTA: \u03ba(T) tensor in the relaxation-time approximation, W/(m\u00b7K). One row per temperature; the columns after the temperature are the nine tensor components in row-major order."
+      }
     },
-    "cross_state_total_factors": {
-      "kappa": 1.0
+    "cross_factors": {
+      "kaldo \u2192 phono3py": {
+        "kappa": 1.0
+      },
+      "kaldo \u2192 shengbte": {
+        "kappa": 1.0
+      },
+      "phono3py \u2192 shengbte": {
+        "kappa": 1.0
+      }
     }
   },
   "ThermalConductivity[bte_solver=direct_inverse]": {
@@ -555,24 +1396,51 @@ const NODE_DATA = {
       "bte_solver": "direct_inverse"
     },
     "description": "Lattice thermal conductivity from the direct/iterative LBTE solver. Gauge-invariant: the collision matrix's off-diagonals preserve invariance under per-mode \u0393 redistribution.",
-    "kaldo_spec": {
-      "adapter": "kaldo",
-      "observable_units": {
-        "kappa": "W_per_m_per_K"
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "observable_units": {
+          "kappa": "W_per_m_per_K"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "kappa": "Conductivity(method='inverse').conductivity"
+        },
+        "notes": "Conductivity(method='inverse').conductivity in W/(m\u00b7K), tensor shape (3, 3). kaldo's 'inverse' method realizes the symbolic layer's canonical bte_solver=direct_inverse. 'sc' (self-consistent iterative) is an alternative realization of the same canonical."
       },
-      "observable_convention_overrides": {},
-      "notes": "Conductivity(method='inverse').conductivity in W/(m\u00b7K), tensor shape (3, 3). kaldo's 'inverse' method realizes the symbolic layer's canonical bte_solver=direct_inverse. 'sc' (self-consistent iterative) is an alternative realization of the same canonical."
-    },
-    "phono3py_spec": {
-      "adapter": "phono3py",
-      "observable_units": {
-        "kappa": "W_per_m_per_K"
+      "phono3py": {
+        "adapter": "phono3py",
+        "observable_units": {
+          "kappa": "W_per_m_per_K"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "kappa": "run_thermal_conductivity(is_LBTE=True).kappa"
+        },
+        "notes": "run_thermal_conductivity(is_LBTE=True) yields kappa in W/(m\u00b7K). phono3py's `is_LBTE=True` realizes the symbolic layer's canonical bte_solver=direct_inverse."
       },
-      "observable_convention_overrides": {},
-      "notes": "run_thermal_conductivity(is_LBTE=True) yields kappa in W/(m\u00b7K). phono3py's `is_LBTE=True` realizes the symbolic layer's canonical bte_solver=direct_inverse."
+      "shengbte": {
+        "adapter": "shengbte",
+        "observable_units": {
+          "kappa": "W_per_m_per_K"
+        },
+        "observable_convention_overrides": {},
+        "code_api": {
+          "kappa": "BTE.KappaTensorVsT_CONV"
+        },
+        "notes": "BTE.KappaTensorVsT_CONV: \u03ba(T) tensor from the self-consistently converged BTE solver. ShengBTE iterates F = F\u2080 + \u03b4F until |\u03ba_n - \u03ba_{n-1}| < eps (default 1e-5). This realizes the symbolic layer's canonical bte_solver=direct_inverse \u2014 same fixed point as kaldo's method='inverse' and phono3py's is_LBTE=True, different algorithm (iterative vs LAPACK pseudo-inverse). The convergence trail is in BTE.kappa within each temperature directory."
+      }
     },
-    "cross_state_total_factors": {
-      "kappa": 1.0
+    "cross_factors": {
+      "kaldo \u2192 phono3py": {
+        "kappa": 1.0
+      },
+      "kaldo \u2192 shengbte": {
+        "kappa": 1.0
+      },
+      "phono3py \u2192 shengbte": {
+        "kappa": 1.0
+      }
     }
   }
 };
@@ -586,9 +1454,9 @@ const EDGE_DATA = {
     "parameters": [],
     "algorithmic_conventions": {},
     "formula_latex": "V{\\left(\\{u\\} \\right)} = V_{\\mathrm{provided}}",
+    "auxiliary_latex": [],
     "description": "Source: an opaque label for the chosen potential (Tersoff, PBE, ...).",
-    "kaldo_spec": null,
-    "phono3py_spec": null
+    "specs": {}
   },
   "provide_temperature": {
     "name": "provide_temperature",
@@ -604,9 +1472,9 @@ const EDGE_DATA = {
     ],
     "algorithmic_conventions": {},
     "formula_latex": "T = T_{\\mathrm{provided}}",
+    "auxiliary_latex": [],
     "description": "Source: the temperature at which subsequent T-dependent observables are evaluated.",
-    "kaldo_spec": null,
-    "phono3py_spec": null
+    "specs": {}
   },
   "compute_force_constants[order=2]": {
     "name": "compute_force_constants[order=2]",
@@ -617,11 +1485,41 @@ const EDGE_DATA = {
       "ForceConstants[order=2]"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "algorithmic_conventions": {
+      "symmetry_group": "C1"
+    },
     "formula_latex": "{\\Phi^{(2)}}_{i,j,\\mathbf{R}} = \\frac{d^{2}}{d u_{j(R)}d u_{i(0)}} V{\\left(\\{u\\} \\right)}",
-    "description": "Second derivative of the potential at equilibrium, after harmonic truncation.",
-    "kaldo_spec": null,
-    "phono3py_spec": null
+    "auxiliary_latex": [],
+    "description": "Second derivative of the potential at equilibrium, after harmonic truncation. The space-group symmetry G of the crystal acts on the Cartesian indices and lattice vectors, \u03a6\u00b2_{ij}(R) = R(g)_{ii'} R(g)_{jj'} \u03a6\u00b2_{i'j'}(g\u00b7R); declaring symmetry_group=G asserts that the computed tensor is averaged over G, equivalent to evaluating only on the irreducible set of displacements. symmetry_group=C1 means no reduction (independent calculation on every Cartesian displacement).",
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {
+          "symmetry_group": "C1"
+        },
+        "discretization_choices": {},
+        "notes": "kaldo.ForceConstants.from_folder loads \u03a6\u00b2 as-is; the stable branch performs no spglib reduction. Switch to symmetry_group='spglib_auto' if targeting kaldo main with use_symmetry=True."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {
+          "symmetry_group": "spglib_auto"
+        },
+        "discretization_choices": {},
+        "notes": "Phono3py.generate_displacements + produce_fc2: spglib derives the irreducible displacement set; \u03a6\u00b2 is symmetrized on read-back."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {
+          "symmetry_group": "spglib_auto"
+        },
+        "discretization_choices": {},
+        "notes": "ShengBTE is a downstream consumer: it reads FORCE_CONSTANTS_2ND (phonopy format, eV/\u00c5\u00b2) or espresso.ifc2 (QE format). It does not compute force constants itself. The 'symmetry_group' value reflects what the upstream FC2 producer assumed, not ShengBTE's own choice."
+      }
+    }
   },
   "compute_force_constants[order=3]": {
     "name": "compute_force_constants[order=3]",
@@ -632,11 +1530,41 @@ const EDGE_DATA = {
       "ForceConstants[order=3]"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "algorithmic_conventions": {
+      "symmetry_group": "C1"
+    },
     "formula_latex": "{\\Phi^{(3)}}_{i,j,k,\\mathbf{R},\\mathbf{R'}} = \\frac{d^{3}}{d u_{k(R')}d u_{j(R)}d u_{i(0)}} V{\\left(\\{u\\} \\right)}",
-    "description": "Third derivative of the potential at equilibrium, after cubic truncation.",
-    "kaldo_spec": null,
-    "phono3py_spec": null
+    "auxiliary_latex": [],
+    "description": "Third derivative of the potential at equilibrium, after cubic truncation. Space-group symmetry G enters analogously to the harmonic case, now reducing the set of inequivalent atomic triplets (i,j,k; R,R'). symmetry_group=C1 means the full non-symmetry-reduced triplet set is sampled.",
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {
+          "symmetry_group": "C1"
+        },
+        "discretization_choices": {},
+        "notes": "Analogous to the harmonic adapter: \u03a6\u00b3 is loaded verbatim on the stable branch. Triplet symmetry reduction lives in kaldo main."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {
+          "symmetry_group": "spglib_auto"
+        },
+        "discretization_choices": {},
+        "notes": "Phono3py.produce_fc3: irreducible triplets via spglib; \u03a6\u00b3 is symmetrized over the full space group (rotational + permutation symmetries) on read-back."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {
+          "symmetry_group": "spglib_auto"
+        },
+        "discretization_choices": {},
+        "notes": "Analogous to the harmonic case: ShengBTE reads FORCE_CONSTANTS_3RD in the sparse triplet format described in the README, in eV/\u00c5\u00b3. The companion thirdorder.py tool (separate package) is what typically generates this file with spglib-based triplet reduction."
+      }
+    }
   },
   "compute_dynamical_matrix": {
     "name": "compute_dynamical_matrix",
@@ -649,9 +1577,9 @@ const EDGE_DATA = {
     "parameters": [],
     "algorithmic_conventions": {},
     "formula_latex": "{D}_{i,j,\\mathbf{q}} = \\frac{\\sum_{\\mathbf{R}=-\\infty}^{\\infty} e^{i \\mathbf{R} \\mathbf{q}} {\\Phi^{(2)}}_{i,j,\\mathbf{R}}}{\\sqrt{{M}_{i} {M}_{j}}}",
+    "auxiliary_latex": [],
     "description": "Bloch sum over lattice vectors, mass-weighted.",
-    "kaldo_spec": null,
-    "phono3py_spec": null
+    "specs": {}
   },
   "compute_dispersion": {
     "name": "compute_dispersion",
@@ -665,9 +1593,9 @@ const EDGE_DATA = {
     "parameters": [],
     "algorithmic_conventions": {},
     "formula_latex": "\\sum_{j=1}^{3 N} {D}_{i,j,\\mathbf{q}} {e}_{j,\\mathbf{q},\\nu} = {\\omega}_{\\mathbf{q},\\nu}^{2} {e}_{i,\\mathbf{q},\\nu}",
+    "auxiliary_latex": [],
     "description": "Eigendecomposition of D(q): produces \u03c9_q\u03bd and orthonormal e_q\u03bd. Implicit equation; degenerate subspaces have rotation freedom on e.",
-    "kaldo_spec": null,
-    "phono3py_spec": null
+    "specs": {}
   },
   "compute_group_velocity": {
     "name": "compute_group_velocity",
@@ -682,9 +1610,9 @@ const EDGE_DATA = {
     "parameters": [],
     "algorithmic_conventions": {},
     "formula_latex": "{v}_{\\alpha,\\mathbf{q},\\nu} = \\frac{\\sum_{\\substack{1 \\leq j \\leq 3 N\\\\1 \\leq i \\leq 3 N}} \\overline{{e}_{i,\\mathbf{q},\\nu}} {\\partial D/\\partial q}_{i,j,\\alpha,\\mathbf{q}} {e}_{j,\\mathbf{q},\\nu}}{2 {\\omega}_{\\mathbf{q},\\nu}}",
+    "auxiliary_latex": [],
     "description": "Hellmann-Feynman applied to the eigenvalue equation.",
-    "kaldo_spec": null,
-    "phono3py_spec": null
+    "specs": {}
   },
   "compute_heat_capacity": {
     "name": "compute_heat_capacity",
@@ -698,20 +1626,23 @@ const EDGE_DATA = {
     "parameters": [],
     "algorithmic_conventions": {},
     "formula_latex": "{c}_{\\mathbf{q},\\nu} = \\frac{\\bar{\\h}^{2} {\\omega}_{\\mathbf{q},\\nu}^{2}}{4 T^{2} k_{B} \\sinh^{2}{\\left(\\frac{\\bar{\\h} {\\omega}_{\\mathbf{q},\\nu}}{2 T k_{B}} \\right)}}",
+    "auxiliary_latex": [],
     "description": "Quantum (Bose-Einstein) per-mode heat capacity at temperature T.",
-    "kaldo_spec": {
-      "adapter": "kaldo",
-      "parameter_units": {},
-      "algorithmic_convention_overrides": {},
-      "discretization_choices": {},
-      "notes": "No parameters or algorithmic conventions exposed."
-    },
-    "phono3py_spec": {
-      "adapter": "phono3py",
-      "parameter_units": {},
-      "algorithmic_convention_overrides": {},
-      "discretization_choices": {},
-      "notes": "No parameters or algorithmic conventions exposed."
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "No parameters or algorithmic conventions exposed."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "No parameters or algorithmic conventions exposed."
+      }
     }
   },
   "compute_linewidth": {
@@ -732,37 +1663,59 @@ const EDGE_DATA = {
       }
     ],
     "algorithmic_conventions": {
-      "broadening_param": "stdev"
+      "broadening_param": "stdev",
+      "symmetry_group": "C1"
     },
     "formula_latex": "{\\Gamma}_{\\mathbf{q},\\nu} = \\frac{\\pi \\sum_{\\substack{1 \\leq \\mathbf{q'} \\leq N_{q}\\\\1 \\leq \\nu' \\leq 3 N\\\\1 \\leq \\nu'' \\leq 3 N}} \\left(\\left(- 2 n_{BE}{\\left(\\frac{{\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''}}{T} \\right)} + 2 n_{BE}{\\left(\\frac{{\\omega}_{\\mathbf{q'},\\nu'}}{T} \\right)}\\right) \\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} + {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)} + \\left(n_{BE}{\\left(\\frac{{\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''}}{T} \\right)} + n_{BE}{\\left(\\frac{{\\omega}_{\\mathbf{q'},\\nu'}}{T} \\right)} + 1\\right) \\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} - {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)}\\right) \\operatorname{|V}^{2}_{3|}{\\left(\\mathbf{q},\\nu,\\mathbf{q'},\\nu',- \\mathbf{q'} + \\mathbf{q},\\nu'' \\right)}}{N \\bar{\\h}^{2}}",
-    "description": "Imaginary self-energy from three-phonon scattering (Fermi's golden rule). Energy delta is replaced by a Gaussian of canonical width \u03c3 = stdev. n_BE(\u03c9/T) = (e^{\u210f\u03c9/k_B T} - 1)^{-1}. q'' is fixed by crystal momentum conservation: q'' = q - q' (mod a reciprocal lattice vector).",
-    "kaldo_spec": {
-      "adapter": "kaldo",
-      "parameter_units": {
-        "broadening_sigma": "linear_THz"
+    "auxiliary_latex": [],
+    "description": "Imaginary self-energy from three-phonon scattering (Fermi's golden rule). Energy delta is replaced by a Gaussian of canonical width \u03c3 = stdev. n_BE(\u03c9/T) = (e^{\u210f\u03c9/k_B T} - 1)^{-1}. q'' is fixed by crystal momentum conservation: q'' = q - q' (mod a reciprocal lattice vector). Under crystal symmetry G \u2282 O(3), the BZ sum \u03a3_{q'} can be restricted to the irreducible wedge BZ/G with multiplicity weights |G\u00b7q'|; symmetry_group=G asserts this reduction. symmetry_group=C1 means the full ordered grid is summed.",
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "parameter_units": {
+          "broadening_sigma": "linear_THz"
+        },
+        "algorithmic_convention_overrides": {
+          "broadening_param": "adaptive_velocity_projection",
+          "symmetry_group": "C1"
+        },
+        "discretization_choices": {
+          "bz_summation": "full_grid",
+          "delta_cutoff_sigmas": "2",
+          "degeneracy_averaging": "off"
+        },
+        "notes": "Default mode (third_bandwidth=None): per-channel adaptive \u03c3 from sqrt(\u03a3_\u03bd [\u03b4k_\u03bd \u00b7 \u0394v]\u00b2 / 6) \u2014 identical to ShengBTE's base_sigma with scalebroad=1.0. Iterates the full BZ grid (ordered triplets) with a 0.5 factor on the decay channel to compensate the double-count. Truncates the Gaussian at 2\u03c3 in the dirac-delta replacement."
       },
-      "algorithmic_convention_overrides": {
-        "broadening_param": "halfwidth"
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {
+          "broadening_sigma": "linear_THz"
+        },
+        "algorithmic_convention_overrides": {
+          "symmetry_group": "spglib_auto"
+        },
+        "discretization_choices": {
+          "bz_summation": "symmetry_reduced",
+          "delta_cutoff_sigmas": "infinity",
+          "degeneracy_averaging": "on"
+        },
+        "notes": "Iterates symmetry-reduced triplets with explicit weights. ph3.sigmas[0] is the Gaussian stdev. Default no cutoff. average_by_degeneracy applied post-hoc to the per-mode Gamma."
       },
-      "discretization_choices": {
-        "bz_summation": "full_grid",
-        "delta_cutoff_sigmas": "2",
-        "degeneracy_averaging": "off"
-      },
-      "notes": "Iterates the full BZ grid (ordered triplets) with a 0.5 factor on the decay channel to compensate the double-count. Truncates the Gaussian at 2\u03c3 in the dirac-delta replacement."
-    },
-    "phono3py_spec": {
-      "adapter": "phono3py",
-      "parameter_units": {
-        "broadening_sigma": "linear_THz"
-      },
-      "algorithmic_convention_overrides": {},
-      "discretization_choices": {
-        "bz_summation": "symmetry_reduced",
-        "delta_cutoff_sigmas": "infinity",
-        "degeneracy_averaging": "on"
-      },
-      "notes": "Iterates symmetry-reduced triplets with explicit weights. ph3.sigmas[0] is the Gaussian stdev. Default no cutoff. average_by_degeneracy applied post-hoc to the per-mode Gamma."
+      "shengbte": {
+        "adapter": "shengbte",
+        "parameter_units": {
+          "broadening_sigma": "angular_THz"
+        },
+        "algorithmic_convention_overrides": {
+          "broadening_param": "adaptive_velocity_projection",
+          "symmetry_group": "spglib_auto"
+        },
+        "discretization_choices": {
+          "bz_summation": "symmetry_reduced",
+          "scalebroad_default": "1.0"
+        },
+        "notes": "BTE.w_anharmonic is computed on the irreducible wedge with ShengBTE's adaptive Gaussian smearing (velocity-projection \u03c3 from config.f90:base_sigma, multiplied by &parameters scalebroad, default 1.0). Isotope scattering (BTE.w_isotopic) and boundary scattering (BTE.w_boundary) are separate output files combined into the total rate BTE.w by Matthiessen's rule. With scalebroad=1.0 the broadening is byte-equivalent to kaldo's default (third_bandwidth=None) adaptive mode."
+      }
     }
   },
   "solve_bte[bte_solver=rta]": {
@@ -781,9 +1734,9 @@ const EDGE_DATA = {
       "bte_solver": "rta"
     },
     "formula_latex": "{F}_{\\alpha,\\mathbf{q},\\nu} = \\frac{{v}_{\\alpha,\\mathbf{q},\\nu}}{2 {\\Gamma}_{\\mathbf{q},\\nu}}",
+    "auxiliary_latex": [],
     "description": "Relaxation-time approximation: F = v / (2\u0393). Closed-form per mode. Drops the off-diagonal terms of the collision matrix, so \u03ba_RTA inherits Linewidth's gauge-dependence.",
-    "kaldo_spec": null,
-    "phono3py_spec": null
+    "specs": {}
   },
   "solve_bte[bte_solver=direct_inverse]": {
     "name": "solve_bte[bte_solver=direct_inverse]",
@@ -798,12 +1751,54 @@ const EDGE_DATA = {
     ],
     "parameters": [],
     "algorithmic_conventions": {
-      "bte_solver": "direct_inverse"
+      "bte_solver": "direct_inverse",
+      "symmetry_group": "C1"
     },
     "formula_latex": "\\sum_{\\substack{1 \\leq \\mathbf{q'} \\leq N_{q}\\\\1 \\leq \\nu' \\leq 3 N}} {F}_{\\alpha,\\mathbf{q'},\\nu'} {\\mathcal{M}}_{\\mathbf{q},\\nu,\\mathbf{q'},\\nu'} = {c}_{\\mathbf{q},\\nu} {v}_{\\alpha,\\mathbf{q},\\nu}",
-    "description": "Full linearized BTE: solve M\u00b7F = c\u00b7v for F, where M is the full collision matrix. The off-diagonals capture inter-mode redistribution; \u03ba obtained from this F is gauge-invariant.",
-    "kaldo_spec": null,
-    "phono3py_spec": null
+    "auxiliary_latex": [
+      "{\\mathcal{M}}_{\\mathbf{q},\\nu,\\mathbf{q'},\\nu'} = \\frac{2 \\delta_{\\mathbf{q'} \\mathbf{q}} \\delta_{\\nu \\nu'} {\\Gamma}_{\\mathbf{q},\\nu}}{\\bar{\\h}} - \\frac{\\pi \\sum_{\\nu''=1}^{3 N} \\left(4 \\left(- n_{BE}{\\left(\\frac{{\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''}}{T} \\right)} + n_{BE}{\\left(\\frac{{\\omega}_{\\mathbf{q'},\\nu'}}{T} \\right)}\\right) \\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} + {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)} \\operatorname{|V}^{2}_{3|}{\\left(\\mathbf{q},\\nu,\\mathbf{q'},\\nu',- \\mathbf{q'} + \\mathbf{q},\\nu'' \\right)} + 2 \\left(n_{BE}{\\left(\\frac{{\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''}}{T} \\right)} + n_{BE}{\\left(\\frac{{\\omega}_{\\mathbf{q'},\\nu'}}{T} \\right)} + 1\\right) \\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} - {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)} \\operatorname{|V}^{2}_{3|}{\\left(\\mathbf{q},\\nu,\\mathbf{q'},\\nu',- \\mathbf{q'} + \\mathbf{q},\\nu'' \\right)}\\right)}{N \\bar{\\h}^{2}}"
+    ],
+    "description": "Full linearized BTE: solve M\u00b7F = c\u00b7v for F, where M is the linearized three-phonon collision matrix. M has a diagonal (RTA) part 2\u0393/\u210f and off-diagonal scattering-in terms \u039e built from the same |V\u2083|\u00b2 as compute_linewidth (see auxiliary_formulas[0] for the explicit definition). Off-diagonals capture inter-mode redistribution that RTA drops; \u03ba obtained from this F is gauge-invariant. Under crystal symmetry G the matrix M block-diagonalizes on the irreducible q-set BZ/G, so the linear system can be solved on the reduced space and unfolded by G; symmetry_group=G asserts this. symmetry_group=C1 means M is inverted on the full grid. At finite q-grid, the BZ-summation strategy (full vs irreducible) leaks into \u03ba; convergence study in supercell+q-mesh is the resolution.",
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {
+          "symmetry_group": "C1"
+        },
+        "discretization_choices": {
+          "collision_matrix_assembly": "full_grid",
+          "linear_solver": "scipy.linalg.solve"
+        },
+        "notes": "Conductivity(method='inverse'): the collision matrix M is (N_q\u00b7N_modes)\u00b2 in size and inverted directly with scipy. method='sc' is an alternative realization of the same canonical direct_inverse, with iterative refinement instead."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {
+          "symmetry_group": "spglib_auto"
+        },
+        "discretization_choices": {
+          "collision_matrix_assembly": "irreducible_grid",
+          "linear_solver": "lapack_pinv"
+        },
+        "notes": "run_thermal_conductivity(is_LBTE=True, pinv_solver='dsyevd'): M is built on BZ/G and pseudo-inverted via LAPACK. The output F is unfolded back to the full grid using the spglib star map."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {
+          "symmetry_group": "spglib_auto"
+        },
+        "discretization_choices": {
+          "collision_matrix_assembly": "irreducible_grid",
+          "linear_solver": "shengbte_self_consistent_iteration",
+          "convergence_eps_default": "1e-5",
+          "max_iterations_default": "1000"
+        },
+        "notes": "When &flags convergence=.true. (the default), ShengBTE iterates F = F_RTA + collision-correction terms until ||\u03ba_n - \u03ba_{n-1}|| < eps. The fixed point coincides with the linearized BTE solution (the canonical direct_inverse). The convergence trail is preserved in BTE.kappa within each temperature directory."
+      }
+    }
   },
   "contract_kappa[bte_solver=rta]": {
     "name": "contract_kappa[bte_solver=rta]",
@@ -818,9 +1813,9 @@ const EDGE_DATA = {
     "parameters": [],
     "algorithmic_conventions": {},
     "formula_latex": "{\\kappa}_{\\alpha,\\beta} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {F}_{\\beta,\\mathbf{q},\\nu} {c}_{\\mathbf{q},\\nu} {v}_{\\alpha,\\mathbf{q},\\nu}}{N_{q} V_{cell}}",
+    "auxiliary_latex": [],
     "description": "Per-mode contraction with F from RTA. The 1/\u0393 non-linearity propagates Linewidth's gauge-dependence into \u03ba_RTA.",
-    "kaldo_spec": null,
-    "phono3py_spec": null
+    "specs": {}
   },
   "contract_kappa[bte_solver=direct_inverse]": {
     "name": "contract_kappa[bte_solver=direct_inverse]",
@@ -835,25 +1830,129 @@ const EDGE_DATA = {
     "parameters": [],
     "algorithmic_conventions": {},
     "formula_latex": "{\\kappa}_{\\alpha,\\beta} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {F}_{\\beta,\\mathbf{q},\\nu} {c}_{\\mathbf{q},\\nu} {v}_{\\alpha,\\mathbf{q},\\nu}}{N_{q} V_{cell}}",
+    "auxiliary_latex": [],
     "description": "Per-mode contraction with the LBTE F; result is gauge-invariant.",
-    "kaldo_spec": null,
-    "phono3py_spec": null
+    "specs": {}
+  },
+  "contract_volumetric_heat_capacity": {
+    "name": "contract_volumetric_heat_capacity",
+    "inputs": [
+      "HeatCapacity"
+    ],
+    "outputs": [
+      "VolumetricHeatCapacity"
+    ],
+    "parameters": [],
+    "algorithmic_conventions": {},
+    "formula_latex": "C_V^{vol} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {c}_{\\mathbf{q},\\nu}}{N_{q} V_{cell}}",
+    "auxiliary_latex": [],
+    "description": "BZ-and-mode sum of the per-mode heat capacity, divided by cell volume. Gauge-invariant (no Linewidth or eigenvector input). ShengBTE emits this directly; kaldo/phono3py reach it by contracting their per-mode arrays.",
+    "specs": {}
+  },
+  "contract_molar_heat_capacity": {
+    "name": "contract_molar_heat_capacity",
+    "inputs": [
+      "HeatCapacity"
+    ],
+    "outputs": [
+      "MolarHeatCapacity"
+    ],
+    "parameters": [],
+    "algorithmic_conventions": {},
+    "formula_latex": "C_V^{mol} = \\frac{N_{A} \\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {c}_{\\mathbf{q},\\nu}}{N_{q}}",
+    "auxiliary_latex": [],
+    "description": "BZ-and-mode sum of the per-mode heat capacity, multiplied by Avogadro's number and divided by N_q (so the result is C_V per mole of primitive unit cells). Phonopy emits this in its harmonic thermal_properties output (J/K/mol).",
+    "specs": {}
+  },
+  "compute_dos": {
+    "name": "compute_dos",
+    "inputs": [
+      "Frequency"
+    ],
+    "outputs": [
+      "PhononDOS"
+    ],
+    "parameters": [],
+    "algorithmic_conventions": {},
+    "formula_latex": "g = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} \\delta{\\left(\\omega - {\\omega}_{\\mathbf{q},\\nu} \\right)}}{N_{q}}",
+    "auxiliary_latex": [],
+    "description": "Histogram / smeared sum of phonon frequencies into a 1-D density of states. The \u03b4 is usually replaced by a Gaussian or tetrahedron weight at finite q-mesh. Independent of eigenvectors \u2192 gauge-invariant.",
+    "specs": {}
+  },
+  "compute_gruneisen": {
+    "name": "compute_gruneisen",
+    "inputs": [
+      "ForceConstants[order=2]",
+      "ForceConstants[order=3]",
+      "Frequency",
+      "Eigenvectors"
+    ],
+    "outputs": [
+      "Gruneisen"
+    ],
+    "parameters": [],
+    "algorithmic_conventions": {},
+    "formula_latex": "{\\gamma_{G}}_{\\mathbf{q},\\nu} = - \\frac{\\sum_{\\substack{1 \\leq i \\leq 3 N\\\\1 \\leq j \\leq 3 N}} {\\Phi^{(3)}}_{i,j,k,\\mathbf{R},\\mathbf{R'}}}{6 {\\omega}_{\\mathbf{q},\\nu}^{2}}",
+    "auxiliary_latex": [],
+    "description": "Mode Gr\u00fcneisen parameter from FC2, FC3 and the harmonic eigensystem (Maradudin-Fein expression). Encodes the volume derivative of phonon frequencies. Gauge-invariant per mode because the answer only depends on \u03c9_q\u03bd, not on the eigenvector phase.",
+    "specs": {}
+  },
+  "compute_phase_space_3phonon": {
+    "name": "compute_phase_space_3phonon",
+    "inputs": [
+      "Frequency"
+    ],
+    "outputs": [
+      "PhaseSpace3Phonon"
+    ],
+    "parameters": [],
+    "algorithmic_conventions": {},
+    "formula_latex": "{P_{3}}_{\\mathbf{q},\\nu} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q'} \\leq N_{q}\\\\1 \\leq \\nu' \\leq 3 N\\\\1 \\leq \\nu'' \\leq 3 N}} \\left(\\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} - {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)} + 2 \\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} + {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)}\\right)}{N_{q}}",
+    "auxiliary_latex": [],
+    "description": "Three-phonon kinematic phase space: counts the (q',\u03bd',\u03bd'') channels satisfying energy + crystal-momentum conservation for the given (q, \u03bd). |V\u2083|\u00b2 is not included \u2014 this is purely a measure of scattering availability.",
+    "specs": {}
   }
 };
-const NODE_ID_TO_NAME = {"Potential": "Potential", "Temperature": "Temperature", "ForceConstants_order_2": "ForceConstants[order=2]", "ForceConstants_order_3": "ForceConstants[order=3]", "DynamicalMatrix": "DynamicalMatrix", "Frequency": "Frequency", "Eigenvectors": "Eigenvectors", "GroupVelocity": "GroupVelocity", "HeatCapacity": "HeatCapacity", "Linewidth": "Linewidth", "MeanFreeDisplacement_bte_solver_rta": "MeanFreeDisplacement[bte_solver=rta]", "MeanFreeDisplacement_bte_solver_direct_inverse": "MeanFreeDisplacement[bte_solver=direct_inverse]", "ThermalConductivity_bte_solver_rta": "ThermalConductivity[bte_solver=rta]", "ThermalConductivity_bte_solver_direct_inverse": "ThermalConductivity[bte_solver=direct_inverse]"};
-const EDGE_BY_PAIR = {"Potential->ForceConstants_order_2": "compute_force_constants[order=2]", "Potential->ForceConstants_order_3": "compute_force_constants[order=3]", "ForceConstants_order_2->DynamicalMatrix": "compute_dynamical_matrix", "DynamicalMatrix->Frequency": "compute_dispersion", "DynamicalMatrix->Eigenvectors": "compute_dispersion", "DynamicalMatrix->GroupVelocity": "compute_group_velocity", "Frequency->GroupVelocity": "compute_group_velocity", "Eigenvectors->GroupVelocity": "compute_group_velocity", "Frequency->HeatCapacity": "compute_heat_capacity", "Temperature->HeatCapacity": "compute_heat_capacity", "Frequency->Linewidth": "compute_linewidth", "Eigenvectors->Linewidth": "compute_linewidth", "ForceConstants_order_3->Linewidth": "compute_linewidth", "Temperature->Linewidth": "compute_linewidth", "Frequency->MeanFreeDisplacement_bte_solver_rta": "solve_bte[bte_solver=rta]", "GroupVelocity->MeanFreeDisplacement_bte_solver_rta": "solve_bte[bte_solver=rta]", "Linewidth->MeanFreeDisplacement_bte_solver_rta": "solve_bte[bte_solver=rta]", "Temperature->MeanFreeDisplacement_bte_solver_rta": "solve_bte[bte_solver=rta]", "Frequency->MeanFreeDisplacement_bte_solver_direct_inverse": "solve_bte[bte_solver=direct_inverse]", "GroupVelocity->MeanFreeDisplacement_bte_solver_direct_inverse": "solve_bte[bte_solver=direct_inverse]", "Linewidth->MeanFreeDisplacement_bte_solver_direct_inverse": "solve_bte[bte_solver=direct_inverse]", "Temperature->MeanFreeDisplacement_bte_solver_direct_inverse": "solve_bte[bte_solver=direct_inverse]", "HeatCapacity->ThermalConductivity_bte_solver_rta": "contract_kappa[bte_solver=rta]", "GroupVelocity->ThermalConductivity_bte_solver_rta": "contract_kappa[bte_solver=rta]", "MeanFreeDisplacement_bte_solver_rta->ThermalConductivity_bte_solver_rta": "contract_kappa[bte_solver=rta]", "HeatCapacity->ThermalConductivity_bte_solver_direct_inverse": "contract_kappa[bte_solver=direct_inverse]", "GroupVelocity->ThermalConductivity_bte_solver_direct_inverse": "contract_kappa[bte_solver=direct_inverse]", "MeanFreeDisplacement_bte_solver_direct_inverse->ThermalConductivity_bte_solver_direct_inverse": "contract_kappa[bte_solver=direct_inverse]"};
+const ADAPTER_COLORS = {"kaldo": "#DC2626", "phono3py": "#059669", "phonopy": "#0891B2", "shengbte": "#7C3AED"};
 
 function escapeHtml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
+function adapterChip(adapter) {
+  const c = ADAPTER_COLORS[adapter] || '#9CA3AF';
+  return `<span class="coverage-chip" style="--chip-color: ${c}; background: ${c}">${escapeHtml(adapter)}</span>`;
+}
 
-function renderNode(name) {
+// Pipeline → adapter list mapping. Mirrors _PIPELINES in Python.
+const PIPELINE_ADAPTERS = {
+  symbolic: null,
+  kaldo: ['kaldo'],
+  phono3py: ['phono3py'],
+  phonopy: ['phonopy'],
+  shengbte: ['shengbte'],
+};
+
+function renderNode(name, pipelineId) {
   const d = NODE_DATA[name];
   if (!d) return `<div class="empty">no data for ${escapeHtml(name)}</div>`;
   let html = `<h2>${escapeHtml(d.name)} <span class="kind ${d.kind}">${d.kind}</span></h2>`;
-  if (d.description) html += `<p>${escapeHtml(d.description)}</p>`;
-  html += `<div class="section"><h3>Physics type</h3><code>${escapeHtml(d.physics_type)}</code></div>`;
+  // Pipeline context note: when the click came from a per-code column,
+  // we filter the specs shown to just that code's adapters.
+  const allowedAdapters = PIPELINE_ADAPTERS[pipelineId];
+  const filteredSpecs = (allowedAdapters === null || allowedAdapters === undefined)
+    ? d.specs
+    : Object.fromEntries(Object.entries(d.specs).filter(([a, _]) => allowedAdapters.includes(a)));
 
+  if (pipelineId && pipelineId !== 'symbolic') {
+    html += `<div style="font-size:0.78rem; color: var(--text-secondary); margin-bottom: 0.5rem">`
+          + `Filtered to <strong>${escapeHtml(pipelineId)}</strong>. `
+          + `<a href="#" id="show-all-link" style="color: var(--accent-active); text-decoration: underline; cursor: pointer">Show all adapters</a>`
+          + `</div>`;
+  }
+  if (d.description) html += `<p>${escapeHtml(d.description)}</p>`;
+  const adapters = Object.keys(filteredSpecs);
+  if (adapters.length) html += `<div class="coverage-row">${adapters.map(adapterChip).join('')}</div>`;
+  html += `<div class="section"><h3>Physics type</h3><code>${escapeHtml(d.physics_type)}</code></div>`;
   if (d.fields.length) {
     html += '<div class="section"><h3>Fields</h3><table><tr><th>name</th><th>dimension</th><th>indices</th></tr>';
     for (const f of d.fields) {
@@ -863,7 +1962,6 @@ function renderNode(name) {
     }
     html += '</table></div>';
   }
-
   if (Object.keys(d.canonical_conventions).length) {
     html += '<div class="section"><h3>Canonical conventions</h3><table>';
     for (const [k, v] of Object.entries(d.canonical_conventions)) {
@@ -871,7 +1969,6 @@ function renderNode(name) {
     }
     html += '</table></div>';
   }
-
   if (d.convention_factors.length) {
     html += '<div class="section"><h3>Convention factors</h3><table>' +
             '<tr><th>convention</th><th>value</th><th>field</th><th>factor</th></tr>';
@@ -883,35 +1980,42 @@ function renderNode(name) {
     }
     html += '</table></div>';
   }
-
-  for (const [adapter, spec] of [['kaldo', d.kaldo_spec], ['phono3py', d.phono3py_spec]]) {
-    html += `<div class="section"><h3>${adapter}</h3>`;
-    if (!spec) {
-      html += '<div class="empty">no adapter spec yet</div>';
-    } else {
-      if (Object.keys(spec.observable_units).length) {
-        html += '<table>';
-        for (const [k, v] of Object.entries(spec.observable_units)) {
-          html += `<tr><td>unit (<code>${escapeHtml(k)}</code>)</td><td><code>${escapeHtml(v)}</code></td></tr>`;
-        }
-        for (const [k, v] of Object.entries(spec.observable_convention_overrides)) {
-          html += `<tr><td>${escapeHtml(k)}</td><td><code>${escapeHtml(v)}</code></td></tr>`;
-        }
-        html += '</table>';
+  for (const adapter of adapters) {
+    const spec = filteredSpecs[adapter];
+    const color = ADAPTER_COLORS[adapter] || '#9CA3AF';
+    html += `<div class="section adapter-section" style="--adapter-color: ${color}"><h3>${escapeHtml(adapter)}</h3>`;
+    if (Object.keys(spec.code_api || {}).length) {
+      html += '<table>';
+      for (const [k, v] of Object.entries(spec.code_api)) {
+        html += `<tr><td>API for <code>${escapeHtml(k)}</code></td><td><code>${escapeHtml(v)}</code></td></tr>`;
       }
-      if (spec.notes) html += `<p style="font-size:0.85rem; color:#555">${escapeHtml(spec.notes)}</p>`;
+      html += '</table>';
+    }
+    if (Object.keys(spec.observable_units).length || Object.keys(spec.observable_convention_overrides).length) {
+      html += '<table>';
+      for (const [k, v] of Object.entries(spec.observable_units)) {
+        html += `<tr><td>unit (<code>${escapeHtml(k)}</code>)</td><td><code>${escapeHtml(v)}</code></td></tr>`;
+      }
+      for (const [k, v] of Object.entries(spec.observable_convention_overrides)) {
+        html += `<tr><td>${escapeHtml(k)}</td><td><code>${escapeHtml(v)}</code></td></tr>`;
+      }
+      html += '</table>';
+    }
+    if (spec.notes) html += `<div class="notes">${escapeHtml(spec.notes)}</div>`;
+    html += '</div>';
+  }
+  if (Object.keys(d.cross_factors).length) {
+    html += '<div class="section"><h3>Cross-code factors</h3>';
+    for (const [pair, perField] of Object.entries(d.cross_factors)) {
+      html += `<div style="margin-top:0.5rem"><strong style="font-size:0.78rem; color: var(--text-secondary)">${escapeHtml(pair)}</strong>`;
+      html += '<table>';
+      for (const [field, factor] of Object.entries(perField)) {
+        html += `<tr><td><code>${escapeHtml(field)}</code></td><td>${factor.toExponential(4)}</td></tr>`;
+      }
+      html += '</table></div>';
     }
     html += '</div>';
   }
-
-  if (Object.keys(d.cross_state_total_factors).length) {
-    html += '<div class="section"><h3>Cross-code factor (kaldo → phono3py)</h3><table>';
-    for (const [k, v] of Object.entries(d.cross_state_total_factors)) {
-      html += `<tr><td><code>${escapeHtml(k)}</code></td><td>${v.toExponential(4)}</td></tr>`;
-    }
-    html += '</table></div>';
-  }
-
   return html;
 }
 
@@ -920,22 +2024,20 @@ function renderEdge(name) {
   if (!d) return `<div class="empty">no data for ${escapeHtml(name)}</div>`;
   let html = `<h2>${escapeHtml(d.name)}</h2>`;
   if (d.description) html += `<p>${escapeHtml(d.description)}</p>`;
-
+  const adapters = Object.keys(d.specs);
+  if (adapters.length) html += `<div class="coverage-row">${adapters.map(adapterChip).join('')}</div>`;
   html += `<div class="section"><h3>Inputs</h3>${d.inputs.length ?
             '<ul>' + d.inputs.map(s => `<li><code>${escapeHtml(s)}</code></li>`).join('') + '</ul>' :
-            '<div class="empty">(no inputs &mdash; nullary source)</div>'}</div>`;
+            '<div class="empty">(no inputs — nullary source)</div>'}</div>`;
   html += `<div class="section"><h3>Outputs</h3><ul>` +
           d.outputs.map(s => `<li><code>${escapeHtml(s)}</code></li>`).join('') + `</ul></div>`;
-
   if (d.parameters.length) {
-    html += '<div class="section"><h3>Parameters</h3><table>' +
-            '<tr><th>name</th><th>dimension</th></tr>';
+    html += '<div class="section"><h3>Parameters</h3><table><tr><th>name</th><th>dimension</th></tr>';
     for (const p of d.parameters) {
       html += `<tr><td><code>${escapeHtml(p.name)}</code></td><td>${escapeHtml(p.dimension)}</td></tr>`;
     }
     html += '</table></div>';
   }
-
   if (Object.keys(d.algorithmic_conventions).length) {
     html += '<div class="section"><h3>Algorithmic conventions</h3><table>';
     for (const [k, v] of Object.entries(d.algorithmic_conventions)) {
@@ -943,78 +2045,96 @@ function renderEdge(name) {
     }
     html += '</table></div>';
   }
-
   if (d.formula_latex) {
     html += `<div class="section"><h3>Formula</h3><div class="formula">$$${d.formula_latex}$$</div></div>`;
   }
-
-  for (const [adapter, spec] of [['kaldo', d.kaldo_spec], ['phono3py', d.phono3py_spec]]) {
-    html += `<div class="section"><h3>${adapter}</h3>`;
-    if (!spec) {
-      html += '<div class="empty">no operation-adapter spec yet</div>';
-    } else {
-      let any = false;
-      let tbl = '<table>';
-      for (const [k, v] of Object.entries(spec.parameter_units)) {
-        tbl += `<tr><td>unit (<code>${escapeHtml(k)}</code>)</td><td><code>${escapeHtml(v)}</code></td></tr>`;
-        any = true;
-      }
-      for (const [k, v] of Object.entries(spec.algorithmic_convention_overrides)) {
-        tbl += `<tr><td>${escapeHtml(k)}</td><td><code>${escapeHtml(v)}</code></td></tr>`;
-        any = true;
-      }
-      for (const [k, v] of Object.entries(spec.discretization_choices)) {
-        tbl += `<tr><td>${escapeHtml(k)}</td><td><code>${escapeHtml(v)}</code></td></tr>`;
-        any = true;
-      }
-      tbl += '</table>';
-      if (any) html += tbl;
-      if (spec.notes) html += `<p style="font-size:0.85rem; color:#555">${escapeHtml(spec.notes)}</p>`;
-      if (!any && !spec.notes) html += '<div class="empty">(no parameters or conventions)</div>';
+  if (d.auxiliary_latex && d.auxiliary_latex.length) {
+    html += `<div class="section"><h3>Auxiliary definitions</h3>`;
+    for (const aux of d.auxiliary_latex) {
+      if (aux) html += `<div class="formula">$$${aux}$$</div>`;
     }
+    html += `</div>`;
+  }
+  for (const adapter of adapters) {
+    const spec = d.specs[adapter];
+    const color = ADAPTER_COLORS[adapter] || '#9CA3AF';
+    html += `<div class="section adapter-section" style="--adapter-color: ${color}"><h3>${escapeHtml(adapter)}</h3>`;
+    let any = false;
+    let tbl = '<table>';
+    for (const [k, v] of Object.entries(spec.parameter_units)) {
+      tbl += `<tr><td>unit (<code>${escapeHtml(k)}</code>)</td><td><code>${escapeHtml(v)}</code></td></tr>`;
+      any = true;
+    }
+    for (const [k, v] of Object.entries(spec.algorithmic_convention_overrides)) {
+      tbl += `<tr><td>${escapeHtml(k)}</td><td><code>${escapeHtml(v)}</code></td></tr>`;
+      any = true;
+    }
+    for (const [k, v] of Object.entries(spec.discretization_choices)) {
+      tbl += `<tr><td>${escapeHtml(k)} <span style="color:var(--text-muted); font-size:0.7rem">(disc.)</span></td><td><code>${escapeHtml(v)}</code></td></tr>`;
+      any = true;
+    }
+    tbl += '</table>';
+    if (any) html += tbl;
+    if (spec.notes) html += `<div class="notes">${escapeHtml(spec.notes)}</div>`;
+    if (!any && !spec.notes) html += '<div class="empty">(no parameters or conventions)</div>';
     html += '</div>';
   }
-
   return html;
 }
 
 function showDetails(html) {
+  if (document.body.classList.contains('details-collapsed')) {
+    document.body.classList.remove('details-collapsed');
+    const t = document.getElementById('details-toggle');
+    if (t) { t.textContent = '›'; t.title = 'Hide details panel'; }
+  }
   const panel = document.getElementById('details');
   panel.innerHTML = html;
+  panel.scrollTop = 0;
+  // Wire up the "show all adapters" link if present (when filtered view).
+  const showAll = panel.querySelector('#show-all-link');
+  if (showAll && panel.dataset.state) {
+    showAll.addEventListener('click', (e) => {
+      e.preventDefault();
+      panel.dataset.pipeline = 'symbolic';
+      showDetails(renderNode(panel.dataset.state, 'symbolic'));
+    });
+  }
   if (window.MathJax && MathJax.typesetPromise) {
     MathJax.typesetPromise([panel]);
   }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-  mermaid.initialize({ startOnLoad: false, securityLevel: 'loose', flowchart: { curve: 'basis' } });
-  await mermaid.run({ querySelector: '.mermaid' });
-
-  // Wire click handlers on rendered nodes and edges
-  document.querySelectorAll('#diagram .node').forEach(el => {
-    el.addEventListener('click', () => {
-      const id = el.id.replace(/^flowchart-/, '').replace(/-\d+$/, '');
-      const name = NODE_ID_TO_NAME[id];
-      if (name) showDetails(renderNode(name));
-    });
-  });
-
-  document.querySelectorAll('#diagram .edgePaths .edgePath, #diagram .edgeLabels .edgeLabel').forEach(el => {
-    el.style.cursor = 'pointer';
-    el.addEventListener('click', () => {
-      // Mermaid annotates edge label text with the operation name
-      const lbl = el.querySelector('.edgeLabel, foreignObject span');
-      const text = (lbl ? lbl.textContent : el.textContent).trim();
-      // text is the short name, e.g. "compute_linewidth"; find a matching EDGE_DATA entry
-      let candidate = null;
-      for (const fullName of Object.keys(EDGE_DATA)) {
-        if (fullName === text || fullName.startsWith(text + '[')) {
-          if (!candidate || fullName.length > candidate.length) candidate = fullName;
-        }
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.node-row').forEach(g => {
+    g.addEventListener('click', () => {
+      const name = g.dataset.state;
+      const pipeline = g.dataset.pipeline || 'symbolic';
+      if (name) {
+        const panel = document.getElementById('details');
+        panel.dataset.state = name;
+        panel.dataset.pipeline = pipeline;
+        showDetails(renderNode(name, pipeline));
       }
-      if (candidate) showDetails(renderEdge(candidate));
     });
   });
+  document.querySelectorAll('.edge').forEach(p => {
+    p.style.cursor = 'pointer';
+    p.addEventListener('click', () => {
+      const op = p.dataset.op;
+      if (op) showDetails(renderEdge(op));
+    });
+  });
+
+  const toggle = document.getElementById('details-toggle');
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      document.body.classList.toggle('details-collapsed');
+      const collapsed = document.body.classList.contains('details-collapsed');
+      toggle.textContent = collapsed ? '‹' : '›';
+      toggle.title = collapsed ? 'Show details panel' : 'Hide details panel';
+    });
+  }
 });
 </script>
 </body>

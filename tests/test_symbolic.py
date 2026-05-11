@@ -21,11 +21,11 @@ from omai.thermal_transport.symbolic import (
 
 
 def test_node_count():
-    assert len(NODES) == 14
+    assert len(NODES) == 19
 
 
 def test_edge_count():
-    assert len(EDGES) == 13
+    assert len(EDGES) == 18
 
 
 def test_provide_potential_is_nullary():
