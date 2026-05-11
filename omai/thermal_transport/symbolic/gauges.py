@@ -17,8 +17,8 @@ from __future__ import annotations
 
 import sympy as sp
 
-from omai.abstract.gauge import GaugeAction
-from omai.thermal_transport.symbolic.edges import _e, _Phi2
+from omai.abstract.gauge import GaugeAction, fc2_gauge_from_symmetry_op
+from omai.thermal_transport.symbolic.edges import _Phi2, _e
 
 
 # Wild symbols for the gauge patterns. Using Wild lets the substitution match
@@ -48,35 +48,27 @@ U1_PHASE_ON_EIGENVECTOR = GaugeAction(
 )
 
 
-# === Crystal symmetry: spatial inversion ===
+# === Crystal symmetry ===
 #
-# A first concrete crystal-symmetry GaugeAction. The full point group is a
-# finite set of generators; here we encode the simplest non-trivial
-# element — spatial inversion P = -𝟙 — and show that a symmetrized FC²
-# tensor is invariant under it (mechanical sympy proof).
+# Crystal symmetry is data-driven: each material declares its point group
+# as a CrystalPointGroup (list of SymmetryOperation generators), often
+# extracted via spglib in real codes. The substrate then builds the
+# corresponding GaugeActions on demand via fc2_gauge_from_symmetry_op.
 #
-# Inversion's action on FC²:
-#     Φ²_{ij}(R) → Σ_{i'j'} P_{ii'} P_{jj'} Φ²_{i'j'}(P·R)
-#                = Σ_{i'j'} (-δ_{ii'})(-δ_{jj'}) Φ²_{i'j'}(-R)
-#                = Φ²_{ij}(-R)
+# What's "tractable today" for symbolic invariance proofs: operations
+# whose rotation is diagonal in Cartesian indices (identity, inversion,
+# and the trivial Cartesian-aligned mirror planes when all three signs
+# are identical). General rotations and mixed-sign mirrors require
+# expanding the FC² index space and are deferred.
 #
-# Extending to a full point group: add one GaugeAction per generator (or
-# build a higher-level CrystalPointGroup that aggregates them and verifies
-# invariance under every generator). Done one generator at a time, this
-# remains in the "tractable today" tier — sympy substitution + simplify
-# handles each finite-group element. Lie-group orbits are out of scope.
+# Below: spatial inversion as a concrete, machine-verifiable instance.
 
-CRYSTAL_INVERSION_ON_FC2 = GaugeAction(
-    name="crystal_inversion_on_FC2",
-    description=(
-        "Spatial inversion on the harmonic force-constant tensor: "
-        "Φ²_{ij}(R) → Φ²_{ij}(-R). One element of the cubic point group; "
-        "the symmetrized FC² (averaged over the Z/2 orbit {𝟙, P}) is "
-        "invariant under this action."
-    ),
-    pattern=_Phi2[_i_w, _j_w, _R_w],
-    transform=_Phi2[_i_w, _j_w, -_R_w],
+from omai.abstract.crystal_symmetry import INVERSION
+
+CRYSTAL_INVERSION_ON_FC2 = fc2_gauge_from_symmetry_op(
+    INVERSION, _Phi2, _i_w, _j_w, _R_w
 )
+assert CRYSTAL_INVERSION_ON_FC2 is not None, "inversion must be substitution-friendly"
 
 
 GAUGES: tuple[GaugeAction, ...] = (

@@ -557,17 +557,32 @@ degenerate-subspace), and data-dependent gauges (e.g.\ degenerate-
 subspace rotation that only acts at degenerate $\omega$). For those,
 the substrate falls back to the Level 1 named-gauge declarations.
 
-\paragraph{Crystal symmetry as a second example.} \texttt{CRYSTAL\_INVERSION\_ON\_FC2}
-encodes spatial inversion's action on the harmonic force-constant tensor:
-$\Phi^{(2)}_{ij}(\mathbf{R}) \to \Phi^{(2)}_{ij}(-\mathbf{R})$. The symmetrized
-$\Phi^{(2)}_\text{sym}(\mathbf{R}) = \tfrac{1}{2}(\Phi^{(2)}(\mathbf{R}) +
-\Phi^{(2)}(-\mathbf{R}))$ is provably invariant under this action; the
-substrate verifies the proof mechanically. A bare un-symmetrized
-$\Phi^{(2)}$ is correctly flagged as \emph{not} inversion-invariant.
-Extending to the full point group: add one \texttt{GaugeAction} per
-generator, or build a \texttt{CrystalPointGroup} aggregate that verifies
-under each generator. Each remains in the tractable tier --- sympy
-substitution + simplification per generator.
+\paragraph{Crystal symmetry as data-driven gauges.} The substrate does not
+hardcode any specific point group. Crystal symmetry enters as \emph{data}:
+a \texttt{SymmetryOperation} (3$\times$3 integer rotation matrix plus
+translation, matching spglib's data model) and a \texttt{CrystalPointGroup}
+(a list of generators). Materials adapters that use spglib internally
+translate its output into these substrate-level types; adapters with
+their own analyzer do the same. The substrate is spglib-agnostic but
+spglib-compatible.
+
+Given a \texttt{SymmetryOperation}, the factory
+\texttt{fc2\_gauge\_from\_symmetry\_op} builds a \texttt{GaugeAction} for
+its action on $\Phi^{(2)}$ if the rotation is substitution-friendly
+(diagonal in Cartesian indices with $\pm 1$ entries — identity, inversion,
+Cartesian-aligned mirrors with uniform signs). For these, the substrate
+mechanically verifies invariance via sympy. For non-diagonal rotations
+(e.g., 90$^\circ$ around $z$), the factory returns None: the gauge is
+declared at Level 1 but not symbolically verified --- substrate machinery
+to expand the FC$^{(2)}$ index space and prove invariance under coupled
+rotations is research-grade.
+
+The order-2 inversion group $C_i$ is verified end-to-end: the
+$Z/2$-symmetrized $\Phi^{(2)}_\text{sym}(\mathbf{R}) = \tfrac{1}{2}
+(\Phi^{(2)}(\mathbf{R}) + \Phi^{(2)}(-\mathbf{R}))$ is provably invariant;
+the bare un-symmetrized $\Phi^{(2)}$ is correctly flagged as not invariant.
+Other crystal point groups are constructed by the same data path; the
+substrate-level interface is the same.
 
 \subsection{Materialization functor}
 
