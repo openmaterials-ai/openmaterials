@@ -557,6 +557,18 @@ degenerate-subspace), and data-dependent gauges (e.g.\ degenerate-
 subspace rotation that only acts at degenerate $\omega$). For those,
 the substrate falls back to the Level 1 named-gauge declarations.
 
+\paragraph{Crystal symmetry as a second example.} \texttt{CRYSTAL\_INVERSION\_ON\_FC2}
+encodes spatial inversion's action on the harmonic force-constant tensor:
+$\Phi^{(2)}_{ij}(\mathbf{R}) \to \Phi^{(2)}_{ij}(-\mathbf{R})$. The symmetrized
+$\Phi^{(2)}_\text{sym}(\mathbf{R}) = \tfrac{1}{2}(\Phi^{(2)}(\mathbf{R}) +
+\Phi^{(2)}(-\mathbf{R}))$ is provably invariant under this action; the
+substrate verifies the proof mechanically. A bare un-symmetrized
+$\Phi^{(2)}$ is correctly flagged as \emph{not} inversion-invariant.
+Extending to the full point group: add one \texttt{GaugeAction} per
+generator, or build a \texttt{CrystalPointGroup} aggregate that verifies
+under each generator. Each remains in the tractable tier --- sympy
+substitution + simplification per generator.
+
 \subsection{Materialization functor}
 
 A materialization functor $\mathcal{F}$ is associated with a particular code (kaldo, phono3py,
