@@ -16,11 +16,24 @@ from __future__ import annotations
 
 from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
 from omai.thermal_transport.operator.edges import (
+    compute_dispersion,
+    compute_dos,
+    compute_dynamical_matrix,
     compute_force_constants_2,
     compute_force_constants_3,
+    compute_group_velocity,
+    compute_gruneisen,
     compute_heat_capacity,
     compute_linewidth,
+    compute_phase_space_3phonon,
+    contract_kappa_direct,
+    contract_kappa_rta,
+    contract_molar_heat_capacity,
+    contract_volumetric_heat_capacity,
+    provide_potential,
+    provide_temperature,
     solve_bte_direct,
+    solve_bte_rta,
 )
 from omai.thermal_transport.operator.nodes import (
     DYNAMICAL_MATRIX,
@@ -336,5 +349,128 @@ PHONO3PY_PHASE_SPACE_3PH = StateAdapterSpec(
     notes=(
         "Phono3py.phonon_phase_space contains the per-mode P3 array after "
         "run_phonon_phase_space() is called."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Operation-adapter specs for phono3py. As with the kaldo module, trivial
+# ops carry no algorithmic conventions and exist only to mark coverage.
+# ---------------------------------------------------------------------------
+
+
+PHONO3PY_PROVIDE_POTENTIAL = OperationAdapterSpec(
+    operation=provide_potential,
+    adapter_name="phono3py",
+    notes="Phono3py reads forces from an external DFT/MD code via FORCES_FC* files.",
+)
+
+
+PHONO3PY_PROVIDE_TEMPERATURE = OperationAdapterSpec(
+    operation=provide_temperature,
+    adapter_name="phono3py",
+    notes="Set via Phono3py(temperatures=...).",
+)
+
+
+PHONO3PY_COMPUTE_DYNAMICAL_MATRIX = OperationAdapterSpec(
+    operation=compute_dynamical_matrix,
+    adapter_name="phono3py",
+    notes=(
+        "Inherited from the parent Phonopy object: DynamicalMatrix.get_dynamical_matrix() "
+        "performs the Bloch sum over Φ²(R)."
+    ),
+)
+
+
+PHONO3PY_COMPUTE_DISPERSION = OperationAdapterSpec(
+    operation=compute_dispersion,
+    adapter_name="phono3py",
+    notes=(
+        "Frequencies and eigenvectors come from a per-q numpy.linalg.eigh "
+        "of the dynamical matrix (Phonopy.get_band_structure / get_mesh_dict). "
+        "Degenerate subspaces inherit the arbitrary numpy basis."
+    ),
+)
+
+
+PHONO3PY_COMPUTE_GROUP_VELOCITY = OperationAdapterSpec(
+    operation=compute_group_velocity,
+    adapter_name="phono3py",
+    notes=(
+        "Phonopy.GroupVelocity uses the analytic Hellmann-Feynman formula "
+        "with finite-difference fallback only at exact band crossings."
+    ),
+)
+
+
+PHONO3PY_SOLVE_BTE_RTA = OperationAdapterSpec(
+    operation=solve_bte_rta,
+    adapter_name="phono3py",
+    notes=(
+        "Phono3py.run_thermal_conductivity(is_LBTE=False): closed-form F = v / (2Γ) "
+        "per mode, with kappa accumulated as the BZ sum is built."
+    ),
+)
+
+
+PHONO3PY_CONTRACT_KAPPA_RTA = OperationAdapterSpec(
+    operation=contract_kappa_rta,
+    adapter_name="phono3py",
+    notes="kappa_RTA: c·v⊗v·τ summed over (q, ν) and divided by volume.",
+)
+
+
+PHONO3PY_CONTRACT_KAPPA_DIRECT = OperationAdapterSpec(
+    operation=contract_kappa_direct,
+    adapter_name="phono3py",
+    notes="kappa from the LBTE solve, accumulated as c·v⊗F over (q, ν).",
+)
+
+
+PHONO3PY_CONTRACT_VOLUMETRIC_HEAT_CAPACITY = OperationAdapterSpec(
+    operation=contract_volumetric_heat_capacity,
+    adapter_name="phono3py",
+    notes="Derived from the per-mode heat_capacity array by summing and dividing by cell volume.",
+)
+
+
+PHONO3PY_CONTRACT_MOLAR_HEAT_CAPACITY = OperationAdapterSpec(
+    operation=contract_molar_heat_capacity,
+    adapter_name="phono3py",
+    notes="Derived from the per-mode heat_capacity array via N_A × sum / N_q.",
+)
+
+
+PHONO3PY_COMPUTE_DOS = OperationAdapterSpec(
+    operation=compute_dos,
+    adapter_name="phono3py",
+    algorithmic_convention_overrides={"dos_broadening": "tetrahedron"},
+    notes=(
+        "Phonopy.run_total_dos defaults to tetrahedron integration "
+        "(is_tetrahedron=True); a Gaussian-broadened mode is available via "
+        "the `sigma` argument."
+    ),
+)
+
+
+PHONO3PY_COMPUTE_GRUNEISEN = OperationAdapterSpec(
+    operation=compute_gruneisen,
+    adapter_name="phono3py",
+    notes=(
+        "Phono3py.run_phonon_gruneisen_parameters: Maradudin-Fein closed form "
+        "using fc2, fc3 and the harmonic eigensystem — matches the canonical "
+        "gruneisen_method=maradudin_fein."
+    ),
+)
+
+
+PHONO3PY_COMPUTE_PHASE_SPACE_3PH = OperationAdapterSpec(
+    operation=compute_phase_space_3phonon,
+    adapter_name="phono3py",
+    notes=(
+        "run_phonon_phase_space reuses the linewidth code's δ realisation; "
+        "with the default smearing-method runner this is Gaussian, matching "
+        "the canonical delta_broadening=gaussian."
     ),
 )

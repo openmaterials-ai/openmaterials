@@ -21,7 +21,20 @@ References to the phonopy API (https://phonopy.github.io/phonopy/):
 
 from __future__ import annotations
 
-from omai.representation.adapter import StateAdapterSpec
+from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
+from omai.thermal_transport.operator.edges import (
+    compute_dispersion,
+    compute_dos,
+    compute_dynamical_matrix,
+    compute_force_constants_2,
+    compute_group_velocity,
+    compute_gruneisen,
+    compute_heat_capacity,
+    contract_molar_heat_capacity,
+    contract_volumetric_heat_capacity,
+    provide_potential,
+    provide_temperature,
+)
 from omai.thermal_transport.operator.nodes import (
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
@@ -173,5 +186,125 @@ PHONOPY_GRUNEISEN = StateAdapterSpec(
         "three Phonopy instances at slightly different volumes (V₀, V±ΔV). "
         "Returns mode γ_qν on a band path (GruneisenBandStructure) or on a "
         "q-mesh (GruneisenMesh)."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Operation-adapter specs for phonopy. Phonopy covers only the harmonic
+# chain; the BTE half of the DAG is out of its scope and lives in the
+# phono3py adapter.
+# ---------------------------------------------------------------------------
+
+
+PHONOPY_PROVIDE_POTENTIAL = OperationAdapterSpec(
+    operation=provide_potential,
+    adapter_name="phonopy",
+    notes=(
+        "Phonopy reads forces from an external DFT / ML code via the "
+        "FORCE_SETS / FORCE_CONSTANTS files."
+    ),
+)
+
+
+PHONOPY_PROVIDE_TEMPERATURE = OperationAdapterSpec(
+    operation=provide_temperature,
+    adapter_name="phonopy",
+    notes="Set via Phonopy.run_thermal_properties(temperatures=...).",
+)
+
+
+PHONOPY_COMPUTE_FORCE_CONSTANTS_2 = OperationAdapterSpec(
+    operation=compute_force_constants_2,
+    adapter_name="phonopy",
+    algorithmic_convention_overrides={"symmetry_group": "spglib_auto"},
+    notes=(
+        "Phonopy.produce_force_constants applies spglib-driven space-group "
+        "reduction by default. Disable via Phonopy(symprec=0) for the C1 "
+        "regime."
+    ),
+)
+
+
+PHONOPY_COMPUTE_DYNAMICAL_MATRIX = OperationAdapterSpec(
+    operation=compute_dynamical_matrix,
+    adapter_name="phonopy",
+    notes=(
+        "DynamicalMatrix.get_dynamical_matrix(q) — Bloch sum over Φ²(R) "
+        "with the phonopy phase convention."
+    ),
+)
+
+
+PHONOPY_COMPUTE_DISPERSION = OperationAdapterSpec(
+    operation=compute_dispersion,
+    adapter_name="phonopy",
+    notes=(
+        "Eigenfrequencies / eigenvectors from numpy.linalg.eigh of D(q) — "
+        "Phonopy.get_band_structure / .get_mesh_dict."
+    ),
+)
+
+
+PHONOPY_COMPUTE_GROUP_VELOCITY = OperationAdapterSpec(
+    operation=compute_group_velocity,
+    adapter_name="phonopy",
+    notes=(
+        "Phonopy.GroupVelocity uses the analytic Hellmann-Feynman formula, "
+        "with finite-difference fallback at exact band crossings."
+    ),
+)
+
+
+PHONOPY_COMPUTE_HEAT_CAPACITY = OperationAdapterSpec(
+    operation=compute_heat_capacity,
+    adapter_name="phonopy",
+    notes=(
+        "Per-mode c_qν is computed internally via the Bose-Einstein form "
+        "but only the molar contraction is exposed (heat_capacity in "
+        "thermal_properties)."
+    ),
+)
+
+
+PHONOPY_CONTRACT_VOLUMETRIC_HEAT_CAPACITY = OperationAdapterSpec(
+    operation=contract_volumetric_heat_capacity,
+    adapter_name="phonopy",
+    notes=(
+        "Not emitted directly; derivable from the molar form by dividing "
+        "by N_A and the cell volume."
+    ),
+)
+
+
+PHONOPY_CONTRACT_MOLAR_HEAT_CAPACITY = OperationAdapterSpec(
+    operation=contract_molar_heat_capacity,
+    adapter_name="phonopy",
+    notes=(
+        "get_thermal_properties_dict()['heat_capacity'] in J/(K·mol of "
+        "primitive cells)."
+    ),
+)
+
+
+PHONOPY_COMPUTE_DOS = OperationAdapterSpec(
+    operation=compute_dos,
+    adapter_name="phonopy",
+    algorithmic_convention_overrides={"dos_broadening": "tetrahedron"},
+    notes=(
+        "Phonopy.run_total_dos defaults to tetrahedron integration; "
+        "Gaussian broadening is selectable via the `sigma` argument."
+    ),
+)
+
+
+PHONOPY_COMPUTE_GRUNEISEN = OperationAdapterSpec(
+    operation=compute_gruneisen,
+    adapter_name="phonopy",
+    algorithmic_convention_overrides={"gruneisen_method": "finite_difference"},
+    notes=(
+        "PhonopyGruneisen finite-differences ω(V) between three harmonic "
+        "calculations at slightly different cell volumes — deviates from "
+        "the canonical Maradudin-Fein closed form."
     ),
 )

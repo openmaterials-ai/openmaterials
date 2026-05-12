@@ -154,6 +154,29 @@ _LW_FORMULA = sp.Eq(
     ),
 )
 
+
+# Auxiliary structural definition of |V₃|² (Maradudin-Fein form). The
+# main formula above uses |V₃|² as an opaque kernel; this auxiliary
+# equation makes the eigenvector / FC3 / mass dependence explicit, so
+# the same kernel can be reused verbatim in the LBTE collision matrix
+# Ξ (see _M_DEFINITION below). i, j, k run over atoms in the primitive
+# cell; R, R' over lattice vectors.
+_e = sp.IndexedBase("e")
+_m = sp.IndexedBase("m")
+_V3sq_definition_rhs = (
+    sp.Abs(
+        sp.Sum(
+            _Phi3[_i, _j, _k, _R, _Rp]
+            * _e[_i, _q, _nu] * _e[_j, _qp, _nu_p] * _e[_k, _q - _qp, _nu_pp]
+            / sp.sqrt(_m[_i] * _m[_j] * _m[_k]),
+            (_i, 1, _N_modes), (_j, 1, _N_modes), (_k, 1, _N_modes),
+            (_R, 1, _N_q), (_Rp, 1, _N_q),
+        )
+    ) ** 2
+    / (8 * _omega[_q, _nu] * _omega[_qp, _nu_p] * _omega[_q - _qp, _nu_pp])
+)
+_V3SQ_DEFINITION = sp.Eq(_V3, _V3sq_definition_rhs)
+
 # RTA closed form: F^α_{q,ν} = v^α_{q,ν} / (2 Γ_{q,ν})
 _BTE_RTA_FORMULA = sp.Eq(
     _F[_alpha, _q, _nu],
@@ -308,8 +331,15 @@ compute_group_velocity = Operation(
     name="compute_group_velocity",
     inputs=(DYNAMICAL_MATRIX, FREQUENCY_STATE, EIGENVECTORS),
     outputs=(GROUP_VELOCITY,),
+    algorithmic_conventions={"gv_method": "hellmann_feynman"},
     formula=_GV_FORMULA,
-    description="Hellmann-Feynman applied to the eigenvalue equation.",
+    description=(
+        "Hellmann-Feynman applied to the eigenvalue equation. The alternative "
+        "is finite-difference of ω(q); both converge but disagree at degenerate "
+        "subspaces, where the analytic form requires diagonalising ∂D/∂q in the "
+        "degenerate subspace and the finite-difference form silently picks an "
+        "arbitrary basis."
+    ),
 )
 
 compute_heat_capacity = Operation(
@@ -330,16 +360,21 @@ compute_linewidth = Operation(
         "symmetry_group": "C1",
     },
     formula=_LW_FORMULA,
+    auxiliary_formulas=(_V3SQ_DEFINITION,),
     description=(
         "Imaginary self-energy from three-phonon scattering (Fermi's golden "
-        "rule). Energy delta is replaced by a Gaussian of canonical width "
-        "σ = stdev. n_BE(ω/T) = (e^{ℏω/k_B T} - 1)^{-1}. q'' is fixed by "
-        "crystal momentum conservation: q'' = q - q' (mod a reciprocal "
-        "lattice vector). Under crystal symmetry G ⊂ O(3), the BZ sum "
-        "Σ_{q'} can be restricted to the irreducible wedge BZ/G with "
-        "multiplicity weights |G·q'|; symmetry_group=G asserts this "
-        "reduction. symmetry_group=C1 means the full ordered grid is "
-        "summed."
+        "rule). The kernel |V₃|² is the Maradudin-Fein matrix element "
+        "(auxiliary_formulas[0]): a triple sum of Φ³ contracted with "
+        "eigenvectors and mass factors, scaled by 1/(8 ω ω' ω''). The same "
+        "kernel appears in the LBTE collision matrix Ξ (see "
+        "solve_bte_direct.auxiliary_formulas[0]). Energy delta is replaced "
+        "by a Gaussian of canonical width σ = stdev. n_BE(ω/T) = (e^{ℏω/k_B "
+        "T} - 1)^{-1}. q'' is fixed by crystal momentum conservation: "
+        "q'' = q - q' (mod a reciprocal lattice vector). Under crystal "
+        "symmetry G ⊂ O(3), the BZ sum Σ_{q'} can be restricted to the "
+        "irreducible wedge BZ/G with multiplicity weights |G·q'|; "
+        "symmetry_group=G asserts this reduction. symmetry_group=C1 means "
+        "the full ordered grid is summed."
     ),
 )
 
@@ -494,12 +529,13 @@ compute_dos = Operation(
     name="compute_dos",
     inputs=(FREQUENCY_STATE,),
     outputs=(PHONON_DOS,),
+    algorithmic_conventions={"dos_broadening": "gaussian"},
     formula=_DOS_FORMULA,
     description=(
         "Histogram / smeared sum of phonon frequencies into a 1-D density "
         "of states. The δ is usually replaced by a Gaussian or tetrahedron "
-        "weight at finite q-mesh. Independent of eigenvectors → "
-        "gauge-invariant."
+        "weight at finite q-mesh; dos_broadening records the choice. "
+        "Independent of eigenvectors → gauge-invariant."
     ),
 )
 
@@ -508,12 +544,16 @@ compute_gruneisen = Operation(
     name="compute_gruneisen",
     inputs=(FORCE_CONSTANTS_2, FORCE_CONSTANTS_3, FREQUENCY_STATE, EIGENVECTORS),
     outputs=(GRUNEISEN,),
+    algorithmic_conventions={"gruneisen_method": "maradudin_fein"},
     formula=_GRUNEISEN_FORMULA,
     description=(
         "Mode Grüneisen parameter from FC2, FC3 and the harmonic eigensystem "
-        "(Maradudin-Fein expression). Encodes the volume derivative of "
-        "phonon frequencies. Gauge-invariant per mode because the answer "
-        "only depends on ω_qν, not on the eigenvector phase."
+        "(Maradudin-Fein closed form). The alternative is finite-difference: "
+        "rerun the harmonic problem at slightly deformed cells and finite-"
+        "difference ω(V). Both converge but the two estimators have different "
+        "noise / convergence behaviour at small q-mesh, so gruneisen_method "
+        "records which one a code emits. Per-mode γ is gauge-invariant: it "
+        "depends on ω_qν, not on the eigenvector phase."
     ),
 )
 
@@ -522,12 +562,14 @@ compute_phase_space_3phonon = Operation(
     name="compute_phase_space_3phonon",
     inputs=(FREQUENCY_STATE,),
     outputs=(PHASE_SPACE_3PH,),
+    algorithmic_conventions={"delta_broadening": "gaussian"},
     formula=_P3_FORMULA,
     description=(
         "Three-phonon kinematic phase space: counts the (q',ν',ν'') channels "
         "satisfying energy + crystal-momentum conservation for the given "
         "(q, ν). |V₃|² is not included — this is purely a measure of "
-        "scattering availability."
+        "scattering availability. delta_broadening records how the energy δ "
+        "is realised at finite q-mesh (Gaussian, Lorentzian, tetrahedron)."
     ),
 )
 

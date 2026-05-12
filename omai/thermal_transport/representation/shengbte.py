@@ -34,10 +34,22 @@ from __future__ import annotations
 
 from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
 from omai.thermal_transport.operator.edges import (
+    compute_dispersion,
+    compute_dos,
+    compute_dynamical_matrix,
     compute_force_constants_2,
     compute_force_constants_3,
+    compute_group_velocity,
+    compute_gruneisen,
     compute_linewidth,
+    compute_phase_space_3phonon,
+    contract_kappa_direct,
+    contract_kappa_rta,
+    contract_volumetric_heat_capacity,
+    provide_potential,
+    provide_temperature,
     solve_bte_direct,
+    solve_bte_rta,
 )
 from omai.thermal_transport.operator.nodes import (
     FORCE_CONSTANTS_2,
@@ -324,5 +336,127 @@ SHENGBTE_PHASE_SPACE_3PH = StateAdapterSpec(
     notes=(
         "BTE.P3: three-phonon kinematic phase space per irreducible (q, ν). "
         "BTE.P3_plus / BTE.P3_minus split absorption vs decay channels."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Operation-adapter specs for ShengBTE. ShengBTE consumes FC2/FC3 from
+# upstream codes; the symmetry_group claimed on compute_force_constants_*
+# is therefore inherited from whichever code produced the input files.
+# ---------------------------------------------------------------------------
+
+
+SHENGBTE_PROVIDE_POTENTIAL = OperationAdapterSpec(
+    operation=provide_potential,
+    adapter_name="shengbte",
+    notes=(
+        "ShengBTE consumes a pair of pre-computed force-constant files; the "
+        "potential is implicit in whatever code produced them (DFT, classical, "
+        "ML)."
+    ),
+)
+
+
+SHENGBTE_PROVIDE_TEMPERATURE = OperationAdapterSpec(
+    operation=provide_temperature,
+    adapter_name="shengbte",
+    notes="Temperatures are listed in the CONTROL namelist (T= / T_min/T_max/T_step).",
+)
+
+
+SHENGBTE_COMPUTE_DYNAMICAL_MATRIX = OperationAdapterSpec(
+    operation=compute_dynamical_matrix,
+    adapter_name="shengbte",
+    notes=(
+        "Implicit: ShengBTE computes the dynamical matrix internally from "
+        "FORCE_CONSTANTS_2ND when assembling the harmonic spectrum, but does "
+        "not expose the matrix in its output files."
+    ),
+)
+
+
+SHENGBTE_COMPUTE_DISPERSION = OperationAdapterSpec(
+    operation=compute_dispersion,
+    adapter_name="shengbte",
+    notes=(
+        "BTE.omega / BTE.eigenvectors come from a per-q diagonalisation of "
+        "the dynamical matrix in the irreducible BZ wedge."
+    ),
+)
+
+
+SHENGBTE_COMPUTE_GROUP_VELOCITY = OperationAdapterSpec(
+    operation=compute_group_velocity,
+    adapter_name="shengbte",
+    notes=(
+        "BTE.v / BTE.v_full computed via the analytic Hellmann-Feynman form, "
+        "matching the canonical gv_method=hellmann_feynman."
+    ),
+)
+
+
+SHENGBTE_SOLVE_BTE_RTA = OperationAdapterSpec(
+    operation=solve_bte_rta,
+    adapter_name="shengbte",
+    notes=(
+        "BTE.KappaTensorVsT_RTA: closed-form F = v / (2Γ) at each T on the "
+        "CONTROL temperature grid, contracted into κ_RTA."
+    ),
+)
+
+
+SHENGBTE_CONTRACT_KAPPA_RTA = OperationAdapterSpec(
+    operation=contract_kappa_rta,
+    adapter_name="shengbte",
+    notes="κ tensor written to BTE.KappaTensorVsT_RTA after the RTA solve.",
+)
+
+
+SHENGBTE_CONTRACT_KAPPA_DIRECT = OperationAdapterSpec(
+    operation=contract_kappa_direct,
+    adapter_name="shengbte",
+    notes="κ tensor written to BTE.KappaTensorVsT_CONV after the iterative LBTE solve.",
+)
+
+
+SHENGBTE_CONTRACT_VOLUMETRIC_HEAT_CAPACITY = OperationAdapterSpec(
+    operation=contract_volumetric_heat_capacity,
+    adapter_name="shengbte",
+    notes=(
+        "BTE.cv: volumetric C_V in J/(m³·K) at each T, contracted directly "
+        "from the per-mode form (which ShengBTE does not expose)."
+    ),
+)
+
+
+SHENGBTE_COMPUTE_DOS = OperationAdapterSpec(
+    operation=compute_dos,
+    adapter_name="shengbte",
+    algorithmic_convention_overrides={"dos_broadening": "adaptive_scaled"},
+    notes=(
+        "BTE.dos uses the same adaptive Gaussian as the linewidth δ — "
+        "deviates from the canonical dos_broadening=gaussian."
+    ),
+)
+
+
+SHENGBTE_COMPUTE_GRUNEISEN = OperationAdapterSpec(
+    operation=compute_gruneisen,
+    adapter_name="shengbte",
+    notes=(
+        "BTE.gruneisen: Maradudin-Fein closed form, matching the canonical "
+        "gruneisen_method=maradudin_fein."
+    ),
+)
+
+
+SHENGBTE_COMPUTE_PHASE_SPACE_3PH = OperationAdapterSpec(
+    operation=compute_phase_space_3phonon,
+    adapter_name="shengbte",
+    algorithmic_convention_overrides={"delta_broadening": "adaptive_scaled"},
+    notes=(
+        "BTE.P3 uses the same adaptive Gaussian δ as the linewidth — "
+        "deviates from the canonical delta_broadening=gaussian."
     ),
 )

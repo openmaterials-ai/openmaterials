@@ -20,6 +20,28 @@ Observables.
 
 ## Procedure
 
+### 0. Working rules (apply throughout)
+
+Two rules learned the hard way during prior ingestions; check yourself
+against them before each spec decision.
+
+- **Grep before classifying as "out of scope."** Before declaring that a
+  code does not expose a given state, run a literal grep across the
+  code's source for the obvious API names (e.g. `phase_space`, `dos`,
+  `gruneisen`). Several states that an initial reading of the docs
+  missed turned out to have a clean public API one or two commits deep
+  (kaldo's `Phonons.phase_space`, kaldo's `plotter.plot_dos`, phonopy's
+  `PhonopyGruneisen.get_gruneisen()`). A `git grep` in the cloned repo
+  is the cheapest authoritative check.
+
+- **Leaves before intermediates.** Prioritize specs for leaf states of
+  the operator DAG (DAG outputs — quantities downstream of *all*
+  computations: κ, C_V, DOS, Grüneisen, P3). They drive the
+  visualization's hide-vs-dash decision and are the cross-code
+  comparable observables. Intermediate states (DM, eigenvectors, MFD)
+  are scaffolding; their adapter specs can stay implicit (dashed in the
+  viewer) until a comparison call actually needs them.
+
 ### 1. Read the code's own documentation
 
 Read in order of authoritativeness:

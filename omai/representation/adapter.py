@@ -48,10 +48,15 @@ class StateAdapterSpec:
             return unit
         # Canonical unit isn't declared at the operator level (the operator
         # layer is unit-free); the representation layer either declares a
-        # unit or refuses to compare.
+        # unit or refuses to compare. Most scaffolding specs (Temperature,
+        # FC2/FC3, DM, MFD, ...) intentionally omit units — they exist to
+        # mark coverage on the DAG, not to support numerical comparison.
         raise KeyError(
-            f"adapter {self.adapter_name!r} did not declare a unit for "
-            f"observable {observable_name!r} of state {self.state.name!r}"
+            f"adapter {self.adapter_name!r} has no unit declared for "
+            f"observable {observable_name!r} of state {self.state.name!r} "
+            f"— cannot canonicalise. Add an observable_units entry "
+            f"({{'{observable_name}': '<unit_name>'}}) to its StateAdapterSpec, "
+            f"or operate on the canonical (operator-form) Representation."
         )
 
     def declared_convention(self, convention_name: str) -> str:

@@ -318,7 +318,11 @@
       </span>
       <span class="legend-item">
         <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#FFFFFF" stroke="#DC2626" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.7"/></svg>
-        Implicit (no spec yet)
+        Intermediate (no spec — needed by downstream, not exposed)
+      </span>
+      <span class="legend-item" style="opacity:0.7">
+        <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3" fill="#9CA3AF" opacity="0.4"/></svg>
+        Leaf hidden (DAG output not emitted by this code)
       </span>
     </div>
     <div class="legend-group">
@@ -328,14 +332,21 @@
           <defs><marker id="lg-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#374151"/></marker></defs>
           <path d="M2 7 L 28 7" stroke="#374151" stroke-width="1.6" fill="none" marker-end="url(#lg-a)"/>
         </svg>
-        Active (both endpoints specced)
+        States + op spec (full coverage)
+      </span>
+      <span class="legend-item">
+        <svg width="36" height="14" viewBox="0 0 36 14">
+          <defs><marker id="lg-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#374151" opacity="0.55"/></marker></defs>
+          <path d="M2 7 L 28 7" stroke="#374151" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.55" fill="none" marker-end="url(#lg-c)"/>
+        </svg>
+        States covered, op spec missing
       </span>
       <span class="legend-item">
         <svg width="36" height="14" viewBox="0 0 36 14">
           <defs><marker id="lg-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#374151" opacity="0.55"/></marker></defs>
           <path d="M2 7 L 28 7" stroke="#374151" stroke-width="1.3" stroke-dasharray="6 4" opacity="0.55" fill="none" marker-end="url(#lg-b)"/>
         </svg>
-        Implicit (endpoint lacks spec)
+        Implicit (state endpoint lacks spec)
       </span>
     </div>
     <div class="legend-group">
@@ -1483,7 +1494,36 @@ const EDGE_DATA = {
     "formula_latex": "V{\\left(\\{u\\} \\right)} = V_{\\mathrm{provided}}",
     "auxiliary_latex": [],
     "description": "Source: an opaque label for the chosen potential (Tersoff, PBE, ...).",
-    "specs": {}
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "kaldo runs against an external calculator (LAMMPS, ASE, ML)."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Phono3py reads forces from an external DFT/MD code via FORCES_FC* files."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Phonopy reads forces from an external DFT / ML code via the FORCE_SETS / FORCE_CONSTANTS files."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "ShengBTE consumes a pair of pre-computed force-constant files; the potential is implicit in whatever code produced them (DFT, classical, ML)."
+      }
+    }
   },
   "provide_temperature": {
     "name": "provide_temperature",
@@ -1501,7 +1541,36 @@ const EDGE_DATA = {
     "formula_latex": "T = T_{\\mathrm{provided}}",
     "auxiliary_latex": [],
     "description": "Source: the temperature at which subsequent T-dependent observables are evaluated.",
-    "specs": {}
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Set via Phonons(temperature=...)."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Set via Phono3py(temperatures=...)."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Set via Phonopy.run_thermal_properties(temperatures=...)."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Temperatures are listed in the CONTROL namelist (T= / T_min/T_max/T_step)."
+      }
+    }
   },
   "compute_force_constants[order=2]": {
     "name": "compute_force_constants[order=2]",
@@ -1536,6 +1605,15 @@ const EDGE_DATA = {
         },
         "discretization_choices": {},
         "notes": "Phono3py.generate_displacements + produce_fc2: spglib derives the irreducible displacement set; \u03a6\u00b2 is symmetrized on read-back."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {
+          "symmetry_group": "spglib_auto"
+        },
+        "discretization_choices": {},
+        "notes": "Phonopy.produce_force_constants applies spglib-driven space-group reduction by default. Disable via Phonopy(symprec=0) for the C1 regime."
       },
       "shengbte": {
         "adapter": "shengbte",
@@ -1606,7 +1684,36 @@ const EDGE_DATA = {
     "formula_latex": "{D}_{i,j,\\mathbf{q}} = \\frac{\\sum_{\\mathbf{R}=-\\infty}^{\\infty} e^{i \\mathbf{R} \\mathbf{q}} {\\Phi^{(2)}}_{i,j,\\mathbf{R}}}{\\sqrt{{M}_{i} {M}_{j}}}",
     "auxiliary_latex": [],
     "description": "Bloch sum over lattice vectors, mass-weighted.",
-    "specs": {}
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "ForceConstants.dynamical_matrix(q): Bloch sum implemented as a mass-weighted Fourier transform of \u03a6\u00b2(R)."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Inherited from the parent Phonopy object: DynamicalMatrix.get_dynamical_matrix() performs the Bloch sum over \u03a6\u00b2(R)."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "DynamicalMatrix.get_dynamical_matrix(q) \u2014 Bloch sum over \u03a6\u00b2(R) with the phonopy phase convention."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Implicit: ShengBTE computes the dynamical matrix internally from FORCE_CONSTANTS_2ND when assembling the harmonic spectrum, but does not expose the matrix in its output files."
+      }
+    }
   },
   "compute_dispersion": {
     "name": "compute_dispersion",
@@ -1622,7 +1729,36 @@ const EDGE_DATA = {
     "formula_latex": "\\sum_{j=1}^{3 N} {D}_{i,j,\\mathbf{q}} {e}_{j,\\mathbf{q},\\nu} = {\\omega}_{\\mathbf{q},\\nu}^{2} {e}_{i,\\mathbf{q},\\nu}",
     "auxiliary_latex": [],
     "description": "Eigendecomposition of D(q): produces \u03c9_q\u03bd and orthonormal e_q\u03bd. Implicit equation; degenerate subspaces have rotation freedom on e.",
-    "specs": {}
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Phonons.frequency / Phonons.eigenvectors come from a per-q numpy.linalg.eigh of the dynamical matrix. Degenerate subspaces inherit numpy's arbitrary basis choice \u2014 the standard reason Eigenvectors and any quantity built from them are HiddenStates."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Frequencies and eigenvectors come from a per-q numpy.linalg.eigh of the dynamical matrix (Phonopy.get_band_structure / get_mesh_dict). Degenerate subspaces inherit the arbitrary numpy basis."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Eigenfrequencies / eigenvectors from numpy.linalg.eigh of D(q) \u2014 Phonopy.get_band_structure / .get_mesh_dict."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "BTE.omega / BTE.eigenvectors come from a per-q diagonalisation of the dynamical matrix in the irreducible BZ wedge."
+      }
+    }
   },
   "compute_group_velocity": {
     "name": "compute_group_velocity",
@@ -1635,11 +1771,42 @@ const EDGE_DATA = {
       "GroupVelocity"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "algorithmic_conventions": {
+      "gv_method": "hellmann_feynman"
+    },
     "formula_latex": "{v}_{\\alpha,\\mathbf{q},\\nu} = \\frac{\\sum_{\\substack{1 \\leq j \\leq 3 N\\\\1 \\leq i \\leq 3 N}} \\overline{{e}_{i,\\mathbf{q},\\nu}} {\\partial D/\\partial q}_{i,j,\\alpha,\\mathbf{q}} {e}_{j,\\mathbf{q},\\nu}}{2 {\\omega}_{\\mathbf{q},\\nu}}",
     "auxiliary_latex": [],
-    "description": "Hellmann-Feynman applied to the eigenvalue equation.",
-    "specs": {}
+    "description": "Hellmann-Feynman applied to the eigenvalue equation. The alternative is finite-difference of \u03c9(q); both converge but disagree at degenerate subspaces, where the analytic form requires diagonalising \u2202D/\u2202q in the degenerate subspace and the finite-difference form silently picks an arbitrary basis.",
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Phonons.velocity uses the analytic Hellmann-Feynman form v_q\u03bd = (1/2\u03c9_q\u03bd) \u27e8e_q\u03bd| \u2202D/\u2202q |e_q\u03bd\u27e9 \u2014 matches the canonical gv_method=hellmann_feynman."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Phonopy.GroupVelocity uses the analytic Hellmann-Feynman formula with finite-difference fallback only at exact band crossings."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Phonopy.GroupVelocity uses the analytic Hellmann-Feynman formula, with finite-difference fallback at exact band crossings."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "BTE.v / BTE.v_full computed via the analytic Hellmann-Feynman form, matching the canonical gv_method=hellmann_feynman."
+      }
+    }
   },
   "compute_heat_capacity": {
     "name": "compute_heat_capacity",
@@ -1669,6 +1836,13 @@ const EDGE_DATA = {
         "algorithmic_convention_overrides": {},
         "discretization_choices": {},
         "notes": "No parameters or algorithmic conventions exposed."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Per-mode c_q\u03bd is computed internally via the Bose-Einstein form but only the molar contraction is exposed (heat_capacity in thermal_properties)."
       }
     }
   },
@@ -1694,8 +1868,10 @@ const EDGE_DATA = {
       "symmetry_group": "C1"
     },
     "formula_latex": "{\\Gamma}_{\\mathbf{q},\\nu} = \\frac{\\pi \\sum_{\\substack{1 \\leq \\mathbf{q'} \\leq N_{q}\\\\1 \\leq \\nu' \\leq 3 N\\\\1 \\leq \\nu'' \\leq 3 N}} \\left(\\left(- 2 n_{BE}{\\left(\\frac{{\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''}}{T} \\right)} + 2 n_{BE}{\\left(\\frac{{\\omega}_{\\mathbf{q'},\\nu'}}{T} \\right)}\\right) \\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} + {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)} + \\left(n_{BE}{\\left(\\frac{{\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''}}{T} \\right)} + n_{BE}{\\left(\\frac{{\\omega}_{\\mathbf{q'},\\nu'}}{T} \\right)} + 1\\right) \\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} - {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)}\\right) \\operatorname{|V}^{2}_{3|}{\\left(\\mathbf{q},\\nu,\\mathbf{q'},\\nu',- \\mathbf{q'} + \\mathbf{q},\\nu'' \\right)}}{N \\bar{\\h}^{2}}",
-    "auxiliary_latex": [],
-    "description": "Imaginary self-energy from three-phonon scattering (Fermi's golden rule). Energy delta is replaced by a Gaussian of canonical width \u03c3 = stdev. n_BE(\u03c9/T) = (e^{\u210f\u03c9/k_B T} - 1)^{-1}. q'' is fixed by crystal momentum conservation: q'' = q - q' (mod a reciprocal lattice vector). Under crystal symmetry G \u2282 O(3), the BZ sum \u03a3_{q'} can be restricted to the irreducible wedge BZ/G with multiplicity weights |G\u00b7q'|; symmetry_group=G asserts this reduction. symmetry_group=C1 means the full ordered grid is summed.",
+    "auxiliary_latex": [
+      "\\operatorname{|V}^{2}_{3|}{\\left(\\mathbf{q},\\nu,\\mathbf{q'},\\nu',- \\mathbf{q'} + \\mathbf{q},\\nu'' \\right)} = \\frac{\\left|{\\sum_{\\substack{1 \\leq i \\leq 3 N\\\\1 \\leq j \\leq 3 N\\\\1 \\leq k \\leq 3 N\\\\1 \\leq \\mathbf{R} \\leq N_{q}\\\\1 \\leq \\mathbf{R'} \\leq N_{q}}} \\frac{{\\Phi^{(3)}}_{i,j,k,\\mathbf{R},\\mathbf{R'}} {e}_{i,\\mathbf{q},\\nu} {e}_{j,\\mathbf{q'},\\nu'} {e}_{k,- \\mathbf{q'} + \\mathbf{q},\\nu''}}{\\sqrt{{m}_{i} {m}_{j} {m}_{k}}}}\\right|^{2}}{8 {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} {\\omega}_{\\mathbf{q'},\\nu'} {\\omega}_{\\mathbf{q},\\nu}}"
+    ],
+    "description": "Imaginary self-energy from three-phonon scattering (Fermi's golden rule). The kernel |V\u2083|\u00b2 is the Maradudin-Fein matrix element (auxiliary_formulas[0]): a triple sum of \u03a6\u00b3 contracted with eigenvectors and mass factors, scaled by 1/(8 \u03c9 \u03c9' \u03c9''). The same kernel appears in the LBTE collision matrix \u039e (see solve_bte_direct.auxiliary_formulas[0]). Energy delta is replaced by a Gaussian of canonical width \u03c3 = stdev. n_BE(\u03c9/T) = (e^{\u210f\u03c9/k_B T} - 1)^{-1}. q'' is fixed by crystal momentum conservation: q'' = q - q' (mod a reciprocal lattice vector). Under crystal symmetry G \u2282 O(3), the BZ sum \u03a3_{q'} can be restricted to the irreducible wedge BZ/G with multiplicity weights |G\u00b7q'|; symmetry_group=G asserts this reduction. symmetry_group=C1 means the full ordered grid is summed.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
@@ -1763,7 +1939,29 @@ const EDGE_DATA = {
     "formula_latex": "{F}_{\\alpha,\\mathbf{q},\\nu} = \\frac{{v}_{\\alpha,\\mathbf{q},\\nu}}{2 {\\Gamma}_{\\mathbf{q},\\nu}}",
     "auxiliary_latex": [],
     "description": "Relaxation-time approximation: F = v / (2\u0393). Closed-form per mode. Drops the off-diagonal terms of the collision matrix, so \u03ba_RTA inherits Linewidth's gauge-dependence.",
-    "specs": {}
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Conductivity(method='rta'): closed-form F = v / (2\u0393), no algorithmic choice beyond the inherited Linewidth conventions."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Phono3py.run_thermal_conductivity(is_LBTE=False): closed-form F = v / (2\u0393) per mode, with kappa accumulated as the BZ sum is built."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "BTE.KappaTensorVsT_RTA: closed-form F = v / (2\u0393) at each T on the CONTROL temperature grid, contracted into \u03ba_RTA."
+      }
+    }
   },
   "solve_bte[bte_solver=direct_inverse]": {
     "name": "solve_bte[bte_solver=direct_inverse]",
@@ -1842,7 +2040,29 @@ const EDGE_DATA = {
     "formula_latex": "{\\kappa}_{\\alpha,\\beta} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {F}_{\\beta,\\mathbf{q},\\nu} {c}_{\\mathbf{q},\\nu} {v}_{\\alpha,\\mathbf{q},\\nu}}{N_{q} V_{cell}}",
     "auxiliary_latex": [],
     "description": "Per-mode contraction with F from RTA. The 1/\u0393 non-linearity propagates Linewidth's gauge-dependence into \u03ba_RTA.",
-    "specs": {}
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Conductivity(method='rta').conductivity \u2014 per-mode contraction."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "kappa_RTA: c\u00b7v\u2297v\u00b7\u03c4 summed over (q, \u03bd) and divided by volume."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "\u03ba tensor written to BTE.KappaTensorVsT_RTA after the RTA solve."
+      }
+    }
   },
   "contract_kappa[bte_solver=direct_inverse]": {
     "name": "contract_kappa[bte_solver=direct_inverse]",
@@ -1859,7 +2079,29 @@ const EDGE_DATA = {
     "formula_latex": "{\\kappa}_{\\alpha,\\beta} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {F}_{\\beta,\\mathbf{q},\\nu} {c}_{\\mathbf{q},\\nu} {v}_{\\alpha,\\mathbf{q},\\nu}}{N_{q} V_{cell}}",
     "auxiliary_latex": [],
     "description": "Per-mode contraction with the LBTE F; result is gauge-invariant.",
-    "specs": {}
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Conductivity(method='inverse'|'sc').conductivity \u2014 per-mode contraction after the BTE solve."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "kappa from the LBTE solve, accumulated as c\u00b7v\u2297F over (q, \u03bd)."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "\u03ba tensor written to BTE.KappaTensorVsT_CONV after the iterative LBTE solve."
+      }
+    }
   },
   "contract_volumetric_heat_capacity": {
     "name": "contract_volumetric_heat_capacity",
@@ -1874,7 +2116,36 @@ const EDGE_DATA = {
     "formula_latex": "C_V^{vol} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {c}_{\\mathbf{q},\\nu}}{N_{q} V_{cell}}",
     "auxiliary_latex": [],
     "description": "BZ-and-mode sum of the per-mode heat capacity, divided by cell volume. Gauge-invariant (no Linewidth or eigenvector input). ShengBTE emits this directly; kaldo/phono3py reach it by contracting their per-mode arrays.",
-    "specs": {}
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Derived from Phonons.heat_capacity by summing and dividing by cell volume."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Derived from the per-mode heat_capacity array by summing and dividing by cell volume."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Not emitted directly; derivable from the molar form by dividing by N_A and the cell volume."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "BTE.cv: volumetric C_V in J/(m\u00b3\u00b7K) at each T, contracted directly from the per-mode form (which ShengBTE does not expose)."
+      }
+    }
   },
   "contract_molar_heat_capacity": {
     "name": "contract_molar_heat_capacity",
@@ -1889,7 +2160,29 @@ const EDGE_DATA = {
     "formula_latex": "C_V^{mol} = \\frac{N_{A} \\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {c}_{\\mathbf{q},\\nu}}{N_{q}}",
     "auxiliary_latex": [],
     "description": "BZ-and-mode sum of the per-mode heat capacity, multiplied by Avogadro's number and divided by N_q (so the result is C_V per mole of primitive unit cells). Phonopy emits this in its harmonic thermal_properties output (J/K/mol).",
-    "specs": {}
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Derived from Phonons.heat_capacity via N_A \u00d7 sum / N_q."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Derived from the per-mode heat_capacity array via N_A \u00d7 sum / N_q."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "get_thermal_properties_dict()['heat_capacity'] in J/(K\u00b7mol of primitive cells)."
+      }
+    }
   },
   "compute_dos": {
     "name": "compute_dos",
@@ -1900,11 +2193,50 @@ const EDGE_DATA = {
       "PhononDOS"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "algorithmic_conventions": {
+      "dos_broadening": "gaussian"
+    },
     "formula_latex": "g = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} \\delta{\\left(\\omega - {\\omega}_{\\mathbf{q},\\nu} \\right)}}{N_{q}}",
     "auxiliary_latex": [],
-    "description": "Histogram / smeared sum of phonon frequencies into a 1-D density of states. The \u03b4 is usually replaced by a Gaussian or tetrahedron weight at finite q-mesh. Independent of eigenvectors \u2192 gauge-invariant.",
-    "specs": {}
+    "description": "Histogram / smeared sum of phonon frequencies into a 1-D density of states. The \u03b4 is usually replaced by a Gaussian or tetrahedron weight at finite q-mesh; dos_broadening records the choice. Independent of eigenvectors \u2192 gauge-invariant.",
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {
+          "dos_broadening": "gaussian"
+        },
+        "discretization_choices": {},
+        "notes": "controllers.plotter.plot_dos sums Gaussians of fixed width `bandwidth` centred on each \u03c9_q\u03bd. Matches the canonical dos_broadening=gaussian."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {
+          "dos_broadening": "tetrahedron"
+        },
+        "discretization_choices": {},
+        "notes": "Phonopy.run_total_dos defaults to tetrahedron integration (is_tetrahedron=True); a Gaussian-broadened mode is available via the `sigma` argument."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {
+          "dos_broadening": "tetrahedron"
+        },
+        "discretization_choices": {},
+        "notes": "Phonopy.run_total_dos defaults to tetrahedron integration; Gaussian broadening is selectable via the `sigma` argument."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {
+          "dos_broadening": "adaptive_scaled"
+        },
+        "discretization_choices": {},
+        "notes": "BTE.dos uses the same adaptive Gaussian as the linewidth \u03b4 \u2014 deviates from the canonical dos_broadening=gaussian."
+      }
+    }
   },
   "compute_gruneisen": {
     "name": "compute_gruneisen",
@@ -1918,11 +2250,37 @@ const EDGE_DATA = {
       "Gruneisen"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "algorithmic_conventions": {
+      "gruneisen_method": "maradudin_fein"
+    },
     "formula_latex": "{\\gamma_{G}}_{\\mathbf{q},\\nu} = - \\frac{\\sum_{\\substack{1 \\leq i \\leq 3 N\\\\1 \\leq j \\leq 3 N}} {\\Phi^{(3)}}_{i,j,k,\\mathbf{R},\\mathbf{R'}}}{6 {\\omega}_{\\mathbf{q},\\nu}^{2}}",
     "auxiliary_latex": [],
-    "description": "Mode Gr\u00fcneisen parameter from FC2, FC3 and the harmonic eigensystem (Maradudin-Fein expression). Encodes the volume derivative of phonon frequencies. Gauge-invariant per mode because the answer only depends on \u03c9_q\u03bd, not on the eigenvector phase.",
-    "specs": {}
+    "description": "Mode Gr\u00fcneisen parameter from FC2, FC3 and the harmonic eigensystem (Maradudin-Fein closed form). The alternative is finite-difference: rerun the harmonic problem at slightly deformed cells and finite-difference \u03c9(V). Both converge but the two estimators have different noise / convergence behaviour at small q-mesh, so gruneisen_method records which one a code emits. Per-mode \u03b3 is gauge-invariant: it depends on \u03c9_q\u03bd, not on the eigenvector phase.",
+    "specs": {
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Phono3py.run_phonon_gruneisen_parameters: Maradudin-Fein closed form using fc2, fc3 and the harmonic eigensystem \u2014 matches the canonical gruneisen_method=maradudin_fein."
+      },
+      "phonopy": {
+        "adapter": "phonopy",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {
+          "gruneisen_method": "finite_difference"
+        },
+        "discretization_choices": {},
+        "notes": "PhonopyGruneisen finite-differences \u03c9(V) between three harmonic calculations at slightly different cell volumes \u2014 deviates from the canonical Maradudin-Fein closed form."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "BTE.gruneisen: Maradudin-Fein closed form, matching the canonical gruneisen_method=maradudin_fein."
+      }
+    }
   },
   "compute_phase_space_3phonon": {
     "name": "compute_phase_space_3phonon",
@@ -1933,11 +2291,39 @@ const EDGE_DATA = {
       "PhaseSpace3Phonon"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "algorithmic_conventions": {
+      "delta_broadening": "gaussian"
+    },
     "formula_latex": "{P_{3}}_{\\mathbf{q},\\nu} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q'} \\leq N_{q}\\\\1 \\leq \\nu' \\leq 3 N\\\\1 \\leq \\nu'' \\leq 3 N}} \\left(\\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} - {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)} + 2 \\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} + {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)}\\right)}{N_{q}}",
     "auxiliary_latex": [],
-    "description": "Three-phonon kinematic phase space: counts the (q',\u03bd',\u03bd'') channels satisfying energy + crystal-momentum conservation for the given (q, \u03bd). |V\u2083|\u00b2 is not included \u2014 this is purely a measure of scattering availability.",
-    "specs": {}
+    "description": "Three-phonon kinematic phase space: counts the (q',\u03bd',\u03bd'') channels satisfying energy + crystal-momentum conservation for the given (q, \u03bd). |V\u2083|\u00b2 is not included \u2014 this is purely a measure of scattering availability. delta_broadening records how the energy \u03b4 is realised at finite q-mesh (Gaussian, Lorentzian, tetrahedron).",
+    "specs": {
+      "kaldo": {
+        "adapter": "kaldo",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {
+          "delta_broadening": "gaussian"
+        },
+        "discretization_choices": {},
+        "notes": "Phonons.phase_space reuses the same Gaussian \u03b4 as the linewidth calculation, with width set by `third_bandwidth` (or the adaptive scheme when None)."
+      },
+      "phono3py": {
+        "adapter": "phono3py",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "run_phonon_phase_space reuses the linewidth code's \u03b4 realisation; with the default smearing-method runner this is Gaussian, matching the canonical delta_broadening=gaussian."
+      },
+      "shengbte": {
+        "adapter": "shengbte",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {
+          "delta_broadening": "adaptive_scaled"
+        },
+        "discretization_choices": {},
+        "notes": "BTE.P3 uses the same adaptive Gaussian \u03b4 as the linewidth \u2014 deviates from the canonical delta_broadening=gaussian."
+      }
+    }
   }
 };
 const ADAPTER_COLORS = {"kaldo": "#DC2626", "phono3py": "#059669", "phonopy": "#0891B2", "shengbte": "#7C3AED"};

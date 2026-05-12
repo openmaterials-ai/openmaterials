@@ -1,7 +1,7 @@
 """Lattice thermal-transport: the operator DAG.
 
-  * `nodes`  — fourteen States (observables / hidden states in the DAG)
-  * `edges`  — thirteen Operations (calculations in the DAG, with sympy formulas)
+  * `nodes`  — nineteen States (observables / hidden states in the DAG)
+  * `edges`  — eighteen Operations (calculations in the DAG, with sympy formulas)
 
 States are pure declarations: type, fields, conventions, indices, gauge-
 invariance kind (Observable vs HiddenState). No sympy, no calculation. Edges
@@ -19,14 +19,19 @@ This module re-exports both for convenience.
 from omai.thermal_transport.operator.edges import (
     EDGES,
     compute_dispersion,
+    compute_dos,
     compute_dynamical_matrix,
     compute_force_constants_2,
     compute_force_constants_3,
     compute_group_velocity,
+    compute_gruneisen,
     compute_heat_capacity,
     compute_linewidth,
+    compute_phase_space_3phonon,
     contract_kappa_direct,
     contract_kappa_rta,
+    contract_molar_heat_capacity,
+    contract_volumetric_heat_capacity,
     provide_potential,
     provide_temperature,
     solve_bte_direct,
@@ -39,15 +44,20 @@ from omai.thermal_transport.operator.nodes import (
     FORCE_CONSTANTS_3,
     FREQUENCY_STATE,
     GROUP_VELOCITY,
+    GRUNEISEN,
     HEAT_CAPACITY,
     LINEWIDTH,
     MEAN_FREE_DISPLACEMENT_DIRECT,
     MEAN_FREE_DISPLACEMENT_RTA,
+    MOLAR_HEAT_CAPACITY,
     NODES,
+    PHASE_SPACE_3PH,
+    PHONON_DOS,
     POTENTIAL,
     TEMPERATURE_STATE,
     THERMAL_CONDUCTIVITY_DIRECT,
     THERMAL_CONDUCTIVITY_RTA,
+    VOLUMETRIC_HEAT_CAPACITY,
 )
 
 __all__ = [
@@ -58,24 +68,34 @@ __all__ = [
     "FORCE_CONSTANTS_3",
     "FREQUENCY_STATE",
     "GROUP_VELOCITY",
+    "GRUNEISEN",
     "HEAT_CAPACITY",
     "LINEWIDTH",
     "MEAN_FREE_DISPLACEMENT_DIRECT",
     "MEAN_FREE_DISPLACEMENT_RTA",
+    "MOLAR_HEAT_CAPACITY",
     "NODES",
+    "PHASE_SPACE_3PH",
+    "PHONON_DOS",
     "POTENTIAL",
     "TEMPERATURE_STATE",
     "THERMAL_CONDUCTIVITY_DIRECT",
     "THERMAL_CONDUCTIVITY_RTA",
+    "VOLUMETRIC_HEAT_CAPACITY",
     "compute_dispersion",
+    "compute_dos",
     "compute_dynamical_matrix",
     "compute_force_constants_2",
     "compute_force_constants_3",
     "compute_group_velocity",
+    "compute_gruneisen",
     "compute_heat_capacity",
     "compute_linewidth",
+    "compute_phase_space_3phonon",
     "contract_kappa_direct",
     "contract_kappa_rta",
+    "contract_molar_heat_capacity",
+    "contract_volumetric_heat_capacity",
     "provide_potential",
     "provide_temperature",
     "solve_bte_direct",

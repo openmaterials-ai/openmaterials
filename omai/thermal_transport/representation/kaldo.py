@@ -31,11 +31,23 @@ from __future__ import annotations
 
 from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
 from omai.thermal_transport.operator.edges import (
+    compute_dispersion,
+    compute_dos,
+    compute_dynamical_matrix,
     compute_force_constants_2,
     compute_force_constants_3,
+    compute_group_velocity,
     compute_heat_capacity,
     compute_linewidth,
+    compute_phase_space_3phonon,
+    contract_kappa_direct,
+    contract_kappa_rta,
+    contract_molar_heat_capacity,
+    contract_volumetric_heat_capacity,
+    provide_potential,
+    provide_temperature,
     solve_bte_direct,
+    solve_bte_rta,
 )
 from omai.thermal_transport.operator.nodes import (
     DYNAMICAL_MATRIX,
@@ -392,5 +404,127 @@ KALDO_PHASE_SPACE_3PH = StateAdapterSpec(
         "Phonons.phase_space: per-mode 3-phonon phase-space density "
         "computed alongside the linewidth projection, shape (n_k_points, "
         "n_modes). Independent of |V_3|² — pure kinematic count."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Operation-adapter specs for kaldo. Trivial source / contraction ops
+# (`provide_*`, `contract_*`, `solve_bte_rta`) carry no algorithmic
+# conventions; their adapters exist only to mark coverage in the
+# visualization. Ops with a meaningful per-code algorithmic choice
+# (compute_group_velocity, compute_dos, compute_phase_space_3phonon)
+# override the canonical value where kaldo deviates.
+# ---------------------------------------------------------------------------
+
+
+KALDO_PROVIDE_POTENTIAL = OperationAdapterSpec(
+    operation=provide_potential,
+    adapter_name="kaldo",
+    notes="kaldo runs against an external calculator (LAMMPS, ASE, ML).",
+)
+
+
+KALDO_PROVIDE_TEMPERATURE = OperationAdapterSpec(
+    operation=provide_temperature,
+    adapter_name="kaldo",
+    notes="Set via Phonons(temperature=...).",
+)
+
+
+KALDO_COMPUTE_DYNAMICAL_MATRIX = OperationAdapterSpec(
+    operation=compute_dynamical_matrix,
+    adapter_name="kaldo",
+    notes=(
+        "ForceConstants.dynamical_matrix(q): Bloch sum implemented as a "
+        "mass-weighted Fourier transform of Φ²(R)."
+    ),
+)
+
+
+KALDO_COMPUTE_DISPERSION = OperationAdapterSpec(
+    operation=compute_dispersion,
+    adapter_name="kaldo",
+    notes=(
+        "Phonons.frequency / Phonons.eigenvectors come from a per-q "
+        "numpy.linalg.eigh of the dynamical matrix. Degenerate subspaces "
+        "inherit numpy's arbitrary basis choice — the standard reason "
+        "Eigenvectors and any quantity built from them are HiddenStates."
+    ),
+)
+
+
+KALDO_COMPUTE_GROUP_VELOCITY = OperationAdapterSpec(
+    operation=compute_group_velocity,
+    adapter_name="kaldo",
+    notes=(
+        "Phonons.velocity uses the analytic Hellmann-Feynman form "
+        "v_qν = (1/2ω_qν) ⟨e_qν| ∂D/∂q |e_qν⟩ — matches the canonical "
+        "gv_method=hellmann_feynman."
+    ),
+)
+
+
+KALDO_SOLVE_BTE_RTA = OperationAdapterSpec(
+    operation=solve_bte_rta,
+    adapter_name="kaldo",
+    notes=(
+        "Conductivity(method='rta'): closed-form F = v / (2Γ), no "
+        "algorithmic choice beyond the inherited Linewidth conventions."
+    ),
+)
+
+
+KALDO_CONTRACT_KAPPA_RTA = OperationAdapterSpec(
+    operation=contract_kappa_rta,
+    adapter_name="kaldo",
+    notes="Conductivity(method='rta').conductivity — per-mode contraction.",
+)
+
+
+KALDO_CONTRACT_KAPPA_DIRECT = OperationAdapterSpec(
+    operation=contract_kappa_direct,
+    adapter_name="kaldo",
+    notes=(
+        "Conductivity(method='inverse'|'sc').conductivity — per-mode "
+        "contraction after the BTE solve."
+    ),
+)
+
+
+KALDO_CONTRACT_VOLUMETRIC_HEAT_CAPACITY = OperationAdapterSpec(
+    operation=contract_volumetric_heat_capacity,
+    adapter_name="kaldo",
+    notes="Derived from Phonons.heat_capacity by summing and dividing by cell volume.",
+)
+
+
+KALDO_CONTRACT_MOLAR_HEAT_CAPACITY = OperationAdapterSpec(
+    operation=contract_molar_heat_capacity,
+    adapter_name="kaldo",
+    notes="Derived from Phonons.heat_capacity via N_A × sum / N_q.",
+)
+
+
+KALDO_COMPUTE_DOS = OperationAdapterSpec(
+    operation=compute_dos,
+    adapter_name="kaldo",
+    algorithmic_convention_overrides={"dos_broadening": "gaussian"},
+    notes=(
+        "controllers.plotter.plot_dos sums Gaussians of fixed width "
+        "`bandwidth` centred on each ω_qν. Matches the canonical "
+        "dos_broadening=gaussian."
+    ),
+)
+
+
+KALDO_COMPUTE_PHASE_SPACE_3PH = OperationAdapterSpec(
+    operation=compute_phase_space_3phonon,
+    adapter_name="kaldo",
+    algorithmic_convention_overrides={"delta_broadening": "gaussian"},
+    notes=(
+        "Phonons.phase_space reuses the same Gaussian δ as the linewidth "
+        "calculation, with width set by `third_bandwidth` (or the "
+        "adaptive scheme when None)."
     ),
 )

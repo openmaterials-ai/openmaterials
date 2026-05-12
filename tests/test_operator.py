@@ -262,3 +262,75 @@ def test_operation_identity_by_name():
         name="compute_heat_capacity", inputs=(), outputs=compute_heat_capacity.outputs
     )
     assert compute_heat_capacity == same_name
+
+
+# -- Smoke tests for the derived-observable DAG nodes ---------------------
+
+
+def test_compute_dos_inputs_are_frequency():
+    from omai.thermal_transport.operator import PHONON_DOS, compute_dos
+
+    assert tuple(s.name for s in compute_dos.inputs) == ("Frequency",)
+    assert tuple(s.name for s in compute_dos.outputs) == (PHONON_DOS.name,)
+
+
+def test_compute_gruneisen_inputs():
+    from omai.thermal_transport.operator import (
+        GRUNEISEN,
+        compute_gruneisen,
+    )
+
+    assert set(s.name for s in compute_gruneisen.inputs) == {
+        "ForceConstants[order=2]",
+        "ForceConstants[order=3]",
+        "Frequency",
+        "Eigenvectors",
+    }
+    assert tuple(s.name for s in compute_gruneisen.outputs) == (GRUNEISEN.name,)
+
+
+def test_compute_phase_space_3phonon_inputs():
+    from omai.thermal_transport.operator import (
+        PHASE_SPACE_3PH,
+        compute_phase_space_3phonon,
+    )
+
+    assert tuple(s.name for s in compute_phase_space_3phonon.inputs) == ("Frequency",)
+    assert tuple(s.name for s in compute_phase_space_3phonon.outputs) == (
+        PHASE_SPACE_3PH.name,
+    )
+
+
+def test_derived_observable_conventions_are_declared():
+    """Each derived-observable op declares its algorithmic convention."""
+    from omai.thermal_transport.operator import (
+        compute_dos,
+        compute_gruneisen,
+        compute_phase_space_3phonon,
+    )
+
+    assert compute_dos.algorithmic_conventions["dos_broadening"] == "gaussian"
+    assert (
+        compute_gruneisen.algorithmic_conventions["gruneisen_method"]
+        == "maradudin_fein"
+    )
+    assert (
+        compute_phase_space_3phonon.algorithmic_conventions["delta_broadening"]
+        == "gaussian"
+    )
+
+
+def test_compute_linewidth_has_v3_auxiliary_formula():
+    """|V_3|² is now a first-class auxiliary equation on compute_linewidth."""
+    import sympy as sp
+
+    aux = compute_linewidth.auxiliary_formulas
+    assert len(aux) >= 1
+    eq = aux[0]
+    assert isinstance(eq, sp.Basic)
+    free = {str(s) for s in eq.free_symbols}
+    # Eigenvector amplitudes and atomic masses must appear in the kernel.
+    assert "e" in free
+    assert "m" in free
+    # ω products belong to the denominator.
+    assert any("omega" in s.lower() for s in free)

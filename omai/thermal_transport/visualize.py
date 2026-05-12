@@ -367,9 +367,20 @@ def _node_attach_points(state: State, c: int, layout: dict) -> tuple[float, floa
     return cx, y - r, cx, y + r
 
 
+def _pipeline_op_covered(pipeline: dict, op_name: str,
+                         op_specs: dict[str, dict[str, OperationAdapterSpec]]) -> bool:
+    """Whether any adapter in this pipeline declares an OperationAdapterSpec
+    for `op_name`. The operator (no-adapter) column always counts as covered
+    — the operator layer is the source of the operation declaration."""
+    if not pipeline["adapters"]:
+        return True
+    return any(op_name in op_specs.get(a, {}) for a in pipeline["adapters"])
+
+
 def _build_svg(
     layout: dict,
     state_specs: dict[str, dict[str, StateAdapterSpec]],
+    op_specs: dict[str, dict[str, OperationAdapterSpec]],
 ) -> str:
     width = layout["total_width"]
     height = layout["total_height"]
@@ -494,7 +505,8 @@ def _build_svg(
                         continue
                     src_cov = _pipeline_covers(p, inp.name, state_specs)
                     tgt_cov = _pipeline_covers(p, out.name, state_specs)
-                    active = src_cov and tgt_cov
+                    states_active = src_cov and tgt_cov
+                    op_covered = _pipeline_op_covered(p, op.name, op_specs)
                     op_dy = max((ty - sy) * 0.45, 26)
                     sy_p = sy + 2
                     ty_p = ty - 4
@@ -502,12 +514,22 @@ def _build_svg(
                         f"M {sx} {sy_p} "
                         f"C {sx} {sy + op_dy}, {tx} {ty - op_dy}, {tx} {ty_p}"
                     )
-                    if active:
+                    if states_active and op_covered:
                         parts.append(
                             f'<path d="{d}" stroke="{p["color"]}" stroke-width="1.7" '
                             f'fill="none" opacity="0.68" '
                             f'marker-end="url(#arrow-{p["id"]})" '
                             f'class="edge edge-{p["id"]}" data-op="{op.name}" />'
+                        )
+                    elif states_active and not op_covered:
+                        # Data flow is declared (both states covered) but
+                        # the operation lacks an adapter spec — algorithmic
+                        # conventions on this edge aren't recorded yet.
+                        parts.append(
+                            f'<path d="{d}" stroke="{p["color"]}" stroke-width="1.5" '
+                            f'fill="none" opacity="0.55" stroke-dasharray="2 3" '
+                            f'marker-end="url(#arrow-{p["id"]}-dim)" '
+                            f'class="edge edge-{p["id"]} edge-no-op-spec" data-op="{op.name}" />'
                         )
                     else:
                         parts.append(
@@ -1123,7 +1145,11 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
       </span>
       <span class="legend-item">
         <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#FFFFFF" stroke="#DC2626" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.7"/></svg>
-        Implicit (no spec yet)
+        Intermediate (no spec — needed by downstream, not exposed)
+      </span>
+      <span class="legend-item" style="opacity:0.7">
+        <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3" fill="#9CA3AF" opacity="0.4"/></svg>
+        Leaf hidden (DAG output not emitted by this code)
       </span>
     </div>
     <div class="legend-group">
@@ -1133,14 +1159,21 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
           <defs><marker id="lg-a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#374151"/></marker></defs>
           <path d="M2 7 L 28 7" stroke="#374151" stroke-width="1.6" fill="none" marker-end="url(#lg-a)"/>
         </svg>
-        Active (both endpoints specced)
+        States + op spec (full coverage)
+      </span>
+      <span class="legend-item">
+        <svg width="36" height="14" viewBox="0 0 36 14">
+          <defs><marker id="lg-c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#374151" opacity="0.55"/></marker></defs>
+          <path d="M2 7 L 28 7" stroke="#374151" stroke-width="1.5" stroke-dasharray="2 3" opacity="0.55" fill="none" marker-end="url(#lg-c)"/>
+        </svg>
+        States covered, op spec missing
       </span>
       <span class="legend-item">
         <svg width="36" height="14" viewBox="0 0 36 14">
           <defs><marker id="lg-b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#374151" opacity="0.55"/></marker></defs>
           <path d="M2 7 L 28 7" stroke="#374151" stroke-width="1.3" stroke-dasharray="6 4" opacity="0.55" fill="none" marker-end="url(#lg-b)"/>
         </svg>
-        Implicit (endpoint lacks spec)
+        Implicit (state endpoint lacks spec)
       </span>
     </div>
     <div class="legend-group">
@@ -1418,7 +1451,7 @@ def render_html(output_path: Path | str) -> Path:
 
     layers = _compute_layers()
     layout = _compute_layout(layers)
-    svg_markup = _build_svg(layout, state_specs)
+    svg_markup = _build_svg(layout, state_specs, op_specs)
 
     node_data = {
         state.name: _state_to_json(state, state_specs, adapter_order)
