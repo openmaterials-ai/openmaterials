@@ -1,4 +1,4 @@
-"""Tests for Materialization, materialize(), and compare()."""
+"""Tests for Representation, represent(), and compare()."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ import math
 import numpy as np
 import pytest
 
-from omai.materialization import Materialization, compare, materialize
-from omai.thermal_transport.materialized import (
+from omai.representation import Representation, compare, represent
+from omai.thermal_transport.representation import (
     KALDO_HEAT_CAPACITY,
     KALDO_LINEWIDTH,
     PHONO3PY_HEAT_CAPACITY,
@@ -16,12 +16,12 @@ from omai.thermal_transport.materialized import (
 )
 
 
-# --- materialize ---
+# --- represent ---
 
 
 def test_materialize_returns_typed_object():
-    m = materialize(KALDO_LINEWIDTH, "Gamma", np.array([1.0, 2.0, 3.0]))
-    assert isinstance(m, Materialization)
+    m = represent(KALDO_LINEWIDTH, "Gamma", np.array([1.0, 2.0, 3.0]))
+    assert isinstance(m, Representation)
     assert m.adapter_name == "kaldo"
     assert m.observable_name == "Gamma"
     assert m.data.shape == (3,)
@@ -29,11 +29,11 @@ def test_materialize_returns_typed_object():
 
 def test_materialize_rejects_unknown_observable():
     with pytest.raises(KeyError):
-        materialize(KALDO_LINEWIDTH, "not_an_observable", np.array([1.0]))
+        represent(KALDO_LINEWIDTH, "not_an_observable", np.array([1.0]))
 
 
 def test_materialize_coerces_data_to_ndarray():
-    m = materialize(KALDO_LINEWIDTH, "Gamma", [1.0, 2.0, 3.0])
+    m = represent(KALDO_LINEWIDTH, "Gamma", [1.0, 2.0, 3.0])
     assert isinstance(m.data, np.ndarray)
 
 
@@ -42,8 +42,8 @@ def test_materialize_coerces_data_to_ndarray():
 
 def test_compare_identical_data_agrees():
     arr = np.array([1.0, 2.0, 3.0])
-    mk = materialize(PHONO3PY_LINEWIDTH, "Gamma", arr)
-    mp = materialize(PHONO3PY_LINEWIDTH, "Gamma", arr)
+    mk = represent(PHONO3PY_LINEWIDTH, "Gamma", arr)
+    mp = represent(PHONO3PY_LINEWIDTH, "Gamma", arr)
     r = compare(mk, mp, rtol=1e-9)
     assert r.agreed
     assert r.factor == 1.0
@@ -52,12 +52,12 @@ def test_compare_identical_data_agrees():
 
 def test_compare_status_not_comparable_for_hidden_state_per_element():
     """Linewidth is a HiddenState; per-element compare returns NOT_COMPARABLE.
-    Residuals are computed for diagnostic inspection but the symbolic layer makes
+    Residuals are computed for diagnostic inspection but the operator layer makes
     no agree/disagree verdict."""
     a = np.array([1.0, 2.0, 3.0])
     b = np.array([1.1, 2.05, 2.85])
-    ma = materialize(PHONO3PY_LINEWIDTH, "Gamma", a)
-    mb = materialize(PHONO3PY_LINEWIDTH, "Gamma", b)
+    ma = represent(PHONO3PY_LINEWIDTH, "Gamma", a)
+    mb = represent(PHONO3PY_LINEWIDTH, "Gamma", b)
     r = compare(ma, mb, rtol=1e-3)
     assert r.not_comparable
     assert r.status == "NOT_COMPARABLE"
@@ -69,8 +69,8 @@ def test_compare_status_expected_disagree_for_intermediate_contraction():
     comparison yields EXPECTED_DISAGREE."""
     a = np.array([1.0, 2.0, 3.0])
     b = np.array([0.5, 1.5, 3.5])  # same sum
-    ma = materialize(PHONO3PY_LINEWIDTH, "Gamma", a)
-    mb = materialize(PHONO3PY_LINEWIDTH, "Gamma", b)
+    ma = represent(PHONO3PY_LINEWIDTH, "Gamma", a)
+    mb = represent(PHONO3PY_LINEWIDTH, "Gamma", b)
     # Identity contraction (not a real reduction) with expected_to_agree=False
     r = compare(ma, mb, contraction=lambda x: x, rtol=1e-3, expected_to_agree=False)
     assert not r.agreed
@@ -82,8 +82,8 @@ def test_compare_status_expected_agree_for_per_element_tight_observable():
     """HeatCapacity is an Observable (gauge-invariant); identical data should
     yield EXPECTED_AGREE."""
     arr = np.array([1.0, 2.0, 3.0])
-    ma = materialize(PHONO3PY_HEAT_CAPACITY, "c", arr)
-    mb = materialize(PHONO3PY_HEAT_CAPACITY, "c", arr)
+    ma = represent(PHONO3PY_HEAT_CAPACITY, "c", arr)
+    mb = represent(PHONO3PY_HEAT_CAPACITY, "c", arr)
     r = compare(ma, mb, rtol=1e-9)
     assert r.agreed
     assert r.expected_to_agree is True
@@ -92,11 +92,11 @@ def test_compare_status_expected_agree_for_per_element_tight_observable():
 
 def test_compare_status_unexpected_disagree_for_observable_that_disagrees():
     """HeatCapacity is an Observable; disagreeing data should yield
-    UNEXPECTED_DISAGREE — a real anomaly the symbolic layer flags."""
+    UNEXPECTED_DISAGREE — a real anomaly the operator layer flags."""
     a = np.array([1.0, 2.0, 3.0])
     b = np.array([2.0, 4.0, 6.0])
-    ma = materialize(PHONO3PY_HEAT_CAPACITY, "c", a)
-    mb = materialize(PHONO3PY_HEAT_CAPACITY, "c", b)
+    ma = represent(PHONO3PY_HEAT_CAPACITY, "c", a)
+    mb = represent(PHONO3PY_HEAT_CAPACITY, "c", b)
     r = compare(ma, mb, rtol=1e-3)
     assert not r.agreed
     assert r.expected_to_agree is True
@@ -108,8 +108,8 @@ def test_compare_status_override_via_kwarg():
     (e.g., per-q Σ on a HiddenState that's only partially gauge-invariant)."""
     a = np.array([1.0, 1.0])
     b = np.array([1.0, 2.0])
-    ma = materialize(PHONO3PY_LINEWIDTH, "Gamma", a)
-    mb = materialize(PHONO3PY_LINEWIDTH, "Gamma", b)
+    ma = represent(PHONO3PY_LINEWIDTH, "Gamma", a)
+    mb = represent(PHONO3PY_LINEWIDTH, "Gamma", b)
     r = compare(ma, mb, contraction=np.sum, rtol=1e-3, expected_to_agree=False)
     assert r.expected_to_agree is False
 
@@ -121,8 +121,8 @@ def test_compare_applies_4pi_factor_for_kaldo_to_phono3py_linewidth():
     """The 4π Linewidth conversion: kaldo × (1/4π) = phono3py."""
     phono3py_data = np.array([1.0, 2.0, 3.0])
     kaldo_data = phono3py_data * (4 * math.pi)
-    mp = materialize(PHONO3PY_LINEWIDTH, "Gamma", phono3py_data)
-    mk = materialize(KALDO_LINEWIDTH, "Gamma", kaldo_data)
+    mp = represent(PHONO3PY_LINEWIDTH, "Gamma", phono3py_data)
+    mk = represent(KALDO_LINEWIDTH, "Gamma", kaldo_data)
     r = compare(mk, mp, rtol=1e-9)
     assert r.agreed
     assert math.isclose(r.factor, 1.0 / (4 * math.pi), rel_tol=1e-9)
@@ -136,8 +136,8 @@ def test_compare_applies_e_factor_for_heat_capacity():
     kaldo_data = phono3py_data * (1 / e)  # J = (1/e) × (eV/K)? Wait — kaldo is J/K, phono3py eV/K
     # If phono3py emits in eV/K and kaldo in J/K, kaldo_value [J/K] = phono3py_value [eV/K] × e
     kaldo_data = phono3py_data * e
-    mk = materialize(KALDO_HEAT_CAPACITY, "c", kaldo_data)
-    mp = materialize(PHONO3PY_HEAT_CAPACITY, "c", phono3py_data)
+    mk = represent(KALDO_HEAT_CAPACITY, "c", kaldo_data)
+    mp = represent(PHONO3PY_HEAT_CAPACITY, "c", phono3py_data)
     r = compare(mk, mp, rtol=1e-9)
     assert r.agreed
 
@@ -149,8 +149,8 @@ def test_compare_with_sum_contraction():
     """Per-element disagreement masked by a contraction that sums first."""
     a = np.array([1.0, 1.0, 1.0])
     b = np.array([0.5, 1.5, 1.0])  # disagrees per-element but sum is 3.0 in both
-    ma = materialize(PHONO3PY_LINEWIDTH, "Gamma", a)
-    mb = materialize(PHONO3PY_LINEWIDTH, "Gamma", b)
+    ma = represent(PHONO3PY_LINEWIDTH, "Gamma", a)
+    mb = represent(PHONO3PY_LINEWIDTH, "Gamma", b)
     per_mode = compare(ma, mb, rtol=1e-9)
     contracted = compare(ma, mb, contraction=np.sum, rtol=1e-9)
     assert not per_mode.agreed
@@ -163,19 +163,19 @@ def test_compare_with_sum_contraction():
 
 def test_compare_rejects_different_states():
     arr = np.array([1.0])
-    m_lw = materialize(KALDO_LINEWIDTH, "Gamma", arr)
-    m_hc = materialize(KALDO_HEAT_CAPACITY, "c", arr)
+    m_lw = represent(KALDO_LINEWIDTH, "Gamma", arr)
+    m_hc = represent(KALDO_HEAT_CAPACITY, "c", arr)
     with pytest.raises(ValueError, match="different states"):
         compare(m_lw, m_hc)
 
 
 def test_compare_rejects_different_observables_within_same_state():
-    """If a state had multiple observables and the materializations chose different ones."""
+    """If a state had multiple observables and the representations chose different ones."""
     arr = np.array([1.0])
-    m_a = materialize(KALDO_LINEWIDTH, "Gamma", arr)
+    m_a = represent(KALDO_LINEWIDTH, "Gamma", arr)
     # Build a synthetic mismatch: same state spec, claim a different observable name
-    # by going around materialize() (which validates). This tests compare() directly.
-    m_b = Materialization(
+    # by going around represent() (which validates). This tests compare() directly.
+    m_b = Representation(
         state_adapter_spec=PHONO3PY_LINEWIDTH,
         observable_name="some_other_observable",
         data=arr,
@@ -191,8 +191,8 @@ def test_compare_handles_near_zero_with_atol():
     """Acoustic-Γ-style near-zero values: relative residual should not blow up."""
     a = np.array([1e-8, 1.0, 2.0])
     b = np.array([2e-8, 1.0, 2.0])
-    ma = materialize(PHONO3PY_LINEWIDTH, "Gamma", a)
-    mb = materialize(PHONO3PY_LINEWIDTH, "Gamma", b)
+    ma = represent(PHONO3PY_LINEWIDTH, "Gamma", a)
+    mb = represent(PHONO3PY_LINEWIDTH, "Gamma", b)
     r = compare(ma, mb, rtol=1e-3, atol=1e-6)
     assert r.agreed
     # Relative residual computed only over entries above atol; the 1e-8 ones

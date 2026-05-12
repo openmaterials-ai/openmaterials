@@ -112,5 +112,5 @@ the energy-conservation delta function and/or the Gaussian normalization.
   literature; we check cross-code agreement at fixed (small) mesh.
 - Isotopic scattering. Both runs used `is_isotope=False`.
 - Cross-code substrate adapters. Outputs are saved as plain numpy arrays
-  in `runs/`; wrapping them as substrate `Materialization` objects is the
+  in `runs/`; wrapping them as substrate `Representation` objects is the
   next architectural step.

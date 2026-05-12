@@ -16,13 +16,13 @@ alone can't enforce:
     node set.
 
 Returns a list of human-readable violation strings; empty list means
-the symbolic layer is internally consistent.
+the operator layer is internally consistent.
 """
 
 from __future__ import annotations
 
-from omai.symbolic.operation import Operation
-from omai.symbolic.state import HiddenState, Observable, State
+from omai.operator.operation import Operation
+from omai.operator.state import HiddenState, Observable, State
 
 _VALID_KINDS = {"scaffolding", "approximation"}
 

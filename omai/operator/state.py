@@ -1,24 +1,24 @@
-"""Symbolic nodes (states) of the DAG.
+"""Operator nodes (states) of the DAG.
 
 Two concrete kinds, both inheriting from `State`:
 
   Observable    — a gauge-invariant first-class node. Cross-code agreement
                   is REQUIRED at this node (after spec-derived unit and
-                  convention conversion). The symbolic layer's compare() returns
+                  convention conversion). The operator layer's compare() returns
                   pass/fail verdicts here.
 
-  HiddenState   — an adapter-internal, gauge-dependent symbolic node. Not
+  HiddenState   — an adapter-internal, gauge-dependent operator node. Not
                   cross-code comparable per-element. Useful as a name for
                   computational scaffolding (per-mode arrays in a basis-
                   dependent representation, intermediate sums) that an
                   adapter produces on its way to an Observable, but whose
                   per-element content is determined by gauge / basis /
-                  summation choices that the symbolic layer does not pin down.
+                  summation choices that the operator layer does not pin down.
                   compare() on a HiddenState without a contraction returns
                   status=NOT_COMPARABLE.
 
 Each state carries a tuple of Fields — typed slots declaring the named
-quantities (with dimension and index signature) the materialization holds.
+quantities (with dimension and index signature) the representation holds.
 Fields used to be called "Observable" (confusingly, same name as the
 outer node-level concept); they have been renamed.
 """
@@ -27,8 +27,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field as dc_field
 
-from omai.symbolic.dimensions import Dimension
-from omai.symbolic.physics_types import PhysicsType
+from omai.operator.dimensions import Dimension
+from omai.operator.physics_types import PhysicsType
 
 
 @dataclass(frozen=True)
@@ -36,7 +36,7 @@ class Field:
     name: str
     dimension: Dimension
     indices: tuple[str, ...] = ()
-    """Symbolic index signature: which indices the field carries.
+    """Operator index signature: which indices the field carries.
 
     Examples:
       omega:  ("q", "nu")            — phonon frequency
@@ -52,7 +52,7 @@ class Field:
 
 @dataclass(frozen=True, eq=False)
 class State:
-    """Base class for symbolic DAG nodes. Use Observable or HiddenState directly."""
+    """Base class for operator DAG nodes. Use Observable or HiddenState directly."""
 
     physics_type: PhysicsType
     name: str
@@ -86,24 +86,24 @@ class State:
 class Observable(State):
     """A gauge-invariant first-class node in the DAG.
 
-    Cross-code agreement is REQUIRED. Adapters that materialize an
+    Cross-code agreement is REQUIRED. Adapters that represent an
     Observable must produce data that agrees (after unit/convention
-    conversion) with other adapters' materializations of the same
+    conversion) with other adapters' representations of the same
     Observable, to within their declared tolerance.
     """
 
 
 @dataclass(frozen=True, eq=False)
 class HiddenState(State):
-    """An adapter-internal, gauge-dependent symbolic node.
+    """An adapter-internal, gauge-dependent operator node.
 
     Not cross-code comparable per-element. Adapters can name and
-    materialize HiddenStates for inspection within a single run, but
-    the symbolic layer refuses to make a pass/fail verdict on a per-element
+    represent HiddenStates for inspection within a single run, but
+    the operator layer refuses to make a pass/fail verdict on a per-element
     comparison across adapters; the per-element values reflect gauge /
-    basis / summation choices that the symbolic layer does not pin down.
+    basis / summation choices that the operator layer does not pin down.
 
-    To compare two adapters' HiddenState materializations meaningfully,
+    To compare two adapters' HiddenState representations meaningfully,
     contract them into an Observable (or pass a contraction callable
     to compare()).
 
@@ -112,7 +112,7 @@ class HiddenState(State):
       gauge_group: a named identifier for the gauge equivalence that
         acts on this state. Free-form for Level 1; in Level 2 this is
         an actual GaugeAction with a sympy transformation that the
-        symbolic layer uses to prove invariance of downstream Observables.
+        operator layer uses to prove invariance of downstream Observables.
 
       kind: 'scaffolding' if this HiddenState is consumed by a downstream
         operation that produces an Observable (so the gauge orbit is

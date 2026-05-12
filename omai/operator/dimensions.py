@@ -1,8 +1,8 @@
-"""Physical dimensions for the symbolic layer.
+"""Physical dimensions for the operator layer.
 
-The symbolic layer is unit-free (Principle 2): observables and
+The operator layer is unit-free (Principle 2): observables and
 parameters carry a *dimension* but no unit choice. Units appear only on
-materializations, declared by adapters.
+representations, declared by adapters.
 
 A Dimension is a tag, not a quantity. We use a closed registry to keep the
 surface small and Lean-transliterable (Principle 10, closed unions).

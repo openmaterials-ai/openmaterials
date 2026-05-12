@@ -1,4 +1,4 @@
-"""Symbolic nodes of the lattice thermal-transport DAG.
+"""Operator nodes of the lattice thermal-transport DAG.
 
 Sixteen nodes, split into Observables (gauge-invariant, cross-code-comparable)
 and HiddenStates (adapter-internal scaffolding, not cross-code-comparable
@@ -28,7 +28,7 @@ variants are Observables (the full LBTE solution preserves it).
 
 from __future__ import annotations
 
-from omai.symbolic.dimensions import (
+from omai.operator.dimensions import (
     DIMENSIONLESS,
     ENERGY_PER_LENGTH_CUBED,
     ENERGY_PER_LENGTH_SQUARED,
@@ -42,8 +42,8 @@ from omai.symbolic.dimensions import (
     TEMPERATURE,
     THERMAL_CONDUCTIVITY,
 )
-from omai.symbolic.physics_types import PhysicsType
-from omai.symbolic.state import Field, HiddenState, Observable, State
+from omai.operator.physics_types import PhysicsType
+from omai.operator.state import Field, HiddenState, Observable, State
 
 
 # ---------------------------------------------------------------------------

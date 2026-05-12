@@ -8,7 +8,7 @@ Two sections:
       apply the predicted factors via `compare()`, report residuals against
       tolerance.
 
-The verification closes the loop: the substrate's symbolic claim becomes a
+The verification closes the loop: the substrate's operator claim becomes a
 checkable statement against measured data.
 """
 
@@ -20,15 +20,15 @@ from pathlib import Path
 
 import numpy as np
 
-from omai.materialization import (
+from omai.representation import (
     compare,
-    cross_operation_algorithmic_match,
-    cross_operation_discretization_match,
-    cross_state_total_factor,
-    cross_state_unit_factor,
-    materialize,
+    representation_algorithmic_match,
+    representation_discretization_match,
+    inter_representation_factor,
+    inter_representation_unit_factor,
+    represent,
 )
-from omai.thermal_transport.materialized import (
+from omai.thermal_transport.representation import (
     KALDO_COMPUTE_LINEWIDTH,
     KALDO_FREQUENCY,
     KALDO_GROUP_VELOCITY,
@@ -64,10 +64,10 @@ def main() -> None:
           f"convention {a.declared_convention('gamma_definition')}")
     print(f"  phono3py declares : Gamma in {b.declared_unit('Gamma')}, "
           f"convention {b.declared_convention('gamma_definition')}")
-    unit = cross_state_unit_factor(a, b, "Gamma")
+    unit = inter_representation_unit_factor(a, b, "Gamma")
     c_a = a.observable_convention_factor("Gamma")
     c_b = b.observable_convention_factor("Gamma")
-    total = cross_state_total_factor(a, b, "Gamma")
+    total = inter_representation_factor(a, b, "Gamma")
     print(f"  unit factor (angular_THz → linear_THz)       : {unit:.6f}  [= 1/(2π)]")
     print(f"  kaldo output factor relative to canonical    : {c_a:.1f}    [Gamma = 2 Im Σ]")
     print(f"  phono3py output factor relative to canonical : {c_b:.1f}    [Gamma = Im Σ]")
@@ -79,13 +79,13 @@ def main() -> None:
     section("State [HeatCapacity]: observable c")
     print(f"  kaldo    declares : c in {a.declared_unit('c')}")
     print(f"  phono3py declares : c in {b.declared_unit('c')}")
-    factor = cross_state_total_factor(a, b, "c")
+    factor = inter_representation_factor(a, b, "c")
     print(f"  → total: kaldo × {factor:.6e} = phono3py     [= 1/e ≈ 6.241e+18]")
 
     a_op, b_op = KALDO_COMPUTE_LINEWIDTH, PHONO3PY_COMPUTE_LINEWIDTH
 
     section("Operation [compute_linewidth]: algorithmic conventions")
-    matched, msg = cross_operation_algorithmic_match(a_op, b_op, "broadening_param")
+    matched, msg = representation_algorithmic_match(a_op, b_op, "broadening_param")
     if matched:
         print(f"  broadening_param: agreed.")
     else:
@@ -94,7 +94,7 @@ def main() -> None:
 
     section("Operation [compute_linewidth]: discretization choices")
     for choice in ("bz_summation", "delta_cutoff_sigmas", "degeneracy_averaging"):
-        matched, msg = cross_operation_discretization_match(a_op, b_op, choice)
+        matched, msg = representation_discretization_match(a_op, b_op, choice)
         if matched:
             print(f"  {choice}: agreed.")
         else:
@@ -132,16 +132,16 @@ def main() -> None:
         print(f"  {k:20s} shape={data[k].shape}")
 
     section("Frequency: per-mode (tight; atol covers acoustic Γ-modes)")
-    mk = materialize(KALDO_FREQUENCY, "omega", data["kaldo_freq"])
-    mp = materialize(PHONO3PY_FREQUENCY, "omega", data["ph3_freq"])
+    mk = represent(KALDO_FREQUENCY, "omega", data["kaldo_freq"])
+    mp = represent(PHONO3PY_FREQUENCY, "omega", data["ph3_freq"])
     r = compare(mk, mp, rtol=1e-3, atol=1e-2)
     print(f"  {r.summary()}")
 
     section("GroupVelocity: HiddenState — per-element not cross-compared")
     kaldo_v_norm = np.linalg.norm(data["kaldo_gv"], axis=-1)
     ph3_v_norm = np.linalg.norm(data["ph3_gv"], axis=-1)
-    mk = materialize(KALDO_GROUP_VELOCITY, "v", kaldo_v_norm)
-    mp = materialize(PHONO3PY_GROUP_VELOCITY, "v", ph3_v_norm)
+    mk = represent(KALDO_GROUP_VELOCITY, "v", kaldo_v_norm)
+    mp = represent(PHONO3PY_GROUP_VELOCITY, "v", ph3_v_norm)
     per_mode = compare(mk, mp, rtol=1e-3, atol=1e-2)
     print(f"  per-mode |v|: {per_mode.summary()}")
     diff = np.abs(np.sort(kaldo_v_norm, axis=-1) - np.sort(ph3_v_norm, axis=-1))
@@ -156,14 +156,14 @@ def main() -> None:
     print("    isn't a substrate verdict, just a diagnostic.")
 
     section("HeatCapacity: per-mode (tight, after applying 1/e factor)")
-    mk = materialize(KALDO_HEAT_CAPACITY, "c", data["kaldo_cv"])
-    mp = materialize(PHONO3PY_HEAT_CAPACITY, "c", data["ph3_cv"])
+    mk = represent(KALDO_HEAT_CAPACITY, "c", data["kaldo_cv"])
+    mp = represent(PHONO3PY_HEAT_CAPACITY, "c", data["ph3_cv"])
     r = compare(mk, mp, rtol=1e-3)
     print(f"  {r.summary()}")
 
     section("Linewidth: HiddenState — only contractions are observables")
-    mk = materialize(KALDO_LINEWIDTH, "Gamma", data["kaldo_gamma"])
-    mp = materialize(PHONO3PY_LINEWIDTH, "Gamma", data["ph3_gamma"])
+    mk = represent(KALDO_LINEWIDTH, "Gamma", data["kaldo_gamma"])
+    mp = represent(PHONO3PY_LINEWIDTH, "Gamma", data["ph3_gamma"])
     # Linewidth is a HiddenState. Per-element compare returns NOT_COMPARABLE
     # (diagnostic residual only). Contractions are the cross-code observables.
     per_mode = compare(mk, mp, rtol=0.01)
@@ -200,18 +200,18 @@ def main() -> None:
             print(f"  no σ=0.10 row in {csv_path}; skipping.")
         else:
             # κ[bte_solver=rta] is a HiddenState → NOT_COMPARABLE per-element
-            mk = materialize(
+            mk = represent(
                 KALDO_THERMAL_CONDUCTIVITY_RTA, "kappa", np.array(kaldo_rta)
             )
-            mp = materialize(
+            mp = represent(
                 PHONO3PY_THERMAL_CONDUCTIVITY_RTA, "kappa", np.array(ph3_rta)
             )
             r_rta = compare(mk, mp, rtol=0.01)
             # κ[bte_solver=direct_inverse] is an Observable → tight comparison
-            mk = materialize(
+            mk = represent(
                 KALDO_THERMAL_CONDUCTIVITY_DIRECT, "kappa", np.array(kaldo_direct)
             )
-            mp = materialize(
+            mp = represent(
                 PHONO3PY_THERMAL_CONDUCTIVITY_DIRECT, "kappa", np.array(ph3_direct)
             )
             r_direct = compare(mk, mp, rtol=0.01)
@@ -239,7 +239,7 @@ def main() -> None:
 
     print()
     print("=" * 70)
-    print("Loop closed: substrate's symbolic predictions verified against real data.")
+    print("Loop closed: substrate's operator predictions verified against real data.")
     print("=" * 70)
 
 

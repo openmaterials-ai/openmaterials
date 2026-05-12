@@ -1,6 +1,6 @@
-"""Check that the symbolic formulas the three codes implement are byte-identical.
+"""Check that the operator formulas the three codes implement are byte-identical.
 
-By construction the symbolic layer attaches *one* sympy formula to each
+By construction the operator layer attaches *one* sympy formula to each
 Operation; kaldo, phono3py, and shengbte all reference the same Operation
 in their adapter specs. So the formulas should be the same Python object,
 not just equal — `is` comparison suffices.
@@ -16,11 +16,11 @@ from __future__ import annotations
 
 import sympy as sp
 
-from omai.materialization.adapter import (
-    cross_operation_algorithmic_match,
-    cross_operation_discretization_match,
+from omai.representation.adapter import (
+    representation_algorithmic_match,
+    representation_discretization_match,
 )
-from omai.thermal_transport.materialized import (
+from omai.thermal_transport.representation import (
     KALDO_COMPUTE_FORCE_CONSTANTS_2,
     KALDO_COMPUTE_FORCE_CONSTANTS_3,
     KALDO_SOLVE_BTE_DIRECT,
@@ -157,7 +157,7 @@ def main() -> None:
             row = f"    {k:<28}"
             for i, s_a in enumerate(specs):
                 for s_b in specs[i + 1:]:
-                    matched, _msg = cross_operation_algorithmic_match(s_a, s_b, k)
+                    matched, _msg = representation_algorithmic_match(s_a, s_b, k)
                     sym = "✓" if matched else "✗"
                     row += f" {s_a.adapter_name[0].upper()}-{s_b.adapter_name[0].upper()}:{sym}"
             print(row)

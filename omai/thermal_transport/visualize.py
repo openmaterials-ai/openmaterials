@@ -1,14 +1,14 @@
 """Generate an interactive HTML visualization of the thermal-transport DAG.
 
-Layout: four side-by-side per-pipeline DAGs (Symbolic | kaldo |
+Layout: four side-by-side per-pipeline DAGs (Operator | kaldo |
 phonopy/phono3py | shengbte), each rendered as circles + arrows in one
 unified SVG. Row alignment is preserved across pipelines (a given
-symbolic state sits at the same y in every column); horizontal x-spread
+operator state sits at the same y in every column); horizontal x-spread
 inside each column is determined by the DAG layer index, so converging
 arrows are visually distinguishable.
 
 Adapter discovery is automatic: any top-level submodule of
-`omai.thermal_transport.materialized` that exposes module-level
+`omai.thermal_transport.representation` that exposes module-level
 `StateAdapterSpec` / `OperationAdapterSpec` instances is picked up.
 
 Run:
@@ -27,51 +27,51 @@ from pathlib import Path
 
 import sympy as sp
 
-from omai.symbolic.state import HiddenState, Observable, State
-from omai.materialization.adapter import (
+from omai.operator.state import HiddenState, Observable, State
+from omai.representation.adapter import (
     OperationAdapterSpec,
     StateAdapterSpec,
-    cross_state_total_factor,
+    inter_representation_factor,
 )
-from omai.thermal_transport import materialized as materialized_pkg
-from omai.thermal_transport.symbolic import EDGES, NODES
+from omai.thermal_transport import representation as representation_pkg
+from omai.thermal_transport.operator import EDGES, NODES
 
 
 _PIPELINES = [
     {
-        "id": "symbolic",
-        "label": "Symbolic",
+        "id": "operator",
+        "label": "Operator",
         "color": "#1F2937",
         "adapters": [],
-        "is_symbolic": True,
+        "is_operator": True,
     },
     {
         "id": "kaldo",
         "label": "kaldo",
         "color": "#DC2626",
         "adapters": ["kaldo"],
-        "is_symbolic": False,
+        "is_operator": False,
     },
     {
         "id": "phono3py",
         "label": "phono3py",
         "color": "#059669",            # emerald
         "adapters": ["phono3py"],
-        "is_symbolic": False,
+        "is_operator": False,
     },
     {
         "id": "phonopy",
         "label": "phonopy",
         "color": "#0891B2",            # cyan-teal — adjacent to phono3py
         "adapters": ["phonopy"],
-        "is_symbolic": False,
+        "is_operator": False,
     },
     {
         "id": "shengbte",
         "label": "shengbte",
         "color": "#7C3AED",
         "adapters": ["shengbte"],
-        "is_symbolic": False,
+        "is_operator": False,
     },
 ]
 
@@ -90,13 +90,13 @@ TOP_PAD = 64
 STAGE_HEADER_H = 38
 ROW_HEIGHT = 82                       # more vertical room for arrow curves
 
-# Materialized circle (smaller, secondary)
+# Represented circle (smaller, secondary)
 MAT_NODE_RADIUS = 8
 MAT_CIRCLE_BAND_LEFT = 26
 MAT_CIRCLE_BAND_WIDTH = 150           # much wider band → arrows fan out clearly
 MAT_LABEL_START = MAT_CIRCLE_BAND_LEFT + MAT_CIRCLE_BAND_WIDTH + 32
 
-# Symbolic circle (larger, primary)
+# Operator circle (larger, primary)
 SYM_NODE_RADIUS = 12
 SYM_CIRCLE_BAND_LEFT = 30
 SYM_CIRCLE_BAND_WIDTH = 180           # generous spread for the primary DAG
@@ -111,7 +111,7 @@ SYM_LABEL_START = SYM_CIRCLE_BAND_LEFT + SYM_CIRCLE_BAND_WIDTH + 36
 def _discover_adapter_modules() -> list[str]:
     return sorted(
         info.name
-        for info in pkgutil.iter_modules(materialized_pkg.__path__)
+        for info in pkgutil.iter_modules(representation_pkg.__path__)
         if not info.name.startswith("_")
     )
 
@@ -125,7 +125,7 @@ def _collect_specs() -> tuple[
 
     for mod_name in _discover_adapter_modules():
         mod = importlib.import_module(
-            f"omai.thermal_transport.materialized.{mod_name}"
+            f"omai.thermal_transport.representation.{mod_name}"
         )
         for attr in dir(mod):
             if attr.startswith("_"):
@@ -224,13 +224,13 @@ def _compute_layout(layers: dict[str, int]) -> dict:
     column_width: dict[int, float] = {}
     cursor_x = LEFT_PAD
     for c, p in enumerate(_PIPELINES):
-        w = SYMBOLIC_COL_WIDTH if p["is_symbolic"] else MAT_COL_WIDTH
+        w = SYMBOLIC_COL_WIDTH if p["is_operator"] else MAT_COL_WIDTH
         column_left[c] = cursor_x
         column_width[c] = w
         cursor_x += w + COLUMN_GAP
     total_width = cursor_x - COLUMN_GAP + RIGHT_PAD
 
-    # Materialized circles: layer-spread within band
+    # Represented circles: layer-spread within band
     circle_x_within_mat: dict[str, float] = {}
     for L, states in by_layer.items():
         for i, s in enumerate(states):
@@ -238,13 +238,23 @@ def _compute_layout(layers: dict[str, int]) -> dict:
                 MAT_CIRCLE_BAND_LEFT, MAT_CIRCLE_BAND_WIDTH, i, len(states)
             )
 
-    # Symbolic circles: same pattern (larger band)
+    # Operator circles: same pattern (larger band)
     circle_x_within_sym: dict[str, float] = {}
     for L, states in by_layer.items():
         for i, s in enumerate(states):
             circle_x_within_sym[s.name] = _band_x(
                 SYM_CIRCLE_BAND_LEFT, SYM_CIRCLE_BAND_WIDTH, i, len(states)
             )
+
+    # Leaves: states that no operation consumes as input (i.e. final
+    # outputs of the workflow). For these, we hide the node entirely in
+    # any column that has no adapter spec — the code genuinely doesn't
+    # produce this output. Intermediate states stay dashed when unspecced.
+    used_as_input: set[str] = set()
+    for op in EDGES:
+        for inp in op.inputs:
+            used_as_input.add(inp.name)
+    leaf_states = {s.name for s in NODES} - used_as_input
 
     return {
         "state_y": state_y,
@@ -257,6 +267,7 @@ def _compute_layout(layers: dict[str, int]) -> dict:
         "total_height": total_height,
         "by_layer": by_layer,
         "layers": layers,
+        "leaf_states": leaf_states,
     }
 
 
@@ -267,7 +278,7 @@ def _compute_layout(layers: dict[str, int]) -> dict:
 
 def _pipeline_covers(pipeline: dict, state_name: str,
                      state_specs: dict[str, dict[str, StateAdapterSpec]]) -> bool:
-    if pipeline["is_symbolic"]:
+    if pipeline["is_operator"]:
         return True
     return any(state_name in state_specs.get(a, {}) for a in pipeline["adapters"])
 
@@ -275,7 +286,7 @@ def _pipeline_covers(pipeline: dict, state_name: str,
 def _pipeline_label(pipeline: dict, state: State,
                     state_specs: dict[str, dict[str, StateAdapterSpec]]) -> str:
     """Return the label text to render at this cell."""
-    if pipeline["is_symbolic"]:
+    if pipeline["is_operator"]:
         return state.name
     # Pick the first matching adapter's code_api (or adapter_name as fallback)
     for adapter in pipeline["adapters"]:
@@ -285,14 +296,14 @@ def _pipeline_label(pipeline: dict, state: State,
         if spec.code_api:
             return next(iter(spec.code_api.values()))
         return adapter
-    return ""   # not materialized — empty
+    return ""   # not represented — empty
 
 
 def _pipeline_secondary_label(pipeline: dict, state: State,
                               state_specs: dict[str, dict[str, StateAdapterSpec]]) -> str:
     """If multiple adapters in the pipeline cover this state, return the
     second one's label as a small secondary line."""
-    if pipeline["is_symbolic"] or len(pipeline["adapters"]) <= 1:
+    if pipeline["is_operator"] or len(pipeline["adapters"]) <= 1:
         return ""
     matched = []
     for adapter in pipeline["adapters"]:
@@ -312,7 +323,7 @@ def _pipeline_primary_adapter_tag(pipeline: dict, state: State,
                                   state_specs: dict[str, dict[str, StateAdapterSpec]]) -> str:
     """For multi-adapter columns, indicate which adapter the primary
     label belongs to (so the reader can disambiguate)."""
-    if pipeline["is_symbolic"] or len(pipeline["adapters"]) <= 1:
+    if pipeline["is_operator"] or len(pipeline["adapters"]) <= 1:
         return ""
     for adapter in pipeline["adapters"]:
         if state.name in state_specs.get(adapter, {}):
@@ -347,7 +358,7 @@ def _node_attach_points(state: State, c: int, layout: dict) -> tuple[float, floa
     cl = layout["column_left"][c]
     y = layout["state_y"][state.name]
     p = _PIPELINES[c]
-    if p["is_symbolic"]:
+    if p["is_operator"]:
         cx = cl + layout["circle_x_within_sym"][state.name]
         r = SYM_NODE_RADIUS
     else:
@@ -406,9 +417,9 @@ def _build_svg(
             f'fill="{bg_band_color}" opacity="0.55" />'
         )
 
-    # ---------- subtle column-separator backgrounds for symbolic column ----------
-    # Give the symbolic column a faint tinted background to mark it as
-    # primary, since it's structurally different from the materialized
+    # ---------- subtle column-separator backgrounds for operator column ----------
+    # Give the operator column a faint tinted background to mark it as
+    # primary, since it's structurally different from the represented
     # columns.
     sym_cl = column_left[0]
     sym_cw = column_width[0]
@@ -428,8 +439,8 @@ def _build_svg(
         parts.append(
             f'<circle cx="{cl + 10}" cy="{TOP_PAD - 26}" r="5.5" fill="{p["color"]}" />'
         )
-        label_weight = "700" if p["is_symbolic"] else "600"
-        label_size = 14.5 if p["is_symbolic"] else 13.5
+        label_weight = "700" if p["is_operator"] else "600"
+        label_size = 14.5 if p["is_operator"] else 13.5
         parts.append(
             f'<text x="{cl + 23}" y="{TOP_PAD - 20}" font-size="{label_size}" '
             f'font-weight="{label_weight}" fill="#111827">'
@@ -453,19 +464,30 @@ def _build_svg(
 
     # ---------- edges ----------
     # Two visual classes:
-    #   * Active edge — both endpoints materialized via an adapter spec
+    #   * Active edge — both endpoints represented via an adapter spec
     #     in this pipeline. Solid, full opacity.
     #   * Implicit edge — at least one endpoint lives inside the code but
     #     is not exposed as an adapter spec (e.g., Temperature parameter
     #     in kaldo, kaldo's internal DynamicalMatrix). The dependency
     #     is real; the StateAdapterSpec just hasn't been written yet.
     #     Dashed, dimmed-but-readable.
+    leaf_states = layout["leaf_states"]
     for c, p in enumerate(_PIPELINES):
         for op in EDGES:
             if not op.inputs:
                 continue
             for inp in op.inputs:
                 for out in op.outputs:
+                    # Skip the edge if either endpoint is a DAG leaf
+                    # that this pipeline does not cover — the leaf node
+                    # itself is hidden in that column, so an arrow into
+                    # nothing makes no sense.
+                    if (out.name in leaf_states
+                            and not _pipeline_covers(p, out.name, state_specs)):
+                        continue
+                    if (inp.name in leaf_states
+                            and not _pipeline_covers(p, inp.name, state_specs)):
+                        continue
                     sx, _, _, sy = _node_attach_points(inp, c, layout)
                     tx, ty, _, _ = _node_attach_points(out, c, layout)
                     if ty <= sy:
@@ -500,11 +522,18 @@ def _build_svg(
     for c, p in enumerate(_PIPELINES):
         cl = column_left[c]
         cw = column_width[c]
-        is_sym = p["is_symbolic"]
+        is_sym = p["is_operator"]
 
         for state in NODES:
-            y = state_y[state.name]
             covered = _pipeline_covers(p, state.name, state_specs)
+            # Leaf-hiding rule: if this state is a final output (DAG leaf)
+            # and the pipeline has no adapter spec for it, the code
+            # genuinely doesn't produce it — skip the node entirely.
+            # Intermediate states (non-leaves) still render as dashed
+            # when unspecced, since the code uses them internally.
+            if state.name in leaf_states and not covered:
+                continue
+            y = state_y[state.name]
             is_input = _is_input_state(state, layers_map)
 
             parts.append(
@@ -715,7 +744,7 @@ def _state_to_json(
         per_field: dict[str, float] = {}
         for f in state.fields:
             try:
-                per_field[f.name] = cross_state_total_factor(spec_a, spec_b, f.name)
+                per_field[f.name] = inter_representation_factor(spec_a, spec_b, f.name)
             except Exception:
                 pass
         if per_field:
@@ -1072,7 +1101,7 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
   </div>
   <div class="legend">
     <div class="legend-group">
-      <span class="label">Symbolic</span>
+      <span class="label">Operator</span>
       <span class="legend-item">
         <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2"/></svg>
         Observable
@@ -1087,7 +1116,7 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
       </span>
     </div>
     <div class="legend-group">
-      <span class="label">Materialized</span>
+      <span class="label">Represented</span>
       <span class="legend-item">
         <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#DC2626" stroke="#DC2626" stroke-width="1.5"/></svg>
         Adapter spec written
@@ -1116,7 +1145,7 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
     </div>
     <div class="legend-group">
       <span class="label">Lanes</span>
-      <span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1F2937"></span> Symbolic</span>
+      <span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#1F2937"></span> Operator</span>
       <span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#DC2626"></span> kaldo</span>
       <span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#059669"></span> phono3py</span>
       <span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#0891B2"></span> phonopy</span>
@@ -1157,7 +1186,7 @@ function adapterChip(adapter) {{
 
 // Pipeline → adapter list mapping. Mirrors _PIPELINES in Python.
 const PIPELINE_ADAPTERS = {{
-  symbolic: null,
+  operator: null,
   kaldo: ['kaldo'],
   phono3py: ['phono3py'],
   phonopy: ['phonopy'],
@@ -1175,7 +1204,7 @@ function renderNode(name, pipelineId) {{
     ? d.specs
     : Object.fromEntries(Object.entries(d.specs).filter(([a, _]) => allowedAdapters.includes(a)));
 
-  if (pipelineId && pipelineId !== 'symbolic') {{
+  if (pipelineId && pipelineId !== 'operator') {{
     html += `<div style="font-size:0.78rem; color: var(--text-secondary); margin-bottom: 0.5rem">`
           + `Filtered to <strong>${{escapeHtml(pipelineId)}}</strong>. `
           + `<a href="#" id="show-all-link" style="color: var(--accent-active); text-decoration: underline; cursor: pointer">Show all adapters</a>`
@@ -1328,8 +1357,8 @@ function showDetails(html) {{
   if (showAll && panel.dataset.state) {{
     showAll.addEventListener('click', (e) => {{
       e.preventDefault();
-      panel.dataset.pipeline = 'symbolic';
-      showDetails(renderNode(panel.dataset.state, 'symbolic'));
+      panel.dataset.pipeline = 'operator';
+      showDetails(renderNode(panel.dataset.state, 'operator'));
     }});
   }}
   if (window.MathJax && MathJax.typesetPromise) {{
@@ -1341,7 +1370,7 @@ document.addEventListener('DOMContentLoaded', () => {{
   document.querySelectorAll('.node-row').forEach(g => {{
     g.addEventListener('click', () => {{
       const name = g.dataset.state;
-      const pipeline = g.dataset.pipeline || 'symbolic';
+      const pipeline = g.dataset.pipeline || 'operator';
       if (name) {{
         const panel = document.getElementById('details');
         panel.dataset.state = name;

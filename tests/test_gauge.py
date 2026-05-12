@@ -1,18 +1,18 @@
-"""Tests for the symbolic gauge framework."""
+"""Tests for the operator gauge framework."""
 
 from __future__ import annotations
 
 import sympy as sp
 
-from omai.symbolic import GaugeAction, check_invariance
-from omai.thermal_transport.symbolic.edges import (
+from omai.operator import GaugeAction, check_invariance
+from omai.thermal_transport.operator.edges import (
     compute_dynamical_matrix,
     compute_group_velocity,
     compute_heat_capacity,
     compute_linewidth,
     contract_kappa_direct,
 )
-from omai.thermal_transport.symbolic.gauges import U1_PHASE_ON_EIGENVECTOR
+from omai.thermal_transport.operator.gauges import U1_PHASE_ON_EIGENVECTOR
 
 
 def test_u1_phase_action_acts_on_eigenvector():
@@ -57,13 +57,13 @@ def test_gauge_action_fails_invariance_when_eigenvector_appears_unpaired():
     assert not U1_PHASE_ON_EIGENVECTOR.verifies_invariance(expr)
 
 
-# === Symbolic SymmetryGroup ===
+# === Operator SymmetryGroup ===
 
 
 def test_symmetry_group_is_just_a_named_declaration():
     """SymmetryGroup carries name and order only — no concrete element data."""
-    from omai.symbolic import SymmetryGroup
-    from omai.symbolic.crystal_symmetry import OH, CI, C1
+    from omai.operator import SymmetryGroup
+    from omai.operator.crystal_symmetry import OH, CI, C1
 
     assert OH.name == "Oh"
     assert OH.order == 48

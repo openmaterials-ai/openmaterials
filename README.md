@@ -1,8 +1,8 @@
 # openmaterials-ai
 
-A symbolic substrate for computational materials science workflows. Workflows are
+A operator substrate for computational materials science workflows. Workflows are
 directed acyclic graphs of typed *abstract physics states* (witnesses) connected by
-*symbolic operations*, with concrete numerical results expressed as *materializations*
+*operator operations*, with concrete numerical results expressed as *materializations*
 in a chosen discretization scheme.
 
 See `docs/symbolic_substrate.pdf` for the architectural design document.

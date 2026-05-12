@@ -1,7 +1,7 @@
-"""Units for the materialization layer.
+"""Units for the representation layer.
 
-The symbolic layer carries dimensions (`omai.symbolic.dimensions`) but no
-unit choice. Concrete units live here, each tagged with the symbolic
+The operator layer carries dimensions (`omai.operator.dimensions`) but no
+unit choice. Concrete units live here, each tagged with the operator
 dimension it measures and a multiplicative factor to a canonical unit for
 that dimension.
 
@@ -15,7 +15,7 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
-from omai.symbolic.dimensions import (
+from omai.operator.dimensions import (
     Dimension,
     ENERGY_PER_TEMPERATURE,
     ENERGY_PER_TEMPERATURE_PER_MOLE,

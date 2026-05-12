@@ -1,25 +1,25 @@
-"""Symbolic gauge actions and invariance proofs.
+"""Operator gauge actions and invariance proofs.
 
 A GaugeAction is a sympy-encoded transformation acting on a pattern in
-formulas. Given a formula F and a gauge action g, the symbolic layer can
-mechanically check whether F is invariant under g via symbolic
+formulas. Given a formula F and a gauge action g, the operator layer can
+mechanically check whether F is invariant under g via operator
 substitution + simplification.
 
 This is Level 2 of the gauge-invariance enforcement (see the documentation).
 It works cleanly for:
 
-  * simple symbolic substitutions (e.g., U(1) phase: e → exp(iθ) e)
+  * simple operator substitutions (e.g., U(1) phase: e → exp(iθ) e)
   * finite group actions encoded as patterns over indexed expressions
 
 It does NOT (yet) handle:
 
   * continuous Lie group actions acting non-trivially on subspaces
-    (e.g., U(d) rotation within a degenerate subspace) — needs symbolic
+    (e.g., U(d) rotation within a degenerate subspace) — needs operator
     Lie group theory beyond what sympy offers out of the box
   * data-dependent gauges (gauges that only act at specific data points
     like degenerate ω) — requires runtime knowledge of degeneracies
 
-For those, the symbolic layer falls back to Level 1 structural declarations.
+For those, the operator layer falls back to Level 1 structural declarations.
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ import sympy as sp
 
 @dataclass(frozen=True)
 class GaugeAction:
-    """A symbolic gauge transformation.
+    """A operator gauge transformation.
 
     `pattern` is a sympy expression containing Wild symbols indicating
     the parts that get matched (e.g., `e[i_wild, q_wild, nu_wild]`).
@@ -80,7 +80,7 @@ def check_invariance(
 
     Returns a dict mapping each gauge action's name to True/False.
     Useful for building tables of "this operation preserves these gauges"
-    that the symbolic layer can use to propagate invariance claims through
+    that the operator layer can use to propagate invariance claims through
     the DAG.
     """
     return {g.name: g.verifies_invariance(operation_formula) for g in gauge_actions}

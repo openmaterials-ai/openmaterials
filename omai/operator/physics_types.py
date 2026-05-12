@@ -11,11 +11,11 @@ from enum import Enum
 
 
 class PhysicsType(str, Enum):
-    """The physics types our symbolic states can carry.
+    """The physics types our operator states can carry.
 
     Members are split into two groups by role (derived vs. parameter), although
     the type itself does not encode that distinction; provenance does. See
-    `omai.symbolic.state.SymbolicState`.
+    `omai.operator.state.SymbolicState`.
     """
 
     # --- parameter / source types (outputs of nullary `provide_*` operations) ---
@@ -26,7 +26,7 @@ class PhysicsType(str, Enum):
     STRUCTURE = "Structure"
 
     # --- derived types in the thermal-transport scope ---
-    # Each is one observable = one node in the symbolic DAG.
+    # Each is one observable = one node in the operator DAG.
     FORCE_CONSTANTS = "ForceConstants"            # parameterized by order (=2 or =3)
     DYNAMICAL_MATRIX = "DynamicalMatrix"
     FREQUENCY = "Frequency"

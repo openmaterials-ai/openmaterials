@@ -1,4 +1,4 @@
-"""Cross-code Si κ: ShengBTE ↔ kaldo through the symbolic/materialization layer.
+"""Cross-code Si κ: ShengBTE ↔ kaldo through the operator/representation layer.
 
 Loads κ tensors from:
   experiments/silicon_shengbte/BTE.KappaTensorVsT_{RTA,CONV}
@@ -8,7 +8,7 @@ Uses kaldo's adaptive-broadening run (third_bandwidth=None) so both codes
 are in the same broadening regime. The residual is then a clean test of
 the BTE solver and BZ summation, not of broadening-scheme choice.
 
-A symbolic-formula audit (see `verify_symbolic_agreement.py`) confirms
+A operator-formula audit (see `verify_symbolic_agreement.py`) confirms
 the three codes implement byte-identical sympy expressions for every
 operation in the κ chain.
 
@@ -18,7 +18,7 @@ Findings (Si-Tersoff, 3×3×3 FC3 supercell, 8³ q-mesh, 300K):
   κ_LBTE : shengbte 30.13 ↔ kaldo 19.69  ↔ phono3py 24.30  → ≤55% spread
 
 The κ_RTA agreement at the broadening-matched level (≤8%) is consistent
-with the framework's claim that the symbolic formula is shared.
+with the framework's claim that the operator formula is shared.
 The κ_LBTE spread is *real* and reflects implementation differences in
 the BTE solver — kaldo's two LBTE methods (direct LU `inverse` vs
 iterative `sc`) agree to within 1%, so the kaldo↔shengbte gap is *not*
@@ -36,8 +36,8 @@ from pathlib import Path
 
 import numpy as np
 
-from omai.materialization import compare, materialize
-from omai.thermal_transport.materialized import (
+from omai.representation import compare, represent
+from omai.thermal_transport.representation import (
     KALDO_THERMAL_CONDUCTIVITY_DIRECT,
     KALDO_THERMAL_CONDUCTIVITY_RTA,
     SHENGBTE_THERMAL_CONDUCTIVITY_DIRECT,
@@ -59,8 +59,8 @@ def main() -> None:
     k_sheng_rta = _parse_shengbte_kappa(HERE / "BTE.KappaTensorVsT_RTA")
     k_kaldo_rta = np.load(KALDO_DIR / "kappa_rta_tensor_WmK.npy")
 
-    m_sheng_rta = materialize(SHENGBTE_THERMAL_CONDUCTIVITY_RTA, "kappa", k_sheng_rta)
-    m_kaldo_rta = materialize(KALDO_THERMAL_CONDUCTIVITY_RTA, "kappa", k_kaldo_rta)
+    m_sheng_rta = represent(SHENGBTE_THERMAL_CONDUCTIVITY_RTA, "kappa", k_sheng_rta)
+    m_kaldo_rta = represent(KALDO_THERMAL_CONDUCTIVITY_RTA, "kappa", k_kaldo_rta)
     r_rta = compare(
         m_sheng_rta, m_kaldo_rta,
         contraction=lambda x: np.array([np.trace(x) / 3]),
@@ -79,9 +79,9 @@ def main() -> None:
     k_kaldo_inv = np.load(KALDO_DIR / "kappa_inverse_tensor_WmK.npy")
     k_kaldo_sc = np.load(KALDO_DIR / "kappa_sc_tensor_WmK.npy")
 
-    m_sheng_dir = materialize(SHENGBTE_THERMAL_CONDUCTIVITY_DIRECT, "kappa", k_sheng_dir)
-    m_kaldo_inv = materialize(KALDO_THERMAL_CONDUCTIVITY_DIRECT, "kappa", k_kaldo_inv)
-    m_kaldo_sc  = materialize(KALDO_THERMAL_CONDUCTIVITY_DIRECT, "kappa", k_kaldo_sc)
+    m_sheng_dir = represent(SHENGBTE_THERMAL_CONDUCTIVITY_DIRECT, "kappa", k_sheng_dir)
+    m_kaldo_inv = represent(KALDO_THERMAL_CONDUCTIVITY_DIRECT, "kappa", k_kaldo_inv)
+    m_kaldo_sc  = represent(KALDO_THERMAL_CONDUCTIVITY_DIRECT, "kappa", k_kaldo_sc)
 
     print("κ_LBTE/CONV (W/m/K):")
     print(f"  shengbte    tr/3 : {np.trace(k_sheng_dir) / 3:.3f}")

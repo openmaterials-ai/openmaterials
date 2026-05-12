@@ -1,8 +1,8 @@
 """kaldo adapter specs for the thermal-transport DAG.
 
-Constructed against the symbolic DAG in
-`omai.thermal_transport.symbolic`. Cross-code comparison happens at the
-symbolic level (Principle 7) via the shared states; differences
+Constructed against the operator DAG in
+`omai.thermal_transport.operator`. Cross-code comparison happens at the
+operator level (Principle 7) via the shared states; differences
 surface as unit factors, convention mismatches, and discretization choice
 mismatches.
 
@@ -29,15 +29,15 @@ which is what cross-code comparison should reference.
 
 from __future__ import annotations
 
-from omai.materialization.adapter import OperationAdapterSpec, StateAdapterSpec
-from omai.thermal_transport.symbolic.edges import (
+from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
+from omai.thermal_transport.operator.edges import (
     compute_force_constants_2,
     compute_force_constants_3,
     compute_heat_capacity,
     compute_linewidth,
     solve_bte_direct,
 )
-from omai.thermal_transport.symbolic.nodes import (
+from omai.thermal_transport.operator.nodes import (
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
     FORCE_CONSTANTS_2,
@@ -49,6 +49,8 @@ from omai.thermal_transport.symbolic.nodes import (
     MEAN_FREE_DISPLACEMENT_DIRECT,
     MEAN_FREE_DISPLACEMENT_RTA,
     MOLAR_HEAT_CAPACITY,
+    PHASE_SPACE_3PH,
+    PHONON_DOS,
     POTENTIAL,
     TEMPERATURE_STATE,
     THERMAL_CONDUCTIVITY_DIRECT,
@@ -116,7 +118,7 @@ KALDO_THERMAL_CONDUCTIVITY_DIRECT = StateAdapterSpec(
     code_api={"kappa": "Conductivity(method='inverse').conductivity"},
     notes=(
         "Conductivity(method='inverse').conductivity in W/(m·K), tensor "
-        "shape (3, 3). kaldo's 'inverse' method realizes the symbolic layer's "
+        "shape (3, 3). kaldo's 'inverse' method realizes the operator layer's "
         "canonical bte_solver=direct_inverse. 'sc' (self-consistent "
         "iterative) is an alternative realization of the same canonical."
     ),
@@ -186,7 +188,7 @@ def kaldo_compute_linewidth_spec(
 # velocity-projection broadening on the stable branch). Discovery picks
 # this up; runs that used third_bandwidth=σ should construct a per-run
 # spec via kaldo_compute_linewidth_spec(broadening_param="halfwidth") and
-# pass it through compare()/materialize() explicitly.
+# pass it through compare()/represent() explicitly.
 KALDO_COMPUTE_LINEWIDTH = kaldo_compute_linewidth_spec()
 
 
@@ -364,5 +366,31 @@ KALDO_MOLAR_HEAT_CAPACITY = StateAdapterSpec(
     notes=(
         "Derived from the per-mode form. One-line application of "
         "contract_molar_heat_capacity to Phonons.heat_capacity."
+    ),
+)
+
+
+KALDO_PHONON_DOS = StateAdapterSpec(
+    state=PHONON_DOS,
+    adapter_name="kaldo",
+    code_api={"g": "plotter.plot_dos(phonons, bandwidth, n_points)"},
+    notes=(
+        "kaldo computes a Gaussian-broadened DOS internally inside "
+        "controllers.plotter.plot_dos. The array isn't exposed as a clean "
+        "attribute, but the underlying Phonons.frequency + a histogram "
+        "reproduces it: g(ω) ← sum of Gaussians of width `bandwidth` "
+        "centered on each ω_qν."
+    ),
+)
+
+
+KALDO_PHASE_SPACE_3PH = StateAdapterSpec(
+    state=PHASE_SPACE_3PH,
+    adapter_name="kaldo",
+    code_api={"P3": "Phonons.phase_space"},
+    notes=(
+        "Phonons.phase_space: per-mode 3-phonon phase-space density "
+        "computed alongside the linewidth projection, shape (n_k_points, "
+        "n_modes). Independent of |V_3|² — pure kinematic count."
     ),
 )

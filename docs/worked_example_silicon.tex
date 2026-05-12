@@ -25,12 +25,12 @@
 }
 \newtcolorbox{kaldobox}{
   colback=kaldocol!4, colframe=kaldocol, boxrule=0.4pt, arc=2pt,
-  fonttitle=\bfseries\color{white}, title=Materialization in kaldo, coltitle=white,
+  fonttitle=\bfseries\color{white}, title=Representation in kaldo, coltitle=white,
   colbacktitle=kaldocol, breakable
 }
 \newtcolorbox{phonobox}{
   colback=phonocol!4, colframe=phonocol, boxrule=0.4pt, arc=2pt,
-  fonttitle=\bfseries\color{white}, title=Materialization in phonopy / phono3py, coltitle=white,
+  fonttitle=\bfseries\color{white}, title=Representation in phonopy / phono3py, coltitle=white,
   colbacktitle=phonocol, breakable
 }
 
@@ -42,9 +42,9 @@
 \maketitle
 
 \noindent\emph{This document maps the substrate's abstract states and operations onto the
-concrete materializations produced by kaldo and phonopy/phono3py for crystalline silicon, end
+concrete representations produced by kaldo and phonopy/phono3py for crystalline silicon, end
 to end from the Born--Oppenheimer potential through to the lattice thermal conductivity. It
-is the first contact between the architecture (\texttt{docs/symbolic\_substrate.pdf}) and real
+is the first contact between the architecture (\texttt{docs/operator\_substrate.pdf}) and real
 physics. Equations are precise where the codes differ and sketchy where they do not.
 ShengBTE will be added as a third adapter when the cross-code machinery is ready for it.}
 
@@ -90,8 +90,8 @@ neighborhood of equilibrium).
 
 \medskip
 \textbf{Substrate type:} \texttt{POTENTIAL} (parameter state, empty provenance).\\
-\textbf{Materialization:} the externally-supplied potential. In Phase 1 the upstream is stubbed:
-the materialization is an opaque label identifying the choice of potential, not a modeled
+\textbf{Representation:} the externally-supplied potential. In Phase 1 the upstream is stubbed:
+the representation is an opaque label identifying the choice of potential, not a modeled
 object.
 \end{abstractbox}
 
@@ -107,7 +107,7 @@ the potential is realized as a LAMMPS pair-style declaration in \texttt{in.Si46}
 pair_style    tersoff
 pair_coeff    * * forcefields/Si.tersoff Si
 \end{verbatim}
-The materialization label is therefore \texttt{tersoff(Si.tersoff)}. The potential is callable
+The representation label is therefore \texttt{tersoff(Si.tersoff)}. The potential is callable
 (LAMMPS evaluates forces on demand) but not symbolically inspectable.
 \end{kaldobox}
 
@@ -119,7 +119,7 @@ implicit in whichever code computed those forces.
 
 \medskip
 For the canonical phono3py silicon example (\texttt{phono3py/example/Si-PBE}), the potential is
-QE/PBE with norm-conserving pseudopotentials. The materialization label is
+QE/PBE with norm-conserving pseudopotentials. The representation label is
 \texttt{dft(QE, PBE, Si.UPF, ecut=...)}. As with kaldo, the potential is callable through the
 external code but not symbolically inspectable.
 \end{phonobox}
@@ -151,7 +151,7 @@ operation's identity; different $M$ produce different states (same type, differe
 \textbf{Approximation error:} truncation of the Taylor expansion at order 2 introduces
 $O(u^3)$ error in the energy and $O(u^2)$ error in derived spectral quantities; these errors
 attach to the operation, not to this state.\\
-\textbf{Discretization (lives on the materialization):} supercell $N_1{\times}N_2{\times}N_3$,
+\textbf{Discretization (lives on the representation):} supercell $N_1{\times}N_2{\times}N_3$,
 finite-difference displacement step $\delta$ (when $M$ is a finite-difference method).
 \end{abstractbox}
 
@@ -193,7 +193,7 @@ with phonopy's symmetry-reduced displacement set; the displacement magnitude def
 \end{phonobox}
 
 \paragraph{Architectural strain (worth flagging).} The abstract framing
-``$\Phi^{(2)} = \partial^2 V / \partial u^2$'' suggests symbolic differentiation, but neither
+``$\Phi^{(2)} = \partial^2 V / \partial u^2$'' suggests operator differentiation, but neither
 code performs it. Both numerically sample $V$ at displaced configurations and apply
 finite-difference rules. This is the Tersoff/Taylor mismatch flagged in the planning
 discussion.
@@ -271,7 +271,7 @@ relative to higher-order noise).
 \paragraph{Note on supercell asymmetry.} Both codes accept different supercells for second and
 third order. In the substrate, this means \texttt{ForceConstants[order=2]} and
 \texttt{ForceConstants[order=3]} are independent derived states with independent
-discretizations on their materializations. They share the same \texttt{Potential} as an
+discretizations on their representations. They share the same \texttt{Potential} as an
 upstream parameter but are otherwise unrelated by the abstract DAG. Good test of the
 type-level \texttt{order} parameter doing real work.
 
@@ -299,7 +299,7 @@ violation appears as small spurious imaginary frequencies near $\mathbf{q}=0$.
 \quad \texttt{variant}\,$\in$\,$\{$\texttt{simple\_subtract}, \texttt{iterative\_lstsq},
 \texttt{born\_huang}$\}$.\\
 \textbf{Approximation error:} $\epsilon_{\mathcal{O}} = 0$ in the abstract world (the operation
-is exact on the abstract object). The correction's effect on the materialization is bounded by
+is exact on the abstract object). The correction's effect on the representation is bounded by
 $|\sum_R \Phi(R)|$ before enforcement, which is itself a discretization-error indicator for the
 input FC tensor.\\
 \textbf{Provenance:} the input and output have the same physics type \texttt{FORCE\_CONSTANTS}
@@ -351,7 +351,7 @@ points in their internal pipelines} (load vs.\ write) and use \emph{different va
 subtraction vs.\ iterative). In the substrate, both adapters declare the same abstract operation
 \texttt{enforce\_acoustic\_sum\_rule}, with the variant carried as an operation parameter. The
 internal-pipeline timing is invisible to the substrate; what the substrate sees is that both
-adapters' FC materializations downstream of \texttt{enforce\_asr} can be aligned. The variant
+adapters' FC representations downstream of \texttt{enforce\_asr} can be aligned. The variant
 parameter makes the methodological difference visible without forcing the substrate to know
 where, internally, the codes apply it.
 
@@ -576,7 +576,7 @@ the comparison.
 
 \paragraph{Per-mode diagnostic at matched stdev.} Forcing matched effective stdev
 ($\sigma_p = 0.10$~THz, $\sigma_k = \sqrt{2}\cdot 0.10$~THz), we extracted the per-mode
-materializations of \texttt{HeatCapacity} and \texttt{Linewidth} from each code on the
+representations of \texttt{HeatCapacity} and \texttt{Linewidth} from each code on the
 same q-mesh, aligned them by q-grid permutation, and computed mode-by-mode ratios:
 
 \begin{itemize}[leftmargin=2em, itemsep=2pt]
@@ -721,8 +721,8 @@ explains why direct agrees better than RTA at fixed $\sigma$.
 $\sigma$-normalisation finding:
 
 \medskip
-\noindent\textsc{Principle (units belong to materializations).} \emph{Abstract states are
-unit-free; the materialization carries the unit declaration.} \texttt{HeatCapacity},
+\noindent\textsc{Principle (units belong to representations).} \emph{Abstract states are
+unit-free; the representation carries the unit declaration.} \texttt{HeatCapacity},
 \texttt{Linewidth}, and similar derived states are emitted by codes in code-specific units
 (kaldo's $\Gamma$ in angular-frequency THz; phono3py's in linear-frequency THz; kaldo's
 $C_v$ in J/K; phono3py's in eV/K). The factor of $4\pi$ between the two linewidths and the
@@ -749,7 +749,7 @@ therefore required at the observable layer, not at the raw-array layer:
         bookkeeping with physics; the substrate should refuse the comparison or explicitly
         flag it as a diagnostic only.
 \end{description}
-The \texttt{Materialization} type therefore exposes \emph{observables}, each with a
+The \texttt{Representation} type therefore exposes \emph{observables}, each with a
 declared comparison protocol, rather than raw arrays for direct numerical comparison. This
 also explains the RTA-vs-direct asymmetry: $\kappa_{\rm direct}$ is a tight-protocol
 observable (the collision matrix's off-diagonals capture the redistribution implicitly);
@@ -816,12 +816,12 @@ The contact between architecture and physics surfaced six observations.
         opaque label. The user supplies it externally (Tersoff parameters, DFT functional, ML
         weights) and neither code symbolically inspects $V$. Phase~1's stubbed-upstream choice
         matches both adapters exactly: \texttt{Potential} is a parameter state with an
-        opaque-label materialization, and the upstream operations are recorded as provenance
+        opaque-label representation, and the upstream operations are recorded as provenance
         only.
   \item \textbf{The Tersoff/Taylor mismatch is not a bug; it's a feature of the parameterized
         operation identity.} The same abstract derivative-extraction operation admits multiple
         methods (finite difference, DFPT, autodiff). Each method is a distinct operation
-        identity. Materializations of the same \texttt{ForceConstants[order=$n$]} type
+        identity. Representations of the same \texttt{ForceConstants[order=$n$]} type
         produced by different methods carry different provenance and are formally distinct ---
         which is exactly what we want for cross-method comparison.
   \item \textbf{Second- and third-order force constants are independent derived states.}
@@ -831,7 +831,7 @@ The contact between architecture and physics surfaced six observations.
   \item \textbf{Structural operations (Fourier, eigendecomposition) are unambiguous.} kaldo and
         phonopy implement them in different files, in different languages, with different
         internal data layouts, but both produce the same abstract state. These operations are
-        good places to validate the materialization-functor alignment machinery before
+        good places to validate the representation-functor alignment machinery before
         introducing operations where the codes actually disagree.
   \item \textbf{Correction operations have a uniform shape.} \texttt{enforce\_acoustic\_sum\_rule}
         (and the LO--TO splitting, permutation symmetrization, and Born--Huang invariance

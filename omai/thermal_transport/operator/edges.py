@@ -11,9 +11,9 @@ from __future__ import annotations
 
 import sympy as sp
 
-from omai.symbolic.dimensions import FREQUENCY, TEMPERATURE
-from omai.symbolic.operation import Operation, Parameter
-from omai.thermal_transport.symbolic.nodes import (
+from omai.operator.dimensions import FREQUENCY, TEMPERATURE
+from omai.operator.operation import Operation, Parameter
+from omai.thermal_transport.operator.nodes import (
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
     FORCE_CONSTANTS_2,

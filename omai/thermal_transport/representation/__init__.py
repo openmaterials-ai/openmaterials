@@ -2,15 +2,15 @@
 
 Each submodule holds the StateAdapterSpec and OperationAdapterSpec instances
 for one code (kaldo, phono3py, ...). All instances are constructed against
-the shared symbolic DAG in `omai.thermal_transport.symbolic`, so cross-code
-agreement is checked at the symbolic level (per Principle 7).
+the shared operator DAG in `omai.thermal_transport.operator`, so cross-code
+agreement is checked at the operator level (per Principle 7).
 
 Re-exports the per-code spec instances for convenience; the canonical
 location is the corresponding submodule (e.g.
-`omai.thermal_transport.materialized.kaldo`).
+`omai.thermal_transport.representation.kaldo`).
 """
 
-from omai.thermal_transport.materialized.kaldo import (
+from omai.thermal_transport.representation.kaldo import (
     KALDO_COMPUTE_FORCE_CONSTANTS_2,
     KALDO_COMPUTE_FORCE_CONSTANTS_3,
     KALDO_COMPUTE_HEAT_CAPACITY,
@@ -24,7 +24,7 @@ from omai.thermal_transport.materialized.kaldo import (
     KALDO_THERMAL_CONDUCTIVITY_RTA,
     kaldo_compute_linewidth_spec,
 )
-from omai.thermal_transport.materialized.phono3py import (
+from omai.thermal_transport.representation.phono3py import (
     PHONO3PY_COMPUTE_FORCE_CONSTANTS_2,
     PHONO3PY_COMPUTE_FORCE_CONSTANTS_3,
     PHONO3PY_COMPUTE_HEAT_CAPACITY,
@@ -37,11 +37,11 @@ from omai.thermal_transport.materialized.phono3py import (
     PHONO3PY_THERMAL_CONDUCTIVITY_DIRECT,
     PHONO3PY_THERMAL_CONDUCTIVITY_RTA,
 )
-from omai.thermal_transport.materialized.phonopy import (
+from omai.thermal_transport.representation.phonopy import (
     PHONOPY_FREQUENCY,
     PHONOPY_MOLAR_HEAT_CAPACITY,
 )
-from omai.thermal_transport.materialized.shengbte import (
+from omai.thermal_transport.representation.shengbte import (
     SHENGBTE_COMPUTE_FORCE_CONSTANTS_2,
     SHENGBTE_COMPUTE_FORCE_CONSTANTS_3,
     SHENGBTE_COMPUTE_LINEWIDTH,

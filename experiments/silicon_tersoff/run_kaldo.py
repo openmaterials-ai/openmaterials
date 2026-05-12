@@ -68,7 +68,7 @@ def main() -> None:
     forceconstants.third.calculate(calc, delta_shift=FD_DISPLACEMENT)
     print(f"[kaldo]   FC3 done in {time.time() - t_fc3:.1f} s")
 
-    # ----- Phonons (lazy; access frequencies/eigenvectors/velocities to materialize) -----
+    # ----- Phonons (lazy; access frequencies/eigenvectors/velocities to represent) -----
     phonons = Phonons(
         forceconstants=forceconstants,
         kpts=list(KMESH),

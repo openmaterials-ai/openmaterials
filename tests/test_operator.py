@@ -1,11 +1,11 @@
-"""Tests for the symbolic layer (states, operations, DAG structure)."""
+"""Tests for the operator layer (states, operations, DAG structure)."""
 
 from __future__ import annotations
 
 import pytest
 
-from omai.symbolic import State, Operation, topological_order
-from omai.thermal_transport.symbolic import (
+from omai.operator import State, Operation, topological_order
+from omai.thermal_transport.operator import (
     EDGES,
     NODES,
     LINEWIDTH,
@@ -29,7 +29,7 @@ def test_edge_count():
 
 
 def test_provide_potential_is_nullary():
-    from omai.thermal_transport.symbolic import provide_potential
+    from omai.thermal_transport.operator import provide_potential
 
     assert provide_potential.is_nullary()
     assert len(provide_potential.outputs) == 1
@@ -100,7 +100,7 @@ def test_linewidth_convention_factor_table():
 
 
 def test_compute_force_constants_2_carries_formula():
-    """The symbolic layer's symbolic promise: every edge carries a formula."""
+    """The operator layer's operator promise: every edge carries a formula."""
     assert compute_force_constants_2.formula is not None
 
 
@@ -125,7 +125,7 @@ def test_every_state_declares_indices():
 
 def test_specific_field_indices():
     """Spot-check the index signatures match the formulas."""
-    from omai.thermal_transport.symbolic import (
+    from omai.thermal_transport.operator import (
         DYNAMICAL_MATRIX,
         FREQUENCY_STATE,
         GROUP_VELOCITY,
@@ -142,7 +142,7 @@ def test_specific_field_indices():
 
 def test_symbolic_validates_clean():
     """The thermal-transport DAG satisfies all discipline invariants."""
-    from omai.symbolic import validate_dag
+    from omai.operator import validate_dag
 
     errors = validate_dag(NODES, EDGES)
     assert errors == [], f"discipline violations:\n  " + "\n  ".join(errors)
@@ -150,9 +150,9 @@ def test_symbolic_validates_clean():
 
 def test_validator_flags_missing_gauge_group():
     """A scaffolding HiddenState without a gauge_group is rejected."""
-    from omai.symbolic import validate_dag
-    from omai.symbolic.state import HiddenState
-    from omai.thermal_transport.symbolic.nodes import POTENTIAL  # any Observable
+    from omai.operator import validate_dag
+    from omai.operator.state import HiddenState
+    from omai.thermal_transport.operator.nodes import POTENTIAL  # any Observable
 
     bad = HiddenState(
         physics_type=POTENTIAL.physics_type,  # any
@@ -165,9 +165,9 @@ def test_validator_flags_missing_gauge_group():
 
 def test_validator_flags_dangling_contraction_name():
     """A scaffolding HiddenState that names a non-existent Observable is rejected."""
-    from omai.symbolic import validate_dag
-    from omai.symbolic.state import HiddenState
-    from omai.thermal_transport.symbolic.nodes import POTENTIAL
+    from omai.operator import validate_dag
+    from omai.operator.state import HiddenState
+    from omai.thermal_transport.operator.nodes import POTENTIAL
 
     bad = HiddenState(
         physics_type=POTENTIAL.physics_type,
@@ -181,9 +181,9 @@ def test_validator_flags_dangling_contraction_name():
 
 
 def test_observable_vs_hidden_state_classification():
-    """The symbolic layer classifies gauge-invariant vs gauge-dependent nodes."""
-    from omai.symbolic.state import HiddenState, Observable
-    from omai.thermal_transport.symbolic import (
+    """The operator layer classifies gauge-invariant vs gauge-dependent nodes."""
+    from omai.operator.state import HiddenState, Observable
+    from omai.thermal_transport.operator import (
         EIGENVECTORS,
         FORCE_CONSTANTS_2,
         FREQUENCY_STATE,

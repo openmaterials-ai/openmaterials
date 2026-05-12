@@ -1,15 +1,15 @@
 """Concrete gauge actions for the thermal-transport DAG.
 
-Each gauge action declares the symbolic transformation that defines a
-gauge equivalence on a HiddenState. The symbolic layer's check_invariance
+Each gauge action declares the operator transformation that defines a
+gauge equivalence on a HiddenState. The operator layer's check_invariance
 machinery verifies that an operation's formula is invariant under a
-declared gauge action via symbolic substitution.
+declared gauge action via operator substitution.
 
 Tractable today (sympy can verify):
   * U(1) phase on Eigenvectors — per-mode phase freedom e_{i,q,ν} → exp(iθ_{q,ν}) e_{i,q,ν}
 
-Crystal symmetry is declared symbolically at the symbolic level
-(see omai.symbolic.crystal_symmetry.SymmetryGroup) but its concrete
+Crystal symmetry is declared symbolically at the operator level
+(see omai.operator.crystal_symmetry.SymmetryGroup) but its concrete
 handling — building rotation matrices, running spglib, applying
 operations to FC tensors — lives in the materials adapters (phonopy,
 kaldo, etc.) where it belongs.
@@ -23,8 +23,8 @@ from __future__ import annotations
 
 import sympy as sp
 
-from omai.symbolic.gauge import GaugeAction
-from omai.thermal_transport.symbolic.edges import _e
+from omai.operator.gauge import GaugeAction
+from omai.thermal_transport.operator.edges import _e
 
 
 # Wild symbols for the gauge patterns. Using Wild lets the substitution match

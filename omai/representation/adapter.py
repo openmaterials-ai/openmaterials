@@ -1,16 +1,16 @@
-"""Materialization-layer adapter specs.
+"""Representation-layer adapter specs.
 
-A StateAdapterSpec declares one code's claim about a node (symbolic State):
+A StateAdapterSpec declares one code's claim about a node (operator State):
   * the unit each observable is in (within that code's natural emission)
   * the convention each observable carries (overrides of canonical)
 
-An OperationAdapterSpec declares one code's claim about an edge (symbolic
+An OperationAdapterSpec declares one code's claim about an edge (operator
 Operation):
   * the unit each parameter is in (within that code's API surface)
   * the algorithmic-convention overrides
   * the discretization choices the code makes (e.g., BZ summation strategy);
     these don't change *what* is computed, only *how*, so they live here
-    rather than on the symbolic Operation.
+    rather than on the operator Operation.
 
 Cross-adapter agreement is checked at the State level (the observable layer,
 per Principle 7). Operation-level adapter specs are diagnostic:
@@ -23,9 +23,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from omai.symbolic.operation import Operation
-from omai.symbolic.state import State
-from omai.materialization.units import conversion_factor
+from omai.operator.operation import Operation
+from omai.operator.state import State
+from omai.representation.units import conversion_factor
 
 
 @dataclass(frozen=True)
@@ -46,8 +46,8 @@ class StateAdapterSpec:
         unit = self.observable_units.get(observable_name)
         if unit is not None:
             return unit
-        # Canonical unit isn't declared at the symbolic level (the symbolic
-        # layer is unit-free); the materialization layer either declares a
+        # Canonical unit isn't declared at the operator level (the operator
+        # layer is unit-free); the representation layer either declares a
         # unit or refuses to compare.
         raise KeyError(
             f"adapter {self.adapter_name!r} did not declare a unit for "
@@ -117,7 +117,7 @@ def _require_same_state(a: StateAdapterSpec, b: StateAdapterSpec) -> None:
         )
 
 
-def cross_state_unit_factor(
+def inter_representation_unit_factor(
     a: StateAdapterSpec, b: StateAdapterSpec, observable_name: str
 ) -> float:
     """Factor f such that A's emitted value × f = the same value in B's unit
@@ -128,7 +128,7 @@ def cross_state_unit_factor(
     )
 
 
-def cross_state_total_factor(
+def inter_representation_factor(
     a: StateAdapterSpec, b: StateAdapterSpec, observable_name: str
 ) -> float:
     """Combined unit + convention factor: A's emitted value × this = B's
@@ -138,13 +138,13 @@ def cross_state_total_factor(
     where U_a→b is the unit factor and c_a, c_b are the observable-convention
     factors relative to canonical.
     """
-    unit = cross_state_unit_factor(a, b, observable_name)
+    unit = inter_representation_unit_factor(a, b, observable_name)
     c_a = a.observable_convention_factor(observable_name)
     c_b = b.observable_convention_factor(observable_name)
     return unit * (c_b / c_a)
 
 
-def cross_state_convention_match(
+def representation_convention_match(
     a: StateAdapterSpec, b: StateAdapterSpec, convention_name: str
 ) -> tuple[bool, str]:
     """Whether two state adapters agree on a state-level convention."""
@@ -172,7 +172,7 @@ def _require_same_operation(a: OperationAdapterSpec, b: OperationAdapterSpec) ->
         )
 
 
-def cross_operation_algorithmic_match(
+def representation_algorithmic_match(
     a: OperationAdapterSpec, b: OperationAdapterSpec, convention_name: str
 ) -> tuple[bool, str]:
     """Whether two operation adapters agree on an algorithmic convention."""
@@ -187,7 +187,7 @@ def cross_operation_algorithmic_match(
     )
 
 
-def cross_operation_discretization_match(
+def representation_discretization_match(
     a: OperationAdapterSpec, b: OperationAdapterSpec, choice_name: str
 ) -> tuple[bool, str]:
     """Whether two operation adapters agree on a discretization choice

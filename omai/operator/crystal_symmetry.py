@@ -1,13 +1,13 @@
-"""Symbolic crystal symmetry at the symbolic level.
+"""Operator crystal symmetry at the operator level.
 
-A `SymmetryGroup` is the symbolic layer's *symbolic* declaration of a crystal
-symmetry: a name, an order, and (optionally) a description. The symbolic layer
+A `SymmetryGroup` is the operator layer's *operator* declaration of a crystal
+symmetry: a name, an order, and (optionally) a description. The operator layer
 does **not** enumerate group elements or store concrete rotation matrices.
 That work — extracting symmetries from a crystal structure, applying them
 to tensors, building irreducible-BZ reductions — belongs to the materials
 codes (phonopy, kaldo, ShengBTE, …), typically via spglib.
 
-The symbolic layer's role here is to *name* the group so that:
+The operator layer's role here is to *name* the group so that:
 
   * operations can declare which symmetry group they assume as a
     parameterized identity (`compute_force_constants[order=2,
@@ -15,11 +15,11 @@ The symbolic layer's role here is to *name* the group so that:
     symmetry=C1]`),
   * adapter specs can declare which group the code assumed in a
     particular run,
-  * cross-code comparison can refuse to compare two materializations
+  * cross-code comparison can refuse to compare two representations
     whose declared symmetry groups disagree.
 
 This is parallel to how `Potential` is declared symbolically (a label,
-Phase 1 stub) without the symbolic layer modeling its functional form.
+Phase 1 stub) without the operator layer modeling its functional form.
 """
 
 from __future__ import annotations
@@ -29,11 +29,11 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class SymmetryGroup:
-    """A finite subgroup of O(3) ⋉ ℝ³ acting on a crystal (symbolic).
+    """A finite subgroup of O(3) ⋉ ℝ³ acting on a crystal (operator).
 
     Declared by Hermann-Mauguin / Schoenflies symbol plus order. No
     element data: concrete matrices and group products are the codes'
-    responsibility, not the symbolic layer's.
+    responsibility, not the operator layer's.
     """
 
     name: str

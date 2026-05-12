@@ -1,4 +1,4 @@
-"""Compare kaldo's and phonopy/phono3py's materializations.
+"""Compare kaldo's and phonopy/phono3py's representations.
 
 Reads dispersion (frequencies, eigenvectors, group velocities, q-points) from kaldo
 and phonopy, plus thermal conductivity (RTA + full BTE) from kaldo and phono3py,

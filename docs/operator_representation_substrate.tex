@@ -23,7 +23,7 @@
 \newcommand{\abstr}[1]{\textcolor{abstrcol}{#1}}
 \newcommand{\numr}[1]{\textcolor{numcol}{#1}}
 
-\title{Symbolic and Materialization Layers for Computational Materials Science:\\
+\title{Operator and Representation Layers for Computational Materials Science:\\
        Principles and First-Demonstration Plan}
 \author{G. Barbalinardo \\
         \small University of California, Davis}
@@ -34,22 +34,22 @@
 \maketitle
 
 \begin{abstract}
-This document records the design of a typed symbolic/materialization framework for computational materials science
+This document records the design of a typed operator/representation framework for computational materials science
 workflows, organized around a small set of principles. Workflows are directed
-acyclic graphs of \emph{symbolic physics states} connected by \emph{symbolic operations}, and
-concrete numerical results are \emph{materializations}---typed projections of symbolic states
-into a discretization scheme. The symbolic root is the \emph{Born--Oppenheimer
+acyclic graphs of \emph{operator physics states} connected by \emph{operator operations}, and
+concrete numerical results are \emph{representations}---typed projections of operator states
+into a discretization scheme. The operator root is the \emph{Born--Oppenheimer
 potential} of a material, expanded as a Taylor series in atomic displacements; force constants
 of every order are derived states obtained by extracting derivatives of this root and truncating
 the expansion at a chosen order. Every state carries a provenance chain that records the
-operations along its path; every materialization carries a discretization scheme. Approximation
+operations along its path; every representation carries a discretization scheme. Approximation
 and discretization errors live in disjoint type universes and compose along graph edges; the
 machinery for tracking error formulas symbolically and composing them across the graph is
 designed but its full implementation is deferred to Phase 2. As a first demonstration, three
 established lattice thermal-transport codes (kaldo, phono3py, ShengBTE) are reframed as distinct
-materializations of a single symbolic DAG, with cross-code reconciliation at canonical
+representations of a single operator DAG, with cross-code reconciliation at canonical
 intermediate states as the Phase 1 deliverable. Phase 1 stubs the upstream operations that
-produce force constants from the potential---declaring the relevant symbolic types and provenance
+produce force constants from the potential---declaring the relevant operator types and provenance
 labels but not modeling them in detail---so that Phase 2 can elaborate the upstream without
 restructuring the framework. The document is intended as the working architectural reference for
 the \texttt{openmaterials-ai} project; it covers each architectural decision, the alternatives
@@ -63,44 +63,44 @@ considered, and what we deferred.
 \section{Principles}
 \label{sec:principles}
 
-The symbolic layer is built on a small set of commitments. They are stated here without
+The operator layer is built on a small set of commitments. They are stated here without
 their alternatives or justifications; supporting definitions follow in later sections.
 
 \begin{enumerate}[leftmargin=2.5em, itemsep=0.4em]
-  \item \textbf{Two worlds, one bridge.} The symbolic layer keeps the symbolic physics world
-        (typed states, symbolic operations, approximation errors) strictly separate from
+  \item \textbf{Two worlds, one bridge.} The operator layer keeps the operator physics world
+        (typed states, operator operations, approximation errors) strictly separate from
         the numeric world (discretized arrays, computed values, discretization errors).
-        They are connected by exactly one bridge: the materialization functor.
+        They are connected by exactly one bridge: the representation functor.
 
-  \item \textbf{Symbolic states are unit-free.} Dimensionful quantities (frequency,
-        energy, length, time) exist at the symbolic layer, but specific unit choices
+  \item \textbf{Operator states are unit-free.} Dimensionful quantities (frequency,
+        energy, length, time) exist at the operator layer, but specific unit choices
         (THz vs eV vs rad/s, \AA{} vs Bohr) do not. Unit choice belongs to the
-        materialization and is declared by the adapter that produced it; the framework
-        normalizes to a canonical unit before any cross-materialization comparison.
+        representation and is declared by the adapter that produced it; the framework
+        normalizes to a canonical unit before any cross-representation comparison.
 
-  \item \textbf{The atom is a symbolic operation.} The atomic unit of meaning is a typed
-        transformation between symbolic states, not an instruction in an input file or an
-        algorithm. Every operation carries a \emph{symbolic formula}---a sympy expression
+  \item \textbf{The atom is a operator operation.} The atomic unit of meaning is a typed
+        transformation between operator states, not an instruction in an input file or an
+        algorithm. Every operation carries a \emph{operator formula}---a sympy expression
         (closed-form output) or sympy.Eq (implicit equation defining the output)---stating
-        what it computes. The formula is the symbolic claim, machine-readable and
+        what it computes. The formula is the operator claim, machine-readable and
         Lean-projectable, against which adapter conformance can be checked.
 
   \item \textbf{States are typed witnesses; nodes are Observables or HiddenStates.}
-        A state is the typed claim that a symbolic physics object exists with a
-        particular history. The symbolic layer splits states into two structural kinds:
+        A state is the typed claim that a operator physics object exists with a
+        particular history. The operator layer splits states into two structural kinds:
         \emph{Observables} (gauge-invariant, first-class, required to agree across
         adapters) and \emph{HiddenStates} (gauge-dependent intermediate scaffolding
         whose per-element values reflect basis / phase / BZ-summation choices the
         framework does not pin down). Each state declares fields, and each field has an
         index signature (e.g.\ $\omega(\mathbf{q},\nu)$ has indices $(\mathbf{q}, \nu)$;
         $\kappa^{\alpha\beta}$ has $(\alpha, \beta)$). Numerical content lives in the
-        materialization, separate from the witness.
+        representation, separate from the witness.
 
   \item \textbf{Workflows are directed acyclic graphs.} A workflow is a graph of states
         connected by operations, not a linear sequence. Cross-code comparison reduces
-        to graph alignment over the same symbolic template.
+        to graph alignment over the same operator template.
 
-  \item \textbf{Identity is type plus provenance.} A symbolic state is identified by its
+  \item \textbf{Identity is type plus provenance.} A operator state is identified by its
         physics type and the ordered chain of operations that produced it. Two states
         with the same type but different histories are different states.
 
@@ -108,29 +108,29 @@ their alternatives or justifications; supporting definitions follow in later sec
         name together with the parameters that affect physics. Different physics-affecting
         parameter values produce different operations and therefore different output
         states. Function-family parameterizations (e.g., Gaussian broadening by standard
-        deviation vs.\ by half-width) are canonicalized at the symbolic layer to a single
+        deviation vs.\ by half-width) are canonicalized at the operator layer to a single
         choice; adapters translate to their internal convention.
 
-  \item \textbf{Discretization belongs to materialization.} Mesh densities, supercell
-        sizes, displacement steps, and broadenings live on the materialization, not on
-        the symbolic state. Convergence is a relationship between a symbolic state and
-        a family of its materializations.
+  \item \textbf{Discretization belongs to representation.} Mesh densities, supercell
+        sizes, displacement steps, and broadenings live on the representation, not on
+        the operator state. Convergence is a relationship between a operator state and
+        a family of its representations.
 
   \item \textbf{Cross-code agreement is required at Observable nodes only.} Two
-        adapters' materializations of an Observable must agree (after unit and
+        adapters' representations of an Observable must agree (after unit and
         convention conversion) to within the observable's declared tolerance.
-        Materializations of a HiddenState are not cross-code comparable per-element;
-        the symbolic layer's \texttt{compare} returns the status \texttt{NOT\_COMPARABLE}
+        Representations of a HiddenState are not cross-code comparable per-element;
+        the operator layer's \texttt{compare} returns the status \texttt{NOT\_COMPARABLE}
         and reports residuals as diagnostic information only. To make a HiddenState
         cross-code comparable, contract it into an Observable (e.g., per-mode
         $\Gamma_{q\nu}$ is a HiddenState; $\sum_{q\nu}\Gamma$ contracted via the
         BZ sum is an Observable that does agree).
 
   \item \textbf{Errors are designed-for.} Approximation errors live on operations;
-        discretization errors live on materializations. The type system reserves slots
-        for both; symbolic composition of error formulas is a Phase~2 capability.
+        discretization errors live on representations. The type system reserves slots
+        for both; operator composition of error formulas is a Phase~2 capability.
 
-  \item \textbf{The symbolic root is the potential.} Every materialization in the framework
+  \item \textbf{The operator root is the potential.} Every representation in the framework
         ultimately traces back to the Born--Oppenheimer potential of the material. Force
         constants of every order are derived states obtained by extracting derivatives of
         the potential and truncating the Taylor expansion. The upstream is stubbed in
@@ -140,11 +140,11 @@ their alternatives or justifications; supporting definitions follow in later sec
         potential, but also temperature, lattice constant, etc.)\ are the outputs of
         nullary \texttt{provide\_*} operations rather than nodes with empty provenance.
         This unifies the DAG: every node is the output of some operation, and the
-        symbolic layer has no special ``input'' category. The materialization of a source
+        operator layer has no special ``input'' category. The representation of a source
         state carries the externally supplied value (e.g., $T = 300\,\mathrm{K}$); the
         operation is just a structural tag.
 
-  \item \textbf{Lean-compatible by structure.} The symbolic layer is implemented in Python
+  \item \textbf{Lean-compatible by structure.} The operator layer is implemented in Python
         but designed so that its types transliterate cleanly into Lean. Three disciplines
         protect this option: closed unions for physics types, no Python-encoded physics
         invariants, operation parameters always recorded in output state metadata.
@@ -190,11 +190,11 @@ they perform the same physics. A graph indexed by instructions sees them as two 
 
 \medskip
 
-The symbolic layer proposed here \emph{starts from the physics} and treats input files as derived
-artifacts. The atomic unit is no longer an instruction; it is a \emph{symbolic operation} between
+The operator layer proposed here \emph{starts from the physics} and treats input files as derived
+artifacts. The atomic unit is no longer an instruction; it is a \emph{operator operation} between
 typed physics states. The states are the load-bearing entities: a state is what changes when an
 operation is applied, and a workflow is the graph that records those state transitions. Concrete
-numerical computation is then a separate, typed projection of the symbolic workflow into a
+numerical computation is then a separate, typed projection of the operator workflow into a
 discretization scheme.
 
 This is a deliberate departure from the input-file paradigm. We argue below that it pays for the
@@ -208,32 +208,32 @@ foundation for future formal verification.
 The single most important design decision is a strict separation between two type universes:
 
 \begin{itemize}[leftmargin=2em]
-  \item \abstr{\textbf{The symbolic world}} holds typed physics states (Hamiltonians, dispersion
-        relations, scattering rates, distribution functions, partition functions) and symbolic
+  \item \abstr{\textbf{The operator world}} holds typed physics states (Hamiltonians, dispersion
+        relations, scattering rates, distribution functions, partition functions) and operator
         operations between them. Errors here are \emph{approximation errors}---the $O(\cdot)$
         terms introduced by truncating perturbation series, linearizing equations, or imposing
         physical assumptions such as the Born--Oppenheimer or harmonic approximation. The
-        symbolic world contains no numerical content. Two symbolic states that differ only in
-        their numerical estimates are the same symbolic state; two symbolic states that differ
-        in the chain of approximations leading to them are different symbolic states.
-  \item \numr{\textbf{The numeric world}} holds discretized realizations of symbolic states:
+        operator world contains no numerical content. Two operator states that differ only in
+        their numerical estimates are the same operator state; two operator states that differ
+        in the chain of approximations leading to them are different operator states.
+  \item \numr{\textbf{The numeric world}} holds discretized realizations of operator states:
         arrays sampled on finite grids, mode-resolved quantities at finite k-meshes,
         distributions evaluated at finite temperature. Errors here are \emph{discretization
         errors}---the $O((1/N)^k)$ or $O(h^k)$ terms introduced by sampling a continuum quantity
-        on a finite scheme. The numeric world contains no symbolic content; it does not know
+        on a finite scheme. The numeric world contains no operator content; it does not know
         what theory the numbers are estimates of.
 \end{itemize}
 
-The two worlds are connected by exactly one bridge, the \emph{materialization functor}, which
-takes (i) a symbolic state and (ii) a discretization scheme and produces a numeric
-materialization. Approximation errors compose in the symbolic world along provenance chains;
+The two worlds are connected by exactly one bridge, the \emph{representation functor}, which
+takes (i) a operator state and (ii) a discretization scheme and produces a numeric
+representation. Approximation errors compose in the operator world along provenance chains;
 discretization errors compose in the numeric world along execution graphs; the two combine only
-at materialization time, where the total error of a numerical result decomposes into its symbolic
+at representation time, where the total error of a numerical result decomposes into its operator
 and numeric contributions.
 
 This separation is load-bearing. It is also somewhat unusual. Most computational physics codes
 mix the two worlds: a ``Hamiltonian'' object in such a code is sometimes a typed mathematical
-operator and sometimes a 4-D \texttt{numpy} array. The symbolic layer refuses to do this. If you are
+operator and sometimes a 4-D \texttt{numpy} array. The operator layer refuses to do this. If you are
 holding a Hamiltonian, you know which world you are in and you cannot
 accidentally mix the two. This refusal is what makes errors composable, theorems statable, and
 cross-code comparisons well-defined.
@@ -246,21 +246,21 @@ own control plus the external physics codes that produce numerical data.
 Nothing else is a layer: tests, visualization, and experiment scripts are
 supporting infrastructure.
 
-\paragraph{Layer 1 --- symbolic.} Types, declarations, formulas, gauges.
-Machinery in \texttt{omai.symbolic} (the \texttt{State} and
+\paragraph{Layer 1 --- operator.} Types, declarations, formulas, gauges.
+Machinery in \texttt{omai.operator} (the \texttt{State} and
 \texttt{Operation} types, \texttt{Field}, \texttt{Dimension},
 \texttt{GaugeAction}, \texttt{SymmetryGroup}, \texttt{validate\_dag});
-domain instances in \texttt{omai.thermal\_transport.symbolic} (the
+domain instances in \texttt{omai.thermal\_transport.operator} (the
 14-node, 13-edge DAG with sympy formulas on each edge, gauge actions).
 No values, no units, no per-code knowledge.
 
-\paragraph{Layer 2 --- materialization.} Per-code declarations plus the
+\paragraph{Layer 2 --- representation.} Per-code declarations plus the
 runtime that operates on actual code outputs. Machinery in
-\texttt{omai.materialization} (the \texttt{StateAdapterSpec} and
+\texttt{omai.representation} (the \texttt{StateAdapterSpec} and
 \texttt{OperationAdapterSpec} types, \texttt{Unit} and unit conversions,
-the \texttt{Materialization} runtime data class, \texttt{compare()} with
+the \texttt{Representation} runtime data class, \texttt{compare()} with
 its five-status verdicts); domain instances in
-\texttt{omai.thermal\_transport.materialized} (one file per code:
+\texttt{omai.thermal\_transport.represented} (one file per code:
 \texttt{kaldo.py}, \texttt{phono3py.py}).
 
 \paragraph{External codes.} kaldo, phono3py, ShengBTE: do the actual
@@ -273,17 +273,17 @@ through these layers like this:
 \begin{enumerate}[leftmargin=2em, itemsep=0.2em]
   \item User invokes the codes externally (e.g.\ kaldo and phono3py),
         which produce raw output arrays in their own formats.
-  \item User wraps each array via \texttt{materialize(spec, field\_name,
-        array)}: this validates the field exists on the symbolic state
-        and produces a \texttt{Materialization} object tagged with the
+  \item User wraps each array via \texttt{represent(spec, field\_name,
+        array)}: this validates the field exists on the operator state
+        and produces a \texttt{Representation} object tagged with the
         right adapter spec.
   \item User calls \texttt{compare(m\_a, m\_b)}. \texttt{compare} consults
-        the symbolic layer for the cross-code factor (units +
+        the operator layer for the cross-code factor (units +
         conventions), applies it, optionally contracts, and consults the
-        symbolic layer again for the state's gauge kind to decide whether
+        operator layer again for the state's gauge kind to decide whether
         an \textsc{Agree}/\textsc{Disagree} verdict is even meaningful or
         the comparison is \textsc{Not\_Comparable}.
-  \item User gets a \texttt{ComparisonResult} with status, residuals,
+  \item User gets a \texttt{RepresentationComparisonResult} with status, residuals,
         and the applied factor.
 \end{enumerate}
 
@@ -299,20 +299,20 @@ in \texttt{omai/<layer>/}, domain instances in
 
 We collect the formal definitions implied by the decisions above.
 
-\subsection{Symbolic state}
+\subsection{Operator state}
 
-A symbolic state $s$ is unit-free: its physics type carries the dimension of any
+A operator state $s$ is unit-free: its physics type carries the dimension of any
 quantity it represents (a frequency, an energy density, a tensor of given rank), but no
-unit choice. Numerical content and units appear only at materialization time.
+unit choice. Numerical content and units appear only at representation time.
 
 \medskip
 
-A symbolic state $s$ is a tuple $(\kappa, \tau, \pi, F)$ where:
+A operator state $s$ is a tuple $(\kappa, \tau, \pi, F)$ where:
 \begin{itemize}[leftmargin=2em]
   \item $\kappa \in \{\textsc{Observable}, \textsc{HiddenState}\}$ is the
         \emph{gauge-invariance kind}: Observables are gauge-invariant and cross-code
         comparable; HiddenStates carry gauge freedom (eigenvector phase, BZ-summation
-        choice, degenerate-subspace rotation, …) that the symbolic layer doesn't pin down,
+        choice, degenerate-subspace rotation, …) that the operator layer doesn't pin down,
         so their per-element values differ across adapters by design;
   \item $\tau$ is a \emph{physics type} drawn from a finite registry. Derived types in
         the thermal-transport scope include \texttt{ForceConstants[order=$n$]},
@@ -325,7 +325,7 @@ A symbolic state $s$ is a tuple $(\kappa, \tau, \pi, F)$ where:
         invariance, whereas \texttt{ThermalConductivity[bte\_solver=direct\_inverse]}
         is an Observable because the full LBTE preserves it);
   \item $\pi$ is the \emph{provenance}: an ordered list $[\mathcal{O}_1, \mathcal{O}_2,
-        \ldots, \mathcal{O}_n]$ of symbolic operations whose composition produced $s$.
+        \ldots, \mathcal{O}_n]$ of operator operations whose composition produced $s$.
         Provenance is never empty---source states have a single nullary operation
         (\texttt{provide\_potential}, \texttt{provide\_temperature}, \ldots);
   \item $F = (f_1, f_2, \ldots)$ is the state's tuple of \emph{fields}. Each field has
@@ -333,22 +333,22 @@ A symbolic state $s$ is a tuple $(\kappa, \tau, \pi, F)$ where:
         (e.g., $\omega$ has indices $(\mathbf{q}, \nu)$; $v$ has $(\alpha, \mathbf{q},
         \nu)$; $\kappa$ has $(\alpha, \beta)$).
 \end{itemize}
-Two symbolic states are equal iff their names match. The composed approximation error
+Two operator states are equal iff their names match. The composed approximation error
 on $s$ (a Phase 2 capability) would be
 \begin{equation}
   \epsilon_{\text{approx}}(s) = \mathrm{compose}\bigl(\epsilon_{\mathcal{O}_1},\, \epsilon_{\mathcal{O}_2},\, \ldots,\, \epsilon_{\mathcal{O}_n}\bigr).
 \end{equation}
 
-\paragraph{Source versus derived states.} Symbolic states fall into two kinds, both
+\paragraph{Source versus derived states.} Operator states fall into two kinds, both
 produced by some operation:
 \begin{itemize}[leftmargin=2em]
   \item \emph{Source states} are the outputs of \emph{nullary} operations
         (\texttt{provide\_potential}, \texttt{provide\_temperature}, \ldots): operations
-        with no symbolic-state inputs. They are empirical inputs (lattice constant,
-        temperature, pressure, applied field), the symbolic \texttt{Potential} itself
+        with no operator-state inputs. They are empirical inputs (lattice constant,
+        temperature, pressure, applied field), the operator \texttt{Potential} itself
         (Phase 1 stubs the upstream of the potential), or measured observables (a
         thermal conductivity reported from a TDTR experiment, a Raman peak). The
-        materialization of a source state carries the externally supplied value (e.g.,
+        representation of a source state carries the externally supplied value (e.g.,
         $5.43\,\textup{\AA}$ for the lattice constant of silicon, or $T = 300\,\text{K}$);
         its discretization scheme is trivial (a singleton choice rather than a refinable
         mesh) but its error is still meaningful (experimental uncertainty, or
@@ -360,12 +360,12 @@ produced by some operation:
         \texttt{compute\_dispersion}), \texttt{Linewidth},
         \texttt{MeanFreeDisplacement}, the computed $\kappa$.
 \end{itemize}
-Both kinds follow the same machinery for materialization. The unification of source and
+Both kinds follow the same machinery for representation. The unification of source and
 derived states under the same ``output of an operation'' rule answers several otherwise
 awkward cases: empirical inputs (``where does the lattice constant live?''), experimental
 observables (``how does a measured $\kappa(T)$ enter the framework?''), and the unmodeled
-symbolic root in Phase 1 (``what is the silicon potential, before we differentiate
-it?''). All three are materializations of source states whose provenance is a single
+operator root in Phase 1 (``what is the silicon potential, before we differentiate
+it?''). All three are representations of source states whose provenance is a single
 nullary operation; the second is what makes the unified theory--experiment comparison
 framework native rather than bolted on; the third is how Phase 1 stubs the upstream of
 \texttt{Potential} without yet modeling it in detail.
@@ -379,7 +379,7 @@ without borrowing the formal proof obligations. In this framework a state is not
 contains; it is the \emph{claim} that something exists, expressed in a typed form rich enough
 to carry meaning.
 
-Concretely, three layers are conflated in most computational physics codes; the symbolic layer keeps
+Concretely, three layers are conflated in most computational physics codes; the operator layer keeps
 them apart:
 
 \begin{enumerate}[leftmargin=2em]
@@ -393,61 +393,61 @@ them apart:
         (extraction, truncation, Fourier transform, eigendecomposition) that produced it. The
         witness carries no numerical content; it is the assertion that such an object exists
         with this history.
-  \item \textbf{The materialization} -- a tuple $(s, \Sigma, x, \epsilon_{\text{disc}})$ in
+  \item \textbf{The representation} -- a tuple $(s, \Sigma, x, \epsilon_{\text{disc}})$ in
         which $x$ is a concrete 4-D \texttt{numpy} array of frequencies sampled on a chosen
         k-mesh, $\Sigma$ is the discretization scheme, and $\epsilon_{\text{disc}}$ is the
-        associated discretization error. The materialization is the numerical evidence that the
+        associated discretization error. The representation is the numerical evidence that the
         witness asserts to exist.
 \end{enumerate}
 
 A code that conflates these layers (treats the dispersion \emph{as} the array) cannot
 distinguish ``the same physics computed two different ways'' from ``different physics computed
 the same way.'' A framework that keeps them apart can: two witnesses with identical types but
-different provenance are different states, regardless of whether their materializations happen
-to have similar numerical content; one witness with two materializations on different k-meshes
+different provenance are different states, regardless of whether their representations happen
+to have similar numerical content; one witness with two representations on different k-meshes
 is the same state, regardless of how different the arrays look numerically.
 
 This is the load-bearing distinction. It is also the answer to several otherwise hard questions.
 ``What is the dispersion of silicon?'' is the question the witness answers. ``What does the
 dispersion of silicon look like on a $14\times14\times14$ mesh in kaldo'' is the question its
-materialization answers. ``Are these two computed dispersions the same?'' resolves into two
+representation answers. ``Are these two computed dispersions the same?'' resolves into two
 sub-questions---are the witnesses equal (a question about provenance), and are the
-materializations consistent within their discretization errors (a question about numerics)---each
+representations consistent within their discretization errors (a question about numerics)---each
 answerable without confusion with the other.
 
 \paragraph{Read in this light:}
-the symbolic states described elsewhere in this document are all witnesses: they assert the
+the operator states described elsewhere in this document are all witnesses: they assert the
 existence of a particular physics object derived in a particular way. The numerical content,
-when present, lives in the materialization, separated from the witness by the symbolic/materialized
-boundary. Operations between symbolic states are operations between witnesses, with no numerics
+when present, lives in the representation, separated from the witness by the operator/represented
+boundary. Operations between operator states are operations between witnesses, with no numerics
 involved; they are essentially structural moves on a graph of typed assertions.
 
 
-\subsection{Symbolic operation}
+\subsection{Operator operation}
 
-A symbolic operation $\mathcal{O}$ is a typed map between symbolic states,
+A operator operation $\mathcal{O}$ is a typed map between operator states,
 \begin{equation}
   \mathcal{O} : \tau_{\text{in}_1} \times \tau_{\text{in}_2} \times \cdots \to (\tau_{\text{out}_1}, \ldots, \tau_{\text{out}_m}),
 \end{equation}
 equipped with three pieces of metadata:
 \begin{itemize}[leftmargin=2em]
-  \item a \emph{symbolic formula} $\mathcal{F}_\mathcal{O}$ stating what the operation
+  \item a \emph{operator formula} $\mathcal{F}_\mathcal{O}$ stating what the operation
         computes, encoded as a sympy expression for closed-form ops or a sympy.Eq for
         implicit ones (eigenvalue equations, linear systems). \emph{Every} operation
         carries a formula---source operations have identity formulas (e.g.,
         \texttt{provide\_temperature}: $T = T_{\text{provided}}$);
-  \item an \emph{approximation error formula} $\epsilon_{\mathcal{O}}$, a symbolic
+  \item an \emph{approximation error formula} $\epsilon_{\mathcal{O}}$, a operator
         expression in physical small parameters (e.g., $\lambda$ for the strength of a
         perturbation, $T/T^*$ for a Sommerfeld expansion). Exact operations have
         $\epsilon_{\mathcal{O}} = 0$; approximating operations have
         $\epsilon_{\mathcal{O}} = O(p^k)$ for some parameter $p$ and order $k$;
   \item a possibly empty set of \emph{algorithmic conventions} (per
         \S\ref{ssec:parameterized-operation-identity}) and \emph{parameters}
-        (dimensioned but unit-free at the symbolic layer).
+        (dimensioned but unit-free at the operator layer).
 \end{itemize}
 Multi-output operations (e.g.\ \texttt{compute\_dispersion} producing
 \texttt{Frequency} and \texttt{Eigenvectors} together) are first-class. The formula
-$\mathcal{F}_\mathcal{O}$ is the symbolic layer's machine-readable claim about what the
+$\mathcal{F}_\mathcal{O}$ is the operator layer's machine-readable claim about what the
 operation produces: adapter conformance can be expressed as ``the adapter's runtime
 behavior matches $\mathcal{F}_\mathcal{O}$ under its declared unit and convention
 choices,'' in principle automatable rather than reverse-engineered from kernels.
@@ -455,16 +455,16 @@ choices,'' in principle automatable rather than reverse-engineered from kernels.
 
 \paragraph{Operation identity is parameterized.}\label{ssec:parameterized-operation-identity}
 
-Several operations in the symbolic layer carry method choices that affect physics: the scattering
+Several operations in the operator layer carry method choices that affect physics: the scattering
 processes included (3-phonon only, or 3-phonon plus isotopic, or with boundary scattering), the
 Boltzmann solver (relaxation-time approximation, iterative, direct inversion), the broadening
-scheme (Gaussian, Lorentzian, adaptive), and so on. The symbolic layer treats these as part of the
+scheme (Gaussian, Lorentzian, adaptive), and so on. The operator layer treats these as part of the
 operation's \emph{identity}, not as runtime configuration that gets discarded.
 
 Concretely, an operation is identified by the tuple (operation name, parameters affecting
 physics). Two invocations of \texttt{compute\_scattering\_rates} with different
 \texttt{scattering\_processes} are different operations; they appear differently in the
-provenance, and they produce symbolic states that are formally distinct (different type metadata,
+provenance, and they produce operator states that are formally distinct (different type metadata,
 different total approximation error). The \emph{name} \texttt{compute\_scattering\_rates} is the
 same; the \emph{parameterized identity} differs.
 
@@ -472,16 +472,16 @@ This convention has three consequences. First, the vocabulary of operations rema
 entry per named transformation, not one entry per parameter combination), but the provenance
 remains expressive (because provenance records the full parameterized identity). Second, output
 states' types are mildly dependent: \texttt{ScatteringRates} is parameterized by the
-scattering-processes choice, even though the symbolic layer does not require Python's type system to
-enforce this dependence. Third, the symbolic layer is structurally compatible with dependent type
+scattering-processes choice, even though the operator layer does not require Python's type system to
+enforce this dependence. Third, the operator layer is structurally compatible with dependent type
 theory: when transliterated to a system like Lean, the parameter values lift to type-level
 indices and the dependence becomes formal.
 
 
-\subsection{Symbolic workflow}
+\subsection{Operator workflow}
 
-A symbolic workflow is a finite directed acyclic graph $W = (V, E)$ where $V$ is a set of
-symbolic states and $E$ is a set of symbolic operations. The graph is rooted at one or more
+A operator workflow is a finite directed acyclic graph $W = (V, E)$ where $V$ is a set of
+operator states and $E$ is a set of operator operations. The graph is rooted at one or more
 \emph{source} states (typically empirical inputs such as the crystal structure) and terminates
 at one or more \emph{observable} states (e.g., the lattice thermal conductivity).
 
@@ -493,26 +493,26 @@ supercell size, the finite-difference displacement step, the broadening width, a
 order. The scheme also carries an error model $\epsilon_{\Sigma}(N_1, \ldots; h_1, \ldots)$
 giving the asymptotic dependence of the discretization error on these parameters.
 
-\subsection{Materialization}
+\subsection{Representation}
 
-A materialization $m$ is a runtime data class wrapping one adapter's emission of one
+A representation $m$ is a runtime data class wrapping one adapter's emission of one
 field on one state:
 \begin{equation*}
   m = (\textsc{StateAdapterSpec}, \texttt{field\_name}, x)
 \end{equation*}
-where \textsc{StateAdapterSpec} carries the symbolic state $s$, the adapter name, and
+where \textsc{StateAdapterSpec} carries the operator state $s$, the adapter name, and
 the adapter's declarations (units of each field, convention overrides, notes);
-\texttt{field\_name} selects which field of $s$ is materialized; and $x$ is a concrete
+\texttt{field\_name} selects which field of $s$ is represented; and $x$ is a concrete
 \texttt{numpy.ndarray}. The discretization scheme $\Sigma$ and discretization error
 $\epsilon_{\text{disc}}$ are deferred to Phase 2.
 
-\paragraph{Why the adapter spec is part of the materialization.} Different codes
+\paragraph{Why the adapter spec is part of the representation.} Different codes
 express the same physics in different units (kaldo's linewidth is in angular-frequency
 THz while phono3py's is in linear-frequency THz; kaldo's heat capacity is in J/K,
 phono3py's in eV/K) and under different conventions (kaldo's $\Gamma$ is the linewidth
 $2\,\text{Im}\,\Sigma$ while phono3py's is $\text{Im}\,\Sigma$ directly). A raw array
 without its adapter spec is unsafe to compare against another. With the spec attached,
-the symbolic layer computes the cross-adapter conversion factor mechanically and surfaces
+the operator layer computes the cross-adapter conversion factor mechanically and surfaces
 unit / convention mismatches as type-level declarations rather than as numerical
 mysteries.
 
@@ -521,20 +521,20 @@ mysteries.
 The bridge from spec to verified empirical fact is the function
 \begin{equation*}
   \texttt{compare}(m_a, m_b; \text{rtol}, \text{atol}, \text{contraction})
-  \;\to\; \textsc{ComparisonResult}
+  \;\to\; \textsc{RepresentationComparisonResult}
 \end{equation*}
-which takes two materializations of the same state and field, applies the cross-adapter
+which takes two representations of the same state and field, applies the cross-adapter
 conversion factor derived from their declared units and conventions, optionally
 contracts both arrays via a user-supplied callable (e.g.\ \texttt{numpy.sum}), and
 reports residuals together with a \emph{status} drawn from five values:
 \begin{description}[leftmargin=2.5em, itemsep=0.2em]
   \item[\textsc{Expected\_Agree}] the state is an Observable; the arrays agree within
-        $(\text{rtol}, \text{atol})$. The symbolic layer's prediction holds.
+        $(\text{rtol}, \text{atol})$. The operator layer's prediction holds.
   \item[\textsc{Expected\_Disagree}] the user predicted disagreement (override) and the
         arrays disagree. Useful for intermediate contractions of a HiddenState that the
         user knows is only partially gauge-invariant.
   \item[\textsc{Not\_Comparable}] the state is a HiddenState and no contraction was
-        supplied. The symbolic layer refuses to make an agree/disagree verdict;
+        supplied. The operator layer refuses to make an agree/disagree verdict;
         residuals are still computed and returned for diagnostic inspection, but they
         carry no normative weight.
   \item[\textsc{Unexpected\_Disagree}] the state is an Observable but the arrays
@@ -545,7 +545,7 @@ reports residuals together with a \emph{status} drawn from five values:
 \end{description}
 
 The status taxonomy separates three things that earlier versions of this framework
-conflated: the symbolic layer's \emph{prediction} (would these agree?), the empirical
+conflated: the operator layer's \emph{prediction} (would these agree?), the empirical
 \emph{outcome} (did they?), and whether the comparison is even \emph{meaningful} for
 the given state kind. Only \textsc{Unexpected\_Disagree} flags an anomaly that needs
 investigation; \textsc{Expected\_Agree} and \textsc{Expected\_Disagree} are successful
@@ -555,7 +555,7 @@ question.''
 \subsection{HiddenState discipline and gauge actions}
 \label{ssec:gauge-discipline}
 
-The Observable / HiddenState distinction is load-bearing, so the symbolic layer
+The Observable / HiddenState distinction is load-bearing, so the operator layer
 enforces a discipline on how HiddenStates are declared. Each HiddenState
 carries three additional fields:
 
@@ -581,13 +581,13 @@ HiddenStates that incorrectly declare contractions, and edges that
 reference unknown nodes. The thermal-transport DAG passes this
 validator; tests check it on every CI run.
 
-\subsubsection*{Symbolic invariance via \texttt{GaugeAction}}
+\subsubsection*{Operator invariance via \texttt{GaugeAction}}
 
-Beyond named declarations, the symbolic layer supports \emph{symbolic proofs}
+Beyond named declarations, the operator layer supports \emph{operator proofs}
 of gauge invariance for the tractable cases. A \texttt{GaugeAction} is a
 sympy-encoded transformation: a pattern to match (e.g., $e_{i, q, \nu}$)
 plus a transform (e.g., $e^{i\theta_{q,\nu}} \cdot e_{i, q, \nu}$). Given
-an operation's sympy formula, the symbolic layer substitutes the gauge action
+an operation's sympy formula, the operator layer substitutes the gauge action
 and runs \texttt{sympy.simplify} on the difference; if the result is zero,
 the formula is machine-verified invariant.
 
@@ -598,59 +598,59 @@ e_{i,q,\nu}$ to
     \frac{\partial D_{ij}}{\partial q^\alpha}\, e_{j,q,\nu}
 \end{equation*}
 gives $e^{-i\theta_{q,\nu}} \cdot e^{i\theta_{q,\nu}} = 1$, and sympy
-mechanically reduces the difference to zero. This is the symbolic layer's
+mechanically reduces the difference to zero. This is the operator layer's
 first machine-verified physics claim --- per-mode group velocity is
 U(1)-phase invariant, by construction of the formula.
 
-\emph{What's tractable today:} simple symbolic substitutions (U(1)
+\emph{What's tractable today:} simple operator substitutions (U(1)
 phase), finite group actions encoded as patterns over indexed
 expressions (crystal point groups), and other gauges where the
 transformation is algebraically substitutable. \emph{Not tractable
 today:} continuous Lie group actions on subspaces (e.g., U(d) on
 degenerate-subspace), and data-dependent gauges (e.g.\ degenerate-
 subspace rotation that only acts at degenerate $\omega$). For those,
-the symbolic layer falls back to the Level 1 named-gauge declarations.
+the operator layer falls back to the Level 1 named-gauge declarations.
 
-\paragraph{Crystal symmetry as a symbolic declaration.} Crystal symmetry
-at the symbolic layer level is purely a \emph{declaration}: a
+\paragraph{Crystal symmetry as a operator declaration.} Crystal symmetry
+at the operator layer level is purely a \emph{declaration}: a
 \texttt{SymmetryGroup} carries a Hermann-Mauguin / Schoenflies name
 (\texttt{Oh}, \texttt{D6h}, \texttt{Ci}, \ldots) and an order $|G|$.
 No element data --- no rotation matrices, no translation vectors, no
-group-element enumeration --- lives in the symbolic layer.
+group-element enumeration --- lives in the operator layer.
 
 The concrete handling --- extracting symmetry from a structure,
 applying group operations to FC tensors, building irreducible-BZ
 reductions --- belongs to the materials codes (phonopy, kaldo,
-ShengBTE, \ldots), typically via spglib. The symbolic layer's role is just to
+ShengBTE, \ldots), typically via spglib. The operator layer's role is just to
 \emph{name} the group so that operations can declare which symmetry they
 assume as a parameterized identity
 (\texttt{compute\_force\_constants[order=2, symmetry=Oh]} differs from
 \texttt{[\ldots, symmetry=C1]}), so adapter specs can declare which
 group a particular run assumed, and so cross-code comparison can refuse
-to compare two materializations whose declared symmetry groups disagree.
+to compare two representations whose declared symmetry groups disagree.
 
 This is the same pattern \texttt{Potential} follows: declared symbolically
-as a labelled source state without the symbolic layer modeling its functional
+as a labelled source state without the operator layer modeling its functional
 form. ``How $\Phi^{(2)}$ is computed under crystal symmetry'' is a code
-concern; ``which symmetry group was assumed'' is a symbolic-level
+concern; ``which symmetry group was assumed'' is a operator-level
 declaration.
 
-\subsection{Materialization functor}
+\subsection{Representation functor}
 
-A materialization functor $\mathcal{F}$ is associated with a particular code (kaldo, phono3py,
-ShengBTE). Given a symbolic workflow $W$ and a discretization scheme $\Sigma$,
+A representation functor $\mathcal{F}$ is associated with a particular code (kaldo, phono3py,
+ShengBTE). Given a operator workflow $W$ and a discretization scheme $\Sigma$,
 \begin{equation}
   \mathcal{F}(W, \Sigma)
 \end{equation}
-produces a directed graph of materializations whose vertices are in one-to-one correspondence
+produces a directed graph of representations whose vertices are in one-to-one correspondence
 with a subset $V_{\mathcal{F}} \subseteq V(W)$ and whose edges are the computational realizations
-of the symbolic operations restricted to $V_{\mathcal{F}}$. Different codes implement different
-functors over the same symbolic workflow; their materialized graphs are aligned by their shared
-symbolic template.
+of the operator operations restricted to $V_{\mathcal{F}}$. Different codes implement different
+functors over the same operator workflow; their represented graphs are aligned by their shared
+operator template.
 
 \subsection{Total error}
 
-The total error on the materialization $m$ of a symbolic state $s$ is
+The total error on the representation $m$ of a operator state $s$ is
 \begin{equation}
   \epsilon_{\text{total}}(m)
   = \mathrm{compose}\bigl(\epsilon_{\text{approx}}(s),\, \epsilon_{\text{disc}}(m)\bigr).
@@ -665,7 +665,7 @@ approximated but undersampled.
 \section{Lean-compatibility disciplines}
 \label{sec:lean-disciplines}
 
-``Lean-compatible'' is structural rather than syntactic. The symbolic layer's Python implementation
+``Lean-compatible'' is structural rather than syntactic. The operator layer's Python implementation
 will not be Lean code, but it should be \emph{shaped} so that the Lean version is a
 transliteration rather than a redesign. We commit to three disciplines that protect this option.
 
@@ -694,20 +694,20 @@ transliteration rather than a redesign. We commit to three disciplines that prot
 \end{enumerate}
 
 These disciplines are inexpensive to follow from day one and prohibitive to retrofit. They keep
-the transliteration cost low without committing the symbolic layer to Lean tooling we do not yet
+the transliteration cost low without committing the operator layer to Lean tooling we do not yet
 need.
 
 
 \section{First Demonstration: Lattice Thermal Transport}
 \label{sec:demo}
 
-We instantiate the symbolic layer on the canonical workflow for lattice thermal conductivity $\kappa$,
+We instantiate the operator layer on the canonical workflow for lattice thermal conductivity $\kappa$,
 computed from second- and third-order interatomic force constants via the linearized Boltzmann
 transport equation.
 
-\subsection{The symbolic DAG}
+\subsection{The operator DAG}
 
-The symbolic DAG has 14 nodes and 13 edges. Two source nodes (\texttt{Potential},
+The operator DAG has 14 nodes and 13 edges. Two source nodes (\texttt{Potential},
 \texttt{Temperature}) are produced by nullary \texttt{provide\_*} operations; the
 \texttt{MeanFreeDisplacement} and \texttt{ThermalConductivity} states are each split
 into two parameterized variants by the upstream \texttt{bte\_solver} choice (one
@@ -715,7 +715,7 @@ gauge-invariant, one not).
 
 \paragraph{Nodes (Observable / HiddenState):}
 \begin{itemize}[leftmargin=2em, itemsep=0.2em]
-  \item \texttt{Potential} (\textbf{O}): the symbolic root, stubbed in Phase 1;
+  \item \texttt{Potential} (\textbf{O}): the operator root, stubbed in Phase 1;
   \item \texttt{Temperature} (\textbf{O}): scalar source $T$;
   \item \texttt{ForceConstants[order=2]} (\textbf{O}), \texttt{[order=3]} (\textbf{O}):
         real-space interatomic force constants $\Phi^{(n)}$;
@@ -768,7 +768,7 @@ gauge-invariant, one not).
         as an Observable.
 \end{itemize}
 
-Edges are exact symbolic operations (Fourier transform, eigendecomposition, mode
+Edges are exact operator operations (Fourier transform, eigendecomposition, mode
 contraction) or approximating ones (truncation of the Taylor expansion at second or
 third order, the relaxation-time approximation when chosen). Each approximating edge
 carries an explicit error formula (Phase~2 capability). The Phase 1 demonstration
@@ -848,7 +848,7 @@ adapter-level steps recorded as provenance, not modeled by the framework.
 
 \end{tikzpicture}%
 }
-\caption{The symbolic DAG for lattice thermal transport: 14 nodes and 13 edges. The
+\caption{The operator DAG for lattice thermal transport: 14 nodes and 13 edges. The
 two darker top boxes (\texttt{Potential}, \texttt{Temperature}) are source nodes;
 the dashed edges from \texttt{Potential} represent the stubbed Phase-1 upstream.
 \texttt{MeanFreeDisplacement} and $\kappa$ split into two parameterized variants by
@@ -857,16 +857,16 @@ the dashed edges from \texttt{Potential} represent the stubbed Phase-1 upstream.
 \texttt{[direct\_inverse]} variants are Observables (the full LBTE preserves it).
 Each derived edge carries a sympy formula; sources carry identity formulas. All
 nodes are outputs of some operation; cross-code comparison happens at Observable
-nodes (after the symbolic layer's spec-derived unit and convention conversion). Other
+nodes (after the operator layer's spec-derived unit and convention conversion). Other
 HiddenStates (\texttt{Eigenvectors}, \texttt{GroupVelocity}, \texttt{Linewidth})
 are not visually distinguished in this diagram but are gauge-dependent in the same
 sense.}
 \label{fig:dag}
 \end{figure}
 
-\subsection{Materialization functors (codes)}
+\subsection{Representation functors (codes)}
 
-Each adapter is a materialization functor over the symbolic DAG. Phase 1 supplies two:
+Each adapter is a representation functor over the operator DAG. Phase 1 supplies two:
 
 \begin{itemize}[leftmargin=2em]
   \item \textbf{kaldo} (Python). Computes harmonic and anharmonic phonon transport from
@@ -886,20 +886,20 @@ Each adapter is a materialization functor over the symbolic DAG. Phase 1 supplie
 Each adapter spec declares per-state units, convention overrides, and notes
 (\texttt{StateAdapterSpec}), plus per-operation parameter units, algorithmic-convention
 overrides, and discretization choices (\texttt{OperationAdapterSpec}). Differences
-from the symbolic layer's canonical declarations surface as conversion factors at
+from the operator layer's canonical declarations surface as conversion factors at
 spec-load time.
 
 \subsection{Verification on silicon (Tersoff potential)}
 \label{ssec:silicon-verification}
 
-The symbolic layer's symbolic predictions have been verified end-to-end against numerical
+The operator layer's operator predictions have been verified end-to-end against numerical
 runs of kaldo and phono3py on silicon at the Tersoff potential, $8\times 8\times 8$
 q-mesh, $T = 300\,\text{K}$, broadening stdev $0.1\,\text{THz}$:
 
 \begin{center}
 \begin{tabular}{lll}
 \toprule
-Observable / contraction & Symbolic prediction & Empirical residual \\
+Observable / contraction & Operator prediction & Empirical residual \\
 \midrule
 \texttt{Frequency} per-mode (\textbf{O})            & factor $1$ (both linear THz)  & $5\times 10^{-4}$ \\
 \texttt{HeatCapacity} per-mode (\textbf{O})         & factor $1/e \approx 6\times 10^{18}$ & $3\times 10^{-5}$ \\
@@ -916,10 +916,10 @@ All Observable comparisons pass at $\le 1\%$ tolerance; all HiddenState per-elem
 comparisons return \textsc{Not\_Comparable}. The $1/(4\pi)$ factor on $\Gamma$
 decomposes into $1/(2\pi)$ unit (kaldo angular vs phono3py linear THz) and $1/2$
 convention (kaldo $\Gamma = 2\,\text{Im}\,\Sigma$, phono3py $\Gamma = \text{Im}\,\Sigma$).
-Both factors were derived by the symbolic layer from declared adapter specs, then
+Both factors were derived by the operator layer from declared adapter specs, then
 applied mechanically to the diagnostic data.
 
-The 4\% disagreement on $\kappa_\text{RTA}$ is the symbolic layer's structural prediction
+The 4\% disagreement on $\kappa_\text{RTA}$ is the operator layer's structural prediction
 working as designed: RTA's approximation breaks $\kappa$'s gauge invariance via the
 $1/\Gamma$ non-linearity, so the per-mode Linewidth redistribution propagates into
 $\kappa$. Typing $\kappa_\text{RTA}$ as a HiddenState makes this a non-anomaly; the
@@ -928,18 +928,18 @@ gauge-invariant $\kappa_\text{LBTE}$ agrees to 0.4\%.
 \subsection{Phase 1 scientific capabilities}
 
 Phase 1 yields two immediate scientific capabilities, each of which is an artifact the field does
-not currently produce. A third capability is the long-term goal toward which the symbolic layer is
+not currently produce. A third capability is the long-term goal toward which the operator layer is
 oriented but is deferred to Phase 2.
 
 \begin{itemize}[leftmargin=2em]
   \item \textbf{Cross-code reconciliation at canonical intermediate states.} When kaldo and
-        ShengBTE disagree on a final $\kappa$, the symbolic layer localizes the divergence to the
-        first symbolic state at which the materializations stop agreeing, and attributes it to a
+        ShengBTE disagree on a final $\kappa$, the operator layer localizes the divergence to the
+        first operator state at which the representations stop agreeing, and attributes it to a
         specific operation along the provenance. This is a structural diagnosis: the framework
         identifies where two codes do something different, regardless of the magnitude of the
         difference.
-  \item \textbf{A unified framework for theory-experiment comparison.} The same symbolic DAG
-        accepts experimental measurements as additional materializations of parameter states,
+  \item \textbf{A unified framework for theory-experiment comparison.} The same operator DAG
+        accepts experimental measurements as additional representations of parameter states,
         with the same alignment machinery as for cross-code comparison. Phase 1 demonstrates the
         framework on at least one experimental dataset (e.g., a measured $\kappa(T)$ curve for
         silicon).
@@ -947,8 +947,8 @@ oriented but is deferred to Phase 2.
 
 \noindent\textbf{Deferred to Phase 2:}
 \begin{itemize}[leftmargin=2em]
-  \item \textbf{Decomposed error bounds on $\kappa$.} The symbolic layer is designed to eventually
-        produce the central value of $\kappa$ together with a symbolic decomposition of its
+  \item \textbf{Decomposed error bounds on $\kappa$.} The operator layer is designed to eventually
+        produce the central value of $\kappa$ together with a operator decomposition of its
         total error into the truncation error of the perturbation series and the discretization
         error of the chosen mesh. The architecture supports this; the implementation of the
         composition algebra is a research problem reserved for Phase 2.
@@ -961,15 +961,15 @@ The Python package \texttt{omai} factors into two top-level sub-packages
 plus one per domain:
 
 \begin{itemize}[leftmargin=2em, itemsep=0.3em]
-  \item \texttt{omai.symbolic} --- symbolic layer machinery for the symbolic world.
+  \item \texttt{omai.operator} --- operator layer machinery for the operator world.
         \texttt{State} (base class), \texttt{Observable} and \texttt{HiddenState}
         (subclasses, with gauge-discipline fields on the latter), \texttt{Field},
         \texttt{Operation}, \texttt{Parameter}, \texttt{Dimension},
         \texttt{PhysicsType}, \texttt{topological\_order},
         \texttt{validate\_dag} (Level 1 discipline enforcement), and
-        \texttt{GaugeAction} / \texttt{check\_invariance} (Level 2 symbolic
+        \texttt{GaugeAction} / \texttt{check\_invariance} (Level 2 operator
         gauge proofs). Code-agnostic and domain-agnostic.
-  \item \texttt{omai.materialization} --- the bridge.
+  \item \texttt{omai.representation} --- the bridge.
     \begin{itemize}[leftmargin=1.2em]
       \item \texttt{units.py}: the \texttt{Unit} class, named unit instances, strict
             same-dimension \texttt{conversion\_factor}.
@@ -977,22 +977,22 @@ plus one per domain:
             \texttt{OperationAdapterSpec}, plus cross-state and cross-operation
             comparison helpers (\texttt{cross\_state\_unit\_factor},
             \texttt{cross\_state\_total\_factor}, \texttt{cross\_operation\_*}).
-      \item \texttt{instance.py}: the \texttt{Materialization} runtime data class
-            and \texttt{materialize()} constructor.
+      \item \texttt{instance.py}: the \texttt{Representation} runtime data class
+            and \texttt{represent()} constructor.
       \item \texttt{compare.py}: \texttt{compare()} with the five-status
-            \texttt{ComparisonResult}.
+            \texttt{RepresentationComparisonResult}.
     \end{itemize}
     Code-agnostic.
   \item \texttt{omai.thermal\_transport} --- the lattice-thermal-transport domain.
     \begin{itemize}[leftmargin=1.2em]
-      \item \texttt{symbolic/nodes.py}: the 14 states as \texttt{Observable} or
+      \item \texttt{operator/nodes.py}: the 14 states as \texttt{Observable} or
             \texttt{HiddenState} instances with their fields.
-      \item \texttt{symbolic/edges.py}: the 13 operations with sympy formulas;
+      \item \texttt{operator/edges.py}: the 13 operations with sympy formulas;
             sympy symbols and \texttt{IndexedBase} declarations.
-      \item \texttt{symbolic/gauges.py}: concrete \texttt{GaugeAction}
+      \item \texttt{operator/gauges.py}: concrete \texttt{GaugeAction}
             instances for the domain (e.g.\ U(1) phase on Eigenvectors).
             Mechanically verifies operation formulas are gauge-invariant.
-      \item \texttt{materialized/kaldo.py}, \texttt{materialized/phono3py.py}:
+      \item \texttt{represented/kaldo.py}, \texttt{represented/phono3py.py}:
             per-code adapter specs (one file per code), declaring units,
             conventions, and discretization choices.
       \item \texttt{visualize.py}: emits \texttt{docs/dag.html}, an interactive
@@ -1001,11 +1001,11 @@ plus one per domain:
     \end{itemize}
 \end{itemize}
 
-\noindent The split mirrors the symbolic layer's architectural commitment: \texttt{abstract}
-is the symbolic world; \texttt{materialization} is the bridge to the numeric world;
+\noindent The split mirrors the operator layer's architectural commitment: \texttt{abstract}
+is the operator world; \texttt{representation} is the bridge to the numeric world;
 \texttt{thermal\_transport} is the first domain instantiated against them. Future
 domains (electronic transport, optical response, …) follow the same pattern in their
-own folder; no change to the symbolic-level packages is required to add one.
+own folder; no change to the operator-level packages is required to add one.
 
 \section{Open Questions and Deferred Decisions}
 \label{sec:open}
@@ -1015,19 +1015,19 @@ were deferred.
 
 \subsection{Algebra of error composition (deferred to Phase 2)}
 
-The symbolic layer is designed to carry error formulas as symbolic expressions, but Phase 1 does not
+The operator layer is designed to carry error formulas as operator expressions, but Phase 1 does not
 implement the algebra by which they compose. Composing two errors in independent small parameters
 ($O(\lambda^4) + O(N^{-2})$) is well-defined; composing two errors in the same parameter requires
 care; composing constant-offset errors (e.g., basis-set incompleteness) with asymptotic ones is
 yet another case. The right algebra is itself a research subproblem and will be developed
 alongside concrete worked examples in Phase 2. The Phase 1 type system reserves the slots
-required for error formulas (operation metadata, discretization error model, materialization
+required for error formulas (operation metadata, discretization error model, representation
 total error) but populates them with placeholders rather than computed compositions.
 
 \subsection{When to lift to Lean}
 
-We have committed to keeping the symbolic layer Lean-compatible without being Lean-dependent. The
-question of when (and whether) to actually project the symbolic layer into Lean is deferred until
+We have committed to keeping the operator layer Lean-compatible without being Lean-dependent. The
+question of when (and whether) to actually project the operator layer into Lean is deferred until
 the Python prototype has stabilized. A reasonable trigger for this decision is the moment at
 which we have enough concrete examples that designing Lean types in isolation becomes
 counterproductive.
@@ -1038,7 +1038,7 @@ We have committed to provenance as essential to identity. This means two states 
 type but different histories are formally distinct. In some cases, however, the two histories are
 \emph{equivalent}: they produce identical physics under a theorem we can prove (e.g., Fourier
 transform of a real symmetric matrix and direct frequency-domain assembly should yield the same
-\texttt{Dispersion}). The symbolic layer must provide a mechanism for declaring such equivalences,
+\texttt{Dispersion}). The operator layer must provide a mechanism for declaring such equivalences,
 either as explicit axioms or as proven theorems. The mechanism's design is deferred to Day 2
 because we want concrete examples before designing the equivalence calculus.
 
@@ -1050,13 +1050,13 @@ The first concrete deliverable is a Python implementation. We have considered th
   \item \emph{Narrowest:} kaldo only, harmonic sub-DAG (force constants $\to$ dynamical matrix
         $\to$ dispersion). 4--5 states, fastest to ship.
   \item \emph{Recommended:} kaldo only, full thermal-conductivity DAG. 10--15 states, end-to-end
-        on silicon. The symbolic layer skeleton plus one full adapter.
+        on silicon. The operator layer skeleton plus one full adapter.
   \item \emph{Broader:} kaldo plus phono3py, full DAG. Validates the cross-code story earlier but
         adds adapter work in parallel with framework design.
 \end{enumerate}
 
 The recommended scope (option 2) is the smallest scope that is still a credible proof of concept
-of the framework, and the choice of one adapter (kaldo) lets us validate the symbolic layer design
+of the framework, and the choice of one adapter (kaldo) lets us validate the operator layer design
 before generalizing. Sprint 2 adds phono3py and ShengBTE adapters, at which point the cross-code
 demo of \S\ref{sec:demo} becomes real.
 
@@ -1067,11 +1067,11 @@ We have committed to Python for Sprint 1. The trade-offs were:
 \begin{itemize}[leftmargin=2em]
   \item \textbf{Python (chosen).} All target codes have Python bindings or wrappable interfaces.
         The Python type system, augmented with \texttt{pydantic} or \texttt{attrs} and runtime
-        checks, is sufficient for the symbolic layer's first-cut type discipline. The development
+        checks, is sufficient for the operator layer's first-cut type discipline. The development
         speed is dominant, since adapter work is the bulk of the time cost.
   \item \emph{Typed compiled language (Rust, OCaml, TypeScript).} Stronger type guarantees from
         the start. Rejected for Sprint 1 because the foreign-function interface to existing
-        Python codes adds friction proportional to the symbolic layer's surface, and we want
+        Python codes adds friction proportional to the operator layer's surface, and we want
         framework iteration to be cheap.
   \item \emph{Lean.} Considered as a future projection target and deferred. Not the right tool for
         running scientific computations; reserved as a verification target.
@@ -1080,26 +1080,26 @@ We have committed to Python for Sprint 1. The trade-offs were:
 \section{Outlook}
 \label{sec:outlook}
 
-The symbolic layer is an architectural commitment, not an implementation. The implementation that
+The operator layer is an architectural commitment, not an implementation. The implementation that
 follows is scoped to a Python skeleton plus adapters for three thermal-transport codes. The
 artifact that motivates the project---a paper-worthy demonstration of cross-code reconciliation
-and decomposed error bounds for lattice thermal conductivity---is downstream of the symbolic layer but
-is the symbolic layer's first proof-of-value.
+and decomposed error bounds for lattice thermal conductivity---is downstream of the operator layer but
+is the operator layer's first proof-of-value.
 
 Three longer-term directions follow naturally from the design:
 
 \begin{itemize}[leftmargin=2em]
-  \item \textbf{Verification.} Project the symbolic layer into Lean (via PhysLean or alongside
+  \item \textbf{Verification.} Project the operator layer into Lean (via PhysLean or alongside
         it), allowing approximation theorems to be formally proved rather than asserted. The
         provenance mechanism makes this projection well-defined: each operation in $\pi$
         corresponds to a Lean lemma whose statement is the operation's error formula.
-  \item \textbf{Theory-experiment integration.} Extend the materialization functor to ingest
-        experimental observables. The symbolic layer's graph-alignment machinery applies uniformly,
-        so a measured $\kappa$ becomes another materialization of the abstract $\kappa$, and
+  \item \textbf{Theory-experiment integration.} Extend the representation functor to ingest
+        experimental observables. The operator layer's graph-alignment machinery applies uniformly,
+        so a measured $\kappa$ becomes another representation of the abstract $\kappa$, and
         ``does the theory match experiment'' becomes graph-alignment with one functor being
         empirical.
-  \item \textbf{Grounded LLM agents.} An LLM operating over typed symbolic states (rather than
-        text tokens) constructs workflows by emitting symbolic operations. The framework
+  \item \textbf{Grounded LLM agents.} An LLM operating over typed operator states (rather than
+        text tokens) constructs workflows by emitting operator operations. The framework
         type-checks each emission, eliminating the drift problem that plagues current
         text-token agents. The action space is finite, typed, and physically meaningful.
 \end{itemize}
@@ -1107,7 +1107,7 @@ Three longer-term directions follow naturally from the design:
 The unifying claim of the design is that scientific computing has been organized around the
 wrong atomic unit. The instruction-in-an-input-file unit is too low; the natural-language
 description is too high; the equation-in-a-paper unit is too disconnected from execution. The
-right unit, at least for materials science, is the symbolic operation between typed physics
+right unit, at least for materials science, is the operator operation between typed physics
 states. Once that commitment is made, much of the rest of the architecture writes itself.
 
 \bigskip

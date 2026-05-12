@@ -1,11 +1,11 @@
-"""Lattice thermal-transport: the symbolic DAG.
+"""Lattice thermal-transport: the operator DAG.
 
   * `nodes`  — fourteen States (observables / hidden states in the DAG)
   * `edges`  — thirteen Operations (calculations in the DAG, with sympy formulas)
 
 States are pure declarations: type, fields, conventions, indices, gauge-
 invariance kind (Observable vs HiddenState). No sympy, no calculation. Edges
-live in their own file because they carry the substantive symbolic content
+live in their own file because they carry the substantive operator content
 (sympy expressions, indexed sums, equations); mixing them with state
 declarations would conflate "what exists" with "how it's computed."
 
@@ -16,7 +16,7 @@ gauge invariance), the direct/iterative LBTE variants are Observables.
 This module re-exports both for convenience.
 """
 
-from omai.thermal_transport.symbolic.edges import (
+from omai.thermal_transport.operator.edges import (
     EDGES,
     compute_dispersion,
     compute_dynamical_matrix,
@@ -32,7 +32,7 @@ from omai.thermal_transport.symbolic.edges import (
     solve_bte_direct,
     solve_bte_rta,
 )
-from omai.thermal_transport.symbolic.nodes import (
+from omai.thermal_transport.operator.nodes import (
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
     FORCE_CONSTANTS_2,

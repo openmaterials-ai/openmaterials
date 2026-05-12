@@ -1,8 +1,8 @@
 """phono3py adapter specs for the thermal-transport DAG.
 
-Constructed against the symbolic DAG in
-`omai.thermal_transport.symbolic`. Cross-code comparison happens at the
-symbolic level (Principle 7) via the shared states; differences
+Constructed against the operator DAG in
+`omai.thermal_transport.operator`. Cross-code comparison happens at the
+operator level (Principle 7) via the shared states; differences
 surface as unit factors, convention mismatches, and discretization choice
 mismatches.
 
@@ -14,15 +14,15 @@ References to the phono3py API (https://phonopy.github.io/phono3py/):
 
 from __future__ import annotations
 
-from omai.materialization.adapter import OperationAdapterSpec, StateAdapterSpec
-from omai.thermal_transport.symbolic.edges import (
+from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
+from omai.thermal_transport.operator.edges import (
     compute_force_constants_2,
     compute_force_constants_3,
     compute_heat_capacity,
     compute_linewidth,
     solve_bte_direct,
 )
-from omai.thermal_transport.symbolic.nodes import (
+from omai.thermal_transport.operator.nodes import (
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
     FORCE_CONSTANTS_2,
@@ -104,7 +104,7 @@ PHONO3PY_THERMAL_CONDUCTIVITY_DIRECT = StateAdapterSpec(
     code_api={"kappa": "run_thermal_conductivity(is_LBTE=True).kappa"},
     notes=(
         "run_thermal_conductivity(is_LBTE=True) yields kappa in W/(m·K). "
-        "phono3py's `is_LBTE=True` realizes the symbolic layer's canonical "
+        "phono3py's `is_LBTE=True` realizes the operator layer's canonical "
         "bte_solver=direct_inverse."
     ),
 )

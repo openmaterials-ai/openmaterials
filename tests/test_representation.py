@@ -6,15 +6,15 @@ import math
 
 import pytest
 
-from omai.materialization import (
+from omai.representation import (
     conversion_factor,
-    cross_operation_algorithmic_match,
-    cross_operation_discretization_match,
-    cross_state_convention_match,
-    cross_state_total_factor,
-    cross_state_unit_factor,
+    representation_algorithmic_match,
+    representation_discretization_match,
+    representation_convention_match,
+    inter_representation_factor,
+    inter_representation_unit_factor,
 )
-from omai.thermal_transport.materialized import (
+from omai.thermal_transport.representation import (
     KALDO_COMPUTE_HEAT_CAPACITY,
     KALDO_COMPUTE_LINEWIDTH,
     KALDO_HEAT_CAPACITY,
@@ -57,7 +57,7 @@ def test_phono3py_linewidth_unit_is_linear_thz():
 
 
 def test_kaldo_to_phono3py_unit_factor_is_one_over_two_pi():
-    f = cross_state_unit_factor(KALDO_LINEWIDTH, PHONO3PY_LINEWIDTH, "Gamma")
+    f = inter_representation_unit_factor(KALDO_LINEWIDTH, PHONO3PY_LINEWIDTH, "Gamma")
     assert math.isclose(f, 1.0 / (2 * math.pi))
 
 
@@ -72,12 +72,12 @@ def test_phono3py_linewidth_convention_factor_is_canonical():
 
 def test_kaldo_to_phono3py_total_factor_closes_4pi_gap():
     """Combined unit + convention factor matches the empirical 4π."""
-    f = cross_state_total_factor(KALDO_LINEWIDTH, PHONO3PY_LINEWIDTH, "Gamma")
+    f = inter_representation_factor(KALDO_LINEWIDTH, PHONO3PY_LINEWIDTH, "Gamma")
     assert math.isclose(f, 1.0 / (4 * math.pi))
 
 
 def test_gamma_definition_convention_mismatch_is_surfaced():
-    matched, msg = cross_state_convention_match(
+    matched, msg = representation_convention_match(
         KALDO_LINEWIDTH, PHONO3PY_LINEWIDTH, "gamma_definition"
     )
     assert matched is False
@@ -89,14 +89,14 @@ def test_gamma_definition_convention_mismatch_is_surfaced():
 
 
 def test_heat_capacity_unit_factor_is_e():
-    f = cross_state_unit_factor(KALDO_HEAT_CAPACITY, PHONO3PY_HEAT_CAPACITY, "c")
+    f = inter_representation_unit_factor(KALDO_HEAT_CAPACITY, PHONO3PY_HEAT_CAPACITY, "c")
     assert math.isclose(f, 1.0 / 1.602176634e-19)
 
 
 def test_heat_capacity_total_equals_unit_when_no_conventions():
     """No state-level conventions on HeatCapacity, so total = unit."""
-    unit = cross_state_unit_factor(KALDO_HEAT_CAPACITY, PHONO3PY_HEAT_CAPACITY, "c")
-    total = cross_state_total_factor(KALDO_HEAT_CAPACITY, PHONO3PY_HEAT_CAPACITY, "c")
+    unit = inter_representation_unit_factor(KALDO_HEAT_CAPACITY, PHONO3PY_HEAT_CAPACITY, "c")
+    total = inter_representation_factor(KALDO_HEAT_CAPACITY, PHONO3PY_HEAT_CAPACITY, "c")
     assert math.isclose(unit, total)
 
 
@@ -104,7 +104,7 @@ def test_heat_capacity_total_equals_unit_when_no_conventions():
 
 
 def test_broadening_param_convention_mismatch_surfaced():
-    matched, msg = cross_operation_algorithmic_match(
+    matched, msg = representation_algorithmic_match(
         KALDO_COMPUTE_LINEWIDTH, PHONO3PY_COMPUTE_LINEWIDTH, "broadening_param"
     )
     assert matched is False
@@ -116,7 +116,7 @@ def test_broadening_param_convention_mismatch_surfaced():
 
 
 def test_bz_summation_discretization_mismatch_surfaced():
-    matched, msg = cross_operation_discretization_match(
+    matched, msg = representation_discretization_match(
         KALDO_COMPUTE_LINEWIDTH, PHONO3PY_COMPUTE_LINEWIDTH, "bz_summation"
     )
     assert matched is False
@@ -125,7 +125,7 @@ def test_bz_summation_discretization_mismatch_surfaced():
 
 
 def test_delta_cutoff_discretization_mismatch_surfaced():
-    matched, msg = cross_operation_discretization_match(
+    matched, msg = representation_discretization_match(
         KALDO_COMPUTE_LINEWIDTH, PHONO3PY_COMPUTE_LINEWIDTH, "delta_cutoff_sigmas"
     )
     assert matched is False
@@ -136,12 +136,12 @@ def test_delta_cutoff_discretization_mismatch_surfaced():
 
 def test_cross_state_for_different_states_raises():
     with pytest.raises(ValueError, match="different states"):
-        cross_state_unit_factor(KALDO_LINEWIDTH, PHONO3PY_HEAT_CAPACITY, "Gamma")
+        inter_representation_unit_factor(KALDO_LINEWIDTH, PHONO3PY_HEAT_CAPACITY, "Gamma")
 
 
 def test_cross_operation_for_different_operations_raises():
     with pytest.raises(ValueError, match="different operations"):
-        cross_operation_algorithmic_match(
+        representation_algorithmic_match(
             KALDO_COMPUTE_LINEWIDTH, PHONO3PY_COMPUTE_HEAT_CAPACITY, "broadening_param"
         )
 
@@ -162,7 +162,7 @@ def test_unknown_convention_raises():
 def test_kaldo_compute_linewidth_default_factory_matches_module_constant():
     """Calling the factory with no args yields the same configuration as the
     module-level constant (kaldo default: adaptive velocity-projection)."""
-    from omai.thermal_transport.materialized import (
+    from omai.thermal_transport.representation import (
         KALDO_COMPUTE_LINEWIDTH,
         kaldo_compute_linewidth_spec,
     )
@@ -176,14 +176,14 @@ def test_kaldo_compute_linewidth_default_factory_matches_module_constant():
 def test_kaldo_compute_linewidth_factory_halfwidth_mode():
     """Asking for halfwidth mode produces a spec whose declared convention
     reflects the fixed-σ kaldo configuration (third_bandwidth=σ set)."""
-    from omai.thermal_transport.materialized import kaldo_compute_linewidth_spec
+    from omai.thermal_transport.representation import kaldo_compute_linewidth_spec
     spec = kaldo_compute_linewidth_spec(broadening_param="halfwidth")
     assert spec.declared_algorithmic_convention("broadening_param") == "halfwidth"
     # Halfwidth mode should disagree with shengbte's adaptive default; the
     # cross-operation match must surface that.
-    from omai.materialization.adapter import cross_operation_algorithmic_match
-    from omai.thermal_transport.materialized import SHENGBTE_COMPUTE_LINEWIDTH
-    matched, msg = cross_operation_algorithmic_match(
+    from omai.representation.adapter import representation_algorithmic_match
+    from omai.thermal_transport.representation import SHENGBTE_COMPUTE_LINEWIDTH
+    matched, msg = representation_algorithmic_match(
         spec, SHENGBTE_COMPUTE_LINEWIDTH, "broadening_param"
     )
     assert matched is False

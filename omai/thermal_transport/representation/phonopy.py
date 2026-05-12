@@ -21,13 +21,14 @@ References to the phonopy API (https://phonopy.github.io/phonopy/):
 
 from __future__ import annotations
 
-from omai.materialization.adapter import StateAdapterSpec
-from omai.thermal_transport.symbolic.nodes import (
+from omai.representation.adapter import StateAdapterSpec
+from omai.thermal_transport.operator.nodes import (
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
     FORCE_CONSTANTS_2,
     FREQUENCY_STATE,
     GROUP_VELOCITY,
+    GRUNEISEN,
     MOLAR_HEAT_CAPACITY,
     PHONON_DOS,
     POTENTIAL,
@@ -159,5 +160,18 @@ PHONOPY_PHONON_DOS = StateAdapterSpec(
     notes=(
         "Phonopy.run_total_dos() computes g(ω); access the array via "
         ".get_total_DOS() which returns (frequencies, DOS)."
+    ),
+)
+
+
+PHONOPY_GRUNEISEN = StateAdapterSpec(
+    state=GRUNEISEN,
+    adapter_name="phonopy",
+    code_api={"gamma_G": "PhonopyGruneisen.get_gruneisen()"},
+    notes=(
+        "Computed by the phonopy-gruneisen CLI / PhonopyGruneisen API from "
+        "three Phonopy instances at slightly different volumes (V₀, V±ΔV). "
+        "Returns mode γ_qν on a band path (GruneisenBandStructure) or on a "
+        "q-mesh (GruneisenMesh)."
     ),
 )

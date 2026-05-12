@@ -1,16 +1,16 @@
-# Skill: ingest an external code into the materialization layer
+# Skill: ingest an external code into the representation layer
 
 **Goal.** Given an external materials-science code (kaldo, phono3py, ShengBTE,
 LAMMPS, Quantum ESPRESSO, …), produce a Python module of `StateAdapterSpec`
 and `OperationAdapterSpec` instances that pin the code's outputs and
-parameters to the symbolic DAG, so that `compare()` between this code and any
+parameters to the operator DAG, so that `compare()` between this code and any
 other already-ingested code returns `EXPECTED_AGREE` on the appropriate
 Observables.
 
 **Prerequisites.**
-- The symbolic DAG (`omai.symbolic`, plus a domain instance like
-  `omai.thermal_transport.symbolic`) already declares the relevant States and
-  Operations. If a state the code emits has no symbolic counterpart, that is
+- The operator DAG (`omai.operator`, plus a domain instance like
+  `omai.thermal_transport.operator`) already declares the relevant States and
+  Operations. If a state the code emits has no operator counterpart, that is
   out of scope for this skill — file it as a substrate-extension task.
 - At least one reference adapter for the same domain is already ingested
   (kaldo and phono3py for thermal transport). The reference adapters are
@@ -32,17 +32,17 @@ Read in order of authoritativeness:
 
 Catalog, in note form:
 - **Every output file or returned array** the code can produce that
-  corresponds to a quantity in the symbolic DAG.
+  corresponds to a quantity in the operator DAG.
 - For each: its declared unit, shape, indexing (e.g. "irreducible wedge"
   vs "full grid"), and any qualifiers ("scattering rate" vs "linewidth" vs
   "imaginary self-energy" — these differ by factors of 1, 2, or 4π).
 
-### 2. Map outputs → symbolic States
+### 2. Map outputs → operator States
 
-For each symbolic State in the DAG, find the code's corresponding output (if
+For each operator State in the DAG, find the code's corresponding output (if
 any). Record:
 
-| symbolic State | code's output | shape | per-mode / per-q / contracted |
+| operator State | code's output | shape | per-mode / per-q / contracted |
 
 If the code does not expose a per-mode form of an Observable but only a
 contracted one (e.g. `BTE.cv` is volumetric J/m³K, not per-mode J/K),
@@ -55,14 +55,14 @@ docstring.
 For each mapping:
 
 - **Unit.** Check whether the unit already exists in
-  `omai/materialization/units.py`. If not, add it with a clear
+  `omai/representation/units.py`. If not, add it with a clear
   `to_canonical` factor. Watch the canonical dimensions — heat capacity
   per mode (`J/K`) is *different* from volumetric heat capacity
   (`J/m³K`); the latter cannot share a Unit table entry with the former.
 - **State-level conventions.** Look at the State's declared
-  `conventions` field in the symbolic-layer node module. For each
+  `conventions` field in the operator-layer node module. For each
   declared convention, decide which value applies. If the code uses a
-  value not in the declared options, the symbolic layer needs an extra
+  value not in the declared options, the operator layer needs an extra
   convention value, not an ad-hoc override — handle it as a substrate
   edit.
 - **Algorithmic conventions on producing Operations.** Each Operation
@@ -82,7 +82,7 @@ For each mapping:
 
 ### 4. Write the adapter module
 
-Create `omai/thermal_transport/materialized/<code>.py` with one
+Create `omai/thermal_transport/represented/<code>.py` with one
 `StateAdapterSpec` per ingested state and one `OperationAdapterSpec` per
 algorithmic-convention-bearing operation. Match the existing
 `kaldo.py` / `phono3py.py` template:
@@ -95,7 +95,7 @@ algorithmic-convention-bearing operation. Match the existing
 
 ### 5. Wire it in
 
-- Re-export in `omai/thermal_transport/materialized/__init__.py`.
+- Re-export in `omai/thermal_transport/represented/__init__.py`.
 - Note: `visualize.py` is currently hard-coded for K and P badges; adding
   a third code requires a small refactor to that module to make it
   generic. **Do this last and as a separate step.**
@@ -138,7 +138,7 @@ These are recurring traps; check each one explicitly while writing specs.
   in ps⁻¹" are typically expressing the same number ShengBTE does (2× Im
   Σ in angular frequency).
 - **Per-mode vs integrated quantities.** A code may expose only the
-  T-integrated form of an observable that the symbolic DAG declares
+  T-integrated form of an observable that the operator DAG declares
   per-mode. Don't fake the per-mode form. Skip the spec.
 - **"Direct inverse" vs "iterative" BTE solvers.** Both can realize the
   canonical `bte_solver=direct_inverse` identity (same fixed point,
@@ -168,7 +168,7 @@ These are recurring traps; check each one explicitly while writing specs.
 ## Worked example: ShengBTE ingestion (2026-05)
 
 For a concrete walkthrough of this procedure on a real code, see
-`omai/thermal_transport/materialized/shengbte.py` and the companion
+`omai/thermal_transport/represented/shengbte.py` and the companion
 tests in `tests/test_shengbte.py`. Notable decisions made during that
 ingestion:
 
@@ -192,15 +192,15 @@ ingestion:
   ShengBTE ingestion needed. (kaldo uses `halfwidth`, phono3py `stdev`;
   ShengBTE's adaptive Gaussian doesn't reduce to either.) If a new
   convention *value* arises, add it as an override on the
-  OperationAdapterSpec — no symbolic-layer change required. If a new
-  convention *name* arises, that *is* a symbolic-layer edit.
+  OperationAdapterSpec — no operator-layer change required. If a new
+  convention *name* arises, that *is* a operator-layer edit.
 
 ## What this skill explicitly does *not* do
 
 - It does not write code that calls the external program. Adapter specs
   describe outputs after the code has run; a separate ingestion
-  function takes those outputs and wraps them as `Materialization`
+  function takes those outputs and wraps them as `Representation`
   instances.
-- It does not modify the symbolic DAG. New nodes/edges or new
+- It does not modify the operator DAG. New nodes/edges or new
   conventions on existing nodes are substrate work, not adapter work.
 - It does not refactor `visualize.py`. That's a known follow-up.

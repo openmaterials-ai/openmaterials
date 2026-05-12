@@ -1,8 +1,8 @@
 """ShengBTE adapter specs for the thermal-transport DAG.
 
-Constructed against the symbolic DAG in
-`omai.thermal_transport.symbolic`. Cross-code comparison happens at the
-symbolic level (Principle 7) via the shared states; differences
+Constructed against the operator DAG in
+`omai.thermal_transport.operator`. Cross-code comparison happens at the
+operator level (Principle 7) via the shared states; differences
 surface as unit factors, convention mismatches, and discretization choice
 mismatches.
 
@@ -11,7 +11,7 @@ References to ShengBTE (https://bitbucket.org/sousaw/shengbte):
   * BTE.v                     — mode group velocities, km/s (= nm·THz)
   * BTE.w_anharmonic          — three-phonon scattering rate, ps⁻¹
   * BTE.cv                    — *volumetric* specific heat, J/(m³·K)
-                                (NOT per-mode; no symbolic counterpart)
+                                (NOT per-mode; no operator counterpart)
   * BTE.KappaTensorVsT_RTA    — κ(T) tensor in RTA, W/(m·K)
   * BTE.KappaTensorVsT_CONV   — κ(T) tensor self-consistently converged
                                 (realizes canonical bte_solver=direct_inverse),
@@ -32,14 +32,14 @@ Skipped states:
 
 from __future__ import annotations
 
-from omai.materialization.adapter import OperationAdapterSpec, StateAdapterSpec
-from omai.thermal_transport.symbolic.edges import (
+from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
+from omai.thermal_transport.operator.edges import (
     compute_force_constants_2,
     compute_force_constants_3,
     compute_linewidth,
     solve_bte_direct,
 )
-from omai.thermal_transport.symbolic.nodes import (
+from omai.thermal_transport.operator.nodes import (
     FORCE_CONSTANTS_2,
     FORCE_CONSTANTS_3,
     FREQUENCY_STATE,
@@ -141,7 +141,7 @@ SHENGBTE_THERMAL_CONDUCTIVITY_DIRECT = StateAdapterSpec(
     notes=(
         "BTE.KappaTensorVsT_CONV: κ(T) tensor from the self-consistently "
         "converged BTE solver. ShengBTE iterates F = F₀ + δF until "
-        "|κ_n - κ_{n-1}| < eps (default 1e-5). This realizes the symbolic "
+        "|κ_n - κ_{n-1}| < eps (default 1e-5). This realizes the operator "
         "layer's canonical bte_solver=direct_inverse — same fixed point as "
         "kaldo's method='inverse' and phono3py's is_LBTE=True, different "
         "algorithm (iterative vs LAPACK pseudo-inverse). The convergence "
