@@ -288,7 +288,7 @@ through these layers like this:
 \end{enumerate}
 
 \noindent No additional layers, no other indirection. The two
-substrate-side layers expose their content in matched pairs (machinery
+two layers expose their content in matched pairs (machinery
 in \texttt{omai/<layer>/}, domain instances in
 \texttt{omai/<domain>/<layer>/}), and the codes attach at the edge.
 
@@ -707,11 +707,14 @@ transport equation.
 
 \subsection{The operator DAG}
 
-The operator DAG has 14 nodes and 13 edges. Two source nodes (\texttt{Potential},
+The operator DAG has 19 nodes and 18 edges. Two source nodes (\texttt{Potential},
 \texttt{Temperature}) are produced by nullary \texttt{provide\_*} operations; the
 \texttt{MeanFreeDisplacement} and \texttt{ThermalConductivity} states are each split
 into two parameterized variants by the upstream \texttt{bte\_solver} choice (one
-gauge-invariant, one not).
+gauge-invariant, one not). A second tier of derived observables ---
+\texttt{PhononDOS}, \texttt{Gruneisen}, \texttt{PhaseSpace3Phonon},
+\texttt{VolumetricHeatCapacity}, \texttt{MolarHeatCapacity} --- hangs off the
+harmonic chain to capture the quantities ShengBTE and phonopy emit directly.
 
 \paragraph{Nodes (Observable / HiddenState):}
 \begin{itemize}[leftmargin=2em, itemsep=0.2em]
@@ -738,6 +741,16 @@ gauge-invariant, one not).
         non-linearity propagates Linewidth's looseness into $\kappa_\text{RTA}$;
   \item \texttt{ThermalConductivity[bte\_solver=direct\_inverse]} (\textbf{O}):
         LBTE off-diagonals preserve gauge-invariance.
+  \item \texttt{VolumetricHeatCapacity} (\textbf{O}), \texttt{MolarHeatCapacity}
+        (\textbf{O}): the two BZ-and-mode contractions of \texttt{HeatCapacity}
+        that ShengBTE (volumetric) and phonopy (molar) expose directly;
+  \item \texttt{PhononDOS} (\textbf{O}): histogram of $\omega(\mathbf{q},\nu)$
+        --- independent of eigenvectors, hence gauge-invariant;
+  \item \texttt{Gruneisen} (\textbf{O}): mode $\gamma_{q,\nu}$ from FC2, FC3
+        and the harmonic eigensystem;
+  \item \texttt{PhaseSpace3Phonon} (\textbf{O}): three-phonon kinematic
+        availability $P_3(\mathbf{q},\nu)$ --- the bare counting underlying
+        $\Gamma$ before $|V_3|^2$ enters.
 \end{itemize}
 
 \paragraph{Edges.} Verb-headed names; each carries a sympy formula:
@@ -752,10 +765,18 @@ gauge-invariant, one not).
         $\sum_j D_{ij}(\mathbf{q})\, e_{j,q,\nu} = \omega^2_{q,\nu}\, e_{i,q,\nu}$;
   \item \texttt{compute\_group\_velocity}: Hellmann--Feynman
         $v^\alpha_{q,\nu} = \frac{1}{2\omega_{q,\nu}} e^\dagger_{q,\nu}\,
-        \partial D / \partial q^\alpha\, e_{q,\nu}$;
+        \partial D / \partial q^\alpha\, e_{q,\nu}$; algorithmic convention
+        \texttt{gv\_method} $\in$ \{\texttt{hellmann\_feynman} (canonical),
+        \texttt{finite\_difference}\} captures the two estimators codes use;
   \item \texttt{compute\_heat\_capacity}: closed form above;
-  \item \texttt{compute\_linewidth}: triple BZ sum (Fermi's golden rule); algorithmic
-        convention \texttt{broadening\_param} $\in$ \{stdev, halfwidth\};
+  \item \texttt{compute\_linewidth}: triple BZ sum (Fermi's golden rule);
+        algorithmic convention \texttt{broadening\_param} $\in$ \{stdev,
+        halfwidth, adaptive\_scaled\}, plus an auxiliary equation
+        \texttt{auxiliary\_formulas[0]} that spells out the Maradudin--Fein
+        kernel $|V_3|^2 = |\sum_{ijk,RR'} \Phi^3_{ijk}\, e\, e\, e /
+        \sqrt{m\,m\,m}|^2 / (8\, \omega\, \omega'\, \omega'')$ ---
+        the same kernel reappears verbatim in the LBTE collision matrix
+        $\Xi$ (\texttt{solve\_bte[direct\_inverse]}.\texttt{auxiliary\_formulas[0]});
   \item \texttt{solve\_bte[bte\_solver=rta]}: closed form $F = v/(2\Gamma)$;
   \item \texttt{solve\_bte[bte\_solver=direct\_inverse]}: implicit linear system
         $\sum_{q'\nu'} \mathcal{M}_{q\nu,q'\nu'}\, F^\alpha_{q'\nu'} = c_{q\nu}\,
@@ -765,7 +786,23 @@ gauge-invariant, one not).
         $\kappa^{\alpha\beta} = \frac{1}{V N_q}\sum c\, v^\alpha\, F^\beta$;
         the two operations differ only in their input and output state types,
         ensuring $\kappa_\text{RTA}$ is typed as a HiddenState and $\kappa_\text{LBTE}$
-        as an Observable.
+        as an Observable;
+  \item \texttt{contract\_volumetric\_heat\_capacity}, \texttt{contract\_molar\_heat\_capacity}:
+        BZ-and-mode sums of \texttt{HeatCapacity}, divided by cell volume or
+        multiplied by $N_A/N_q$ respectively, so adapters that emit only the
+        contracted form (ShengBTE, phonopy) land on a shared operator state;
+  \item \texttt{compute\_dos}: $g(\omega) = N_q^{-1} \sum_{q\nu}
+        \delta(\omega - \omega_{q\nu})$, with convention
+        \texttt{dos\_broadening} $\in$ \{\texttt{gaussian} (canonical),
+        \texttt{tetrahedron}, \texttt{adaptive\_scaled}\};
+  \item \texttt{compute\_gruneisen}: Maradudin--Fein closed form, with
+        convention \texttt{gruneisen\_method} $\in$ \{\texttt{maradudin\_fein}
+        (canonical), \texttt{finite\_difference}\} --- phonopy uses the
+        latter (deformed-cell finite difference), the other three codes the
+        former;
+  \item \texttt{compute\_phase\_space\_3phonon}: $P_3(\mathbf{q}, \nu)$ from
+        energy + crystal-momentum conservation, with convention
+        \texttt{delta\_broadening} mirroring \texttt{dos\_broadening}.
 \end{itemize}
 
 Edges are exact operator operations (Fourier transform, eigendecomposition, mode
@@ -848,7 +885,11 @@ adapter-level steps recorded as provenance, not modeled by the framework.
 
 \end{tikzpicture}%
 }
-\caption{The operator DAG for lattice thermal transport: 14 nodes and 13 edges. The
+\caption{Core $\kappa$ chain of the operator DAG for lattice thermal transport
+(12 nodes / 14 edges shown; the full DAG has 19 nodes / 18 edges once the
+derived-observable tier --- PhononDOS, Grüneisen, PhaseSpace, VolumetricHeatCapacity,
+MolarHeatCapacity --- is included; see \texttt{docs/dag.html} for the
+interactive view). The
 two darker top boxes (\texttt{Potential}, \texttt{Temperature}) are source nodes;
 the dashed edges from \texttt{Potential} represent the stubbed Phase-1 upstream.
 \texttt{MeanFreeDisplacement} and $\kappa$ split into two parameterized variants by
@@ -866,7 +907,8 @@ sense.}
 
 \subsection{Representation functors (codes)}
 
-Each adapter is a representation functor over the operator DAG. Phase 1 supplies two:
+Each adapter is a representation functor over the operator DAG. Four adapters
+are now ingested:
 
 \begin{itemize}[leftmargin=2em]
   \item \textbf{kaldo} (Python). Computes harmonic and anharmonic phonon transport from
@@ -878,9 +920,19 @@ Each adapter is a representation functor over the operator DAG. Phase 1 supplies
         third-order force constants. Intermediate quantities are exposed in HDF5
         outputs. \texttt{run\_thermal\_conductivity(is\_LBTE=True)} realizes the
         canonical \texttt{bte\_solver=direct\_inverse}.
-  \item \textbf{ShengBTE} (Fortran/MPI; deferred). Solves the full linearized BTE with
-        iterative self-consistency. Adapter declaration is a half-day exercise once
-        ShengBTE is included in the runs.
+  \item \textbf{phonopy} (C/Python). The harmonic-only sibling of phono3py:
+        emits frequencies, group velocities, the DOS, the molar heat capacity,
+        and (via \texttt{PhonopyGruneisen}) mode Grüneisen parameters from a
+        finite-difference $\omega(V)$ rather than the canonical Maradudin--Fein
+        closed form. No three-phonon scattering, so the adapter covers the
+        harmonic half of the DAG only.
+  \item \textbf{ShengBTE} (Fortran/MPI). Solves the full linearized BTE
+        iteratively. The harmonic chain is delegated to phonopy/QE upstream;
+        ShengBTE consumes FC2/FC3 files and writes
+        \texttt{BTE.KappaTensorVsT\_\{RTA,CONV\}}, \texttt{BTE.\{omega, v, gruneisen,
+        P3, dos\}}, etc. Per-mode heat capacity is not exposed (only
+        \texttt{BTE.cv}), so the adapter targets \texttt{VolumetricHeatCapacity}
+        rather than \texttt{HeatCapacity} on that branch.
 \end{itemize}
 
 Each adapter spec declares per-state units, convention overrides, and notes
@@ -974,30 +1026,54 @@ plus one per domain:
       \item \texttt{units.py}: the \texttt{Unit} class, named unit instances, strict
             same-dimension \texttt{conversion\_factor}.
       \item \texttt{adapter.py}: \texttt{StateAdapterSpec} and
-            \texttt{OperationAdapterSpec}, plus cross-state and cross-operation
-            comparison helpers (\texttt{cross\_state\_unit\_factor},
-            \texttt{cross\_state\_total\_factor}, \texttt{cross\_operation\_*}).
+            \texttt{OperationAdapterSpec}, plus inter-representation factor
+            helpers (\texttt{inter\_representation\_unit\_factor},
+            \texttt{inter\_representation\_factor},
+            \texttt{representation\_convention\_match},
+            \texttt{representation\_algorithmic\_match},
+            \texttt{representation\_discretization\_match}).
       \item \texttt{instance.py}: the \texttt{Representation} runtime data class
             and \texttt{represent()} constructor.
-      \item \texttt{compare.py}: \texttt{compare()} with the five-status
-            \texttt{RepresentationComparisonResult}.
+      \item \texttt{compare.py}: numerical and structural comparison APIs.
+            \texttt{to\_operator(m)} canonicalises a representation into operator
+            form; \texttt{to\_representation(m\_op, target\_spec)} is the
+            inverse. \texttt{compare\_operators(spec\_a, spec\_b)} returns an
+            \texttt{OperatorComparisonResult} (categorical: do the two adapter
+            specs describe the same operator?). \texttt{compare\_representations}
+            (aliased as \texttt{compare}) returns a
+            \texttt{RepresentationComparisonResult} with the five-status
+            verdict and residuals.
     \end{itemize}
     Code-agnostic.
   \item \texttt{omai.thermal\_transport} --- the lattice-thermal-transport domain.
     \begin{itemize}[leftmargin=1.2em]
-      \item \texttt{operator/nodes.py}: the 14 states as \texttt{Observable} or
+      \item \texttt{operator/nodes.py}: the 19 states as \texttt{Observable} or
             \texttt{HiddenState} instances with their fields.
-      \item \texttt{operator/edges.py}: the 13 operations with sympy formulas;
-            sympy symbols and \texttt{IndexedBase} declarations.
+      \item \texttt{operator/edges.py}: the 18 operations with sympy formulas
+            and \texttt{auxiliary\_formulas} (the \texttt{compute\_linewidth}
+            $|V_3|^2$ kernel and the \texttt{solve\_bte[direct\_inverse]}
+            collision matrix $M$); sympy symbols and \texttt{IndexedBase}
+            declarations.
       \item \texttt{operator/gauges.py}: concrete \texttt{GaugeAction}
             instances for the domain (e.g.\ U(1) phase on Eigenvectors).
             Mechanically verifies operation formulas are gauge-invariant.
-      \item \texttt{represented/kaldo.py}, \texttt{represented/phono3py.py}:
-            per-code adapter specs (one file per code), declaring units,
-            conventions, and discretization choices.
+      \item \texttt{representation/kaldo.py},
+            \texttt{representation/phono3py.py},
+            \texttt{representation/phonopy.py},
+            \texttt{representation/shengbte.py}: per-code adapter specs
+            (one file per code), declaring units, conventions, and
+            discretization choices. Every operation in scope for a code now
+            carries an \texttt{OperationAdapterSpec}; trivial source /
+            contraction ops carry no conventions but exist to mark coverage
+            in the visualization.
       \item \texttt{visualize.py}: emits \texttt{docs/dag.html}, an interactive
-            single-file visualization (Mermaid layered diagram, click-to-details
-            panels, MathJax-rendered formulas) reflecting the current state.
+            single-file visualization (per-pipeline SVG DAGs with row-aligned
+            states, click-to-details panels, MathJax-rendered formulas) that
+            reflects the current state and discriminates three edge classes:
+            full coverage (states + op spec), states covered / op-spec missing,
+            and implicit (at least one state lacks a spec). Leaf states a code
+            does not expose are hidden; intermediate states without a spec
+            stay dashed.
     \end{itemize}
 \end{itemize}
 
@@ -1058,7 +1134,12 @@ The first concrete deliverable is a Python implementation. We have considered th
 The recommended scope (option 2) is the smallest scope that is still a credible proof of concept
 of the framework, and the choice of one adapter (kaldo) lets us validate the operator layer design
 before generalizing. Sprint 2 adds phono3py and ShengBTE adapters, at which point the cross-code
-demo of \S\ref{sec:demo} becomes real.
+demo of \S\ref{sec:demo} becomes real. \emph{Status as of 2026-05}: the
+recommended scope shipped; Sprint 2 also shipped, with phono3py, phonopy,
+and ShengBTE all ingested and the cross-code Si silicon comparison
+(\texttt{experiments/silicon\_shengbte/}) demonstrating $\kappa_\text{RTA}$
+agreement to $\le 8\%$ across the three transport codes after the operator
+layer's spec-derived conversions.
 
 \subsection{Implementation language}
 

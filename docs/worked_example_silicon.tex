@@ -41,10 +41,10 @@
 \begin{document}
 \maketitle
 
-\noindent\emph{This document maps the substrate's abstract states and operations onto the
+\noindent\emph{This document maps the operator layer's abstract states and operations onto the
 concrete representations produced by kaldo and phonopy/phono3py for crystalline silicon, end
 to end from the Born--Oppenheimer potential through to the lattice thermal conductivity. It
-is the first contact between the architecture (\texttt{docs/operator\_substrate.pdf}) and real
+is the first contact between the architecture (\texttt{docs/operator\_representation\_substrate.pdf}) and real
 physics. Equations are precise where the codes differ and sketchy where they do not.
 ShengBTE will be added as a third adapter when the cross-code machinery is ready for it.}
 
@@ -89,7 +89,7 @@ treated as a continuum mathematical object (an analytic function of the atomic p
 neighborhood of equilibrium).
 
 \medskip
-\textbf{Substrate type:} \texttt{POTENTIAL} (parameter state, empty provenance).\\
+\textbf{Operator state type:} \texttt{POTENTIAL} (parameter state, empty provenance).\\
 \textbf{Representation:} the externally-supplied potential. In Phase 1 the upstream is stubbed:
 the representation is an opaque label identifying the choice of potential, not a modeled
 object.
@@ -142,7 +142,7 @@ indexed by atom pairs $(i,j)$ and Cartesian components $(\alpha,\beta)$, evaluat
 finite supercell.
 
 \medskip
-\textbf{Substrate type:} \texttt{FORCE\_CONSTANTS}, with type-level parameter \texttt{order=2}.\\
+\textbf{Operator state type:} \texttt{FORCE\_CONSTANTS}, with type-level parameter \texttt{order=2}.\\
 \textbf{Provenance (Phase 1, stubbed):} a single operation
 \texttt{compute\_force\_constants[order=2](\,Potential,\, method=$M$\,)} producing
 this state. The parameter $M \in \{\,\texttt{finite\_difference\_lammps},
@@ -199,7 +199,7 @@ finite-difference rules. This is the Tersoff/Taylor mismatch flagged in the plan
 discussion.
 
 \medskip
-The substrate handles this honestly because \emph{the method of derivative extraction is a
+The operator layer handles this honestly because \emph{the method of derivative extraction is a
 parameter on the operation's identity}. The same abstract \texttt{ForceConstants[order=2]} type
 admits multiple operations:
 \begin{itemize}[leftmargin=2em, itemsep=0pt]
@@ -210,7 +210,7 @@ admits multiple operations:
 \end{itemize}
 Each is a distinct operation (parameterized identity, \S3.5.1 of the design doc); each produces
 a state with the same physics type but different provenance. ``Same physics object, computed
-differently'' becomes a structural distinction in the substrate, not a metadata tag.
+differently'' becomes a structural distinction in the operator layer, not a metadata tag.
 
 % =================================================================================
 \section{\texttt{ForceConstants[order=3]}}
@@ -223,7 +223,7 @@ The cubic force constants are the third derivative,
 \end{equation}
 
 \medskip
-\textbf{Substrate type:} \texttt{FORCE\_CONSTANTS}, type-level parameter \texttt{order=3}.\\
+\textbf{Operator state type:} \texttt{FORCE\_CONSTANTS}, type-level parameter \texttt{order=3}.\\
 \textbf{Provenance:} \texttt{compute\_force\_constants[order=3](\,Potential,\, method=$M'$\,)}.
 The method $M'$ for third-order is typically \emph{different} from the second-order method:
 DFPT does not extend cleanly to third order, so $M'$ is usually finite difference even when $M$
@@ -269,7 +269,7 @@ relative to higher-order noise).
 \end{phonobox}
 
 \paragraph{Note on supercell asymmetry.} Both codes accept different supercells for second and
-third order. In the substrate, this means \texttt{ForceConstants[order=2]} and
+third order. In the operator layer, this means \texttt{ForceConstants[order=2]} and
 \texttt{ForceConstants[order=3]} are independent derived states with independent
 discretizations on their representations. They share the same \texttt{Potential} as an
 upstream parameter but are otherwise unrelated by the abstract DAG. Good test of the
@@ -293,7 +293,7 @@ finite-difference (or, less severely, from DFPT) violate this approximately; unc
 violation appears as small spurious imaginary frequencies near $\mathbf{q}=0$.
 
 \medskip
-\textbf{Substrate type signature:}
+\textbf{Operator state signature:}
 \texttt{enforce\_acoustic\_sum\_rule\,:\,FC[order=$n$]\,$\to$\,FC[order=$n$]}.\\
 \textbf{Operation parameters:}\\[2pt]
 \quad \texttt{variant}\,$\in$\,$\{$\texttt{simple\_subtract}, \texttt{iterative\_lstsq},
@@ -348,16 +348,16 @@ phonopy.
 
 \paragraph{Cross-code structural observation.} kaldo and phonopy apply ASR \emph{at different
 points in their internal pipelines} (load vs.\ write) and use \emph{different variants} (simple
-subtraction vs.\ iterative). In the substrate, both adapters declare the same abstract operation
+subtraction vs.\ iterative). In the operator layer, both adapters declare the same abstract operation
 \texttt{enforce\_acoustic\_sum\_rule}, with the variant carried as an operation parameter. The
-internal-pipeline timing is invisible to the substrate; what the substrate sees is that both
+internal-pipeline timing is invisible to the operator layer; what the operator layer sees is that both
 adapters' FC representations downstream of \texttt{enforce\_asr} can be aligned. The variant
-parameter makes the methodological difference visible without forcing the substrate to know
+parameter makes the methodological difference visible without forcing the operator layer to know
 where, internally, the codes apply it.
 
 \paragraph{Note on order=3.} Acoustic-sum-rule-like enforcement on third-order FCs (more
 properly, permutation symmetrization plus the order=3 acoustic invariance) is a separate
-correction operation in the substrate, with the same shape:
+correction operation in the operator layer, with the same shape:
 \texttt{enforce\_acoustic\_sum\_rule\,:\,FC[order=3]\,$\to$\,FC[order=3]}. We do not detail it
 here because kaldo applies it implicitly via \texttt{thirdorder.py}'s convention, while
 phono3py applies it during \texttt{fc3.hdf5} production. The cross-code variant comparison
@@ -376,7 +376,7 @@ The dynamical matrix is the mass-weighted Fourier transform of the harmonic forc
 \end{equation}
 
 \medskip
-\textbf{Substrate type:} \texttt{DYNAMICAL\_MATRIX}.\\
+\textbf{Operator state type:} \texttt{DYNAMICAL\_MATRIX}.\\
 \textbf{Operation:} \texttt{compute\_dynamical\_matrix(\,ForceConstants[order=2]\,)}, structural
 operation, no approximation, $\epsilon_{\mathcal{O}} = 0$. The expected input is the ASR-enforced
 \texttt{ForceConstants[order=2]} produced by \texttt{enforce\_acoustic\_sum\_rule}; consuming the
@@ -426,7 +426,7 @@ $\mathbf{v}_{\mathbf{q}\nu} = \nabla_{\mathbf{q}}\,\omega_{\mathbf{q}\nu}$ (deri
 Hellmann--Feynman or finite-differencing on the q-mesh).
 
 \medskip
-\textbf{Substrate type:} \texttt{DISPERSION}.\\
+\textbf{Operator state type:} \texttt{DISPERSION}.\\
 \textbf{Operation:} \texttt{compute\_dispersion(\,DynamicalMatrix\,)}, structural operation,
 $\epsilon_{\mathcal{O}} = 0$.\\
 \textbf{Discretization:} same q-mesh as \texttt{DynamicalMatrix}.
@@ -474,7 +474,7 @@ with the energy-conservation $\delta$-functions replaced numerically by a smooth
 of width $\sigma$ (Gaussian, Lorentzian, tetrahedron, \ldots).
 
 \medskip
-\textbf{Substrate type:} \texttt{SCATTERING\_RATES}, parameterized by \texttt{order=3}
+\textbf{Operator state type:} \texttt{SCATTERING\_RATES}, parameterized by \texttt{order=3}
 (three-phonon channel) and an explicit \texttt{scattering\_processes} list.\\
 \textbf{Operation:} \texttt{compute\_scattering\_rates}.\\
 \textbf{Operation parameters} (physics-affecting, hence part of operation identity):\\
@@ -557,7 +557,7 @@ $\sigma_p$ (THz) & $\kappa_{\rm RTA}$ ratio & $\kappa_{\rm direct}$ ratio & $\ka
 $\sigma_p = 0.10$~THz. The remaining 4--6\% in RTA is a separate, smaller effect (the
 codes implement RTA differently; the direct/LBTE solvers agree where RTA does not).
 
-\paragraph{What this tells us about the substrate.} The same parameter name in two codes
+\paragraph{What this tells us about the operator layer.} The same parameter name in two codes
 does not guarantee the same parameter meaning. \texttt{sigma\_THz} on the
 \texttt{compute\_scattering\_rates} operation must be qualified by a
 \texttt{sigma\_convention} parameter that records which Gaussian normalization the
@@ -565,13 +565,13 @@ adapter actually uses. Two adapters with the same operation name and the same
 \texttt{sigma\_THz} but different \texttt{sigma\_convention} are different operations
 under our parameterized-identity rule, and therefore produce formally distinct states.
 A third adapter (e.g., ShengBTE, when we add it) will declare its own
-\texttt{sigma\_convention}; the substrate's job is to expose the divergence
+\texttt{sigma\_convention}; the operator layer's job is to expose the divergence
 structurally rather than allow it to silently propagate as a numerical mystery.
 
 \medskip
 This is the second ``hidden'' methodological difference the experiment surfaced. The
 first was the q-mesh shift convention exposed at the \texttt{Frequency} stage; this
-one is exposed at \texttt{Linewidth}. Both are silent unless the substrate forces
+one is exposed at \texttt{Linewidth}. Both are silent unless the operator layer forces
 the comparison.
 
 \paragraph{Per-mode diagnostic at matched stdev.} Forcing matched effective stdev
@@ -584,7 +584,7 @@ same q-mesh, aligned them by q-grid permutation, and computed mode-by-mode ratio
         (relative std $6\times 10^{-6}$, i.e.\ to numerical precision). This is exactly the elementary
         charge $e$ in J/eV, identifying the convention difference: kaldo stores $c_v$ in $\mathrm{J/K}$
         per mode, phono3py in $\mathrm{eV/K}$ per mode. Each code uses its own units consistently inside
-        its $\kappa$ formula, so the final $\kappa$ in $\mathrm{W/m\,K}$ agrees, but the materialised
+        its $\kappa$ formula, so the final $\kappa$ in $\mathrm{W/m\,K}$ agrees, but the represented
         state has two different numerical realisations.
   \item \textbf{Linewidth ratio has a $4\pi$ leading offset plus mode-dependent multiples of $\pi$:}
         the ratio $\Gamma^{\rm kaldo}/\Gamma^{\rm ph3}$ averages $12.48 \approx 4\pi$, but a
@@ -717,7 +717,7 @@ The per-mode $\Gamma$ variation is the source of the residual $\sim$5\% RTA gap.
 absorbs more of this into the off-diagonal collision matrix and converges to within 0.4\% --- which
 explains why direct agrees better than RTA at fixed $\sigma$.
 
-\paragraph{What the substrate learns from this.} Two principles, larger than the
+\paragraph{What the operator layer learns from this.} Two principles, larger than the
 $\sigma$-normalisation finding:
 
 \medskip
@@ -727,8 +727,8 @@ unit-free; the representation carries the unit declaration.} \texttt{HeatCapacit
 (kaldo's $\Gamma$ in angular-frequency THz; phono3py's in linear-frequency THz; kaldo's
 $C_v$ in J/K; phono3py's in eV/K). The factor of $4\pi$ between the two linewidths and the
 factor of $e$ between the two heat capacities are not physics discrepancies---they are
-adapter-level unit declarations that the substrate must require so that comparison after
-canonical conversion is well-defined. (See \S Principle 2 in the substrate document.)
+adapter-level unit declarations that the operator layer must require so that comparison after
+canonical conversion is well-defined. (See \S Principle 2 in the operator-layer document.)
 
 \medskip
 \noindent\textsc{Principle (cross-code agreement is at the observable layer).} kaldo and
@@ -746,7 +746,7 @@ therefore required at the observable layer, not at the raw-array layer:
   \item[Not directly comparable] -- per-mode $\Gamma_{\mathbf{q}\nu}$, per-mode lifetimes
         $\tau_{\mathbf{q}\nu}$, RTA mode-resolved $\kappa_{\mathbf{q}\nu}$. These depend on
         the adapter's BZ summation choice. Comparing them at the array level confuses
-        bookkeeping with physics; the substrate should refuse the comparison or explicitly
+        bookkeeping with physics; the operator layer should refuse the comparison or explicitly
         flag it as a diagnostic only.
 \end{description}
 The \texttt{Representation} type therefore exposes \emph{observables}, each with a
@@ -759,10 +759,10 @@ kaldo/phono3py $\kappa_{\rm direct}$ ratio $\approx 1.00 \pm 0.03$; $\kappa_{\rm
 ratio $\approx 1.04 \pm 0.06$ across $\sigma$.
 
 \medskip
-This is also a falsifiable substrate prediction: when ShengBTE is added, its
-\texttt{Linewidth} materialisation will declare its own units (a different multiple of
+This is also a falsifiable operator layer prediction: when ShengBTE is added, its
+\texttt{Linewidth} representation will declare its own units (a different multiple of
 $\pi$ relative to angular vs.\ linear convention) and exhibit its own per-mode pattern
-reflecting its own BZ-summation choice. The substrate exposes the units as adapter-level
+reflecting its own BZ-summation choice. The operator layer exposes the units as adapter-level
 declarations and the per-mode array as a not-directly-comparable observable; only the
 contracted observables are required to match.
 
@@ -781,7 +781,7 @@ where $c$ is the mode heat capacity, $\mathbf{v}$ are the group velocities, and
 $\mathbf{F}$ is the mean free displacement obtained from the BTE solution.
 
 \medskip
-\textbf{Substrate type:} \texttt{THERMAL\_CONDUCTIVITY}.\\
+\textbf{Operator state type:} \texttt{THERMAL\_CONDUCTIVITY}.\\
 \textbf{Operation:} \texttt{contract\_to\_thermal\_conductivity}.\\
 \textbf{Operation parameters:} \texttt{bte\_solver} $\in \{$\texttt{rta}, \texttt{iterative},
 \texttt{direct\_inverse}$\}$.
@@ -803,7 +803,7 @@ $\kappa_{\rm LBTE} = 24.30$~W/m\,K.
 \paragraph{Note on absolute values.} These $\kappa$ are well below the published Si
 Tersoff value ($\sim$250~W/m\,K) because of mesh under-convergence at
 $8{\times}8{\times}8$. Both adapters are equally under-converged here; the cross-code
-ratio is the substrate-relevant signal, the absolute number is not.
+ratio is the operator layer-relevant signal, the absolute number is not.
 
 % =================================================================================
 \section{What we learned}
@@ -826,7 +826,7 @@ The contact between architecture and physics surfaced six observations.
         which is exactly what we want for cross-method comparison.
   \item \textbf{Second- and third-order force constants are independent derived states.}
         Different supercells, different methods, independent discretizations. The type-level
-        \texttt{order} parameter is doing real work in the substrate; \texttt{FORCE\_CONSTANTS}
+        \texttt{order} parameter is doing real work in the operator layer; \texttt{FORCE\_CONSTANTS}
         with no \texttt{order} parameter would be ambiguous.
   \item \textbf{Structural operations (Fourier, eigendecomposition) are unambiguous.} kaldo and
         phonopy implement them in different files, in different languages, with different
@@ -848,7 +848,7 @@ The contact between architecture and physics surfaced six observations.
         ($\sigma_k = \sqrt{2}\,\sigma_p$ for matched stdev, see
         Eqs.~\eqref{eq:kaldo-gauss}--\eqref{eq:ph3-gauss}). Naively matching numerical
         $\sigma$ left a 7--30\% $\kappa$ gap; correcting for the $\sqrt{2}$ factor closes
-        nearly all of it (down to $<$3\% with the direct BTE solver). \emph{The substrate
+        nearly all of it (down to $<$3\% with the direct BTE solver). \emph{The operator layer
         must therefore record not only the operation parameter's value but its convention.}
         We anticipate a \texttt{sigma\_convention} parameter on
         \texttt{compute\_scattering\_rates}, with kaldo, phono3py, and (when added) ShengBTE
@@ -856,7 +856,7 @@ The contact between architecture and physics surfaced six observations.
         \texttt{(operation\_name, sigma\_value)} are silently inequivalent.
 \end{enumerate}
 
-\paragraph{Architectural status.} The substrate's commitments (Principles 1, 3, 5, 6, 7, 9)
+\paragraph{Architectural status.} The operator layer's commitments (Principles 1, 3, 5, 6, 7, 9)
 survive contact with the silicon-Tersoff workflow through $\kappa$. The
 parameterized-operation-identity rule (Decision 5.1) is doing real work: it is what lets us
 formally distinguish ``same $\sigma$ value, different $\sigma$ convention'' as two
@@ -864,7 +864,7 @@ operations producing two different states. The operation registry will continue 
 we discover more sub-parameters that codes treat differently --- the discovery is empirical,
 driven by cross-code experiments like this one. Adding ShengBTE next will exercise this
 machinery further: ShengBTE has its own broadening defaults, its own scattering-rate
-normalization, and its own iterative-BTE convergence criteria. The substrate is built to
+normalization, and its own iterative-BTE convergence criteria. The operator layer is built to
 surface those silently as new parameter dimensions on existing operations rather than as
 new operations.
 
