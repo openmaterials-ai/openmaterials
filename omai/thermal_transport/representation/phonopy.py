@@ -27,11 +27,17 @@ from omai.thermal_transport.operator.edges import (
     compute_dispersion,
     compute_dos,
     compute_dynamical_matrix,
+    compute_entropy,
     compute_force_constants_2,
+    compute_free_energy,
     compute_group_velocity,
     compute_gruneisen,
     compute_heat_capacity,
+    compute_internal_energy,
+    contract_molar_entropy,
+    contract_molar_free_energy,
     contract_molar_heat_capacity,
+    contract_molar_internal_energy,
     contract_volumetric_heat_capacity,
     identity_dm,
     provide_born_charges,
@@ -49,7 +55,10 @@ from omai.thermal_transport.operator.nodes import (
     FREQUENCY_STATE,
     GROUP_VELOCITY,
     GRUNEISEN,
+    MOLAR_ENTROPY,
     MOLAR_HEAT_CAPACITY,
+    MOLAR_HELMHOLTZ_FREE_ENERGY,
+    MOLAR_INTERNAL_ENERGY,
     PHONON_DOS,
     POTENTIAL,
     TEMPERATURE_STATE,
@@ -407,4 +416,95 @@ PHONOPY_APPLY_NAC_CORRECTION = OperationAdapterSpec(
         "Phonopy.set_band_structure or the unit-vector argument to "
         "DynamicalMatrixNAC.run()."
     ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Harmonic thermodynamics. Phonopy's run_thermal_properties /
+# get_thermal_properties_dict() emits the three molar contractions
+# (free_energy, entropy, internal_energy) alongside heat_capacity. The
+# per-mode forms (HelmholtzFreeEnergy, Entropy, InternalEnergy) are computed
+# internally but not exposed as arrays, so phonopy has no spec on them.
+# ---------------------------------------------------------------------------
+
+
+PHONOPY_MOLAR_HELMHOLTZ_FREE_ENERGY = StateAdapterSpec(
+    state=MOLAR_HELMHOLTZ_FREE_ENERGY,
+    adapter_name="phonopy",
+    observable_units={"F_mol": "kJ_per_mol"},
+    code_api={"F_mol": "get_thermal_properties_dict()['free_energy']"},
+    notes=(
+        "Phonopy.get_thermal_properties_dict()['free_energy'] in kJ/mol, "
+        "one entry per requested temperature. 'mol' is per mole of "
+        "primitive unit cells; divide by atoms-per-cell for per-atom forms."
+    ),
+)
+
+
+PHONOPY_MOLAR_ENTROPY = StateAdapterSpec(
+    state=MOLAR_ENTROPY,
+    adapter_name="phonopy",
+    observable_units={"S_mol": "J_per_K_per_mol"},
+    code_api={"S_mol": "get_thermal_properties_dict()['entropy']"},
+    notes=(
+        "Phonopy.get_thermal_properties_dict()['entropy'] in J/(K·mol of "
+        "primitive cells)."
+    ),
+)
+
+
+PHONOPY_MOLAR_INTERNAL_ENERGY = StateAdapterSpec(
+    state=MOLAR_INTERNAL_ENERGY,
+    adapter_name="phonopy",
+    observable_units={"E_mol": "kJ_per_mol"},
+    code_api={"E_mol": "get_thermal_properties_dict()['internal_energy']"},
+    notes=(
+        "Phonopy.get_thermal_properties_dict()['internal_energy'] in kJ/mol. "
+        "Includes the zero-point ℏω/2 baseline."
+    ),
+)
+
+
+PHONOPY_COMPUTE_FREE_ENERGY = OperationAdapterSpec(
+    operation=compute_free_energy,
+    adapter_name="phonopy",
+    notes=(
+        "Per-mode F is computed internally inside the harmonic thermo loop; "
+        "only the molar contraction is exposed."
+    ),
+)
+
+
+PHONOPY_COMPUTE_ENTROPY = OperationAdapterSpec(
+    operation=compute_entropy,
+    adapter_name="phonopy",
+    notes="Per-mode S computed internally, exposed only after molar contraction.",
+)
+
+
+PHONOPY_COMPUTE_INTERNAL_ENERGY = OperationAdapterSpec(
+    operation=compute_internal_energy,
+    adapter_name="phonopy",
+    notes="Per-mode E computed internally, exposed only after molar contraction.",
+)
+
+
+PHONOPY_CONTRACT_MOLAR_FREE_ENERGY = OperationAdapterSpec(
+    operation=contract_molar_free_energy,
+    adapter_name="phonopy",
+    notes="Emitted as thermal_properties['free_energy'] (kJ/mol).",
+)
+
+
+PHONOPY_CONTRACT_MOLAR_ENTROPY = OperationAdapterSpec(
+    operation=contract_molar_entropy,
+    adapter_name="phonopy",
+    notes="Emitted as thermal_properties['entropy'] (J/K/mol).",
+)
+
+
+PHONOPY_CONTRACT_MOLAR_INTERNAL_ENERGY = OperationAdapterSpec(
+    operation=contract_molar_internal_energy,
+    adapter_name="phonopy",
+    notes="Emitted as thermal_properties['internal_energy'] (kJ/mol).",
 )

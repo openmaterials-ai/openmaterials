@@ -21,11 +21,55 @@ from omai.thermal_transport.operator import (
 
 
 def test_node_count():
-    assert len(NODES) == 22
+    assert len(NODES) == 28
 
 
 def test_edge_count():
-    assert len(EDGES) == 22
+    assert len(EDGES) == 28
+
+
+def test_harmonic_thermo_sibling_states():
+    """F, S, E are sibling Observables off (Frequency, Temperature),
+    paralleling HeatCapacity."""
+    from omai.thermal_transport.operator import (
+        ENTROPY,
+        FREQUENCY_STATE,
+        HELMHOLTZ_FREE_ENERGY,
+        INTERNAL_ENERGY,
+        TEMPERATURE_STATE,
+        compute_entropy,
+        compute_free_energy,
+        compute_internal_energy,
+    )
+
+    for op, out in (
+        (compute_free_energy, HELMHOLTZ_FREE_ENERGY),
+        (compute_entropy, ENTROPY),
+        (compute_internal_energy, INTERNAL_ENERGY),
+    ):
+        assert set(s.name for s in op.inputs) == {FREQUENCY_STATE.name, TEMPERATURE_STATE.name}
+        assert op.outputs == (out,)
+
+
+def test_molar_thermo_contractions():
+    from omai.thermal_transport.operator import (
+        ENTROPY,
+        HELMHOLTZ_FREE_ENERGY,
+        INTERNAL_ENERGY,
+        MOLAR_ENTROPY,
+        MOLAR_HELMHOLTZ_FREE_ENERGY,
+        MOLAR_INTERNAL_ENERGY,
+        contract_molar_entropy,
+        contract_molar_free_energy,
+        contract_molar_internal_energy,
+    )
+
+    assert contract_molar_free_energy.inputs == (HELMHOLTZ_FREE_ENERGY,)
+    assert contract_molar_free_energy.outputs == (MOLAR_HELMHOLTZ_FREE_ENERGY,)
+    assert contract_molar_entropy.inputs == (ENTROPY,)
+    assert contract_molar_entropy.outputs == (MOLAR_ENTROPY,)
+    assert contract_molar_internal_energy.inputs == (INTERNAL_ENERGY,)
+    assert contract_molar_internal_energy.outputs == (MOLAR_INTERNAL_ENERGY,)
 
 
 def test_provide_potential_is_nullary():

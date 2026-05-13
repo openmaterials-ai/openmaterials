@@ -19,16 +19,22 @@ from omai.thermal_transport.operator.nodes import (
     DIELECTRIC_TENSOR,
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
+    ENTROPY,
     FORCE_CONSTANTS_2,
     FORCE_CONSTANTS_3,
     FREQUENCY_STATE,
     GROUP_VELOCITY,
     HEAT_CAPACITY,
+    HELMHOLTZ_FREE_ENERGY,
     GRUNEISEN,
+    INTERNAL_ENERGY,
     LINEWIDTH,
     MEAN_FREE_DISPLACEMENT_DIRECT,
     MEAN_FREE_DISPLACEMENT_RTA,
+    MOLAR_ENTROPY,
     MOLAR_HEAT_CAPACITY,
+    MOLAR_HELMHOLTZ_FREE_ENERGY,
+    MOLAR_INTERNAL_ENERGY,
     PHASE_SPACE_3PH,
     PHONON_DOS,
     POTENTIAL,
@@ -164,6 +170,57 @@ _HC_FORMULA = sp.Eq(
     _c[_q, _nu],
     (_hbar * _omega[_q, _nu]) ** 2
     / (4 * _kB * _T**2 * sp.sinh(_hbar * _omega[_q, _nu] / (2 * _kB * _T)) ** 2),
+)
+
+
+# Per-mode harmonic thermodynamics. _x = ℏω / (k_B T) is the standard
+# dimensionless variable; the canonical forms below are then:
+#   f_qν(T) = (ℏω/2) + k_B T ln(1 - e^{-x})
+#   s_qν(T) = (ℏω/T) · n_BE(ω,T) − k_B ln(1 - e^{-x})
+#   e_qν(T) = ℏω · (1/2 + n_BE(ω,T))
+_f_mode = sp.IndexedBase("f")
+_s_mode = sp.IndexedBase("s")
+_e_mode = sp.IndexedBase("e")
+
+_x_hw = _hbar * _omega[_q, _nu] / (_kB * _T)
+
+_FREE_ENERGY_FORMULA = sp.Eq(
+    _f_mode[_q, _nu],
+    (_hbar * _omega[_q, _nu]) / 2
+    + _kB * _T * sp.log(1 - sp.exp(-_x_hw)),
+)
+
+_ENTROPY_FORMULA = sp.Eq(
+    _s_mode[_q, _nu],
+    _hbar * _omega[_q, _nu] / _T * _n_BE(_omega[_q, _nu] / _T)
+    - _kB * sp.log(1 - sp.exp(-_x_hw)),
+)
+
+_INTERNAL_ENERGY_FORMULA = sp.Eq(
+    _e_mode[_q, _nu],
+    _hbar * _omega[_q, _nu] * (sp.Rational(1, 2) + _n_BE(_omega[_q, _nu] / _T)),
+)
+
+
+# Molar contractions: (N_A / N_q) Σ_qν · per-mode form
+_N_A = sp.Symbol("N_A", positive=True)
+_F_mol_sym = sp.Symbol(r"F_{mol}")
+_S_mol_sym = sp.Symbol(r"S_{mol}")
+_E_mol_sym = sp.Symbol(r"E_{mol}")
+
+_MOLAR_FREE_ENERGY_FORMULA = sp.Eq(
+    _F_mol_sym,
+    _N_A * sp.Sum(_f_mode[_q, _nu], (_q, 1, _N_q), (_nu, 1, _N_modes)) / _N_q,
+)
+
+_MOLAR_ENTROPY_FORMULA = sp.Eq(
+    _S_mol_sym,
+    _N_A * sp.Sum(_s_mode[_q, _nu], (_q, 1, _N_q), (_nu, 1, _N_modes)) / _N_q,
+)
+
+_MOLAR_INTERNAL_ENERGY_FORMULA = sp.Eq(
+    _E_mol_sym,
+    _N_A * sp.Sum(_e_mode[_q, _nu], (_q, 1, _N_q), (_nu, 1, _N_modes)) / _N_q,
 )
 
 # Γ_{q,ν} = (π/Nℏ²) Σ_{q', ν', ν''} |V_3|² × [
@@ -458,6 +515,42 @@ compute_heat_capacity = Operation(
     description="Quantum (Bose-Einstein) per-mode heat capacity at temperature T.",
 )
 
+
+compute_free_energy = Operation(
+    name="compute_free_energy",
+    inputs=(FREQUENCY_STATE, TEMPERATURE_STATE),
+    outputs=(HELMHOLTZ_FREE_ENERGY,),
+    formula=_FREE_ENERGY_FORMULA,
+    description=(
+        "Per-mode Helmholtz free energy at temperature T (sibling of "
+        "compute_heat_capacity). Includes the zero-point ℏω/2 contribution "
+        "plus the k_B T log term."
+    ),
+)
+
+
+compute_entropy = Operation(
+    name="compute_entropy",
+    inputs=(FREQUENCY_STATE, TEMPERATURE_STATE),
+    outputs=(ENTROPY,),
+    formula=_ENTROPY_FORMULA,
+    description=(
+        "Per-mode entropy at temperature T. Equivalent to -∂f/∂T; the "
+        "explicit form uses n_BE(ω,T) and the log of the partition factor."
+    ),
+)
+
+
+compute_internal_energy = Operation(
+    name="compute_internal_energy",
+    inputs=(FREQUENCY_STATE, TEMPERATURE_STATE),
+    outputs=(INTERNAL_ENERGY,),
+    formula=_INTERNAL_ENERGY_FORMULA,
+    description=(
+        "Per-mode internal energy at temperature T, ℏω(1/2 + n_BE)."
+    ),
+)
+
 compute_linewidth = Operation(
     name="compute_linewidth",
     inputs=(FREQUENCY_STATE, EIGENVECTORS, FORCE_CONSTANTS_3, TEMPERATURE_STATE),
@@ -549,7 +642,7 @@ contract_kappa_direct = Operation(
 # C_V_vol(T) = (1/V_cell N_q) Σ_qν c_qν(T)
 _C_V_vol = sp.Symbol(r"C_V^{vol}")
 _C_V_mol = sp.Symbol(r"C_V^{mol}")
-_N_A = sp.Symbol("N_A", positive=True)
+# _N_A already defined above with the harmonic-thermo molar formulas.
 
 _CV_VOL_FORMULA = sp.Eq(
     _C_V_vol,
@@ -587,6 +680,43 @@ contract_molar_heat_capacity = Operation(
         "Avogadro's number and divided by N_q (so the result is C_V per "
         "mole of primitive unit cells). Phonopy emits this in its "
         "harmonic thermal_properties output (J/K/mol)."
+    ),
+)
+
+
+contract_molar_free_energy = Operation(
+    name="contract_molar_free_energy",
+    inputs=(HELMHOLTZ_FREE_ENERGY,),
+    outputs=(MOLAR_HELMHOLTZ_FREE_ENERGY,),
+    formula=_MOLAR_FREE_ENERGY_FORMULA,
+    description=(
+        "BZ-and-mode sum of the per-mode Helmholtz free energy, N_A/N_q. "
+        "Phonopy emits this as thermal_properties['free_energy'] in kJ/mol."
+    ),
+)
+
+
+contract_molar_entropy = Operation(
+    name="contract_molar_entropy",
+    inputs=(ENTROPY,),
+    outputs=(MOLAR_ENTROPY,),
+    formula=_MOLAR_ENTROPY_FORMULA,
+    description=(
+        "BZ-and-mode sum of the per-mode entropy, N_A/N_q. Phonopy emits "
+        "this as thermal_properties['entropy'] in J/(K·mol)."
+    ),
+)
+
+
+contract_molar_internal_energy = Operation(
+    name="contract_molar_internal_energy",
+    inputs=(INTERNAL_ENERGY,),
+    outputs=(MOLAR_INTERNAL_ENERGY,),
+    formula=_MOLAR_INTERNAL_ENERGY_FORMULA,
+    description=(
+        "BZ-and-mode sum of the per-mode internal energy, N_A/N_q. "
+        "Phonopy emits this as thermal_properties['internal_energy'] in "
+        "kJ/mol."
     ),
 )
 
@@ -695,6 +825,9 @@ EDGES: tuple[Operation, ...] = (
     compute_dispersion,
     compute_group_velocity,
     compute_heat_capacity,
+    compute_free_energy,
+    compute_entropy,
+    compute_internal_energy,
     compute_linewidth,
     solve_bte_rta,
     solve_bte_direct,
@@ -702,6 +835,9 @@ EDGES: tuple[Operation, ...] = (
     contract_kappa_direct,
     contract_volumetric_heat_capacity,
     contract_molar_heat_capacity,
+    contract_molar_free_energy,
+    contract_molar_entropy,
+    contract_molar_internal_energy,
     compute_dos,
     compute_gruneisen,
     compute_phase_space_3phonon,

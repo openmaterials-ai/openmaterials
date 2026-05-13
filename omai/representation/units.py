@@ -17,6 +17,8 @@ from dataclasses import dataclass
 
 from omai.operator.dimensions import (
     Dimension,
+    DIMENSIONLESS,
+    ENERGY_PER_MOLE,
     ENERGY_PER_TEMPERATURE,
     ENERGY_PER_TEMPERATURE_PER_MOLE,
     ENERGY_PER_TEMPERATURE_PER_VOLUME,
@@ -64,6 +66,16 @@ KM_PER_S = Unit("km_per_s", LENGTH_TIMES_FREQUENCY, 10.0)
 W_PER_M_PER_K = Unit("W_per_m_per_K", THERMAL_CONDUCTIVITY, 1.0)
 
 
+# Canonical molar-energy unit: J/mol. Phonopy's free_energy / internal_energy
+# come in kJ/mol; convert factor is 1000.
+J_PER_MOL = Unit("J_per_mol", ENERGY_PER_MOLE, 1.0)
+KJ_PER_MOL = Unit("kJ_per_mol", ENERGY_PER_MOLE, 1000.0)
+
+
+# Dimensionless quantities (Born charges in units of e, dielectric tensor).
+DIMENSIONLESS_UNIT = Unit("dimensionless", DIMENSIONLESS, 1.0)
+
+
 UNITS: dict[str, Unit] = {
     u.name: u
     for u in [
@@ -76,6 +88,9 @@ UNITS: dict[str, Unit] = {
         ANGSTROM_LINEAR_THZ,
         KM_PER_S,
         W_PER_M_PER_K,
+        J_PER_MOL,
+        KJ_PER_MOL,
+        DIMENSIONLESS_UNIT,
     ]
 }
 

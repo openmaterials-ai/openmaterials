@@ -30,8 +30,10 @@ from __future__ import annotations
 
 from omai.operator.dimensions import (
     DIMENSIONLESS,
+    ENERGY,
     ENERGY_PER_LENGTH_CUBED,
     ENERGY_PER_LENGTH_SQUARED,
+    ENERGY_PER_MOLE,
     ENERGY_PER_TEMPERATURE,
     ENERGY_PER_TEMPERATURE_PER_MOLE,
     ENERGY_PER_TEMPERATURE_PER_VOLUME,
@@ -160,6 +162,81 @@ MOLAR_HEAT_CAPACITY = Observable(
         "C_V_mol = (N_A / N_q) Σ_qν c_qν(T). Phonopy emits this as part "
         "of its harmonic thermal_properties output (J/K/mol). Codes that "
         "emit per-mode HeatCapacity reach it via the contraction edge."
+    ),
+)
+
+
+# Per-mode harmonic thermodynamics (parallel to HeatCapacity). No code emits
+# these directly today; phonopy / phono3py compute them internally and
+# contract before exposing. The per-mode states are still declared at the
+# operator layer to keep the DAG honest and to give the contracted molar
+# variants a well-defined source.
+
+HELMHOLTZ_FREE_ENERGY = Observable(
+    physics_type=PhysicsType.HELMHOLTZ_FREE_ENERGY,
+    name="HelmholtzFreeEnergy",
+    fields=(Field("f", ENERGY, indices=("q", "nu")),),
+    description=(
+        "Per-mode Helmholtz free energy f_qν(T) = (ℏω/2) + "
+        "k_B T ln(1 - exp(-ℏω/k_B T)). The 1/2 is the zero-point part; "
+        "the log term carries the temperature dependence."
+    ),
+)
+
+ENTROPY = Observable(
+    physics_type=PhysicsType.ENTROPY,
+    name="Entropy",
+    fields=(Field("s", ENERGY_PER_TEMPERATURE, indices=("q", "nu")),),
+    description=(
+        "Per-mode entropy s_qν(T) = (1/T)·ℏω·n_BE(ω,T) - "
+        "k_B ln(1 - exp(-ℏω/k_B T)). Equivalently -∂f/∂T."
+    ),
+)
+
+INTERNAL_ENERGY = Observable(
+    physics_type=PhysicsType.INTERNAL_ENERGY,
+    name="InternalEnergy",
+    fields=(Field("e", ENERGY, indices=("q", "nu")),),
+    description=(
+        "Per-mode internal energy e_qν(T) = ℏω(1/2 + n_BE(ω/T)). "
+        "Sums the zero-point energy and the thermal occupation."
+    ),
+)
+
+
+# Contracted per-mole-of-primitive-cells variants. Phonopy's harmonic
+# thermal_properties output exposes these directly.
+
+MOLAR_HELMHOLTZ_FREE_ENERGY = Observable(
+    physics_type=PhysicsType.MOLAR_HELMHOLTZ_FREE_ENERGY,
+    name="MolarHelmholtzFreeEnergy",
+    fields=(Field("F_mol", ENERGY_PER_MOLE, indices=()),),
+    description=(
+        "Helmholtz free energy per mole of primitive unit cells at "
+        "temperature T, F_mol = (N_A / N_q) Σ_qν f_qν(T). Phonopy emits "
+        "this as part of its thermal_properties output (kJ/mol)."
+    ),
+)
+
+MOLAR_ENTROPY = Observable(
+    physics_type=PhysicsType.MOLAR_ENTROPY,
+    name="MolarEntropy",
+    fields=(Field("S_mol", ENERGY_PER_TEMPERATURE_PER_MOLE, indices=()),),
+    description=(
+        "Entropy per mole of primitive unit cells at temperature T, "
+        "S_mol = (N_A / N_q) Σ_qν s_qν(T). Phonopy emits this as "
+        "thermal_properties['entropy'] in J/(K·mol)."
+    ),
+)
+
+MOLAR_INTERNAL_ENERGY = Observable(
+    physics_type=PhysicsType.MOLAR_INTERNAL_ENERGY,
+    name="MolarInternalEnergy",
+    fields=(Field("E_mol", ENERGY_PER_MOLE, indices=()),),
+    description=(
+        "Internal energy per mole of primitive unit cells at temperature T, "
+        "E_mol = (N_A / N_q) Σ_qν e_qν(T). Phonopy emits this as "
+        "thermal_properties['internal_energy'] in kJ/mol."
     ),
 )
 
@@ -324,6 +401,12 @@ NODES: tuple[State, ...] = (
     HEAT_CAPACITY,
     VOLUMETRIC_HEAT_CAPACITY,
     MOLAR_HEAT_CAPACITY,
+    HELMHOLTZ_FREE_ENERGY,
+    ENTROPY,
+    INTERNAL_ENERGY,
+    MOLAR_HELMHOLTZ_FREE_ENERGY,
+    MOLAR_ENTROPY,
+    MOLAR_INTERNAL_ENERGY,
     LINEWIDTH,
     PHONON_DOS,
     GRUNEISEN,
