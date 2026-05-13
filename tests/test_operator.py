@@ -21,11 +21,47 @@ from omai.thermal_transport.operator import (
 
 
 def test_node_count():
-    assert len(NODES) == 32
+    assert len(NODES) == 36
 
 
 def test_edge_count():
-    assert len(EDGES) == 32
+    assert len(EDGES) == 36
+
+
+def test_wigner_pattern_a_terminal():
+    """Wigner κ is terminal Pattern A: type-parameterised state with
+    no downstream consumers; decomposable into populations + coherences."""
+    from omai.thermal_transport.operator import (
+        THERMAL_CONDUCTIVITY_WIGNER,
+        THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,
+        THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
+        combine_kappa_wigner,
+    )
+
+    # All three Wigner states are Observables (gauge-invariant).
+    for state in (
+        THERMAL_CONDUCTIVITY_WIGNER,
+        THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
+        THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,
+    ):
+        assert state.is_observable
+
+    # combine_kappa_wigner takes the two sub-channels.
+    assert set(combine_kappa_wigner.inputs) == {
+        THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
+        THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,
+    }
+    assert combine_kappa_wigner.outputs == (THERMAL_CONDUCTIVITY_WIGNER,)
+
+
+def test_qhgk_is_hidden_state():
+    """QHGK κ inherits Linewidth's gauge dependence — modelled as a
+    HiddenState terminal node."""
+    from omai.operator.state import HiddenState
+    from omai.thermal_transport.operator import THERMAL_CONDUCTIVITY_QHGK, compute_kappa_qhgk
+
+    assert isinstance(THERMAL_CONDUCTIVITY_QHGK, HiddenState)
+    assert compute_kappa_qhgk.outputs == (THERMAL_CONDUCTIVITY_QHGK,)
 
 
 def test_linewidth_channels_converge_through_sum():

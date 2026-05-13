@@ -32,6 +32,7 @@ from __future__ import annotations
 from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
 from omai.thermal_transport.operator.edges import (
     apply_nac_correction,
+    combine_kappa_wigner,
     compute_dispersion,
     compute_dos,
     compute_dynamical_matrix,
@@ -39,6 +40,9 @@ from omai.thermal_transport.operator.edges import (
     compute_force_constants_3,
     compute_group_velocity,
     compute_heat_capacity,
+    compute_kappa_qhgk,
+    compute_kappa_wigner_coherences,
+    compute_kappa_wigner_populations,
     compute_linewidth,
     compute_phase_space_3phonon,
     contract_kappa_direct,
@@ -73,7 +77,11 @@ from omai.thermal_transport.operator.nodes import (
     POTENTIAL,
     TEMPERATURE_STATE,
     THERMAL_CONDUCTIVITY_DIRECT,
+    THERMAL_CONDUCTIVITY_QHGK,
     THERMAL_CONDUCTIVITY_RTA,
+    THERMAL_CONDUCTIVITY_WIGNER,
+    THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,
+    THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
     VOLUMETRIC_HEAT_CAPACITY,
 )
 
@@ -606,5 +614,100 @@ KALDO_APPLY_NAC_CORRECTION = OperationAdapterSpec(
         "dynamical matrix whenever atoms.info['dielectric'] is set. The "
         "reciprocal-space cutoff is hard-coded in kaldo (no Wang variant "
         "exposed)."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Wigner + QHGK transport models. kaldo is the only one of the four
+# adapters that implements either: Conductivity(method='wigner') and
+# Conductivity(method='qhgk').
+# ---------------------------------------------------------------------------
+
+
+KALDO_THERMAL_CONDUCTIVITY_WIGNER = StateAdapterSpec(
+    state=THERMAL_CONDUCTIVITY_WIGNER,
+    adapter_name="kaldo",
+    observable_units={"kappa": "W_per_m_per_K"},
+    code_api={"kappa": "Conductivity(method='wigner').conductivity"},
+    notes=(
+        "kaldo's Conductivity(method='wigner') emits the unified Wigner κ "
+        "tensor. The populations / coherences split is also exposed as "
+        "Conductivity.populations_conductivity / .coherences_conductivity "
+        "on the same object."
+    ),
+)
+
+
+KALDO_THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS = StateAdapterSpec(
+    state=THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
+    adapter_name="kaldo",
+    observable_units={"kappa": "W_per_m_per_K"},
+    code_api={"kappa": "Conductivity(method='wigner').populations_conductivity"},
+    notes="The diagonal-in-band (particle) part of the Wigner κ.",
+)
+
+
+KALDO_THERMAL_CONDUCTIVITY_WIGNER_COHERENCES = StateAdapterSpec(
+    state=THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,
+    adapter_name="kaldo",
+    observable_units={"kappa": "W_per_m_per_K"},
+    code_api={"kappa": "Conductivity(method='wigner').coherences_conductivity"},
+    notes="The off-diagonal (coherence / wave-like) part of the Wigner κ.",
+)
+
+
+KALDO_THERMAL_CONDUCTIVITY_QHGK = StateAdapterSpec(
+    state=THERMAL_CONDUCTIVITY_QHGK,
+    adapter_name="kaldo",
+    observable_units={"kappa": "W_per_m_per_K"},
+    code_api={"kappa": "Conductivity(method='qhgk').conductivity"},
+    notes=(
+        "kaldo's Conductivity(method='qhgk'): Lorentzian-broadened mode "
+        "overlap, primary tool for amorphous systems. The broadening width "
+        "is the per-mode Linewidth from compute_linewidth (so QHGK "
+        "shares its broadening scheme with the LBTE chain)."
+    ),
+)
+
+
+KALDO_COMPUTE_KAPPA_WIGNER_POPULATIONS = OperationAdapterSpec(
+    operation=compute_kappa_wigner_populations,
+    adapter_name="kaldo",
+    notes=(
+        "Computed alongside the coherences channel inside "
+        "Conductivity(method='wigner'); exposed separately via "
+        "populations_conductivity."
+    ),
+)
+
+
+KALDO_COMPUTE_KAPPA_WIGNER_COHERENCES = OperationAdapterSpec(
+    operation=compute_kappa_wigner_coherences,
+    adapter_name="kaldo",
+    notes=(
+        "Lorentzian-weighted off-diagonal mode overlap; the linewidth "
+        "feeds in as the broadening width."
+    ),
+)
+
+
+KALDO_COMBINE_KAPPA_WIGNER = OperationAdapterSpec(
+    operation=combine_kappa_wigner,
+    adapter_name="kaldo",
+    notes=(
+        "The kaldo Conductivity object exposes the sum directly as "
+        ".conductivity when method='wigner'."
+    ),
+)
+
+
+KALDO_COMPUTE_KAPPA_QHGK = OperationAdapterSpec(
+    operation=compute_kappa_qhgk,
+    adapter_name="kaldo",
+    notes=(
+        "Conductivity(method='qhgk'): time-integrated heat-flux "
+        "autocorrelation with Lorentzian mode broadening of width Γ "
+        "(per-mode linewidth from compute_linewidth)."
     ),
 )

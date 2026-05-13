@@ -477,6 +477,72 @@ THERMAL_CONDUCTIVITY_RTA = HiddenState(
 )
 
 
+# Wigner and QHGK transport models. Both are terminal κ nodes parameterised
+# by `transport_model` (Pattern A). The existing LBTE branch is implicitly
+# transport_model=lbte; only the new branches carry the parameter in their
+# state names. Wigner decomposes into populations + coherences sub-results
+# that combine into the total — each carried as its own sibling state so
+# that codes which emit one or the other independently can spec them.
+
+THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS = Observable(
+    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
+    name="ThermalConductivity[transport_model=wigner_populations]",
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    type_parameters={"transport_model": "wigner_populations"},
+    description=(
+        "Particle-like (populations) channel of the Wigner κ decomposition "
+        "(Simoncelli et al., Nat. Phys. 2019). Numerically close to "
+        "κ_LBTE; isolates the diagonal-in-band part of the heat-flux "
+        "correlation."
+    ),
+)
+
+THERMAL_CONDUCTIVITY_WIGNER_COHERENCES = Observable(
+    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
+    name="ThermalConductivity[transport_model=wigner_coherences]",
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    type_parameters={"transport_model": "wigner_coherences"},
+    description=(
+        "Wave-like (coherences) channel of the Wigner κ decomposition. "
+        "Couples bands at the same q through a Lorentzian-weighted "
+        "mode-overlap term; dominates κ in glasses and complex crystals "
+        "where mode spacings approach Γ."
+    ),
+)
+
+THERMAL_CONDUCTIVITY_WIGNER = Observable(
+    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
+    name="ThermalConductivity[transport_model=wigner]",
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    type_parameters={"transport_model": "wigner"},
+    description=(
+        "Unified Wigner κ = κ_populations + κ_coherences. The full "
+        "expression interpolates between LBTE (when mode spacings ≫ Γ, "
+        "coherences → 0) and a glass-like wave-transport regime "
+        "(spacings ≲ Γ). Gauge-invariant Observable."
+    ),
+)
+
+THERMAL_CONDUCTIVITY_QHGK = HiddenState(
+    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
+    name="ThermalConductivity[transport_model=qhgk]",
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    type_parameters={"transport_model": "qhgk"},
+    gauge_group="bz_summation_permutation_via_lorentzian",
+    kind="approximation",
+    gauge_invariant_contractions=(),
+    description=(
+        "Quasi-harmonic Green-Kubo κ: time-integrated heat-flux "
+        "autocorrelation with Lorentzian mode broadening of width Γ. The "
+        "Lorentzian-coupled mode overlap inherits Linewidth's "
+        "gauge-dependence on the off-diagonal pairings, so per-element "
+        "κ_QHGK is treated as a HiddenState until a definitive analysis "
+        "of its gauge structure says otherwise. Used primarily for "
+        "amorphous systems where the BTE picture breaks down."
+    ),
+)
+
+
 NODES: tuple[State, ...] = (
     POTENTIAL,
     TEMPERATURE_STATE,
@@ -511,4 +577,8 @@ NODES: tuple[State, ...] = (
     MEAN_FREE_DISPLACEMENT_DIRECT,
     THERMAL_CONDUCTIVITY_RTA,
     THERMAL_CONDUCTIVITY_DIRECT,
+    THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
+    THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,
+    THERMAL_CONDUCTIVITY_WIGNER,
+    THERMAL_CONDUCTIVITY_QHGK,
 )

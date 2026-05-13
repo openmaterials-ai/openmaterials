@@ -1,7 +1,7 @@
 """Lattice thermal-transport: the operator DAG.
 
-  * `nodes`  — thirty-two States (observables / hidden states in the DAG)
-  * `edges`  — thirty-two Operations (calculations in the DAG, with sympy formulas)
+  * `nodes`  — thirty-six States (observables / hidden states in the DAG)
+  * `edges`  — thirty-six Operations (calculations in the DAG, with sympy formulas)
 
 States are pure declarations: type, fields, conventions, indices, gauge-
 invariance kind (Observable vs HiddenState). No sympy, no calculation. Edges
@@ -33,6 +33,10 @@ from omai.thermal_transport.operator.edges import (
     compute_heat_capacity,
     compute_internal_energy,
     compute_isotope_scattering,
+    compute_kappa_qhgk,
+    compute_kappa_wigner_coherences,
+    compute_kappa_wigner_populations,
+    combine_kappa_wigner,
     compute_linewidth,
     compute_phase_space_3phonon,
     contract_kappa_direct,
@@ -84,7 +88,11 @@ from omai.thermal_transport.operator.nodes import (
     POTENTIAL,
     TEMPERATURE_STATE,
     THERMAL_CONDUCTIVITY_DIRECT,
+    THERMAL_CONDUCTIVITY_QHGK,
     THERMAL_CONDUCTIVITY_RTA,
+    THERMAL_CONDUCTIVITY_WIGNER,
+    THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,
+    THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
     TOTAL_LINEWIDTH,
     VOLUMETRIC_HEAT_CAPACITY,
 )
@@ -122,7 +130,11 @@ __all__ = [
     "POTENTIAL",
     "TEMPERATURE_STATE",
     "THERMAL_CONDUCTIVITY_DIRECT",
+    "THERMAL_CONDUCTIVITY_QHGK",
     "THERMAL_CONDUCTIVITY_RTA",
+    "THERMAL_CONDUCTIVITY_WIGNER",
+    "THERMAL_CONDUCTIVITY_WIGNER_COHERENCES",
+    "THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS",
     "TOTAL_LINEWIDTH",
     "VOLUMETRIC_HEAT_CAPACITY",
     "apply_nac_correction",
@@ -139,7 +151,11 @@ __all__ = [
     "compute_gruneisen",
     "compute_heat_capacity",
     "compute_internal_energy",
+    "combine_kappa_wigner",
     "compute_isotope_scattering",
+    "compute_kappa_qhgk",
+    "compute_kappa_wigner_coherences",
+    "compute_kappa_wigner_populations",
     "compute_linewidth",
     "compute_phase_space_3phonon",
     "contract_kappa_direct",

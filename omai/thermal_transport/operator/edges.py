@@ -44,7 +44,11 @@ from omai.thermal_transport.operator.nodes import (
     POTENTIAL,
     TEMPERATURE_STATE,
     THERMAL_CONDUCTIVITY_DIRECT,
+    THERMAL_CONDUCTIVITY_QHGK,
     THERMAL_CONDUCTIVITY_RTA,
+    THERMAL_CONDUCTIVITY_WIGNER,
+    THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,
+    THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
     TOTAL_LINEWIDTH,
     VOLUMETRIC_HEAT_CAPACITY,
 )
@@ -749,6 +753,115 @@ contract_kappa_direct = Operation(
 )
 
 
+# Wigner κ. Populations channel is the LBTE-like piece (numerically close to
+# κ_LBTE); coherences channel couples bands at the same q through a
+# Lorentzian-weighted mode-overlap. Both depend on the per-mode linewidth as
+# the broadening width.
+_v_alpha_qν = _v[_alpha, _q, _nu]
+_v_beta_qνp = _v[_beta, _q, _nu_p]
+
+# κ_W^pop ≈ (1/(V N_q)) Σ_qν c_qν v^α_qν v^β_qν τ_qν, equivalent to κ_LBTE
+# under the populations-only restriction. We use the same form here for
+# uniformity; the cross-code comparison rests on identical sympy.
+_KAPPA_WIGNER_POP_FORMULA = sp.Eq(
+    sp.IndexedBase(r"\kappa^{W,pop}")[_alpha, _beta],
+    sp.Sum(_c[_q, _nu] * _v[_alpha, _q, _nu] * _F[_beta, _q, _nu],
+           (_q, 1, _N_q), (_nu, 1, _N_modes)) / (_V_cell * _N_q),
+)
+
+# κ_W^coh = (1/(V N_q)) Σ_qνν' (c_qν + c_qν')/2
+#                              · (ω_qν + ω_qν')/2 · v^α_qν,qν' v^β_qν',qν
+#                              · Γ_qν + Γ_qν' / [(ω_qν - ω_qν')² + (Γ_qν + Γ_qν')²]
+_KAPPA_WIGNER_COH_FORMULA = sp.Eq(
+    sp.IndexedBase(r"\kappa^{W,coh}")[_alpha, _beta],
+    sp.Sum(
+        (_c[_q, _nu] + _c[_q, _nu_p]) / 2
+        * (_omega[_q, _nu] + _omega[_q, _nu_p]) / 2
+        * _v_alpha_qν * _v_beta_qνp
+        * (_GAMMA_anh[_q, _nu] + _GAMMA_anh[_q, _nu_p])
+        / ((_omega[_q, _nu] - _omega[_q, _nu_p]) ** 2
+           + (_GAMMA_anh[_q, _nu] + _GAMMA_anh[_q, _nu_p]) ** 2),
+        (_q, 1, _N_q), (_nu, 1, _N_modes), (_nu_p, 1, _N_modes),
+    ) / (_V_cell * _N_q),
+)
+
+_KAPPA_WIGNER_TOTAL_FORMULA = sp.Eq(
+    sp.IndexedBase(r"\kappa^W")[_alpha, _beta],
+    sp.IndexedBase(r"\kappa^{W,pop}")[_alpha, _beta]
+    + sp.IndexedBase(r"\kappa^{W,coh}")[_alpha, _beta],
+)
+
+
+compute_kappa_wigner_populations = Operation(
+    name="compute_kappa[transport_model=wigner_populations]",
+    inputs=(HEAT_CAPACITY, GROUP_VELOCITY, MEAN_FREE_DISPLACEMENT_DIRECT),
+    outputs=(THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,),
+    algorithmic_conventions={"transport_model": "wigner_populations"},
+    formula=_KAPPA_WIGNER_POP_FORMULA,
+    description=(
+        "Populations (particle-like) component of the Wigner κ. Uses the "
+        "LBTE F (gauge-invariant); numerically close to κ_LBTE."
+    ),
+)
+
+
+compute_kappa_wigner_coherences = Operation(
+    name="compute_kappa[transport_model=wigner_coherences]",
+    inputs=(HEAT_CAPACITY, FREQUENCY_STATE, GROUP_VELOCITY, TOTAL_LINEWIDTH),
+    outputs=(THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,),
+    algorithmic_conventions={"transport_model": "wigner_coherences"},
+    formula=_KAPPA_WIGNER_COH_FORMULA,
+    description=(
+        "Coherences (wave-like) component of the Wigner κ. Lorentzian-"
+        "weighted band-overlap at fixed q; dominant when mode spacings "
+        "approach Γ."
+    ),
+)
+
+
+combine_kappa_wigner = Operation(
+    name="combine_kappa_wigner",
+    inputs=(THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
+            THERMAL_CONDUCTIVITY_WIGNER_COHERENCES),
+    outputs=(THERMAL_CONDUCTIVITY_WIGNER,),
+    formula=_KAPPA_WIGNER_TOTAL_FORMULA,
+    description=(
+        "Sum of populations + coherences channels into the unified "
+        "Wigner κ."
+    ),
+)
+
+
+# QHGK κ. Green-Kubo time integral with Lorentzian-broadened modes.
+# κ_QHGK = (1/(V N_q)) Σ_qνν' c_qν v^α_qν,qν' v^β_qν',qν · Lorentzian(ω-ω', Γ).
+_KAPPA_QHGK_FORMULA = sp.Eq(
+    sp.IndexedBase(r"\kappa^{QHGK}")[_alpha, _beta],
+    sp.Sum(
+        _c[_q, _nu] * _v_alpha_qν * _v_beta_qνp
+        * (_GAMMA_anh[_q, _nu] + _GAMMA_anh[_q, _nu_p])
+        / ((_omega[_q, _nu] - _omega[_q, _nu_p]) ** 2
+           + (_GAMMA_anh[_q, _nu] + _GAMMA_anh[_q, _nu_p]) ** 2),
+        (_q, 1, _N_q), (_nu, 1, _N_modes), (_nu_p, 1, _N_modes),
+    ) / (_V_cell * _N_q),
+)
+
+
+compute_kappa_qhgk = Operation(
+    name="compute_kappa[transport_model=qhgk]",
+    inputs=(HEAT_CAPACITY, FREQUENCY_STATE, GROUP_VELOCITY, TOTAL_LINEWIDTH, TEMPERATURE_STATE),
+    outputs=(THERMAL_CONDUCTIVITY_QHGK,),
+    algorithmic_conventions={"transport_model": "qhgk"},
+    formula=_KAPPA_QHGK_FORMULA,
+    description=(
+        "Quasi-harmonic Green-Kubo κ: time-integrated heat-flux "
+        "autocorrelation with Lorentzian mode broadening. Bypasses the "
+        "BTE; uses Γ directly as the broadening width rather than as "
+        "the inverse of a relaxation time. Used primarily for amorphous "
+        "and complex-crystal systems."
+    ),
+)
+
+
 # C_V_vol(T) = (1/V_cell N_q) Σ_qν c_qν(T)
 _C_V_vol = sp.Symbol(r"C_V^{vol}")
 _C_V_mol = sp.Symbol(r"C_V^{mol}")
@@ -947,6 +1060,10 @@ EDGES: tuple[Operation, ...] = (
     solve_bte_direct,
     contract_kappa_rta,
     contract_kappa_direct,
+    compute_kappa_wigner_populations,
+    compute_kappa_wigner_coherences,
+    combine_kappa_wigner,
+    compute_kappa_qhgk,
     contract_volumetric_heat_capacity,
     contract_molar_heat_capacity,
     contract_molar_free_energy,
