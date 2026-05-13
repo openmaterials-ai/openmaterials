@@ -11,11 +11,13 @@ from __future__ import annotations
 
 import sympy as sp
 
-from omai.operator.dimensions import FREQUENCY, TEMPERATURE
+from omai.operator.dimensions import FREQUENCY, LENGTH, TEMPERATURE
 from omai.operator.operation import Operation, Parameter
 from omai.thermal_transport.operator.nodes import (
+    ANHARMONIC_LINEWIDTH,
     BARE_DYNAMICAL_MATRIX,
     BORN_CHARGES,
+    BOUNDARY_LINEWIDTH,
     DIELECTRIC_TENSOR,
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
@@ -28,7 +30,9 @@ from omai.thermal_transport.operator.nodes import (
     HELMHOLTZ_FREE_ENERGY,
     GRUNEISEN,
     INTERNAL_ENERGY,
-    LINEWIDTH,
+    ISOTOPE_ABUNDANCES,
+    ISOTOPIC_LINEWIDTH,
+    LINEWIDTH,                     # alias for ANHARMONIC_LINEWIDTH (back-compat)
     MEAN_FREE_DISPLACEMENT_DIRECT,
     MEAN_FREE_DISPLACEMENT_RTA,
     MOLAR_ENTROPY,
@@ -41,6 +45,7 @@ from omai.thermal_transport.operator.nodes import (
     TEMPERATURE_STATE,
     THERMAL_CONDUCTIVITY_DIRECT,
     THERMAL_CONDUCTIVITY_RTA,
+    TOTAL_LINEWIDTH,
     VOLUMETRIC_HEAT_CAPACITY,
 )
 
@@ -551,10 +556,10 @@ compute_internal_energy = Operation(
     ),
 )
 
-compute_linewidth = Operation(
-    name="compute_linewidth",
+compute_anharmonic_linewidth = Operation(
+    name="compute_linewidth[channel=anharmonic_3ph]",
     inputs=(FREQUENCY_STATE, EIGENVECTORS, FORCE_CONSTANTS_3, TEMPERATURE_STATE),
-    outputs=(LINEWIDTH,),
+    outputs=(ANHARMONIC_LINEWIDTH,),
     parameters=(Parameter("broadening_sigma", FREQUENCY),),
     algorithmic_conventions={
         "broadening_param": "stdev",
@@ -563,25 +568,130 @@ compute_linewidth = Operation(
     formula=_LW_FORMULA,
     auxiliary_formulas=(_V3SQ_DEFINITION,),
     description=(
-        "Imaginary self-energy from three-phonon scattering (Fermi's golden "
-        "rule). The kernel |V₃|² is the Maradudin-Fein matrix element "
-        "(auxiliary_formulas[0]): a triple sum of Φ³ contracted with "
-        "eigenvectors and mass factors, scaled by 1/(8 ω ω' ω''). The same "
-        "kernel appears in the LBTE collision matrix Ξ (see "
-        "solve_bte_direct.auxiliary_formulas[0]). Energy delta is replaced "
-        "by a Gaussian of canonical width σ = stdev. n_BE(ω/T) = (e^{ℏω/k_B "
-        "T} - 1)^{-1}. q'' is fixed by crystal momentum conservation: "
-        "q'' = q - q' (mod a reciprocal lattice vector). Under crystal "
-        "symmetry G ⊂ O(3), the BZ sum Σ_{q'} can be restricted to the "
-        "irreducible wedge BZ/G with multiplicity weights |G·q'|; "
-        "symmetry_group=G asserts this reduction. symmetry_group=C1 means "
-        "the full ordered grid is summed."
+        "Anharmonic 3-phonon linewidth: imaginary self-energy from "
+        "Fermi's golden rule. The kernel |V₃|² is the Maradudin-Fein "
+        "matrix element (auxiliary_formulas[0]): a triple sum of Φ³ "
+        "contracted with eigenvectors and mass factors, scaled by "
+        "1/(8 ω ω' ω''). The same kernel appears in the LBTE collision "
+        "matrix Ξ (see solve_bte_direct.auxiliary_formulas[0]). Energy "
+        "delta is replaced by a Gaussian of canonical width σ = stdev. "
+        "n_BE(ω/T) = (e^{ℏω/k_B T} - 1)^{-1}. q'' is fixed by crystal "
+        "momentum conservation: q'' = q - q' (mod a reciprocal lattice "
+        "vector). Under crystal symmetry G ⊂ O(3), the BZ sum Σ_{q'} "
+        "can be restricted to the irreducible wedge BZ/G with "
+        "multiplicity weights |G·q'|; symmetry_group=G asserts this "
+        "reduction. symmetry_group=C1 means the full ordered grid is "
+        "summed."
+    ),
+)
+
+# Backwards-compatible alias for the legacy Python name.
+compute_linewidth = compute_anharmonic_linewidth
+
+
+# Tamura isotope-disorder scattering:
+#   Γ_iso(qν) = (π/2) ω_qν² Σ_i g_i (e*_iqν · e_iqν') δ(ω_qν - ω_qν')
+# summed over (q', ν') in the BZ. The 1/2 cancels the standard 2-from-Fermi-rule
+# factor so Γ_iso has the same gamma_definition convention as Γ_anharmonic.
+_ISO_FORMULA = sp.Eq(
+    sp.IndexedBase(r"\Gamma^{iso}")[_q, _nu],
+    sp.pi / 2 * _omega[_q, _nu] ** 2 * sp.Sum(
+        sp.IndexedBase("g")[_i]
+        * sp.Abs(sp.Sum(
+            sp.conjugate(_e[_i, _q, _nu]) * _e[_i, _qp, _nu_p],
+            (_i, 1, _N_atoms),
+        )) ** 2
+        * _delta(_omega[_q, _nu] - _omega[_qp, _nu_p]),
+        (_qp, 1, _N_q), (_nu_p, 1, _N_modes),
+    ),
+)
+
+compute_isotope_scattering = Operation(
+    name="compute_isotope_scattering",
+    inputs=(FREQUENCY_STATE, EIGENVECTORS, ISOTOPE_ABUNDANCES),
+    outputs=(ISOTOPIC_LINEWIDTH,),
+    algorithmic_conventions={"delta_broadening": "gaussian"},
+    formula=_ISO_FORMULA,
+    description=(
+        "Isotopic disorder scattering rate per mode (Tamura model). "
+        "Linear in the per-atom mass-variance factor g_i and quadratic "
+        "in ω; couples mode (q,ν) to all (q',ν') with matching frequency "
+        "through the eigenvector overlap. Gauge-dependent per-element "
+        "(inherits eigenvector basis at degenerate ω); the BZ-summed "
+        "total is the observable. delta_broadening records how the "
+        "energy δ is realized at finite q-mesh."
+    ),
+)
+
+
+# Casimir / boundary scattering (Matthiessen form):
+#   Γ_boundary(qν) = |v_qν| / L
+# where L is a length parameter for the sample size / mean free path cap.
+_L_boundary = sp.Symbol("L", positive=True)
+_BOUNDARY_FORMULA = sp.Eq(
+    sp.IndexedBase(r"\Gamma^{bnd}")[_q, _nu],
+    sp.sqrt(sp.Sum(
+        _v[_alpha, _q, _nu] ** 2, (_alpha, 1, 3),
+    )) / _L_boundary,
+)
+
+compute_boundary_scattering = Operation(
+    name="compute_boundary_scattering",
+    inputs=(FREQUENCY_STATE, GROUP_VELOCITY),
+    outputs=(BOUNDARY_LINEWIDTH,),
+    parameters=(Parameter("boundary_length_scale", LENGTH),),
+    formula=_BOUNDARY_FORMULA,
+    description=(
+        "Casimir boundary scattering rate: Γ = |v| / L, with L a "
+        "user-supplied sample / mean-free-path length scale. Linear in "
+        "the group-velocity magnitude; independent of temperature. "
+        "Inherits GroupVelocity's gauge-dependence at degenerate ω."
+    ),
+)
+
+
+# Matthiessen sum: Γ_total = Γ_anharmonic + Γ_isotope + Γ_boundary
+_GAMMA_total = sp.IndexedBase(r"\Gamma^{tot}")
+_GAMMA_anh = sp.IndexedBase(r"\Gamma^{anh}")
+_GAMMA_iso = sp.IndexedBase(r"\Gamma^{iso}")
+_GAMMA_bnd = sp.IndexedBase(r"\Gamma^{bnd}")
+_SUM_LINEWIDTHS_FORMULA = sp.Eq(
+    _GAMMA_total[_q, _nu],
+    _GAMMA_anh[_q, _nu] + _GAMMA_iso[_q, _nu] + _GAMMA_bnd[_q, _nu],
+)
+
+sum_linewidths = Operation(
+    name="sum_linewidths",
+    inputs=(ANHARMONIC_LINEWIDTH, ISOTOPIC_LINEWIDTH, BOUNDARY_LINEWIDTH),
+    outputs=(TOTAL_LINEWIDTH,),
+    formula=_SUM_LINEWIDTHS_FORMULA,
+    description=(
+        "Matthiessen sum of all scattering channels. The BTE solver "
+        "consumes the total; runs that don't model a channel feed zero "
+        "on that input."
+    ),
+)
+
+
+provide_isotope_abundances = Operation(
+    name="provide_isotope_abundances",
+    inputs=(),
+    outputs=(ISOTOPE_ABUNDANCES,),
+    formula=sp.Eq(
+        sp.IndexedBase("g")[_i],
+        sp.Symbol("g_{provided}"),
+    ),
+    description=(
+        "Source: per-atom isotopic mass-variance factor g_i. Either "
+        "natural-abundance defaults (computed from a periodic-table "
+        "lookup) or user-supplied values for isotopically enriched "
+        "samples."
     ),
 )
 
 solve_bte_rta = Operation(
     name="solve_bte[bte_solver=rta]",
-    inputs=(FREQUENCY_STATE, GROUP_VELOCITY, LINEWIDTH, TEMPERATURE_STATE),
+    inputs=(FREQUENCY_STATE, GROUP_VELOCITY, TOTAL_LINEWIDTH, TEMPERATURE_STATE),
     outputs=(MEAN_FREE_DISPLACEMENT_RTA,),
     algorithmic_conventions={"bte_solver": "rta"},
     formula=_BTE_RTA_FORMULA,
@@ -594,7 +704,7 @@ solve_bte_rta = Operation(
 
 solve_bte_direct = Operation(
     name="solve_bte[bte_solver=direct_inverse]",
-    inputs=(FREQUENCY_STATE, GROUP_VELOCITY, LINEWIDTH, TEMPERATURE_STATE),
+    inputs=(FREQUENCY_STATE, GROUP_VELOCITY, TOTAL_LINEWIDTH, TEMPERATURE_STATE),
     outputs=(MEAN_FREE_DISPLACEMENT_DIRECT,),
     algorithmic_conventions={
         "bte_solver": "direct_inverse",
@@ -828,7 +938,11 @@ EDGES: tuple[Operation, ...] = (
     compute_free_energy,
     compute_entropy,
     compute_internal_energy,
-    compute_linewidth,
+    compute_anharmonic_linewidth,
+    compute_isotope_scattering,
+    compute_boundary_scattering,
+    sum_linewidths,
+    provide_isotope_abundances,
     solve_bte_rta,
     solve_bte_direct,
     contract_kappa_rta,

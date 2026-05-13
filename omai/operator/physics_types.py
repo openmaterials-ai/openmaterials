@@ -44,7 +44,8 @@ class PhysicsType(str, Enum):
     MOLAR_HELMHOLTZ_FREE_ENERGY = "MolarHelmholtzFreeEnergy"
     MOLAR_ENTROPY = "MolarEntropy"
     MOLAR_INTERNAL_ENERGY = "MolarInternalEnergy"
-    LINEWIDTH = "Linewidth"
+    LINEWIDTH = "Linewidth"                       # parameterized by channel
+    ISOTOPE_ABUNDANCES = "IsotopeAbundances"
     MEAN_FREE_DISPLACEMENT = "MeanFreeDisplacement"
     THERMAL_CONDUCTIVITY = "ThermalConductivity"
     PHONON_DOS = "PhononDOS"

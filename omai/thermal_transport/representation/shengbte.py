@@ -35,6 +35,8 @@ from __future__ import annotations
 from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
 from omai.thermal_transport.operator.edges import (
     apply_nac_correction,
+    compute_anharmonic_linewidth,
+    compute_boundary_scattering,
     compute_dispersion,
     compute_dos,
     compute_dynamical_matrix,
@@ -42,6 +44,7 @@ from omai.thermal_transport.operator.edges import (
     compute_force_constants_3,
     compute_group_velocity,
     compute_gruneisen,
+    compute_isotope_scattering,
     compute_linewidth,
     compute_phase_space_3phonon,
     contract_kappa_direct,
@@ -50,19 +53,25 @@ from omai.thermal_transport.operator.edges import (
     identity_dm,
     provide_born_charges,
     provide_dielectric_tensor,
+    provide_isotope_abundances,
     provide_potential,
     provide_temperature,
     solve_bte_direct,
     solve_bte_rta,
+    sum_linewidths,
 )
 from omai.thermal_transport.operator.nodes import (
+    ANHARMONIC_LINEWIDTH,
     BORN_CHARGES,
+    BOUNDARY_LINEWIDTH,
     DIELECTRIC_TENSOR,
     FORCE_CONSTANTS_2,
     FORCE_CONSTANTS_3,
     FREQUENCY_STATE,
     GROUP_VELOCITY,
     GRUNEISEN,
+    ISOTOPE_ABUNDANCES,
+    ISOTOPIC_LINEWIDTH,
     LINEWIDTH,
     MOLAR_HEAT_CAPACITY,
     PHASE_SPACE_3PH,
@@ -70,6 +79,7 @@ from omai.thermal_transport.operator.nodes import (
     TEMPERATURE_STATE,
     THERMAL_CONDUCTIVITY_DIRECT,
     THERMAL_CONDUCTIVITY_RTA,
+    TOTAL_LINEWIDTH,
     VOLUMETRIC_HEAT_CAPACITY,
 )
 
@@ -530,5 +540,100 @@ SHENGBTE_APPLY_NAC_CORRECTION = OperationAdapterSpec(
         "Gonze-Lee scheme used by phonopy/phono3py/kaldo — this is a "
         "convention difference that will surface in cross-code comparison "
         "of NAC-corrected DMs."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Linewidth channels. ShengBTE is the reference code for the channel split:
+# BTE.w_anharmonic (already specced as SHENGBTE_LINEWIDTH on the anharmonic
+# channel) plus BTE.w_isotopic and BTE.w_boundary as additive channels, with
+# the BTE solver consuming the Matthiessen-summed total via 1/τ_total.
+# ---------------------------------------------------------------------------
+
+
+SHENGBTE_ISOTOPIC_LINEWIDTH = StateAdapterSpec(
+    state=ISOTOPIC_LINEWIDTH,
+    adapter_name="shengbte",
+    observable_units={"Gamma": "angular_THz"},
+    observable_convention_overrides={
+        "gamma_definition": "linewidth_2x_imag_self_energy",
+    },
+    code_api={"Gamma": "BTE.w_isotopic"},
+    notes=(
+        "BTE.w_isotopic: isotope-disorder scattering rate (Tamura) in ps⁻¹, "
+        "irreducible-wedge ordering. Active only when isotopes=.TRUE. in "
+        "CONTROL; uses natural-abundance defaults unless overridden."
+    ),
+)
+
+
+SHENGBTE_BOUNDARY_LINEWIDTH = StateAdapterSpec(
+    state=BOUNDARY_LINEWIDTH,
+    adapter_name="shengbte",
+    observable_units={"Gamma": "angular_THz"},
+    observable_convention_overrides={
+        "gamma_definition": "linewidth_2x_imag_self_energy",
+    },
+    code_api={"Gamma": "BTE.w_boundary"},
+    notes=(
+        "BTE.w_boundary: Casimir boundary scattering rate in ps⁻¹. "
+        "Active when nanowires=.TRUE. or a length scale is supplied via "
+        "the CONTROL &flags block; magnitude tracks |v_qν| / L."
+    ),
+)
+
+
+SHENGBTE_ISOTOPE_ABUNDANCES = StateAdapterSpec(
+    state=ISOTOPE_ABUNDANCES,
+    adapter_name="shengbte",
+    observable_units={"g": "dimensionless"},
+    code_api={"g": "CONTROL &flags: isotopes=.TRUE. (natural-abundance defaults)"},
+    notes=(
+        "ShengBTE applies the Tamura model with natural-abundance g_i "
+        "computed internally when `isotopes=.TRUE.`. Explicit per-species "
+        "masses + fractions can be supplied through `types` and `masses` "
+        "in CONTROL."
+    ),
+)
+
+
+SHENGBTE_COMPUTE_ISOTOPE_SCATTERING = OperationAdapterSpec(
+    operation=compute_isotope_scattering,
+    adapter_name="shengbte",
+    algorithmic_convention_overrides={"delta_broadening": "adaptive_scaled"},
+    notes=(
+        "ShengBTE evaluates the Tamura δ with the same adaptive Gaussian "
+        "as the anharmonic linewidth — deviates from the canonical "
+        "gaussian convention."
+    ),
+)
+
+
+SHENGBTE_COMPUTE_BOUNDARY_SCATTERING = OperationAdapterSpec(
+    operation=compute_boundary_scattering,
+    adapter_name="shengbte",
+    notes=(
+        "Casimir Γ_boundary = |v| / L; L set via the `length` parameter "
+        "in CONTROL &flags."
+    ),
+)
+
+
+SHENGBTE_PROVIDE_ISOTOPE_ABUNDANCES = OperationAdapterSpec(
+    operation=provide_isotope_abundances,
+    adapter_name="shengbte",
+    notes="Read from CONTROL; natural-abundance defaults when isotopes=.TRUE.",
+)
+
+
+SHENGBTE_SUM_LINEWIDTHS = OperationAdapterSpec(
+    operation=sum_linewidths,
+    adapter_name="shengbte",
+    notes=(
+        "Matthiessen sum is applied implicitly in the BTE solver loop: "
+        "1/τ_total = 1/τ_anh + 1/τ_iso + 1/τ_boundary. No separate "
+        "BTE.w_total file is written — the total enters the kappa calculation "
+        "directly."
     ),
 )

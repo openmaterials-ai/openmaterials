@@ -21,11 +21,44 @@ from omai.thermal_transport.operator import (
 
 
 def test_node_count():
-    assert len(NODES) == 28
+    assert len(NODES) == 32
 
 
 def test_edge_count():
-    assert len(EDGES) == 28
+    assert len(EDGES) == 32
+
+
+def test_linewidth_channels_converge_through_sum():
+    """Pattern B: anharmonic, isotopic, boundary channels are sibling
+    HiddenStates summed into TotalLinewidth before reaching solve_bte."""
+    from omai.thermal_transport.operator import (
+        ANHARMONIC_LINEWIDTH,
+        BOUNDARY_LINEWIDTH,
+        ISOTOPIC_LINEWIDTH,
+        TOTAL_LINEWIDTH,
+        solve_bte_direct,
+        solve_bte_rta,
+        sum_linewidths,
+    )
+
+    # sum_linewidths takes all three channels and produces the total.
+    assert set(sum_linewidths.inputs) == {
+        ANHARMONIC_LINEWIDTH, ISOTOPIC_LINEWIDTH, BOUNDARY_LINEWIDTH,
+    }
+    assert sum_linewidths.outputs == (TOTAL_LINEWIDTH,)
+    # Downstream solve_bte_* consumes only the total, not individual channels.
+    assert TOTAL_LINEWIDTH in solve_bte_rta.inputs
+    assert TOTAL_LINEWIDTH in solve_bte_direct.inputs
+    assert ANHARMONIC_LINEWIDTH not in solve_bte_rta.inputs
+    assert ANHARMONIC_LINEWIDTH not in solve_bte_direct.inputs
+
+
+def test_anharmonic_linewidth_alias_is_legacy_linewidth():
+    """The Python LINEWIDTH symbol is preserved as a back-compat alias
+    for ANHARMONIC_LINEWIDTH."""
+    from omai.thermal_transport.operator import ANHARMONIC_LINEWIDTH, LINEWIDTH
+
+    assert LINEWIDTH is ANHARMONIC_LINEWIDTH
 
 
 def test_harmonic_thermo_sibling_states():
@@ -295,7 +328,9 @@ def test_topological_order_detects_cycles():
 
 def test_state_identity_by_name():
     assert LINEWIDTH == LINEWIDTH
-    same_name_different_metadata = State(physics_type=LINEWIDTH.physics_type, name="Linewidth")
+    same_name_different_metadata = State(
+        physics_type=LINEWIDTH.physics_type, name="Linewidth[channel=anharmonic_3ph]"
+    )
     assert LINEWIDTH == same_name_different_metadata
 
 

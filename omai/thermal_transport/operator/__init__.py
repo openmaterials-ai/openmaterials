@@ -1,7 +1,7 @@
 """Lattice thermal-transport: the operator DAG.
 
-  * `nodes`  — twenty-eight States (observables / hidden states in the DAG)
-  * `edges`  — twenty-eight Operations (calculations in the DAG, with sympy formulas)
+  * `nodes`  — thirty-two States (observables / hidden states in the DAG)
+  * `edges`  — thirty-two Operations (calculations in the DAG, with sympy formulas)
 
 States are pure declarations: type, fields, conventions, indices, gauge-
 invariance kind (Observable vs HiddenState). No sympy, no calculation. Edges
@@ -19,6 +19,8 @@ This module re-exports both for convenience.
 from omai.thermal_transport.operator.edges import (
     EDGES,
     apply_nac_correction,
+    compute_anharmonic_linewidth,
+    compute_boundary_scattering,
     compute_dispersion,
     compute_dos,
     compute_dynamical_matrix,
@@ -30,6 +32,7 @@ from omai.thermal_transport.operator.edges import (
     compute_gruneisen,
     compute_heat_capacity,
     compute_internal_energy,
+    compute_isotope_scattering,
     compute_linewidth,
     compute_phase_space_3phonon,
     contract_kappa_direct,
@@ -42,14 +45,18 @@ from omai.thermal_transport.operator.edges import (
     identity_dm,
     provide_born_charges,
     provide_dielectric_tensor,
+    provide_isotope_abundances,
     provide_potential,
     provide_temperature,
     solve_bte_direct,
     solve_bte_rta,
+    sum_linewidths,
 )
 from omai.thermal_transport.operator.nodes import (
+    ANHARMONIC_LINEWIDTH,
     BARE_DYNAMICAL_MATRIX,
     BORN_CHARGES,
+    BOUNDARY_LINEWIDTH,
     DIELECTRIC_TENSOR,
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
@@ -62,6 +69,8 @@ from omai.thermal_transport.operator.nodes import (
     HEAT_CAPACITY,
     HELMHOLTZ_FREE_ENERGY,
     INTERNAL_ENERGY,
+    ISOTOPE_ABUNDANCES,
+    ISOTOPIC_LINEWIDTH,
     LINEWIDTH,
     MEAN_FREE_DISPLACEMENT_DIRECT,
     MEAN_FREE_DISPLACEMENT_RTA,
@@ -76,12 +85,15 @@ from omai.thermal_transport.operator.nodes import (
     TEMPERATURE_STATE,
     THERMAL_CONDUCTIVITY_DIRECT,
     THERMAL_CONDUCTIVITY_RTA,
+    TOTAL_LINEWIDTH,
     VOLUMETRIC_HEAT_CAPACITY,
 )
 
 __all__ = [
+    "ANHARMONIC_LINEWIDTH",
     "BARE_DYNAMICAL_MATRIX",
     "BORN_CHARGES",
+    "BOUNDARY_LINEWIDTH",
     "DIELECTRIC_TENSOR",
     "DYNAMICAL_MATRIX",
     "EDGES",
@@ -95,6 +107,8 @@ __all__ = [
     "HEAT_CAPACITY",
     "HELMHOLTZ_FREE_ENERGY",
     "INTERNAL_ENERGY",
+    "ISOTOPE_ABUNDANCES",
+    "ISOTOPIC_LINEWIDTH",
     "LINEWIDTH",
     "MEAN_FREE_DISPLACEMENT_DIRECT",
     "MEAN_FREE_DISPLACEMENT_RTA",
@@ -109,8 +123,11 @@ __all__ = [
     "TEMPERATURE_STATE",
     "THERMAL_CONDUCTIVITY_DIRECT",
     "THERMAL_CONDUCTIVITY_RTA",
+    "TOTAL_LINEWIDTH",
     "VOLUMETRIC_HEAT_CAPACITY",
     "apply_nac_correction",
+    "compute_anharmonic_linewidth",
+    "compute_boundary_scattering",
     "compute_dispersion",
     "compute_dos",
     "compute_dynamical_matrix",
@@ -122,6 +139,7 @@ __all__ = [
     "compute_gruneisen",
     "compute_heat_capacity",
     "compute_internal_energy",
+    "compute_isotope_scattering",
     "compute_linewidth",
     "compute_phase_space_3phonon",
     "contract_kappa_direct",
@@ -134,8 +152,10 @@ __all__ = [
     "identity_dm",
     "provide_born_charges",
     "provide_dielectric_tensor",
+    "provide_isotope_abundances",
     "provide_potential",
     "provide_temperature",
     "solve_bte_direct",
     "solve_bte_rta",
+    "sum_linewidths",
 ]

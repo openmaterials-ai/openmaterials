@@ -297,10 +297,11 @@ GROUP_VELOCITY = HiddenState(
     ),
 )
 
-LINEWIDTH = HiddenState(
+ANHARMONIC_LINEWIDTH = HiddenState(
     physics_type=PhysicsType.LINEWIDTH,
-    name="Linewidth",
+    name="Linewidth[channel=anharmonic_3ph]",
     fields=(Field("Gamma", FREQUENCY, indices=("q", "nu")),),
+    type_parameters={"channel": "anharmonic_3ph"},
     canonical_conventions={
         "gamma_definition": "imag_self_energy",
     },
@@ -311,10 +312,101 @@ LINEWIDTH = HiddenState(
     kind="scaffolding",
     gauge_invariant_contractions=("ThermalConductivity[bte_solver=direct_inverse]",),
     description=(
-        "Per-mode three-phonon linewidth. Per-element values depend on "
-        "BZ-summation choice (a permutation gauge: weights redistribute "
-        "between modes but conserve the total). Contractions (ΣΓ, κ_LBTE) "
-        "are the gauge-invariant content."
+        "Per-mode three-phonon anharmonic linewidth from Fermi's golden "
+        "rule (the channel the existing compute_linewidth produces). "
+        "Per-element values depend on BZ-summation choice (a permutation "
+        "gauge: weights redistribute between modes but conserve the total). "
+        "Contractions (ΣΓ, κ_LBTE) are the gauge-invariant content."
+    ),
+)
+
+# Backwards-compatible alias. `LINEWIDTH` is what the codebase referenced
+# before the per-channel split; it now points to the anharmonic channel
+# (semantically: the existing compute_linewidth was always the anharmonic
+# 3-phonon piece). Use the explicit ANHARMONIC_LINEWIDTH in new code.
+LINEWIDTH = ANHARMONIC_LINEWIDTH
+
+
+ISOTOPIC_LINEWIDTH = HiddenState(
+    physics_type=PhysicsType.LINEWIDTH,
+    name="Linewidth[channel=isotope]",
+    fields=(Field("Gamma", FREQUENCY, indices=("q", "nu")),),
+    type_parameters={"channel": "isotope"},
+    canonical_conventions={
+        "gamma_definition": "imag_self_energy",
+    },
+    convention_factors=(
+        ("gamma_definition", "linewidth_2x_imag_self_energy", "Gamma", 2.0),
+    ),
+    gauge_group="bz_summation_permutation",
+    kind="scaffolding",
+    gauge_invariant_contractions=("ThermalConductivity[bte_solver=direct_inverse]",),
+    description=(
+        "Per-mode isotopic scattering rate from the Tamura model: "
+        "Γ_iso(qν) = (π/2) ω² Σ_i g_i |e_iqν|² δ(ω - ω'). Per-element "
+        "is gauge-dependent (depends on eigenvector basis at degenerate ω); "
+        "the BZ-summed total is the cross-code observable."
+    ),
+)
+
+
+BOUNDARY_LINEWIDTH = HiddenState(
+    physics_type=PhysicsType.LINEWIDTH,
+    name="Linewidth[channel=boundary]",
+    fields=(Field("Gamma", FREQUENCY, indices=("q", "nu")),),
+    type_parameters={"channel": "boundary"},
+    canonical_conventions={
+        "gamma_definition": "imag_self_energy",
+    },
+    convention_factors=(
+        ("gamma_definition", "linewidth_2x_imag_self_energy", "Gamma", 2.0),
+    ),
+    gauge_group="bz_summation_permutation",
+    kind="scaffolding",
+    gauge_invariant_contractions=("ThermalConductivity[bte_solver=direct_inverse]",),
+    description=(
+        "Per-mode boundary scattering rate from the Casimir / Matthiessen "
+        "form: Γ_boundary(qν) = |v_qν| / L where L is the boundary length "
+        "scale (operation parameter). Gauge-dependent inherits "
+        "GroupVelocity's basis dependence at degenerate ω."
+    ),
+)
+
+
+TOTAL_LINEWIDTH = HiddenState(
+    physics_type=PhysicsType.LINEWIDTH,
+    name="Linewidth[channel=total]",
+    fields=(Field("Gamma", FREQUENCY, indices=("q", "nu")),),
+    type_parameters={"channel": "total"},
+    canonical_conventions={
+        "gamma_definition": "imag_self_energy",
+    },
+    convention_factors=(
+        ("gamma_definition", "linewidth_2x_imag_self_energy", "Gamma", 2.0),
+    ),
+    gauge_group="bz_summation_permutation",
+    kind="scaffolding",
+    gauge_invariant_contractions=("ThermalConductivity[bte_solver=direct_inverse]",),
+    description=(
+        "Sum of all enabled scattering channels (anharmonic + isotope + "
+        "boundary + ...). The BTE solver consumes this — Matthiessen's "
+        "rule applies under the linearized BTE. Channels a given run does "
+        "not model contribute zero."
+    ),
+)
+
+
+ISOTOPE_ABUNDANCES = Observable(
+    physics_type=PhysicsType.ISOTOPE_ABUNDANCES,
+    name="IsotopeAbundances",
+    fields=(Field("g", DIMENSIONLESS, indices=("i",)),),
+    description=(
+        "Per-atom isotopic mass-variance factor g_i = Σ_x f_{ix} "
+        "(1 - m_{ix}/m̄_i)² where x runs over isotopes of atomic species i, "
+        "f_{ix} is the abundance fraction, m_{ix} is the isotope mass, and "
+        "m̄_i is the abundance-weighted average mass. Dimensionless. "
+        "Source-tier Observable: either natural-abundance defaults or "
+        "user-provided per-species values."
     ),
 )
 
@@ -407,7 +499,11 @@ NODES: tuple[State, ...] = (
     MOLAR_HELMHOLTZ_FREE_ENERGY,
     MOLAR_ENTROPY,
     MOLAR_INTERNAL_ENERGY,
-    LINEWIDTH,
+    ANHARMONIC_LINEWIDTH,
+    ISOTOPIC_LINEWIDTH,
+    BOUNDARY_LINEWIDTH,
+    TOTAL_LINEWIDTH,
+    ISOTOPE_ABUNDANCES,
     PHONON_DOS,
     GRUNEISEN,
     PHASE_SPACE_3PH,
