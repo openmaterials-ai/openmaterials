@@ -21,11 +21,11 @@ from omai.thermal_transport.operator import (
 
 
 def test_node_count():
-    assert len(NODES) == 19
+    assert len(NODES) == 22
 
 
 def test_edge_count():
-    assert len(EDGES) == 18
+    assert len(EDGES) == 22
 
 
 def test_provide_potential_is_nullary():
@@ -318,6 +318,47 @@ def test_derived_observable_conventions_are_declared():
         compute_phase_space_3phonon.algorithmic_conventions["delta_broadening"]
         == "gaussian"
     )
+
+
+def test_nac_pattern_c_topology():
+    """Born charges + NAC follow Pattern C: BareDM intermediate, two edges
+    converging on DynamicalMatrix."""
+    from omai.thermal_transport.operator import (
+        BARE_DYNAMICAL_MATRIX,
+        BORN_CHARGES,
+        DIELECTRIC_TENSOR,
+        DYNAMICAL_MATRIX,
+        apply_nac_correction,
+        compute_dynamical_matrix,
+        identity_dm,
+    )
+
+    # compute_dynamical_matrix now produces BareDM, not DM.
+    assert compute_dynamical_matrix.outputs == (BARE_DYNAMICAL_MATRIX,)
+    # Two edges produce DM.
+    producers_of_dm = [op for op in EDGES if DYNAMICAL_MATRIX in op.outputs]
+    assert set(producers_of_dm) == {identity_dm, apply_nac_correction}
+    # The polar branch consumes both BornCharges and DielectricTensor.
+    assert set(apply_nac_correction.inputs) == {
+        BARE_DYNAMICAL_MATRIX, BORN_CHARGES, DIELECTRIC_TENSOR,
+    }
+    # Non-polar branch is identity on BareDM.
+    assert identity_dm.inputs == (BARE_DYNAMICAL_MATRIX,)
+
+
+def test_born_charges_and_dielectric_tensor_are_sources():
+    """Both NAC inputs come from nullary provide_* operations."""
+    from omai.thermal_transport.operator import (
+        BORN_CHARGES,
+        DIELECTRIC_TENSOR,
+        provide_born_charges,
+        provide_dielectric_tensor,
+    )
+
+    assert provide_born_charges.is_nullary()
+    assert provide_born_charges.outputs == (BORN_CHARGES,)
+    assert provide_dielectric_tensor.is_nullary()
+    assert provide_dielectric_tensor.outputs == (DIELECTRIC_TENSOR,)
 
 
 def test_compute_linewidth_has_v3_auxiliary_formula():

@@ -14,6 +14,9 @@ import sympy as sp
 from omai.operator.dimensions import FREQUENCY, TEMPERATURE
 from omai.operator.operation import Operation, Parameter
 from omai.thermal_transport.operator.nodes import (
+    BARE_DYNAMICAL_MATRIX,
+    BORN_CHARGES,
+    DIELECTRIC_TENSOR,
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
     FORCE_CONSTANTS_2,
@@ -97,11 +100,44 @@ _FC3_FORMULA = sp.Eq(
     sp.Derivative(_V_pot(_u_set), _u_i_0, _u_j_R, _u_k_Rp),
 )
 
-# D_{ij}(q) = (1/√(M_i M_j)) Σ_R Φ²_{ij}(R) exp(i q·R)
-_DM_FORMULA = sp.Eq(
-    _D[_i, _j, _q],
+# D_bare_{ij}(q) = (1/√(M_i M_j)) Σ_R Φ²_{ij}(R) exp(i q·R)
+_D_bare = sp.IndexedBase(r"D^{bare}")
+_DM_BARE_FORMULA = sp.Eq(
+    _D_bare[_i, _j, _q],
     sp.Sum(_Phi2[_i, _j, _R] * sp.exp(sp.I * _q * _R), (_R, -sp.oo, sp.oo))
     / sp.sqrt(_M[_i] * _M[_j]),
+)
+
+# Non-polar branch: D(q) = D_bare(q) (identity pass-through).
+_DM_IDENTITY_FORMULA = sp.Eq(_D[_i, _j, _q], _D_bare[_i, _j, _q])
+
+# Polar branch: D(q) = D_bare(q) + D_NAC(q, Z*, ε∞)
+# where the NAC term diverges non-analytically as q→0:
+#   D^NAC_{iα,jβ}(q) = (4π/V_cell √(M_i M_j))
+#                      × (Σ_γ q_γ Z*_{i,γα}) (Σ_δ q_δ Z*_{j,δβ})
+#                      / (Σ_γδ q_γ ε∞_{γδ} q_δ)
+_Z_star = sp.IndexedBase(r"Z^*")
+_eps_inf = sp.IndexedBase(r"\varepsilon_\infty")
+_gamma_idx, _delta_idx = sp.symbols(r"\gamma \delta", integer=True)
+
+# Use a free vector q with three Cartesian components for the limit; the
+# symbol here is schematic — the substantive content is that the correction
+# is bilinear in (q · Z*) and inversely bilinear in (q · ε∞ · q).
+_q_alpha = sp.Symbol(r"q^\alpha")
+_q_beta = sp.Symbol(r"q^\beta")
+
+_DM_NAC_TERM = (
+    (4 * sp.pi / (_V_cell * sp.sqrt(_M[_i] * _M[_j])))
+    * sp.Sum(_q_alpha * _Z_star[_i, _gamma_idx, _alpha],
+             (_gamma_idx, 1, 3))
+    * sp.Sum(_q_beta * _Z_star[_j, _delta_idx, _beta],
+             (_delta_idx, 1, 3))
+    / sp.Sum(_q_alpha * _eps_inf[_gamma_idx, _delta_idx] * _q_beta,
+             (_gamma_idx, 1, 3), (_delta_idx, 1, 3))
+)
+_DM_NAC_FORMULA = sp.Eq(
+    _D[_i, _j, _q],
+    _D_bare[_i, _j, _q] + _DM_NAC_TERM,
 )
 
 # Σ_j D_{ij}(q) e_{j,q,ν} = ω²_{q,ν} e_{i,q,ν}  (free i)
@@ -275,6 +311,36 @@ provide_temperature = Operation(
     description="Source: the temperature at which subsequent T-dependent observables are evaluated.",
 )
 
+
+_Z_star_provided = sp.Symbol(r"Z^*_{provided}")
+_eps_provided = sp.Symbol(r"\varepsilon_{\infty,provided}")
+
+provide_born_charges = Operation(
+    name="provide_born_charges",
+    inputs=(),
+    outputs=(BORN_CHARGES,),
+    formula=sp.Eq(_Z_star[_i, _gamma_idx, _alpha], _Z_star_provided),
+    description=(
+        "Source: per-atom Born effective-charge tensor Z*_{i,αβ}. Typically "
+        "read from a BORN file produced by a DFT linear-response calculation. "
+        "Required only for polar materials; non-polar runs do not consume "
+        "BornCharges anywhere downstream."
+    ),
+)
+
+
+provide_dielectric_tensor = Operation(
+    name="provide_dielectric_tensor",
+    inputs=(),
+    outputs=(DIELECTRIC_TENSOR,),
+    formula=sp.Eq(_eps_inf[_gamma_idx, _delta_idx], _eps_provided),
+    description=(
+        "Source: macroscopic (electronic) dielectric tensor ε∞. Usually read "
+        "from the same BORN file alongside the Born charges. Used only by "
+        "the polar branch of the DM construction."
+    ),
+)
+
 compute_force_constants_2 = Operation(
     name="compute_force_constants[order=2]",
     inputs=(POTENTIAL,),
@@ -311,9 +377,51 @@ compute_force_constants_3 = Operation(
 compute_dynamical_matrix = Operation(
     name="compute_dynamical_matrix",
     inputs=(FORCE_CONSTANTS_2,),
+    outputs=(BARE_DYNAMICAL_MATRIX,),
+    formula=_DM_BARE_FORMULA,
+    description=(
+        "Bloch sum over lattice vectors, mass-weighted. Produces the "
+        "analytic (bare) dynamical matrix; the downstream DynamicalMatrix "
+        "is reached either via identity_dm (non-polar) or via "
+        "apply_nac_correction (polar). The split is needed because the "
+        "non-analytic correction adds a q-direction-dependent term at "
+        "q→0 that cannot be expressed as a real-space Bloch sum."
+    ),
+)
+
+
+identity_dm = Operation(
+    name="identity_dm",
+    inputs=(BARE_DYNAMICAL_MATRIX,),
     outputs=(DYNAMICAL_MATRIX,),
-    formula=_DM_FORMULA,
-    description="Bloch sum over lattice vectors, mass-weighted.",
+    formula=_DM_IDENTITY_FORMULA,
+    description=(
+        "Non-polar branch: the downstream DynamicalMatrix is just the bare "
+        "Bloch sum, unchanged. This edge exists to keep the DAG acyclic "
+        "while letting compute_dispersion (and everything below) consume "
+        "a single DynamicalMatrix node regardless of whether the run is "
+        "polar or non-polar."
+    ),
+)
+
+
+apply_nac_correction = Operation(
+    name="apply_nac_correction",
+    inputs=(BARE_DYNAMICAL_MATRIX, BORN_CHARGES, DIELECTRIC_TENSOR),
+    outputs=(DYNAMICAL_MATRIX,),
+    algorithmic_conventions={"nac_scheme": "gonze_lee"},
+    formula=_DM_NAC_FORMULA,
+    description=(
+        "Polar branch: adds the non-analytic correction (LO-TO splitting) "
+        "to the bare dynamical matrix using Born effective charges Z* and "
+        "the macroscopic dielectric tensor ε∞. The correction term is "
+        "bilinear in (q · Z*) and inversely bilinear in (q · ε∞ · q), so "
+        "it depends on the q-direction in the q→0 limit and produces the "
+        "LO-TO splitting at Γ. Default nac_scheme is gonze_lee (a "
+        "Gaussian-truncated reciprocal-space sum, the form phonopy "
+        "implements via Phonopy(nac_method='gonze')); the parry_brigham / "
+        "Wang Ewald summation is an alternative."
+    ),
 )
 
 compute_dispersion = Operation(
@@ -577,9 +685,13 @@ compute_phase_space_3phonon = Operation(
 EDGES: tuple[Operation, ...] = (
     provide_potential,
     provide_temperature,
+    provide_born_charges,
+    provide_dielectric_tensor,
     compute_force_constants_2,
     compute_force_constants_3,
     compute_dynamical_matrix,
+    identity_dm,
+    apply_nac_correction,
     compute_dispersion,
     compute_group_velocity,
     compute_heat_capacity,

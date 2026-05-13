@@ -24,10 +24,13 @@ class PhysicsType(str, Enum):
     LATTICE_CONSTANT = "LatticeConstant"
     PRESSURE = "Pressure"
     STRUCTURE = "Structure"
+    BORN_CHARGES = "BornCharges"                  # per-atom effective-charge tensor Z*
+    DIELECTRIC_TENSOR = "DielectricTensor"        # macroscopic ε∞
 
     # --- derived types in the thermal-transport scope ---
     # Each is one observable = one node in the operator DAG.
     FORCE_CONSTANTS = "ForceConstants"            # parameterized by order (=2 or =3)
+    BARE_DYNAMICAL_MATRIX = "BareDynamicalMatrix"
     DYNAMICAL_MATRIX = "DynamicalMatrix"
     FREQUENCY = "Frequency"
     EIGENVECTORS = "Eigenvectors"

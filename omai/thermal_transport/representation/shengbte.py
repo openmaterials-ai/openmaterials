@@ -34,6 +34,7 @@ from __future__ import annotations
 
 from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
 from omai.thermal_transport.operator.edges import (
+    apply_nac_correction,
     compute_dispersion,
     compute_dos,
     compute_dynamical_matrix,
@@ -46,12 +47,17 @@ from omai.thermal_transport.operator.edges import (
     contract_kappa_direct,
     contract_kappa_rta,
     contract_volumetric_heat_capacity,
+    identity_dm,
+    provide_born_charges,
+    provide_dielectric_tensor,
     provide_potential,
     provide_temperature,
     solve_bte_direct,
     solve_bte_rta,
 )
 from omai.thermal_transport.operator.nodes import (
+    BORN_CHARGES,
+    DIELECTRIC_TENSOR,
     FORCE_CONSTANTS_2,
     FORCE_CONSTANTS_3,
     FREQUENCY_STATE,
@@ -458,5 +464,71 @@ SHENGBTE_COMPUTE_PHASE_SPACE_3PH = OperationAdapterSpec(
     notes=(
         "BTE.P3 uses the same adaptive Gaussian δ as the linewidth — "
         "deviates from the canonical delta_broadening=gaussian."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# NAC. ShengBTE consumes Born charges and ε∞ as scalar entries in the
+# CONTROL namelist (`born`, `epsilon`) rather than via a separate BORN
+# file. Both keys are part of &crystal.
+# ---------------------------------------------------------------------------
+
+
+SHENGBTE_BORN_CHARGES = StateAdapterSpec(
+    state=BORN_CHARGES,
+    adapter_name="shengbte",
+    observable_units={"Z_star": "dimensionless"},
+    code_api={"Z_star": "CONTROL &crystal: born(3,3,natoms)"},
+    notes=(
+        "ShengBTE's CONTROL file accepts `born(3,3,i)` for each atom i; "
+        "default is zero (non-polar). Units of e, dimensionless."
+    ),
+)
+
+
+SHENGBTE_DIELECTRIC_TENSOR = StateAdapterSpec(
+    state=DIELECTRIC_TENSOR,
+    adapter_name="shengbte",
+    observable_units={"epsilon_infinity": "dimensionless"},
+    code_api={"epsilon_infinity": "CONTROL &crystal: epsilon(3,3)"},
+    notes="ShengBTE's CONTROL file accepts `epsilon(3,3)`; default is the identity.",
+)
+
+
+SHENGBTE_PROVIDE_BORN_CHARGES = OperationAdapterSpec(
+    operation=provide_born_charges,
+    adapter_name="shengbte",
+    notes="Read from CONTROL &crystal block at the start of each run.",
+)
+
+
+SHENGBTE_PROVIDE_DIELECTRIC_TENSOR = OperationAdapterSpec(
+    operation=provide_dielectric_tensor,
+    adapter_name="shengbte",
+    notes="Read from CONTROL &crystal block.",
+)
+
+
+SHENGBTE_IDENTITY_DM = OperationAdapterSpec(
+    operation=identity_dm,
+    adapter_name="shengbte",
+    notes=(
+        "Non-polar runs (born=0, epsilon=identity in CONTROL): the bare DM "
+        "is used directly."
+    ),
+)
+
+
+SHENGBTE_APPLY_NAC_CORRECTION = OperationAdapterSpec(
+    operation=apply_nac_correction,
+    adapter_name="shengbte",
+    algorithmic_convention_overrides={"nac_scheme": "ewald"},
+    notes=(
+        "Polar runs: ShengBTE applies the Wang-Ewald form of the NAC "
+        "correction (per the original Wang-Tang paper). Distinct from the "
+        "Gonze-Lee scheme used by phonopy/phono3py/kaldo — this is a "
+        "convention difference that will surface in cross-code comparison "
+        "of NAC-corrected DMs."
     ),
 )

@@ -87,16 +87,17 @@ def topological_order(operations: tuple[Operation, ...]) -> list[Operation]:
 
     Useful for emitting code or rendering the DAG in dependency order. Raises
     ValueError on a cycle (which would mean someone built a non-DAG).
+
+    A state may have more than one producing operation (Pattern C in the DAG
+    extension rules: alternative producing edges into a shared output node,
+    e.g. identity_dm and apply_nac_correction both producing DynamicalMatrix).
+    At runtime exactly one fires per workflow instance; for topological
+    ordering, all producers of a state are scheduled before any consumer.
     """
-    by_state: dict[State, Operation] = {}
+    by_state: dict[State, list[Operation]] = {}
     for op in operations:
         for out in op.outputs:
-            if out in by_state:
-                raise ValueError(
-                    f"two operations produce the same state {out.name!r}: "
-                    f"{by_state[out].name} and {op.name}"
-                )
-            by_state[out] = op
+            by_state.setdefault(out, []).append(op)
 
     visited: set[Operation] = set()
     result: list[Operation] = []
@@ -109,8 +110,7 @@ def topological_order(operations: tuple[Operation, ...]) -> list[Operation]:
             raise ValueError(f"cycle in DAG involving {op.name!r}")
         visiting.add(op)
         for inp in op.inputs:
-            producer = by_state.get(inp)
-            if producer is not None:
+            for producer in by_state.get(inp, ()):
                 visit(producer)
         visiting.discard(op)
         visited.add(op)

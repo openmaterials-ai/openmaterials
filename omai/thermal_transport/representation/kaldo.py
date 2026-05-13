@@ -31,6 +31,7 @@ from __future__ import annotations
 
 from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
 from omai.thermal_transport.operator.edges import (
+    apply_nac_correction,
     compute_dispersion,
     compute_dos,
     compute_dynamical_matrix,
@@ -44,12 +45,18 @@ from omai.thermal_transport.operator.edges import (
     contract_kappa_rta,
     contract_molar_heat_capacity,
     contract_volumetric_heat_capacity,
+    identity_dm,
+    provide_born_charges,
+    provide_dielectric_tensor,
     provide_potential,
     provide_temperature,
     solve_bte_direct,
     solve_bte_rta,
 )
 from omai.thermal_transport.operator.nodes import (
+    BARE_DYNAMICAL_MATRIX,
+    BORN_CHARGES,
+    DIELECTRIC_TENSOR,
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
     FORCE_CONSTANTS_2,
@@ -526,5 +533,78 @@ KALDO_COMPUTE_PHASE_SPACE_3PH = OperationAdapterSpec(
         "Phonons.phase_space reuses the same Gaussian δ as the linewidth "
         "calculation, with width set by `third_bandwidth` (or the "
         "adaptive scheme when None)."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# NAC. kaldo reads Born charges and ε∞ from the ASE Atoms.info dict (the
+# shengbte_io reader populates atoms.info['born_charges'] and
+# atoms.info['dielectric']); the HarmonicWithQ machinery applies the
+# correction whenever those keys are present.
+# ---------------------------------------------------------------------------
+
+
+KALDO_BORN_CHARGES = StateAdapterSpec(
+    state=BORN_CHARGES,
+    adapter_name="kaldo",
+    observable_units={"Z_star": "dimensionless"},
+    code_api={"Z_star": "atoms.info['born_charges']"},
+    notes=(
+        "kaldo expects Z* on the ASE Atoms object's info dict; the shengbte "
+        "BORN-file reader (kaldo.interfaces.shengbte_io) is the standard "
+        "way to populate it. Shape (n_atoms_primitive, 3, 3)."
+    ),
+)
+
+
+KALDO_DIELECTRIC_TENSOR = StateAdapterSpec(
+    state=DIELECTRIC_TENSOR,
+    adapter_name="kaldo",
+    observable_units={"epsilon_infinity": "dimensionless"},
+    code_api={"epsilon_infinity": "atoms.info['dielectric']"},
+    notes=(
+        "Stored on atoms.info['dielectric'] (3×3, dimensionless). The "
+        "presence of this key triggers HarmonicWithQ.is_nac = True."
+    ),
+)
+
+
+KALDO_PROVIDE_BORN_CHARGES = OperationAdapterSpec(
+    operation=provide_born_charges,
+    adapter_name="kaldo",
+    notes=(
+        "Populated via kaldo.interfaces.shengbte_io's BORN reader, which "
+        "fills atoms.info from a ShengBTE-format BORN file."
+    ),
+)
+
+
+KALDO_PROVIDE_DIELECTRIC_TENSOR = OperationAdapterSpec(
+    operation=provide_dielectric_tensor,
+    adapter_name="kaldo",
+    notes="Same BORN reader; the dielectric tensor sits at the top of the file.",
+)
+
+
+KALDO_IDENTITY_DM = OperationAdapterSpec(
+    operation=identity_dm,
+    adapter_name="kaldo",
+    notes=(
+        "Non-polar runs (atoms.info has no 'dielectric' key): "
+        "HarmonicWithQ.is_nac is False and the bare DM is used directly."
+    ),
+)
+
+
+KALDO_APPLY_NAC_CORRECTION = OperationAdapterSpec(
+    operation=apply_nac_correction,
+    adapter_name="kaldo",
+    algorithmic_convention_overrides={"nac_scheme": "gonze_lee"},
+    notes=(
+        "Polar runs: HarmonicWithQ inserts the Gonze-Lee NAC term into the "
+        "dynamical matrix whenever atoms.info['dielectric'] is set. The "
+        "reciprocal-space cutoff is hard-coded in kaldo (no Wang variant "
+        "exposed)."
     ),
 )

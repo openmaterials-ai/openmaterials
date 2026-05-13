@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
 from omai.thermal_transport.operator.edges import (
+    apply_nac_correction,
     compute_dispersion,
     compute_dos,
     compute_dynamical_matrix,
@@ -32,10 +33,16 @@ from omai.thermal_transport.operator.edges import (
     compute_heat_capacity,
     contract_molar_heat_capacity,
     contract_volumetric_heat_capacity,
+    identity_dm,
+    provide_born_charges,
+    provide_dielectric_tensor,
     provide_potential,
     provide_temperature,
 )
 from omai.thermal_transport.operator.nodes import (
+    BARE_DYNAMICAL_MATRIX,
+    BORN_CHARGES,
+    DIELECTRIC_TENSOR,
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
     FORCE_CONSTANTS_2,
@@ -306,5 +313,98 @@ PHONOPY_COMPUTE_GRUNEISEN = OperationAdapterSpec(
         "PhonopyGruneisen finite-differences ω(V) between three harmonic "
         "calculations at slightly different cell volumes — deviates from "
         "the canonical Maradudin-Fein closed form."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# NAC (LO-TO splitting) for polar materials. Phonopy is the reference
+# implementation: BORN files in its native format, two NAC methods (gonze and
+# wang) selectable via nac_method, and `apply_nac_correction` is the polar
+# branch of the DM construction. Non-polar phonopy runs fire identity_dm.
+# ---------------------------------------------------------------------------
+
+
+PHONOPY_BORN_CHARGES = StateAdapterSpec(
+    state=BORN_CHARGES,
+    adapter_name="phonopy",
+    observable_units={"Z_star": "dimensionless"},
+    code_api={"Z_star": "Phonopy.nac_params['born']"},
+    notes=(
+        "Phonopy reads Born effective charges from a BORN file (first 9 "
+        "numbers are ε∞, then 9 per atom are Z*_{i,αβ}); they are stored on "
+        "the Phonopy instance as nac_params['born'] with shape "
+        "(n_atoms_primitive, 3, 3) in units of the elementary charge."
+    ),
+)
+
+
+PHONOPY_DIELECTRIC_TENSOR = StateAdapterSpec(
+    state=DIELECTRIC_TENSOR,
+    adapter_name="phonopy",
+    observable_units={"epsilon_infinity": "dimensionless"},
+    code_api={"epsilon_infinity": "Phonopy.nac_params['dielectric']"},
+    notes=(
+        "Phonopy stores the macroscopic ε∞ tensor read from the BORN file "
+        "as nac_params['dielectric'] with shape (3, 3), dimensionless."
+    ),
+)
+
+
+PHONOPY_BARE_DYNAMICAL_MATRIX = StateAdapterSpec(
+    state=BARE_DYNAMICAL_MATRIX,
+    adapter_name="phonopy",
+    code_api={
+        "D_bare": "DynamicalMatrix.get_dynamical_matrix() with NAC disabled"
+    },
+    notes=(
+        "Phonopy does not expose the bare DM as a distinct attribute; the "
+        "analytic Bloch sum is what `DynamicalMatrix.get_dynamical_matrix()` "
+        "returns when nac_params is not set. With NAC enabled the same call "
+        "returns the corrected DM (i.e. our DynamicalMatrix node, not "
+        "BareDynamicalMatrix)."
+    ),
+)
+
+
+PHONOPY_PROVIDE_BORN_CHARGES = OperationAdapterSpec(
+    operation=provide_born_charges,
+    adapter_name="phonopy",
+    notes=(
+        "Phonopy loads Born charges from a BORN file via "
+        "`parse_BORN(primitive, filename)`, then attaches them through "
+        "`Phonopy(nac_params={'born': ..., 'dielectric': ..., 'factor': ...})`."
+    ),
+)
+
+
+PHONOPY_PROVIDE_DIELECTRIC_TENSOR = OperationAdapterSpec(
+    operation=provide_dielectric_tensor,
+    adapter_name="phonopy",
+    notes="Read alongside Born charges from the BORN file (first 9 numbers).",
+)
+
+
+PHONOPY_IDENTITY_DM = OperationAdapterSpec(
+    operation=identity_dm,
+    adapter_name="phonopy",
+    notes=(
+        "Non-polar runs (no BORN file, nac_params is None): the bare Bloch "
+        "sum is the dynamical matrix returned by Phonopy unchanged."
+    ),
+)
+
+
+PHONOPY_APPLY_NAC_CORRECTION = OperationAdapterSpec(
+    operation=apply_nac_correction,
+    adapter_name="phonopy",
+    algorithmic_convention_overrides={"nac_scheme": "gonze_lee"},
+    notes=(
+        "Polar runs: Phonopy(nac_params=...) adds the non-analytic correction "
+        "via `DynamicalMatrixNAC.get_dynamical_matrix()`. The default scheme "
+        "is gonze (Gonze-Lee 1997); set nac_method='wang' for the Wang Ewald "
+        "alternative. The LO-TO direction is selected at the q→0 point by "
+        "Phonopy.set_band_structure or the unit-vector argument to "
+        "DynamicalMatrixNAC.run()."
     ),
 )

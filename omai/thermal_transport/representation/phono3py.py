@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
 from omai.thermal_transport.operator.edges import (
+    apply_nac_correction,
     compute_dispersion,
     compute_dos,
     compute_dynamical_matrix,
@@ -30,12 +31,18 @@ from omai.thermal_transport.operator.edges import (
     contract_kappa_rta,
     contract_molar_heat_capacity,
     contract_volumetric_heat_capacity,
+    identity_dm,
+    provide_born_charges,
+    provide_dielectric_tensor,
     provide_potential,
     provide_temperature,
     solve_bte_direct,
     solve_bte_rta,
 )
 from omai.thermal_transport.operator.nodes import (
+    BARE_DYNAMICAL_MATRIX,
+    BORN_CHARGES,
+    DIELECTRIC_TENSOR,
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
     FORCE_CONSTANTS_2,
@@ -472,5 +479,68 @@ PHONO3PY_COMPUTE_PHASE_SPACE_3PH = OperationAdapterSpec(
         "run_phonon_phase_space reuses the linewidth code's δ realisation; "
         "with the default smearing-method runner this is Gaussian, matching "
         "the canonical delta_broadening=gaussian."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# NAC inherits from phono3py's parent Phonopy object; the API is identical.
+# ---------------------------------------------------------------------------
+
+
+PHONO3PY_BORN_CHARGES = StateAdapterSpec(
+    state=BORN_CHARGES,
+    adapter_name="phono3py",
+    observable_units={"Z_star": "dimensionless"},
+    code_api={"Z_star": "Phono3py.nac_params['born']"},
+    notes=(
+        "Phono3py inherits NAC handling from its parent Phonopy: the Born "
+        "charges live on phono3py.nac_params['born'] with shape "
+        "(n_atoms_primitive, 3, 3)."
+    ),
+)
+
+
+PHONO3PY_DIELECTRIC_TENSOR = StateAdapterSpec(
+    state=DIELECTRIC_TENSOR,
+    adapter_name="phono3py",
+    observable_units={"epsilon_infinity": "dimensionless"},
+    code_api={"epsilon_infinity": "Phono3py.nac_params['dielectric']"},
+    notes="Phono3py.nac_params['dielectric'], shape (3, 3), inherited from Phonopy.",
+)
+
+
+PHONO3PY_PROVIDE_BORN_CHARGES = OperationAdapterSpec(
+    operation=provide_born_charges,
+    adapter_name="phono3py",
+    notes=(
+        "BORN file parsed via the Phonopy parser; attached to Phono3py via "
+        "the same nac_params dict."
+    ),
+)
+
+
+PHONO3PY_PROVIDE_DIELECTRIC_TENSOR = OperationAdapterSpec(
+    operation=provide_dielectric_tensor,
+    adapter_name="phono3py",
+    notes="Same BORN file, dielectric block.",
+)
+
+
+PHONO3PY_IDENTITY_DM = OperationAdapterSpec(
+    operation=identity_dm,
+    adapter_name="phono3py",
+    notes="Non-polar runs: bare Bloch sum passes through unchanged.",
+)
+
+
+PHONO3PY_APPLY_NAC_CORRECTION = OperationAdapterSpec(
+    operation=apply_nac_correction,
+    adapter_name="phono3py",
+    algorithmic_convention_overrides={"nac_scheme": "gonze_lee"},
+    notes=(
+        "Polar phono3py runs apply NAC via the inherited Phonopy machinery — "
+        "the default nac_method='gonze' is what BORN-using ph3 runs do "
+        "out of the box."
     ),
 )

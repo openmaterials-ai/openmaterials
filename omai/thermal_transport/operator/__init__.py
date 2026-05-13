@@ -1,7 +1,7 @@
 """Lattice thermal-transport: the operator DAG.
 
-  * `nodes`  — nineteen States (observables / hidden states in the DAG)
-  * `edges`  — eighteen Operations (calculations in the DAG, with sympy formulas)
+  * `nodes`  — twenty-two States (observables / hidden states in the DAG)
+  * `edges`  — twenty-two Operations (calculations in the DAG, with sympy formulas)
 
 States are pure declarations: type, fields, conventions, indices, gauge-
 invariance kind (Observable vs HiddenState). No sympy, no calculation. Edges
@@ -18,6 +18,7 @@ This module re-exports both for convenience.
 
 from omai.thermal_transport.operator.edges import (
     EDGES,
+    apply_nac_correction,
     compute_dispersion,
     compute_dos,
     compute_dynamical_matrix,
@@ -32,12 +33,18 @@ from omai.thermal_transport.operator.edges import (
     contract_kappa_rta,
     contract_molar_heat_capacity,
     contract_volumetric_heat_capacity,
+    identity_dm,
+    provide_born_charges,
+    provide_dielectric_tensor,
     provide_potential,
     provide_temperature,
     solve_bte_direct,
     solve_bte_rta,
 )
 from omai.thermal_transport.operator.nodes import (
+    BARE_DYNAMICAL_MATRIX,
+    BORN_CHARGES,
+    DIELECTRIC_TENSOR,
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
     FORCE_CONSTANTS_2,
@@ -61,6 +68,9 @@ from omai.thermal_transport.operator.nodes import (
 )
 
 __all__ = [
+    "BARE_DYNAMICAL_MATRIX",
+    "BORN_CHARGES",
+    "DIELECTRIC_TENSOR",
     "DYNAMICAL_MATRIX",
     "EDGES",
     "EIGENVECTORS",
@@ -82,6 +92,7 @@ __all__ = [
     "THERMAL_CONDUCTIVITY_DIRECT",
     "THERMAL_CONDUCTIVITY_RTA",
     "VOLUMETRIC_HEAT_CAPACITY",
+    "apply_nac_correction",
     "compute_dispersion",
     "compute_dos",
     "compute_dynamical_matrix",
@@ -96,6 +107,9 @@ __all__ = [
     "contract_kappa_rta",
     "contract_molar_heat_capacity",
     "contract_volumetric_heat_capacity",
+    "identity_dm",
+    "provide_born_charges",
+    "provide_dielectric_tensor",
     "provide_potential",
     "provide_temperature",
     "solve_bte_direct",

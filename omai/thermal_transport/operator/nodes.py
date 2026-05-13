@@ -77,14 +77,53 @@ FORCE_CONSTANTS_3 = Observable(
     type_parameters={"order": 3},
 )
 
+BORN_CHARGES = Observable(
+    physics_type=PhysicsType.BORN_CHARGES,
+    name="BornCharges",
+    fields=(Field("Z_star", DIMENSIONLESS, indices=("i", "alpha", "beta")),),
+    description=(
+        "Per-atom Born effective-charge tensor Z*_{i,αβ}, in units of the "
+        "elementary charge e. Source-tier Observable: read from a BORN file "
+        "or DFT linear-response output. Together with the macroscopic "
+        "DielectricTensor ε∞ it parameterises the non-analytic correction "
+        "(LO-TO splitting) for polar materials."
+    ),
+)
+
+DIELECTRIC_TENSOR = Observable(
+    physics_type=PhysicsType.DIELECTRIC_TENSOR,
+    name="DielectricTensor",
+    fields=(Field("epsilon_infinity", DIMENSIONLESS, indices=("alpha", "beta")),),
+    description=(
+        "Macroscopic (electronic) dielectric tensor ε∞ at infinite "
+        "frequency, dimensionless. Source-tier Observable. Enters the "
+        "non-analytic correction to D(q) at q→0."
+    ),
+)
+
+BARE_DYNAMICAL_MATRIX = Observable(
+    physics_type=PhysicsType.BARE_DYNAMICAL_MATRIX,
+    name="BareDynamicalMatrix",
+    fields=(Field("D_bare", FREQUENCY, indices=("i", "j", "q")),),
+    description=(
+        "Analytic Bloch sum of Φ²(R) — the dynamical matrix before any "
+        "non-analytic correction is applied. Always produced by "
+        "compute_dynamical_matrix(FC2). For non-polar materials the "
+        "downstream DynamicalMatrix is identical to this (via identity_dm); "
+        "for polar materials apply_nac_correction adds the q→0 non-analytic "
+        "term involving BornCharges and DielectricTensor."
+    ),
+)
+
 DYNAMICAL_MATRIX = Observable(
     physics_type=PhysicsType.DYNAMICAL_MATRIX,
     name="DynamicalMatrix",
     fields=(Field("D", FREQUENCY, indices=("i", "j", "q")),),
     description=(
-        "D(q) such that D e_qν = ω²_qν e_qν. Entries are dimensionally "
-        "frequency² (mass-weighted Hessian); codes typically store the "
-        "matrix with eigenvalues that are ω², not ω."
+        "D(q) such that D e_qν = ω²_qν e_qν. Produced from BareDynamicalMatrix "
+        "by either identity_dm (non-polar) or apply_nac_correction (polar). "
+        "Entries are dimensionally frequency² (mass-weighted Hessian); codes "
+        "typically store the matrix with eigenvalues that are ω², not ω."
     ),
 )
 
@@ -274,8 +313,12 @@ NODES: tuple[State, ...] = (
     TEMPERATURE_STATE,
     FORCE_CONSTANTS_2,
     FORCE_CONSTANTS_3,
+    BORN_CHARGES,
+    DIELECTRIC_TENSOR,
+    BARE_DYNAMICAL_MATRIX,
     DYNAMICAL_MATRIX,
     FREQUENCY_STATE,
+
     EIGENVECTORS,
     GROUP_VELOCITY,
     HEAT_CAPACITY,
