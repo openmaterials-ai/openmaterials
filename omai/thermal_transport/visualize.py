@@ -890,6 +890,35 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
     white-space: nowrap;
   }}
   .legend-item svg {{ flex-shrink: 0; }}
+  .extension-rules {{
+    margin-top: 0.85rem;
+    padding: 0.55rem 0.85rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.02);
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+  }}
+  .extension-rules > summary {{
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.7rem;
+    padding: 0.05rem 0;
+  }}
+  .extension-rules[open] > summary {{
+    margin-bottom: 0.5rem;
+    border-bottom: 1px dashed var(--border);
+    padding-bottom: 0.4rem;
+  }}
+  .extension-rules-body code {{
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.05em 0.3em;
+    border-radius: 3px;
+    font-size: 0.85em;
+  }}
   .title-row {{
     display: flex;
     align-items: baseline;
@@ -1185,6 +1214,44 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
       <span class="legend-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#7C3AED"></span> shengbte</span>
     </div>
   </div>
+  <details class="extension-rules">
+    <summary>DAG extension rules — when to add a node vs. a parameter</summary>
+    <div class="extension-rules-body">
+      <p style="margin:0 0 0.6em 0">
+        Edges carry the sympy formula; states are typed places. Different
+        production formulas force different <em>edges</em>, not necessarily
+        different states. When adding a new variant, pick exactly one pattern:
+      </p>
+      <ol style="margin:0 0 0.6em 1.2em; padding:0;">
+        <li><strong>Pattern A — type parameter on the state.</strong> Only
+            when the variant changes the gauge type (Observable vs
+            HiddenState) AND the parameterised state is terminal-ish.
+            Example: <code>ThermalConductivity[bte_solver=rta|direct_inverse]</code>,
+            <code>[transport_model=lbte|wigner|qhgk]</code>.</li>
+        <li><strong>Pattern B — sibling states, converging edge.</strong>
+            Variants with different input chains that combine before a
+            downstream consumer uses them. Example:
+            <code>AnharmonicLinewidth</code> /
+            <code>IsotopicLinewidth</code> /
+            <code>BoundaryLinewidth</code> →
+            <code>sum_linewidths</code> → <code>TotalLinewidth</code>.</li>
+        <li><strong>Pattern C — shared output, alternative producing
+            edges.</strong> Same output type and gauge classification,
+            different production formulas. A small upstream intermediate
+            keeps it acyclic. Example:
+            <code>BareDynamicalMatrix</code> →
+            (<code>apply_nac_correction</code> OR <code>identity_dm</code>) →
+            <code>DynamicalMatrix</code>.</li>
+      </ol>
+      <p style="margin:0">
+        Anti-pattern: type parameter on an intermediate state. Forces every
+        downstream consumer to be parameterised too. See
+        <code>docs/skills/extend_dag.md</code> for the full skill and
+        <code>docs/operator_representation_substrate.tex</code> § "DAG
+        extension rules" for the canonical statement.
+      </p>
+    </div>
+  </details>
 </header>
 
 <div class="layout">

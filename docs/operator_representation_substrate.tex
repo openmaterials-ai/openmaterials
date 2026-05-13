@@ -485,6 +485,84 @@ operator states and $E$ is a set of operator operations. The graph is rooted at 
 \emph{source} states (typically empirical inputs such as the crystal structure) and terminates
 at one or more \emph{observable} states (e.g., the lattice thermal conductivity).
 
+\subsection{DAG extension rules}
+\label{ssec:dag-extension-rules}
+
+When a new physical quantity or new way of computing an existing quantity must be
+added to the DAG, three patterns are available. The choice has structural
+consequences, so we record the rules here rather than leaving them to taste.
+
+\paragraph{Where formulas live.} \emph{Edges} carry the sympy formula and the
+declared algorithmic conventions; \emph{states} are typed places (a claim that
+``this physical quantity exists, with this dimension, this gauge type, this
+convention vocabulary''). Different production formulas do not, by themselves,
+force different states --- they force different edges.
+
+\paragraph{Pattern A --- type-level parameter on the state.} Use when the
+parameter changes the \emph{gauge type} (\textsc{Observable} vs.\
+\textsc{HiddenState}) of the produced quantity, \emph{and} the parameterised
+state is terminal (or its parameterised consumers are themselves a closed
+sub-branch). Existing examples:
+\begin{itemize}[leftmargin=2em]
+  \item \texttt{MeanFreeDisplacement[bte\_solver=rta|direct\_inverse]} ---
+        RTA is \textsc{HiddenState}, direct is \textsc{Observable}. Propagates
+        to \texttt{ThermalConductivity[bte\_solver=\ldots]} and stops there.
+  \item \texttt{ThermalConductivity[transport\_model=lbte|wigner|qhgk]} ---
+        adds the orthogonal axis for Wigner and QHGK transport. All terminal.
+\end{itemize}
+This pattern is safe \emph{only} for terminal or near-terminal nodes. Putting a
+type parameter on an intermediate state forces every downstream consumer to be
+parameterised in turn, polluting the entire downstream sub-DAG.
+
+\paragraph{Pattern B --- sibling states converging through an explicit edge.}
+Use when several variants represent physically distinct contributions, with
+different inputs, that must combine before a downstream consumer uses them.
+The variants are \emph{sibling named states}; a converging edge produces the
+combined ``total'' state, and the downstream sees only the total. Existing
+example:
+\begin{itemize}[leftmargin=2em]
+  \item \texttt{AnharmonicLinewidth} (\textsc{H}, inputs FC$^3$, $e$, $\omega$, $T$),
+        \texttt{IsotopicLinewidth} (\textsc{H}, inputs IsotopeAbundances, $e$,
+        $\omega$), \texttt{BoundaryLinewidth} (\textsc{H}, inputs $v$, length
+        scale) all flow into \texttt{TotalLinewidth} via the
+        \texttt{sum\_linewidths} edge. \texttt{solve\_bte\_*} consumes only
+        \texttt{TotalLinewidth}.
+\end{itemize}
+The advantage over Pattern A here is that the per-channel inputs differ;
+sibling states make that visible in the DAG diagram and let adapters declare
+the channels they support independently.
+
+\paragraph{Pattern C --- shared output node, alternative producing edges.}
+Use when several formulas produce the \emph{same-typed} output with the same
+gauge classification, but from different inputs. The downstream is unaware of
+which path was taken; provenance and adapter specs record it. A literal
+in-place modifier --- a single state with an edge that consumes and produces
+itself --- would create a cycle and is rejected by the DAG validator. The
+canonical workaround is to introduce a small intermediate node that names
+the pre-modification version. Existing example:
+\begin{itemize}[leftmargin=2em]
+  \item \texttt{compute\_dynamical\_matrix(FC$^2$) $\to$ BareDynamicalMatrix},
+        followed by either
+        \texttt{apply\_nac\_correction(BareDM, BornCharges, $\varepsilon_\infty$)
+        $\to$ DynamicalMatrix} (polar branch) or the identity edge
+        \texttt{identity\_dm(BareDM) $\to$ DynamicalMatrix} (non-polar
+        branch). \texttt{compute\_dispersion} consumes only
+        \texttt{DynamicalMatrix} and does not need to know which producing
+        edge fired.
+\end{itemize}
+
+\paragraph{Decision flow.} When adding a variant of an existing quantity:
+\begin{enumerate}[leftmargin=2em]
+  \item Does the variant change the gauge type? \emph{Yes:} Pattern A.
+  \item Does the variant have different inputs that physically combine?
+        \emph{Yes:} Pattern B.
+  \item Same gauge type, same output type, alternative production?
+        \emph{Yes:} Pattern C.
+\end{enumerate}
+In all three patterns, \emph{edges carry the formulas} and \emph{states carry
+the typed places}; the patterns differ only in which nodes are shared and
+which are distinct.
+
 \subsection{Discretization scheme}
 
 A discretization scheme $\Sigma$ is a finite tuple of parameters $(N_1, \ldots; h_1, \ldots)$
