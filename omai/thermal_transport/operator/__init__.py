@@ -1,7 +1,7 @@
 """Lattice thermal-transport: the operator DAG.
 
-  * `nodes`  — thirty-six States (observables / hidden states in the DAG)
-  * `edges`  — thirty-six Operations (calculations in the DAG, with sympy formulas)
+  * `nodes`  — thirty-eight States (observables / hidden states in the DAG)
+  * `edges`  — thirty-eight Operations (calculations in the DAG, with sympy formulas)
 
 States are pure declarations: type, fields, conventions, indices, gauge-
 invariance kind (Observable vs HiddenState). No sympy, no calculation. Edges
@@ -44,6 +44,8 @@ from omai.thermal_transport.operator.edges import (
     contract_molar_entropy,
     contract_molar_free_energy,
     contract_molar_heat_capacity,
+    contract_cumulative_kappa_mfp,
+    contract_cumulative_kappa_omega,
     contract_molar_internal_energy,
     contract_volumetric_heat_capacity,
     identity_dm,
@@ -61,6 +63,8 @@ from omai.thermal_transport.operator.nodes import (
     BARE_DYNAMICAL_MATRIX,
     BORN_CHARGES,
     BOUNDARY_LINEWIDTH,
+    CUMULATIVE_KAPPA_MFP,
+    CUMULATIVE_KAPPA_OMEGA,
     DIELECTRIC_TENSOR,
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
@@ -102,6 +106,8 @@ __all__ = [
     "BARE_DYNAMICAL_MATRIX",
     "BORN_CHARGES",
     "BOUNDARY_LINEWIDTH",
+    "CUMULATIVE_KAPPA_MFP",
+    "CUMULATIVE_KAPPA_OMEGA",
     "DIELECTRIC_TENSOR",
     "DYNAMICAL_MATRIX",
     "EDGES",
@@ -163,6 +169,8 @@ __all__ = [
     "contract_molar_entropy",
     "contract_molar_free_energy",
     "contract_molar_heat_capacity",
+    "contract_cumulative_kappa_mfp",
+    "contract_cumulative_kappa_omega",
     "contract_molar_internal_energy",
     "contract_volumetric_heat_capacity",
     "identity_dm",

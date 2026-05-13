@@ -47,6 +47,8 @@ from omai.thermal_transport.operator.edges import (
     compute_isotope_scattering,
     compute_linewidth,
     compute_phase_space_3phonon,
+    contract_cumulative_kappa_mfp,
+    contract_cumulative_kappa_omega,
     contract_kappa_direct,
     contract_kappa_rta,
     contract_volumetric_heat_capacity,
@@ -64,6 +66,8 @@ from omai.thermal_transport.operator.nodes import (
     ANHARMONIC_LINEWIDTH,
     BORN_CHARGES,
     BOUNDARY_LINEWIDTH,
+    CUMULATIVE_KAPPA_MFP,
+    CUMULATIVE_KAPPA_OMEGA,
     DIELECTRIC_TENSOR,
     FORCE_CONSTANTS_2,
     FORCE_CONSTANTS_3,
@@ -636,4 +640,51 @@ SHENGBTE_SUM_LINEWIDTHS = OperationAdapterSpec(
         "BTE.w_total file is written — the total enters the kappa calculation "
         "directly."
     ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Cumulative κ distributions. ShengBTE writes both forms as standard
+# output files (one row per temperature × one column per bin).
+# ---------------------------------------------------------------------------
+
+
+SHENGBTE_CUMULATIVE_KAPPA_OMEGA = StateAdapterSpec(
+    state=CUMULATIVE_KAPPA_OMEGA,
+    adapter_name="shengbte",
+    observable_units={"kappa_cum": "W_per_m_per_K"},
+    code_api={"kappa_cum": "BTE.cumulative_kappaVsOmega_tensor"},
+    notes=(
+        "BTE.cumulative_kappaVsOmega_tensor: cumulative κ binned by "
+        "phonon frequency; one block per temperature."
+    ),
+)
+
+
+SHENGBTE_CUMULATIVE_KAPPA_MFP = StateAdapterSpec(
+    state=CUMULATIVE_KAPPA_MFP,
+    adapter_name="shengbte",
+    observable_units={"kappa_cum": "W_per_m_per_K"},
+    code_api={"kappa_cum": "BTE.cumulative_kappa_tensor"},
+    notes=(
+        "BTE.cumulative_kappa_tensor: cumulative κ binned by mean-free-"
+        "path (Λ in nm typically); one block per temperature. The MFP "
+        "axis is logarithmic by default."
+    ),
+)
+
+
+SHENGBTE_CONTRACT_CUMULATIVE_KAPPA_OMEGA = OperationAdapterSpec(
+    operation=contract_cumulative_kappa_omega,
+    adapter_name="shengbte",
+    algorithmic_convention_overrides={"binning": "linear"},
+    notes="Linear-ω axis matches the canonical convention.",
+)
+
+
+SHENGBTE_CONTRACT_CUMULATIVE_KAPPA_MFP = OperationAdapterSpec(
+    operation=contract_cumulative_kappa_mfp,
+    adapter_name="shengbte",
+    algorithmic_convention_overrides={"binning": "log"},
+    notes="Logarithmic Λ axis matches the canonical convention.",
 )

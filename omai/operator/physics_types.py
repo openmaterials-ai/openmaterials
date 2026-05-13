@@ -48,6 +48,7 @@ class PhysicsType(str, Enum):
     ISOTOPE_ABUNDANCES = "IsotopeAbundances"
     MEAN_FREE_DISPLACEMENT = "MeanFreeDisplacement"
     THERMAL_CONDUCTIVITY = "ThermalConductivity"
+    CUMULATIVE_THERMAL_CONDUCTIVITY = "CumulativeKappa"
     PHONON_DOS = "PhononDOS"
     GRUNEISEN = "Gruneisen"
     PHASE_SPACE_3PH = "PhaseSpace3Phonon"

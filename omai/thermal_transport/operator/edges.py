@@ -43,6 +43,8 @@ from omai.thermal_transport.operator.nodes import (
     PHONON_DOS,
     POTENTIAL,
     TEMPERATURE_STATE,
+    CUMULATIVE_KAPPA_MFP,
+    CUMULATIVE_KAPPA_OMEGA,
     THERMAL_CONDUCTIVITY_DIRECT,
     THERMAL_CONDUCTIVITY_QHGK,
     THERMAL_CONDUCTIVITY_RTA,
@@ -862,6 +864,62 @@ compute_kappa_qhgk = Operation(
 )
 
 
+# Cumulative κ distributions: thresholded sums over the per-mode κ
+# integrand. wrt=omega bins by phonon frequency; wrt=mfp bins by mean
+# free path magnitude.
+_omega_c = sp.Symbol(r"\omega_c", positive=True)
+_lambda_c = sp.Symbol(r"\Lambda_c", positive=True)
+_heaviside = sp.Function(r"\theta")
+_F_mag = sp.sqrt(sp.Sum(_F[_alpha, _q, _nu] ** 2, (_alpha, 1, 3)))
+
+_CUMULATIVE_KAPPA_OMEGA_FORMULA = sp.Eq(
+    sp.IndexedBase(r"\kappa^{cum}_\omega")[_alpha, _beta, _omega_c],
+    sp.Sum(
+        _c[_q, _nu] * _v[_alpha, _q, _nu] * _F[_beta, _q, _nu]
+        * _heaviside(_omega_c - _omega[_q, _nu]),
+        (_q, 1, _N_q), (_nu, 1, _N_modes),
+    ) / (_V_cell * _N_q),
+)
+
+_CUMULATIVE_KAPPA_MFP_FORMULA = sp.Eq(
+    sp.IndexedBase(r"\kappa^{cum}_\Lambda")[_alpha, _beta, _lambda_c],
+    sp.Sum(
+        _c[_q, _nu] * _v[_alpha, _q, _nu] * _F[_beta, _q, _nu]
+        * _heaviside(_lambda_c - _F_mag),
+        (_q, 1, _N_q), (_nu, 1, _N_modes),
+    ) / (_V_cell * _N_q),
+)
+
+
+contract_cumulative_kappa_omega = Operation(
+    name="contract_cumulative_kappa[wrt=omega]",
+    inputs=(HEAT_CAPACITY, FREQUENCY_STATE, GROUP_VELOCITY, MEAN_FREE_DISPLACEMENT_DIRECT),
+    outputs=(CUMULATIVE_KAPPA_OMEGA,),
+    algorithmic_conventions={"binning": "linear"},
+    formula=_CUMULATIVE_KAPPA_OMEGA_FORMULA,
+    description=(
+        "Cumulative κ vs frequency threshold ω_c. Saturates at κ_LBTE "
+        "for ω_c → max ω. The binning convention captures how the "
+        "frequency axis is discretized (linear / log)."
+    ),
+)
+
+
+contract_cumulative_kappa_mfp = Operation(
+    name="contract_cumulative_kappa[wrt=mfp]",
+    inputs=(HEAT_CAPACITY, GROUP_VELOCITY, MEAN_FREE_DISPLACEMENT_DIRECT),
+    outputs=(CUMULATIVE_KAPPA_MFP,),
+    algorithmic_conventions={"binning": "log"},
+    formula=_CUMULATIVE_KAPPA_MFP_FORMULA,
+    description=(
+        "Cumulative κ vs mean-free-path threshold Λ_c. Heavily used "
+        "for nanoscale design (the Λ at which κ_cum = κ/2 is the "
+        "characteristic transport length). Conventionally on a log-Λ "
+        "axis since mode mean-free-paths span many orders of magnitude."
+    ),
+)
+
+
 # C_V_vol(T) = (1/V_cell N_q) Σ_qν c_qν(T)
 _C_V_vol = sp.Symbol(r"C_V^{vol}")
 _C_V_mol = sp.Symbol(r"C_V^{mol}")
@@ -1072,4 +1130,6 @@ EDGES: tuple[Operation, ...] = (
     compute_dos,
     compute_gruneisen,
     compute_phase_space_3phonon,
+    contract_cumulative_kappa_omega,
+    contract_cumulative_kappa_mfp,
 )

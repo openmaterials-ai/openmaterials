@@ -21,11 +21,28 @@ from omai.thermal_transport.operator import (
 
 
 def test_node_count():
-    assert len(NODES) == 36
+    assert len(NODES) == 38
 
 
 def test_edge_count():
-    assert len(EDGES) == 36
+    assert len(EDGES) == 38
+
+
+def test_cumulative_kappa_parameterised():
+    """Cumulative κ is terminal Pattern A: type-parameterised on `wrt`."""
+    from omai.thermal_transport.operator import (
+        CUMULATIVE_KAPPA_MFP,
+        CUMULATIVE_KAPPA_OMEGA,
+        MEAN_FREE_DISPLACEMENT_DIRECT,
+        contract_cumulative_kappa_mfp,
+        contract_cumulative_kappa_omega,
+    )
+
+    assert CUMULATIVE_KAPPA_OMEGA.type_parameters == {"wrt": "omega"}
+    assert CUMULATIVE_KAPPA_MFP.type_parameters == {"wrt": "mfp"}
+    assert contract_cumulative_kappa_omega.outputs == (CUMULATIVE_KAPPA_OMEGA,)
+    assert contract_cumulative_kappa_mfp.outputs == (CUMULATIVE_KAPPA_MFP,)
+    assert MEAN_FREE_DISPLACEMENT_DIRECT in contract_cumulative_kappa_mfp.inputs
 
 
 def test_wigner_pattern_a_terminal():

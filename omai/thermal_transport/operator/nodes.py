@@ -523,6 +523,34 @@ THERMAL_CONDUCTIVITY_WIGNER = Observable(
     ),
 )
 
+CUMULATIVE_KAPPA_OMEGA = Observable(
+    physics_type=PhysicsType.CUMULATIVE_THERMAL_CONDUCTIVITY,
+    name="CumulativeKappa[wrt=omega]",
+    fields=(Field("kappa_cum", THERMAL_CONDUCTIVITY, indices=("alpha", "beta", "omega_bin")),),
+    type_parameters={"wrt": "omega"},
+    description=(
+        "Cumulative thermal conductivity vs frequency: κ_cum(ω_c) "
+        "= (1/(V N_q)) Σ_{ω_qν ≤ ω_c} c_qν v^α_qν F^β_qν. The distribution "
+        "of κ over the phonon-frequency axis; saturates at κ_LBTE for "
+        "ω_c → ∞."
+    ),
+)
+
+
+CUMULATIVE_KAPPA_MFP = Observable(
+    physics_type=PhysicsType.CUMULATIVE_THERMAL_CONDUCTIVITY,
+    name="CumulativeKappa[wrt=mfp]",
+    fields=(Field("kappa_cum", THERMAL_CONDUCTIVITY, indices=("alpha", "beta", "mfp_bin")),),
+    type_parameters={"wrt": "mfp"},
+    description=(
+        "Cumulative thermal conductivity vs mean free path: κ_cum(Λ_c) "
+        "= (1/(V N_q)) Σ_{|F_qν| ≤ Λ_c} c_qν v^α_qν F^β_qν. Heavily used "
+        "for nanoscale design — the Λ at which κ_cum is 50% of κ_total "
+        "is the median mean free path."
+    ),
+)
+
+
 THERMAL_CONDUCTIVITY_QHGK = HiddenState(
     physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
     name="ThermalConductivity[transport_model=qhgk]",
@@ -581,4 +609,6 @@ NODES: tuple[State, ...] = (
     THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,
     THERMAL_CONDUCTIVITY_WIGNER,
     THERMAL_CONDUCTIVITY_QHGK,
+    CUMULATIVE_KAPPA_OMEGA,
+    CUMULATIVE_KAPPA_MFP,
 )

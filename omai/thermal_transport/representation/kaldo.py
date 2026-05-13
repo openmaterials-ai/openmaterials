@@ -45,6 +45,8 @@ from omai.thermal_transport.operator.edges import (
     compute_kappa_wigner_populations,
     compute_linewidth,
     compute_phase_space_3phonon,
+    contract_cumulative_kappa_mfp,
+    contract_cumulative_kappa_omega,
     contract_kappa_direct,
     contract_kappa_rta,
     contract_molar_heat_capacity,
@@ -60,6 +62,8 @@ from omai.thermal_transport.operator.edges import (
 from omai.thermal_transport.operator.nodes import (
     BARE_DYNAMICAL_MATRIX,
     BORN_CHARGES,
+    CUMULATIVE_KAPPA_MFP,
+    CUMULATIVE_KAPPA_OMEGA,
     DIELECTRIC_TENSOR,
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
@@ -710,4 +714,49 @@ KALDO_COMPUTE_KAPPA_QHGK = OperationAdapterSpec(
         "autocorrelation with Lorentzian mode broadening of width Γ "
         "(per-mode linewidth from compute_linewidth)."
     ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Cumulative κ distributions. kaldo's Conductivity object exposes
+# .cumulative_conductivity_per_omega and .cumulative_conductivity_per_mfp
+# for plotting.
+# ---------------------------------------------------------------------------
+
+
+KALDO_CUMULATIVE_KAPPA_OMEGA = StateAdapterSpec(
+    state=CUMULATIVE_KAPPA_OMEGA,
+    adapter_name="kaldo",
+    observable_units={"kappa_cum": "W_per_m_per_K"},
+    code_api={"kappa_cum": "Conductivity.cumulative_conductivity_per_omega"},
+    notes=(
+        "Cumulative κ thresholded on phonon frequency, computed via the "
+        "LBTE F (Conductivity(method='inverse')). Available for the "
+        "Wigner κ as well by switching method='wigner'."
+    ),
+)
+
+
+KALDO_CUMULATIVE_KAPPA_MFP = StateAdapterSpec(
+    state=CUMULATIVE_KAPPA_MFP,
+    adapter_name="kaldo",
+    observable_units={"kappa_cum": "W_per_m_per_K"},
+    code_api={"kappa_cum": "Conductivity.cumulative_conductivity_per_mfp"},
+    notes="Cumulative κ vs |F| (mean-free-path threshold).",
+)
+
+
+KALDO_CONTRACT_CUMULATIVE_KAPPA_OMEGA = OperationAdapterSpec(
+    operation=contract_cumulative_kappa_omega,
+    adapter_name="kaldo",
+    algorithmic_convention_overrides={"binning": "linear"},
+    notes="Linear ω-axis binning by default.",
+)
+
+
+KALDO_CONTRACT_CUMULATIVE_KAPPA_MFP = OperationAdapterSpec(
+    operation=contract_cumulative_kappa_mfp,
+    adapter_name="kaldo",
+    algorithmic_convention_overrides={"binning": "log"},
+    notes="Logarithmic Λ-axis binning to span the wide MFP distribution.",
 )
