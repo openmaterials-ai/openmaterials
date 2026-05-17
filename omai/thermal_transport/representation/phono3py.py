@@ -17,6 +17,7 @@ from __future__ import annotations
 from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
 from omai.thermal_transport.operator.edges import (
     apply_nac_correction,
+    combine_kappa_wigner,
     compute_boundary_scattering,
     compute_dispersion,
     compute_dos,
@@ -27,6 +28,8 @@ from omai.thermal_transport.operator.edges import (
     compute_gruneisen,
     compute_heat_capacity,
     compute_isotope_scattering,
+    compute_kappa_wigner_coherences,
+    compute_kappa_wigner_populations,
     compute_linewidth,
     compute_phase_space_3phonon,
     contract_kappa_direct,
@@ -68,6 +71,9 @@ from omai.thermal_transport.operator.nodes import (
     TEMPERATURE_STATE,
     THERMAL_CONDUCTIVITY_DIRECT,
     THERMAL_CONDUCTIVITY_RTA,
+    THERMAL_CONDUCTIVITY_WIGNER,
+    THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,
+    THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
     TOTAL_LINEWIDTH,
     VOLUMETRIC_HEAT_CAPACITY,
 )
@@ -691,5 +697,87 @@ PHONO3PY_SUM_LINEWIDTHS = OperationAdapterSpec(
         "phono3py.conductivity.grid_point_data: anharmonic + isotope + "
         "boundary + el-ph. The total is built in-memory just before the "
         "BTE solve and is not written to a separate output file."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Wigner transport. phono3py's `ms_smm19` plugin (named for Simoncelli-Marzari-
+# Mauri 2019) provides the Wigner kappa solver, accessed via `--wigner` on
+# the CLI. The solver returns the populations / coherences split (kappa_P_RTA
+# / kappa_C) plus the combined kappa_TOT_RTA. There is no QHGK channel in
+# phono3py.
+# ---------------------------------------------------------------------------
+
+
+PHONO3PY_THERMAL_CONDUCTIVITY_WIGNER = StateAdapterSpec(
+    state=THERMAL_CONDUCTIVITY_WIGNER,
+    adapter_name="phono3py",
+    observable_units={"kappa": "W_per_m_per_K"},
+    code_api={"kappa": "thermal_conductivity.kappa_TOT_RTA"},
+    notes=(
+        "Phono3py.run_thermal_conductivity(is_LBTE=False) with the "
+        "WignerRTAKappaSolver (selected via the `--wigner` CLI flag or via "
+        "the `is_wigner_kappa=True` setting) returns the combined Wigner "
+        "kappa as `kappa_TOT_RTA` (or simply `.kappa`)."
+    ),
+)
+
+
+PHONO3PY_THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS = StateAdapterSpec(
+    state=THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
+    adapter_name="phono3py",
+    observable_units={"kappa": "W_per_m_per_K"},
+    code_api={"kappa": "thermal_conductivity.kappa_P_RTA"},
+    notes=(
+        "Population (diagonal-in-band) term of the Wigner kappa. Built by "
+        "summing pair contributions where |ω_s1 - ω_s2| is below the "
+        "DEGENERATE_FREQUENCY_THRESHOLD_THZ in the WignerRTAKappaSolver."
+    ),
+)
+
+
+PHONO3PY_THERMAL_CONDUCTIVITY_WIGNER_COHERENCES = StateAdapterSpec(
+    state=THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,
+    adapter_name="phono3py",
+    observable_units={"kappa": "W_per_m_per_K"},
+    code_api={"kappa": "thermal_conductivity.kappa_C"},
+    notes=(
+        "Coherence (off-diagonal) term of the Wigner kappa, accumulated "
+        "from pair contributions with |ω_s1 - ω_s2| above the degeneracy "
+        "threshold. Decomposed per-mode as `mode_kappa_C` of shape "
+        "(num_sigma, num_temp, num_gp, num_band0, num_band, 6)."
+    ),
+)
+
+
+PHONO3PY_COMPUTE_KAPPA_WIGNER_POPULATIONS = OperationAdapterSpec(
+    operation=compute_kappa_wigner_populations,
+    adapter_name="phono3py",
+    notes=(
+        "Computed inside WignerRTAKappaSolver.finalize alongside the "
+        "coherences term; exposed as the kappa_P_RTA / mode_kappa property."
+    ),
+)
+
+
+PHONO3PY_COMPUTE_KAPPA_WIGNER_COHERENCES = OperationAdapterSpec(
+    operation=compute_kappa_wigner_coherences,
+    adapter_name="phono3py",
+    notes=(
+        "Lorentzian-weighted off-diagonal mode overlap built from the "
+        "velocity operator (vm_by_vm) inside WignerRTAKappaSolver. The "
+        "broadening width is the per-mode total Γ (compute_effective_gamma "
+        "output) — shared with the LBTE chain."
+    ),
+)
+
+
+PHONO3PY_COMBINE_KAPPA_WIGNER = OperationAdapterSpec(
+    operation=combine_kappa_wigner,
+    adapter_name="phono3py",
+    notes=(
+        "WignerRTAKappaSolver.kappa returns self._kappa_P + self._kappa_C "
+        "directly; also surfaced as the `kappa_TOT_RTA` attribute."
     ),
 )
