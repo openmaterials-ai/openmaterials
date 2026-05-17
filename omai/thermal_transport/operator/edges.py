@@ -463,6 +463,10 @@ identity_dm = Operation(
     inputs=(BARE_DYNAMICAL_MATRIX,),
     outputs=(DYNAMICAL_MATRIX,),
     formula=_DM_IDENTITY_FORMULA,
+    # Closed-form pass-through; the heuristic flunks it on shared index
+    # symbols (i, j, q), but the formula is literally LHS = RHS_other_base
+    # and lambdifies trivially.
+    is_executable_in_sympy_override=True,
     description=(
         "Non-polar branch: the downstream DynamicalMatrix is just the bare "
         "Bloch sum, unchanged. This edge exists to keep the DAG acyclic "
@@ -523,6 +527,9 @@ compute_heat_capacity = Operation(
     inputs=(FREQUENCY_STATE, TEMPERATURE_STATE),
     outputs=(HEAT_CAPACITY,),
     formula=_HC_FORMULA,
+    # Closed-form: c(ω,T) = (ℏω)² / (4 k_B T² sinh²(ℏω/2k_BT)).
+    # Heuristic flunks on shared (q, ν) index symbols; formula lambdifies cleanly.
+    is_executable_in_sympy_override=True,
     description="Quantum (Bose-Einstein) per-mode heat capacity at temperature T.",
 )
 
@@ -532,6 +539,8 @@ compute_free_energy = Operation(
     inputs=(FREQUENCY_STATE, TEMPERATURE_STATE),
     outputs=(HELMHOLTZ_FREE_ENERGY,),
     formula=_FREE_ENERGY_FORMULA,
+    # Closed-form: f(ω,T) = ℏω/2 + k_B T log(1 - exp(-ℏω/k_B T)).
+    is_executable_in_sympy_override=True,
     description=(
         "Per-mode Helmholtz free energy at temperature T (sibling of "
         "compute_heat_capacity). Includes the zero-point ℏω/2 contribution "
@@ -545,6 +554,10 @@ compute_entropy = Operation(
     inputs=(FREQUENCY_STATE, TEMPERATURE_STATE),
     outputs=(ENTROPY,),
     formula=_ENTROPY_FORMULA,
+    # Closed-form per-mode entropy. Uses an n_BE Function symbol that is
+    # not directly lambdifiable to numpy; the executor must substitute the
+    # explicit Bose-Einstein form before lambdifying.
+    is_executable_in_sympy_override=True,
     description=(
         "Per-mode entropy at temperature T. Equivalent to -∂f/∂T; the "
         "explicit form uses n_BE(ω,T) and the log of the partition factor."
@@ -557,6 +570,9 @@ compute_internal_energy = Operation(
     inputs=(FREQUENCY_STATE, TEMPERATURE_STATE),
     outputs=(INTERNAL_ENERGY,),
     formula=_INTERNAL_ENERGY_FORMULA,
+    # Closed-form per-mode internal energy: ℏω(1/2 + n_BE(ω/T)).
+    # Same n_BE caveat as entropy.
+    is_executable_in_sympy_override=True,
     description=(
         "Per-mode internal energy at temperature T, ℏω(1/2 + n_BE)."
     ),
@@ -671,6 +687,9 @@ sum_linewidths = Operation(
     inputs=(ANHARMONIC_LINEWIDTH, ISOTOPIC_LINEWIDTH, BOUNDARY_LINEWIDTH),
     outputs=(TOTAL_LINEWIDTH,),
     formula=_SUM_LINEWIDTHS_FORMULA,
+    # Closed-form Matthiessen sum Γ_tot = Γ_anh + Γ_iso + Γ_bnd; the
+    # heuristic flunks on the shared (q, ν) index symbols.
+    is_executable_in_sympy_override=True,
     description=(
         "Matthiessen sum of all scattering channels. The BTE solver "
         "consumes the total; runs that don't model a channel feed zero "
@@ -827,6 +846,8 @@ combine_kappa_wigner = Operation(
             THERMAL_CONDUCTIVITY_WIGNER_COHERENCES),
     outputs=(THERMAL_CONDUCTIVITY_WIGNER,),
     formula=_KAPPA_WIGNER_TOTAL_FORMULA,
+    # Closed-form κ_W = κ_pop + κ_coh; heuristic flunks on shared (α, β).
+    is_executable_in_sympy_override=True,
     description=(
         "Sum of populations + coherences channels into the unified "
         "Wigner κ."

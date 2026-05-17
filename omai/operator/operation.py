@@ -52,6 +52,12 @@ class Operation:
     # auxiliary definitions; mismatches here are real physics disagreement.
     auxiliary_formulas: tuple[sympy.Basic | str, ...] = ()
     description: str = ""
+    # Explicit override for sympy-executability. None ⇒ use the heuristic
+    # (`is_executable_in_sympy_default`): an Eq with disjoint LHS/RHS free
+    # symbols is closed-form. Set to False for edges whose formula passes
+    # the heuristic but whose execution is, by convention, an external
+    # solve. Resolved via the `is_executable_in_sympy` property.
+    is_executable_in_sympy_override: bool | None = None
 
     def __hash__(self) -> int:
         # Identity by name: operations are singletons in the operator layer registry.
@@ -80,6 +86,36 @@ class Operation:
             return self.formula
         # sympy expression / Eq
         return sympy.latex(self.formula)
+
+    @property
+    def is_executable_in_sympy_default(self) -> bool:
+        """Heuristic: an edge is sympy-executable iff its formula is an
+        explicit ``sympy.Eq`` whose LHS and RHS share no free symbols.
+
+        The intuition: ``LHS = RHS`` is an explicit closed-form definition of
+        LHS in terms of *other* quantities iff LHS doesn't appear in RHS.
+        Implicit relations like ``M · F = c · v`` (with F on both sides under
+        the matrix product on LHS) flunk this test and must be solved
+        externally.
+        """
+        if not isinstance(self.formula, sympy.Eq):
+            return False
+        lhs_symbols = self.formula.lhs.free_symbols
+        rhs_symbols = self.formula.rhs.free_symbols
+        return not (lhs_symbols & rhs_symbols)
+
+    @property
+    def is_executable_in_sympy(self) -> bool:
+        """Resolved sympy-executability flag.
+
+        Returns the explicit override if set on the Operation
+        (``is_executable_in_sympy_override``); otherwise falls back to
+        ``is_executable_in_sympy_default``. Consumers (e.g. the representation
+        executor) should read this property rather than the raw override.
+        """
+        if self.is_executable_in_sympy_override is not None:
+            return self.is_executable_in_sympy_override
+        return self.is_executable_in_sympy_default
 
 
 def topological_order(operations: tuple[Operation, ...]) -> list[Operation]:
