@@ -38,6 +38,7 @@ from omai.thermal_transport.operator.edges import (
     compute_dynamical_matrix,
     compute_force_constants_2,
     compute_force_constants_3,
+    compute_free_energy,
     compute_group_velocity,
     compute_heat_capacity,
     compute_kappa_qhgk,
@@ -72,6 +73,7 @@ from omai.thermal_transport.operator.nodes import (
     FREQUENCY_STATE,
     GROUP_VELOCITY,
     HEAT_CAPACITY,
+    HELMHOLTZ_FREE_ENERGY,
     LINEWIDTH,
     MEAN_FREE_DISPLACEMENT_DIRECT,
     MEAN_FREE_DISPLACEMENT_RTA,
@@ -773,4 +775,39 @@ KALDO_CONTRACT_CUMULATIVE_KAPPA_MFP = OperationAdapterSpec(
     adapter_name="kaldo",
     algorithmic_convention_overrides={"binning": "log"},
     notes="Logarithmic Λ-axis binning to span the wide MFP distribution.",
+)
+
+
+# ---------------------------------------------------------------------------
+# Harmonic thermodynamics. kaldo exposes only the per-mode HelmholtzFreeEnergy
+# directly (Phonons.free_energy). Entropy and InternalEnergy are not exposed
+# as separate arrays — users derive them externally — so those specs remain
+# absent.
+# ---------------------------------------------------------------------------
+
+
+KALDO_HELMHOLTZ_FREE_ENERGY = StateAdapterSpec(
+    state=HELMHOLTZ_FREE_ENERGY,
+    adapter_name="kaldo",
+    observable_units={"f": "eV"},
+    code_api={"f": "Phonons.free_energy"},
+    notes=(
+        "Phonons.free_energy: per-mode Helmholtz free energy in eV, shape "
+        "(n_q, n_modes), with the zero-point ℏω/2 contribution included. "
+        "Internally already BZ-averaged: the implementation divides the "
+        "summed cell-level f by n_k_points before returning. Cross-code "
+        "comparison should account for this (kaldo's value is f_qν / N_q "
+        "relative to phonopy's per-mode form)."
+    ),
+)
+
+
+KALDO_COMPUTE_FREE_ENERGY = OperationAdapterSpec(
+    operation=compute_free_energy,
+    adapter_name="kaldo",
+    notes=(
+        "Phonons.free_energy: closed-form F = (ℏω/2) + k_B T ln(1 - "
+        "exp(-ℏω/k_B T)) per mode. Imaginary frequencies are excluded with "
+        "a warning."
+    ),
 )
