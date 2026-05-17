@@ -710,7 +710,7 @@ solve_bte_rta = Operation(
 
 solve_bte_direct = Operation(
     name="solve_bte[bte_solver=direct_inverse]",
-    inputs=(FREQUENCY_STATE, GROUP_VELOCITY, TOTAL_LINEWIDTH, TEMPERATURE_STATE),
+    inputs=(FREQUENCY_STATE, GROUP_VELOCITY, HEAT_CAPACITY, TOTAL_LINEWIDTH, TEMPERATURE_STATE),
     outputs=(MEAN_FREE_DISPLACEMENT_DIRECT,),
     algorithmic_conventions={
         "bte_solver": "direct_inverse",

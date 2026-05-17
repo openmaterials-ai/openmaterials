@@ -160,12 +160,6 @@ _STATE_SYMBOLS: dict[str, frozenset[str]] = {
         r"\Gamma^{anh}",
         r"\Gamma^{iso}",
         r"\Gamma^{bnd}",
-        # The LBTE driving term references `c` (heat capacity); the
-        # operator-layer canonical equation M·F = c·v carries c on the RHS
-        # alongside v. Some adapters consume HeatCapacity directly to evaluate
-        # this; some derive it from frequency + temperature on the fly.
-        # Allow `c` here so the formula reads canonically.
-        "c",
     }),
     "IsotopeAbundances": frozenset({"g", r"g_{provided}"}),
     "PhononDOS": frozenset({"g"}),
