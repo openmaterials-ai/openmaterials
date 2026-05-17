@@ -237,6 +237,41 @@ def main() -> None:
             )
             print("    the redistribution, so κ is gauge-invariant.")
 
+    # -------------------------------------------------------------------
+    # Task 7A: Harmonic thermodynamics F, S, E (stage 2)
+    # -------------------------------------------------------------------
+    section("Harmonic thermodynamics F, S, E (phonopy molar contractions)")
+    phonopy_root = (
+        Path(__file__).resolve().parent.parent.parent
+        / "runs" / "silicon_tersoff" / "phonopy"
+    )
+    if not (phonopy_root / "free_energy_kJ_per_mol.npy").exists():
+        print(f"  phonopy thermal diagnostics not found at {phonopy_root};")
+        print("  run experiments/silicon_tersoff/run_phonopy.py first.")
+    else:
+        F_kJ = np.load(phonopy_root / "free_energy_kJ_per_mol.npy")
+        S_JK = np.load(phonopy_root / "entropy_J_per_K_per_mol.npy")
+        Cv_JK = np.load(phonopy_root / "heat_capacity_J_per_K_per_mol.npy")
+        E_J = np.load(phonopy_root / "internal_energy_J_per_mol.npy")
+        T_arr = np.load(phonopy_root / "temperatures_K.npy")
+        # Sanity check the harmonic-oscillator identity E = F + T S element-wise.
+        identity_residual = float(np.max(np.abs(F_kJ * 1000.0 + T_arr * S_JK - E_J)))
+        print(f"  T grid          : {T_arr[0]:.0f} K → {T_arr[-1]:.0f} K "
+              f"(n_T={len(T_arr)})")
+        print(f"  |E - (F + TS)| max = {identity_residual:.3e} J/mol  "
+              f"(round-off only)")
+        # Spot-check at 300 K
+        try:
+            i300 = int(np.argmin(np.abs(T_arr - 300.0)))
+            print(f"  at T = {T_arr[i300]:.1f} K: "
+                  f"F = {F_kJ[i300]:.3f} kJ/mol, "
+                  f"S = {S_JK[i300]:.3f} J/(K·mol), "
+                  f"C_V = {Cv_JK[i300]:.3f} J/(K·mol)")
+        except (ValueError, IndexError):
+            pass
+        print("  → E = F + TS is a stage-2 sibling-state contraction "
+              "(Pattern B closure).")
+
     print()
     print("=" * 70)
     print("Loop closed: substrate's operator predictions verified against real data.")

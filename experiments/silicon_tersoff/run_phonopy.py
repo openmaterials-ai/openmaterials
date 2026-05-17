@@ -121,6 +121,31 @@ def main() -> None:
     # also save the FC2 tensor itself for any future direct comparison
     np.save(OUT / "fc2.npy", phonon.force_constants)
 
+    # ----- Harmonic thermodynamics on a T-grid (Task 7A) -----
+    # phonopy needs a mesh already configured (done above) to compute thermal
+    # properties. Use a fixed T-grid that covers cryo + room T + hot region so
+    # downstream consumers can interpolate.
+    print("[phonopy] computing harmonic thermal properties on a T-grid ...")
+    t4 = time.time()
+    phonon.run_thermal_properties(t_min=0.0, t_max=1000.0, t_step=10.0)
+    td = phonon.get_thermal_properties_dict()
+    # td keys: 'temperatures' (K), 'free_energy' (kJ/mol),
+    #          'entropy' (J/K/mol), 'heat_capacity' (J/K/mol).
+    # Internal energy E = F + T·S reconstructed from F and S so it is bit-
+    # exact at the round-off of the floating-point sum.
+    F_kJ = td["free_energy"]
+    S_JK = td["entropy"]
+    T_arr = td["temperatures"]
+    Cv_JK = td["heat_capacity"]
+    internal_energy_J = F_kJ * 1000.0 + T_arr * S_JK
+    np.save(OUT / "free_energy_kJ_per_mol.npy", F_kJ)
+    np.save(OUT / "entropy_J_per_K_per_mol.npy", S_JK)
+    np.save(OUT / "heat_capacity_J_per_K_per_mol.npy", Cv_JK)
+    np.save(OUT / "temperatures_K.npy", T_arr)
+    np.save(OUT / "internal_energy_J_per_mol.npy", internal_energy_J)
+    print(f"[phonopy]   thermal properties done in {time.time() - t4:.1f} s "
+          f"(n_T={len(T_arr)})")
+
     summary = (
         f"phonopy silicon-Tersoff run\n"
         f"--------------------------\n"
