@@ -320,7 +320,7 @@
       <span><strong>29</strong> Observables</span>
       <span><strong>9</strong> HiddenStates</span>
       <span><strong>38</strong> edges</span>
-      <span><strong>4</strong> adapters</span>
+      <span><strong>7</strong> adapters</span>
     </span>
   </div>
   <div class="legend">
@@ -462,6 +462,24 @@ const NODE_DATA = {
     "type_parameters": {},
     "description": "Born-Oppenheimer potential of the material; in Phase 1 an opaque label.",
     "specs": {
+      "ase": {
+        "adapter": "ase",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "potential": "ase.Atoms.calc"
+        },
+        "notes": "The Potential is the ASE calculator object attached to the ase.Atoms instance via `atoms.calc = SomeCalculator(...)`. Concrete backends include LAMMPSlib (LAMMPS classical potentials), GPAW (DFT), KIM (OpenKIM portal models), and ML-IP wrappers (MACE, NequIP, Orb, M3GNet, \u2026). Force evaluation is uniform: `atoms.get_forces()` returns (n_atoms, 3) in eV/\u00c5 regardless of the backend. Stress and energy similarly. The ASE protocol is what kaldo, phonopy, and phono3py all consume when their Phonons / Phono3py / Phonopy objects are built from an Atoms instance with `.calc` set."
+      },
+      "gpumd": {
+        "adapter": "gpumd",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "potential": "nep.txt (default) | EAM/Tersoff/SW potential file referenced from run.in"
+        },
+        "notes": "GPUMD's Potential is declared in `run.in` via the `potential` keyword pointing at an on-disk file. Default and most common is NEP (neuro-evolution potential, `nep.txt` written by `nep`'s training run); EAM, Tersoff, SW are also supported as classical alternatives. NEP files carry the trained weights and the elemental-pair cutoffs; the file *is* the Potential."
+      },
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {},
@@ -469,7 +487,16 @@ const NODE_DATA = {
         "code_api": {
           "potential": "ForceConstants(calculator=<ASE calculator>)"
         },
-        "notes": "kaldo consumes an ASE-compatible calculator (LAMMPS+Tersoff, Quantum ESPRESSO, GPAW, or any custom calc.Calculator). Forces are obtained from the calculator during FC finite-difference."
+        "notes": "kaldo consumes an ASE-compatible calculator: the Potential is the `ase.Atoms.calc` object (LAMMPSlib, GPAW, KIM, MACE, \u2026). Canonically described by the `ase` adapter (see ASE_POTENTIAL / ASE_PROVIDE_POTENTIAL). kaldo invokes `atoms.get_forces()` during FC finite-difference."
+      },
+      "lammps": {
+        "adapter": "lammps",
+        "observable_units": {},
+        "observable_convention_overrides": {},
+        "code_api": {
+          "potential": "LAMMPS input script: pair_style <name> + pair_coeff <args>"
+        },
+        "notes": "LAMMPS-native Potential: declared in the input script via `pair_style <name>` (tersoff, eam, sw, snap, reax, \u2026) and the matching `pair_coeff` lines (or external potential files like Si.tersoff, Cu_u3.eam). The Potential is fully specified by the input script + any referenced parameter files. For LAMMPS-via-ASE (in-Python force evaluation through `LAMMPSlib`), see the `ase` adapter instead \u2014 same numerical content, different driving interface."
       },
       "phono3py": {
         "adapter": "phono3py",
@@ -478,7 +505,7 @@ const NODE_DATA = {
         "code_api": {
           "potential": "Phono3py(...) + ASE calculator or DFT force sets"
         },
-        "notes": "phono3py consumes a force source: either an ASE calculator wired through Phono3py.run_force_calculator(), or precomputed forces (VASP/ABINIT/QE FORCE_SETS files)."
+        "notes": "phono3py consumes a force source: either an ASE calculator (canonically described by the `ase` adapter \u2014 see ASE_POTENTIAL), wired through Phono3py.run_force_calculator(), or precomputed forces from VASP/ABINIT/QE FORCE_SETS files."
       },
       "phonopy": {
         "adapter": "phonopy",
@@ -487,7 +514,7 @@ const NODE_DATA = {
         "code_api": {
           "potential": "Phonopy(...) + ASE calculator or FORCE_SETS"
         },
-        "notes": "phonopy consumes either an ASE calculator (via Phonopy.set_forces_from_calculator() or equivalent) or precomputed forces in FORCE_SETS/vasprun.xml format."
+        "notes": "phonopy consumes either an ASE calculator (canonically described by the `ase` adapter \u2014 ASE_POTENTIAL) wired through Phonopy.set_forces_from_calculator(), or precomputed forces in FORCE_SETS / vasprun.xml format."
       }
     },
     "cross_factors": {}
@@ -2583,33 +2610,54 @@ const EDGE_DATA = {
     "auxiliary_latex": [],
     "description": "Source: an opaque label for the chosen potential (Tersoff, PBE, ...).",
     "specs": {
+      "ase": {
+        "adapter": "ase",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Provides Potential via the ASE calculator protocol. The user constructs an `ase.Atoms` instance and assigns `atoms.calc = SomeCalculator(...)`; downstream adapters (kaldo, phonopy, phono3py) consume this Atoms object directly. Algorithmic conventions on FC2/FC3 derivation (symmetry_group, FD displacement magnitude, etc.) remain with the downstream adapter \u2014 ASE is purely the force-evaluation interface."
+      },
+      "gpumd": {
+        "adapter": "gpumd",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Provides Potential by referencing an on-disk potential file in GPUMD's `run.in`. NEP is the canonical GPUMD potential format (trained against DFT energies + forces + virials via the `nep` trainer); classical forms read the same way."
+      },
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
         "algorithmic_convention_overrides": {},
         "discretization_choices": {},
-        "notes": "kaldo runs against an external calculator (LAMMPS, ASE, ML)."
+        "notes": "kaldo provides the Potential through the ASE-calculator protocol (see the `ase` adapter for the canonical description). Concrete backends used in the worked Si example: LAMMPSlib + Tersoff."
+      },
+      "lammps": {
+        "adapter": "lammps",
+        "parameter_units": {},
+        "algorithmic_convention_overrides": {},
+        "discretization_choices": {},
+        "notes": "Provides Potential via LAMMPS's native scripting interface. The Potential's identity (pair_style + parameters) is read from the input script at LAMMPS startup; subsequent force evaluations are all driven by that initial configuration. Per-run reproducibility depends on the parameter files referenced (Si.tersoff, etc.) being version-pinned."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
         "algorithmic_convention_overrides": {},
         "discretization_choices": {},
-        "notes": "Phono3py reads forces from an external DFT/MD code via FORCES_FC* files."
+        "notes": "phono3py provides the Potential either via an attached ASE calculator (canonical: `ase` adapter) or via precomputed FORCES_FC* files from an external DFT/MD code."
       },
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
         "algorithmic_convention_overrides": {},
         "discretization_choices": {},
-        "notes": "Phonopy reads forces from an external DFT / ML code via the FORCE_SETS / FORCE_CONSTANTS files."
+        "notes": "Phonopy provides the Potential either via an attached ASE calculator (canonical: `ase` adapter) or via precomputed FORCE_SETS / FORCE_CONSTANTS files from an external DFT / ML code."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
         "algorithmic_convention_overrides": {},
         "discretization_choices": {},
-        "notes": "ShengBTE consumes a pair of pre-computed force-constant files; the potential is implicit in whatever code produced them (DFT, classical, ML)."
+        "notes": "ShengBTE consumes a pair of pre-computed force-constant files; the Potential is implicit in whatever upstream code produced them. In the openmaterials-ai worked Si example the upstream code is phono3py + LAMMPSlib (canonical: `ase` adapter); ShengBTE itself does not evaluate forces."
       }
     }
   },
@@ -4131,7 +4179,7 @@ const EDGE_DATA = {
     }
   }
 };
-const ADAPTER_COLORS = {"kaldo": "#DC2626", "phono3py": "#059669", "phonopy": "#0891B2", "shengbte": "#7C3AED"};
+const ADAPTER_COLORS = {"ase": "#9CA3AF", "gpumd": "#9CA3AF", "kaldo": "#DC2626", "lammps": "#9CA3AF", "phono3py": "#059669", "phonopy": "#0891B2", "shengbte": "#7C3AED"};
 
 function escapeHtml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

@@ -403,6 +403,69 @@ def main() -> None:
         print("  → cumulative κ converges to κ_LBTE as ω/MFP → ∞ "
               "(stage 5, Pattern A).")
 
+    section("Shared Potential audit (phase-2 P1)")
+    # Discover every provide_potential / POTENTIAL adapter spec across the
+    # representation package and report each one's canonical Potential
+    # source. The phase-2 P1 deliverable: anyone reading the cross-code Si
+    # κ comparison can trace the shared Potential through to the `ase`
+    # adapter (or a sibling native adapter for codes that bypass ASE).
+    import importlib
+    import pkgutil
+
+    import omai.thermal_transport.representation as rep_pkg
+    from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
+
+    pot_state_specs: dict[str, StateAdapterSpec] = {}
+    pot_op_specs: dict[str, OperationAdapterSpec] = {}
+    for info in pkgutil.iter_modules(rep_pkg.__path__):
+        if info.name.startswith("_"):
+            continue
+        mod = importlib.import_module(
+            f"omai.thermal_transport.representation.{info.name}"
+        )
+        for attr in dir(mod):
+            if attr.startswith("_"):
+                continue
+            obj = getattr(mod, attr)
+            if isinstance(obj, StateAdapterSpec) and obj.state.name == "Potential":
+                pot_state_specs[obj.adapter_name] = obj
+            elif (
+                isinstance(obj, OperationAdapterSpec)
+                and obj.operation.name == "provide_potential"
+            ):
+                pot_op_specs[obj.adapter_name] = obj
+
+    print(
+        f"  POTENTIAL StateAdapterSpec coverage ({len(pot_state_specs)} adapters):"
+    )
+    for adapter in sorted(pot_state_specs):
+        spec = pot_state_specs[adapter]
+        api = spec.code_api.get("potential", "<no code_api>")
+        print(f"    {adapter:<10s} : {api}")
+    print()
+    print(
+        f"  provide_potential OperationAdapterSpec coverage "
+        f"({len(pot_op_specs)} adapters):"
+    )
+    for adapter in sorted(pot_op_specs):
+        spec = pot_op_specs[adapter]
+        cites_ase = "ase" in spec.notes.lower()
+        marker = "✓" if cites_ase else "·"
+        print(f"    {adapter:<10s} {marker}  cites the `ase` adapter")
+    print()
+    print(
+        "  → kaldo / phono3py / phonopy / shengbte cite the `ase` adapter "
+        "as the canonical"
+    )
+    print(
+        "    Potential source for the Si-Tersoff worked example; their "
+        "cross-code κ"
+    )
+    print(
+        "    agreement is now traceable to a single, type-encoded "
+        "shared anchor."
+    )
+
     print()
     print("=" * 70)
     print("Loop closed: substrate's operator predictions verified against real data.")

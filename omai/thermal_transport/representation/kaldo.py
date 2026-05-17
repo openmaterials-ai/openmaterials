@@ -384,9 +384,11 @@ KALDO_POTENTIAL = StateAdapterSpec(
     adapter_name="kaldo",
     code_api={"potential": "ForceConstants(calculator=<ASE calculator>)"},
     notes=(
-        "kaldo consumes an ASE-compatible calculator (LAMMPS+Tersoff, "
-        "Quantum ESPRESSO, GPAW, or any custom calc.Calculator). Forces "
-        "are obtained from the calculator during FC finite-difference."
+        "kaldo consumes an ASE-compatible calculator: the Potential is "
+        "the `ase.Atoms.calc` object (LAMMPSlib, GPAW, KIM, MACE, …). "
+        "Canonically described by the `ase` adapter (see "
+        "ASE_POTENTIAL / ASE_PROVIDE_POTENTIAL). kaldo invokes "
+        "`atoms.get_forces()` during FC finite-difference."
     ),
 )
 
@@ -453,7 +455,12 @@ KALDO_PHASE_SPACE_3PH = StateAdapterSpec(
 KALDO_PROVIDE_POTENTIAL = OperationAdapterSpec(
     operation=provide_potential,
     adapter_name="kaldo",
-    notes="kaldo runs against an external calculator (LAMMPS, ASE, ML).",
+    notes=(
+        "kaldo provides the Potential through the ASE-calculator "
+        "protocol (see the `ase` adapter for the canonical description). "
+        "Concrete backends used in the worked Si example: LAMMPSlib "
+        "+ Tersoff."
+    ),
 )
 
 

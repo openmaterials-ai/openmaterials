@@ -299,9 +299,10 @@ PHONO3PY_POTENTIAL = StateAdapterSpec(
     adapter_name="phono3py",
     code_api={"potential": "Phono3py(...) + ASE calculator or DFT force sets"},
     notes=(
-        "phono3py consumes a force source: either an ASE calculator wired "
-        "through Phono3py.run_force_calculator(), or precomputed forces "
-        "(VASP/ABINIT/QE FORCE_SETS files)."
+        "phono3py consumes a force source: either an ASE calculator "
+        "(canonically described by the `ase` adapter — see "
+        "ASE_POTENTIAL), wired through Phono3py.run_force_calculator(), "
+        "or precomputed forces from VASP/ABINIT/QE FORCE_SETS files."
     ),
 )
 
@@ -391,7 +392,11 @@ PHONO3PY_PHASE_SPACE_3PH = StateAdapterSpec(
 PHONO3PY_PROVIDE_POTENTIAL = OperationAdapterSpec(
     operation=provide_potential,
     adapter_name="phono3py",
-    notes="Phono3py reads forces from an external DFT/MD code via FORCES_FC* files.",
+    notes=(
+        "phono3py provides the Potential either via an attached ASE "
+        "calculator (canonical: `ase` adapter) or via precomputed "
+        "FORCES_FC* files from an external DFT/MD code."
+    ),
 )
 
 

@@ -387,9 +387,11 @@ SHENGBTE_PROVIDE_POTENTIAL = OperationAdapterSpec(
     operation=provide_potential,
     adapter_name="shengbte",
     notes=(
-        "ShengBTE consumes a pair of pre-computed force-constant files; the "
-        "potential is implicit in whatever code produced them (DFT, classical, "
-        "ML)."
+        "ShengBTE consumes a pair of pre-computed force-constant files; "
+        "the Potential is implicit in whatever upstream code produced "
+        "them. In the openmaterials-ai worked Si example the upstream "
+        "code is phono3py + LAMMPSlib (canonical: `ase` adapter); "
+        "ShengBTE itself does not evaluate forces."
     ),
 )
 

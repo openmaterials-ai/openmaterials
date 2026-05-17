@@ -152,9 +152,10 @@ PHONOPY_POTENTIAL = StateAdapterSpec(
     adapter_name="phonopy",
     code_api={"potential": "Phonopy(...) + ASE calculator or FORCE_SETS"},
     notes=(
-        "phonopy consumes either an ASE calculator (via "
-        "Phonopy.set_forces_from_calculator() or equivalent) or "
-        "precomputed forces in FORCE_SETS/vasprun.xml format."
+        "phonopy consumes either an ASE calculator (canonically "
+        "described by the `ase` adapter — ASE_POTENTIAL) wired through "
+        "Phonopy.set_forces_from_calculator(), or precomputed forces in "
+        "FORCE_SETS / vasprun.xml format."
     ),
 )
 
@@ -217,8 +218,10 @@ PHONOPY_PROVIDE_POTENTIAL = OperationAdapterSpec(
     operation=provide_potential,
     adapter_name="phonopy",
     notes=(
-        "Phonopy reads forces from an external DFT / ML code via the "
-        "FORCE_SETS / FORCE_CONSTANTS files."
+        "Phonopy provides the Potential either via an attached ASE "
+        "calculator (canonical: `ase` adapter) or via precomputed "
+        "FORCE_SETS / FORCE_CONSTANTS files from an external DFT / ML "
+        "code."
     ),
 )
 
