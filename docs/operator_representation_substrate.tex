@@ -1186,6 +1186,19 @@ the Python prototype has stabilized. A reasonable trigger for this decision is t
 which we have enough concrete examples that designing Lean types in isolation becomes
 counterproductive.
 
+\paragraph{T3-evolve as a pre-Lean realisation.} The sympy chain composer
+(\texttt{omai.operator.compose.compose\_path}) is the in-sympy realisation of the
+Lean commitment in this subsection. Given a path of explicit-equation edges in the
+operator DAG, it substitutes each edge's RHS into the next, producing a composed
+symbolic expression at the path's terminal node. Implicit-equation edges (e.g.,
+\texttt{solve\_bte\_*}) raise \texttt{ImplicitEdgeBoundary} with the partial
+expression attached --- they mark the open research subproblem of composing across
+an implicit BTE solve, which is the natural next step toward a full Lean
+projection. The composer's existence is evidence that the operator-layer formulas
+are not merely documentation: they are mechanically composable today, and the same
+substitution machinery transliterates to a Lean tactic when the projection is
+eventually performed.
+
 \subsection{Provenance equivalence}
 
 We have committed to provenance as essential to identity. This means two states with the same
