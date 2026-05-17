@@ -32,6 +32,8 @@ from omai.thermal_transport.operator.edges import (
     compute_kappa_wigner_populations,
     compute_linewidth,
     compute_phase_space_3phonon,
+    contract_cumulative_kappa_mfp,
+    contract_cumulative_kappa_omega,
     contract_kappa_direct,
     contract_kappa_rta,
     contract_molar_heat_capacity,
@@ -50,6 +52,8 @@ from omai.thermal_transport.operator.nodes import (
     BARE_DYNAMICAL_MATRIX,
     BORN_CHARGES,
     BOUNDARY_LINEWIDTH,
+    CUMULATIVE_KAPPA_MFP,
+    CUMULATIVE_KAPPA_OMEGA,
     DIELECTRIC_TENSOR,
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
@@ -779,5 +783,68 @@ PHONO3PY_COMBINE_KAPPA_WIGNER = OperationAdapterSpec(
     notes=(
         "WignerRTAKappaSolver.kappa returns self._kappa_P + self._kappa_C "
         "directly; also surfaced as the `kappa_TOT_RTA` attribute."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Cumulative κ distributions. phono3py ships a CLI tool `phono3py-kaccum`
+# that post-processes the kappa-mXXXXXX.hdf5 file produced by a thermal-
+# conductivity run; it emits cumulative κ(ω) by default and cumulative κ(Λ)
+# with `--mfp`. There is no in-process array exposed on the
+# thermal_conductivity object — the output is the stdout text dump from the
+# `phono3py-kaccum` CLI.
+# ---------------------------------------------------------------------------
+
+
+PHONO3PY_CUMULATIVE_KAPPA_OMEGA = StateAdapterSpec(
+    state=CUMULATIVE_KAPPA_OMEGA,
+    adapter_name="phono3py",
+    observable_units={"kappa_cum": "W_per_m_per_K"},
+    code_api={"kappa_cum": "phono3py-kaccum kappa-mXXXXXX.hdf5"},
+    notes=(
+        "`phono3py-kaccum` CLI (phono3py.cui.kaccum_script.main): without "
+        "`--mfp`, the default output is cumulative κ binned by phonon "
+        "frequency. Reads `gamma`, `group_velocity`, etc. from the HDF5 "
+        "produced by `run_thermal_conductivity`, then accumulates with a "
+        "tetrahedron-method DOS-style integrator (default; smearing mode "
+        "available via `--smearing`)."
+    ),
+)
+
+
+PHONO3PY_CUMULATIVE_KAPPA_MFP = StateAdapterSpec(
+    state=CUMULATIVE_KAPPA_MFP,
+    adapter_name="phono3py",
+    observable_units={"kappa_cum": "W_per_m_per_K"},
+    code_api={"kappa_cum": "phono3py-kaccum --mfp kappa-mXXXXXX.hdf5"},
+    notes=(
+        "`phono3py-kaccum --mfp`: cumulative κ vs mean-free-path. Uses "
+        "the stored `mean_free_path` field when present in the HDF5, "
+        "otherwise computes |v|/(2Γ) via "
+        "`phono3py.conductivity.utils.get_mfp`."
+    ),
+)
+
+
+PHONO3PY_CONTRACT_CUMULATIVE_KAPPA_OMEGA = OperationAdapterSpec(
+    operation=contract_cumulative_kappa_omega,
+    adapter_name="phono3py",
+    algorithmic_convention_overrides={"binning": "linear"},
+    notes=(
+        "Linear ω-axis binning (uniform sampling between 0 and the maximum "
+        "frequency, controlled by `--num-sampling-points`)."
+    ),
+)
+
+
+PHONO3PY_CONTRACT_CUMULATIVE_KAPPA_MFP = OperationAdapterSpec(
+    operation=contract_cumulative_kappa_mfp,
+    adapter_name="phono3py",
+    algorithmic_convention_overrides={"binning": "linear"},
+    notes=(
+        "phono3py-kaccum's default MFP sampling is linear (uniform "
+        "between min/max |F|), not logarithmic. Cross-code comparison "
+        "with kaldo / ShengBTE (both log-binned) requires re-binning."
     ),
 )
