@@ -501,6 +501,21 @@ PHONO3PY_BORN_CHARGES = StateAdapterSpec(
 )
 
 
+PHONO3PY_BARE_DYNAMICAL_MATRIX = StateAdapterSpec(
+    state=BARE_DYNAMICAL_MATRIX,
+    adapter_name="phono3py",
+    code_api={
+        "D_bare": "DynamicalMatrix.get_dynamical_matrix() with NAC disabled"
+    },
+    notes=(
+        "phono3py inherits the dynamical matrix machinery from phonopy: the "
+        "bare Bloch sum is what `DynamicalMatrix.get_dynamical_matrix()` "
+        "returns when nac_params is None. With NAC enabled the same call "
+        "returns the corrected DM (our DynamicalMatrix node)."
+    ),
+)
+
+
 PHONO3PY_DIELECTRIC_TENSOR = StateAdapterSpec(
     state=DIELECTRIC_TENSOR,
     adapter_name="phono3py",

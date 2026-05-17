@@ -570,6 +570,20 @@ KALDO_BORN_CHARGES = StateAdapterSpec(
 )
 
 
+KALDO_BARE_DYNAMICAL_MATRIX = StateAdapterSpec(
+    state=BARE_DYNAMICAL_MATRIX,
+    adapter_name="kaldo",
+    code_api={"D_bare": "HarmonicWithQ(q)._dynmat_fourier"},
+    notes=(
+        "kaldo builds the bare Bloch sum inside HarmonicWithQ as "
+        "`_dynmat_fourier` (private attribute). The NAC long-range piece is "
+        "added inside `calculate_eigensystem` only when `is_nac=True` "
+        "(triggered by atoms.info['dielectric']); the corrected DM is what "
+        "subsequent operators consume."
+    ),
+)
+
+
 KALDO_DIELECTRIC_TENSOR = StateAdapterSpec(
     state=DIELECTRIC_TENSOR,
     adapter_name="kaldo",
