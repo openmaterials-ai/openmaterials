@@ -135,12 +135,20 @@ These came out of the spec / code reviews during Task 3 (sub-tasks
 
 ## Representation layer
 
-- **The empirical FC3 0.1 factor** in
-  `experiments/silicon_shengbte/convert.py` is still unexplained. Trace
-  it through phono3py's internal Φ³ storage vs ShengBTE's
-  per-displacement scaling. A clean explanation either (a) adds a new
-  convention value to the FC3 state or (b) reveals a units bug
-  somewhere; either way the empirical fudge factor should go.
+- **The FC3 0.1 factor (resolved 2026-05-17).** Traced to a hidden
+  nm/Å unit mix in ShengBTE: `shengbte/Src/gruneisen.f90:44`
+  documents the FC3-related unit chain as
+  `nm·eV/(amu·Å³·THz²)` — nm in the numerator with Å³ in the
+  denominator, an implicit 10× factor (1 nm = 10 Å). For the same
+  physical Φ³, ShengBTE expects values 0.1× the natural eV/Å³ form.
+  Now encoded as the `fc3_normalization` convention on
+  `ForceConstants[order=3]` (canonical = `eV_per_A3`, ShengBTE override
+  = `eV_per_A2_per_nm` with convention_factor 0.1).
+  `inter_representation_factor(phono3py_or_kaldo_spec,
+  shengbte_spec, "phi")` returns 0.1 mechanically.
+  `experiments/silicon_shengbte/convert.py` now derives the factor
+  from the framework instead of hardcoding it. Open kaldo PR (closed)
+  for `save_third_order_matrix`: `gb/fix-shengbte-fc3-factor` branch.
 
 - **kaldo's `Phonons.free_energy` is BZ-averaged** (divided internally
   by `n_k_points`), while the operator layer's canonical

@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from omai.operator.dimensions import (
     Dimension,
     DIMENSIONLESS,
+    ENERGY_PER_LENGTH_CUBED,
     ENERGY_PER_MOLE,
     ENERGY_PER_TEMPERATURE,
     ENERGY_PER_TEMPERATURE_PER_MOLE,
@@ -72,6 +73,16 @@ J_PER_MOL = Unit("J_per_mol", ENERGY_PER_MOLE, 1.0)
 KJ_PER_MOL = Unit("kJ_per_mol", ENERGY_PER_MOLE, 1000.0)
 
 
+# Canonical FC3 unit: eV/Å³ (the "physicist's" form of the third potential
+# derivative). kaldo / phono3py store FC3 numerically in eV/Å³ — this matches
+# the canonical. ShengBTE's reader implicitly uses a mixed-dimension form
+# eV/(Å²·nm) (= 0.1 × eV/Å³), captured at the convention layer on the FC3
+# state, not as a separate unit here. See ForceConstants[order=3] in
+# omai/thermal_transport/operator/nodes.py for the `fc3_normalization`
+# convention that handles the 10× cross-code factor.
+EV_PER_A3 = Unit("eV_per_A3", ENERGY_PER_LENGTH_CUBED, 1.0)
+
+
 # Dimensionless quantities (Born charges in units of e, dielectric tensor).
 DIMENSIONLESS_UNIT = Unit("dimensionless", DIMENSIONLESS, 1.0)
 
@@ -90,6 +101,7 @@ UNITS: dict[str, Unit] = {
         W_PER_M_PER_K,
         J_PER_MOL,
         KJ_PER_MOL,
+        EV_PER_A3,
         DIMENSIONLESS_UNIT,
     ]
 }

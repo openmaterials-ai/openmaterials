@@ -322,10 +322,13 @@ KALDO_FORCE_CONSTANTS_2 = StateAdapterSpec(
 KALDO_FORCE_CONSTANTS_3 = StateAdapterSpec(
     state=FORCE_CONSTANTS_3,
     adapter_name="kaldo",
+    observable_units={"phi": "eV_per_A3"},
+    # canonical fc3_normalization = "eV_per_A3"; no override needed.
     code_api={"phi": "ForceConstants.third.value"},
     notes=(
         "kaldo stores FC3 as a sparse COO array under ForceConstants.third.value, "
-        "in eV/Å³."
+        "numerically in eV/Å³ — matches the operator-layer canonical "
+        "`fc3_normalization=eV_per_A3` value."
     ),
 )
 

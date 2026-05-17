@@ -64,14 +64,22 @@ def write_fc2(ph3: Phono3py, out_path: Path) -> None:
     print(f"wrote {out_path} ({n_phonon}×{n_phonon} pairs)")
 
 
-# Empirical normalization factor between phono3py's `fc3` storage convention
-# and ShengBTE's expected eV/Å³. Determined by ingestion: with this factor,
-# ShengBTE's κ(Si, 300K) reproduces phono3py's and kaldo's values to within
-# the broadening-scheme noise (~15%). Without it, ShengBTE's κ is 100× too
-# small, consistent with FC3 being 10× too large (since |V₃|² → 100× and
-# κ ∝ 1/|V₃|²). The exact unit chain is not yet pinned down, but the codes
-# converge on the divided value. Track in docs/skills/ingest_code.md.
-_FC3_PHONO3PY_TO_SHENGBTE = 0.1
+# The phono3py → ShengBTE FC3 conversion factor is derived from the operator
+# layer's `fc3_normalization` convention on ForceConstants[order=3] rather
+# than hardcoded. ShengBTE's gruneisen.f90:44 documents its FC3 unit chain
+# as "nm·eV/(amu·Å³·THz²)" (nm in the numerator, Å³ in the denominator),
+# so for the same physical Φ³ the values ShengBTE expects are 0.1× the
+# natural eV/Å³ form. The shengbte adapter spec overrides the convention to
+# "eV_per_A2_per_nm"; the convention_factor 0.1 on the FC3 operator state
+# then makes `inter_representation_factor(phono3py_spec, shengbte_spec,
+# "phi")` return 0.1 mechanically. See nodes.py ForceConstants[order=3].
+from omai.representation.adapter import inter_representation_factor
+from omai.thermal_transport.representation.phono3py import PHONO3PY_FORCE_CONSTANTS_3
+from omai.thermal_transport.representation.shengbte import SHENGBTE_FORCE_CONSTANTS_3
+
+_FC3_PHONO3PY_TO_SHENGBTE = inter_representation_factor(
+    PHONO3PY_FORCE_CONSTANTS_3, SHENGBTE_FORCE_CONSTANTS_3, "phi"
+)
 
 
 def write_fc3(ph3: Phono3py, out_path: Path, tol: float = 1e-10) -> None:

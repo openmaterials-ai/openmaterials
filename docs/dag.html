@@ -625,8 +625,17 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
+    "canonical_conventions": {
+      "fc3_normalization": "eV_per_A3"
+    },
+    "convention_factors": [
+      {
+        "convention": "fc3_normalization",
+        "value": "eV_per_A2_per_nm",
+        "field": "phi",
+        "factor": 0.1
+      }
+    ],
     "type_parameters": {
       "order": "3"
     },
@@ -634,33 +643,51 @@ const NODE_DATA = {
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
-        "observable_units": {},
+        "observable_units": {
+          "phi": "eV_per_A3"
+        },
         "observable_convention_overrides": {},
         "code_api": {
           "phi": "ForceConstants.third.value"
         },
-        "notes": "kaldo stores FC3 as a sparse COO array under ForceConstants.third.value, in eV/\u00c5\u00b3."
+        "notes": "kaldo stores FC3 as a sparse COO array under ForceConstants.third.value, numerically in eV/\u00c5\u00b3 \u2014 matches the operator-layer canonical `fc3_normalization=eV_per_A3` value."
       },
       "phono3py": {
         "adapter": "phono3py",
-        "observable_units": {},
+        "observable_units": {
+          "phi": "eV_per_A3"
+        },
         "observable_convention_overrides": {},
         "code_api": {
           "phi": "Phono3py.fc3"
         },
-        "notes": "Phono3py.fc3: ndarray of shape (n_supercell_atoms, n_supercell_atoms, n_supercell_atoms, 3, 3, 3) in eV/\u00c5\u00b3. Built by Phono3py.produce_fc3()."
+        "notes": "Phono3py.fc3: ndarray of shape (n_supercell_atoms, n_supercell_atoms, n_supercell_atoms, 3, 3, 3) numerically in eV/\u00c5\u00b3 \u2014 matches the operator-layer canonical `fc3_normalization=eV_per_A3` value. Built by Phono3py.produce_fc3()."
       },
       "shengbte": {
         "adapter": "shengbte",
-        "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_units": {
+          "phi": "eV_per_A3"
+        },
+        "observable_convention_overrides": {
+          "fc3_normalization": "eV_per_A2_per_nm"
+        },
         "code_api": {
           "phi": "FORCE_CONSTANTS_3RD"
         },
-        "notes": "Read from the FORCE_CONSTANTS_3RD file (sparse triplet format described in the ShengBTE README). Typically produced by thirdorder.py or thirdorder_espresso.py. In eV/\u00c5\u00b3."
+        "notes": "Read from the FORCE_CONSTANTS_3RD file (sparse triplet format described in the ShengBTE README). The file's documentation claims eV/\u00c5\u00b3 but the reader's internal unit chain (per gruneisen.f90:44) is eV/(\u00c5\u00b2\u00b7nm), so the values ShengBTE actually consumes are 0.1\u00d7 the natural eV/\u00c5\u00b3 form. Captured at the convention layer via the fc3_normalization override above. Typically produced by thirdorder.py or thirdorder_espresso.py."
       }
     },
-    "cross_factors": {}
+    "cross_factors": {
+      "kaldo \u2192 phono3py": {
+        "phi": 1.0
+      },
+      "kaldo \u2192 shengbte": {
+        "phi": 0.1
+      },
+      "phono3py \u2192 shengbte": {
+        "phi": 0.1
+      }
+    }
   },
   "BornCharges": {
     "name": "BornCharges",

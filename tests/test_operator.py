@@ -229,6 +229,43 @@ def test_linewidth_convention_factor_table():
     ) in factors
 
 
+def test_fc3_state_has_fc3_normalization_convention():
+    """The FC3 state declares fc3_normalization with canonical=eV_per_A3 and a
+    convention_factor of 0.1 for ShengBTE's eV_per_A2_per_nm form."""
+    from omai.thermal_transport.operator import FORCE_CONSTANTS_3
+
+    assert "fc3_normalization" in FORCE_CONSTANTS_3.canonical_conventions
+    assert FORCE_CONSTANTS_3.canonical_conventions["fc3_normalization"] == "eV_per_A3"
+    assert (
+        "fc3_normalization", "eV_per_A2_per_nm", "phi", 0.1,
+    ) in FORCE_CONSTANTS_3.convention_factors
+
+
+def test_fc3_inter_representation_factor_recovers_empirical_0_1():
+    """phono3py and kaldo store FC3 in canonical eV_per_A3; ShengBTE's adapter
+    spec overrides the convention to eV_per_A2_per_nm. inter_representation_factor
+    should mechanically derive the empirical 0.1 the silicon-Tersoff
+    cross-code comparison required for κ agreement."""
+    from omai.representation.adapter import inter_representation_factor
+    from omai.thermal_transport.representation.kaldo import KALDO_FORCE_CONSTANTS_3
+    from omai.thermal_transport.representation.phono3py import (
+        PHONO3PY_FORCE_CONSTANTS_3,
+    )
+    from omai.thermal_transport.representation.shengbte import (
+        SHENGBTE_FORCE_CONSTANTS_3,
+    )
+
+    assert inter_representation_factor(
+        PHONO3PY_FORCE_CONSTANTS_3, SHENGBTE_FORCE_CONSTANTS_3, "phi"
+    ) == 0.1
+    assert inter_representation_factor(
+        KALDO_FORCE_CONSTANTS_3, SHENGBTE_FORCE_CONSTANTS_3, "phi"
+    ) == 0.1
+    assert inter_representation_factor(
+        KALDO_FORCE_CONSTANTS_3, PHONO3PY_FORCE_CONSTANTS_3, "phi"
+    ) == 1.0
+
+
 def test_compute_force_constants_2_carries_formula():
     """The operator layer's operator promise: every edge carries a formula."""
     assert compute_force_constants_2.formula is not None

@@ -310,11 +310,27 @@ SHENGBTE_FORCE_CONSTANTS_2 = StateAdapterSpec(
 SHENGBTE_FORCE_CONSTANTS_3 = StateAdapterSpec(
     state=FORCE_CONSTANTS_3,
     adapter_name="shengbte",
+    observable_units={"phi": "eV_per_A3"},
+    observable_convention_overrides={
+        # ShengBTE's reader silently uses an `eV/(Å²·nm)` interpretation
+        # for FC3 values (documented in gruneisen.f90:44 as
+        # "nm·eV/(amu·Å³·THz²)"). For the same physical FC3 in eV/Å³,
+        # ShengBTE expects values 10× smaller numerically. The
+        # `fc3_normalization` convention on ForceConstants[order=3] carries
+        # this; the convention_factor 0.1 then drives the cross-code
+        # `inter_representation_factor(phono3py_or_kaldo_spec,
+        # this_spec, "phi") == 0.1`.
+        "fc3_normalization": "eV_per_A2_per_nm",
+    },
     code_api={"phi": "FORCE_CONSTANTS_3RD"},
     notes=(
         "Read from the FORCE_CONSTANTS_3RD file (sparse triplet format described "
-        "in the ShengBTE README). Typically produced by thirdorder.py or "
-        "thirdorder_espresso.py. In eV/Å³."
+        "in the ShengBTE README). The file's documentation claims eV/Å³ but "
+        "the reader's internal unit chain (per gruneisen.f90:44) is "
+        "eV/(Å²·nm), so the values ShengBTE actually consumes are 0.1× the "
+        "natural eV/Å³ form. Captured at the convention layer via the "
+        "fc3_normalization override above. Typically produced by "
+        "thirdorder.py or thirdorder_espresso.py."
     ),
 )
 

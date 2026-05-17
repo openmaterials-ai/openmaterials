@@ -77,6 +77,26 @@ FORCE_CONSTANTS_3 = Observable(
     name="ForceConstants[order=3]",
     fields=(Field("phi", ENERGY_PER_LENGTH_CUBED, indices=("i", "j", "k", "R", "R'")),),
     type_parameters={"order": 3},
+    canonical_conventions={
+        # Canonical: the natural ∂³V/∂u³ in eV/Å³ — the form kaldo and
+        # phono3py store. ShengBTE's reader silently uses a mixed-dimension
+        # form (see convention_factors below) that is numerically 10× smaller
+        # for the same physical quantity; declare its convention value at
+        # the ShengBTE adapter's spec to mechanise the cross-code factor.
+        "fc3_normalization": "eV_per_A3",
+    },
+    convention_factors=(
+        # ShengBTE's gruneisen.f90:44 documents the FC3-related unit chain
+        # as "nm·eV/(amu·Å³·THz²)" — nm in the numerator and Å³ in the
+        # denominator. Since 1 nm = 10 Å, 1 eV/Å³ = 10 eV/(Å²·nm), so the
+        # value ShengBTE implicitly expects is 0.1× the canonical eV/Å³
+        # value. processes.f90's comment claims "(eV/Å³)²·…" but the
+        # numerical implementation follows gruneisen.f90; the empirical
+        # cross-code agreement on Si-Tersoff (3×3×3 and 2×2×2 FC3
+        # supercells) confirms the factor is exactly 0.1, independent of
+        # supercell size.
+        ("fc3_normalization", "eV_per_A2_per_nm", "phi", 0.1),
+    ),
 )
 
 BORN_CHARGES = Observable(

@@ -257,10 +257,14 @@ PHONO3PY_FORCE_CONSTANTS_2 = StateAdapterSpec(
 PHONO3PY_FORCE_CONSTANTS_3 = StateAdapterSpec(
     state=FORCE_CONSTANTS_3,
     adapter_name="phono3py",
+    observable_units={"phi": "eV_per_A3"},
+    # canonical fc3_normalization = "eV_per_A3"; no override needed.
     code_api={"phi": "Phono3py.fc3"},
     notes=(
         "Phono3py.fc3: ndarray of shape (n_supercell_atoms, n_supercell_atoms, "
-        "n_supercell_atoms, 3, 3, 3) in eV/Å³. Built by Phono3py.produce_fc3()."
+        "n_supercell_atoms, 3, 3, 3) numerically in eV/Å³ — matches the "
+        "operator-layer canonical `fc3_normalization=eV_per_A3` value. "
+        "Built by Phono3py.produce_fc3()."
     ),
 )
 
