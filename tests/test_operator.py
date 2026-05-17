@@ -296,6 +296,51 @@ def test_validate_dag_catches_rogue_free_symbol_in_formula():
     assert any("Z_rogue" in e for e in errors)
 
 
+def test_validate_dag_catches_lhs_index_rank_mismatch():
+    """A synthetic edge whose Eq LHS has a different number of indices than
+    the output state's first field is flagged by the LHS-index check."""
+    import sympy as sp
+    from omai.operator import Operation, validate_dag
+    from omai.thermal_transport.operator.nodes import (
+        FREQUENCY_STATE,
+        POTENTIAL,
+    )
+
+    # FREQUENCY_STATE's field "omega" has indices ("q", "nu") — rank 2.
+    # Build an edge whose formula's LHS is rank 1 (single index).
+    base = sp.IndexedBase(r"\omega")
+    bad = Operation(
+        name="bad_rank_edge",
+        inputs=(POTENTIAL,),
+        outputs=(FREQUENCY_STATE,),
+        formula=sp.Eq(base[sp.Symbol("q")], sp.Symbol("V_{provided}")),
+    )
+    errors = validate_dag((POTENTIAL, FREQUENCY_STATE), (bad,))
+    assert any(
+        "bad_rank_edge" in e and "indices" in e.lower() and "1" in e and "2" in e
+        for e in errors
+    ), f"expected LHS-rank violation; got: {errors}"
+
+
+def test_validate_dag_catches_rogue_symbol_in_auxiliary_formula():
+    """A rogue symbol in an `auxiliary_formulas` entry is flagged just like
+    one in the main formula."""
+    import sympy as sp
+    from omai.operator import Operation, validate_dag
+    from omai.thermal_transport.operator.nodes import POTENTIAL, FORCE_CONSTANTS_2
+
+    rogue = sp.Symbol("Q_rogue_in_aux")
+    bad = Operation(
+        name="bad_aux_edge",
+        inputs=(POTENTIAL,),
+        outputs=(FORCE_CONSTANTS_2,),
+        formula=sp.Eq(sp.Symbol("Phi2_lhs"), sp.Symbol("V_{provided}")),
+        auxiliary_formulas=(sp.Eq(sp.Symbol("Phi2_lhs"), rogue),),
+    )
+    errors = validate_dag((POTENTIAL, FORCE_CONSTANTS_2), (bad,))
+    assert any("Q_rogue_in_aux" in e for e in errors)
+
+
 def test_validator_flags_missing_gauge_group():
     """A scaffolding HiddenState without a gauge_group is rejected."""
     from omai.operator import validate_dag
