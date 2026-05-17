@@ -278,6 +278,24 @@ def test_symbolic_validates_clean():
     assert errors == [], f"discipline violations:\n  " + "\n  ".join(errors)
 
 
+def test_validate_dag_catches_rogue_free_symbol_in_formula():
+    """A synthetic edge that uses a sympy symbol not in any input state must
+    be flagged by validate_dag."""
+    import sympy as sp
+    from omai.operator import Operation, validate_dag
+    from omai.thermal_transport.operator.nodes import POTENTIAL, FORCE_CONSTANTS_2
+
+    rogue = sp.Symbol("Z_rogue")
+    bad = Operation(
+        name="bad_edge",
+        inputs=(POTENTIAL,),
+        outputs=(FORCE_CONSTANTS_2,),
+        formula=sp.Eq(sp.Symbol("Phi2_lhs"), rogue),
+    )
+    errors = validate_dag((POTENTIAL, FORCE_CONSTANTS_2), (bad,))
+    assert any("Z_rogue" in e for e in errors)
+
+
 def test_validator_flags_missing_gauge_group():
     """A scaffolding HiddenState without a gauge_group is rejected."""
     from omai.operator import validate_dag
