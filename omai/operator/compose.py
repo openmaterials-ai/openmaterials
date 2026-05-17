@@ -1,9 +1,12 @@
 """Symbolic composition of operator-layer edges.
 
-Walks a path of edges in topological order. For each explicit-equation
-edge, substitutes the RHS of the previous edge's formula into the LHS
-of the next. Bails at any implicit edge with a structured note pointing
-at the boundary.
+Walks a path of edges in topological order, accumulating a single sympy
+expression for the terminal node. For each explicit-equation edge, the
+previous accumulator (the substituted RHS up to that point) is
+substituted into the current edge's RHS at every occurrence of the
+previous edge's LHS. The accumulator becomes the substituted RHS, and
+the walk continues. Bails at any implicit edge with a structured note
+pointing at the boundary.
 
 This is the in-sympy realisation of the Lean commitment: given a path
 of explicit-equation edges, ``compose_path`` produces a single symbolic
