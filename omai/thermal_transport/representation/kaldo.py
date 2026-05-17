@@ -913,11 +913,11 @@ KALDO_PROVIDE_ISOTOPE_ABUNDANCES = OperationAdapterSpec(
 KALDO_COMPUTE_ISOTOPE_SCATTERING = OperationAdapterSpec(
     operation=compute_isotope_scattering,
     adapter_name="kaldo",
-    algorithmic_convention_overrides={"delta_broadening": "gaussian"},
     notes=(
         "kaldo.controllers.isotopic.compute_isotopic_bw evaluates the Tamura "
         "expression with the same Gaussian δ as the anharmonic linewidth "
-        "(width set by third_bandwidth or the adaptive scheme when None)."
+        "(width set by third_bandwidth or the adaptive scheme when None); "
+        "matches the canonical delta_broadening=gaussian, no override."
     ),
 )
 
