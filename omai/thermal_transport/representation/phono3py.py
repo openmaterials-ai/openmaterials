@@ -687,8 +687,8 @@ PHONO3PY_COMPUTE_BOUNDARY_SCATTERING = OperationAdapterSpec(
         "scattering: Γ_boundary = |v|·1e6·Å / (4π·L), with L the "
         "`boundary_mfp` parameter (in micrometres). The factor of 1/(4π) "
         "is phono3py's bulk-boundary convention — distinct from kaldo's "
-        "1/L and ShengBTE's |v|/L; cross-code comparison at this Γ "
-        "requires the convention factor."
+        "2|v|/L (Casimir + Matthiessen sum) and ShengBTE's |v|/L; "
+        "cross-code comparison at this Γ requires the convention factor."
     ),
 )
 
