@@ -563,6 +563,25 @@ In all three patterns, \emph{edges carry the formulas} and \emph{states carry
 the typed places}; the patterns differ only in which nodes are shared and
 which are distinct.
 
+\paragraph{Two-tier validation.} Validation runs at two layers.
+\emph{Declarations} are checked at module load: \texttt{validate\_dag} on
+\texttt{NODES} and \texttt{EDGES} verifies the gauge-discipline invariants
+(every \textsc{HiddenState} declares its gauge group and gauge-invariant
+contractions; convention names referenced by adapters exist on their
+states; no cycles), and now also the sympy-layer invariants (every
+edge's \texttt{formula.free\_symbols} are derivable from its inputs and
+parameters; LHS indices match the output state's field; auxiliary
+formulas close over the main formula's vocabulary). \emph{Cross-code
+data} is checked at comparison time: \texttt{compare\_operators} on a
+pair of \texttt{StateAdapterSpec}s verifies that two codes are claiming
+the same operator (compatible units, canonicalisable conventions), and
+\texttt{compare\_representations} on a pair of \texttt{Representation}s
+applies the spec-derived conversion and emits the five-status
+\texttt{RepresentationComparisonResult}. Mismatches at the declaration
+layer are caught before any code runs; mismatches at the data layer are
+caught at the operator$\leftrightarrow$representation boundary, never
+silently.
+
 \subsection{Discretization scheme}
 
 A discretization scheme $\Sigma$ is a finite tuple of parameters $(N_1, \ldots; h_1, \ldots)$
