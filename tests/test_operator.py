@@ -590,23 +590,9 @@ def test_compute_internal_energy_inputs():
     )
 
 
-def test_molar_thermo_contraction_signatures():
-    from omai.thermal_transport.operator import (
-        MOLAR_ENTROPY,
-        MOLAR_HELMHOLTZ_FREE_ENERGY,
-        MOLAR_INTERNAL_ENERGY,
-        contract_molar_entropy,
-        contract_molar_free_energy,
-        contract_molar_internal_energy,
-    )
-
-    pairs = [
-        (contract_molar_free_energy, MOLAR_HELMHOLTZ_FREE_ENERGY),
-        (contract_molar_entropy, MOLAR_ENTROPY),
-        (contract_molar_internal_energy, MOLAR_INTERNAL_ENERGY),
-    ]
-    for op, target in pairs:
-        assert tuple(s.name for s in op.outputs) == (target.name,)
+# (test_molar_thermo_contractions above already asserts both inputs and outputs
+# for the three molar contractions via State-object identity — strictly stronger
+# than a name-string output check.)
 
 
 # -- Stage 3: linewidth channels -----------------------------------------
@@ -631,27 +617,29 @@ def test_compute_anharmonic_linewidth_inputs():
 
 def test_compute_isotope_scattering_inputs():
     from omai.thermal_transport.operator import (
+        EIGENVECTORS,
+        FREQUENCY_STATE,
+        ISOTOPE_ABUNDANCES,
         ISOTOPIC_LINEWIDTH,
         compute_isotope_scattering,
     )
 
-    assert "IsotopeAbundances" in {s.name for s in compute_isotope_scattering.inputs}
-    assert "Frequency" in {s.name for s in compute_isotope_scattering.inputs}
-    assert tuple(s.name for s in compute_isotope_scattering.outputs) == (
-        ISOTOPIC_LINEWIDTH.name,
-    )
+    assert set(compute_isotope_scattering.inputs) == {
+        FREQUENCY_STATE, EIGENVECTORS, ISOTOPE_ABUNDANCES,
+    }
+    assert compute_isotope_scattering.outputs == (ISOTOPIC_LINEWIDTH,)
 
 
 def test_compute_boundary_scattering_inputs():
     from omai.thermal_transport.operator import (
         BOUNDARY_LINEWIDTH,
+        FREQUENCY_STATE,
+        GROUP_VELOCITY,
         compute_boundary_scattering,
     )
 
-    assert "GroupVelocity" in {s.name for s in compute_boundary_scattering.inputs}
-    assert tuple(s.name for s in compute_boundary_scattering.outputs) == (
-        BOUNDARY_LINEWIDTH.name,
-    )
+    assert set(compute_boundary_scattering.inputs) == {FREQUENCY_STATE, GROUP_VELOCITY}
+    assert compute_boundary_scattering.outputs == (BOUNDARY_LINEWIDTH,)
 
 
 def test_sum_linewidths_produces_total():
@@ -663,9 +651,10 @@ def test_sum_linewidths_produces_total():
         sum_linewidths,
     )
 
-    inputs = {s.name for s in sum_linewidths.inputs}
-    assert {ANHARMONIC_LINEWIDTH.name, ISOTOPIC_LINEWIDTH.name, BOUNDARY_LINEWIDTH.name} <= inputs
-    assert tuple(s.name for s in sum_linewidths.outputs) == (TOTAL_LINEWIDTH.name,)
+    assert set(sum_linewidths.inputs) == {
+        ANHARMONIC_LINEWIDTH, ISOTOPIC_LINEWIDTH, BOUNDARY_LINEWIDTH,
+    }
+    assert sum_linewidths.outputs == (TOTAL_LINEWIDTH,)
 
 
 def test_solve_bte_consumes_total_linewidth():
@@ -700,30 +689,36 @@ def test_provide_isotope_abundances_is_nullary():
 
 def test_compute_kappa_wigner_populations_signature():
     from omai.thermal_transport.operator import (
+        GROUP_VELOCITY,
+        HEAT_CAPACITY,
+        MEAN_FREE_DISPLACEMENT_DIRECT,
         THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
         compute_kappa_wigner_populations,
     )
 
-    inputs = {s.name for s in compute_kappa_wigner_populations.inputs}
-    assert "HeatCapacity" in inputs
-    assert "GroupVelocity" in inputs
-    assert tuple(s.name for s in compute_kappa_wigner_populations.outputs) == (
-        THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS.name,
+    assert set(compute_kappa_wigner_populations.inputs) == {
+        HEAT_CAPACITY, GROUP_VELOCITY, MEAN_FREE_DISPLACEMENT_DIRECT,
+    }
+    assert compute_kappa_wigner_populations.outputs == (
+        THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
     )
 
 
 def test_compute_kappa_wigner_coherences_signature():
     from omai.thermal_transport.operator import (
+        FREQUENCY_STATE,
+        GROUP_VELOCITY,
+        HEAT_CAPACITY,
         THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,
+        TOTAL_LINEWIDTH,
         compute_kappa_wigner_coherences,
     )
 
-    inputs = {s.name for s in compute_kappa_wigner_coherences.inputs}
-    assert "HeatCapacity" in inputs
-    assert "Frequency" in inputs
-    assert "GroupVelocity" in inputs
-    assert tuple(s.name for s in compute_kappa_wigner_coherences.outputs) == (
-        THERMAL_CONDUCTIVITY_WIGNER_COHERENCES.name,
+    assert set(compute_kappa_wigner_coherences.inputs) == {
+        HEAT_CAPACITY, FREQUENCY_STATE, GROUP_VELOCITY, TOTAL_LINEWIDTH,
+    }
+    assert compute_kappa_wigner_coherences.outputs == (
+        THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,
     )
 
 
@@ -745,16 +740,23 @@ def test_combine_kappa_wigner_sums_populations_and_coherences():
 
 def test_compute_kappa_qhgk_signature():
     from omai.thermal_transport.operator import (
+        FREQUENCY_STATE,
+        GROUP_VELOCITY,
+        HEAT_CAPACITY,
+        TEMPERATURE_STATE,
         THERMAL_CONDUCTIVITY_QHGK,
+        TOTAL_LINEWIDTH,
         compute_kappa_qhgk,
     )
 
-    inputs = {s.name for s in compute_kappa_qhgk.inputs}
-    for required in ("HeatCapacity", "Frequency", "GroupVelocity"):
-        assert required in inputs, f"compute_kappa_qhgk should consume {required}"
-    assert tuple(s.name for s in compute_kappa_qhgk.outputs) == (
-        THERMAL_CONDUCTIVITY_QHGK.name,
-    )
+    assert set(compute_kappa_qhgk.inputs) == {
+        HEAT_CAPACITY,
+        FREQUENCY_STATE,
+        GROUP_VELOCITY,
+        TOTAL_LINEWIDTH,
+        TEMPERATURE_STATE,
+    }
+    assert compute_kappa_qhgk.outputs == (THERMAL_CONDUCTIVITY_QHGK,)
 
 
 # -- Stage 5: cumulative κ ----------------------------------------------
@@ -763,27 +765,32 @@ def test_compute_kappa_qhgk_signature():
 def test_contract_cumulative_kappa_omega_signature():
     from omai.thermal_transport.operator import (
         CUMULATIVE_KAPPA_OMEGA,
+        FREQUENCY_STATE,
+        GROUP_VELOCITY,
+        HEAT_CAPACITY,
+        MEAN_FREE_DISPLACEMENT_DIRECT,
         contract_cumulative_kappa_omega,
     )
 
-    inputs = {s.name for s in contract_cumulative_kappa_omega.inputs}
-    assert "HeatCapacity" in inputs
-    assert "Frequency" in inputs
-    assert "GroupVelocity" in inputs
-    assert tuple(s.name for s in contract_cumulative_kappa_omega.outputs) == (
-        CUMULATIVE_KAPPA_OMEGA.name,
-    )
+    assert set(contract_cumulative_kappa_omega.inputs) == {
+        HEAT_CAPACITY,
+        FREQUENCY_STATE,
+        GROUP_VELOCITY,
+        MEAN_FREE_DISPLACEMENT_DIRECT,
+    }
+    assert contract_cumulative_kappa_omega.outputs == (CUMULATIVE_KAPPA_OMEGA,)
 
 
 def test_contract_cumulative_kappa_mfp_signature():
     from omai.thermal_transport.operator import (
         CUMULATIVE_KAPPA_MFP,
+        GROUP_VELOCITY,
+        HEAT_CAPACITY,
+        MEAN_FREE_DISPLACEMENT_DIRECT,
         contract_cumulative_kappa_mfp,
     )
 
-    inputs = {s.name for s in contract_cumulative_kappa_mfp.inputs}
-    assert "HeatCapacity" in inputs
-    assert "GroupVelocity" in inputs
-    assert tuple(s.name for s in contract_cumulative_kappa_mfp.outputs) == (
-        CUMULATIVE_KAPPA_MFP.name,
-    )
+    assert set(contract_cumulative_kappa_mfp.inputs) == {
+        HEAT_CAPACITY, GROUP_VELOCITY, MEAN_FREE_DISPLACEMENT_DIRECT,
+    }
+    assert contract_cumulative_kappa_mfp.outputs == (CUMULATIVE_KAPPA_MFP,)
