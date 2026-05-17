@@ -251,7 +251,7 @@ Machinery in \texttt{omai.operator} (the \texttt{State} and
 \texttt{Operation} types, \texttt{Field}, \texttt{Dimension},
 \texttt{GaugeAction}, \texttt{SymmetryGroup}, \texttt{validate\_dag});
 domain instances in \texttt{omai.thermal\_transport.operator} (the
-14-node, 13-edge DAG with sympy formulas on each edge, gauge actions).
+38-node, 38-edge DAG with sympy formulas on each edge, gauge actions).
 No values, no units, no per-code knowledge.
 
 \paragraph{Layer 2 --- representation.} Per-code declarations plus the
@@ -785,7 +785,7 @@ transport equation.
 
 \subsection{The operator DAG}
 
-The operator DAG has 19 nodes and 18 edges. Two source nodes (\texttt{Potential},
+The operator DAG has 38 nodes and 38 edges. Two source nodes (\texttt{Potential},
 \texttt{Temperature}) are produced by nullary \texttt{provide\_*} operations; the
 \texttt{MeanFreeDisplacement} and \texttt{ThermalConductivity} states are each split
 into two parameterized variants by the upstream \texttt{bte\_solver} choice (one
@@ -828,7 +828,30 @@ harmonic chain to capture the quantities ShengBTE and phonopy emit directly.
         and the harmonic eigensystem;
   \item \texttt{PhaseSpace3Phonon} (\textbf{O}): three-phonon kinematic
         availability $P_3(\mathbf{q},\nu)$ --- the bare counting underlying
-        $\Gamma$ before $|V_3|^2$ enters.
+        $\Gamma$ before $|V_3|^2$ enters;
+  \item \texttt{BareDynamicalMatrix} (\textbf{O}), \texttt{BornCharges}
+        (\textbf{O}), \texttt{DielectricTensor} (\textbf{O}) ---
+        the NAC inputs and the intermediate pre-correction DM
+        (Pattern C; both \texttt{identity\_dm} and
+        \texttt{apply\_nac\_correction} converge on
+        \texttt{DynamicalMatrix});
+  \item \texttt{HelmholtzFreeEnergy} (\textbf{O}), \texttt{Entropy}
+        (\textbf{O}), \texttt{InternalEnergy} (\textbf{O}), plus their
+        \texttt{Molar*} contractions --- sibling Observables of
+        \texttt{HeatCapacity};
+  \item \texttt{Linewidth[channel=anharmonic\_3ph|isotope|boundary|total]}
+        (\textbf{H}) --- four channels with different inputs, summed via
+        \texttt{sum\_linewidths};
+  \item \texttt{IsotopeAbundances} (\textbf{O}) --- source-tier per-atom
+        mass-variance factor;
+  \item \texttt{ThermalConductivity[transport\_model=wigner]} (\textbf{O})
+        decomposed into \texttt{wigner\_populations} (\textbf{O}) and
+        \texttt{wigner\_coherences} (\textbf{O});
+        \texttt{[transport\_model=qhgk]} (\textbf{H}) --- inherits
+        $\Gamma$'s gauge type;
+  \item \texttt{CumulativeKappa[wrt=omega]} (\textbf{O}),
+        \texttt{[wrt=mfp]} (\textbf{O}) --- distribution observables
+        derived from $\kappa_{LBTE}$ ingredients.
 \end{itemize}
 
 \paragraph{Edges.} Verb-headed names; each carries a sympy formula:
@@ -880,7 +903,30 @@ harmonic chain to capture the quantities ShengBTE and phonopy emit directly.
         former;
   \item \texttt{compute\_phase\_space\_3phonon}: $P_3(\mathbf{q}, \nu)$ from
         energy + crystal-momentum conservation, with convention
-        \texttt{delta\_broadening} mirroring \texttt{dos\_broadening}.
+        \texttt{delta\_broadening} mirroring \texttt{dos\_broadening};
+  \item \texttt{provide\_born\_charges},
+        \texttt{provide\_dielectric\_tensor},
+        \texttt{provide\_isotope\_abundances} --- nullary sources for the
+        polar / isotope inputs;
+  \item \texttt{identity\_dm} and \texttt{apply\_nac\_correction}:
+        Pattern-C siblings into \texttt{DynamicalMatrix} (algorithmic
+        convention \texttt{nac\_scheme} $\in$ \{gonze\_lee canonical,
+        wang, ewald\});
+  \item \texttt{compute\_free\_energy}, \texttt{compute\_entropy},
+        \texttt{compute\_internal\_energy} and their
+        \texttt{contract\_molar\_*} counterparts --- harmonic-oscillator
+        closed forms with $x = \hbar\omega/(k_B T)$;
+  \item \texttt{compute\_anharmonic\_linewidth} (rename of legacy
+        \texttt{compute\_linewidth}), \texttt{compute\_isotope\_scattering}
+        (Tamura), \texttt{compute\_boundary\_scattering} (Casimir), and
+        \texttt{sum\_linewidths} (Matthiessen);
+  \item \texttt{compute\_kappa\_wigner\_populations},
+        \texttt{compute\_kappa\_wigner\_coherences} (Lorentzian
+        band-overlap), \texttt{combine\_kappa\_wigner},
+        \texttt{compute\_kappa\_qhgk};
+  \item \texttt{contract\_cumulative\_kappa[wrt=omega|mfp]} ---
+        Heaviside-$\theta$ encoded cumulative thresholds with
+        \texttt{binning} convention (linear for $\omega$, log for MFP).
 \end{itemize}
 
 Edges are exact operator operations (Fourier transform, eigendecomposition, mode
@@ -964,9 +1010,13 @@ adapter-level steps recorded as provenance, not modeled by the framework.
 \end{tikzpicture}%
 }
 \caption{Core $\kappa$ chain of the operator DAG for lattice thermal transport
-(12 nodes / 14 edges shown; the full DAG has 19 nodes / 18 edges once the
+(12 nodes / 14 edges shown; the full DAG has 38 nodes / 38 edges once the
 derived-observable tier --- PhononDOS, Grüneisen, PhaseSpace, VolumetricHeatCapacity,
-MolarHeatCapacity --- is included; see \texttt{docs/dag.html} for the
+MolarHeatCapacity, the thermodynamic siblings (HelmholtzFreeEnergy, Entropy,
+InternalEnergy and their molar contractions), the polar-correction inputs
+(BareDynamicalMatrix, BornCharges, DielectricTensor), the per-channel
+Linewidth split, the Wigner/QHGK transport variants, and the cumulative-$\kappa$
+distributions --- is included; see \texttt{docs/dag.html} for the
 interactive view). The
 two darker top boxes (\texttt{Potential}, \texttt{Temperature}) are source nodes;
 the dashed edges from \texttt{Potential} represent the stubbed Phase-1 upstream.
@@ -1125,9 +1175,9 @@ plus one per domain:
     Code-agnostic.
   \item \texttt{omai.thermal\_transport} --- the lattice-thermal-transport domain.
     \begin{itemize}[leftmargin=1.2em]
-      \item \texttt{operator/nodes.py}: the 19 states as \texttt{Observable} or
+      \item \texttt{operator/nodes.py}: the 38 states as \texttt{Observable} or
             \texttt{HiddenState} instances with their fields.
-      \item \texttt{operator/edges.py}: the 18 operations with sympy formulas
+      \item \texttt{operator/edges.py}: the 38 operations with sympy formulas
             and \texttt{auxiliary\_formulas} (the \texttt{compute\_linewidth}
             $|V_3|^2$ kernel and the \texttt{solve\_bte[direct\_inverse]}
             collision matrix $M$); sympy symbols and \texttt{IndexedBase}
