@@ -326,6 +326,83 @@ def main() -> None:
             print(f"  boundary   fraction (Γ|.|): {sum_bnd / sum_total:.3%}")
         print("  → Pattern-B sibling channels + converging edge (stage 3).")
 
+    # -------------------------------------------------------------------
+    # Task 7C: κ_Wigner and κ_QHGK (stage 4)
+    # -------------------------------------------------------------------
+    section("κ_Wigner and κ_QHGK (kaldo; Pattern-A terminal nodes)")
+    kaldo_root = (
+        Path(__file__).resolve().parent.parent.parent
+        / "runs" / "silicon_tersoff" / "kaldo_adaptive"
+    )
+    wig_path = kaldo_root / "kappa_wigner_tensor_WmK.npy"
+    if not wig_path.exists():
+        print(f"  kaldo Wigner/QHGK npy files not found at {kaldo_root};")
+        print("  run experiments/silicon_tersoff/run_kaldo_adaptive.py first.")
+    else:
+        k_wig = np.load(wig_path)
+        pop_path = kaldo_root / "kappa_wigner_populations_WmK.npy"
+        coh_path = kaldo_root / "kappa_wigner_coherences_WmK.npy"
+        qhgk_path = kaldo_root / "kappa_qhgk_tensor_WmK.npy"
+        print(f"  tr/3: κ_Wigner    = {np.trace(k_wig) / 3:.3f} W/(m·K)")
+        if pop_path.exists() and coh_path.exists():
+            k_wig_pop = np.load(pop_path)
+            k_wig_coh = np.load(coh_path)
+            residual = float(np.max(np.abs(k_wig - (k_wig_pop + k_wig_coh))))
+            print(f"        κ_pop      = {np.trace(k_wig_pop) / 3:.3f} W/(m·K)")
+            print(f"        κ_coh      = {np.trace(k_wig_coh) / 3:.3f} W/(m·K)")
+            print(f"  Wigner decomposition residual "
+                  f"(κ_W - κ_pop - κ_coh): {residual:.3e}")
+        else:
+            print("  Wigner populations/coherences split not available "
+                  "(this kaldo build doesn't expose the attributes).")
+        if qhgk_path.exists():
+            k_qhgk = np.load(qhgk_path)
+            print(f"        κ_QHGK     = {np.trace(k_qhgk) / 3:.3f} W/(m·K)")
+        print("  → κ_pop dominates for crystalline Si; κ_coh is small.")
+        print("    κ_QHGK is a separate operator over the same Phonons.")
+
+    # -------------------------------------------------------------------
+    # Task 7D: Cumulative κ vs ω and vs MFP (stage 5)
+    # -------------------------------------------------------------------
+    section("CumulativeKappa[wrt=omega|mfp] (kaldo; shengbte cross-check)")
+    cum_omega_path = kaldo_root / "cumulative_kappa_vs_omega.npy"
+    cum_mfp_path = kaldo_root / "cumulative_kappa_vs_mfp.npy"
+    lbte_path = kaldo_root / "kappa_inverse_tensor_WmK.npy"
+    if not cum_omega_path.exists() and not cum_mfp_path.exists():
+        print(f"  kaldo cumulative npy files not found at {kaldo_root};")
+        print("  run experiments/silicon_tersoff/run_kaldo_adaptive.py first.")
+    else:
+        if lbte_path.exists():
+            kappa_lbte = np.load(lbte_path)
+            target = float(np.trace(kappa_lbte)) / 3.0
+            print(f"  κ_LBTE target (tr/3)            : {target:.3f} W/(m·K)")
+        else:
+            target = None
+            print("  κ_LBTE reference missing; reporting top-of-grid only.")
+        if cum_omega_path.exists():
+            cum_omega = np.load(cum_omega_path)
+            cum_omega_iso = (
+                cum_omega[..., 0, 0] + cum_omega[..., 1, 1] + cum_omega[..., 2, 2]
+            ) / 3.0
+            monotone_omega = bool(np.all(np.diff(cum_omega_iso) >= -1e-9))
+            print(f"  cumulative_omega top of grid    : "
+                  f"{cum_omega_iso[-1]:.3f} W/(m·K)")
+            print(f"  monotone in ω?                  : {monotone_omega}")
+            if target is not None and target != 0.0:
+                rel = abs(cum_omega_iso[-1] - target) / abs(target)
+                print(f"  relative error vs κ_LBTE        : {rel:.3%}")
+        if cum_mfp_path.exists():
+            cum_mfp = np.load(cum_mfp_path)
+            cum_mfp_iso = (
+                cum_mfp[..., 0, 0] + cum_mfp[..., 1, 1] + cum_mfp[..., 2, 2]
+            ) / 3.0
+            monotone_mfp = bool(np.all(np.diff(cum_mfp_iso) >= -1e-9))
+            print(f"  cumulative_mfp   top of grid    : "
+                  f"{cum_mfp_iso[-1]:.3f} W/(m·K)")
+            print(f"  monotone in MFP?                : {monotone_mfp}")
+        print("  → cumulative κ converges to κ_LBTE as ω/MFP → ∞ "
+              "(stage 5, Pattern A).")
+
     print()
     print("=" * 70)
     print("Loop closed: substrate's operator predictions verified against real data.")
