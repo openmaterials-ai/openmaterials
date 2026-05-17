@@ -265,7 +265,21 @@ Same pattern.
 
 ---
 
-## Task 3: Operator-layer smoke tests for the new edges
+## Task 3: Framework-runtime tests (five sub-tasks)
+
+**Scope revision (2026-05-13).** User asked that this task carry the full operator↔representation contract, not just static smoke tests. T3 in particular is the sympy-shaped pre-Lean: substrate §8.2 defers Lean projection, but T3-evolve is the same commitment expressed inside sympy. Five sub-tasks:
+
+| Sub-task | What it builds |
+|---|---|
+| **3A** | Static smoke tests (input/output-name assertions per edge added in stages 1–5) — the original Task 3 |
+| **3B (T1)** | Operator↔representation boundary behavioural tests across the *whole* operator layer (every state, every adapter pair) |
+| **3C (T3-validate)** | Sympy-layer extension to `validate_dag`: free-symbol / index consistency checks against the formulas |
+| **3D (T2)** | Representation executor module (`omai/representation/executor.py`) with `sympy.lambdify`-based evaluation of closed-form edges; implicit edges raise `ExternalSolveRequired` |
+| **3E (T3-evolve)** | Sympy chain composition for explicit-formula edges; bails at implicit edges with a structured note |
+
+**Implicit-edge declaration**: every `Operation` gains an `is_executable_in_sympy: bool` attribute, defaulted from a heuristic (closed-form Eq → True; implicit equation → False) but explicitly overridable. The executor consults the flag; the validator checks consistency between the flag and the formula shape.
+
+### Task 3A: Static smoke tests for new edges
 
 For each edge added in stages 1–5 that doesn't already have an inputs/outputs assertion in `tests/test_operator.py`, add one. Mirrors the existing pattern (`test_compute_dos_inputs_are_frequency` etc.).
 
@@ -609,7 +623,260 @@ git add tests/test_operator.py
 git commit -m "consolidation: operator-layer smoke tests for stages 1-5"
 ```
 
-**✋ STATUS CHECKPOINT 3** — smoke tests landed; test count is now N (record it).
+### Task 3B: Operator↔representation boundary behavioural tests (T1)
+
+**Files:**
+- Create: `tests/test_op_rep_boundary.py`
+
+Whole-operator-layer scope. For every `StateAdapterSpec` instance discoverable across all four adapter modules, exercise the boundary:
+
+- [ ] **Step 3B.1: Round-trip identity**
+
+For every spec `s` and a synthetic numerical array `x` of the right shape, build `m = Representation(state_adapter_spec=s, observable_name=field, data=x)`, then `to_representation(to_operator(m), s).data` must equal `x` up to round-off. Tests over the cartesian product of (every state) × (every adapter that has a spec for it) × (every observable field). Skip cases where `s` does not declare `observable_units` (canonicalisation is intentionally undefined).
+
+- [ ] **Step 3B.2: `compare_operators` over every cross-adapter pair**
+
+For every state with ≥ 2 specs, call `compare_operators(spec_a, spec_b)` for each pair. The result must be either `same_operator=True` or a list of structured mismatches. Test that the mismatches are non-empty when `same_operator=False`.
+
+- [ ] **Step 3B.3: `compare_representations` on identical / factor-related / adversarial pairs**
+
+  - Identical: `compare_representations(m_a, m_a)` → `EXPECTED_AGREE` for Observables, `NOT_COMPARABLE` for HiddenStates per-element.
+  - Factor-related: build `m_b` by multiplying `m_a.data` by `inter_representation_factor(spec_a, spec_b, field)` → `EXPECTED_AGREE`.
+  - Adversarial: multiply by `2 * factor` → `UNEXPECTED_DISAGREE` for Observables (since the framework's prediction would otherwise stand).
+
+- [ ] **Step 3B.4: Helpful-KeyError path**
+
+For specs that intentionally omit `observable_units` (BareDM, BornCharges with `dimensionless` is set but FC2/FC3 do not have observable_units in some adapters), `to_operator` must raise `KeyError` with the helpful message added in `e564511`. Assert the message text contains the spec's `adapter_name` and the field name.
+
+- [ ] **Step 3B.5: Run tests; commit**
+
+```bash
+python -m pytest tests/test_op_rep_boundary.py -q
+```
+
+Commit:
+```bash
+git add tests/test_op_rep_boundary.py
+git commit -m "consolidation: operator↔representation boundary tests (full scope, T1)"
+```
+
+### Task 3C: Sympy-layer validate_dag extension (T3-validate)
+
+**Files:**
+- Modify: `omai/operator/validate.py`
+- Modify: `tests/test_operator.py` (add a few tests for the new checks)
+
+- [ ] **Step 3C.1: Add free-symbol consistency check**
+
+For each edge in `EDGES`, collect the set of allowed sympy symbols: the IndexedBase symbols associated with each input state's fields (one per field; convention is the field's `name` is the IndexedBase's name modulo case), plus the parameter symbols. The edge's `formula.free_symbols` must be a subset of this allowed set ∪ {sympy global constants we permit: π, ℏ, k_B, N, N_q, T, V_cell, etc.}.
+
+If a violation is found, append to the `errors` list returned by `validate_dag`, with format: `"edge X formula uses symbol Y not derivable from inputs"`.
+
+- [ ] **Step 3C.2: Add LHS-index consistency check**
+
+For each edge whose `formula` is a `sp.Eq`, parse `formula.lhs`. If it's an `Indexed`, its index tuple should match the output state's `fields[0].indices` (or any field's indices if multi-field). Append a structured error if not.
+
+- [ ] **Step 3C.3: Add `auxiliary_formulas` vocabulary check**
+
+Same free-symbol check as 3C.1, but on `op.auxiliary_formulas`. The allowed set is augmented with whatever the main formula introduces (so auxiliary equations can reference symbols defined by the main formula's RHS — e.g., `|V_3|²` aux on `compute_linewidth`).
+
+- [ ] **Step 3C.4: Verify checks fire on a deliberately-broken edge in a unit test**
+
+Add to `tests/test_operator.py`:
+```python
+def test_validate_dag_catches_rogue_free_symbol_in_formula():
+    """A synthetic edge that uses a sympy symbol not in any input state must
+    be flagged by validate_dag."""
+    import sympy as sp
+    from omai.operator import Operation, validate_dag
+    from omai.thermal_transport.operator.nodes import POTENTIAL, FORCE_CONSTANTS_2
+
+    rogue = sp.Symbol("Z_rogue")
+    bad = Operation(
+        name="bad_edge",
+        inputs=(POTENTIAL,),
+        outputs=(FORCE_CONSTANTS_2,),
+        formula=sp.Eq(sp.Symbol("Phi2"), rogue),
+    )
+    errors = validate_dag((POTENTIAL, FORCE_CONSTANTS_2), (bad,))
+    assert any("Z_rogue" in e for e in errors)
+```
+
+Run: `python -m pytest tests/test_operator.py::test_validate_dag_catches_rogue_free_symbol_in_formula -v`
+Expected: PASS.
+
+- [ ] **Step 3C.5: Run full suite; commit**
+
+```bash
+python -m pytest tests/ -q
+git add omai/operator/validate.py tests/test_operator.py
+git commit -m "consolidation: validate_dag now checks formula free symbols and LHS indices (T3-validate)"
+```
+
+### Task 3D: Representation executor (T2)
+
+**Files:**
+- Create: `omai/representation/executor.py`
+- Create: `tests/test_executor.py`
+- Modify: `omai/operator/operation.py` (add `is_executable_in_sympy: bool` field)
+- Modify: each edge declaration in `omai/thermal_transport/operator/edges.py` where the heuristic is wrong (the implicit BTE solves)
+
+- [ ] **Step 3D.1: Add `is_executable_in_sympy` flag to `Operation`**
+
+Modify the `Operation` dataclass. Default value: True if `formula` is a `sp.Eq` whose RHS doesn't contain the LHS recursively (explicit equation); False if implicit. Heuristic implementation:
+```python
+@property
+def is_executable_in_sympy_default(self) -> bool:
+    """Default heuristic: an edge is sympy-executable iff its formula is
+    an explicit Eq (RHS has no occurrence of any free symbol introduced
+    by the LHS)."""
+    if not isinstance(self.formula, sp.Eq):
+        return False
+    lhs_symbols = self.formula.lhs.free_symbols
+    rhs_symbols = self.formula.rhs.free_symbols
+    return not (lhs_symbols & rhs_symbols)
+```
+
+Add an overridable instance attribute `is_executable_in_sympy` with default `None` → falls back to the heuristic.
+
+Modify `solve_bte_rta` and `solve_bte_direct` in `edges.py` to set `is_executable_in_sympy=False` explicitly (the heuristic would correctly identify them as implicit since the formula is `Σ M·F = c·v` with F on both sides, but be explicit).
+
+- [ ] **Step 3D.2: Build the executor module**
+
+Create `omai/representation/executor.py`:
+```python
+"""Representation-layer executor.
+
+For closed-form edges, lambdify the operator-layer formula and evaluate
+it against the input Representations' data. For implicit edges, refuse
+and point at the adapter that owns the external solve.
+"""
+from __future__ import annotations
+
+import sympy as sp
+import numpy as np
+
+from omai.operator.operation import Operation
+from omai.representation.instance import Representation
+
+
+class ExternalSolveRequired(RuntimeError):
+    """Raised by `apply_edge` when an Operation is not sympy-executable;
+    the caller must dispatch to an adapter-owned external solver."""
+
+
+def apply_edge(
+    op: Operation,
+    *inputs: Representation,
+) -> Representation | tuple[Representation, ...]:
+    """Evaluate `op` against the input Representations and return the
+    output Representation(s). All inputs must be in operator form.
+
+    Raises ExternalSolveRequired if `op.is_executable_in_sympy` is False.
+    """
+    if not op.is_executable_in_sympy:
+        raise ExternalSolveRequired(
+            f"Operation {op.name!r} is not executable in sympy; "
+            f"external solver required (see adapter specs)."
+        )
+    # ... lambdify the RHS, substitute the input field arrays, return
+    # an operator-form Representation wrapping the result.
+```
+
+Implement the sympy → numerical evaluation: walk the inputs, build a sympy substitution map from each input state's field IndexedBase to the input Representation's data array, then either `sp.lambdify` or direct substitute for each output. (For indexed expressions, lambdify with `numpy` modules and pass arrays as positional args.)
+
+- [ ] **Step 3D.3: Tests for the executor**
+
+Create `tests/test_executor.py` with at least one test per closed-form edge: build inputs, call `apply_edge`, compare result to a hand-computed reference array. Edges to cover:
+- `compute_heat_capacity` (HC closed form on a small synthetic ω, T)
+- `compute_free_energy`, `compute_entropy`, `compute_internal_energy`
+- `identity_dm` (literal pass-through)
+- `combine_kappa_wigner` (just sum two tensors)
+- `sum_linewidths` (sum N arrays)
+- One contract_*: `contract_molar_heat_capacity` (sum + factor)
+
+Then one negative test: `apply_edge(solve_bte_direct, ...)` raises `ExternalSolveRequired`.
+
+- [ ] **Step 3D.4: Run tests; commit**
+
+```bash
+python -m pytest tests/test_executor.py -q
+git add omai/operator/operation.py omai/representation/executor.py omai/thermal_transport/operator/edges.py tests/test_executor.py
+git commit -m "consolidation: representation executor for closed-form edges (T2)"
+```
+
+### Task 3E: Sympy chain composition (T3-evolve)
+
+**Files:**
+- Create: `omai/operator/compose.py`
+- Create: `tests/test_compose.py`
+
+- [ ] **Step 3E.1: Build the composer**
+
+Create `omai/operator/compose.py`:
+```python
+"""Symbolic composition of operator-layer edges.
+
+Walks a path of edges in topological order. For each explicit-equation
+edge, substitutes the RHS of the previous edge's formula into the LHS
+of the next. Bails at any implicit edge with a structured note pointing
+at the boundary."""
+from __future__ import annotations
+
+import sympy as sp
+
+from omai.operator.operation import Operation
+
+
+class ImplicitEdgeBoundary(Exception):
+    """Raised when composition reaches an implicit edge (e.g. solve_bte_*).
+    The composed expression up to (but not through) the edge is attached
+    to the exception."""
+
+    def __init__(self, edge: Operation, partial: sp.Expr):
+        super().__init__(f"composition halts at implicit edge {edge.name!r}")
+        self.edge = edge
+        self.partial = partial
+
+
+def compose_path(edges: tuple[Operation, ...]) -> sp.Expr:
+    """Compose a sequence of explicit-equation edges into a single sympy
+    expression for the final output."""
+    expr = None
+    for edge in edges:
+        if not edge.is_executable_in_sympy:
+            raise ImplicitEdgeBoundary(edge, expr)
+        # Substitute the previous expression into the LHS pattern of this
+        # edge's formula, then take the RHS as the new expression.
+        # ...
+    return expr
+```
+
+- [ ] **Step 3E.2: Tests for composition**
+
+Create `tests/test_compose.py` with at least:
+- A two-edge composition: `compute_free_energy ∘ compute_dispersion` (the latter is sort of implicit — start with a simpler one like `contract_molar_heat_capacity ∘ compute_heat_capacity` on Frequency + Temperature).
+- A path that halts at `solve_bte_direct`: assert `ImplicitEdgeBoundary` is raised with the partial expression attached.
+
+- [ ] **Step 3E.3: Run tests; commit**
+
+```bash
+python -m pytest tests/test_compose.py -q
+git add omai/operator/compose.py tests/test_compose.py
+git commit -m "consolidation: sympy chain composition for explicit edges (T3-evolve)"
+```
+
+- [ ] **Step 3E.4: Substrate-doc note**
+
+Add a paragraph to `docs/operator_representation_substrate.tex` § 8.2 (Lean compatibility) noting that T3-evolve is the in-sympy realisation of the Lean commitment — substrate-level chain composition over explicit-equation edges, with implicit-equation edges (BTE solves) bounded clearly as the open research subproblem.
+
+Commit:
+```bash
+git add docs/operator_representation_substrate.tex
+git commit -m "substrate: T3-evolve is the in-sympy realisation of the Lean commitment"
+```
+
+**✋ STATUS CHECKPOINT 3** — five sub-tasks landed; test count is now N (record it). All five layers of the framework runtime are present: static signatures (3A), boundary behaviour (3B), sympy declaration consistency (3C), sympy executor (3D), sympy composition (3E).
 
 ---
 
