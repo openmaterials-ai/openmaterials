@@ -33,6 +33,7 @@ from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
 from omai.thermal_transport.operator.edges import (
     apply_nac_correction,
     combine_kappa_wigner,
+    compute_boundary_scattering,
     compute_dispersion,
     compute_dos,
     compute_dynamical_matrix,
@@ -41,6 +42,7 @@ from omai.thermal_transport.operator.edges import (
     compute_free_energy,
     compute_group_velocity,
     compute_heat_capacity,
+    compute_isotope_scattering,
     compute_kappa_qhgk,
     compute_kappa_wigner_coherences,
     compute_kappa_wigner_populations,
@@ -55,14 +57,17 @@ from omai.thermal_transport.operator.edges import (
     identity_dm,
     provide_born_charges,
     provide_dielectric_tensor,
+    provide_isotope_abundances,
     provide_potential,
     provide_temperature,
     solve_bte_direct,
     solve_bte_rta,
+    sum_linewidths,
 )
 from omai.thermal_transport.operator.nodes import (
     BARE_DYNAMICAL_MATRIX,
     BORN_CHARGES,
+    BOUNDARY_LINEWIDTH,
     CUMULATIVE_KAPPA_MFP,
     CUMULATIVE_KAPPA_OMEGA,
     DIELECTRIC_TENSOR,
@@ -74,6 +79,8 @@ from omai.thermal_transport.operator.nodes import (
     GROUP_VELOCITY,
     HEAT_CAPACITY,
     HELMHOLTZ_FREE_ENERGY,
+    ISOTOPE_ABUNDANCES,
+    ISOTOPIC_LINEWIDTH,
     LINEWIDTH,
     MEAN_FREE_DISPLACEMENT_DIRECT,
     MEAN_FREE_DISPLACEMENT_RTA,
@@ -88,6 +95,7 @@ from omai.thermal_transport.operator.nodes import (
     THERMAL_CONDUCTIVITY_WIGNER,
     THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,
     THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
+    TOTAL_LINEWIDTH,
     VOLUMETRIC_HEAT_CAPACITY,
 )
 
@@ -809,5 +817,130 @@ KALDO_COMPUTE_FREE_ENERGY = OperationAdapterSpec(
         "Phonons.free_energy: closed-form F = (ℏω/2) + k_B T ln(1 - "
         "exp(-ℏω/k_B T)) per mode. Imaginary frequencies are excluded with "
         "a warning."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Linewidth channels. kaldo exposes the three-phonon anharmonic and the
+# Tamura isotopic linewidths as separate per-mode arrays; the total is
+# Phonons.bandwidth (anharmonic + isotopic when include_isotopes=True). The
+# boundary channel is added inline inside the LBTE solve when a finite
+# length is supplied to Conductivity — kaldo does not expose Γ_boundary as
+# a separate array.
+# ---------------------------------------------------------------------------
+
+
+KALDO_ISOTOPIC_LINEWIDTH = StateAdapterSpec(
+    state=ISOTOPIC_LINEWIDTH,
+    adapter_name="kaldo",
+    observable_units={"Gamma": "angular_THz"},
+    observable_convention_overrides={
+        "gamma_definition": "linewidth_2x_imag_self_energy",
+    },
+    code_api={"Gamma": "Phonons.isotopic_bandwidth"},
+    notes=(
+        "Phonons.isotopic_bandwidth: per-mode Tamura isotopic linewidth in "
+        "angular THz. Computed via kaldo.controllers.isotopic.compute_isotopic_bw "
+        "from the eigenvector overlaps and Phonons.g_factor. Shape "
+        "(n_q, n_modes)."
+    ),
+)
+
+
+KALDO_BOUNDARY_LINEWIDTH = StateAdapterSpec(
+    state=BOUNDARY_LINEWIDTH,
+    adapter_name="kaldo",
+    observable_units={"Gamma": "angular_THz"},
+    observable_convention_overrides={
+        "gamma_definition": "linewidth_2x_imag_self_energy",
+    },
+    code_api={
+        "Gamma": "Conductivity(length=...).bandwidth + 2|v_α|/L_α (inline)"
+    },
+    notes=(
+        "kaldo applies McKelvey-Schockley boundary scattering inline inside "
+        "Conductivity.calculate_mfp_inv: when `finite_length_method='ms'` "
+        "and a length L is supplied, Γ_total is incremented by 2|v_α|/L_α "
+        "per direction α. No separate boundary-Γ array is exposed; the "
+        "value is consumed directly by the LBTE solve."
+    ),
+)
+
+
+KALDO_TOTAL_LINEWIDTH = StateAdapterSpec(
+    state=TOTAL_LINEWIDTH,
+    adapter_name="kaldo",
+    observable_units={"Gamma": "angular_THz"},
+    observable_convention_overrides={
+        "gamma_definition": "linewidth_2x_imag_self_energy",
+    },
+    code_api={"Gamma": "Phonons.bandwidth"},
+    notes=(
+        "Phonons.bandwidth returns the Matthiessen sum of the enabled "
+        "channels: anharmonic always, plus isotopic when "
+        "Phonons(include_isotopes=True). Boundary scattering is folded in "
+        "later inside Conductivity, not into Phonons.bandwidth."
+    ),
+)
+
+
+KALDO_ISOTOPE_ABUNDANCES = StateAdapterSpec(
+    state=ISOTOPE_ABUNDANCES,
+    adapter_name="kaldo",
+    observable_units={"g": "dimensionless"},
+    code_api={"g": "Phonons(g_factor=...)"},
+    notes=(
+        "Phonons accepts an explicit `g_factor` array (per atom). If not "
+        "provided when include_isotopes=True, kaldo falls back to natural-"
+        "abundance defaults computed by kaldo.controllers.isotopic.compute_gfactor "
+        "from the ASE atomic-number list (NIST table)."
+    ),
+)
+
+
+KALDO_PROVIDE_ISOTOPE_ABUNDANCES = OperationAdapterSpec(
+    operation=provide_isotope_abundances,
+    adapter_name="kaldo",
+    notes=(
+        "Set via the Phonons(g_factor=...) constructor argument. With "
+        "include_isotopes=True and g_factor=None kaldo falls back to NIST "
+        "natural-abundance defaults."
+    ),
+)
+
+
+KALDO_COMPUTE_ISOTOPE_SCATTERING = OperationAdapterSpec(
+    operation=compute_isotope_scattering,
+    adapter_name="kaldo",
+    algorithmic_convention_overrides={"delta_broadening": "gaussian"},
+    notes=(
+        "kaldo.controllers.isotopic.compute_isotopic_bw evaluates the Tamura "
+        "expression with the same Gaussian δ as the anharmonic linewidth "
+        "(width set by third_bandwidth or the adaptive scheme when None)."
+    ),
+)
+
+
+KALDO_COMPUTE_BOUNDARY_SCATTERING = OperationAdapterSpec(
+    operation=compute_boundary_scattering,
+    adapter_name="kaldo",
+    notes=(
+        "McKelvey-Schockley form Γ_boundary = 2|v_α|/L_α, applied inline "
+        "inside Conductivity.calculate_mfp_inv when "
+        "finite_length_method='ms'. A 'ballistic' mode is also exposed."
+    ),
+)
+
+
+KALDO_SUM_LINEWIDTHS = OperationAdapterSpec(
+    operation=sum_linewidths,
+    adapter_name="kaldo",
+    notes=(
+        "Phonons.bandwidth is the explicit Matthiessen sum of "
+        "anharmonic_bandwidth and (when include_isotopes) isotopic_bandwidth. "
+        "Boundary is added later inside Conductivity rather than into "
+        "Phonons.bandwidth, so the kaldo 'total' the LBTE consumes is the "
+        "sum of those terms plus Γ_boundary at solve time."
     ),
 )

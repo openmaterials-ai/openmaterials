@@ -17,6 +17,7 @@ from __future__ import annotations
 from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
 from omai.thermal_transport.operator.edges import (
     apply_nac_correction,
+    compute_boundary_scattering,
     compute_dispersion,
     compute_dos,
     compute_dynamical_matrix,
@@ -25,6 +26,7 @@ from omai.thermal_transport.operator.edges import (
     compute_group_velocity,
     compute_gruneisen,
     compute_heat_capacity,
+    compute_isotope_scattering,
     compute_linewidth,
     compute_phase_space_3phonon,
     contract_kappa_direct,
@@ -34,14 +36,17 @@ from omai.thermal_transport.operator.edges import (
     identity_dm,
     provide_born_charges,
     provide_dielectric_tensor,
+    provide_isotope_abundances,
     provide_potential,
     provide_temperature,
     solve_bte_direct,
     solve_bte_rta,
+    sum_linewidths,
 )
 from omai.thermal_transport.operator.nodes import (
     BARE_DYNAMICAL_MATRIX,
     BORN_CHARGES,
+    BOUNDARY_LINEWIDTH,
     DIELECTRIC_TENSOR,
     DYNAMICAL_MATRIX,
     EIGENVECTORS,
@@ -51,6 +56,8 @@ from omai.thermal_transport.operator.nodes import (
     GROUP_VELOCITY,
     GRUNEISEN,
     HEAT_CAPACITY,
+    ISOTOPE_ABUNDANCES,
+    ISOTOPIC_LINEWIDTH,
     LINEWIDTH,
     MEAN_FREE_DISPLACEMENT_DIRECT,
     MEAN_FREE_DISPLACEMENT_RTA,
@@ -61,6 +68,7 @@ from omai.thermal_transport.operator.nodes import (
     TEMPERATURE_STATE,
     THERMAL_CONDUCTIVITY_DIRECT,
     THERMAL_CONDUCTIVITY_RTA,
+    TOTAL_LINEWIDTH,
     VOLUMETRIC_HEAT_CAPACITY,
 )
 
@@ -557,5 +565,131 @@ PHONO3PY_APPLY_NAC_CORRECTION = OperationAdapterSpec(
         "Polar phono3py runs apply NAC via the inherited Phonopy machinery — "
         "the default nac_method='gonze' is what BORN-using ph3 runs do "
         "out of the box."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Linewidth channels. phono3py exposes the anharmonic three-phonon piece via
+# `thermal_conductivity.gamma` (already specced as PHONO3PY_LINEWIDTH).
+# Tamura isotopic scattering is exposed as `thermal_conductivity.gamma_isotope`
+# when isotopes are enabled. Casimir boundary scattering is computed inline
+# from `boundary_mfp` (private attribute `_gamma_boundary`); it is folded
+# into the effective linewidth via `compute_effective_gamma` but not surfaced
+# as a public attribute.
+# ---------------------------------------------------------------------------
+
+
+PHONO3PY_ISOTOPIC_LINEWIDTH = StateAdapterSpec(
+    state=ISOTOPIC_LINEWIDTH,
+    adapter_name="phono3py",
+    observable_units={"Gamma": "linear_THz"},
+    # No convention overrides: canonical "imag_self_energy".
+    code_api={"Gamma": "thermal_conductivity.gamma_isotope"},
+    notes=(
+        "thermal_conductivity.gamma_isotope: per-mode Tamura isotopic "
+        "linewidth in linear THz, shape (num_sigma, num_gp, num_band0). "
+        "Active when --isotope is requested (or set via the API); uses "
+        "natural-abundance defaults from atomic-weights when no explicit "
+        "mass_variances are provided."
+    ),
+)
+
+
+PHONO3PY_BOUNDARY_LINEWIDTH = StateAdapterSpec(
+    state=BOUNDARY_LINEWIDTH,
+    adapter_name="phono3py",
+    observable_units={"Gamma": "linear_THz"},
+    code_api={
+        "Gamma": "thermal_conductivity._gamma_boundary "
+        "(via compute_bulk_boundary_scattering)"
+    },
+    notes=(
+        "phono3py computes Γ_boundary = |v|·1e6·Å / (4π·boundary_mfp) "
+        "(boundary_mfp in micrometres) inside `_pre_main_loop`. The array "
+        "is stored on the private `_gamma_boundary` attribute and folded "
+        "into the effective linewidth via `compute_effective_gamma`; there "
+        "is no public property exposing it directly."
+    ),
+)
+
+
+PHONO3PY_TOTAL_LINEWIDTH = StateAdapterSpec(
+    state=TOTAL_LINEWIDTH,
+    adapter_name="phono3py",
+    observable_units={"Gamma": "linear_THz"},
+    code_api={
+        "Gamma": "phono3py.conductivity.grid_point_data.compute_effective_gamma"
+    },
+    notes=(
+        "phono3py's total linewidth that feeds the BTE solve is "
+        "computed by `compute_effective_gamma(aggregates)`, which adds "
+        "gamma (anharmonic), gamma_isotope, gamma_boundary, and gamma_elph "
+        "into a single (num_sigma, num_temp, num_gp, num_band0) array. "
+        "Not exposed as a separate output file — the sum is constructed in-"
+        "memory during the κ solve."
+    ),
+)
+
+
+PHONO3PY_ISOTOPE_ABUNDANCES = StateAdapterSpec(
+    state=ISOTOPE_ABUNDANCES,
+    adapter_name="phono3py",
+    observable_units={"g": "dimensionless"},
+    code_api={"g": "Phono3pyIsotope(mass_variances=...)"},
+    notes=(
+        "Per-atom g_i passed via Phono3pyIsotope or the Phono3py.run_isotope_*"
+        " entry points (`mass_variances` keyword). Defaults to natural-"
+        "abundance g_i computed from phonopy's atomic-weights table when "
+        "no explicit array is supplied."
+    ),
+)
+
+
+PHONO3PY_PROVIDE_ISOTOPE_ABUNDANCES = OperationAdapterSpec(
+    operation=provide_isotope_abundances,
+    adapter_name="phono3py",
+    notes=(
+        "Set via Phono3pyIsotope(mass_variances=...) or the CLI flag "
+        "`--isotope`. Natural-abundance defaults from phonopy's "
+        "atomic-weights table when no explicit array is supplied."
+    ),
+)
+
+
+PHONO3PY_COMPUTE_ISOTOPE_SCATTERING = OperationAdapterSpec(
+    operation=compute_isotope_scattering,
+    adapter_name="phono3py",
+    notes=(
+        "phono3py.other.isotope.Isotope realises the Tamura δ with the same "
+        "smearing scheme (sigma / tetrahedron) selected by the parent kappa "
+        "calculation — Gaussian by default, matching the canonical "
+        "delta_broadening=gaussian convention."
+    ),
+)
+
+
+PHONO3PY_COMPUTE_BOUNDARY_SCATTERING = OperationAdapterSpec(
+    operation=compute_boundary_scattering,
+    adapter_name="phono3py",
+    notes=(
+        "phono3py.conductivity.scattering_solvers.compute_bulk_boundary_"
+        "scattering: Γ_boundary = |v|·1e6·Å / (4π·L), with L the "
+        "`boundary_mfp` parameter (in micrometres). The factor of 1/(4π) "
+        "is phono3py's bulk-boundary convention — distinct from kaldo's "
+        "1/L and ShengBTE's |v|/L; cross-code comparison at this Γ "
+        "requires the convention factor."
+    ),
+)
+
+
+PHONO3PY_SUM_LINEWIDTHS = OperationAdapterSpec(
+    operation=sum_linewidths,
+    adapter_name="phono3py",
+    notes=(
+        "Sum implemented by `compute_effective_gamma` in "
+        "phono3py.conductivity.grid_point_data: anharmonic + isotope + "
+        "boundary + el-ph. The total is built in-memory just before the "
+        "BTE solve and is not written to a separate output file."
     ),
 )
