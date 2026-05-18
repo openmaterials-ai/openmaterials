@@ -19,20 +19,26 @@ Scope in P1 of phase 2:
 Scope added in P2 of phase 2 (MD primitives):
   * Trajectory (`dump_position`, `dump_velocity`).
   * HeatCurrent (`compute heat_current` — virial-form J(t)).
-  * HeatCurrentACF (`compute_hac` writes hac.out directly — the same
-    file Green-Kubo κ is read from in P3).
+  * HeatCurrentACF (`compute_hac` writes hac.out directly).
   * VelocityAutocorrelation (`compute_dos`, which writes mvac.out and
-    derives the DOS in one step — the GPUMD pathway folds VAF + Fourier
-    into one keyword, so the same adapter spec covers fourier_to_dos
-    too).
+    derives the DOS in one step).
   * MeanSquaredDisplacement (`compute_msd`).
   * All six MD-driver operations.
 
-Out of scope (will land in P3 of phase 2):
-  * `contract_kappa_green_kubo`, `contract_kappa_nemd`,
-    `contract_kappa_hnemd` — GPUMD's strongest suit lives here.
+Scope added in P3 of phase 2 (MD-based κ paths):
+  * Green-Kubo κ via `compute_hac` — GPUMD writes the integrated κ
+    running average to `hac.out` alongside the autocorrelation itself.
+  * HNEMD κ via `compute_hnemd` — GPUMD's signature method. Writes
+    `kappa.out` (running κ_xx, κ_yy, κ_zz under the homogeneous driving
+    force F_e).
+  * NEMD κ — *not exposed* in GPUMD directly. Users either fall back to
+    LAMMPS (`fix thermal/conductivity`) or use HNEMD as the GPUMD-native
+    alternative. Documented as not-exposed in the adapter audit.
+
+Out of scope:
   * EMD κ via tighter ensemble averaging.
-  * Heat-current spectral decomposition (per-frequency κ contributions).
+  * Heat-current spectral decomposition (per-frequency κ contributions
+    via `compute_shc`).
   * Spectrally-resolved phonon transport (SRP).
 
 References:
@@ -52,6 +58,9 @@ from omai.thermal_transport.operator.edges import (
     compute_heat_current,
     compute_msd,
     compute_velocity_autocorrelation,
+    contract_kappa_green_kubo,
+    contract_kappa_hnemd,
+    contract_kappa_nemd,
     fourier_to_dos,
     provide_potential,
     run_md,
@@ -61,6 +70,8 @@ from omai.thermal_transport.operator.nodes import (
     HEAT_CURRENT_ACF,
     MEAN_SQUARED_DISPLACEMENT,
     POTENTIAL,
+    THERMAL_CONDUCTIVITY_GREEN_KUBO,
+    THERMAL_CONDUCTIVITY_HNEMD,
     TRAJECTORY,
     VELOCITY_AUTOCORRELATION,
 )
@@ -243,5 +254,86 @@ GPUMD_FOURIER_TO_DOS = OperationAdapterSpec(
         "frequency grid and writes `dos.out`. From the operator's "
         "perspective this is one edge invocation, even though GPUMD "
         "performs VAF + FFT in a single internal step."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# MD-based κ paths (phase 2 P3)
+# ---------------------------------------------------------------------------
+
+GPUMD_THERMAL_CONDUCTIVITY_GREEN_KUBO = StateAdapterSpec(
+    state=THERMAL_CONDUCTIVITY_GREEN_KUBO,
+    adapter_name="gpumd",
+    code_api={"kappa": "hac.out  (columns kappa_xx, kappa_yy, kappa_zz vs t)"},
+    notes=(
+        "GPUMD's `compute_hac` writes the *running* Green-Kubo κ "
+        "alongside the autocorrelation: each row of `hac.out` carries "
+        "both Jcorr(τ) and the partial integrals κ_xx(τ), κ_yy(τ), "
+        "κ_zz(τ) — the integration is done on-the-fly. Users read off "
+        "the plateau value as the converged Green-Kubo κ."
+    ),
+)
+
+
+GPUMD_THERMAL_CONDUCTIVITY_HNEMD = StateAdapterSpec(
+    state=THERMAL_CONDUCTIVITY_HNEMD,
+    adapter_name="gpumd",
+    code_api={"kappa": "kappa.out  (columns kappa_xx, kappa_xy, ..., kappa_zz vs t)"},
+    notes=(
+        "GPUMD's flagship thermal-transport output: `compute_hnemd "
+        "<output_interval> <Fe_x> <Fe_y> <Fe_z>` writes `kappa.out` "
+        "with running κ_xx, κ_yy, κ_zz, off-diagonals at the requested "
+        "interval. The driving force F_e is supplied in units of 1/length "
+        "(reciprocal Å for the NEP convention)."
+    ),
+)
+
+
+GPUMD_CONTRACT_KAPPA_GREEN_KUBO = OperationAdapterSpec(
+    operation=contract_kappa_green_kubo,
+    adapter_name="gpumd",
+    parameter_units={"tau_max": "ps", "tau_min": "ps"},
+    notes=(
+        "Integration is implicit: GPUMD's `compute_hac` writes the "
+        "running κ(τ) = V/(k_B T²) ∫₀^τ Jcorr dτ as it computes the "
+        "ACF. τ_max is the correlation depth `Nc` (in time-step units) "
+        "× the trajectory time step. The user reads the converged "
+        "plateau."
+    ),
+)
+
+
+GPUMD_CONTRACT_KAPPA_HNEMD = OperationAdapterSpec(
+    operation=contract_kappa_hnemd,
+    adapter_name="gpumd",
+    parameter_units={
+        "driving_force_magnitude": "1/Angstrom",
+        "driving_direction": "dimensionless",
+    },
+    notes=(
+        "GPUMD's `compute_hnemd` keyword applies a homogeneous driving "
+        "force F_e to every atom and reports the running κ. F_e must be "
+        "small enough that the heat-current response is linear; GPUMD "
+        "literature suggests |F_e| ~ 1e-4 to 1e-3 in 1/Å for typical "
+        "potentials. The output file `kappa.out` carries the full "
+        "κ_αβ tensor."
+    ),
+)
+
+
+GPUMD_CONTRACT_KAPPA_NEMD = OperationAdapterSpec(
+    operation=contract_kappa_nemd,
+    adapter_name="gpumd",
+    notes=(
+        "Not exposed by GPUMD. GPUMD's design choice is to favour HNEMD "
+        "over direct NEMD — the homogeneous driving force avoids the "
+        "boundary thermostats and reservoir artefacts that direct NEMD "
+        "introduces. Users wanting direct/Müller-Plathe NEMD on a "
+        "GPUMD-trained NEP potential typically port the NEP to LAMMPS "
+        "(via the `pair_style nep` interface) and run `fix "
+        "thermal/conductivity` there. Documented here for the adapter "
+        "audit; the canonical NEMD path is the LAMMPS adapter's "
+        "LAMMPS_CONTRACT_KAPPA_NEMD."
     ),
 )

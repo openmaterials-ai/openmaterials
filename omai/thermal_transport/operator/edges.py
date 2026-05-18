@@ -59,6 +59,10 @@ from omai.thermal_transport.operator.nodes import (
     HEAT_CURRENT_ACF,
     VELOCITY_AUTOCORRELATION,
     MEAN_SQUARED_DISPLACEMENT,
+    # MD-based κ (phase 2 P3)
+    THERMAL_CONDUCTIVITY_GREEN_KUBO,
+    THERMAL_CONDUCTIVITY_NEMD,
+    THERMAL_CONDUCTIVITY_HNEMD,
 )
 
 
@@ -1335,6 +1339,104 @@ fourier_to_dos = Operation(
 )
 
 
+# ---------------------------------------------------------------------------
+# MD-based κ paths (phase 2 P3). Three contraction edges, each producing a
+# Pattern-A `transport_model` variant of ThermalConductivity.
+# ---------------------------------------------------------------------------
+
+_kappa_md = sp.IndexedBase(r"\kappa^{MD}")
+_F_drive = sp.IndexedBase("F_e")
+_tau_max = sp.Symbol(r"\tau_{max}", positive=True)
+_grad_T = sp.IndexedBase(r"\nabla T")
+
+# Classical Green-Kubo: κ_αβ = V/(k_B T²) ∫₀^{τ_max} ⟨J_α(0) J_β(τ)⟩ dτ.
+# The lower limit is 0 by convention; in practice users introduce a
+# `tau_min` to skip the first few uncorrelated steps where Jcorr is noisy.
+_CONTRACT_KAPPA_GREEN_KUBO_FORMULA = sp.Eq(
+    _kappa_md[_alpha, _beta],
+    sp.Integral(_Jcorr[_alpha, _beta, _tau], (_tau, 0, _tau_max))
+    * _V_cell / (_kB * _T**2),
+)
+
+# Direct NEMD (or Müller-Plathe): κ = −⟨J_α⟩ / (∂T/∂x_β). The negative sign
+# follows Fourier's law sign convention; ⟨J⟩ is the time-averaged
+# HeatCurrent and ∇T is read off the binned-temperature profile slope.
+_CONTRACT_KAPPA_NEMD_FORMULA = sp.Eq(
+    _kappa_md[_alpha, _beta],
+    -_J_heat[_alpha, _t_idx] / _grad_T[_beta],
+)
+
+# HNEMD: κ_αβ = ⟨J_α⟩ / (T · V · F_e^β), in the linear-response limit.
+# F_e is the imposed driving force applied homogeneously to every atom.
+_CONTRACT_KAPPA_HNEMD_FORMULA = sp.Eq(
+    _kappa_md[_alpha, _beta],
+    _J_heat[_alpha, _t_idx] / (_T * _V_cell * _F_drive[_beta]),
+)
+
+contract_kappa_green_kubo = Operation(
+    name="contract_kappa[transport_model=green_kubo]",
+    inputs=(HEAT_CURRENT_ACF, TEMPERATURE_STATE),
+    outputs=(THERMAL_CONDUCTIVITY_GREEN_KUBO,),
+    parameters=(
+        Parameter("tau_max", FREQUENCY),
+        Parameter("tau_min", FREQUENCY),
+    ),
+    algorithmic_conventions={"transport_model": "green_kubo"},
+    formula=_CONTRACT_KAPPA_GREEN_KUBO_FORMULA,
+    description=(
+        "Classical Green-Kubo κ from the heat-flux ACF: κ_αβ = "
+        "V/(k_B T²) ∫₀^{τ_max} ⟨J_α(0) J_β(τ)⟩ dτ. The integration tail "
+        "dominates the noise; production runs use multiple ensemble "
+        "repeats and a τ_max well past the ACF zero-crossing. `tau_min` "
+        "is the lower bound (often 0); set to a few steps to skip the "
+        "uncorrelated-noise spike at very short lag."
+    ),
+)
+
+contract_kappa_nemd = Operation(
+    name="contract_kappa[transport_model=nemd]",
+    inputs=(HEAT_CURRENT, TEMPERATURE_STATE),
+    outputs=(THERMAL_CONDUCTIVITY_NEMD,),
+    parameters=(
+        Parameter("imposed_gradient", TEMPERATURE),
+        Parameter("imposed_flux", FREQUENCY),
+    ),
+    algorithmic_conventions={"nemd_method": "muller_plathe"},
+    formula=_CONTRACT_KAPPA_NEMD_FORMULA,
+    description=(
+        "Direct NEMD κ from steady-state ⟨J⟩ and dT/dz. Three method "
+        "variants: `direct_two_reservoir` imposes T_hot/T_cold and "
+        "measures J; `muller_plathe` imposes the swap-rate flux and "
+        "measures dT/dz; `ehex` is an energy-conserving alternative to "
+        "Müller-Plathe. Finite-size scaling (κ vs 1/L_z) is required to "
+        "extract bulk κ; left to user post-processing. `imposed_gradient` "
+        "and `imposed_flux` are alternatives — direct uses the former, "
+        "Müller-Plathe the latter."
+    ),
+)
+
+contract_kappa_hnemd = Operation(
+    name="contract_kappa[transport_model=hnemd]",
+    inputs=(HEAT_CURRENT, TEMPERATURE_STATE),
+    outputs=(THERMAL_CONDUCTIVITY_HNEMD,),
+    parameters=(
+        Parameter("driving_force_magnitude", FREQUENCY),
+        Parameter("driving_direction", FREQUENCY),
+    ),
+    algorithmic_conventions={"transport_model": "hnemd"},
+    formula=_CONTRACT_KAPPA_HNEMD_FORMULA,
+    description=(
+        "Homogeneous-NEMD κ: a uniform F_e applied to every atom biases "
+        "the heat current; in the linear-response limit, "
+        "κ_αβ = ⟨J_α⟩/(T · V · F_e^β). GPUMD's signature thermal-"
+        "transport method. Avoids the boundary thermostats that introduce "
+        "finite-size and reservoir artefacts in direct NEMD. "
+        "`driving_force_magnitude` sets |F_e|; `driving_direction` "
+        "picks the Cartesian axis the heat current is read along."
+    ),
+)
+
+
 EDGES: tuple[Operation, ...] = (
     provide_potential,
     provide_temperature,
@@ -1381,4 +1483,8 @@ EDGES: tuple[Operation, ...] = (
     compute_velocity_autocorrelation,
     compute_msd,
     fourier_to_dos,
+    # MD-based κ (phase 2 P3)
+    contract_kappa_green_kubo,
+    contract_kappa_nemd,
+    contract_kappa_hnemd,
 )

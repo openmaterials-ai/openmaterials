@@ -125,6 +125,14 @@ _PERMITTED_CONSTANTS: frozenset[str] = frozenset({
     r"\Delta t",
     r"n_{lag}",
     r"N_{atoms}",
+    # MD-based κ (phase 2 P3). τ_max / τ_min are the GK integration
+    # bounds (declared as edge parameters and also free in the integrand
+    # expression); F_e is the HNEMD driving-force IndexedBase; ∇T is the
+    # imposed NEMD temperature-gradient IndexedBase.
+    r"\tau_{max}",
+    r"\tau_{min}",
+    "F_e",
+    r"\nabla T",
 })
 
 
@@ -213,6 +221,12 @@ _STATE_SYMBOLS: dict[str, frozenset[str]] = {
     "HeatCurrentACF": frozenset({"Jcorr"}),
     "VelocityAutocorrelation": frozenset({"Cv"}),
     "MeanSquaredDisplacement": frozenset({"M"}),
+    # MD-based κ paths (phase 2 P3). All three Pattern-A `transport_model`
+    # variants share the same κ^{MD} IndexedBase on their LHS so the
+    # formulas read uniformly.
+    "ThermalConductivity[transport_model=green_kubo]": frozenset({r"\kappa^{MD}"}),
+    "ThermalConductivity[transport_model=nemd]": frozenset({r"\kappa^{MD}"}),
+    "ThermalConductivity[transport_model=hnemd]": frozenset({r"\kappa^{MD}"}),
 }
 
 

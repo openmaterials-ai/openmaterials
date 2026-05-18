@@ -24,14 +24,18 @@ Scope added in P2 of phase 2 (MD primitives):
   * HeatCurrentACF (`fix ave/correlate` over heat-flux components).
   * VelocityAutocorrelation (`compute vacf` + `fix ave/time`).
   * MeanSquaredDisplacement (`compute msd`).
-  * All six MD-driver operations (run_md, compute_heat_current,
-    autocorrelate_heat_current, compute_velocity_autocorrelation,
-    compute_msd, fourier_to_dos). The Green-Kubo κ contraction itself
-    lands in P3.
+  * All six MD-driver operations.
 
-Out of scope (will land in P3 of phase 2):
-  * `contract_kappa_green_kubo` — the Green-Kubo κ from the heat-flux ACF.
-  * Müller-Plathe NEMD via `fix thermal/conductivity` → κ_NEMD.
+Scope added in P3 of phase 2 (MD-based κ paths):
+  * Green-Kubo κ (`fix ave/correlate` integrated post-hoc, or numpy.trapz
+    on the dumped J(t)·J(t) tensor).
+  * Direct / Müller-Plathe NEMD κ (`fix thermal/conductivity` swap
+    method, or two-reservoir hot/cold thermostats).
+  * HNEMD κ — *not exposed* in LAMMPS; the canonical home for HNEMD is
+    GPUMD. Recorded in the operator-adapter spec as documentation but
+    routes through `compute_hnemd` in the GPUMD adapter instead.
+
+Out of scope:
   * USER-PHONON: dispersion (band.dat), DM via Green's-function
     fluctuation method.
   * Force-constant derivation via the `fix phonon` or external dynaphopy
@@ -56,6 +60,9 @@ from omai.thermal_transport.operator.edges import (
     compute_heat_current,
     compute_msd,
     compute_velocity_autocorrelation,
+    contract_kappa_green_kubo,
+    contract_kappa_hnemd,
+    contract_kappa_nemd,
     fourier_to_dos,
     provide_potential,
     run_md,
@@ -65,6 +72,8 @@ from omai.thermal_transport.operator.nodes import (
     HEAT_CURRENT_ACF,
     MEAN_SQUARED_DISPLACEMENT,
     POTENTIAL,
+    THERMAL_CONDUCTIVITY_GREEN_KUBO,
+    THERMAL_CONDUCTIVITY_NEMD,
     TRAJECTORY,
     VELOCITY_AUTOCORRELATION,
 )
@@ -258,5 +267,88 @@ LAMMPS_FOURIER_TO_DOS = OperationAdapterSpec(
         "vacf` and FFTs it externally (numpy.fft.rfft + cosine kernel) "
         "to obtain g(ω). Documented here so the adapter audit sees the "
         "edge — the contraction is real, just lives outside LAMMPS."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# MD-based κ paths (phase 2 P3)
+# ---------------------------------------------------------------------------
+
+LAMMPS_THERMAL_CONDUCTIVITY_GREEN_KUBO = StateAdapterSpec(
+    state=THERMAL_CONDUCTIVITY_GREEN_KUBO,
+    adapter_name="lammps",
+    code_api={
+        "kappa": "post-processed numpy.trapz on dumped J(t)·J(t) tensor (no native kappa.out)"
+    },
+    notes=(
+        "LAMMPS produces the heat-flux autocorrelation through `fix "
+        "ave/correlate`, but the time integral to κ is post-processed "
+        "(numpy.trapz on the dumped data). LAMMPS does not emit a "
+        "kappa-vs-time running average like GPUMD's hac.out. "
+        "Conventional input-script pattern: `fix JJ all ave/correlate "
+        "Nevery Nrepeat Nfreq c_heatflux[1] c_heatflux[2] c_heatflux[3] "
+        "type auto file J0Jt.dat`, then κ = V/(k_B T²) · numpy.trapz(JJ)."
+    ),
+)
+
+
+LAMMPS_THERMAL_CONDUCTIVITY_NEMD = StateAdapterSpec(
+    state=THERMAL_CONDUCTIVITY_NEMD,
+    adapter_name="lammps",
+    code_api={
+        "kappa": "post-processed: flux / (linear fit of binned T(z))"
+    },
+    notes=(
+        "Müller-Plathe NEMD κ. The input script declares `fix <id> all "
+        "thermal/conductivity <Nevery> <axis> <Nbin>`, which swaps "
+        "velocities between hottest atom in the cold half and coldest "
+        "atom in the hot half on every Nevery steps; the swap rate "
+        "produces a deterministic flux. The user dumps T(z) via "
+        "`compute ke/atom`+chunked `fix ave/chunk` and fits the linear "
+        "regime to extract dT/dz; κ = imposed_flux / |dT/dz|. "
+        "Finite-size scaling (κ vs 1/L_z) is required to read bulk κ."
+    ),
+)
+
+
+LAMMPS_CONTRACT_KAPPA_GREEN_KUBO = OperationAdapterSpec(
+    operation=contract_kappa_green_kubo,
+    adapter_name="lammps",
+    parameter_units={"tau_max": "ps", "tau_min": "ps"},
+    notes=(
+        "Integration is user-driven: dump J(t) (or J(0)J(t)) via `fix "
+        "ave/correlate`, then numpy.trapz from tau_min to tau_max with "
+        "the V/(k_B T²) prefactor. LAMMPS does not perform the "
+        "integration itself."
+    ),
+)
+
+
+LAMMPS_CONTRACT_KAPPA_NEMD = OperationAdapterSpec(
+    operation=contract_kappa_nemd,
+    adapter_name="lammps",
+    algorithmic_convention_overrides={"nemd_method": "muller_plathe"},
+    parameter_units={"imposed_flux": "kcal/(mol*fs)", "imposed_gradient": "K/Angstrom"},
+    notes=(
+        "Canonical LAMMPS NEMD: `fix thermal/conductivity` (Müller-"
+        "Plathe). The `direct_two_reservoir` alternative uses two `fix "
+        "nvt` regions with different setpoints; both end up post-"
+        "processed identically (linear fit of T(z), divide imposed flux "
+        "or measured flux by the gradient)."
+    ),
+)
+
+
+LAMMPS_CONTRACT_KAPPA_HNEMD = OperationAdapterSpec(
+    operation=contract_kappa_hnemd,
+    adapter_name="lammps",
+    notes=(
+        "Not exposed by LAMMPS. The Evans / Fan HNEMD driving force is "
+        "not implemented as a native fix; users wanting HNEMD on a "
+        "LAMMPS Potential typically port the Potential to GPUMD (NEP "
+        "training against LAMMPS-evaluated forces) and run "
+        "`compute_hnemd` there instead. Documented here for the adapter "
+        "audit; references the GPUMD adapter's GPUMD_CONTRACT_KAPPA_HNEMD."
     ),
 )

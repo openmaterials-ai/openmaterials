@@ -682,6 +682,59 @@ MEAN_SQUARED_DISPLACEMENT = Observable(
 )
 
 
+# ---------------------------------------------------------------------------
+# MD-based κ paths (phase 2 P3). Three more Pattern-A `transport_model`
+# variants of ThermalConductivity, closing the cross-paradigm κ map.
+# ---------------------------------------------------------------------------
+
+THERMAL_CONDUCTIVITY_GREEN_KUBO = Observable(
+    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
+    name="ThermalConductivity[transport_model=green_kubo]",
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    type_parameters={"transport_model": "green_kubo"},
+    description=(
+        "Classical Green-Kubo κ: time-integrated heat-flux autocorrelation. "
+        "κ_αβ = V/(k_B T²) ∫₀^∞ ⟨J_α(0) J_β(τ)⟩ dτ. The Observable produced "
+        "from the HeatCurrentACF gauge-invariant contraction of the MD "
+        "Trajectory. Free of the perturbation a NEMD setup introduces; "
+        "the equilibrium-MD reference value for κ."
+    ),
+)
+
+
+THERMAL_CONDUCTIVITY_NEMD = Observable(
+    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
+    name="ThermalConductivity[transport_model=nemd]",
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    type_parameters={"transport_model": "nemd"},
+    description=(
+        "Non-equilibrium MD κ: steady-state response to an imposed "
+        "temperature gradient or imposed heat flux. κ = −⟨J⟩ / (∂T/∂z) "
+        "for direct two-reservoir; for Müller-Plathe (imposed flux), the "
+        "swap-rate-derived flux divides by the measured gradient. "
+        "Finite-size scaling (κ vs 1/L_z) is a separate post-processing "
+        "step left out of this state's definition. Gauge-invariant once "
+        "the steady state has converged."
+    ),
+)
+
+
+THERMAL_CONDUCTIVITY_HNEMD = Observable(
+    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
+    name="ThermalConductivity[transport_model=hnemd]",
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    type_parameters={"transport_model": "hnemd"},
+    description=(
+        "Homogeneous-NEMD κ (Evans 1982, Fan et al. 2019): a uniform "
+        "driving force F_e is applied to every atom, biasing the heat "
+        "current; κ_αβ = ⟨J_α⟩ / (T · V · F_e^β) in the linear-response "
+        "limit (small F_e). Free of the boundary-thermostat artefacts of "
+        "direct NEMD; GPUMD's signature thermal-transport method. "
+        "Gauge-invariant in the small-F_e limit."
+    ),
+)
+
+
 NODES: tuple[State, ...] = (
     POTENTIAL,
     TEMPERATURE_STATE,
@@ -728,4 +781,8 @@ NODES: tuple[State, ...] = (
     HEAT_CURRENT_ACF,
     VELOCITY_AUTOCORRELATION,
     MEAN_SQUARED_DISPLACEMENT,
+    # MD-based κ paths (phase 2 P3)
+    THERMAL_CONDUCTIVITY_GREEN_KUBO,
+    THERMAL_CONDUCTIVITY_NEMD,
+    THERMAL_CONDUCTIVITY_HNEMD,
 )

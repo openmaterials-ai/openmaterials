@@ -251,7 +251,7 @@ Machinery in \texttt{omai.operator} (the \texttt{State} and
 \texttt{Operation} types, \texttt{Field}, \texttt{Dimension},
 \texttt{GaugeAction}, \texttt{SymmetryGroup}, \texttt{validate\_dag});
 domain instances in \texttt{omai.thermal\_transport.operator} (the
-43-node, 44-edge DAG with sympy formulas on each edge, gauge actions).
+46-node, 47-edge DAG with sympy formulas on each edge, gauge actions).
 No values, no units, no per-code knowledge.
 
 \paragraph{Layer 2 --- representation.} Per-code declarations plus the
@@ -804,7 +804,7 @@ transport equation.
 
 \subsection{The operator DAG}
 
-The operator DAG has 43 nodes and 44 edges. Two source nodes (\texttt{Potential},
+The operator DAG has 46 nodes and 47 edges. Two source nodes (\texttt{Potential},
 \texttt{Temperature}) are produced by nullary \texttt{provide\_*} operations; the
 \texttt{MeanFreeDisplacement} and \texttt{ThermalConductivity} states are each split
 into two parameterized variants by the upstream \texttt{bte\_solver} choice (one
@@ -815,9 +815,10 @@ harmonic chain to capture the quantities ShengBTE and phonopy emit directly.
 On top of the BTE chain, a parallel \emph{MD-primitive tier} captures the
 time-resolved quantities a classical molecular-dynamics run produces:
 \texttt{Trajectory}, \texttt{HeatCurrent}, \texttt{HeatCurrentACF},
-\texttt{VelocityAutocorrelation}, and \texttt{MeanSquaredDisplacement}. These feed
-LAMMPS and GPUMD adapters in Phase 2; the MD-based $\kappa$ contractions
-(Green-Kubo, NEMD, HNEMD) land in P3.
+\texttt{VelocityAutocorrelation}, and \texttt{MeanSquaredDisplacement}; from this
+tier the three MD-based $\kappa$ contractions (Green-Kubo from HeatCurrentACF,
+NEMD and HNEMD from time-averaged HeatCurrent) close the cross-paradigm
+$\kappa$ map alongside the LBTE / Wigner / QHGK variants.
 
 \paragraph{Nodes (Observable / HiddenState):}
 \begin{itemize}[leftmargin=2em, itemsep=0.2em]
@@ -888,6 +889,15 @@ LAMMPS and GPUMD adapters in Phase 2; the MD-based $\kappa$ contractions
         whose cosine Fourier yields a phonon DOS via Wiener--Khinchin;
         \texttt{MeanSquaredDisplacement} (\textbf{O}) with $M(\tau)$,
         the diffusion-limit observable.
+  \item \emph{MD-based $\kappa$ terminals (P3):} three Pattern-A
+        \texttt{transport\_model} variants of \texttt{ThermalConductivity}, all
+        Observables --- \texttt{[transport\_model=green\_kubo]} from the
+        time-integrated heat-flux ACF; \texttt{[transport\_model=nemd]} from
+        the imposed-gradient/Müller-Plathe steady state; and
+        \texttt{[transport\_model=hnemd]} from the homogeneous-NEMD driving
+        force. With \texttt{[lbte]} (rta + direct\_inverse), \texttt{[wigner]}
+        (populations + coherences + total), and \texttt{[qhgk]}, this closes
+        the cross-paradigm $\kappa$ map across BTE and MD.
 \end{itemize}
 
 \paragraph{Edges.} Verb-headed names; each carries a sympy formula:
@@ -981,6 +991,20 @@ LAMMPS and GPUMD adapters in Phase 2; the MD-based $\kappa$ contractions
         (1/\pi)\int C_v(\tau)\cos\omega\tau\,d\tau$, a Pattern-C
         alternative producer of \texttt{PhononDOS} alongside
         \texttt{compute\_dos}.
+  \item \emph{MD-based $\kappa$ contractions (P3):}
+        \texttt{contract\_kappa[transport\_model=green\_kubo]} ---
+        $\kappa^{\alpha\beta} = V/(k_B T^2) \int_0^{\tau_{max}}
+        \langle J^\alpha(0)J^\beta(\tau)\rangle\,d\tau$;
+        \texttt{contract\_kappa[transport\_model=nemd]} ---
+        $\kappa = -\langle J\rangle / (\partial T/\partial z)$, with
+        \texttt{nemd\_method} convention $\in$ \{\texttt{direct\_two\_
+        reservoir}, \texttt{muller\_plathe}, \texttt{ehex}\} (LAMMPS-side
+        method);
+        \texttt{contract\_kappa[transport\_model=hnemd]} ---
+        $\kappa^{\alpha\beta} = \langle J^\alpha\rangle / (T\,V\,F_e^\beta)$
+        in the linear-response limit (GPUMD-side method). Cross-paradigm
+        $\kappa$ comparison between BTE, equilibrium MD, and
+        non-equilibrium MD is the cumulative reach of this set.
 \end{itemize}
 
 Edges are exact operator operations (Fourier transform, eigendecomposition, mode
@@ -1064,14 +1088,15 @@ adapter-level steps recorded as provenance, not modeled by the framework.
 \end{tikzpicture}%
 }
 \caption{Core $\kappa$ chain of the operator DAG for lattice thermal transport
-(12 nodes / 14 edges shown; the full DAG has 43 nodes / 44 edges once the
+(12 nodes / 14 edges shown; the full DAG has 46 nodes / 47 edges once the
 derived-observable tier --- PhononDOS, Grüneisen, PhaseSpace, VolumetricHeatCapacity,
 MolarHeatCapacity, the thermodynamic siblings (HelmholtzFreeEnergy, Entropy,
 InternalEnergy and their molar contractions), the polar-correction inputs
 (BareDynamicalMatrix, BornCharges, DielectricTensor), the per-channel
 Linewidth split, the Wigner/QHGK transport variants, the cumulative-$\kappa$
-distributions, and the MD-primitive tier (Trajectory, HeatCurrent, HeatCurrentACF,
-VelocityAutocorrelation, MeanSquaredDisplacement) --- is included; see
+distributions, the MD-primitive tier (Trajectory, HeatCurrent, HeatCurrentACF,
+VelocityAutocorrelation, MeanSquaredDisplacement), and the three MD-based
+$\kappa$ Pattern-A terminals (Green-Kubo, NEMD, HNEMD) --- is included; see
 \texttt{docs/dag.html} for the interactive view). The
 two darker top boxes (\texttt{Potential}, \texttt{Temperature}) are source nodes;
 the dashed edges from \texttt{Potential} represent the stubbed Phase-1 upstream.
@@ -1230,9 +1255,9 @@ plus one per domain:
     Code-agnostic.
   \item \texttt{omai.thermal\_transport} --- the lattice-thermal-transport domain.
     \begin{itemize}[leftmargin=1.2em]
-      \item \texttt{operator/nodes.py}: the 43 states as \texttt{Observable} or
+      \item \texttt{operator/nodes.py}: the 46 states as \texttt{Observable} or
             \texttt{HiddenState} instances with their fields.
-      \item \texttt{operator/edges.py}: the 44 operations with sympy formulas
+      \item \texttt{operator/edges.py}: the 47 operations with sympy formulas
             and \texttt{auxiliary\_formulas} (the \texttt{compute\_linewidth}
             $|V_3|^2$ kernel and the \texttt{solve\_bte[direct\_inverse]}
             collision matrix $M$); sympy symbols and \texttt{IndexedBase}

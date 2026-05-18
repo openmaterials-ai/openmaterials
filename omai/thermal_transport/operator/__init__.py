@@ -1,7 +1,7 @@
 """Lattice thermal-transport: the operator DAG.
 
-  * `nodes`  — forty-three States (observables / hidden states in the DAG)
-  * `edges`  — forty-four Operations (calculations in the DAG, with sympy formulas)
+  * `nodes`  — forty-six States (observables / hidden states in the DAG)
+  * `edges`  — forty-seven Operations (calculations in the DAG, with sympy formulas)
 
 States are pure declarations: type, fields, conventions, indices, gauge-
 invariance kind (Observable vs HiddenState). No sympy, no calculation. Edges

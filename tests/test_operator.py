@@ -21,11 +21,11 @@ from omai.thermal_transport.operator import (
 
 
 def test_node_count():
-    assert len(NODES) == 43
+    assert len(NODES) == 46
 
 
 def test_edge_count():
-    assert len(EDGES) == 44
+    assert len(EDGES) == 47
 
 
 def test_cumulative_kappa_parameterised():
