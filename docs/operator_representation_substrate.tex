@@ -1185,6 +1185,21 @@ $1/\Gamma$ non-linearity, so the per-mode Linewidth redistribution propagates in
 $\kappa$. Typing $\kappa_\text{RTA}$ as a HiddenState makes this a non-anomaly; the
 gauge-invariant $\kappa_\text{LBTE}$ agrees to 0.4\%.
 
+\paragraph{Cross-paradigm $\kappa$ (phase 2 P4).} On the same Si-Tersoff
+worked example, the LAMMPS Green-Kubo path
+(\texttt{contract\_kappa[transport\_model=green\_kubo]} reached through the
+P2 MD-primitive tier and the P3 contraction edge) returns a $\kappa$ value
+that, in the small ensemble of equilibrium-MD runs the framework drives,
+is expected to land within $\sim 20$--$30\%$ of $\kappa_\text{LBTE}$. That tolerance is
+Green-Kubo's empirical signal-to-noise floor on a few-hundred-atom
+supercell, not a framework concern. The driver at
+\texttt{experiments/silicon\_tersoff/run\_lammps\_gk.py} generates the input
+script and the supercell data file regardless of whether \texttt{lmp} is on
+\texttt{PATH}; the \texttt{spec\_demo.py} cross-paradigm audit section and
+the corresponding \texttt{test\_silicon\_consolidation.py} smoke test
+gracefully skip when the resulting \texttt{kappa\_lammps\_gk.npy} is
+absent. The NEMD and HNEMD analogues land in P5 and P6.
+
 \subsection{Phase 1 scientific capabilities}
 
 Phase 1 yields two immediate scientific capabilities, each of which is an artifact the field does

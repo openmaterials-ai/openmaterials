@@ -24,6 +24,7 @@ _REPO = Path(__file__).resolve().parent.parent
 _KALDO = _REPO / "runs" / "silicon_tersoff" / "kaldo_adaptive"
 _PHONOPY = _REPO / "runs" / "silicon_tersoff" / "phonopy"
 _SHENG = _REPO / "experiments" / "silicon_shengbte" / "T300K"
+_LAMMPS_GK = _REPO / "runs" / "silicon_tersoff" / "lammps_gk"
 
 
 def _require(path: Path) -> None:
@@ -117,3 +118,35 @@ def test_cumulative_kappa_is_monotone():
     cum_iso = (cum[..., 0, 0] + cum[..., 1, 1] + cum[..., 2, 2]) / 3.0
     diffs = np.diff(cum_iso)
     assert (diffs >= -1e-9).all(), "cumulative κ vs ω is not monotone"
+
+
+# ---------------------------------------------------------------------------
+# Phase 2 P4: cross-paradigm κ — LAMMPS Green-Kubo vs kaldo LBTE
+# ---------------------------------------------------------------------------
+
+
+def test_kappa_green_kubo_agrees_with_lbte():
+    """κ_GK (LAMMPS Green-Kubo) should agree with κ_LBTE (kaldo direct
+    inverse) within MD's noise band on Si-Tersoff.
+
+    Skips if either .npy file is absent. The κ_GK file is produced by
+    experiments/silicon_tersoff/run_lammps_gk.py once LAMMPS is on PATH;
+    the κ_LBTE file by experiments/silicon_tersoff/run_kaldo_adaptive.py.
+
+    Acceptance band: 0.7 ≤ κ_GK / κ_LBTE ≤ 1.3 (Green-Kubo noise on a
+    finite cell is typically ~20%; we use 30% as a safety margin).
+    """
+    gk_path = _LAMMPS_GK / "kappa_lammps_gk.npy"
+    lbte_path = _KALDO / "kappa_inverse_tensor_WmK.npy"
+    _require(gk_path)
+    _require(lbte_path)
+    kappa_gk = np.load(gk_path)
+    kappa_lbte = np.load(lbte_path)
+    gk_iso = float(np.trace(kappa_gk)) / 3.0
+    lbte_iso = float(np.trace(kappa_lbte)) / 3.0
+    assert lbte_iso > 0.0, "kappa_LBTE reference is non-positive"
+    ratio = gk_iso / lbte_iso
+    assert 0.7 <= ratio <= 1.3, (
+        f"κ_GK / κ_LBTE = {ratio:.3f} outside [0.7, 1.3] band "
+        f"(κ_GK={gk_iso:.2f}, κ_LBTE={lbte_iso:.2f} W/m·K)"
+    )
