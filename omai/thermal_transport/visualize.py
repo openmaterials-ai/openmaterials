@@ -45,6 +45,7 @@ _PIPELINES = [
         "adapters": [],
         "is_operator": True,
     },
+    # BTE-tier codes (phase 1)
     {
         "id": "kaldo",
         "label": "kaldo",
@@ -71,6 +72,28 @@ _PIPELINES = [
         "label": "shengbte",
         "color": "#7C3AED",
         "adapters": ["shengbte"],
+        "is_operator": False,
+    },
+    # MD-tier codes and the ASE Potential anchor (phase 2)
+    {
+        "id": "ase",
+        "label": "ase",
+        "color": "#F59E0B",            # amber — protocol-level Potential anchor
+        "adapters": ["ase"],
+        "is_operator": False,
+    },
+    {
+        "id": "lammps",
+        "label": "lammps",
+        "color": "#EA580C",            # orange — adjacent to ase (LAMMPS-via-ASE shares the row)
+        "adapters": ["lammps"],
+        "is_operator": False,
+    },
+    {
+        "id": "gpumd",
+        "label": "gpumd",
+        "color": "#DB2777",            # pink/magenta — standalone CUDA-MD code
+        "adapters": ["gpumd"],
         "is_operator": False,
     },
 ]
