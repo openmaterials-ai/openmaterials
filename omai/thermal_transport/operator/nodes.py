@@ -37,8 +37,11 @@ from omai.operator.dimensions import (
     ENERGY_PER_TEMPERATURE,
     ENERGY_PER_TEMPERATURE_PER_MOLE,
     ENERGY_PER_TEMPERATURE_PER_VOLUME,
+    ENERGY_TIMES_LENGTH_PER_TIME,
     FREQUENCY,
     LENGTH,
+    LENGTH_PER_TIME,
+    LENGTH_SQUARED,
     LENGTH_TIMES_FREQUENCY,
     OPAQUE,
     TEMPERATURE,
@@ -591,6 +594,94 @@ THERMAL_CONDUCTIVITY_QHGK = HiddenState(
 )
 
 
+# ---------------------------------------------------------------------------
+# MD primitives (phase 2 P2). The MD tier sits parallel to the BTE chain
+# and feeds the MD-based κ paths added in P3 (Green-Kubo, NEMD, HNEMD).
+# ---------------------------------------------------------------------------
+
+TRAJECTORY = HiddenState(
+    physics_type=PhysicsType.TRAJECTORY,
+    name="Trajectory",
+    fields=(
+        Field("r", LENGTH, indices=("i", "alpha", "t")),
+        Field("v", LENGTH_PER_TIME, indices=("i", "alpha", "t")),
+    ),
+    gauge_group="md_ensemble_noise",
+    kind="scaffolding",
+    gauge_invariant_contractions=(
+        "HeatCurrentACF",
+        "VelocityAutocorrelation",
+        "MeanSquaredDisplacement",
+    ),
+    description=(
+        "Per-atom positions r(t) and velocities v(t) sampled at each MD "
+        "timestep. Gauge-dependent: the realised trajectory depends on the "
+        "integrator (Velocity-Verlet vs. leapfrog), the ensemble "
+        "(NVE/NVT/NPT), the thermostat (Berendsen / Langevin / Nose-Hoover "
+        "/ CSVR / none), and the initial conditions. Cross-code "
+        "comparability lives entirely in the time-averaged contractions "
+        "below — HeatCurrentACF, VelocityAutocorrelation, and "
+        "MeanSquaredDisplacement are the gauge-invariant content."
+    ),
+)
+
+HEAT_CURRENT = HiddenState(
+    physics_type=PhysicsType.HEAT_CURRENT,
+    name="HeatCurrent",
+    fields=(Field("J", ENERGY_TIMES_LENGTH_PER_TIME, indices=("alpha", "t")),),
+    gauge_group="md_ensemble_noise",
+    kind="scaffolding",
+    gauge_invariant_contractions=("HeatCurrentACF",),
+    description=(
+        "Instantaneous heat-current vector J(t) computed from a Trajectory "
+        "via the Irving-Kirkwood (or Hardy, or virial) decomposition. "
+        "Per-element J_α(t) is a stochastic MD snapshot — gauge-dependent. "
+        "The cross-code observable is the time-correlation HeatCurrentACF, "
+        "which is what enters Green-Kubo κ."
+    ),
+)
+
+HEAT_CURRENT_ACF = Observable(
+    physics_type=PhysicsType.HEAT_CURRENT_ACF,
+    name="HeatCurrentACF",
+    fields=(Field("Jcorr", OPAQUE, indices=("alpha", "beta", "tau")),),
+    description=(
+        "Time-correlation tensor ⟨J_α(0) J_β(τ)⟩ of the MD heat current. "
+        "Computed by averaging J(t)·J(t+τ) over the production trajectory "
+        "and ensemble repeats; gauge-invariant in the τ→∞ limit. "
+        "The Green-Kubo κ integrand: κ_αβ ∝ ∫₀^∞ Jcorr_αβ(τ) dτ — "
+        "added in P3 as contract_kappa_green_kubo."
+    ),
+)
+
+VELOCITY_AUTOCORRELATION = Observable(
+    physics_type=PhysicsType.VELOCITY_AUTOCORRELATION,
+    name="VelocityAutocorrelation",
+    fields=(Field("Cv", OPAQUE, indices=("tau",)),),
+    description=(
+        "Velocity autocorrelation function ⟨v(0)·v(τ)⟩ averaged over atoms "
+        "and time origins. Gauge-invariant (a time-correlation of "
+        "ensemble-averaged quantities). The Fourier transform gives the "
+        "phonon density of states via the Wiener-Khinchin theorem — see "
+        "the `fourier_to_dos` edge, which makes this a Pattern-C "
+        "alternative-producer of PhononDOS alongside compute_dos."
+    ),
+)
+
+MEAN_SQUARED_DISPLACEMENT = Observable(
+    physics_type=PhysicsType.MEAN_SQUARED_DISPLACEMENT,
+    name="MeanSquaredDisplacement",
+    fields=(Field("M", LENGTH_SQUARED, indices=("tau",)),),
+    description=(
+        "⟨|r(t+τ) − r(t)|²⟩ averaged over atoms and time origins. "
+        "PBC-unwrapped trajectories are required for the linear regime "
+        "M(τ) = 2·d·D·τ to be meaningful (D = self-diffusion). "
+        "Gauge-invariant; orthogonal to κ but a free addition that lets "
+        "the framework cover diffusion observables."
+    ),
+)
+
+
 NODES: tuple[State, ...] = (
     POTENTIAL,
     TEMPERATURE_STATE,
@@ -631,4 +722,10 @@ NODES: tuple[State, ...] = (
     THERMAL_CONDUCTIVITY_QHGK,
     CUMULATIVE_KAPPA_OMEGA,
     CUMULATIVE_KAPPA_MFP,
+    # MD primitives (phase 2 P2)
+    TRAJECTORY,
+    HEAT_CURRENT,
+    HEAT_CURRENT_ACF,
+    VELOCITY_AUTOCORRELATION,
+    MEAN_SQUARED_DISPLACEMENT,
 )

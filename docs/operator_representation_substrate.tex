@@ -251,7 +251,7 @@ Machinery in \texttt{omai.operator} (the \texttt{State} and
 \texttt{Operation} types, \texttt{Field}, \texttt{Dimension},
 \texttt{GaugeAction}, \texttt{SymmetryGroup}, \texttt{validate\_dag});
 domain instances in \texttt{omai.thermal\_transport.operator} (the
-38-node, 38-edge DAG with sympy formulas on each edge, gauge actions).
+43-node, 44-edge DAG with sympy formulas on each edge, gauge actions).
 No values, no units, no per-code knowledge.
 
 \paragraph{Layer 2 --- representation.} Per-code declarations plus the
@@ -804,7 +804,7 @@ transport equation.
 
 \subsection{The operator DAG}
 
-The operator DAG has 38 nodes and 38 edges. Two source nodes (\texttt{Potential},
+The operator DAG has 43 nodes and 44 edges. Two source nodes (\texttt{Potential},
 \texttt{Temperature}) are produced by nullary \texttt{provide\_*} operations; the
 \texttt{MeanFreeDisplacement} and \texttt{ThermalConductivity} states are each split
 into two parameterized variants by the upstream \texttt{bte\_solver} choice (one
@@ -812,6 +812,12 @@ gauge-invariant, one not). A second tier of derived observables ---
 \texttt{PhononDOS}, \texttt{Gruneisen}, \texttt{PhaseSpace3Phonon},
 \texttt{VolumetricHeatCapacity}, \texttt{MolarHeatCapacity} --- hangs off the
 harmonic chain to capture the quantities ShengBTE and phonopy emit directly.
+On top of the BTE chain, a parallel \emph{MD-primitive tier} captures the
+time-resolved quantities a classical molecular-dynamics run produces:
+\texttt{Trajectory}, \texttt{HeatCurrent}, \texttt{HeatCurrentACF},
+\texttt{VelocityAutocorrelation}, and \texttt{MeanSquaredDisplacement}. These feed
+LAMMPS and GPUMD adapters in Phase 2; the MD-based $\kappa$ contractions
+(Green-Kubo, NEMD, HNEMD) land in P3.
 
 \paragraph{Nodes (Observable / HiddenState):}
 \begin{itemize}[leftmargin=2em, itemsep=0.2em]
@@ -871,6 +877,17 @@ harmonic chain to capture the quantities ShengBTE and phonopy emit directly.
   \item \texttt{CumulativeKappa[wrt=omega]} (\textbf{O}),
         \texttt{[wrt=mfp]} (\textbf{O}) --- distribution observables
         derived from $\kappa_{LBTE}$ ingredients.
+  \item \emph{MD-primitive tier (P2):}
+        \texttt{Trajectory} (\textbf{H}) with fields $r$, $v$ indexed
+        $(i,\alpha,t)$ --- gauge-dependent under MD ensemble noise;
+        \texttt{HeatCurrent} (\textbf{H}) with $J(\alpha,t)$, the
+        Irving--Kirkwood snapshot;
+        \texttt{HeatCurrentACF} (\textbf{O}) with
+        $J^{corr}(\alpha,\beta,\tau)$, the Green--Kubo integrand;
+        \texttt{VelocityAutocorrelation} (\textbf{O}) with $C_v(\tau)$,
+        whose cosine Fourier yields a phonon DOS via Wiener--Khinchin;
+        \texttt{MeanSquaredDisplacement} (\textbf{O}) with $M(\tau)$,
+        the diffusion-limit observable.
 \end{itemize}
 
 \paragraph{Edges.} Verb-headed names; each carries a sympy formula:
@@ -946,6 +963,24 @@ harmonic chain to capture the quantities ShengBTE and phonopy emit directly.
   \item \texttt{contract\_cumulative\_kappa[wrt=omega|mfp]} ---
         Heaviside-$\theta$ encoded cumulative thresholds with
         \texttt{binning} convention (linear for $\omega$, log for MFP).
+  \item \emph{MD-primitive tier (P2):}
+        \texttt{run\_md} --- Velocity-Verlet recurrence with
+        \texttt{ensemble} $\in$ \{nve, nvt, npt\},
+        \texttt{thermostat} $\in$ \{berendsen, langevin, nose\_hoover,
+        csvr, none\}, \texttt{integrator} $\in$ \{velocity\_verlet,
+        leapfrog\};
+        \texttt{compute\_heat\_current} --- Irving--Kirkwood / Hardy
+        / virial decomposition (\texttt{definition} convention);
+        \texttt{autocorrelate\_heat\_current} --- direct/FFT time
+        correlation of $J(t)$;
+        \texttt{compute\_velocity\_autocorrelation} --- direct/FFT
+        $\langle v(0)\cdot v(\tau)\rangle$;
+        \texttt{compute\_msd} --- $\langle |r(t+\tau)-r(t)|^2\rangle$,
+        with \texttt{unwrap\_pbc} convention;
+        \texttt{fourier\_to\_dos} --- Wiener--Khinchin $g(\omega) =
+        (1/\pi)\int C_v(\tau)\cos\omega\tau\,d\tau$, a Pattern-C
+        alternative producer of \texttt{PhononDOS} alongside
+        \texttt{compute\_dos}.
 \end{itemize}
 
 Edges are exact operator operations (Fourier transform, eigendecomposition, mode
@@ -1029,14 +1064,15 @@ adapter-level steps recorded as provenance, not modeled by the framework.
 \end{tikzpicture}%
 }
 \caption{Core $\kappa$ chain of the operator DAG for lattice thermal transport
-(12 nodes / 14 edges shown; the full DAG has 38 nodes / 38 edges once the
+(12 nodes / 14 edges shown; the full DAG has 43 nodes / 44 edges once the
 derived-observable tier --- PhononDOS, Grüneisen, PhaseSpace, VolumetricHeatCapacity,
 MolarHeatCapacity, the thermodynamic siblings (HelmholtzFreeEnergy, Entropy,
 InternalEnergy and their molar contractions), the polar-correction inputs
 (BareDynamicalMatrix, BornCharges, DielectricTensor), the per-channel
-Linewidth split, the Wigner/QHGK transport variants, and the cumulative-$\kappa$
-distributions --- is included; see \texttt{docs/dag.html} for the
-interactive view). The
+Linewidth split, the Wigner/QHGK transport variants, the cumulative-$\kappa$
+distributions, and the MD-primitive tier (Trajectory, HeatCurrent, HeatCurrentACF,
+VelocityAutocorrelation, MeanSquaredDisplacement) --- is included; see
+\texttt{docs/dag.html} for the interactive view). The
 two darker top boxes (\texttt{Potential}, \texttt{Temperature}) are source nodes;
 the dashed edges from \texttt{Potential} represent the stubbed Phase-1 upstream.
 \texttt{MeanFreeDisplacement} and $\kappa$ split into two parameterized variants by
@@ -1194,9 +1230,9 @@ plus one per domain:
     Code-agnostic.
   \item \texttt{omai.thermal\_transport} --- the lattice-thermal-transport domain.
     \begin{itemize}[leftmargin=1.2em]
-      \item \texttt{operator/nodes.py}: the 38 states as \texttt{Observable} or
+      \item \texttt{operator/nodes.py}: the 43 states as \texttt{Observable} or
             \texttt{HiddenState} instances with their fields.
-      \item \texttt{operator/edges.py}: the 38 operations with sympy formulas
+      \item \texttt{operator/edges.py}: the 44 operations with sympy formulas
             and \texttt{auxiliary\_formulas} (the \texttt{compute\_linewidth}
             $|V_3|^2$ kernel and the \texttt{solve\_bte[direct\_inverse]}
             collision matrix $M$); sympy symbols and \texttt{IndexedBase}

@@ -18,12 +18,22 @@ Scope in P1 of phase 2:
   * Potential (`pair_style` declaration + coefficients), via
     `provide_potential`.
 
-Out of scope in P1 (will land in P2 / P3 of phase 2):
-  * USER-PHONON outputs: dispersion (band.dat), DM via Green's function
-    fluctuation method.
-  * Native MD heat-current via `compute heat/flux` + `fix ave/correlate`
-    → Green-Kubo κ.
+Scope added in P2 of phase 2 (MD primitives):
+  * Trajectory (positions + velocities sampled from `run`).
+  * HeatCurrent (`compute heat/flux`).
+  * HeatCurrentACF (`fix ave/correlate` over heat-flux components).
+  * VelocityAutocorrelation (`compute vacf` + `fix ave/time`).
+  * MeanSquaredDisplacement (`compute msd`).
+  * All six MD-driver operations (run_md, compute_heat_current,
+    autocorrelate_heat_current, compute_velocity_autocorrelation,
+    compute_msd, fourier_to_dos). The Green-Kubo κ contraction itself
+    lands in P3.
+
+Out of scope (will land in P3 of phase 2):
+  * `contract_kappa_green_kubo` — the Green-Kubo κ from the heat-flux ACF.
   * Müller-Plathe NEMD via `fix thermal/conductivity` → κ_NEMD.
+  * USER-PHONON: dispersion (band.dat), DM via Green's-function
+    fluctuation method.
   * Force-constant derivation via the `fix phonon` or external dynaphopy
     workflows.
 
@@ -33,13 +43,31 @@ References:
   * https://docs.lammps.org/Howto_phonon.html — USER-PHONON how-to.
   * https://docs.lammps.org/compute_heat_flux.html — Green-Kubo κ
     pipeline.
+  * https://docs.lammps.org/compute_vacf.html — velocity autocorrelation.
+  * https://docs.lammps.org/compute_msd.html — mean-squared displacement.
+  * https://docs.lammps.org/fix_ave_correlate.html — direct time-correlation.
 """
 
 from __future__ import annotations
 
 from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
-from omai.thermal_transport.operator.edges import provide_potential
-from omai.thermal_transport.operator.nodes import POTENTIAL
+from omai.thermal_transport.operator.edges import (
+    autocorrelate_heat_current,
+    compute_heat_current,
+    compute_msd,
+    compute_velocity_autocorrelation,
+    fourier_to_dos,
+    provide_potential,
+    run_md,
+)
+from omai.thermal_transport.operator.nodes import (
+    HEAT_CURRENT,
+    HEAT_CURRENT_ACF,
+    MEAN_SQUARED_DISPLACEMENT,
+    POTENTIAL,
+    TRAJECTORY,
+    VELOCITY_AUTOCORRELATION,
+)
 
 
 LAMMPS_POTENTIAL = StateAdapterSpec(
@@ -71,5 +99,164 @@ LAMMPS_PROVIDE_POTENTIAL = OperationAdapterSpec(
         "all driven by that initial configuration. Per-run reproducibility "
         "depends on the parameter files referenced (Si.tersoff, etc.) "
         "being version-pinned."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# MD primitives (phase 2 P2)
+# ---------------------------------------------------------------------------
+
+LAMMPS_TRAJECTORY = StateAdapterSpec(
+    state=TRAJECTORY,
+    adapter_name="lammps",
+    code_api={
+        "r": "dump custom <id> all custom <every> <file> id x y z",
+        "v": "dump custom <id> all custom <every> <file> id vx vy vz",
+    },
+    notes=(
+        "LAMMPS-native Trajectory: positions and velocities written by "
+        "`dump custom` during the production `run`. Sampling interval is "
+        "controlled by the dump's <every> argument. Wrap/unwrap behavior "
+        "is set via `dump_modify` (use `xu yu zu` for unwrapped "
+        "coordinates, required for MSD)."
+    ),
+)
+
+
+LAMMPS_HEAT_CURRENT = StateAdapterSpec(
+    state=HEAT_CURRENT,
+    adapter_name="lammps",
+    code_api={"J": "compute <id> all heat/flux ke pe stress"},
+    notes=(
+        "LAMMPS-native instantaneous heat current via `compute heat/flux`, "
+        "which uses the Hardy/Irving-Kirkwood form. Requires per-atom KE, "
+        "PE, and stress computes as inputs (`compute ke/atom`, "
+        "`compute pe/atom`, `compute stress/atom NULL virial`). The "
+        "vector components Jx, Jy, Jz appear as elements 1-3 of the "
+        "compute output."
+    ),
+)
+
+
+LAMMPS_HEAT_CURRENT_ACF = StateAdapterSpec(
+    state=HEAT_CURRENT_ACF,
+    adapter_name="lammps",
+    code_api={
+        "Jcorr": "fix <id> all ave/correlate <Nevery> <Nrepeat> <Nfreq> c_heatflux[1] c_heatflux[2] c_heatflux[3]"
+    },
+    notes=(
+        "LAMMPS-native heat-current autocorrelation via `fix "
+        "ave/correlate`. The `type auto` mode produces ⟨J_α(0) J_α(τ)⟩; "
+        "for the full αβ tensor, request the cross-correlations "
+        "explicitly (`type full`). Output is the direct-O(N²) sum; for "
+        "long trajectories users post-process the dumped J(t) with FFT "
+        "instead."
+    ),
+)
+
+
+LAMMPS_VELOCITY_AUTOCORRELATION = StateAdapterSpec(
+    state=VELOCITY_AUTOCORRELATION,
+    adapter_name="lammps",
+    code_api={
+        "Cv": "compute <id> all vacf  +  fix <id> all ave/time <Nevery> <Nrepeat> <Nfreq> c_vacf[*]"
+    },
+    notes=(
+        "LAMMPS-native VAF via `compute vacf` (per-atom v(0)·v(t), reset "
+        "at the compute's start step) accumulated through `fix ave/time`. "
+        "Output is the direct-sum form; the Wiener-Khinchin FFT pathway "
+        "is user post-processing outside LAMMPS."
+    ),
+)
+
+
+LAMMPS_MEAN_SQUARED_DISPLACEMENT = StateAdapterSpec(
+    state=MEAN_SQUARED_DISPLACEMENT,
+    adapter_name="lammps",
+    code_api={
+        "M": "compute <id> all msd com yes  +  fix <id> all ave/time <Nevery> <Nrepeat> <Nfreq> c_msd[4]"
+    },
+    notes=(
+        "LAMMPS-native MSD via `compute msd`. The `com yes` flag subtracts "
+        "the COM motion (essential to read self-diffusion off the linear "
+        "slope). Component 4 of the output is the scalar |Δr|²; "
+        "components 1-3 are the αα contributions."
+    ),
+)
+
+
+LAMMPS_RUN_MD = OperationAdapterSpec(
+    operation=run_md,
+    adapter_name="lammps",
+    notes=(
+        "LAMMPS production MD: `velocity all create <T> <seed>` to "
+        "initialise, `fix <id> all nve` / `fix <id> all nvt temp <T> <T> "
+        "<Tdamp>` / `fix <id> all npt ...` for ensemble, optionally `fix "
+        "<id> all langevin <T> <T> <Tdamp> <seed>` for thermostat, then "
+        "`run <n_steps>`. Velocity-Verlet is the default integrator "
+        "(no override needed). The Trajectory is realised by the dump "
+        "statements declared in LAMMPS_TRAJECTORY."
+    ),
+)
+
+
+LAMMPS_COMPUTE_HEAT_CURRENT = OperationAdapterSpec(
+    operation=compute_heat_current,
+    adapter_name="lammps",
+    notes=(
+        "LAMMPS computes the heat current with `compute heat/flux` "
+        "during the production `run`. Requires the per-atom KE, PE, and "
+        "stress computes to be declared upstream. Result is written via "
+        "`fix ave/time` to a thermo or log file, or correlated directly "
+        "via `fix ave/correlate` (see autocorrelate_heat_current)."
+    ),
+)
+
+
+LAMMPS_AUTOCORRELATE_HEAT_CURRENT = OperationAdapterSpec(
+    operation=autocorrelate_heat_current,
+    adapter_name="lammps",
+    algorithmic_convention_overrides={"correlation_method": "direct"},
+    notes=(
+        "`fix ave/correlate` is the direct-sum, O(N²) variant. For the "
+        "FFT/Wiener-Khinchin path users dump J(t) to a file and "
+        "post-process with numpy."
+    ),
+)
+
+
+LAMMPS_COMPUTE_VELOCITY_AUTOCORRELATION = OperationAdapterSpec(
+    operation=compute_velocity_autocorrelation,
+    adapter_name="lammps",
+    algorithmic_convention_overrides={"correlation_method": "direct"},
+    notes=(
+        "`compute vacf` is direct-sum. The compute resets at the step it "
+        "was created on — for long correlation windows users re-create "
+        "the compute periodically or run from a saved velocity dump."
+    ),
+)
+
+
+LAMMPS_COMPUTE_MSD = OperationAdapterSpec(
+    operation=compute_msd,
+    adapter_name="lammps",
+    algorithmic_convention_overrides={"unwrap_pbc": "true"},
+    notes=(
+        "`compute msd` operates on unwrapped coordinates internally — "
+        "the compute tracks atoms across PBC unwrap automatically, so "
+        "the user need not dump `xu yu zu` if MSD is the only output."
+    ),
+)
+
+
+LAMMPS_FOURIER_TO_DOS = OperationAdapterSpec(
+    operation=fourier_to_dos,
+    adapter_name="lammps",
+    notes=(
+        "Not exposed natively. The user dumps the VAF from `compute "
+        "vacf` and FFTs it externally (numpy.fft.rfft + cosine kernel) "
+        "to obtain g(ω). Documented here so the adapter audit sees the "
+        "edge — the contraction is real, just lives outside LAMMPS."
     ),
 )

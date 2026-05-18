@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import sympy as sp
 
-from omai.operator.dimensions import FREQUENCY, LENGTH, TEMPERATURE
+from omai.operator.dimensions import FREQUENCY, LENGTH, LENGTH_PER_TIME, TEMPERATURE
 from omai.operator.operation import Operation, Parameter
 from omai.thermal_transport.operator.nodes import (
     ANHARMONIC_LINEWIDTH,
@@ -53,6 +53,12 @@ from omai.thermal_transport.operator.nodes import (
     THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
     TOTAL_LINEWIDTH,
     VOLUMETRIC_HEAT_CAPACITY,
+    # MD primitives (phase 2 P2)
+    TRAJECTORY,
+    HEAT_CURRENT,
+    HEAT_CURRENT_ACF,
+    VELOCITY_AUTOCORRELATION,
+    MEAN_SQUARED_DISPLACEMENT,
 )
 
 
@@ -1114,6 +1120,221 @@ compute_phase_space_3phonon = Operation(
 )
 
 
+# ---------------------------------------------------------------------------
+# MD primitives (phase 2 P2)
+# ---------------------------------------------------------------------------
+
+_t_idx = sp.Symbol("t", integer=True)
+_tau = sp.Symbol(r"\tau", positive=True)
+_dt = sp.Symbol(r"\Delta t", positive=True)
+_n_lag = sp.Symbol(r"n_{lag}", positive=True, integer=True)
+_n_atoms_md = sp.Symbol(r"N_{atoms}", positive=True, integer=True)
+# IndexedBases for the MD primitives. Index signatures match the
+# corresponding output State's first field declaration: Trajectory r/v
+# carry (i, α, t); HeatCurrent J carries (α, t); HeatCurrentACF Jcorr
+# carries (α, β, τ); VAF Cv and MSD M carry (τ,); PhononDOS g carries
+# (ω,). These are schematic *forms* — production loops iterate time and
+# correlate over origins, and the formulas are not sympy-executable:
+# `is_executable_in_sympy_default` returns False for stateful / time-
+# integrated recurrences, and the executor raises ExternalSolveRequired
+# pointing at the LAMMPS or GPUMD adapter.
+_r_traj = sp.IndexedBase("r")
+_v_traj = sp.IndexedBase("v")
+_F_md = sp.IndexedBase("F^{md}")
+_E_per_atom = sp.IndexedBase("E")
+_J_heat = sp.IndexedBase("J")
+_Jcorr = sp.IndexedBase("Jcorr")
+_Cv_corr = sp.IndexedBase("Cv")
+_MSD_sym = sp.IndexedBase("M")
+_g_DOS_md = sp.IndexedBase("g")
+_omega_bin_md = sp.Symbol(r"\omega")
+
+# run_md: one Velocity-Verlet step (schematic — production loop iterates
+# n_steps times after equilibration; thermostat applied as auxiliary).
+_RUN_MD_FORMULA = sp.Eq(
+    _r_traj[_i, _alpha, _t_idx + 1],
+    _r_traj[_i, _alpha, _t_idx]
+    + _v_traj[_i, _alpha, _t_idx] * _dt
+    + _F_md[_i, _alpha, _t_idx] * _dt**2 / 2,
+)
+
+# compute_heat_current: Irving-Kirkwood form (condensed).
+# J_α(t) = (1/V) [ Σ_i E_i(t) v_{iα}(t) + (1/2) Σ_i r_{iα}(t) F_{iα}(t) v_{iα}(t) ]
+# The pair-sum form is the textbook IK; this single-atom condensation is
+# the schematic the validator can check against the output field's (α,t)
+# index signature.
+_HEAT_CURRENT_FORMULA = sp.Eq(
+    _J_heat[_alpha, _t_idx],
+    (
+        sp.Sum(
+            _E_per_atom[_i, _t_idx] * _v_traj[_i, _alpha, _t_idx],
+            (_i, 1, _n_atoms_md),
+        )
+        + sp.Sum(
+            _r_traj[_i, _alpha, _t_idx]
+            * _F_md[_i, _alpha, _t_idx]
+            * _v_traj[_i, _alpha, _t_idx],
+            (_i, 1, _n_atoms_md),
+        ) / 2
+    ) / _V_cell,
+)
+
+# autocorrelate_heat_current: Jcorr_αβ(τ) = (1/n_lag) Σ_t J_α(t) J_β(t+τ).
+_AUTOCORRELATE_HEAT_CURRENT_FORMULA = sp.Eq(
+    _Jcorr[_alpha, _beta, _tau],
+    sp.Sum(
+        _J_heat[_alpha, _t_idx] * _J_heat[_beta, _t_idx + _tau],
+        (_t_idx, 1, _n_lag),
+    ) / _n_lag,
+)
+
+# compute_velocity_autocorrelation: Cv(τ) = (1/(N·n_lag)) Σ_i Σ_α Σ_t v_{iα}(t)·v_{iα}(t+τ).
+_COMPUTE_VELOCITY_AUTOCORRELATION_FORMULA = sp.Eq(
+    _Cv_corr[_tau],
+    sp.Sum(
+        sp.Sum(
+            sp.Sum(
+                _v_traj[_i, _alpha, _t_idx] * _v_traj[_i, _alpha, _t_idx + _tau],
+                (_alpha, 1, 3),
+            ),
+            (_i, 1, _n_atoms_md),
+        ),
+        (_t_idx, 1, _n_lag),
+    ) / (_n_atoms_md * _n_lag),
+)
+
+# compute_msd: M(τ) = (1/(N·n_lag)) Σ_i Σ_α Σ_t |r_{iα}(t+τ) − r_{iα}(t)|².
+_COMPUTE_MSD_FORMULA = sp.Eq(
+    _MSD_sym[_tau],
+    sp.Sum(
+        sp.Sum(
+            sp.Sum(
+                (_r_traj[_i, _alpha, _t_idx + _tau] - _r_traj[_i, _alpha, _t_idx]) ** 2,
+                (_alpha, 1, 3),
+            ),
+            (_i, 1, _n_atoms_md),
+        ),
+        (_t_idx, 1, _n_lag),
+    ) / (_n_atoms_md * _n_lag),
+)
+
+# fourier_to_dos: g(ω) = (1/π) ∫₀^∞ Cv(τ) cos(ωτ) dτ (Wiener-Khinchin).
+_FOURIER_TO_DOS_FORMULA = sp.Eq(
+    _g_DOS_md[_omega_bin_md],
+    sp.Integral(
+        _Cv_corr[_tau] * sp.cos(_omega_bin_md * _tau),
+        (_tau, 0, sp.oo),
+    ) / sp.pi,
+)
+
+
+run_md = Operation(
+    name="run_md",
+    inputs=(POTENTIAL, TEMPERATURE_STATE),
+    outputs=(TRAJECTORY,),
+    parameters=(
+        Parameter("time_step", FREQUENCY),  # 1/τ-style scale; concrete unit declared by adapter
+        Parameter("n_steps", FREQUENCY),    # placeholder dim; truly a count
+    ),
+    algorithmic_conventions={
+        "ensemble": "NVE",
+        "thermostat": "none",
+        "integrator": "velocity_verlet",
+    },
+    formula=_RUN_MD_FORMULA,
+    description=(
+        "Integrate the classical equations of motion under the chosen "
+        "ensemble + thermostat. The formula spells out one Velocity-Verlet "
+        "step; the production loop iterates n_steps times after "
+        "n_equilibration_steps of equilibration. ensemble ∈ {NVE, NVT, NPT, "
+        "NEMD} controls boundary / driving-force conditions; thermostat ∈ "
+        "{berendsen, langevin, nose_hoover, csvr, none} controls how T is "
+        "imposed; integrator ∈ {velocity_verlet, leapfrog, …} is the "
+        "time-stepping scheme."
+    ),
+)
+
+compute_heat_current = Operation(
+    name="compute_heat_current",
+    inputs=(TRAJECTORY,),
+    outputs=(HEAT_CURRENT,),
+    algorithmic_conventions={"definition": "irving_kirkwood"},
+    formula=_HEAT_CURRENT_FORMULA,
+    description=(
+        "Per-timestep heat current J_α(t) from the MD trajectory. The "
+        "canonical decomposition is Irving-Kirkwood: convective term "
+        "Σ_i E_i v_{i,α} plus the pair virial contribution (1/2) Σ_{i≠j} "
+        "r_{ij,α} (F_{ij}·v_i). Alternatives ('hardy', 'virial') differ in "
+        "how the per-atom energy E_i is decomposed for many-body "
+        "potentials; the algorithmic_convention `definition` records the "
+        "choice. Stays a HiddenState per-element (MD noise); the "
+        "gauge-invariant content is the time correlation."
+    ),
+)
+
+autocorrelate_heat_current = Operation(
+    name="autocorrelate_heat_current",
+    inputs=(HEAT_CURRENT,),
+    outputs=(HEAT_CURRENT_ACF,),
+    algorithmic_conventions={"correlation_method": "fft"},
+    formula=_AUTOCORRELATE_HEAT_CURRENT_FORMULA,
+    description=(
+        "Time-correlation tensor ⟨J_α(0) J_β(τ)⟩ from a stationary segment "
+        "of the heat-current trajectory. `correlation_method ∈ {direct, "
+        "fft}`: direct is the O(n_lag · n_origins) double sum, fft uses "
+        "the Wiener-Khinchin theorem for O(n log n) cost — numerically "
+        "identical in the periodic-padding limit. The output is the "
+        "Green-Kubo κ integrand."
+    ),
+)
+
+compute_velocity_autocorrelation = Operation(
+    name="compute_velocity_autocorrelation",
+    inputs=(TRAJECTORY,),
+    outputs=(VELOCITY_AUTOCORRELATION,),
+    algorithmic_conventions={"correlation_method": "fft"},
+    formula=_COMPUTE_VELOCITY_AUTOCORRELATION_FORMULA,
+    description=(
+        "Velocity autocorrelation function ⟨v(0)·v(τ)⟩ averaged over atoms "
+        "and time origins. Same `correlation_method` choice as the heat-"
+        "current ACF. The FT of Cv(τ) yields the phonon DOS — see the "
+        "`fourier_to_dos` edge."
+    ),
+)
+
+compute_msd = Operation(
+    name="compute_msd",
+    inputs=(TRAJECTORY,),
+    outputs=(MEAN_SQUARED_DISPLACEMENT,),
+    algorithmic_conventions={"unwrap_pbc": "true"},
+    formula=_COMPUTE_MSD_FORMULA,
+    description=(
+        "Mean-squared displacement ⟨|r(t+τ) − r(t)|²⟩ averaged over atoms "
+        "and origins. `unwrap_pbc` MUST be true for the M(τ) = 2·d·D·τ "
+        "diffusion limit to be meaningful; with PBC-wrapped Δr, M(τ) "
+        "saturates at L²/3 instead of growing linearly. Codes that emit a "
+        "pre-unwrapped trajectory inherit the convention from the upstream "
+        "MD run."
+    ),
+)
+
+fourier_to_dos = Operation(
+    name="fourier_to_dos",
+    inputs=(VELOCITY_AUTOCORRELATION,),
+    outputs=(PHONON_DOS,),
+    algorithmic_conventions={"dos_broadening": "gaussian"},
+    formula=_FOURIER_TO_DOS_FORMULA,
+    description=(
+        "Classical-MD route to the phonon DOS via the Wiener-Khinchin "
+        "theorem: g(ω) = (1/π) ∫₀^∞ Cv(τ) cos(ωτ) dτ. Pattern-C "
+        "alternative producer of PhononDOS alongside the harmonic-tier "
+        "compute_dos edge — both target the same PhononDOS state, but the "
+        "MD route is anharmonic-inclusive (broadened by lifetime effects) "
+        "while compute_dos is the harmonic δ-sum."
+    ),
+)
+
+
 EDGES: tuple[Operation, ...] = (
     provide_potential,
     provide_temperature,
@@ -1153,4 +1374,11 @@ EDGES: tuple[Operation, ...] = (
     compute_phase_space_3phonon,
     contract_cumulative_kappa_omega,
     contract_cumulative_kappa_mfp,
+    # MD primitives (phase 2 P2)
+    run_md,
+    compute_heat_current,
+    autocorrelate_heat_current,
+    compute_velocity_autocorrelation,
+    compute_msd,
+    fourier_to_dos,
 )

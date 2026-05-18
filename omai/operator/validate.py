@@ -115,6 +115,16 @@ _PERMITTED_CONSTANTS: frozenset[str] = frozenset({
     # (boundary_length_scale) but reference it in the formula by the
     # textbook symbol `L`. Permit `L` so the formula reads naturally.
     "L",
+    # MD primitives (phase 2 P2). The integer timestep index `t`, the
+    # correlation lag `\tau`, the timestep size `\Delta t`, the
+    # correlation depth `n_{lag}`, and the atom count `N_{atoms}` are
+    # universal MD recurrence / averaging constants that any MD edge may
+    # reference. They're not tied to any single state.
+    "t",
+    r"\tau",
+    r"\Delta t",
+    r"n_{lag}",
+    r"N_{atoms}",
 })
 
 
@@ -192,6 +202,17 @@ _STATE_SYMBOLS: dict[str, frozenset[str]] = {
         r"\kappa^{cum}_\Lambda",
         r"\Lambda_c",
     }),
+    # MD primitives (phase 2 P2). Trajectory carries r and v (the field
+    # declarations); the per-atom energy E and per-atom force F^{md} are
+    # trajectory-derived auxiliary quantities (forces come from the same
+    # Potential that drove the MD; per-atom energies are decomposable
+    # from the same potential energy surface) — listed here so the
+    # Irving-Kirkwood / Velocity-Verlet formulas can reference them.
+    "Trajectory": frozenset({"r", "v", "E", r"F^{md}"}),
+    "HeatCurrent": frozenset({"J"}),
+    "HeatCurrentACF": frozenset({"Jcorr"}),
+    "VelocityAutocorrelation": frozenset({"Cv"}),
+    "MeanSquaredDisplacement": frozenset({"M"}),
 }
 
 

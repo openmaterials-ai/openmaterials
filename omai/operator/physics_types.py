@@ -53,5 +53,12 @@ class PhysicsType(str, Enum):
     GRUNEISEN = "Gruneisen"
     PHASE_SPACE_3PH = "PhaseSpace3Phonon"
 
+    # --- MD primitives (phase 2 P2) ---
+    TRAJECTORY = "Trajectory"
+    HEAT_CURRENT = "HeatCurrent"
+    HEAT_CURRENT_ACF = "HeatCurrentACF"
+    VELOCITY_AUTOCORRELATION = "VelocityAutocorrelation"
+    MEAN_SQUARED_DISPLACEMENT = "MeanSquaredDisplacement"
+
     # --- experimental/measured observables ---
     MEASURED_THERMAL_CONDUCTIVITY = "MeasuredThermalConductivity"
