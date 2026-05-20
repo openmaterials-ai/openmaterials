@@ -8,11 +8,13 @@ import pytest
 
 from omai.representation import (
     conversion_factor,
+    from_operator_form_factor,
     representation_algorithmic_match,
     representation_discretization_match,
     representation_convention_match,
     inter_representation_factor,
     inter_representation_unit_factor,
+    to_operator_form_factor,
 )
 from omai.thermal_transport.representation import (
     KALDO_COMPUTE_HEAT_CAPACITY,
@@ -171,6 +173,46 @@ def test_kaldo_compute_linewidth_default_factory_matches_module_constant():
         KALDO_COMPUTE_LINEWIDTH.declared_algorithmic_convention("broadening_param")
     assert default.declared_algorithmic_convention("broadening_param") == \
         "adaptive_velocity_projection"
+
+
+def test_inter_representation_factor_equals_composition_through_operator():
+    """The star-topology architectural commitment: cross-adapter factors
+    must factor through the operator/canonical form. Verify mechanically
+    that inter_representation_factor(A, B, obs) == from_op(B) * to_op(A).
+
+    This is a load-bearing invariant: no direct A→B mapping should ever
+    diverge from the composition; if it does, the framework has snuck a
+    second source of truth.
+    """
+    for a, b, obs in [
+        (KALDO_LINEWIDTH, PHONO3PY_LINEWIDTH, "Gamma"),
+        (PHONO3PY_LINEWIDTH, KALDO_LINEWIDTH, "Gamma"),
+        (KALDO_HEAT_CAPACITY, PHONO3PY_HEAT_CAPACITY, "c"),
+        (PHONO3PY_HEAT_CAPACITY, KALDO_HEAT_CAPACITY, "c"),
+    ]:
+        direct = inter_representation_factor(a, b, obs)
+        composed = from_operator_form_factor(b, obs) * to_operator_form_factor(a, obs)
+        assert math.isclose(direct, composed, rel_tol=1e-12), (
+            f"star-topology composition broke for {a.adapter_name}→"
+            f"{b.adapter_name} on {obs}: direct={direct}, composed={composed}"
+        )
+
+
+def test_to_and_from_operator_form_factor_are_inverses():
+    """to_operator_form_factor(A) * from_operator_form_factor(A) ≈ 1 for
+    every (spec, observable). Round-trip identity."""
+    for spec, obs in [
+        (KALDO_LINEWIDTH, "Gamma"),
+        (PHONO3PY_LINEWIDTH, "Gamma"),
+        (KALDO_HEAT_CAPACITY, "c"),
+        (PHONO3PY_HEAT_CAPACITY, "c"),
+    ]:
+        forward = to_operator_form_factor(spec, obs)
+        reverse = from_operator_form_factor(spec, obs)
+        assert math.isclose(forward * reverse, 1.0, rel_tol=1e-12), (
+            f"to/from operator-form-factor not inverse for "
+            f"{spec.adapter_name} on {obs}: forward={forward}, reverse={reverse}"
+        )
 
 
 def test_kaldo_compute_linewidth_factory_halfwidth_mode():

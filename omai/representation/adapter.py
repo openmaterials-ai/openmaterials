@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 
 from omai.operator.operation import Operation
 from omai.operator.state import State
-from omai.representation.units import conversion_factor
+from omai.representation.units import UNITS, conversion_factor
 
 
 @dataclass(frozen=True)
@@ -122,11 +122,56 @@ def _require_same_state(a: StateAdapterSpec, b: StateAdapterSpec) -> None:
         )
 
 
+def to_operator_form_factor(
+    spec: StateAdapterSpec, observable_name: str
+) -> float:
+    """Multiplier from this adapter's emitted value to operator-canonical form.
+
+    The operator layer is unit-free at the *dimension* level but each
+    `Unit` carries a `to_canonical` factor that names the canonical
+    numerical form for its dimension (linear_THz for FREQUENCY, J/K for
+    ENERGY_PER_TEMPERATURE, W/(m·K) for THERMAL_CONDUCTIVITY, …). The
+    convention factor `c_a` is this adapter's deviation from canonical
+    convention. So:
+
+        operator_value = adapter_value · (unit.to_canonical / c_a)
+
+    Together with `from_operator_form_factor`, this is the only primitive
+    cross-form mapping. `inter_representation_factor(a, b, …)` is *defined*
+    as their composition; there is no direct A→B primitive in the framework.
+    Adapters talk to each other only through the operator hub — a star
+    topology, never a complete graph. Adding adapter C means declaring
+    C↔operator only.
+    """
+    unit = UNITS[spec.declared_unit(observable_name)]
+    c_a = spec.observable_convention_factor(observable_name)
+    return unit.to_canonical / c_a
+
+
+def from_operator_form_factor(
+    spec: StateAdapterSpec, observable_name: str
+) -> float:
+    """Multiplier from operator-canonical form to this adapter's emitted value.
+
+    Inverse of `to_operator_form_factor` (modulo float round-off):
+
+        adapter_value = operator_value · (c_b / unit.to_canonical)
+    """
+    unit = UNITS[spec.declared_unit(observable_name)]
+    c_b = spec.observable_convention_factor(observable_name)
+    return c_b / unit.to_canonical
+
+
 def inter_representation_unit_factor(
     a: StateAdapterSpec, b: StateAdapterSpec, observable_name: str
 ) -> float:
     """Factor f such that A's emitted value × f = the same value in B's unit
-    (ignoring any convention-driven scaling)."""
+    (ignoring any convention-driven scaling).
+
+    Derived view: this is `conversion_factor(A.unit, B.unit)` which in turn
+    equals `A.unit.to_canonical / B.unit.to_canonical` — the unit jump
+    factors through canonical SI form by construction.
+    """
     _require_same_state(a, b)
     return conversion_factor(
         a.declared_unit(observable_name), b.declared_unit(observable_name)
@@ -139,14 +184,21 @@ def inter_representation_factor(
     """Combined unit + convention factor: A's emitted value × this = B's
     emitted value for the same physical state.
 
-    A_value × U_a→b × (c_b / c_a) = B_value
-    where U_a→b is the unit factor and c_a, c_b are the observable-convention
-    factors relative to canonical.
+    **Derived, not primitive.** This is the composition
+
+        from_operator_form_factor(b, …) · to_operator_form_factor(a, …)
+
+    Cross-adapter conversions are never direct A→B in this framework;
+    every such factor is the composition of `A → operator` and
+    `operator → B`. The operator layer is the unique hub of a star
+    topology. This convenience function exists to make Si-Tersoff-style
+    audit code read naturally; new adapters need not declare anything
+    relative to other adapters, only relative to the operator-canonical
+    form (`to_canonical` on `Unit`, `convention_factors` on `State`).
     """
-    unit = inter_representation_unit_factor(a, b, observable_name)
-    c_a = a.observable_convention_factor(observable_name)
-    c_b = b.observable_convention_factor(observable_name)
-    return unit * (c_b / c_a)
+    return from_operator_form_factor(b, observable_name) * to_operator_form_factor(
+        a, observable_name
+    )
 
 
 def representation_convention_match(

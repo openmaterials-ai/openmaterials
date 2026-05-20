@@ -18,11 +18,13 @@ alongside their domain DAG, e.g. omai.thermal_transport.representation.
 from omai.representation.adapter import (
     OperationAdapterSpec,
     StateAdapterSpec,
+    from_operator_form_factor,
     representation_algorithmic_match,
     representation_discretization_match,
     representation_convention_match,
     inter_representation_factor,
     inter_representation_unit_factor,
+    to_operator_form_factor,
 )
 from omai.representation.compare import RepresentationComparisonResult, compare
 from omai.representation.instance import Representation, represent
@@ -39,7 +41,9 @@ __all__ = [
     "representation_algorithmic_match",
     "representation_discretization_match",
     "representation_convention_match",
+    "from_operator_form_factor",
     "inter_representation_factor",
     "inter_representation_unit_factor",
     "represent",
+    "to_operator_form_factor",
 ]

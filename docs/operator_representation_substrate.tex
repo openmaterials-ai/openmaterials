@@ -613,6 +613,35 @@ the operator layer computes the cross-adapter conversion factor mechanically and
 unit / convention mismatches as type-level declarations rather than as numerical
 mysteries.
 
+\paragraph{Star topology: the operator layer is the unique hub.}
+The cross-adapter conversion factor is \emph{never} a direct
+representation-to-representation primitive. The primitives are the two factor functions
+$\texttt{to\_operator\_form\_factor}(A,\text{obs})$ and
+$\texttt{from\_operator\_form\_factor}(B,\text{obs})$ which carry a value
+between an adapter's emitted form and the operator-canonical form
+($x_{\text{operator}} = x_A \cdot u_A^{\text{canon}} / c_A$, where
+$u_A^{\text{canon}}$ is the unit's \texttt{to\_canonical} multiplier and
+$c_A$ is the adapter's convention deviation from canonical). The
+combined factor
+$\texttt{inter\_representation\_factor}(A, B, \text{obs}) =
+\texttt{from\_operator}(B, \text{obs}) \cdot \texttt{to\_operator}(A, \text{obs})$
+is \emph{derived}, never primitive. Geometrically the operator layer is the
+unique hub of a star topology with each adapter as a spoke; an $N$-adapter
+domain requires $N$ canonical spec sets, never $N^2$ pairwise conversions.
+Lean-side this is the right factoring: the operator layer is the \emph{theory},
+each adapter is a \emph{model}, and any cross-adapter morphism factors through
+the theory by construction.
+
+The same discipline applies edge-by-edge in the executor: when the
+operator-side runtime walks the DAG and dispatches an edge to code $A$,
+the value returned MUST be canonicalised via $A$'s
+\texttt{to\_operator\_form\_factor} before the next edge runs --- whether
+that next edge is sympy-executable (closed-form on the operator layer)
+or dispatched to a different code $B$ (which then applies $B$'s
+\texttt{from\_operator\_form\_factor}). Operator-form intermediates are
+the lingua franca between heterogeneous edges; no edge-to-edge handshake
+bypasses canonical.
+
 \subsection{Cross-adapter comparison: \texttt{compare}}
 
 The bridge from spec to verified empirical fact is the function
