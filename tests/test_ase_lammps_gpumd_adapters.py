@@ -5,7 +5,7 @@ P1 of phase 2 introduces three new representation adapters:
   * `lammps` — LAMMPS-native
   * `gpumd`  — GPUMD-native
 
-Each gets a StateRepresentationSpec for POTENTIAL and an OperationRepresentationSpec
+Each gets a SpaceRepresentationSpec for POTENTIAL and an OperatorRepresentationSpec
 for provide_potential. These tests verify the adapters import, name
 themselves correctly, and point at the right operator-layer state /
 edge.
@@ -13,7 +13,7 @@ edge.
 
 from __future__ import annotations
 
-from omai.representation.adapter import OperationRepresentationSpec, StateRepresentationSpec
+from omai.representation.adapter import OperatorRepresentationSpec, SpaceRepresentationSpec
 from omai.thermal_transport.operator.edges import provide_potential
 from omai.thermal_transport.operator.nodes import POTENTIAL
 
@@ -24,9 +24,9 @@ from omai.thermal_transport.operator.nodes import POTENTIAL
 def test_ase_potential_spec_targets_potential_state():
     from omai.thermal_transport.representation.ase import ASE_POTENTIAL
 
-    assert isinstance(ASE_POTENTIAL, StateRepresentationSpec)
+    assert isinstance(ASE_POTENTIAL, SpaceRepresentationSpec)
     assert ASE_POTENTIAL.representation_name == "ase"
-    assert ASE_POTENTIAL.state is POTENTIAL
+    assert ASE_POTENTIAL.space is POTENTIAL
     assert "potential" in ASE_POTENTIAL.code_api
     assert "ase.Atoms.calc" in ASE_POTENTIAL.code_api["potential"]
 
@@ -34,9 +34,9 @@ def test_ase_potential_spec_targets_potential_state():
 def test_ase_provide_potential_spec_targets_provide_potential_edge():
     from omai.thermal_transport.representation.ase import ASE_PROVIDE_POTENTIAL
 
-    assert isinstance(ASE_PROVIDE_POTENTIAL, OperationRepresentationSpec)
+    assert isinstance(ASE_PROVIDE_POTENTIAL, OperatorRepresentationSpec)
     assert ASE_PROVIDE_POTENTIAL.representation_name == "ase"
-    assert ASE_PROVIDE_POTENTIAL.operation is provide_potential
+    assert ASE_PROVIDE_POTENTIAL.operator is provide_potential
 
 
 # -- lammps -------------------------------------------------------------
@@ -45,18 +45,18 @@ def test_ase_provide_potential_spec_targets_provide_potential_edge():
 def test_lammps_potential_spec_targets_potential_state():
     from omai.thermal_transport.representation.lammps import LAMMPS_POTENTIAL
 
-    assert isinstance(LAMMPS_POTENTIAL, StateRepresentationSpec)
+    assert isinstance(LAMMPS_POTENTIAL, SpaceRepresentationSpec)
     assert LAMMPS_POTENTIAL.representation_name == "lammps"
-    assert LAMMPS_POTENTIAL.state is POTENTIAL
+    assert LAMMPS_POTENTIAL.space is POTENTIAL
     assert "pair_style" in LAMMPS_POTENTIAL.code_api["potential"]
 
 
 def test_lammps_provide_potential_spec_targets_provide_potential_edge():
     from omai.thermal_transport.representation.lammps import LAMMPS_PROVIDE_POTENTIAL
 
-    assert isinstance(LAMMPS_PROVIDE_POTENTIAL, OperationRepresentationSpec)
+    assert isinstance(LAMMPS_PROVIDE_POTENTIAL, OperatorRepresentationSpec)
     assert LAMMPS_PROVIDE_POTENTIAL.representation_name == "lammps"
-    assert LAMMPS_PROVIDE_POTENTIAL.operation is provide_potential
+    assert LAMMPS_PROVIDE_POTENTIAL.operator is provide_potential
 
 
 # -- gpumd --------------------------------------------------------------
@@ -65,9 +65,9 @@ def test_lammps_provide_potential_spec_targets_provide_potential_edge():
 def test_gpumd_potential_spec_targets_potential_state():
     from omai.thermal_transport.representation.gpumd import GPUMD_POTENTIAL
 
-    assert isinstance(GPUMD_POTENTIAL, StateRepresentationSpec)
+    assert isinstance(GPUMD_POTENTIAL, SpaceRepresentationSpec)
     assert GPUMD_POTENTIAL.representation_name == "gpumd"
-    assert GPUMD_POTENTIAL.state is POTENTIAL
+    assert GPUMD_POTENTIAL.space is POTENTIAL
     api = GPUMD_POTENTIAL.code_api["potential"]
     assert "nep" in api.lower() or "potential" in api.lower()
 
@@ -75,9 +75,9 @@ def test_gpumd_potential_spec_targets_potential_state():
 def test_gpumd_provide_potential_spec_targets_provide_potential_edge():
     from omai.thermal_transport.representation.gpumd import GPUMD_PROVIDE_POTENTIAL
 
-    assert isinstance(GPUMD_PROVIDE_POTENTIAL, OperationRepresentationSpec)
+    assert isinstance(GPUMD_PROVIDE_POTENTIAL, OperatorRepresentationSpec)
     assert GPUMD_PROVIDE_POTENTIAL.representation_name == "gpumd"
-    assert GPUMD_PROVIDE_POTENTIAL.operation is provide_potential
+    assert GPUMD_PROVIDE_POTENTIAL.operator is provide_potential
 
 
 # -- cross-adapter --------------------------------------------------------

@@ -1,7 +1,7 @@
 """Operator-representation boundary behavioural tests (full operator layer).
 
 This file exercises the *contract* at the operator/representation boundary
-across every ``StateRepresentationSpec`` discoverable in the four adapter modules
+across every ``SpaceRepresentationSpec`` discoverable in the four adapter modules
 ``omai.thermal_transport.representation.{kaldo,phono3py,phonopy,shengbte}``.
 
 Four families of checks (each parametrized over discovered specs):
@@ -28,7 +28,7 @@ Four families of checks (each parametrized over discovered specs):
 
 Discovery mirrors ``omai.thermal_transport.visualize._collect_specs``: walk
 the adapter sub-package, import each module, and collect every
-``StateRepresentationSpec`` instance via attribute introspection.
+``SpaceRepresentationSpec`` instance via attribute introspection.
 """
 
 from __future__ import annotations
@@ -42,11 +42,12 @@ import numpy as np
 import pytest
 
 import omai.thermal_transport.representation as _representation_pkg
-from omai.operator.state import HiddenState, Observable
+from omai.operator.space import HiddenSpace, ObservableSpace
 from omai.representation import Representation, compare
 from omai.representation.adapter import (
-    StateRepresentationSpec,
-    inter_representation_factor,
+    SpaceRepresentationSpec,
+    operator_to_representation,
+    representation_to_operator,
 )
 from omai.representation.compare import (
     OperatorComparisonResult,
@@ -74,15 +75,15 @@ def _dimension_has_registered_unit(dimension) -> bool:
 
 @dataclass(frozen=True)
 class _DiscoveredSpec:
-    """A StateRepresentationSpec located via discovery, with provenance for ids."""
+    """A SpaceRepresentationSpec located via discovery, with provenance for ids."""
 
     module: str  # e.g. "kaldo"
     attr: str  # module-level attribute name, e.g. "KALDO_LINEWIDTH"
-    spec: StateRepresentationSpec
+    spec: SpaceRepresentationSpec
 
     @property
     def state_name(self) -> str:
-        return self.spec.state.name
+        return self.spec.space.name
 
     @property
     def representation_name(self) -> str:
@@ -90,7 +91,7 @@ class _DiscoveredSpec:
 
 
 def _discover_specs() -> list[_DiscoveredSpec]:
-    """All ``StateRepresentationSpec`` instances across the four adapter modules."""
+    """All ``SpaceRepresentationSpec`` instances across the four adapter modules."""
     found: list[_DiscoveredSpec] = []
     for info in sorted(pkgutil.iter_modules(_representation_pkg.__path__)):
         if info.name.startswith("_"):
@@ -102,7 +103,7 @@ def _discover_specs() -> list[_DiscoveredSpec]:
             if attr.startswith("_"):
                 continue
             obj = getattr(mod, attr)
-            if isinstance(obj, StateRepresentationSpec):
+            if isinstance(obj, SpaceRepresentationSpec):
                 found.append(_DiscoveredSpec(module=info.name, attr=attr, spec=obj))
     return found
 
@@ -188,7 +189,7 @@ def _cross_adapter_pairs_with_units() -> list[
             ub = b.spec.observable_units[field_name]
             if ua not in UNITS or ub not in UNITS:
                 continue
-            field = a.spec.state.field(field_name)
+            field = a.spec.space.field(field_name)
             if not _dimension_has_registered_unit(field.dimension):
                 continue
             out.append((state_name, a, b, field_name))
@@ -244,16 +245,16 @@ def test_round_trip_through_operator_form_is_identity(
             f"{ds.attr} declares unit {declared_unit!r} which is not in the "
             f"UNITS registry; cannot exercise round-trip."
         )
-    field = ds.spec.state.field(field_name)
+    field = ds.spec.space.field(field_name)
     if not _dimension_has_registered_unit(field.dimension):
         pytest.skip(
             f"dimension {field.dimension.name!r} on state "
-            f"{ds.spec.state.name!r} has no registered canonical unit; "
+            f"{ds.spec.space.name!r} has no registered canonical unit; "
             f"round-trip not exercisable."
         )
     data = _synthetic_data()
     m = Representation(
-        state_adapter_spec=ds.spec,
+        space_adapter_spec=ds.spec,
         observable_name=field_name,
         data=data,
     )
@@ -319,23 +320,23 @@ def test_compare_representations_identical_pair(
 ) -> None:
     """Identical data wrapped twice with the same spec compares cleanly.
 
-    Observable per-element → EXPECTED_AGREE.
-    HiddenState per-element → NOT_COMPARABLE (matrix-element gauge dependence).
+    ObservableSpace per-element → EXPECTED_AGREE.
+    HiddenSpace per-element → NOT_COMPARABLE (matrix-element gauge dependence).
     """
     _, a, _b, field_name = case
     data = np.array([1.0, 2.0, 3.0])
     m_a = Representation(
-        state_adapter_spec=a.spec, observable_name=field_name, data=data
+        space_adapter_spec=a.spec, observable_name=field_name, data=data
     )
     m_a2 = Representation(
-        state_adapter_spec=a.spec, observable_name=field_name, data=data
+        space_adapter_spec=a.spec, observable_name=field_name, data=data
     )
     r = compare(m_a, m_a2, rtol=1e-9)
-    if isinstance(a.spec.state, HiddenState):
+    if isinstance(a.spec.space, HiddenSpace):
         assert r.not_comparable is True
         assert r.status == "NOT_COMPARABLE"
     else:
-        assert isinstance(a.spec.state, Observable)
+        assert isinstance(a.spec.space, ObservableSpace)
         assert r.agreed is True
         assert r.status == "EXPECTED_AGREE"
         assert r.max_relative_residual == 0.0
@@ -350,25 +351,28 @@ def test_compare_representations_factor_related_pair(
     case: tuple[str, _DiscoveredSpec, _DiscoveredSpec, str],
 ) -> None:
     """data_b = data_a × inter_representation_factor(a, b, field) compares as
-    matching: Observable → EXPECTED_AGREE, HiddenState → NOT_COMPARABLE.
+    matching: ObservableSpace → EXPECTED_AGREE, HiddenSpace → NOT_COMPARABLE.
 
     Both yield ``agreed=True`` (the data are numerically equal once
     canonicalised); the operator-layer status flag differs because HiddenStates
     cannot make a per-element verdict.
     """
     _, a, b, field_name = case
-    factor = inter_representation_factor(a.spec, b.spec, field_name)
+    factor = (
+        operator_to_representation(b.spec, field_name)
+        * representation_to_operator(a.spec, field_name)
+    )
     data_a = np.array([1.0, 2.0, 3.0])
     data_b = data_a * factor
     m_a = Representation(
-        state_adapter_spec=a.spec, observable_name=field_name, data=data_a
+        space_adapter_spec=a.spec, observable_name=field_name, data=data_a
     )
     m_b = Representation(
-        state_adapter_spec=b.spec, observable_name=field_name, data=data_b
+        space_adapter_spec=b.spec, observable_name=field_name, data=data_b
     )
     r = compare(m_a, m_b, rtol=1e-9)
     assert r.agreed is True
-    if isinstance(a.spec.state, HiddenState):
+    if isinstance(a.spec.space, HiddenSpace):
         assert r.status == "NOT_COMPARABLE"
     else:
         assert r.status == "EXPECTED_AGREE"
@@ -390,17 +394,20 @@ def test_compare_representations_adversarial_pair(
     no pass/fail is rendered.
     """
     _, a, b, field_name = case
-    factor = inter_representation_factor(a.spec, b.spec, field_name)
+    factor = (
+        operator_to_representation(b.spec, field_name)
+        * representation_to_operator(a.spec, field_name)
+    )
     data_a = np.array([1.0, 2.0, 3.0])
     data_b = data_a * 2.0 * factor
     m_a = Representation(
-        state_adapter_spec=a.spec, observable_name=field_name, data=data_a
+        space_adapter_spec=a.spec, observable_name=field_name, data=data_a
     )
     m_b = Representation(
-        state_adapter_spec=b.spec, observable_name=field_name, data=data_b
+        space_adapter_spec=b.spec, observable_name=field_name, data=data_b
     )
     r = compare(m_a, m_b, rtol=1e-9)
-    if isinstance(a.spec.state, HiddenState):
+    if isinstance(a.spec.space, HiddenSpace):
         assert r.status == "NOT_COMPARABLE"
         # Even though we report NOT_COMPARABLE, the residual is still nonzero.
         assert r.max_relative_residual > 0
@@ -429,9 +436,9 @@ def _unitless_specs_with_canonical_dim() -> list[_DiscoveredSpec]:
     for ds in _ALL_SPECS:
         if ds.spec.observable_units:
             continue
-        if not ds.spec.state.fields:
+        if not ds.spec.space.fields:
             continue
-        first_field = ds.spec.state.fields[0]
+        first_field = ds.spec.space.fields[0]
         if not _dimension_has_registered_unit(first_field.dimension):
             continue
         out.append(ds)
@@ -448,11 +455,11 @@ def test_to_operator_raises_helpful_keyerror_for_unitless_specs(
     ``KeyError`` whose message names both the adapter and the field, so a
     user reading the traceback immediately knows what to add.
     """
-    fields = ds.spec.state.fields
+    fields = ds.spec.space.fields
     assert fields, f"spec {ds.attr}: state has no fields, cannot test"
     field_name = fields[0].name
     m = Representation(
-        state_adapter_spec=ds.spec,
+        space_adapter_spec=ds.spec,
         observable_name=field_name,
         data=np.array([1.0]),
     )

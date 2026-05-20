@@ -14,8 +14,8 @@ adapter-owned external solver and the executor raises
 ``ExternalSolveRequired`` for those.
 
 Closed-form executability is opt-in via
-``Operation.is_executable_in_sympy_override=True`` on the edge
-declaration; the default heuristic in ``Operation.is_executable_in_sympy_default``
+``Operator.is_executable_in_sympy_override=True`` on the edge
+declaration; the default heuristic in ``Operator.is_executable_in_sympy_default``
 is conservative (LHS / RHS disjoint free symbols), so most indexed
 formulas need the override to be marked executable.
 """
@@ -28,10 +28,10 @@ from typing import Any
 import numpy as np
 import sympy as sp
 
-from omai.operator.operation import Operation
-from omai.operator.state import State
-from omai.operator.validate import _STATE_SYMBOLS
-from omai.representation.adapter import StateRepresentationSpec
+from omai.operator.operator import Operator
+from omai.operator.space import Space
+from omai.operator.validate import _SPACE_SYMBOLS
+from omai.representation.adapter import SpaceRepresentationSpec
 from omai.representation.instance import Representation
 
 
@@ -43,9 +43,9 @@ __all__ = [
 
 
 class ExternalSolveRequired(RuntimeError):
-    """Raised by ``apply_edge`` when an Operation is not sympy-executable.
+    """Raised by ``apply_edge`` when an Operator is not sympy-executable.
 
-    The operation's formula encodes an implicit relation (e.g. an
+    The operator's formula encodes an implicit relation (e.g. an
     eigenvalue problem, a linear system in the unknown, or a q→0 limit
     that doesn't lambdify cleanly). The caller must dispatch to an
     adapter-owned external solver.
@@ -90,24 +90,24 @@ _PHYSICS_CONSTANTS: dict[str, float] = {
 
 
 @dataclass(frozen=True)
-class _OperatorFormStateAdapterSpec(StateRepresentationSpec):
-    """Synthetic StateRepresentationSpec representing operator (canonical) form.
+class _OperatorFormSpaceAdapterSpec(SpaceRepresentationSpec):
+    """Synthetic SpaceRepresentationSpec representing operator (canonical) form.
 
-    Used as the ``state_adapter_spec`` on Representations produced by the
-    executor. Carries no unit / convention overrides — values are in
+    Used as the ``space_adapter_spec`` on Representations produced by the
+    executor. Carries no unit / normalization overrides — values are in
     canonical units by definition (``is_operator=True``).
     """
 
 
-def operator_form_spec(state: State) -> StateRepresentationSpec:
-    """Return a synthetic StateRepresentationSpec representing operator form.
+def operator_form_spec(space: Space) -> SpaceRepresentationSpec:
+    """Return a synthetic SpaceRepresentationSpec representing operator form.
 
     The result has ``representation_name='operator'`` and declares no
     observable_units; any consumer that tries to canonicalise it via
     ``to_operator`` will see ``is_operator=True`` and skip the
     multiplication.
     """
-    return _OperatorFormStateAdapterSpec(state=state, representation_name="operator")
+    return _OperatorFormSpaceAdapterSpec(space=space, representation_name="operator")
 
 
 # ---------------------------------------------------------------------------
@@ -145,27 +145,27 @@ def _expand_bose_einstein(expr: sp.Basic, hbar_sym: sp.Symbol, kB_sym: sp.Symbol
 # ---------------------------------------------------------------------------
 
 
-def _state_primary_symbols(state: State) -> frozenset[str]:
-    """Return the IndexedBase / Symbol base names associated with ``state``.
+def _space_primary_symbols(space: Space) -> frozenset[str]:
+    """Return the IndexedBase / Symbol base names associated with ``space``.
 
-    Looks up the per-state symbol registry that ``omai.operator.validate``
+    Looks up the per-space symbol registry that ``omai.operator.validate``
     uses for the AOT formula-vocabulary check. The registry is the single
     source of truth for the field-name → sympy-symbol mapping.
     """
-    return _STATE_SYMBOLS.get(state.name, frozenset())
+    return _SPACE_SYMBOLS.get(space.name, frozenset())
 
 
 def _find_input_indexed_atoms(
     formula_rhs: sp.Basic,
-    input_state: State,
+    input_space: Space,
 ) -> list[sp.Indexed]:
     """Return the Indexed sub-expressions on the RHS that belong to
-    ``input_state``.
+    ``input_space``.
 
     "Belong to" means: the underlying IndexedBase's name appears in the
-    state's primary-symbol set (per ``_state_primary_symbols``).
+    space's primary-symbol set (per ``_space_primary_symbols``).
     """
-    primary = _state_primary_symbols(input_state)
+    primary = _space_primary_symbols(input_space)
     indexed_atoms: list[sp.Indexed] = []
     for atom in formula_rhs.atoms(sp.Indexed):
         if str(atom.base.name) in primary:
@@ -175,15 +175,15 @@ def _find_input_indexed_atoms(
 
 def _find_input_scalar_symbol(
     formula_rhs: sp.Basic,
-    input_state: State,
+    input_space: Space,
 ) -> sp.Symbol | None:
-    """Return the bare Symbol on the RHS that names ``input_state``.
+    """Return the bare Symbol on the RHS that names ``input_space``.
 
-    For scalar inputs (Temperature) the formula references the state via a
+    For scalar inputs (Temperature) the formula references the space via a
     plain ``sp.Symbol`` rather than an IndexedBase. We look for that symbol
-    in the state's primary-symbol set.
+    in the space's primary-symbol set.
     """
-    primary = _state_primary_symbols(input_state)
+    primary = _space_primary_symbols(input_space)
     for atom in formula_rhs.atoms(sp.Symbol):
         if isinstance(atom, sp.Indexed):
             continue
@@ -206,19 +206,19 @@ def _find_input_scalar_symbol(
 
 def _identify_single_indexed_for_input(
     formula_rhs: sp.Basic,
-    input_state: State,
+    input_space: Space,
 ) -> sp.Indexed:
-    """Return the unique Indexed atom on RHS belonging to ``input_state``.
+    """Return the unique Indexed atom on RHS belonging to ``input_space``.
 
     Raises NotImplementedError if zero or multiple atoms match — both cases
     fall outside the closed-form subset the executor handles.
     """
-    matches = _find_input_indexed_atoms(formula_rhs, input_state)
+    matches = _find_input_indexed_atoms(formula_rhs, input_space)
     if not matches:
         raise NotImplementedError(
-            f"executor: no Indexed atom matches input state "
-            f"{input_state.name!r} (primary symbols: "
-            f"{sorted(_state_primary_symbols(input_state))}); "
+            f"executor: no Indexed atom matches input space "
+            f"{input_space.name!r} (primary symbols: "
+            f"{sorted(_space_primary_symbols(input_space))}); "
             f"this edge may not be in the closed-form subset."
         )
     # Multiple Indexed expressions sharing the same IndexedBase (e.g. the
@@ -227,7 +227,7 @@ def _identify_single_indexed_for_input(
     bases_seen = {m.base.name for m in matches}
     if len(bases_seen) > 1:
         raise NotImplementedError(
-            f"executor: input state {input_state.name!r} matches multiple "
+            f"executor: input space {input_space.name!r} matches multiple "
             f"distinct IndexedBases {sorted(bases_seen)!r} in the RHS; "
             f"this is ambiguous in the current executor."
         )
@@ -240,7 +240,7 @@ def _identify_single_indexed_for_input(
 
 
 def apply_edge(
-    op: Operation,
+    op: Operator,
     *inputs: Representation,
 ) -> Representation:
     """Evaluate ``op`` against the input Representations and return the
@@ -251,18 +251,18 @@ def apply_edge(
 
     Raises:
         ExternalSolveRequired: if ``op.is_executable_in_sympy`` is False,
-            indicating that the operation is implicit and must be solved
+            indicating that the operator is implicit and must be solved
             externally by an adapter.
         ValueError: if the inputs don't match ``op.inputs`` in number or
-            in state, or if any input is not in operator form.
-        NotImplementedError: if the operation has multiple outputs (the
+            in space, or if any input is not in operator form.
+        NotImplementedError: if the operator has multiple outputs (the
             current executor handles single-output edges only), or if the
             executor cannot identify a unique formula symbol for an input.
     """
     # 1. Executability gate.
     if not op.is_executable_in_sympy:
         raise ExternalSolveRequired(
-            f"operation {op.name!r} is not sympy-executable; dispatch to an "
+            f"operator {op.name!r} is not sympy-executable; dispatch to an "
             f"adapter-owned external solver. Its formula encodes an "
             f"implicit relation (eigenvalue problem, linear system in the "
             f"unknown, or otherwise non-closed-form)."
@@ -271,7 +271,7 @@ def apply_edge(
     # 2. Multi-output edges out of scope for this stage.
     if op.is_multi_output():
         raise NotImplementedError(
-            f"operation {op.name!r} has multiple outputs "
+            f"operator {op.name!r} has multiple outputs "
             f"({[s.name for s in op.outputs]!r}); the current executor "
             f"handles single-output edges only."
         )
@@ -279,21 +279,21 @@ def apply_edge(
     # 3. Input count must match op.inputs.
     if len(inputs) != len(op.inputs):
         raise ValueError(
-            f"operation {op.name!r} expects {len(op.inputs)} inputs, "
+            f"operator {op.name!r} expects {len(op.inputs)} inputs, "
             f"got {len(inputs)}"
         )
 
-    # 4. Per-input checks: same state, operator form.
-    for rep, expected_state in zip(inputs, op.inputs):
-        if rep.state != expected_state:
+    # 4. Per-input checks: same space, operator form.
+    for rep, expected_space in zip(inputs, op.inputs):
+        if rep.space != expected_space:
             raise ValueError(
-                f"operation {op.name!r}: input state mismatch — expected "
-                f"{expected_state.name!r}, got {rep.state.name!r}"
+                f"operator {op.name!r}: input space mismatch — expected "
+                f"{expected_space.name!r}, got {rep.space.name!r}"
             )
         if not rep.is_operator:
             raise ValueError(
-                f"operation {op.name!r}: input for state "
-                f"{rep.state.name!r} is not in operator form; call "
+                f"operator {op.name!r}: input for space "
+                f"{rep.space.name!r} is not in operator form; call "
                 f"to_operator(rep) first."
             )
 
@@ -302,7 +302,7 @@ def apply_edge(
     formula = op.formula
     if not isinstance(formula, sp.Eq):
         raise NotImplementedError(
-            f"operation {op.name!r}: executor requires a sympy.Eq formula "
+            f"operator {op.name!r}: executor requires a sympy.Eq formula "
             f"(got {type(formula).__name__}). Closed-form edges must "
             f"declare their formula as sp.Eq(LHS, RHS)."
         )
@@ -373,14 +373,14 @@ def apply_edge(
     # the elementwise Indexed → dummy substitution AND for Sum elimination.
     base_name_to_array: dict[str, np.ndarray] = {}
     seen_replacements: dict[sp.Indexed, sp.Symbol] = {}
-    for rep, state in zip(inputs, op.inputs):
+    for rep, space in zip(inputs, op.inputs):
         # Try IndexedBase first (most fields), fall back to scalar Symbol.
-        indexed_matches = _find_input_indexed_atoms(rhs, state)
+        indexed_matches = _find_input_indexed_atoms(rhs, space)
         if indexed_matches:
             base_names = {str(m.base.name) for m in indexed_matches}
             if len(base_names) > 1:
                 raise NotImplementedError(
-                    f"operation {op.name!r}: input state {state.name!r} "
+                    f"operator {op.name!r}: input space {space.name!r} "
                     f"matches multiple distinct IndexedBases "
                     f"{sorted(base_names)!r} in the RHS; ambiguous."
                 )
@@ -394,14 +394,14 @@ def apply_edge(
             input_dummies.append((dummy, data))
         else:
             # Scalar fallback: the formula uses a bare Symbol (Temperature).
-            scalar_sym = _find_input_scalar_symbol(rhs, state)
+            scalar_sym = _find_input_scalar_symbol(rhs, space)
             if scalar_sym is None:
                 raise NotImplementedError(
-                    f"operation {op.name!r}: cannot map input state "
-                    f"{state.name!r} to a formula symbol. Neither an "
+                    f"operator {op.name!r}: cannot map input space "
+                    f"{space.name!r} to a formula symbol. Neither an "
                     f"IndexedBase nor a scalar Symbol on the RHS matches "
                     f"its primary symbols "
-                    f"({sorted(_state_primary_symbols(state))})."
+                    f"({sorted(_space_primary_symbols(space))})."
                 )
             data = np.asarray(rep.data)
             if data.shape == ():
@@ -424,7 +424,7 @@ def apply_edge(
         indexed_in_summand = list(summand.atoms(sp.Indexed))
         if len(indexed_in_summand) != 1:
             raise NotImplementedError(
-                f"operation {op.name!r}: Sum {sum_atom!r} has "
+                f"operator {op.name!r}: Sum {sum_atom!r} has "
                 f"{len(indexed_in_summand)} Indexed atoms; executor only "
                 f"handles single-Indexed summands."
             )
@@ -432,7 +432,7 @@ def apply_edge(
         base = str(ix.base.name)
         if base not in base_name_to_array:
             raise NotImplementedError(
-                f"operation {op.name!r}: Sum summand uses IndexedBase "
+                f"operator {op.name!r}: Sum summand uses IndexedBase "
                 f"{base!r} which doesn't correspond to any input."
             )
         arr = base_name_to_array[base]
@@ -480,10 +480,10 @@ def apply_edge(
         # form we couldn't identify with any input), bail clearly.
         leftover_names = sorted(str(s) for s in leftover)
         raise NotImplementedError(
-            f"operation {op.name!r}: after substitution, the RHS still has "
+            f"operator {op.name!r}: after substitution, the RHS still has "
             f"unbound free symbols {leftover_names!r}. The executor cannot "
-            f"evaluate this formula. Likely cause: a state-side symbol that "
-            f"isn't in the per-state symbol registry, or an n_BE/sum form "
+            f"evaluate this formula. Likely cause: a space-side symbol that "
+            f"isn't in the per-space symbol registry, or an n_BE/sum form "
             f"that needs special handling."
         )
 
@@ -494,17 +494,17 @@ def apply_edge(
         fn = sp.lambdify(arg_symbols, rhs, modules="numpy")
     except Exception as exc:  # pragma: no cover — sympy lambdify failure
         raise NotImplementedError(
-            f"operation {op.name!r}: sympy.lambdify failed on the simplified "
+            f"operator {op.name!r}: sympy.lambdify failed on the simplified "
             f"RHS ({rhs!r}): {exc}"
         ) from exc
     result = fn(*arg_values)
     result_arr = np.asarray(result)
 
     # 10. Wrap as an operator-form Representation.
-    out_state = op.outputs[0]
-    out_field_name = out_state.fields[0].name
+    out_space = op.outputs[0]
+    out_field_name = out_space.fields[0].name
     return Representation(
-        state_adapter_spec=operator_form_spec(out_state),
+        space_adapter_spec=operator_form_spec(out_space),
         observable_name=out_field_name,
         data=result_arr,
         is_operator=True,

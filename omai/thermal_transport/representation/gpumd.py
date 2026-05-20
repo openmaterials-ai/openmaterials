@@ -52,7 +52,7 @@ References:
 
 from __future__ import annotations
 
-from omai.representation.adapter import OperationRepresentationSpec, StateRepresentationSpec
+from omai.representation.adapter import OperatorRepresentationSpec, SpaceRepresentationSpec
 from omai.thermal_transport.operator.edges import (
     autocorrelate_heat_current,
     compute_heat_current,
@@ -77,8 +77,8 @@ from omai.thermal_transport.operator.nodes import (
 )
 
 
-GPUMD_POTENTIAL = StateRepresentationSpec(
-    state=POTENTIAL,
+GPUMD_POTENTIAL = SpaceRepresentationSpec(
+    space=POTENTIAL,
     representation_name="gpumd",
     code_api={
         "potential": "nep.txt (default) | EAM/Tersoff/SW potential file referenced from run.in"
@@ -94,8 +94,8 @@ GPUMD_POTENTIAL = StateRepresentationSpec(
 )
 
 
-GPUMD_PROVIDE_POTENTIAL = OperationRepresentationSpec(
-    operation=provide_potential,
+GPUMD_PROVIDE_POTENTIAL = OperatorRepresentationSpec(
+    operator=provide_potential,
     representation_name="gpumd",
     notes=(
         "Provides Potential by referencing an on-disk potential file in "
@@ -110,8 +110,8 @@ GPUMD_PROVIDE_POTENTIAL = OperationRepresentationSpec(
 # MD primitives (phase 2 P2)
 # ---------------------------------------------------------------------------
 
-GPUMD_TRAJECTORY = StateRepresentationSpec(
-    state=TRAJECTORY,
+GPUMD_TRAJECTORY = SpaceRepresentationSpec(
+    space=TRAJECTORY,
     representation_name="gpumd",
     code_api={
         "r": "run.in: dump_position <interval>",
@@ -127,8 +127,8 @@ GPUMD_TRAJECTORY = StateRepresentationSpec(
 )
 
 
-GPUMD_HEAT_CURRENT = StateRepresentationSpec(
-    state=HEAT_CURRENT,
+GPUMD_HEAT_CURRENT = SpaceRepresentationSpec(
+    space=HEAT_CURRENT,
     representation_name="gpumd",
     code_api={"J": "run.in: compute_hac <step1> <step2> <Nc>  (writes hac.out — J(t) implicit)"},
     notes=(
@@ -142,8 +142,8 @@ GPUMD_HEAT_CURRENT = StateRepresentationSpec(
 )
 
 
-GPUMD_HEAT_CURRENT_ACF = StateRepresentationSpec(
-    state=HEAT_CURRENT_ACF,
+GPUMD_HEAT_CURRENT_ACF = SpaceRepresentationSpec(
+    space=HEAT_CURRENT_ACF,
     representation_name="gpumd",
     code_api={"Jcorr": "run.in: compute_hac <Ns> <Nc> <out_steps>  →  hac.out"},
     notes=(
@@ -155,8 +155,8 @@ GPUMD_HEAT_CURRENT_ACF = StateRepresentationSpec(
 )
 
 
-GPUMD_VELOCITY_AUTOCORRELATION = StateRepresentationSpec(
-    state=VELOCITY_AUTOCORRELATION,
+GPUMD_VELOCITY_AUTOCORRELATION = SpaceRepresentationSpec(
+    space=VELOCITY_AUTOCORRELATION,
     representation_name="gpumd",
     code_api={"Cv": "run.in: compute_dos <Nc> <Nw> <max_omega>  →  mvac.out + dos.out"},
     notes=(
@@ -169,8 +169,8 @@ GPUMD_VELOCITY_AUTOCORRELATION = StateRepresentationSpec(
 )
 
 
-GPUMD_MEAN_SQUARED_DISPLACEMENT = StateRepresentationSpec(
-    state=MEAN_SQUARED_DISPLACEMENT,
+GPUMD_MEAN_SQUARED_DISPLACEMENT = SpaceRepresentationSpec(
+    space=MEAN_SQUARED_DISPLACEMENT,
     representation_name="gpumd",
     code_api={"M": "run.in: compute_msd <Nc> <output_interval>  →  msd.out"},
     notes=(
@@ -181,8 +181,8 @@ GPUMD_MEAN_SQUARED_DISPLACEMENT = StateRepresentationSpec(
 )
 
 
-GPUMD_RUN_MD = OperationRepresentationSpec(
-    operation=run_md,
+GPUMD_RUN_MD = OperatorRepresentationSpec(
+    operator=run_md,
     representation_name="gpumd",
     notes=(
         "GPUMD production MD is driven by `ensemble <name> <args>` + "
@@ -197,8 +197,8 @@ GPUMD_RUN_MD = OperationRepresentationSpec(
 )
 
 
-GPUMD_COMPUTE_HEAT_CURRENT = OperationRepresentationSpec(
-    operation=compute_heat_current,
+GPUMD_COMPUTE_HEAT_CURRENT = OperatorRepresentationSpec(
+    operator=compute_heat_current,
     representation_name="gpumd",
     notes=(
         "Implicit: GPUMD computes J(t) internally on every step and "
@@ -209,22 +209,22 @@ GPUMD_COMPUTE_HEAT_CURRENT = OperationRepresentationSpec(
 )
 
 
-GPUMD_AUTOCORRELATE_HEAT_CURRENT = OperationRepresentationSpec(
-    operation=autocorrelate_heat_current,
+GPUMD_AUTOCORRELATE_HEAT_CURRENT = OperatorRepresentationSpec(
+    operator=autocorrelate_heat_current,
     representation_name="gpumd",
-    algorithmic_convention_overrides={"correlation_method": "direct"},
     notes=(
         "`compute_hac` uses the direct-sum form (no FFT pathway in "
         "GPUMD for HAC). The correlation depth Nc is set in the same "
-        "keyword."
+        "keyword. Direct-sum and FFT are numerically equivalent under "
+        "periodic padding — the operator layer no longer declares a "
+        "`correlation_method` scheme."
     ),
 )
 
 
-GPUMD_COMPUTE_VELOCITY_AUTOCORRELATION = OperationRepresentationSpec(
-    operation=compute_velocity_autocorrelation,
+GPUMD_COMPUTE_VELOCITY_AUTOCORRELATION = OperatorRepresentationSpec(
+    operator=compute_velocity_autocorrelation,
     representation_name="gpumd",
-    algorithmic_convention_overrides={"correlation_method": "direct"},
     notes=(
         "`compute_dos` produces the mass-weighted VAF (mvac.out) "
         "alongside the DOS. The two outputs share the same compute, "
@@ -234,10 +234,10 @@ GPUMD_COMPUTE_VELOCITY_AUTOCORRELATION = OperationRepresentationSpec(
 )
 
 
-GPUMD_COMPUTE_MSD = OperationRepresentationSpec(
-    operation=compute_msd,
+GPUMD_COMPUTE_MSD = OperatorRepresentationSpec(
+    operator=compute_msd,
     representation_name="gpumd",
-    algorithmic_convention_overrides={"unwrap_pbc": "true"},
+    scheme_overrides={"unwrap_pbc": "true"},
     notes=(
         "GPUMD's `compute_msd` uses unwrapped coordinates by default — "
         "no user-side unwrap step required."
@@ -245,8 +245,8 @@ GPUMD_COMPUTE_MSD = OperationRepresentationSpec(
 )
 
 
-GPUMD_FOURIER_TO_DOS = OperationRepresentationSpec(
-    operation=fourier_to_dos,
+GPUMD_FOURIER_TO_DOS = OperatorRepresentationSpec(
+    operator=fourier_to_dos,
     representation_name="gpumd",
     notes=(
         "Folded into `compute_dos` alongside the VAF: GPUMD computes "
@@ -262,8 +262,8 @@ GPUMD_FOURIER_TO_DOS = OperationRepresentationSpec(
 # MD-based κ paths (phase 2 P3)
 # ---------------------------------------------------------------------------
 
-GPUMD_THERMAL_CONDUCTIVITY_GREEN_KUBO = StateRepresentationSpec(
-    state=THERMAL_CONDUCTIVITY_GREEN_KUBO,
+GPUMD_THERMAL_CONDUCTIVITY_GREEN_KUBO = SpaceRepresentationSpec(
+    space=THERMAL_CONDUCTIVITY_GREEN_KUBO,
     representation_name="gpumd",
     code_api={"kappa": "hac.out  (columns kappa_xx, kappa_yy, kappa_zz vs t)"},
     notes=(
@@ -276,8 +276,8 @@ GPUMD_THERMAL_CONDUCTIVITY_GREEN_KUBO = StateRepresentationSpec(
 )
 
 
-GPUMD_THERMAL_CONDUCTIVITY_HNEMD = StateRepresentationSpec(
-    state=THERMAL_CONDUCTIVITY_HNEMD,
+GPUMD_THERMAL_CONDUCTIVITY_HNEMD = SpaceRepresentationSpec(
+    space=THERMAL_CONDUCTIVITY_HNEMD,
     representation_name="gpumd",
     code_api={"kappa": "kappa.out  (columns kappa_xx, kappa_xy, ..., kappa_zz vs t)"},
     notes=(
@@ -290,8 +290,8 @@ GPUMD_THERMAL_CONDUCTIVITY_HNEMD = StateRepresentationSpec(
 )
 
 
-GPUMD_CONTRACT_KAPPA_GREEN_KUBO = OperationRepresentationSpec(
-    operation=contract_kappa_green_kubo,
+GPUMD_CONTRACT_KAPPA_GREEN_KUBO = OperatorRepresentationSpec(
+    operator=contract_kappa_green_kubo,
     representation_name="gpumd",
     parameter_units={"tau_max": "ps", "tau_min": "ps"},
     notes=(
@@ -304,8 +304,8 @@ GPUMD_CONTRACT_KAPPA_GREEN_KUBO = OperationRepresentationSpec(
 )
 
 
-GPUMD_CONTRACT_KAPPA_HNEMD = OperationRepresentationSpec(
-    operation=contract_kappa_hnemd,
+GPUMD_CONTRACT_KAPPA_HNEMD = OperatorRepresentationSpec(
+    operator=contract_kappa_hnemd,
     representation_name="gpumd",
     parameter_units={
         "driving_force_magnitude": "1/Angstrom",
@@ -322,8 +322,8 @@ GPUMD_CONTRACT_KAPPA_HNEMD = OperationRepresentationSpec(
 )
 
 
-GPUMD_CONTRACT_KAPPA_NEMD = OperationRepresentationSpec(
-    operation=contract_kappa_nemd,
+GPUMD_CONTRACT_KAPPA_NEMD = OperatorRepresentationSpec(
+    operator=contract_kappa_nemd,
     representation_name="gpumd",
     notes=(
         "Not exposed by GPUMD. GPUMD's design choice is to favour HNEMD "

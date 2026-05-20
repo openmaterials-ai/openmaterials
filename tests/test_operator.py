@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from omai.operator import State, Operation, topological_order
+from omai.operator import Space, Operator, topological_order
 from omai.thermal_transport.operator import (
     EDGES,
     NODES,
@@ -38,8 +38,8 @@ def test_cumulative_kappa_parameterised():
         contract_cumulative_kappa_omega,
     )
 
-    assert CUMULATIVE_KAPPA_OMEGA.type_parameters == {"wrt": "omega"}
-    assert CUMULATIVE_KAPPA_MFP.type_parameters == {"wrt": "mfp"}
+    assert CUMULATIVE_KAPPA_OMEGA.labels == {"wrt": "omega"}
+    assert CUMULATIVE_KAPPA_MFP.labels == {"wrt": "mfp"}
     assert contract_cumulative_kappa_omega.outputs == (CUMULATIVE_KAPPA_OMEGA,)
     assert contract_cumulative_kappa_mfp.outputs == (CUMULATIVE_KAPPA_MFP,)
     assert MEAN_FREE_DISPLACEMENT_DIRECT in contract_cumulative_kappa_mfp.inputs
@@ -73,11 +73,11 @@ def test_wigner_pattern_a_terminal():
 
 def test_qhgk_is_hidden_state():
     """QHGK κ inherits Linewidth's gauge dependence — modelled as a
-    HiddenState terminal node."""
-    from omai.operator.state import HiddenState
+    HiddenSpace terminal node."""
+    from omai.operator.space import HiddenSpace
     from omai.thermal_transport.operator import THERMAL_CONDUCTIVITY_QHGK, compute_kappa_qhgk
 
-    assert isinstance(THERMAL_CONDUCTIVITY_QHGK, HiddenState)
+    assert isinstance(THERMAL_CONDUCTIVITY_QHGK, HiddenSpace)
     assert compute_kappa_qhgk.outputs == (THERMAL_CONDUCTIVITY_QHGK,)
 
 
@@ -201,7 +201,7 @@ def test_contract_kappa_inputs():
 def test_topological_order_is_valid():
     """Each operation appears after all operations producing its inputs."""
     order = topological_order(EDGES)
-    seen: set[State] = set()
+    seen: set[Space] = set()
     for op in order:
         for inp in op.inputs:
             assert inp in seen, f"{op.name!r} consumes {inp.name!r} before it is produced"
@@ -216,37 +216,37 @@ def test_thermal_conductivity_is_terminal():
             assert inp not in (THERMAL_CONDUCTIVITY_RTA, THERMAL_CONDUCTIVITY_DIRECT)
 
 
-def test_linewidth_state_has_gamma_definition_convention():
-    assert "gamma_definition" in LINEWIDTH.operator_conventions
-    assert LINEWIDTH.operator_conventions["gamma_definition"] == "imag_self_energy"
+def test_linewidth_normalization_registry_has_2x_convention():
+    """The normalization registry knows that linewidth_2x_imag_self_energy
+    scales Gamma's emitted value by 1/2 toward canonical."""
+    from omai.representation.normalizations import NORMALIZATIONS
+
+    norm = NORMALIZATIONS["linewidth_2x_imag_self_energy"]
+    assert norm.to_operator == 0.5
 
 
-def test_linewidth_convention_factor_table():
-    """The state knows that linewidth_2x_imag_self_energy scales Gamma by 2."""
-    factors = LINEWIDTH.convention_factors
-    assert (
-        "gamma_definition", "linewidth_2x_imag_self_energy", "Gamma", 2.0,
-    ) in factors
+def test_fc3_normalization_registry_has_eV_per_A2_per_nm():
+    """The normalization registry's `eV_per_A2_per_nm` carries the 10×
+    factor: adapter_value (eV/(Å²·nm)) × 10 = canonical eV/Å³."""
+    from omai.representation.normalizations import NORMALIZATIONS
+
+    canonical = NORMALIZATIONS["canonical"]
+    fc3 = NORMALIZATIONS["eV_per_A2_per_nm"]
+    assert canonical.to_operator == 1.0
+    assert fc3.to_operator == 10.0
 
 
-def test_fc3_state_has_fc3_normalization_convention():
-    """The FC3 state declares fc3_normalization with canonical=eV_per_A3 and a
-    convention_factor of 0.1 for ShengBTE's eV_per_A2_per_nm form."""
-    from omai.thermal_transport.operator import FORCE_CONSTANTS_3
-
-    assert "fc3_normalization" in FORCE_CONSTANTS_3.operator_conventions
-    assert FORCE_CONSTANTS_3.operator_conventions["fc3_normalization"] == "eV_per_A3"
-    assert (
-        "fc3_normalization", "eV_per_A2_per_nm", "phi", 0.1,
-    ) in FORCE_CONSTANTS_3.convention_factors
-
-
-def test_fc3_inter_representation_factor_recovers_empirical_0_1():
+def test_fc3_cross_adapter_factor_recovers_empirical_0_1():
     """phono3py and kaldo store FC3 in canonical eV_per_A3; ShengBTE's adapter
-    spec overrides the convention to eV_per_A2_per_nm. inter_representation_factor
-    should mechanically derive the empirical 0.1 the silicon-Tersoff
-    cross-code comparison required for κ agreement."""
-    from omai.representation.adapter import inter_representation_factor
+    spec sets the `phi` observable's normalization to `eV_per_A2_per_nm`.
+    Composing operator_to_representation(ShengBTE) with
+    representation_to_operator(phono3py|kaldo) should recover the
+    empirical 0.1 the silicon-Tersoff cross-code comparison required
+    for κ agreement."""
+    from omai.representation.adapter import (
+        operator_to_representation,
+        representation_to_operator,
+    )
     from omai.thermal_transport.representation.kaldo import KALDO_FORCE_CONSTANTS_3
     from omai.thermal_transport.representation.phono3py import (
         PHONO3PY_FORCE_CONSTANTS_3,
@@ -255,13 +255,16 @@ def test_fc3_inter_representation_factor_recovers_empirical_0_1():
         SHENGBTE_FORCE_CONSTANTS_3,
     )
 
-    assert inter_representation_factor(
+    def _factor(a, b, obs):
+        return operator_to_representation(b, obs) * representation_to_operator(a, obs)
+
+    assert _factor(
         PHONO3PY_FORCE_CONSTANTS_3, SHENGBTE_FORCE_CONSTANTS_3, "phi"
     ) == 0.1
-    assert inter_representation_factor(
+    assert _factor(
         KALDO_FORCE_CONSTANTS_3, SHENGBTE_FORCE_CONSTANTS_3, "phi"
     ) == 0.1
-    assert inter_representation_factor(
+    assert _factor(
         KALDO_FORCE_CONSTANTS_3, PHONO3PY_FORCE_CONSTANTS_3, "phi"
     ) == 1.0
 
@@ -319,11 +322,11 @@ def test_validate_dag_catches_rogue_free_symbol_in_formula():
     """A synthetic edge that uses a sympy symbol not in any input state must
     be flagged by validate_dag."""
     import sympy as sp
-    from omai.operator import Operation, validate_dag
+    from omai.operator import Operator, validate_dag
     from omai.thermal_transport.operator.nodes import POTENTIAL, FORCE_CONSTANTS_2
 
     rogue = sp.Symbol("Z_rogue")
-    bad = Operation(
+    bad = Operator(
         name="bad_edge",
         inputs=(POTENTIAL,),
         outputs=(FORCE_CONSTANTS_2,),
@@ -337,7 +340,7 @@ def test_validate_dag_catches_lhs_index_rank_mismatch():
     """A synthetic edge whose Eq LHS has a different number of indices than
     the output state's first field is flagged by the LHS-index check."""
     import sympy as sp
-    from omai.operator import Operation, validate_dag
+    from omai.operator import Operator, validate_dag
     from omai.thermal_transport.operator.nodes import (
         FREQUENCY_STATE,
         POTENTIAL,
@@ -346,7 +349,7 @@ def test_validate_dag_catches_lhs_index_rank_mismatch():
     # FREQUENCY_STATE's field "omega" has indices ("q", "nu") — rank 2.
     # Build an edge whose formula's LHS is rank 1 (single index).
     base = sp.IndexedBase(r"\omega")
-    bad = Operation(
+    bad = Operator(
         name="bad_rank_edge",
         inputs=(POTENTIAL,),
         outputs=(FREQUENCY_STATE,),
@@ -363,11 +366,11 @@ def test_validate_dag_catches_rogue_symbol_in_auxiliary_formula():
     """A rogue symbol in an `auxiliary_formulas` entry is flagged just like
     one in the main formula."""
     import sympy as sp
-    from omai.operator import Operation, validate_dag
+    from omai.operator import Operator, validate_dag
     from omai.thermal_transport.operator.nodes import POTENTIAL, FORCE_CONSTANTS_2
 
     rogue = sp.Symbol("Q_rogue_in_aux")
-    bad = Operation(
+    bad = Operator(
         name="bad_aux_edge",
         inputs=(POTENTIAL,),
         outputs=(FORCE_CONSTANTS_2,),
@@ -379,14 +382,13 @@ def test_validate_dag_catches_rogue_symbol_in_auxiliary_formula():
 
 
 def test_validator_flags_missing_gauge_group():
-    """A scaffolding HiddenState without a gauge_group is rejected."""
+    """A scaffolding HiddenSpace without a gauge_group is rejected."""
     from omai.operator import validate_dag
-    from omai.operator.state import HiddenState
-    from omai.thermal_transport.operator.nodes import POTENTIAL  # any Observable
+    from omai.operator.space import HiddenSpace
+    from omai.thermal_transport.operator.nodes import POTENTIAL  # any ObservableSpace
 
-    bad = HiddenState(
-        physics_type=POTENTIAL.physics_type,  # any
-        name="BadHiddenState",
+    bad = HiddenSpace(
+        name="BadHiddenSpace",
         # gauge_group="" by default
     )
     errors = validate_dag((POTENTIAL, bad), ())
@@ -394,14 +396,13 @@ def test_validator_flags_missing_gauge_group():
 
 
 def test_validator_flags_dangling_contraction_name():
-    """A scaffolding HiddenState that names a non-existent Observable is rejected."""
+    """A scaffolding HiddenSpace that names a non-existent ObservableSpace is rejected."""
     from omai.operator import validate_dag
-    from omai.operator.state import HiddenState
+    from omai.operator.space import HiddenSpace
     from omai.thermal_transport.operator.nodes import POTENTIAL
 
-    bad = HiddenState(
-        physics_type=POTENTIAL.physics_type,
-        name="BadHiddenState",
+    bad = HiddenSpace(
+        name="BadHiddenSpace",
         gauge_group="some_gauge",
         kind="scaffolding",
         gauge_invariant_contractions=("DoesNotExist",),
@@ -412,7 +413,7 @@ def test_validator_flags_dangling_contraction_name():
 
 def test_observable_vs_hidden_state_classification():
     """The operator layer classifies gauge-invariant vs gauge-dependent nodes."""
-    from omai.operator.state import HiddenState, Observable
+    from omai.operator.space import HiddenSpace, ObservableSpace
     from omai.thermal_transport.operator import (
         EIGENVECTORS,
         FORCE_CONSTANTS_2,
@@ -433,14 +434,14 @@ def test_observable_vs_hidden_state_classification():
         FREQUENCY_STATE, HEAT_CAPACITY,
         MEAN_FREE_DISPLACEMENT_DIRECT, THERMAL_CONDUCTIVITY_DIRECT,
     ):
-        assert isinstance(state, Observable), f"{state.name} should be Observable"
+        assert isinstance(state, ObservableSpace), f"{state.name} should be ObservableSpace"
         assert state.is_observable
 
     for state in (
         EIGENVECTORS, GROUP_VELOCITY, LINEWIDTH,
         MEAN_FREE_DISPLACEMENT_RTA, THERMAL_CONDUCTIVITY_RTA,
     ):
-        assert isinstance(state, HiddenState), f"{state.name} should be HiddenState"
+        assert isinstance(state, HiddenSpace), f"{state.name} should be HiddenSpace"
         assert not state.is_observable
 
 
@@ -471,26 +472,24 @@ def test_kappa_formula_is_double_sum_over_q_and_nu():
 
 def test_topological_order_detects_cycles():
     """Inject a synthetic cycle and ensure it raises."""
-    a = State(physics_type=NODES[0].physics_type, name="A")
-    b = State(physics_type=NODES[0].physics_type, name="B")
-    op_ab = Operation(name="op_ab", inputs=(a,), outputs=(b,))
-    op_ba = Operation(name="op_ba", inputs=(b,), outputs=(a,))
+    a = Space(name="A")
+    b = Space(name="B")
+    op_ab = Operator(name="op_ab", inputs=(a,), outputs=(b,))
+    op_ba = Operator(name="op_ba", inputs=(b,), outputs=(a,))
     with pytest.raises(ValueError, match="cycle"):
         topological_order((op_ab, op_ba))
 
 
 def test_state_identity_by_name():
     assert LINEWIDTH == LINEWIDTH
-    same_name_different_metadata = State(
-        physics_type=LINEWIDTH.physics_type, name="Linewidth[channel=anharmonic_3ph]"
-    )
+    same_name_different_metadata = Space(name="Linewidth[channel=anharmonic_3ph]")
     assert LINEWIDTH == same_name_different_metadata
 
 
 def test_operation_identity_by_name():
     assert compute_heat_capacity == compute_heat_capacity
     # Two ops with the same name compare equal even if other fields differ.
-    same_name = Operation(
+    same_name = Operator(
         name="compute_heat_capacity", inputs=(), outputs=compute_heat_capacity.outputs
     )
     assert compute_heat_capacity == same_name
@@ -541,13 +540,13 @@ def test_derived_observable_conventions_are_declared():
         compute_phase_space_3phonon,
     )
 
-    assert compute_dos.algorithmic_conventions["dos_broadening"] == "gaussian"
+    assert compute_dos.schemes["dos_broadening"] == "gaussian"
     assert (
-        compute_gruneisen.algorithmic_conventions["gruneisen_method"]
+        compute_gruneisen.schemes["gruneisen_method"]
         == "maradudin_fein"
     )
     assert (
-        compute_phase_space_3phonon.algorithmic_conventions["delta_broadening"]
+        compute_phase_space_3phonon.schemes["delta_broadening"]
         == "gaussian"
     )
 

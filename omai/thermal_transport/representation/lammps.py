@@ -54,7 +54,7 @@ References:
 
 from __future__ import annotations
 
-from omai.representation.adapter import OperationRepresentationSpec, StateRepresentationSpec
+from omai.representation.adapter import OperatorRepresentationSpec, SpaceRepresentationSpec
 from omai.thermal_transport.operator.edges import (
     autocorrelate_heat_current,
     compute_heat_current,
@@ -79,8 +79,8 @@ from omai.thermal_transport.operator.nodes import (
 )
 
 
-LAMMPS_POTENTIAL = StateRepresentationSpec(
-    state=POTENTIAL,
+LAMMPS_POTENTIAL = SpaceRepresentationSpec(
+    space=POTENTIAL,
     representation_name="lammps",
     code_api={
         "potential": "LAMMPS input script: pair_style <name> + pair_coeff <args>"
@@ -98,8 +98,8 @@ LAMMPS_POTENTIAL = StateRepresentationSpec(
 )
 
 
-LAMMPS_PROVIDE_POTENTIAL = OperationRepresentationSpec(
-    operation=provide_potential,
+LAMMPS_PROVIDE_POTENTIAL = OperatorRepresentationSpec(
+    operator=provide_potential,
     representation_name="lammps",
     notes=(
         "Provides Potential via LAMMPS's native scripting interface. The "
@@ -116,8 +116,8 @@ LAMMPS_PROVIDE_POTENTIAL = OperationRepresentationSpec(
 # MD primitives (phase 2 P2)
 # ---------------------------------------------------------------------------
 
-LAMMPS_TRAJECTORY = StateRepresentationSpec(
-    state=TRAJECTORY,
+LAMMPS_TRAJECTORY = SpaceRepresentationSpec(
+    space=TRAJECTORY,
     representation_name="lammps",
     code_api={
         "r": "dump custom <id> all custom <every> <file> id x y z",
@@ -133,8 +133,8 @@ LAMMPS_TRAJECTORY = StateRepresentationSpec(
 )
 
 
-LAMMPS_HEAT_CURRENT = StateRepresentationSpec(
-    state=HEAT_CURRENT,
+LAMMPS_HEAT_CURRENT = SpaceRepresentationSpec(
+    space=HEAT_CURRENT,
     representation_name="lammps",
     code_api={"J": "compute <id> all heat/flux ke pe stress"},
     notes=(
@@ -148,8 +148,8 @@ LAMMPS_HEAT_CURRENT = StateRepresentationSpec(
 )
 
 
-LAMMPS_HEAT_CURRENT_ACF = StateRepresentationSpec(
-    state=HEAT_CURRENT_ACF,
+LAMMPS_HEAT_CURRENT_ACF = SpaceRepresentationSpec(
+    space=HEAT_CURRENT_ACF,
     representation_name="lammps",
     code_api={
         "Jcorr": "fix <id> all ave/correlate <Nevery> <Nrepeat> <Nfreq> c_heatflux[1] c_heatflux[2] c_heatflux[3]"
@@ -165,8 +165,8 @@ LAMMPS_HEAT_CURRENT_ACF = StateRepresentationSpec(
 )
 
 
-LAMMPS_VELOCITY_AUTOCORRELATION = StateRepresentationSpec(
-    state=VELOCITY_AUTOCORRELATION,
+LAMMPS_VELOCITY_AUTOCORRELATION = SpaceRepresentationSpec(
+    space=VELOCITY_AUTOCORRELATION,
     representation_name="lammps",
     code_api={
         "Cv": "compute <id> all vacf  +  fix <id> all ave/time <Nevery> <Nrepeat> <Nfreq> c_vacf[*]"
@@ -180,8 +180,8 @@ LAMMPS_VELOCITY_AUTOCORRELATION = StateRepresentationSpec(
 )
 
 
-LAMMPS_MEAN_SQUARED_DISPLACEMENT = StateRepresentationSpec(
-    state=MEAN_SQUARED_DISPLACEMENT,
+LAMMPS_MEAN_SQUARED_DISPLACEMENT = SpaceRepresentationSpec(
+    space=MEAN_SQUARED_DISPLACEMENT,
     representation_name="lammps",
     code_api={
         "M": "compute <id> all msd com yes  +  fix <id> all ave/time <Nevery> <Nrepeat> <Nfreq> c_msd[4]"
@@ -195,8 +195,8 @@ LAMMPS_MEAN_SQUARED_DISPLACEMENT = StateRepresentationSpec(
 )
 
 
-LAMMPS_RUN_MD = OperationRepresentationSpec(
-    operation=run_md,
+LAMMPS_RUN_MD = OperatorRepresentationSpec(
+    operator=run_md,
     representation_name="lammps",
     notes=(
         "LAMMPS production MD: `velocity all create <T> <seed>` to "
@@ -210,8 +210,8 @@ LAMMPS_RUN_MD = OperationRepresentationSpec(
 )
 
 
-LAMMPS_COMPUTE_HEAT_CURRENT = OperationRepresentationSpec(
-    operation=compute_heat_current,
+LAMMPS_COMPUTE_HEAT_CURRENT = OperatorRepresentationSpec(
+    operator=compute_heat_current,
     representation_name="lammps",
     notes=(
         "LAMMPS computes the heat current with `compute heat/flux` "
@@ -223,34 +223,35 @@ LAMMPS_COMPUTE_HEAT_CURRENT = OperationRepresentationSpec(
 )
 
 
-LAMMPS_AUTOCORRELATE_HEAT_CURRENT = OperationRepresentationSpec(
-    operation=autocorrelate_heat_current,
+LAMMPS_AUTOCORRELATE_HEAT_CURRENT = OperatorRepresentationSpec(
+    operator=autocorrelate_heat_current,
     representation_name="lammps",
-    algorithmic_convention_overrides={"correlation_method": "direct"},
     notes=(
         "`fix ave/correlate` is the direct-sum, O(N²) variant. For the "
         "FFT/Wiener-Khinchin path users dump J(t) to a file and "
-        "post-process with numpy."
+        "post-process with numpy. Both are numerically equivalent under "
+        "periodic padding — the operator layer no longer declares a "
+        "`correlation_method` scheme."
     ),
 )
 
 
-LAMMPS_COMPUTE_VELOCITY_AUTOCORRELATION = OperationRepresentationSpec(
-    operation=compute_velocity_autocorrelation,
+LAMMPS_COMPUTE_VELOCITY_AUTOCORRELATION = OperatorRepresentationSpec(
+    operator=compute_velocity_autocorrelation,
     representation_name="lammps",
-    algorithmic_convention_overrides={"correlation_method": "direct"},
     notes=(
         "`compute vacf` is direct-sum. The compute resets at the step it "
         "was created on — for long correlation windows users re-create "
-        "the compute periodically or run from a saved velocity dump."
+        "the compute periodically or run from a saved velocity dump. The "
+        "FFT alternative is numerically equivalent under periodic padding."
     ),
 )
 
 
-LAMMPS_COMPUTE_MSD = OperationRepresentationSpec(
-    operation=compute_msd,
+LAMMPS_COMPUTE_MSD = OperatorRepresentationSpec(
+    operator=compute_msd,
     representation_name="lammps",
-    algorithmic_convention_overrides={"unwrap_pbc": "true"},
+    scheme_overrides={"unwrap_pbc": "true"},
     notes=(
         "`compute msd` operates on unwrapped coordinates internally — "
         "the compute tracks atoms across PBC unwrap automatically, so "
@@ -259,8 +260,8 @@ LAMMPS_COMPUTE_MSD = OperationRepresentationSpec(
 )
 
 
-LAMMPS_FOURIER_TO_DOS = OperationRepresentationSpec(
-    operation=fourier_to_dos,
+LAMMPS_FOURIER_TO_DOS = OperatorRepresentationSpec(
+    operator=fourier_to_dos,
     representation_name="lammps",
     notes=(
         "Not exposed natively. The user dumps the VAF from `compute "
@@ -275,8 +276,8 @@ LAMMPS_FOURIER_TO_DOS = OperationRepresentationSpec(
 # MD-based κ paths (phase 2 P3)
 # ---------------------------------------------------------------------------
 
-LAMMPS_THERMAL_CONDUCTIVITY_GREEN_KUBO = StateRepresentationSpec(
-    state=THERMAL_CONDUCTIVITY_GREEN_KUBO,
+LAMMPS_THERMAL_CONDUCTIVITY_GREEN_KUBO = SpaceRepresentationSpec(
+    space=THERMAL_CONDUCTIVITY_GREEN_KUBO,
     representation_name="lammps",
     code_api={
         "kappa": "post-processed numpy.trapz on dumped J(t)·J(t) tensor (no native kappa.out)"
@@ -293,8 +294,8 @@ LAMMPS_THERMAL_CONDUCTIVITY_GREEN_KUBO = StateRepresentationSpec(
 )
 
 
-LAMMPS_THERMAL_CONDUCTIVITY_NEMD = StateRepresentationSpec(
-    state=THERMAL_CONDUCTIVITY_NEMD,
+LAMMPS_THERMAL_CONDUCTIVITY_NEMD = SpaceRepresentationSpec(
+    space=THERMAL_CONDUCTIVITY_NEMD,
     representation_name="lammps",
     code_api={
         "kappa": "post-processed: flux / (linear fit of binned T(z))"
@@ -312,8 +313,8 @@ LAMMPS_THERMAL_CONDUCTIVITY_NEMD = StateRepresentationSpec(
 )
 
 
-LAMMPS_CONTRACT_KAPPA_GREEN_KUBO = OperationRepresentationSpec(
-    operation=contract_kappa_green_kubo,
+LAMMPS_CONTRACT_KAPPA_GREEN_KUBO = OperatorRepresentationSpec(
+    operator=contract_kappa_green_kubo,
     representation_name="lammps",
     parameter_units={"tau_max": "ps", "tau_min": "ps"},
     notes=(
@@ -325,10 +326,10 @@ LAMMPS_CONTRACT_KAPPA_GREEN_KUBO = OperationRepresentationSpec(
 )
 
 
-LAMMPS_CONTRACT_KAPPA_NEMD = OperationRepresentationSpec(
-    operation=contract_kappa_nemd,
+LAMMPS_CONTRACT_KAPPA_NEMD = OperatorRepresentationSpec(
+    operator=contract_kappa_nemd,
     representation_name="lammps",
-    algorithmic_convention_overrides={"nemd_method": "muller_plathe"},
+    scheme_overrides={"nemd_method": "muller_plathe"},
     parameter_units={"imposed_flux": "kcal/(mol*fs)", "imposed_gradient": "K/Angstrom"},
     notes=(
         "Canonical LAMMPS NEMD: `fix thermal/conductivity` (Müller-"
@@ -340,8 +341,8 @@ LAMMPS_CONTRACT_KAPPA_NEMD = OperationRepresentationSpec(
 )
 
 
-LAMMPS_CONTRACT_KAPPA_HNEMD = OperationRepresentationSpec(
-    operation=contract_kappa_hnemd,
+LAMMPS_CONTRACT_KAPPA_HNEMD = OperatorRepresentationSpec(
+    operator=contract_kappa_hnemd,
     representation_name="lammps",
     notes=(
         "Not exposed by LAMMPS. The Evans / Fan HNEMD driving force is "

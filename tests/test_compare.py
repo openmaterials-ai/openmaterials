@@ -51,7 +51,7 @@ def test_compare_identical_data_agrees():
 
 
 def test_compare_status_not_comparable_for_hidden_state_per_element():
-    """Linewidth is a HiddenState; per-element compare returns NOT_COMPARABLE.
+    """Linewidth is a HiddenSpace; per-element compare returns NOT_COMPARABLE.
     Residuals are computed for diagnostic inspection but the operator layer makes
     no agree/disagree verdict."""
     a = np.array([1.0, 2.0, 3.0])
@@ -65,7 +65,7 @@ def test_compare_status_not_comparable_for_hidden_state_per_element():
 
 
 def test_compare_status_expected_disagree_for_intermediate_contraction():
-    """User-overridden expected_to_agree=False on a contracted HiddenState
+    """User-overridden expected_to_agree=False on a contracted HiddenSpace
     comparison yields EXPECTED_DISAGREE."""
     a = np.array([1.0, 2.0, 3.0])
     b = np.array([0.5, 1.5, 3.5])  # same sum
@@ -79,7 +79,7 @@ def test_compare_status_expected_disagree_for_intermediate_contraction():
 
 
 def test_compare_status_expected_agree_for_per_element_tight_observable():
-    """HeatCapacity is an Observable (gauge-invariant); identical data should
+    """HeatCapacity is an ObservableSpace (gauge-invariant); identical data should
     yield EXPECTED_AGREE."""
     arr = np.array([1.0, 2.0, 3.0])
     ma = represent(PHONO3PY_HEAT_CAPACITY, "c", arr)
@@ -91,7 +91,7 @@ def test_compare_status_expected_agree_for_per_element_tight_observable():
 
 
 def test_compare_status_unexpected_disagree_for_observable_that_disagrees():
-    """HeatCapacity is an Observable; disagreeing data should yield
+    """HeatCapacity is an ObservableSpace; disagreeing data should yield
     UNEXPECTED_DISAGREE — a real anomaly the operator layer flags."""
     a = np.array([1.0, 2.0, 3.0])
     b = np.array([2.0, 4.0, 6.0])
@@ -105,7 +105,7 @@ def test_compare_status_unexpected_disagree_for_observable_that_disagrees():
 
 def test_compare_status_override_via_kwarg():
     """User can force expected_to_agree=False for intermediate contractions
-    (e.g., per-q Σ on a HiddenState that's only partially gauge-invariant)."""
+    (e.g., per-q Σ on a HiddenSpace that's only partially gauge-invariant)."""
     a = np.array([1.0, 1.0])
     b = np.array([1.0, 2.0])
     ma = represent(PHONO3PY_LINEWIDTH, "Gamma", a)
@@ -165,7 +165,7 @@ def test_compare_rejects_different_states():
     arr = np.array([1.0])
     m_lw = represent(KALDO_LINEWIDTH, "Gamma", arr)
     m_hc = represent(KALDO_HEAT_CAPACITY, "c", arr)
-    with pytest.raises(ValueError, match="different states"):
+    with pytest.raises(ValueError, match="different spaces"):
         compare(m_lw, m_hc)
 
 
@@ -176,7 +176,7 @@ def test_compare_rejects_different_observables_within_same_state():
     # Build a synthetic mismatch: same state spec, claim a different observable name
     # by going around represent() (which validates). This tests compare() directly.
     m_b = Representation(
-        state_adapter_spec=PHONO3PY_LINEWIDTH,
+        space_adapter_spec=PHONO3PY_LINEWIDTH,
         observable_name="some_other_observable",
         data=arr,
     )

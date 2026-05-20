@@ -205,8 +205,8 @@
     font-weight: 600;
     letter-spacing: 0.05em;
   }
-  #details h2 .kind.Observable { background: var(--observable); }
-  #details h2 .kind.HiddenState { background: var(--hidden); }
+  #details h2 .kind.ObservableSpace { background: var(--observable); }
+  #details h2 .kind.HiddenSpace { background: var(--hidden); }
   #details > p {
     margin: 0 0 1rem;
     color: var(--text-secondary);
@@ -317,8 +317,8 @@
   <div class="title-row">
     <h1>omai · thermal-transport DAG</h1>
     <span class="stats">
-      <span><strong>35</strong> Observables</span>
-      <span><strong>11</strong> HiddenStates</span>
+      <span><strong>35</strong> ObservableSpaces</span>
+      <span><strong>11</strong> HiddenSpaces</span>
       <span><strong>47</strong> edges</span>
       <span><strong>7</strong> adapters</span>
     </span>
@@ -328,11 +328,11 @@
       <span class="label">Operator</span>
       <span class="legend-item">
         <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2"/></svg>
-        Observable
+        ObservableSpace
       </span>
       <span class="legend-item">
         <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#FFFFFF" stroke="#64748B" stroke-width="2" stroke-dasharray="3 2"/></svg>
-        HiddenState
+        HiddenSpace
       </span>
       <span class="legend-item">
         <svg width="16" height="16" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2"/></svg>
@@ -396,9 +396,9 @@
         different states. When adding a new variant, pick exactly one pattern:
       </p>
       <ol style="margin:0 0 0.6em 1.2em; padding:0;">
-        <li><strong>Pattern A — type parameter on the state.</strong> Only
-            when the variant changes the gauge type (Observable vs
-            HiddenState) AND the parameterised state is terminal-ish.
+        <li><strong>Pattern A — label on the space.</strong> Only
+            when the variant changes the gauge type (ObservableSpace vs
+            HiddenSpace) AND the labelled space is terminal-ish.
             Example: <code>ThermalConductivity[bte_solver=rta|direct_inverse]</code>,
             <code>[transport_model=lbte|wigner|qhgk]</code>.</li>
         <li><strong>Pattern B — sibling states, converging edge.</strong>
@@ -448,8 +448,7 @@
 const NODE_DATA = {
   "Potential": {
     "name": "Potential",
-    "physics_type": "Potential",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "potential",
@@ -457,15 +456,13 @@ const NODE_DATA = {
         "indices": []
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Born-Oppenheimer potential of the material; in Phase 1 an opaque label.",
     "specs": {
       "ase": {
         "adapter": "ase",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "potential": "ase.Atoms.calc"
         },
@@ -474,7 +471,7 @@ const NODE_DATA = {
       "gpumd": {
         "adapter": "gpumd",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "potential": "nep.txt (default) | EAM/Tersoff/SW potential file referenced from run.in"
         },
@@ -483,7 +480,7 @@ const NODE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "potential": "ForceConstants(calculator=<ASE calculator>)"
         },
@@ -492,7 +489,7 @@ const NODE_DATA = {
       "lammps": {
         "adapter": "lammps",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "potential": "LAMMPS input script: pair_style <name> + pair_coeff <args>"
         },
@@ -501,7 +498,7 @@ const NODE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "potential": "Phono3py(...) + ASE calculator or DFT force sets"
         },
@@ -510,7 +507,7 @@ const NODE_DATA = {
       "phonopy": {
         "adapter": "phonopy",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "potential": "Phonopy(...) + ASE calculator or FORCE_SETS"
         },
@@ -521,8 +518,7 @@ const NODE_DATA = {
   },
   "Temperature": {
     "name": "Temperature",
-    "physics_type": "Temperature",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "temperature",
@@ -530,15 +526,13 @@ const NODE_DATA = {
         "indices": []
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "temperature": "Phonons(temperature=...)"
         },
@@ -547,7 +541,7 @@ const NODE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "temperature": "Phono3py.temperatures"
         },
@@ -556,7 +550,7 @@ const NODE_DATA = {
       "phonopy": {
         "adapter": "phonopy",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "temperature": "Phonopy.run_thermal_properties(temperatures=...)"
         },
@@ -565,7 +559,7 @@ const NODE_DATA = {
       "shengbte": {
         "adapter": "shengbte",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "temperature": "CONTROL &parameters T="
         },
@@ -576,8 +570,7 @@ const NODE_DATA = {
   },
   "ForceConstants[order=2]": {
     "name": "ForceConstants[order=2]",
-    "physics_type": "ForceConstants",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "phi",
@@ -589,9 +582,7 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {
+    "labels": {
       "order": "2"
     },
     "description": "",
@@ -599,7 +590,7 @@ const NODE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "phi": "ForceConstants.second.value"
         },
@@ -608,7 +599,7 @@ const NODE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "phi": "Phono3py.fc2"
         },
@@ -617,7 +608,7 @@ const NODE_DATA = {
       "phonopy": {
         "adapter": "phonopy",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "phi": "Phonopy.force_constants"
         },
@@ -626,7 +617,7 @@ const NODE_DATA = {
       "shengbte": {
         "adapter": "shengbte",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "phi": "FORCE_CONSTANTS_2ND"
         },
@@ -637,8 +628,7 @@ const NODE_DATA = {
   },
   "ForceConstants[order=3]": {
     "name": "ForceConstants[order=3]",
-    "physics_type": "ForceConstants",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "phi",
@@ -652,18 +642,7 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {
-      "fc3_normalization": "eV_per_A3"
-    },
-    "convention_factors": [
-      {
-        "convention": "fc3_normalization",
-        "value": "eV_per_A2_per_nm",
-        "field": "phi",
-        "factor": 0.1
-      }
-    ],
-    "type_parameters": {
+    "labels": {
       "order": "3"
     },
     "description": "",
@@ -673,35 +652,35 @@ const NODE_DATA = {
         "observable_units": {
           "phi": "eV_per_A3"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "phi": "ForceConstants.third.value"
         },
-        "notes": "kaldo stores FC3 as a sparse COO array under ForceConstants.third.value, numerically in eV/\u00c5\u00b3 \u2014 matches the operator-layer canonical `fc3_normalization=eV_per_A3` value."
+        "notes": "kaldo stores FC3 as a sparse COO array under ForceConstants.third.value, numerically in eV/\u00c5\u00b3 \u2014 matches the operator-layer canonical `eV_per_A3` unit with the trivial `canonical` normalization."
       },
       "phono3py": {
         "adapter": "phono3py",
         "observable_units": {
           "phi": "eV_per_A3"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "phi": "Phono3py.fc3"
         },
-        "notes": "Phono3py.fc3: ndarray of shape (n_supercell_atoms, n_supercell_atoms, n_supercell_atoms, 3, 3, 3) numerically in eV/\u00c5\u00b3 \u2014 matches the operator-layer canonical `fc3_normalization=eV_per_A3` value. Built by Phono3py.produce_fc3()."
+        "notes": "Phono3py.fc3: ndarray of shape (n_supercell_atoms, n_supercell_atoms, n_supercell_atoms, 3, 3, 3) numerically in eV/\u00c5\u00b3 \u2014 matches the operator-layer canonical `eV_per_A3` unit with the trivial `canonical` normalization. Built by Phono3py.produce_fc3()."
       },
       "shengbte": {
         "adapter": "shengbte",
         "observable_units": {
           "phi": "eV_per_A3"
         },
-        "observable_convention_overrides": {
-          "fc3_normalization": "eV_per_A2_per_nm"
+        "observable_normalizations": {
+          "phi": "eV_per_A2_per_nm"
         },
         "code_api": {
           "phi": "FORCE_CONSTANTS_3RD"
         },
-        "notes": "Read from the FORCE_CONSTANTS_3RD file (sparse triplet format described in the ShengBTE README). The file's documentation claims eV/\u00c5\u00b3 but the reader's internal unit chain (per gruneisen.f90:44) is eV/(\u00c5\u00b2\u00b7nm), so the values ShengBTE actually consumes are 0.1\u00d7 the natural eV/\u00c5\u00b3 form. Captured at the convention layer via the fc3_normalization override above. Typically produced by thirdorder.py or thirdorder_espresso.py."
+        "notes": "Read from the FORCE_CONSTANTS_3RD file (sparse triplet format described in the ShengBTE README). The file's documentation claims eV/\u00c5\u00b3 but the reader's internal unit chain (per gruneisen.f90:44) is eV/(\u00c5\u00b2\u00b7nm), so the values ShengBTE actually consumes are 0.1\u00d7 the natural eV/\u00c5\u00b3 form. Captured at the normalization layer via the `eV_per_A2_per_nm` override above. Typically produced by thirdorder.py or thirdorder_espresso.py."
       }
     },
     "cross_factors": {
@@ -718,8 +697,7 @@ const NODE_DATA = {
   },
   "BornCharges": {
     "name": "BornCharges",
-    "physics_type": "BornCharges",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "Z_star",
@@ -731,17 +709,15 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
-    "description": "Per-atom Born effective-charge tensor Z*_{i,\u03b1\u03b2}, in units of the elementary charge e. Source-tier Observable: read from a BORN file or DFT linear-response output. Together with the macroscopic DielectricTensor \u03b5\u221e it parameterises the non-analytic correction (LO-TO splitting) for polar materials.",
+    "labels": {},
+    "description": "Per-atom Born effective-charge tensor Z*_{i,\u03b1\u03b2}, in units of the elementary charge e. Source-tier ObservableSpace: read from a BORN file or DFT linear-response output. Together with the macroscopic DielectricTensor \u03b5\u221e it parameterises the non-analytic correction (LO-TO splitting) for polar materials.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {
           "Z_star": "dimensionless"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "Z_star": "atoms.info['born_charges']"
         },
@@ -752,7 +728,7 @@ const NODE_DATA = {
         "observable_units": {
           "Z_star": "dimensionless"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "Z_star": "Phono3py.nac_params['born']"
         },
@@ -763,7 +739,7 @@ const NODE_DATA = {
         "observable_units": {
           "Z_star": "dimensionless"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "Z_star": "Phonopy.nac_params['born']"
         },
@@ -774,7 +750,7 @@ const NODE_DATA = {
         "observable_units": {
           "Z_star": "dimensionless"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "Z_star": "CONTROL &crystal: born(3,3,natoms)"
         },
@@ -804,8 +780,7 @@ const NODE_DATA = {
   },
   "DielectricTensor": {
     "name": "DielectricTensor",
-    "physics_type": "DielectricTensor",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "epsilon_infinity",
@@ -816,17 +791,15 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
-    "description": "Macroscopic (electronic) dielectric tensor \u03b5\u221e at infinite frequency, dimensionless. Source-tier Observable. Enters the non-analytic correction to D(q) at q\u21920.",
+    "labels": {},
+    "description": "Macroscopic (electronic) dielectric tensor \u03b5\u221e at infinite frequency, dimensionless. Source-tier ObservableSpace. Enters the non-analytic correction to D(q) at q\u21920.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {
           "epsilon_infinity": "dimensionless"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "epsilon_infinity": "atoms.info['dielectric']"
         },
@@ -837,7 +810,7 @@ const NODE_DATA = {
         "observable_units": {
           "epsilon_infinity": "dimensionless"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "epsilon_infinity": "Phono3py.nac_params['dielectric']"
         },
@@ -848,7 +821,7 @@ const NODE_DATA = {
         "observable_units": {
           "epsilon_infinity": "dimensionless"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "epsilon_infinity": "Phonopy.nac_params['dielectric']"
         },
@@ -859,7 +832,7 @@ const NODE_DATA = {
         "observable_units": {
           "epsilon_infinity": "dimensionless"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "epsilon_infinity": "CONTROL &crystal: epsilon(3,3)"
         },
@@ -889,8 +862,7 @@ const NODE_DATA = {
   },
   "BareDynamicalMatrix": {
     "name": "BareDynamicalMatrix",
-    "physics_type": "BareDynamicalMatrix",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "D_bare",
@@ -902,15 +874,13 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Analytic Bloch sum of \u03a6\u00b2(R) \u2014 the dynamical matrix before any non-analytic correction is applied. Always produced by compute_dynamical_matrix(FC2). For non-polar materials the downstream DynamicalMatrix is identical to this (via identity_dm); for polar materials apply_nac_correction adds the q\u21920 non-analytic term involving BornCharges and DielectricTensor.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "D_bare": "HarmonicWithQ(q)._dynmat_fourier"
         },
@@ -919,7 +889,7 @@ const NODE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "D_bare": "DynamicalMatrix.get_dynamical_matrix() with NAC disabled"
         },
@@ -928,7 +898,7 @@ const NODE_DATA = {
       "phonopy": {
         "adapter": "phonopy",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "D_bare": "DynamicalMatrix.get_dynamical_matrix() with NAC disabled"
         },
@@ -939,8 +909,7 @@ const NODE_DATA = {
   },
   "DynamicalMatrix": {
     "name": "DynamicalMatrix",
-    "physics_type": "DynamicalMatrix",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "D",
@@ -952,15 +921,13 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "D(q) such that D e_q\u03bd = \u03c9\u00b2_q\u03bd e_q\u03bd. Produced from BareDynamicalMatrix by either identity_dm (non-polar) or apply_nac_correction (polar). Entries are dimensionally frequency\u00b2 (mass-weighted Hessian); codes typically store the matrix with eigenvalues that are \u03c9\u00b2, not \u03c9.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "D": "HarmonicWithQ(q).dynmat"
         },
@@ -969,7 +936,7 @@ const NODE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "D": "Phono3py.dynamical_matrix"
         },
@@ -978,7 +945,7 @@ const NODE_DATA = {
       "phonopy": {
         "adapter": "phonopy",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "D": "Phonopy.dynamical_matrix"
         },
@@ -989,8 +956,7 @@ const NODE_DATA = {
   },
   "Frequency": {
     "name": "Frequency",
-    "physics_type": "Frequency",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "omega",
@@ -1001,9 +967,7 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "",
     "specs": {
       "kaldo": {
@@ -1011,7 +975,7 @@ const NODE_DATA = {
         "observable_units": {
           "omega": "linear_THz"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "omega": "Phonons.frequency"
         },
@@ -1022,7 +986,7 @@ const NODE_DATA = {
         "observable_units": {
           "omega": "linear_THz"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "omega": "thermal_conductivity.frequencies"
         },
@@ -1033,7 +997,7 @@ const NODE_DATA = {
         "observable_units": {
           "omega": "linear_THz"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "omega": "Phonopy.get_mesh_dict()['frequencies']"
         },
@@ -1044,7 +1008,7 @@ const NODE_DATA = {
         "observable_units": {
           "omega": "angular_THz"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "omega": "BTE.omega"
         },
@@ -1074,8 +1038,7 @@ const NODE_DATA = {
   },
   "Eigenvectors": {
     "name": "Eigenvectors",
-    "physics_type": "Eigenvectors",
-    "kind": "HiddenState",
+    "kind": "HiddenSpace",
     "fields": [
       {
         "name": "e",
@@ -1087,15 +1050,13 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Per-mode eigenvectors of the dynamical matrix. U(1) phase freedom per mode plus U(d) rotation within each degenerate subspace; per-element values are not directly comparable across adapters. Contracted gauge-invariants live in Frequency (eigenvalues) and \u03ba_LBTE.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "e": "Phonons.eigenvectors"
         },
@@ -1104,7 +1065,7 @@ const NODE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "e": "thermal_conductivity.get_eigenvectors()"
         },
@@ -1113,7 +1074,7 @@ const NODE_DATA = {
       "phonopy": {
         "adapter": "phonopy",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "e": "Phonopy.get_mesh_dict()['eigenvectors']"
         },
@@ -1124,8 +1085,7 @@ const NODE_DATA = {
   },
   "GroupVelocity": {
     "name": "GroupVelocity",
-    "physics_type": "GroupVelocity",
-    "kind": "HiddenState",
+    "kind": "HiddenSpace",
     "fields": [
       {
         "name": "v",
@@ -1137,9 +1097,7 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Per-mode group velocity. Per-mode v is invariant under U(1) phase, but inherits the U(d) rotation freedom at degenerate \u03c9. Contracted gauge-invariants live in \u03ba (\u03a3 c v\u00b2 \u03c4 over the BZ).",
     "specs": {
       "kaldo": {
@@ -1147,7 +1105,7 @@ const NODE_DATA = {
         "observable_units": {
           "v": "angstrom_linear_THz"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "v": "Phonons.velocity"
         },
@@ -1158,7 +1116,7 @@ const NODE_DATA = {
         "observable_units": {
           "v": "angstrom_linear_THz"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "v": "thermal_conductivity.group_velocities"
         },
@@ -1169,7 +1127,7 @@ const NODE_DATA = {
         "observable_units": {
           "v": "angstrom_linear_THz"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "v": "Phonopy.get_mesh_dict()['group_velocities']"
         },
@@ -1180,7 +1138,7 @@ const NODE_DATA = {
         "observable_units": {
           "v": "km_per_s"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "v": "BTE.v"
         },
@@ -1210,8 +1168,7 @@ const NODE_DATA = {
   },
   "HeatCapacity": {
     "name": "HeatCapacity",
-    "physics_type": "HeatCapacity",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "c",
@@ -1222,9 +1179,7 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "",
     "specs": {
       "kaldo": {
@@ -1232,7 +1187,7 @@ const NODE_DATA = {
         "observable_units": {
           "c": "J_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "c": "Phonons.heat_capacity"
         },
@@ -1243,7 +1198,7 @@ const NODE_DATA = {
         "observable_units": {
           "c": "eV_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "c": "thermal_conductivity.mode_heat_capacities"
         },
@@ -1258,8 +1213,7 @@ const NODE_DATA = {
   },
   "VolumetricHeatCapacity": {
     "name": "VolumetricHeatCapacity",
-    "physics_type": "VolumetricHeatCapacity",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "C_V_vol",
@@ -1267,15 +1221,13 @@ const NODE_DATA = {
         "indices": []
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Total heat capacity per unit volume at temperature T, C_V/V = (1/V_cell N_q) \u03a3_q\u03bd c_q\u03bd(T). Scalar in (q, \u03bd); a function of T only. ShengBTE emits this directly as BTE.cv; codes that emit per-mode HeatCapacity reach it via the contraction edge.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "C_V_vol": "np.sum(Phonons.heat_capacity) / (V_cell * n_q_points)"
         },
@@ -1284,7 +1236,7 @@ const NODE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "C_V_vol": "np.sum(thermal_conductivity.mode_heat_capacities) / (V_cell * n_q)"
         },
@@ -1293,7 +1245,7 @@ const NODE_DATA = {
       "phonopy": {
         "adapter": "phonopy",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "C_V_vol": "get_thermal_properties_dict()['heat_capacity'] / (V_cell * N_A)"
         },
@@ -1304,7 +1256,7 @@ const NODE_DATA = {
         "observable_units": {
           "C_V_vol": "J_per_m3_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "C_V_vol": "BTE.cv"
         },
@@ -1315,8 +1267,7 @@ const NODE_DATA = {
   },
   "MolarHeatCapacity": {
     "name": "MolarHeatCapacity",
-    "physics_type": "MolarHeatCapacity",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "C_V_mol",
@@ -1324,15 +1275,13 @@ const NODE_DATA = {
         "indices": []
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Heat capacity per mole of primitive unit cells at temperature T, C_V_mol = (N_A / N_q) \u03a3_q\u03bd c_q\u03bd(T). Phonopy emits this as part of its harmonic thermal_properties output (J/K/mol). Codes that emit per-mode HeatCapacity reach it via the contraction edge.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "C_V_mol": "N_A * np.sum(Phonons.heat_capacity) / n_q_points"
         },
@@ -1341,7 +1290,7 @@ const NODE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "C_V_mol": "N_A * np.sum(thermal_conductivity.mode_heat_capacities) / n_q"
         },
@@ -1352,7 +1301,7 @@ const NODE_DATA = {
         "observable_units": {
           "C_V_mol": "J_per_K_per_mol"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "C_V_mol": "get_thermal_properties_dict()['heat_capacity']"
         },
@@ -1361,7 +1310,7 @@ const NODE_DATA = {
       "shengbte": {
         "adapter": "shengbte",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "C_V_mol": "BTE.cv * V_cell * N_A"
         },
@@ -1372,8 +1321,7 @@ const NODE_DATA = {
   },
   "HelmholtzFreeEnergy": {
     "name": "HelmholtzFreeEnergy",
-    "physics_type": "HelmholtzFreeEnergy",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "f",
@@ -1384,9 +1332,7 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Per-mode Helmholtz free energy f_q\u03bd(T) = (\u210f\u03c9/2) + k_B T ln(1 - exp(-\u210f\u03c9/k_B T)). The 1/2 is the zero-point part; the log term carries the temperature dependence.",
     "specs": {
       "kaldo": {
@@ -1394,7 +1340,7 @@ const NODE_DATA = {
         "observable_units": {
           "f": "eV"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "f": "Phonons.free_energy"
         },
@@ -1405,8 +1351,7 @@ const NODE_DATA = {
   },
   "Entropy": {
     "name": "Entropy",
-    "physics_type": "Entropy",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "s",
@@ -1417,17 +1362,14 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Per-mode entropy s_q\u03bd(T) = (1/T)\u00b7\u210f\u03c9\u00b7n_BE(\u03c9,T) - k_B ln(1 - exp(-\u210f\u03c9/k_B T)). Equivalently -\u2202f/\u2202T.",
     "specs": {},
     "cross_factors": {}
   },
   "InternalEnergy": {
     "name": "InternalEnergy",
-    "physics_type": "InternalEnergy",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "e",
@@ -1438,17 +1380,14 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Per-mode internal energy e_q\u03bd(T) = \u210f\u03c9(1/2 + n_BE(\u03c9/T)). Sums the zero-point energy and the thermal occupation.",
     "specs": {},
     "cross_factors": {}
   },
   "MolarHelmholtzFreeEnergy": {
     "name": "MolarHelmholtzFreeEnergy",
-    "physics_type": "MolarHelmholtzFreeEnergy",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "F_mol",
@@ -1456,9 +1395,7 @@ const NODE_DATA = {
         "indices": []
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Helmholtz free energy per mole of primitive unit cells at temperature T, F_mol = (N_A / N_q) \u03a3_q\u03bd f_q\u03bd(T). Phonopy emits this as part of its thermal_properties output (kJ/mol).",
     "specs": {
       "phonopy": {
@@ -1466,7 +1403,7 @@ const NODE_DATA = {
         "observable_units": {
           "F_mol": "kJ_per_mol"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "F_mol": "get_thermal_properties_dict()['free_energy']"
         },
@@ -1477,8 +1414,7 @@ const NODE_DATA = {
   },
   "MolarEntropy": {
     "name": "MolarEntropy",
-    "physics_type": "MolarEntropy",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "S_mol",
@@ -1486,9 +1422,7 @@ const NODE_DATA = {
         "indices": []
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Entropy per mole of primitive unit cells at temperature T, S_mol = (N_A / N_q) \u03a3_q\u03bd s_q\u03bd(T). Phonopy emits this as thermal_properties['entropy'] in J/(K\u00b7mol).",
     "specs": {
       "phonopy": {
@@ -1496,7 +1430,7 @@ const NODE_DATA = {
         "observable_units": {
           "S_mol": "J_per_K_per_mol"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "S_mol": "get_thermal_properties_dict()['entropy']"
         },
@@ -1507,8 +1441,7 @@ const NODE_DATA = {
   },
   "MolarInternalEnergy": {
     "name": "MolarInternalEnergy",
-    "physics_type": "MolarInternalEnergy",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "E_mol",
@@ -1516,9 +1449,7 @@ const NODE_DATA = {
         "indices": []
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Internal energy per mole of primitive unit cells at temperature T, E_mol = (N_A / N_q) \u03a3_q\u03bd e_q\u03bd(T). Phonopy emits this as thermal_properties['internal_energy'] in kJ/mol.",
     "specs": {
       "phonopy": {
@@ -1526,7 +1457,7 @@ const NODE_DATA = {
         "observable_units": {
           "E_mol": "kJ_per_mol"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "E_mol": "get_thermal_properties_dict()['internal_energy']"
         },
@@ -1537,8 +1468,7 @@ const NODE_DATA = {
   },
   "Linewidth[channel=anharmonic_3ph]": {
     "name": "Linewidth[channel=anharmonic_3ph]",
-    "physics_type": "Linewidth",
-    "kind": "HiddenState",
+    "kind": "HiddenSpace",
     "fields": [
       {
         "name": "Gamma",
@@ -1549,18 +1479,7 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {
-      "gamma_definition": "imag_self_energy"
-    },
-    "convention_factors": [
-      {
-        "convention": "gamma_definition",
-        "value": "linewidth_2x_imag_self_energy",
-        "field": "Gamma",
-        "factor": 2.0
-      }
-    ],
-    "type_parameters": {
+    "labels": {
       "channel": "anharmonic_3ph"
     },
     "description": "Per-mode three-phonon anharmonic linewidth from Fermi's golden rule (the channel the existing compute_linewidth produces). Per-element values depend on BZ-summation choice (a permutation gauge: weights redistribute between modes but conserve the total). Contractions (\u03a3\u0393, \u03ba_LBTE) are the gauge-invariant content.",
@@ -1570,8 +1489,8 @@ const NODE_DATA = {
         "observable_units": {
           "Gamma": "angular_THz"
         },
-        "observable_convention_overrides": {
-          "gamma_definition": "linewidth_2x_imag_self_energy"
+        "observable_normalizations": {
+          "Gamma": "linewidth_2x_imag_self_energy"
         },
         "code_api": {
           "Gamma": "Phonons.bandwidth"
@@ -1583,7 +1502,7 @@ const NODE_DATA = {
         "observable_units": {
           "Gamma": "linear_THz"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "Gamma": "thermal_conductivity.gamma"
         },
@@ -1594,8 +1513,8 @@ const NODE_DATA = {
         "observable_units": {
           "Gamma": "angular_THz"
         },
-        "observable_convention_overrides": {
-          "gamma_definition": "linewidth_2x_imag_self_energy"
+        "observable_normalizations": {
+          "Gamma": "linewidth_2x_imag_self_energy"
         },
         "code_api": {
           "Gamma": "BTE.w_anharmonic"
@@ -1617,8 +1536,7 @@ const NODE_DATA = {
   },
   "Linewidth[channel=isotope]": {
     "name": "Linewidth[channel=isotope]",
-    "physics_type": "Linewidth",
-    "kind": "HiddenState",
+    "kind": "HiddenSpace",
     "fields": [
       {
         "name": "Gamma",
@@ -1629,18 +1547,7 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {
-      "gamma_definition": "imag_self_energy"
-    },
-    "convention_factors": [
-      {
-        "convention": "gamma_definition",
-        "value": "linewidth_2x_imag_self_energy",
-        "field": "Gamma",
-        "factor": 2.0
-      }
-    ],
-    "type_parameters": {
+    "labels": {
       "channel": "isotope"
     },
     "description": "Per-mode isotopic scattering rate from the Tamura model: \u0393_iso(q\u03bd) = (\u03c0/2) \u03c9\u00b2 \u03a3_i g_i |e_iq\u03bd|\u00b2 \u03b4(\u03c9 - \u03c9'). Per-element is gauge-dependent (depends on eigenvector basis at degenerate \u03c9); the BZ-summed total is the cross-code observable.",
@@ -1650,8 +1557,8 @@ const NODE_DATA = {
         "observable_units": {
           "Gamma": "angular_THz"
         },
-        "observable_convention_overrides": {
-          "gamma_definition": "linewidth_2x_imag_self_energy"
+        "observable_normalizations": {
+          "Gamma": "linewidth_2x_imag_self_energy"
         },
         "code_api": {
           "Gamma": "Phonons.isotopic_bandwidth"
@@ -1663,7 +1570,7 @@ const NODE_DATA = {
         "observable_units": {
           "Gamma": "linear_THz"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "Gamma": "thermal_conductivity.gamma_isotope"
         },
@@ -1674,8 +1581,8 @@ const NODE_DATA = {
         "observable_units": {
           "Gamma": "angular_THz"
         },
-        "observable_convention_overrides": {
-          "gamma_definition": "linewidth_2x_imag_self_energy"
+        "observable_normalizations": {
+          "Gamma": "linewidth_2x_imag_self_energy"
         },
         "code_api": {
           "Gamma": "BTE.w_isotopic"
@@ -1697,8 +1604,7 @@ const NODE_DATA = {
   },
   "Linewidth[channel=boundary]": {
     "name": "Linewidth[channel=boundary]",
-    "physics_type": "Linewidth",
-    "kind": "HiddenState",
+    "kind": "HiddenSpace",
     "fields": [
       {
         "name": "Gamma",
@@ -1709,29 +1615,18 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {
-      "gamma_definition": "imag_self_energy"
-    },
-    "convention_factors": [
-      {
-        "convention": "gamma_definition",
-        "value": "linewidth_2x_imag_self_energy",
-        "field": "Gamma",
-        "factor": 2.0
-      }
-    ],
-    "type_parameters": {
+    "labels": {
       "channel": "boundary"
     },
-    "description": "Per-mode boundary scattering rate from the Casimir / Matthiessen form: \u0393_boundary(q\u03bd) = |v_q\u03bd| / L where L is the boundary length scale (operation parameter). Gauge-dependent inherits GroupVelocity's basis dependence at degenerate \u03c9.",
+    "description": "Per-mode boundary scattering rate from the Casimir / Matthiessen form: \u0393_boundary(q\u03bd) = |v_q\u03bd| / L where L is the boundary length scale (operator parameter). Gauge-dependent inherits GroupVelocity's basis dependence at degenerate \u03c9.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {
           "Gamma": "angular_THz"
         },
-        "observable_convention_overrides": {
-          "gamma_definition": "linewidth_2x_imag_self_energy"
+        "observable_normalizations": {
+          "Gamma": "linewidth_2x_imag_self_energy"
         },
         "code_api": {
           "Gamma": "Conductivity(length=...).bandwidth + 2|v_\u03b1|/L_\u03b1 (inline)"
@@ -1743,7 +1638,7 @@ const NODE_DATA = {
         "observable_units": {
           "Gamma": "linear_THz"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "Gamma": "thermal_conductivity._gamma_boundary (via compute_bulk_boundary_scattering)"
         },
@@ -1754,8 +1649,8 @@ const NODE_DATA = {
         "observable_units": {
           "Gamma": "angular_THz"
         },
-        "observable_convention_overrides": {
-          "gamma_definition": "linewidth_2x_imag_self_energy"
+        "observable_normalizations": {
+          "Gamma": "linewidth_2x_imag_self_energy"
         },
         "code_api": {
           "Gamma": "BTE.w_boundary"
@@ -1777,8 +1672,7 @@ const NODE_DATA = {
   },
   "Linewidth[channel=total]": {
     "name": "Linewidth[channel=total]",
-    "physics_type": "Linewidth",
-    "kind": "HiddenState",
+    "kind": "HiddenSpace",
     "fields": [
       {
         "name": "Gamma",
@@ -1789,18 +1683,7 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {
-      "gamma_definition": "imag_self_energy"
-    },
-    "convention_factors": [
-      {
-        "convention": "gamma_definition",
-        "value": "linewidth_2x_imag_self_energy",
-        "field": "Gamma",
-        "factor": 2.0
-      }
-    ],
-    "type_parameters": {
+    "labels": {
       "channel": "total"
     },
     "description": "Sum of all enabled scattering channels (anharmonic + isotope + boundary + ...). The BTE solver consumes this \u2014 Matthiessen's rule applies under the linearized BTE. Channels a given run does not model contribute zero.",
@@ -1810,8 +1693,8 @@ const NODE_DATA = {
         "observable_units": {
           "Gamma": "angular_THz"
         },
-        "observable_convention_overrides": {
-          "gamma_definition": "linewidth_2x_imag_self_energy"
+        "observable_normalizations": {
+          "Gamma": "linewidth_2x_imag_self_energy"
         },
         "code_api": {
           "Gamma": "Phonons.bandwidth"
@@ -1823,7 +1706,7 @@ const NODE_DATA = {
         "observable_units": {
           "Gamma": "linear_THz"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "Gamma": "phono3py.conductivity.grid_point_data.compute_effective_gamma"
         },
@@ -1838,8 +1721,7 @@ const NODE_DATA = {
   },
   "IsotopeAbundances": {
     "name": "IsotopeAbundances",
-    "physics_type": "IsotopeAbundances",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "g",
@@ -1849,17 +1731,15 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
-    "description": "Per-atom isotopic mass-variance factor g_i = \u03a3_x f_{ix} (1 - m_{ix}/m\u0304_i)\u00b2 where x runs over isotopes of atomic species i, f_{ix} is the abundance fraction, m_{ix} is the isotope mass, and m\u0304_i is the abundance-weighted average mass. Dimensionless. Source-tier Observable: either natural-abundance defaults or user-provided per-species values.",
+    "labels": {},
+    "description": "Per-atom isotopic mass-variance factor g_i = \u03a3_x f_{ix} (1 - m_{ix}/m\u0304_i)\u00b2 where x runs over isotopes of atomic species i, f_{ix} is the abundance fraction, m_{ix} is the isotope mass, and m\u0304_i is the abundance-weighted average mass. Dimensionless. Source-tier ObservableSpace: either natural-abundance defaults or user-provided per-species values.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {
           "g": "dimensionless"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "g": "Phonons(g_factor=...)"
         },
@@ -1870,7 +1750,7 @@ const NODE_DATA = {
         "observable_units": {
           "g": "dimensionless"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "g": "Phono3pyIsotope(mass_variances=...)"
         },
@@ -1881,7 +1761,7 @@ const NODE_DATA = {
         "observable_units": {
           "g": "dimensionless"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "g": "CONTROL &flags: isotopes=.TRUE. (natural-abundance defaults)"
         },
@@ -1902,8 +1782,7 @@ const NODE_DATA = {
   },
   "PhononDOS": {
     "name": "PhononDOS",
-    "physics_type": "PhononDOS",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "g",
@@ -1913,15 +1792,13 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Density of states g(\u03c9) = (1/N_q) \u03a3_q\u03bd \u03b4(\u03c9 \u2212 \u03c9_q\u03bd). A 1-D array binned in \u03c9. Gauge-invariant: \u03c9_q\u03bd are basis-independent and the sum over (q, \u03bd) is uniformly weighted.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "g": "plotter.plot_dos(phonons, bandwidth, n_points)"
         },
@@ -1930,7 +1807,7 @@ const NODE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "g": "Phonopy.get_total_DOS()"
         },
@@ -1939,7 +1816,7 @@ const NODE_DATA = {
       "phonopy": {
         "adapter": "phonopy",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "g": "Phonopy.run_total_dos() / .get_total_DOS()"
         },
@@ -1948,7 +1825,7 @@ const NODE_DATA = {
       "shengbte": {
         "adapter": "shengbte",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "g": "BTE.dos"
         },
@@ -1959,8 +1836,7 @@ const NODE_DATA = {
   },
   "Gruneisen": {
     "name": "Gruneisen",
-    "physics_type": "Gruneisen",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "gamma_G",
@@ -1971,15 +1847,13 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Mode Gr\u00fcneisen parameter \u03b3_q\u03bd = \u2212(V/\u03c9_q\u03bd) \u2202\u03c9_q\u03bd/\u2202V. Quantifies anharmonicity-driven volume dependence; computed from FC2 and FC3 via the standard Maradudin-Fein expression. Dimensionless.",
     "specs": {
       "phono3py": {
         "adapter": "phono3py",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "gamma_G": "Phono3py.run_phonon_gruneisen_parameters()"
         },
@@ -1988,7 +1862,7 @@ const NODE_DATA = {
       "phonopy": {
         "adapter": "phonopy",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "gamma_G": "PhonopyGruneisen.get_gruneisen()"
         },
@@ -1997,7 +1871,7 @@ const NODE_DATA = {
       "shengbte": {
         "adapter": "shengbte",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "gamma_G": "BTE.gruneisen"
         },
@@ -2008,8 +1882,7 @@ const NODE_DATA = {
   },
   "PhaseSpace3Phonon": {
     "name": "PhaseSpace3Phonon",
-    "physics_type": "PhaseSpace3Phonon",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "P3",
@@ -2020,15 +1893,13 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Three-phonon phase space P3_q\u03bd = (1/N) \u03a3_q'\u03bd'\u03bd'' [\u03b4(\u03c9\u2212\u03c9'\u2212\u03c9'') + 2 \u03b4(\u03c9+\u03c9'\u2212\u03c9'')] available for scattering channels involving mode (q, \u03bd). Doesn't include |V\u2083|\u00b2 \u2014 purely the kinematic volume.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "P3": "Phonons.phase_space"
         },
@@ -2037,7 +1908,7 @@ const NODE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "P3": "Phono3py.run_phonon_phase_space()"
         },
@@ -2046,7 +1917,7 @@ const NODE_DATA = {
       "shengbte": {
         "adapter": "shengbte",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "P3": "BTE.P3"
         },
@@ -2057,8 +1928,7 @@ const NODE_DATA = {
   },
   "MeanFreeDisplacement[bte_solver=rta]": {
     "name": "MeanFreeDisplacement[bte_solver=rta]",
-    "physics_type": "MeanFreeDisplacement",
-    "kind": "HiddenState",
+    "kind": "HiddenSpace",
     "fields": [
       {
         "name": "F",
@@ -2070,17 +1940,15 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {
+    "labels": {
       "bte_solver": "rta"
     },
-    "description": "F = v / (2\u0393) under the relaxation-time approximation. The 1/\u0393 non-linearity is the gauge-breaking step. Approximation HiddenState: terminal; there is no downstream operation that contracts it into a gauge-invariant Observable. The LBTE branch (MFD[direct_inverse]) is the gauge-invariant analogue.",
+    "description": "F = v / (2\u0393) under the relaxation-time approximation. The 1/\u0393 non-linearity is the gauge-breaking step. Approximation HiddenSpace: terminal; there is no downstream operator that contracts it into a gauge-invariant ObservableSpace. The LBTE branch (MFD[direct_inverse]) is the gauge-invariant analogue.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "F": "Conductivity(method='rta').mean_free_path"
         },
@@ -2089,7 +1957,7 @@ const NODE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "F": "thermal_conductivity.mean_free_paths"
         },
@@ -2100,8 +1968,7 @@ const NODE_DATA = {
   },
   "MeanFreeDisplacement[bte_solver=direct_inverse]": {
     "name": "MeanFreeDisplacement[bte_solver=direct_inverse]",
-    "physics_type": "MeanFreeDisplacement",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "F",
@@ -2113,9 +1980,7 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {
+    "labels": {
       "bte_solver": "direct_inverse"
     },
     "description": "F obtained from the full linearized BTE (direct inversion or iterative solution). Gauge-invariant by construction.",
@@ -2123,7 +1988,7 @@ const NODE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "F": "Conductivity(method='inverse').mean_free_path"
         },
@@ -2132,7 +1997,7 @@ const NODE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "F": "thermal_conductivity.f_vectors"
         },
@@ -2143,8 +2008,7 @@ const NODE_DATA = {
   },
   "ThermalConductivity[bte_solver=rta]": {
     "name": "ThermalConductivity[bte_solver=rta]",
-    "physics_type": "ThermalConductivity",
-    "kind": "HiddenState",
+    "kind": "HiddenSpace",
     "fields": [
       {
         "name": "kappa",
@@ -2155,19 +2019,17 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {
+    "labels": {
       "bte_solver": "rta"
     },
-    "description": "Lattice thermal conductivity from the RTA. The 1/\u0393 weighting is non-linear in \u0393, so RTA \u03ba inherits Linewidth's gauge-dependence (unlike the LBTE solution, which preserves gauge-invariance via off-diagonal collision terms). Terminal approximation HiddenState.",
+    "description": "Lattice thermal conductivity from the RTA. The 1/\u0393 weighting is non-linear in \u0393, so RTA \u03ba inherits Linewidth's gauge-dependence (unlike the LBTE solution, which preserves gauge-invariance via off-diagonal collision terms). Terminal approximation HiddenSpace.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {
           "kappa": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa": "Conductivity(method='rta').conductivity"
         },
@@ -2178,7 +2040,7 @@ const NODE_DATA = {
         "observable_units": {
           "kappa": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa": "run_thermal_conductivity(is_LBTE=False).kappa"
         },
@@ -2189,7 +2051,7 @@ const NODE_DATA = {
         "observable_units": {
           "kappa": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa": "BTE.KappaTensorVsT_RTA"
         },
@@ -2210,8 +2072,7 @@ const NODE_DATA = {
   },
   "ThermalConductivity[bte_solver=direct_inverse]": {
     "name": "ThermalConductivity[bte_solver=direct_inverse]",
-    "physics_type": "ThermalConductivity",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "kappa",
@@ -2222,9 +2083,7 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {
+    "labels": {
       "bte_solver": "direct_inverse"
     },
     "description": "Lattice thermal conductivity from the direct/iterative LBTE solver. Gauge-invariant: the collision matrix's off-diagonals preserve invariance under per-mode \u0393 redistribution.",
@@ -2234,7 +2093,7 @@ const NODE_DATA = {
         "observable_units": {
           "kappa": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa": "Conductivity(method='inverse').conductivity"
         },
@@ -2245,7 +2104,7 @@ const NODE_DATA = {
         "observable_units": {
           "kappa": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa": "run_thermal_conductivity(is_LBTE=True).kappa"
         },
@@ -2256,7 +2115,7 @@ const NODE_DATA = {
         "observable_units": {
           "kappa": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa": "BTE.KappaTensorVsT_CONV"
         },
@@ -2277,8 +2136,7 @@ const NODE_DATA = {
   },
   "ThermalConductivity[transport_model=wigner_populations]": {
     "name": "ThermalConductivity[transport_model=wigner_populations]",
-    "physics_type": "ThermalConductivity",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "kappa",
@@ -2289,9 +2147,7 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {
+    "labels": {
       "transport_model": "wigner_populations"
     },
     "description": "Particle-like (populations) channel of the Wigner \u03ba decomposition (Simoncelli et al., Nat. Phys. 2019). Numerically close to \u03ba_LBTE; isolates the diagonal-in-band part of the heat-flux correlation.",
@@ -2301,7 +2157,7 @@ const NODE_DATA = {
         "observable_units": {
           "kappa": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa": "Conductivity(method='wigner').populations_conductivity"
         },
@@ -2312,7 +2168,7 @@ const NODE_DATA = {
         "observable_units": {
           "kappa": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa": "thermal_conductivity.kappa_P_RTA"
         },
@@ -2327,8 +2183,7 @@ const NODE_DATA = {
   },
   "ThermalConductivity[transport_model=wigner_coherences]": {
     "name": "ThermalConductivity[transport_model=wigner_coherences]",
-    "physics_type": "ThermalConductivity",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "kappa",
@@ -2339,9 +2194,7 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {
+    "labels": {
       "transport_model": "wigner_coherences"
     },
     "description": "Wave-like (coherences) channel of the Wigner \u03ba decomposition. Couples bands at the same q through a Lorentzian-weighted mode-overlap term; dominates \u03ba in glasses and complex crystals where mode spacings approach \u0393.",
@@ -2351,7 +2204,7 @@ const NODE_DATA = {
         "observable_units": {
           "kappa": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa": "Conductivity(method='wigner').coherences_conductivity"
         },
@@ -2362,7 +2215,7 @@ const NODE_DATA = {
         "observable_units": {
           "kappa": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa": "thermal_conductivity.kappa_C"
         },
@@ -2377,8 +2230,7 @@ const NODE_DATA = {
   },
   "ThermalConductivity[transport_model=wigner]": {
     "name": "ThermalConductivity[transport_model=wigner]",
-    "physics_type": "ThermalConductivity",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "kappa",
@@ -2389,19 +2241,17 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {
+    "labels": {
       "transport_model": "wigner"
     },
-    "description": "Unified Wigner \u03ba = \u03ba_populations + \u03ba_coherences. The full expression interpolates between LBTE (when mode spacings \u226b \u0393, coherences \u2192 0) and a glass-like wave-transport regime (spacings \u2272 \u0393). Gauge-invariant Observable.",
+    "description": "Unified Wigner \u03ba = \u03ba_populations + \u03ba_coherences. The full expression interpolates between LBTE (when mode spacings \u226b \u0393, coherences \u2192 0) and a glass-like wave-transport regime (spacings \u2272 \u0393). Gauge-invariant ObservableSpace.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {
           "kappa": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa": "Conductivity(method='wigner').conductivity"
         },
@@ -2412,7 +2262,7 @@ const NODE_DATA = {
         "observable_units": {
           "kappa": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa": "thermal_conductivity.kappa_TOT_RTA"
         },
@@ -2427,8 +2277,7 @@ const NODE_DATA = {
   },
   "ThermalConductivity[transport_model=qhgk]": {
     "name": "ThermalConductivity[transport_model=qhgk]",
-    "physics_type": "ThermalConductivity",
-    "kind": "HiddenState",
+    "kind": "HiddenSpace",
     "fields": [
       {
         "name": "kappa",
@@ -2439,19 +2288,17 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {
+    "labels": {
       "transport_model": "qhgk"
     },
-    "description": "Quasi-harmonic Green-Kubo \u03ba: time-integrated heat-flux autocorrelation with Lorentzian mode broadening of width \u0393. The Lorentzian-coupled mode overlap inherits Linewidth's gauge-dependence on the off-diagonal pairings, so per-element \u03ba_QHGK is treated as a HiddenState until a definitive analysis of its gauge structure says otherwise. Used primarily for amorphous systems where the BTE picture breaks down.",
+    "description": "Quasi-harmonic Green-Kubo \u03ba: time-integrated heat-flux autocorrelation with Lorentzian mode broadening of width \u0393. The Lorentzian-coupled mode overlap inherits Linewidth's gauge-dependence on the off-diagonal pairings, so per-element \u03ba_QHGK is treated as a HiddenSpace until a definitive analysis of its gauge structure says otherwise. Used primarily for amorphous systems where the BTE picture breaks down.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
         "observable_units": {
           "kappa": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa": "Conductivity(method='qhgk').conductivity"
         },
@@ -2462,8 +2309,7 @@ const NODE_DATA = {
   },
   "CumulativeKappa[wrt=omega]": {
     "name": "CumulativeKappa[wrt=omega]",
-    "physics_type": "CumulativeKappa",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "kappa_cum",
@@ -2475,9 +2321,7 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {
+    "labels": {
       "wrt": "omega"
     },
     "description": "Cumulative thermal conductivity vs frequency: \u03ba_cum(\u03c9_c) = (1/(V N_q)) \u03a3_{\u03c9_q\u03bd \u2264 \u03c9_c} c_q\u03bd v^\u03b1_q\u03bd F^\u03b2_q\u03bd. The distribution of \u03ba over the phonon-frequency axis; saturates at \u03ba_LBTE for \u03c9_c \u2192 \u221e.",
@@ -2487,7 +2331,7 @@ const NODE_DATA = {
         "observable_units": {
           "kappa_cum": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa_cum": "Conductivity.cumulative_conductivity_per_omega"
         },
@@ -2498,7 +2342,7 @@ const NODE_DATA = {
         "observable_units": {
           "kappa_cum": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa_cum": "phono3py-kaccum kappa-mXXXXXX.hdf5"
         },
@@ -2509,7 +2353,7 @@ const NODE_DATA = {
         "observable_units": {
           "kappa_cum": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa_cum": "BTE.cumulative_kappaVsOmega_tensor"
         },
@@ -2530,8 +2374,7 @@ const NODE_DATA = {
   },
   "CumulativeKappa[wrt=mfp]": {
     "name": "CumulativeKappa[wrt=mfp]",
-    "physics_type": "CumulativeKappa",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "kappa_cum",
@@ -2543,9 +2386,7 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {
+    "labels": {
       "wrt": "mfp"
     },
     "description": "Cumulative thermal conductivity vs mean free path: \u03ba_cum(\u039b_c) = (1/(V N_q)) \u03a3_{|F_q\u03bd| \u2264 \u039b_c} c_q\u03bd v^\u03b1_q\u03bd F^\u03b2_q\u03bd. Heavily used for nanoscale design \u2014 the \u039b at which \u03ba_cum is 50% of \u03ba_total is the median mean free path.",
@@ -2555,7 +2396,7 @@ const NODE_DATA = {
         "observable_units": {
           "kappa_cum": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa_cum": "Conductivity.cumulative_conductivity_per_mfp"
         },
@@ -2566,7 +2407,7 @@ const NODE_DATA = {
         "observable_units": {
           "kappa_cum": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa_cum": "phono3py-kaccum --mfp kappa-mXXXXXX.hdf5"
         },
@@ -2577,7 +2418,7 @@ const NODE_DATA = {
         "observable_units": {
           "kappa_cum": "W_per_m_per_K"
         },
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa_cum": "BTE.cumulative_kappa_tensor"
         },
@@ -2598,8 +2439,7 @@ const NODE_DATA = {
   },
   "Trajectory": {
     "name": "Trajectory",
-    "physics_type": "Trajectory",
-    "kind": "HiddenState",
+    "kind": "HiddenSpace",
     "fields": [
       {
         "name": "r",
@@ -2620,15 +2460,13 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Per-atom positions r(t) and velocities v(t) sampled at each MD timestep. Gauge-dependent: the realised trajectory depends on the integrator (Velocity-Verlet vs. leapfrog), the ensemble (NVE/NVT/NPT), the thermostat (Berendsen / Langevin / Nose-Hoover / CSVR / none), and the initial conditions. Cross-code comparability lives entirely in the time-averaged contractions below \u2014 HeatCurrentACF, VelocityAutocorrelation, and MeanSquaredDisplacement are the gauge-invariant content.",
     "specs": {
       "gpumd": {
         "adapter": "gpumd",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "r": "run.in: dump_position <interval>",
           "v": "run.in: dump_velocity <interval>"
@@ -2638,7 +2476,7 @@ const NODE_DATA = {
       "lammps": {
         "adapter": "lammps",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "r": "dump custom <id> all custom <every> <file> id x y z",
           "v": "dump custom <id> all custom <every> <file> id vx vy vz"
@@ -2650,8 +2488,7 @@ const NODE_DATA = {
   },
   "HeatCurrent": {
     "name": "HeatCurrent",
-    "physics_type": "HeatCurrent",
-    "kind": "HiddenState",
+    "kind": "HiddenSpace",
     "fields": [
       {
         "name": "J",
@@ -2662,15 +2499,13 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Instantaneous heat-current vector J(t) computed from a Trajectory via the Irving-Kirkwood (or Hardy, or virial) decomposition. Per-element J_\u03b1(t) is a stochastic MD snapshot \u2014 gauge-dependent. The cross-code observable is the time-correlation HeatCurrentACF, which is what enters Green-Kubo \u03ba.",
     "specs": {
       "gpumd": {
         "adapter": "gpumd",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "J": "run.in: compute_hac <step1> <step2> <Nc>  (writes hac.out \u2014 J(t) implicit)"
         },
@@ -2679,7 +2514,7 @@ const NODE_DATA = {
       "lammps": {
         "adapter": "lammps",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "J": "compute <id> all heat/flux ke pe stress"
         },
@@ -2690,8 +2525,7 @@ const NODE_DATA = {
   },
   "HeatCurrentACF": {
     "name": "HeatCurrentACF",
-    "physics_type": "HeatCurrentACF",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "Jcorr",
@@ -2703,15 +2537,13 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Time-correlation tensor \u27e8J_\u03b1(0) J_\u03b2(\u03c4)\u27e9 of the MD heat current. Computed by averaging J(t)\u00b7J(t+\u03c4) over the production trajectory and ensemble repeats; gauge-invariant in the \u03c4\u2192\u221e limit. The Green-Kubo \u03ba integrand: \u03ba_\u03b1\u03b2 \u221d \u222b\u2080^\u221e Jcorr_\u03b1\u03b2(\u03c4) d\u03c4 \u2014 added in P3 as contract_kappa_green_kubo.",
     "specs": {
       "gpumd": {
         "adapter": "gpumd",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "Jcorr": "run.in: compute_hac <Ns> <Nc> <out_steps>  \u2192  hac.out"
         },
@@ -2720,7 +2552,7 @@ const NODE_DATA = {
       "lammps": {
         "adapter": "lammps",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "Jcorr": "fix <id> all ave/correlate <Nevery> <Nrepeat> <Nfreq> c_heatflux[1] c_heatflux[2] c_heatflux[3]"
         },
@@ -2731,8 +2563,7 @@ const NODE_DATA = {
   },
   "VelocityAutocorrelation": {
     "name": "VelocityAutocorrelation",
-    "physics_type": "VelocityAutocorrelation",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "Cv",
@@ -2742,15 +2573,13 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "Velocity autocorrelation function \u27e8v(0)\u00b7v(\u03c4)\u27e9 averaged over atoms and time origins. Gauge-invariant (a time-correlation of ensemble-averaged quantities). The Fourier transform gives the phonon density of states via the Wiener-Khinchin theorem \u2014 see the `fourier_to_dos` edge, which makes this a Pattern-C alternative-producer of PhononDOS alongside compute_dos.",
     "specs": {
       "gpumd": {
         "adapter": "gpumd",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "Cv": "run.in: compute_dos <Nc> <Nw> <max_omega>  \u2192  mvac.out + dos.out"
         },
@@ -2759,7 +2588,7 @@ const NODE_DATA = {
       "lammps": {
         "adapter": "lammps",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "Cv": "compute <id> all vacf  +  fix <id> all ave/time <Nevery> <Nrepeat> <Nfreq> c_vacf[*]"
         },
@@ -2770,8 +2599,7 @@ const NODE_DATA = {
   },
   "MeanSquaredDisplacement": {
     "name": "MeanSquaredDisplacement",
-    "physics_type": "MeanSquaredDisplacement",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "M",
@@ -2781,15 +2609,13 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {},
+    "labels": {},
     "description": "\u27e8|r(t+\u03c4) \u2212 r(t)|\u00b2\u27e9 averaged over atoms and time origins. PBC-unwrapped trajectories are required for the linear regime M(\u03c4) = 2\u00b7d\u00b7D\u00b7\u03c4 to be meaningful (D = self-diffusion). Gauge-invariant; orthogonal to \u03ba but a free addition that lets the framework cover diffusion observables.",
     "specs": {
       "gpumd": {
         "adapter": "gpumd",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "M": "run.in: compute_msd <Nc> <output_interval>  \u2192  msd.out"
         },
@@ -2798,7 +2624,7 @@ const NODE_DATA = {
       "lammps": {
         "adapter": "lammps",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "M": "compute <id> all msd com yes  +  fix <id> all ave/time <Nevery> <Nrepeat> <Nfreq> c_msd[4]"
         },
@@ -2809,8 +2635,7 @@ const NODE_DATA = {
   },
   "ThermalConductivity[transport_model=green_kubo]": {
     "name": "ThermalConductivity[transport_model=green_kubo]",
-    "physics_type": "ThermalConductivity",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "kappa",
@@ -2821,17 +2646,15 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {
+    "labels": {
       "transport_model": "green_kubo"
     },
-    "description": "Classical Green-Kubo \u03ba: time-integrated heat-flux autocorrelation. \u03ba_\u03b1\u03b2 = V/(k_B T\u00b2) \u222b\u2080^\u221e \u27e8J_\u03b1(0) J_\u03b2(\u03c4)\u27e9 d\u03c4. The Observable produced from the HeatCurrentACF gauge-invariant contraction of the MD Trajectory. Free of the perturbation a NEMD setup introduces; the equilibrium-MD reference value for \u03ba.",
+    "description": "Classical Green-Kubo \u03ba: time-integrated heat-flux autocorrelation. \u03ba_\u03b1\u03b2 = V/(k_B T\u00b2) \u222b\u2080^\u221e \u27e8J_\u03b1(0) J_\u03b2(\u03c4)\u27e9 d\u03c4. The ObservableSpace produced from the HeatCurrentACF gauge-invariant contraction of the MD Trajectory. Free of the perturbation a NEMD setup introduces; the equilibrium-MD reference value for \u03ba.",
     "specs": {
       "gpumd": {
         "adapter": "gpumd",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa": "hac.out  (columns kappa_xx, kappa_yy, kappa_zz vs t)"
         },
@@ -2840,7 +2663,7 @@ const NODE_DATA = {
       "lammps": {
         "adapter": "lammps",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa": "post-processed numpy.trapz on dumped J(t)\u00b7J(t) tensor (no native kappa.out)"
         },
@@ -2851,8 +2674,7 @@ const NODE_DATA = {
   },
   "ThermalConductivity[transport_model=nemd]": {
     "name": "ThermalConductivity[transport_model=nemd]",
-    "physics_type": "ThermalConductivity",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "kappa",
@@ -2863,17 +2685,15 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {
+    "labels": {
       "transport_model": "nemd"
     },
-    "description": "Non-equilibrium MD \u03ba: steady-state response to an imposed temperature gradient or imposed heat flux. \u03ba = \u2212\u27e8J\u27e9 / (\u2202T/\u2202z) for direct two-reservoir; for M\u00fcller-Plathe (imposed flux), the swap-rate-derived flux divides by the measured gradient. Finite-size scaling (\u03ba vs 1/L_z) is a separate post-processing step left out of this state's definition. Gauge-invariant once the steady state has converged.",
+    "description": "Non-equilibrium MD \u03ba: steady-state response to an imposed temperature gradient or imposed heat flux. \u03ba = \u2212\u27e8J\u27e9 / (\u2202T/\u2202z) for direct two-reservoir; for M\u00fcller-Plathe (imposed flux), the swap-rate-derived flux divides by the measured gradient. Finite-size scaling (\u03ba vs 1/L_z) is a separate post-processing step left out of this space's definition. Gauge-invariant once the steady state has converged.",
     "specs": {
       "lammps": {
         "adapter": "lammps",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa": "post-processed: flux / (linear fit of binned T(z))"
         },
@@ -2884,8 +2704,7 @@ const NODE_DATA = {
   },
   "ThermalConductivity[transport_model=hnemd]": {
     "name": "ThermalConductivity[transport_model=hnemd]",
-    "physics_type": "ThermalConductivity",
-    "kind": "Observable",
+    "kind": "ObservableSpace",
     "fields": [
       {
         "name": "kappa",
@@ -2896,9 +2715,7 @@ const NODE_DATA = {
         ]
       }
     ],
-    "canonical_conventions": {},
-    "convention_factors": [],
-    "type_parameters": {
+    "labels": {
       "transport_model": "hnemd"
     },
     "description": "Homogeneous-NEMD \u03ba (Evans 1982, Fan et al. 2019): a uniform driving force F_e is applied to every atom, biasing the heat current; \u03ba_\u03b1\u03b2 = \u27e8J_\u03b1\u27e9 / (T \u00b7 V \u00b7 F_e^\u03b2) in the linear-response limit (small F_e). Free of the boundary-thermostat artefacts of direct NEMD; GPUMD's signature thermal-transport method. Gauge-invariant in the small-F_e limit.",
@@ -2906,7 +2723,7 @@ const NODE_DATA = {
       "gpumd": {
         "adapter": "gpumd",
         "observable_units": {},
-        "observable_convention_overrides": {},
+        "observable_normalizations": {},
         "code_api": {
           "kappa": "kappa.out  (columns kappa_xx, kappa_xy, ..., kappa_zz vs t)"
         },
@@ -2924,7 +2741,7 @@ const EDGE_DATA = {
       "Potential"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "V{\\left(\\{u\\} \\right)} = V_{\\mathrm{provided}}",
     "auxiliary_latex": [],
     "description": "Source: an opaque label for the chosen potential (Tersoff, PBE, ...).",
@@ -2932,49 +2749,49 @@ const EDGE_DATA = {
       "ase": {
         "adapter": "ase",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Provides Potential via the ASE calculator protocol. The user constructs an `ase.Atoms` instance and assigns `atoms.calc = SomeCalculator(...)`; downstream adapters (kaldo, phonopy, phono3py) consume this Atoms object directly. Algorithmic conventions on FC2/FC3 derivation (symmetry_group, FD displacement magnitude, etc.) remain with the downstream adapter \u2014 ASE is purely the force-evaluation interface."
       },
       "gpumd": {
         "adapter": "gpumd",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Provides Potential by referencing an on-disk potential file in GPUMD's `run.in`. NEP is the canonical GPUMD potential format (trained against DFT energies + forces + virials via the `nep` trainer); classical forms read the same way."
       },
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "kaldo provides the Potential through the ASE-calculator protocol (see the `ase` adapter for the canonical description). Concrete backends used in the worked Si example: LAMMPSlib + Tersoff."
       },
       "lammps": {
         "adapter": "lammps",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Provides Potential via LAMMPS's native scripting interface. The Potential's identity (pair_style + parameters) is read from the input script at LAMMPS startup; subsequent force evaluations are all driven by that initial configuration. Per-run reproducibility depends on the parameter files referenced (Si.tersoff, etc.) being version-pinned."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "phono3py provides the Potential either via an attached ASE calculator (canonical: `ase` adapter) or via precomputed FORCES_FC* files from an external DFT/MD code."
       },
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Phonopy provides the Potential either via an attached ASE calculator (canonical: `ase` adapter) or via precomputed FORCE_SETS / FORCE_CONSTANTS files from an external DFT / ML code."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "ShengBTE consumes a pair of pre-computed force-constant files; the Potential is implicit in whatever upstream code produced them. In the openmaterials-ai worked Si example the upstream code is phono3py + LAMMPSlib (canonical: `ase` adapter); ShengBTE itself does not evaluate forces."
       }
@@ -2992,7 +2809,7 @@ const EDGE_DATA = {
         "dimension": "temperature"
       }
     ],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "T = T_{\\mathrm{provided}}",
     "auxiliary_latex": [],
     "description": "Source: the temperature at which subsequent T-dependent observables are evaluated.",
@@ -3000,28 +2817,28 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Set via Phonons(temperature=...)."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Set via Phono3py(temperatures=...)."
       },
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Set via Phonopy.run_thermal_properties(temperatures=...)."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Temperatures are listed in the CONTROL namelist (T= / T_min/T_max/T_step)."
       }
@@ -3034,7 +2851,7 @@ const EDGE_DATA = {
       "BornCharges"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "{Z^{*}}_{i,\\gamma,\\alpha} = Z^*_{provided}",
     "auxiliary_latex": [],
     "description": "Source: per-atom Born effective-charge tensor Z*_{i,\u03b1\u03b2}. Typically read from a BORN file produced by a DFT linear-response calculation. Required only for polar materials; non-polar runs do not consume BornCharges anywhere downstream.",
@@ -3042,28 +2859,28 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Populated via kaldo.interfaces.shengbte_io's BORN reader, which fills atoms.info from a ShengBTE-format BORN file."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "BORN file parsed via the Phonopy parser; attached to Phono3py via the same nac_params dict."
       },
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Phonopy loads Born charges from a BORN file via `parse_BORN(primitive, filename)`, then attaches them through `Phonopy(nac_params={'born': ..., 'dielectric': ..., 'factor': ...})`."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Read from CONTROL &crystal block at the start of each run."
       }
@@ -3076,7 +2893,7 @@ const EDGE_DATA = {
       "DielectricTensor"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "{\\varepsilon_{\\infty}}_{\\gamma,\\delta} = \\varepsilon_{\\infty,provided}",
     "auxiliary_latex": [],
     "description": "Source: macroscopic (electronic) dielectric tensor \u03b5\u221e. Usually read from the same BORN file alongside the Born charges. Used only by the polar branch of the DM construction.",
@@ -3084,28 +2901,28 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Same BORN reader; the dielectric tensor sits at the top of the file."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Same BORN file, dielectric block."
       },
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Read alongside Born charges from the BORN file (first 9 numbers)."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Read from CONTROL &crystal block."
       }
@@ -3120,7 +2937,7 @@ const EDGE_DATA = {
       "ForceConstants[order=2]"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "symmetry_group": "C1"
     },
     "formula_latex": "{\\Phi^{(2)}}_{i,j,\\mathbf{R}} = \\frac{d^{2}}{d u_{j(R)}d u_{i(0)}} V{\\left(\\{u\\} \\right)}",
@@ -3130,7 +2947,7 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "symmetry_group": "C1"
         },
         "discretization_choices": {},
@@ -3139,7 +2956,7 @@ const EDGE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "symmetry_group": "spglib_auto"
         },
         "discretization_choices": {},
@@ -3148,7 +2965,7 @@ const EDGE_DATA = {
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "symmetry_group": "spglib_auto"
         },
         "discretization_choices": {},
@@ -3157,7 +2974,7 @@ const EDGE_DATA = {
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "symmetry_group": "spglib_auto"
         },
         "discretization_choices": {},
@@ -3174,7 +2991,7 @@ const EDGE_DATA = {
       "ForceConstants[order=3]"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "symmetry_group": "C1"
     },
     "formula_latex": "{\\Phi^{(3)}}_{i,j,k,\\mathbf{R},\\mathbf{R'}} = \\frac{d^{3}}{d u_{k(R')}d u_{j(R)}d u_{i(0)}} V{\\left(\\{u\\} \\right)}",
@@ -3184,7 +3001,7 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "symmetry_group": "C1"
         },
         "discretization_choices": {},
@@ -3193,7 +3010,7 @@ const EDGE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "symmetry_group": "spglib_auto"
         },
         "discretization_choices": {},
@@ -3202,7 +3019,7 @@ const EDGE_DATA = {
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "symmetry_group": "spglib_auto"
         },
         "discretization_choices": {},
@@ -3219,7 +3036,7 @@ const EDGE_DATA = {
       "BareDynamicalMatrix"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "{D^{bare}}_{i,j,\\mathbf{q}} = \\frac{\\sum_{\\mathbf{R}=-\\infty}^{\\infty} e^{i \\mathbf{R} \\mathbf{q}} {\\Phi^{(2)}}_{i,j,\\mathbf{R}}}{\\sqrt{{M}_{i} {M}_{j}}}",
     "auxiliary_latex": [],
     "description": "Bloch sum over lattice vectors, mass-weighted. Produces the analytic (bare) dynamical matrix; the downstream DynamicalMatrix is reached either via identity_dm (non-polar) or via apply_nac_correction (polar). The split is needed because the non-analytic correction adds a q-direction-dependent term at q\u21920 that cannot be expressed as a real-space Bloch sum.",
@@ -3227,28 +3044,28 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "ForceConstants.dynamical_matrix(q): Bloch sum implemented as a mass-weighted Fourier transform of \u03a6\u00b2(R)."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Inherited from the parent Phonopy object: DynamicalMatrix.get_dynamical_matrix() performs the Bloch sum over \u03a6\u00b2(R)."
       },
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "DynamicalMatrix.get_dynamical_matrix(q) \u2014 Bloch sum over \u03a6\u00b2(R) with the phonopy phase convention."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Implicit: ShengBTE computes the dynamical matrix internally from FORCE_CONSTANTS_2ND when assembling the harmonic spectrum, but does not expose the matrix in its output files."
       }
@@ -3263,7 +3080,7 @@ const EDGE_DATA = {
       "DynamicalMatrix"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "{D}_{i,j,\\mathbf{q}} = {D^{bare}}_{i,j,\\mathbf{q}}",
     "auxiliary_latex": [],
     "description": "Non-polar branch: the downstream DynamicalMatrix is just the bare Bloch sum, unchanged. This edge exists to keep the DAG acyclic while letting compute_dispersion (and everything below) consume a single DynamicalMatrix node regardless of whether the run is polar or non-polar.",
@@ -3271,28 +3088,28 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Non-polar runs (atoms.info has no 'dielectric' key): HarmonicWithQ.is_nac is False and the bare DM is used directly."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Non-polar runs: bare Bloch sum passes through unchanged."
       },
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Non-polar runs (no BORN file, nac_params is None): the bare Bloch sum is the dynamical matrix returned by Phonopy unchanged."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Non-polar runs (born=0, epsilon=identity in CONTROL): the bare DM is used directly."
       }
@@ -3309,7 +3126,7 @@ const EDGE_DATA = {
       "DynamicalMatrix"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "nac_scheme": "gonze_lee"
     },
     "formula_latex": "{D}_{i,j,\\mathbf{q}} = {D^{bare}}_{i,j,\\mathbf{q}} + \\frac{4 \\pi \\left(\\sum_{\\gamma=1}^{3} q^{\\alpha} {Z^{*}}_{i,\\gamma,\\alpha}\\right) \\sum_{\\delta=1}^{3} q^{\\beta} {Z^{*}}_{j,\\delta,\\beta}}{V_{cell} \\sqrt{{M}_{i} {M}_{j}} \\sum_{\\substack{1 \\leq \\gamma \\leq 3\\\\1 \\leq \\delta \\leq 3}} q^{\\alpha} q^{\\beta} {\\varepsilon_{\\infty}}_{\\gamma,\\delta}}",
@@ -3319,7 +3136,7 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "nac_scheme": "gonze_lee"
         },
         "discretization_choices": {},
@@ -3328,7 +3145,7 @@ const EDGE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "nac_scheme": "gonze_lee"
         },
         "discretization_choices": {},
@@ -3337,7 +3154,7 @@ const EDGE_DATA = {
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "nac_scheme": "gonze_lee"
         },
         "discretization_choices": {},
@@ -3346,7 +3163,7 @@ const EDGE_DATA = {
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "nac_scheme": "ewald"
         },
         "discretization_choices": {},
@@ -3364,7 +3181,7 @@ const EDGE_DATA = {
       "Eigenvectors"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "\\sum_{j=1}^{3 N} {D}_{i,j,\\mathbf{q}} {e}_{j,\\mathbf{q},\\nu} = {\\omega}_{\\mathbf{q},\\nu}^{2} {e}_{i,\\mathbf{q},\\nu}",
     "auxiliary_latex": [],
     "description": "Eigendecomposition of D(q): produces \u03c9_q\u03bd and orthonormal e_q\u03bd. Implicit equation; degenerate subspaces have rotation freedom on e.",
@@ -3372,28 +3189,28 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
-        "notes": "Phonons.frequency / Phonons.eigenvectors come from a per-q numpy.linalg.eigh of the dynamical matrix. Degenerate subspaces inherit numpy's arbitrary basis choice \u2014 the standard reason Eigenvectors and any quantity built from them are HiddenStates."
+        "notes": "Phonons.frequency / Phonons.eigenvectors come from a per-q numpy.linalg.eigh of the dynamical matrix. Degenerate subspaces inherit numpy's arbitrary basis choice \u2014 the standard reason Eigenvectors and any quantity built from them are HiddenSpaces."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Frequencies and eigenvectors come from a per-q numpy.linalg.eigh of the dynamical matrix (Phonopy.get_band_structure / get_mesh_dict). Degenerate subspaces inherit the arbitrary numpy basis."
       },
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Eigenfrequencies / eigenvectors from numpy.linalg.eigh of D(q) \u2014 Phonopy.get_band_structure / .get_mesh_dict."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "BTE.omega / BTE.eigenvectors come from a per-q diagonalisation of the dynamical matrix in the irreducible BZ wedge."
       }
@@ -3410,7 +3227,7 @@ const EDGE_DATA = {
       "GroupVelocity"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "gv_method": "hellmann_feynman"
     },
     "formula_latex": "{v}_{\\alpha,\\mathbf{q},\\nu} = \\frac{\\sum_{\\substack{1 \\leq j \\leq 3 N\\\\1 \\leq i \\leq 3 N}} \\overline{{e}_{i,\\mathbf{q},\\nu}} {\\partial D/\\partial q}_{i,j,\\alpha,\\mathbf{q}} {e}_{j,\\mathbf{q},\\nu}}{2 {\\omega}_{\\mathbf{q},\\nu}}",
@@ -3420,28 +3237,28 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Phonons.velocity uses the analytic Hellmann-Feynman form v_q\u03bd = (1/2\u03c9_q\u03bd) \u27e8e_q\u03bd| \u2202D/\u2202q |e_q\u03bd\u27e9 \u2014 matches the canonical gv_method=hellmann_feynman."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Phonopy.GroupVelocity uses the analytic Hellmann-Feynman formula with finite-difference fallback only at exact band crossings."
       },
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Phonopy.GroupVelocity uses the analytic Hellmann-Feynman formula, with finite-difference fallback at exact band crossings."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "BTE.v / BTE.v_full computed via the analytic Hellmann-Feynman form, matching the canonical gv_method=hellmann_feynman."
       }
@@ -3457,7 +3274,7 @@ const EDGE_DATA = {
       "HeatCapacity"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "{c}_{\\mathbf{q},\\nu} = \\frac{\\bar{\\h}^{2} {\\omega}_{\\mathbf{q},\\nu}^{2}}{4 T^{2} k_{B} \\sinh^{2}{\\left(\\frac{\\bar{\\h} {\\omega}_{\\mathbf{q},\\nu}}{2 T k_{B}} \\right)}}",
     "auxiliary_latex": [],
     "description": "Quantum (Bose-Einstein) per-mode heat capacity at temperature T.",
@@ -3465,21 +3282,21 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "No parameters or algorithmic conventions exposed."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "No parameters or algorithmic conventions exposed."
       },
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Per-mode c_q\u03bd is computed internally via the Bose-Einstein form but only the molar contraction is exposed (heat_capacity in thermal_properties)."
       }
@@ -3495,7 +3312,7 @@ const EDGE_DATA = {
       "HelmholtzFreeEnergy"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "{f}_{\\mathbf{q},\\nu} = T k_{B} \\log{\\left(1 - e^{- \\frac{\\bar{\\h} {\\omega}_{\\mathbf{q},\\nu}}{T k_{B}}} \\right)} + \\frac{\\bar{\\h} {\\omega}_{\\mathbf{q},\\nu}}{2}",
     "auxiliary_latex": [],
     "description": "Per-mode Helmholtz free energy at temperature T (sibling of compute_heat_capacity). Includes the zero-point \u210f\u03c9/2 contribution plus the k_B T log term.",
@@ -3503,14 +3320,14 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Phonons.free_energy: closed-form F = (\u210f\u03c9/2) + k_B T ln(1 - exp(-\u210f\u03c9/k_B T)) per mode. Imaginary frequencies are excluded with a warning."
       },
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Per-mode F is computed internally inside the harmonic thermo loop; only the molar contraction is exposed."
       }
@@ -3526,7 +3343,7 @@ const EDGE_DATA = {
       "Entropy"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "{s}_{\\mathbf{q},\\nu} = - k_{B} \\log{\\left(1 - e^{- \\frac{\\bar{\\h} {\\omega}_{\\mathbf{q},\\nu}}{T k_{B}}} \\right)} + \\frac{\\bar{\\h} n_{BE}{\\left(\\frac{{\\omega}_{\\mathbf{q},\\nu}}{T} \\right)} {\\omega}_{\\mathbf{q},\\nu}}{T}",
     "auxiliary_latex": [],
     "description": "Per-mode entropy at temperature T. Equivalent to -\u2202f/\u2202T; the explicit form uses n_BE(\u03c9,T) and the log of the partition factor.",
@@ -3534,7 +3351,7 @@ const EDGE_DATA = {
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Per-mode S computed internally, exposed only after molar contraction."
       }
@@ -3550,7 +3367,7 @@ const EDGE_DATA = {
       "InternalEnergy"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "{e}_{\\mathbf{q},\\nu} = \\bar{\\h} \\left(n_{BE}{\\left(\\frac{{\\omega}_{\\mathbf{q},\\nu}}{T} \\right)} + \\frac{1}{2}\\right) {\\omega}_{\\mathbf{q},\\nu}",
     "auxiliary_latex": [],
     "description": "Per-mode internal energy at temperature T, \u210f\u03c9(1/2 + n_BE).",
@@ -3558,7 +3375,7 @@ const EDGE_DATA = {
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Per-mode E computed internally, exposed only after molar contraction."
       }
@@ -3581,7 +3398,7 @@ const EDGE_DATA = {
         "dimension": "frequency"
       }
     ],
-    "algorithmic_conventions": {
+    "schemes": {
       "broadening_param": "stdev",
       "symmetry_group": "C1"
     },
@@ -3596,7 +3413,7 @@ const EDGE_DATA = {
         "parameter_units": {
           "broadening_sigma": "linear_THz"
         },
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "broadening_param": "adaptive_velocity_projection",
           "symmetry_group": "C1"
         },
@@ -3612,7 +3429,7 @@ const EDGE_DATA = {
         "parameter_units": {
           "broadening_sigma": "linear_THz"
         },
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "symmetry_group": "spglib_auto"
         },
         "discretization_choices": {
@@ -3627,7 +3444,7 @@ const EDGE_DATA = {
         "parameter_units": {
           "broadening_sigma": "angular_THz"
         },
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "broadening_param": "adaptive_velocity_projection",
           "symmetry_group": "spglib_auto"
         },
@@ -3650,7 +3467,7 @@ const EDGE_DATA = {
       "Linewidth[channel=isotope]"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "delta_broadening": "gaussian"
     },
     "formula_latex": "{\\Gamma^{iso}}_{\\mathbf{q},\\nu} = \\frac{\\pi {\\omega}_{\\mathbf{q},\\nu}^{2} \\sum_{\\substack{1 \\leq \\mathbf{q'} \\leq N_{q}\\\\1 \\leq \\nu' \\leq 3 N}} \\delta{\\left(- {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)} \\left(\\left|{\\sum_{i=1}^{N} \\overline{{e}_{i,\\mathbf{q},\\nu}} {e}_{i,\\mathbf{q'},\\nu'}}\\right|^{2}\\right) {g}_{i}}{2}",
@@ -3660,21 +3477,21 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "kaldo.controllers.isotopic.compute_isotopic_bw evaluates the Tamura expression with the same Gaussian \u03b4 as the anharmonic linewidth (width set by third_bandwidth or the adaptive scheme when None); matches the canonical delta_broadening=gaussian, no override."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "phono3py.other.isotope.Isotope realises the Tamura \u03b4 with the same smearing scheme (sigma / tetrahedron) selected by the parent kappa calculation \u2014 Gaussian by default, matching the canonical delta_broadening=gaussian convention."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "delta_broadening": "adaptive_scaled"
         },
         "discretization_choices": {},
@@ -3697,7 +3514,7 @@ const EDGE_DATA = {
         "dimension": "length"
       }
     ],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "{\\Gamma^{bnd}}_{\\mathbf{q},\\nu} = \\frac{\\sqrt{\\sum_{\\alpha=1}^{3} {v}_{\\alpha,\\mathbf{q},\\nu}^{2}}}{L}",
     "auxiliary_latex": [],
     "description": "Casimir boundary scattering rate: \u0393 = |v| / L, with L a user-supplied sample / mean-free-path length scale. Linear in the group-velocity magnitude; independent of temperature. Inherits GroupVelocity's gauge-dependence at degenerate \u03c9.",
@@ -3705,21 +3522,21 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "McKelvey-Schockley form \u0393_boundary = 2|v_\u03b1|/L_\u03b1, applied inline inside Conductivity.calculate_mfp_inv when finite_length_method='ms'. A 'ballistic' mode is also exposed."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "phono3py.conductivity.scattering_solvers.compute_bulk_boundary_scattering: \u0393_boundary = |v|\u00b71e6\u00b7\u00c5 / (4\u03c0\u00b7L), with L the `boundary_mfp` parameter (in micrometres). The factor of 1/(4\u03c0) is phono3py's bulk-boundary convention \u2014 distinct from kaldo's 2|v|/L (Casimir + Matthiessen sum) and ShengBTE's |v|/L; cross-code comparison at this \u0393 requires the convention factor."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Casimir \u0393_boundary = |v| / L; L set via the `length` parameter in CONTROL &flags."
       }
@@ -3736,7 +3553,7 @@ const EDGE_DATA = {
       "Linewidth[channel=total]"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "{\\Gamma^{tot}}_{\\mathbf{q},\\nu} = {\\Gamma^{anh}}_{\\mathbf{q},\\nu} + {\\Gamma^{bnd}}_{\\mathbf{q},\\nu} + {\\Gamma^{iso}}_{\\mathbf{q},\\nu}",
     "auxiliary_latex": [],
     "description": "Matthiessen sum of all scattering channels. The BTE solver consumes the total; runs that don't model a channel feed zero on that input.",
@@ -3744,21 +3561,21 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Phonons.bandwidth is the explicit Matthiessen sum of anharmonic_bandwidth and (when include_isotopes) isotopic_bandwidth. Boundary is added later inside Conductivity rather than into Phonons.bandwidth, so the kaldo 'total' the LBTE consumes is the sum of those terms plus \u0393_boundary at solve time."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Sum implemented by `compute_effective_gamma` in phono3py.conductivity.grid_point_data: anharmonic + isotope + boundary + el-ph. The total is built in-memory just before the BTE solve and is not written to a separate output file."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Matthiessen sum is applied implicitly in the BTE solver loop: 1/\u03c4_total = 1/\u03c4_anh + 1/\u03c4_iso + 1/\u03c4_boundary. No separate BTE.w_total file is written \u2014 the total enters the kappa calculation directly."
       }
@@ -3771,7 +3588,7 @@ const EDGE_DATA = {
       "IsotopeAbundances"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "{g}_{i} = g_{provided}",
     "auxiliary_latex": [],
     "description": "Source: per-atom isotopic mass-variance factor g_i. Either natural-abundance defaults (computed from a periodic-table lookup) or user-supplied values for isotopically enriched samples.",
@@ -3779,21 +3596,21 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Set via the Phonons(g_factor=...) constructor argument. With include_isotopes=True and g_factor=None kaldo falls back to NIST natural-abundance defaults."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Set via Phono3pyIsotope(mass_variances=...) or the CLI flag `--isotope`. Natural-abundance defaults from phonopy's atomic-weights table when no explicit array is supplied."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Read from CONTROL; natural-abundance defaults when isotopes=.TRUE."
       }
@@ -3811,7 +3628,7 @@ const EDGE_DATA = {
       "MeanFreeDisplacement[bte_solver=rta]"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "bte_solver": "rta"
     },
     "formula_latex": "{F}_{\\alpha,\\mathbf{q},\\nu} = \\frac{{v}_{\\alpha,\\mathbf{q},\\nu}}{2 {\\Gamma}_{\\mathbf{q},\\nu}}",
@@ -3821,21 +3638,21 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Conductivity(method='rta'): closed-form F = v / (2\u0393), no algorithmic choice beyond the inherited Linewidth conventions."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Phono3py.run_thermal_conductivity(is_LBTE=False): closed-form F = v / (2\u0393) per mode, with kappa accumulated as the BZ sum is built."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "BTE.KappaTensorVsT_RTA: closed-form F = v / (2\u0393) at each T on the CONTROL temperature grid, contracted into \u03ba_RTA."
       }
@@ -3854,7 +3671,7 @@ const EDGE_DATA = {
       "MeanFreeDisplacement[bte_solver=direct_inverse]"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "bte_solver": "direct_inverse",
       "symmetry_group": "C1"
     },
@@ -3867,7 +3684,7 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "symmetry_group": "C1"
         },
         "discretization_choices": {
@@ -3879,7 +3696,7 @@ const EDGE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "symmetry_group": "spglib_auto"
         },
         "discretization_choices": {
@@ -3891,7 +3708,7 @@ const EDGE_DATA = {
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "symmetry_group": "spglib_auto"
         },
         "discretization_choices": {
@@ -3915,7 +3732,7 @@ const EDGE_DATA = {
       "ThermalConductivity[bte_solver=rta]"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "{\\kappa}_{\\alpha,\\beta} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {F}_{\\beta,\\mathbf{q},\\nu} {c}_{\\mathbf{q},\\nu} {v}_{\\alpha,\\mathbf{q},\\nu}}{N_{q} V_{cell}}",
     "auxiliary_latex": [],
     "description": "Per-mode contraction with F from RTA. The 1/\u0393 non-linearity propagates Linewidth's gauge-dependence into \u03ba_RTA.",
@@ -3923,21 +3740,21 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Conductivity(method='rta').conductivity \u2014 per-mode contraction."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "kappa_RTA: c\u00b7v\u2297v\u00b7\u03c4 summed over (q, \u03bd) and divided by volume."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "\u03ba tensor written to BTE.KappaTensorVsT_RTA after the RTA solve."
       }
@@ -3954,7 +3771,7 @@ const EDGE_DATA = {
       "ThermalConductivity[bte_solver=direct_inverse]"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "{\\kappa}_{\\alpha,\\beta} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {F}_{\\beta,\\mathbf{q},\\nu} {c}_{\\mathbf{q},\\nu} {v}_{\\alpha,\\mathbf{q},\\nu}}{N_{q} V_{cell}}",
     "auxiliary_latex": [],
     "description": "Per-mode contraction with the LBTE F; result is gauge-invariant.",
@@ -3962,21 +3779,21 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Conductivity(method='inverse'|'sc').conductivity \u2014 per-mode contraction after the BTE solve."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "kappa from the LBTE solve, accumulated as c\u00b7v\u2297F over (q, \u03bd)."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "\u03ba tensor written to BTE.KappaTensorVsT_CONV after the iterative LBTE solve."
       }
@@ -3993,7 +3810,7 @@ const EDGE_DATA = {
       "ThermalConductivity[transport_model=wigner_populations]"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "transport_model": "wigner_populations"
     },
     "formula_latex": "{\\kappa^{W,pop}}_{\\alpha,\\beta} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {F}_{\\beta,\\mathbf{q},\\nu} {c}_{\\mathbf{q},\\nu} {v}_{\\alpha,\\mathbf{q},\\nu}}{N_{q} V_{cell}}",
@@ -4003,14 +3820,14 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Computed alongside the coherences channel inside Conductivity(method='wigner'); exposed separately via populations_conductivity."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Computed inside WignerRTAKappaSolver.finalize alongside the coherences term; exposed as the kappa_P_RTA / mode_kappa property."
       }
@@ -4028,7 +3845,7 @@ const EDGE_DATA = {
       "ThermalConductivity[transport_model=wigner_coherences]"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "transport_model": "wigner_coherences"
     },
     "formula_latex": "{\\kappa^{W,coh}}_{\\alpha,\\beta} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N\\\\1 \\leq \\nu' \\leq 3 N}} \\frac{\\left({\\Gamma^{anh}}_{\\mathbf{q},\\nu'} + {\\Gamma^{anh}}_{\\mathbf{q},\\nu}\\right) \\left({\\omega}_{\\mathbf{q},\\nu'} + {\\omega}_{\\mathbf{q},\\nu}\\right) \\left(\\frac{{c}_{\\mathbf{q},\\nu'}}{2} + \\frac{{c}_{\\mathbf{q},\\nu}}{2}\\right) {v}_{\\alpha,\\mathbf{q},\\nu} {v}_{\\beta,\\mathbf{q},\\nu'}}{2 \\left(\\left({\\Gamma^{anh}}_{\\mathbf{q},\\nu'} + {\\Gamma^{anh}}_{\\mathbf{q},\\nu}\\right)^{2} + \\left(- {\\omega}_{\\mathbf{q},\\nu'} + {\\omega}_{\\mathbf{q},\\nu}\\right)^{2}\\right)}}{N_{q} V_{cell}}",
@@ -4038,14 +3855,14 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Lorentzian-weighted off-diagonal mode overlap; the linewidth feeds in as the broadening width."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Lorentzian-weighted off-diagonal mode overlap built from the velocity operator (vm_by_vm) inside WignerRTAKappaSolver. The broadening width is the per-mode total \u0393 (compute_effective_gamma output) \u2014 shared with the LBTE chain."
       }
@@ -4061,7 +3878,7 @@ const EDGE_DATA = {
       "ThermalConductivity[transport_model=wigner]"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "{\\kappa^{W}}_{\\alpha,\\beta} = {\\kappa^{W,coh}}_{\\alpha,\\beta} + {\\kappa^{W,pop}}_{\\alpha,\\beta}",
     "auxiliary_latex": [],
     "description": "Sum of populations + coherences channels into the unified Wigner \u03ba.",
@@ -4069,14 +3886,14 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "The kaldo Conductivity object exposes the sum directly as .conductivity when method='wigner'."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "WignerRTAKappaSolver.kappa returns self._kappa_P + self._kappa_C directly; also surfaced as the `kappa_TOT_RTA` attribute."
       }
@@ -4095,7 +3912,7 @@ const EDGE_DATA = {
       "ThermalConductivity[transport_model=qhgk]"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "transport_model": "qhgk"
     },
     "formula_latex": "{\\kappa^{QHGK}}_{\\alpha,\\beta} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N\\\\1 \\leq \\nu' \\leq 3 N}} \\frac{\\left({\\Gamma^{anh}}_{\\mathbf{q},\\nu'} + {\\Gamma^{anh}}_{\\mathbf{q},\\nu}\\right) {c}_{\\mathbf{q},\\nu} {v}_{\\alpha,\\mathbf{q},\\nu} {v}_{\\beta,\\mathbf{q},\\nu'}}{\\left({\\Gamma^{anh}}_{\\mathbf{q},\\nu'} + {\\Gamma^{anh}}_{\\mathbf{q},\\nu}\\right)^{2} + \\left(- {\\omega}_{\\mathbf{q},\\nu'} + {\\omega}_{\\mathbf{q},\\nu}\\right)^{2}}}{N_{q} V_{cell}}",
@@ -4105,7 +3922,7 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Conductivity(method='qhgk'): time-integrated heat-flux autocorrelation with Lorentzian mode broadening of width \u0393 (per-mode linewidth from compute_linewidth)."
       }
@@ -4120,7 +3937,7 @@ const EDGE_DATA = {
       "VolumetricHeatCapacity"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "C_V^{vol} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {c}_{\\mathbf{q},\\nu}}{N_{q} V_{cell}}",
     "auxiliary_latex": [],
     "description": "BZ-and-mode sum of the per-mode heat capacity, divided by cell volume. Gauge-invariant (no Linewidth or eigenvector input). ShengBTE emits this directly; kaldo/phono3py reach it by contracting their per-mode arrays.",
@@ -4128,28 +3945,28 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Derived from Phonons.heat_capacity by summing and dividing by cell volume."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Derived from the per-mode heat_capacity array by summing and dividing by cell volume."
       },
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Not emitted directly; derivable from the molar form by dividing by N_A and the cell volume."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "BTE.cv: volumetric C_V in J/(m\u00b3\u00b7K) at each T, contracted directly from the per-mode form (which ShengBTE does not expose)."
       }
@@ -4164,7 +3981,7 @@ const EDGE_DATA = {
       "MolarHeatCapacity"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "C_V^{mol} = \\frac{N_{A} \\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {c}_{\\mathbf{q},\\nu}}{N_{q}}",
     "auxiliary_latex": [],
     "description": "BZ-and-mode sum of the per-mode heat capacity, multiplied by Avogadro's number and divided by N_q (so the result is C_V per mole of primitive unit cells). Phonopy emits this in its harmonic thermal_properties output (J/K/mol).",
@@ -4172,21 +3989,21 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Derived from Phonons.heat_capacity via N_A \u00d7 sum / N_q."
       },
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Derived from the per-mode heat_capacity array via N_A \u00d7 sum / N_q."
       },
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "get_thermal_properties_dict()['heat_capacity'] in J/(K\u00b7mol of primitive cells)."
       }
@@ -4201,7 +4018,7 @@ const EDGE_DATA = {
       "MolarHelmholtzFreeEnergy"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "F_{mol} = \\frac{N_{A} \\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {f}_{\\mathbf{q},\\nu}}{N_{q}}",
     "auxiliary_latex": [],
     "description": "BZ-and-mode sum of the per-mode Helmholtz free energy, N_A/N_q. Phonopy emits this as thermal_properties['free_energy'] in kJ/mol.",
@@ -4209,7 +4026,7 @@ const EDGE_DATA = {
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Emitted as thermal_properties['free_energy'] (kJ/mol)."
       }
@@ -4224,7 +4041,7 @@ const EDGE_DATA = {
       "MolarEntropy"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "S_{mol} = \\frac{N_{A} \\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {s}_{\\mathbf{q},\\nu}}{N_{q}}",
     "auxiliary_latex": [],
     "description": "BZ-and-mode sum of the per-mode entropy, N_A/N_q. Phonopy emits this as thermal_properties['entropy'] in J/(K\u00b7mol).",
@@ -4232,7 +4049,7 @@ const EDGE_DATA = {
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Emitted as thermal_properties['entropy'] (J/K/mol)."
       }
@@ -4247,7 +4064,7 @@ const EDGE_DATA = {
       "MolarInternalEnergy"
     ],
     "parameters": [],
-    "algorithmic_conventions": {},
+    "schemes": {},
     "formula_latex": "E_{mol} = \\frac{N_{A} \\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {e}_{\\mathbf{q},\\nu}}{N_{q}}",
     "auxiliary_latex": [],
     "description": "BZ-and-mode sum of the per-mode internal energy, N_A/N_q. Phonopy emits this as thermal_properties['internal_energy'] in kJ/mol.",
@@ -4255,7 +4072,7 @@ const EDGE_DATA = {
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Emitted as thermal_properties['internal_energy'] (kJ/mol)."
       }
@@ -4270,7 +4087,7 @@ const EDGE_DATA = {
       "PhononDOS"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "dos_broadening": "gaussian"
     },
     "formula_latex": "g = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} \\delta{\\left(\\omega - {\\omega}_{\\mathbf{q},\\nu} \\right)}}{N_{q}}",
@@ -4280,7 +4097,7 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "dos_broadening": "gaussian"
         },
         "discretization_choices": {},
@@ -4289,7 +4106,7 @@ const EDGE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "dos_broadening": "tetrahedron"
         },
         "discretization_choices": {},
@@ -4298,7 +4115,7 @@ const EDGE_DATA = {
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "dos_broadening": "tetrahedron"
         },
         "discretization_choices": {},
@@ -4307,7 +4124,7 @@ const EDGE_DATA = {
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "dos_broadening": "adaptive_scaled"
         },
         "discretization_choices": {},
@@ -4327,7 +4144,7 @@ const EDGE_DATA = {
       "Gruneisen"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "gruneisen_method": "maradudin_fein"
     },
     "formula_latex": "{\\gamma_{G}}_{\\mathbf{q},\\nu} = - \\frac{\\sum_{\\substack{1 \\leq i \\leq 3 N\\\\1 \\leq j \\leq 3 N}} {\\Phi^{(3)}}_{i,j,k,\\mathbf{R},\\mathbf{R'}}}{6 {\\omega}_{\\mathbf{q},\\nu}^{2}}",
@@ -4337,14 +4154,14 @@ const EDGE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Phono3py.run_phonon_gruneisen_parameters: Maradudin-Fein closed form using fc2, fc3 and the harmonic eigensystem \u2014 matches the canonical gruneisen_method=maradudin_fein."
       },
       "phonopy": {
         "adapter": "phonopy",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "gruneisen_method": "finite_difference"
         },
         "discretization_choices": {},
@@ -4353,7 +4170,7 @@ const EDGE_DATA = {
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "BTE.gruneisen: Maradudin-Fein closed form, matching the canonical gruneisen_method=maradudin_fein."
       }
@@ -4368,7 +4185,7 @@ const EDGE_DATA = {
       "PhaseSpace3Phonon"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "delta_broadening": "gaussian"
     },
     "formula_latex": "{P_{3}}_{\\mathbf{q},\\nu} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q'} \\leq N_{q}\\\\1 \\leq \\nu' \\leq 3 N\\\\1 \\leq \\nu'' \\leq 3 N}} \\left(\\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} - {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)} + 2 \\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} + {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)}\\right)}{N_{q}}",
@@ -4378,7 +4195,7 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "delta_broadening": "gaussian"
         },
         "discretization_choices": {},
@@ -4387,14 +4204,14 @@ const EDGE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "run_phonon_phase_space reuses the linewidth code's \u03b4 realisation; with the default smearing-method runner this is Gaussian, matching the canonical delta_broadening=gaussian."
       },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "delta_broadening": "adaptive_scaled"
         },
         "discretization_choices": {},
@@ -4414,7 +4231,7 @@ const EDGE_DATA = {
       "CumulativeKappa[wrt=omega]"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "binning": "linear"
     },
     "formula_latex": "{\\kappa^{cum}_\\omega}_{\\alpha,\\beta,\\omega_{c}} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} \\theta{\\left(\\omega_{c} - {\\omega}_{\\mathbf{q},\\nu} \\right)} {F}_{\\beta,\\mathbf{q},\\nu} {c}_{\\mathbf{q},\\nu} {v}_{\\alpha,\\mathbf{q},\\nu}}{N_{q} V_{cell}}",
@@ -4424,7 +4241,7 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "binning": "linear"
         },
         "discretization_choices": {},
@@ -4433,7 +4250,7 @@ const EDGE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "binning": "linear"
         },
         "discretization_choices": {},
@@ -4442,7 +4259,7 @@ const EDGE_DATA = {
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "binning": "linear"
         },
         "discretization_choices": {},
@@ -4461,7 +4278,7 @@ const EDGE_DATA = {
       "CumulativeKappa[wrt=mfp]"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "binning": "log"
     },
     "formula_latex": "{\\kappa^{cum}_\\Lambda}_{\\alpha,\\beta,\\Lambda_{c}} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} \\left(\\theta{\\left(\\Lambda_{c} - \\sqrt{\\sum_{\\alpha=1}^{3} {F}_{\\alpha,\\mathbf{q},\\nu}^{2}} \\right)}\\right) {F}_{\\beta,\\mathbf{q},\\nu} {c}_{\\mathbf{q},\\nu} {v}_{\\alpha,\\mathbf{q},\\nu}}{N_{q} V_{cell}}",
@@ -4471,7 +4288,7 @@ const EDGE_DATA = {
       "kaldo": {
         "adapter": "kaldo",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "binning": "log"
         },
         "discretization_choices": {},
@@ -4480,7 +4297,7 @@ const EDGE_DATA = {
       "phono3py": {
         "adapter": "phono3py",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "binning": "linear"
         },
         "discretization_choices": {},
@@ -4489,7 +4306,7 @@ const EDGE_DATA = {
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "binning": "log"
         },
         "discretization_choices": {},
@@ -4516,7 +4333,7 @@ const EDGE_DATA = {
         "dimension": "frequency"
       }
     ],
-    "algorithmic_conventions": {
+    "schemes": {
       "ensemble": "NVE",
       "thermostat": "none",
       "integrator": "velocity_verlet"
@@ -4528,14 +4345,14 @@ const EDGE_DATA = {
       "gpumd": {
         "adapter": "gpumd",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "GPUMD production MD is driven by `ensemble <name> <args>` + `time_step <\u0394t>` + `run <n_steps>` blocks in `run.in`. Supported ensembles include `nve`, `nvt_ber`, `nvt_lan`, `nvt_nhc`, `nvt_bdp`, `npt_ber`, `npt_scr`. Integrator is Velocity-Verlet (GPUMD doesn't expose alternatives). Multiple `run` blocks in series let users equilibrate before the production segment that feeds compute_hac / compute_dos / compute_msd."
       },
       "lammps": {
         "adapter": "lammps",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "LAMMPS production MD: `velocity all create <T> <seed>` to initialise, `fix <id> all nve` / `fix <id> all nvt temp <T> <T> <Tdamp>` / `fix <id> all npt ...` for ensemble, optionally `fix <id> all langevin <T> <T> <Tdamp> <seed>` for thermostat, then `run <n_steps>`. Velocity-Verlet is the default integrator (no override needed). The Trajectory is realised by the dump statements declared in LAMMPS_TRAJECTORY."
       }
@@ -4550,24 +4367,24 @@ const EDGE_DATA = {
       "HeatCurrent"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "definition": "irving_kirkwood"
     },
     "formula_latex": "{J}_{\\alpha,t} = \\frac{\\sum_{i=1}^{N_{atoms}} {E}_{i,t} {v}_{i,\\alpha,t} + \\frac{\\sum_{i=1}^{N_{atoms}} {F^{md}}_{i,\\alpha,t} {r}_{i,\\alpha,t} {v}_{i,\\alpha,t}}{2}}{V_{cell}}",
     "auxiliary_latex": [],
-    "description": "Per-timestep heat current J_\u03b1(t) from the MD trajectory. The canonical decomposition is Irving-Kirkwood: convective term \u03a3_i E_i v_{i,\u03b1} plus the pair virial contribution (1/2) \u03a3_{i\u2260j} r_{ij,\u03b1} (F_{ij}\u00b7v_i). Alternatives ('hardy', 'virial') differ in how the per-atom energy E_i is decomposed for many-body potentials; the algorithmic_convention `definition` records the choice. Stays a HiddenState per-element (MD noise); the gauge-invariant content is the time correlation.",
+    "description": "Per-timestep heat current J_\u03b1(t) from the MD trajectory. The canonical decomposition is Irving-Kirkwood: convective term \u03a3_i E_i v_{i,\u03b1} plus the pair virial contribution (1/2) \u03a3_{i\u2260j} r_{ij,\u03b1} (F_{ij}\u00b7v_i). Alternatives ('hardy', 'virial') differ in how the per-atom energy E_i is decomposed for many-body potentials; the scheme `definition` records the choice. Stays a HiddenSpace per-element (MD noise); the gauge-invariant content is the time correlation.",
     "specs": {
       "gpumd": {
         "adapter": "gpumd",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Implicit: GPUMD computes J(t) internally on every step and feeds it directly to `compute_hac` / `compute_hnemd` / `compute_shc`. Users don't drive this separately \u2014 declaring `compute_hac` activates the heat-current computation."
       },
       "lammps": {
         "adapter": "lammps",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "LAMMPS computes the heat current with `compute heat/flux` during the production `run`. Requires the per-atom KE, PE, and stress computes to be declared upstream. Result is written via `fix ave/time` to a thermo or log file, or correlated directly via `fix ave/correlate` (see autocorrelate_heat_current)."
       }
@@ -4582,30 +4399,24 @@ const EDGE_DATA = {
       "HeatCurrentACF"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
-      "correlation_method": "fft"
-    },
+    "schemes": {},
     "formula_latex": "{Jcorr}_{\\alpha,\\beta,\\tau} = \\frac{\\sum_{t=1}^{n_{lag}} {J}_{\\alpha,t} {J}_{\\beta,\\tau + t}}{n_{lag}}",
     "auxiliary_latex": [],
-    "description": "Time-correlation tensor \u27e8J_\u03b1(0) J_\u03b2(\u03c4)\u27e9 from a stationary segment of the heat-current trajectory. `correlation_method \u2208 {direct, fft}`: direct is the O(n_lag \u00b7 n_origins) double sum, fft uses the Wiener-Khinchin theorem for O(n log n) cost \u2014 numerically identical in the periodic-padding limit. The output is the Green-Kubo \u03ba integrand.",
+    "description": "Time-correlation tensor \u27e8J_\u03b1(0) J_\u03b2(\u03c4)\u27e9 from a stationary segment of the heat-current trajectory. Implementations are numerically equivalent under the periodic-padding assumption \u2014 direct O(n_lag \u00b7 n_origins) double sum or O(n log n) FFT via the Wiener-Khinchin theorem; both produce the same Green-Kubo \u03ba integrand. The output is the Green-Kubo \u03ba integrand.",
     "specs": {
       "gpumd": {
         "adapter": "gpumd",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
-          "correlation_method": "direct"
-        },
+        "scheme_overrides": {},
         "discretization_choices": {},
-        "notes": "`compute_hac` uses the direct-sum form (no FFT pathway in GPUMD for HAC). The correlation depth Nc is set in the same keyword."
+        "notes": "`compute_hac` uses the direct-sum form (no FFT pathway in GPUMD for HAC). The correlation depth Nc is set in the same keyword. Direct-sum and FFT are numerically equivalent under periodic padding \u2014 the operator layer no longer declares a `correlation_method` scheme."
       },
       "lammps": {
         "adapter": "lammps",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
-          "correlation_method": "direct"
-        },
+        "scheme_overrides": {},
         "discretization_choices": {},
-        "notes": "`fix ave/correlate` is the direct-sum, O(N\u00b2) variant. For the FFT/Wiener-Khinchin path users dump J(t) to a file and post-process with numpy."
+        "notes": "`fix ave/correlate` is the direct-sum, O(N\u00b2) variant. For the FFT/Wiener-Khinchin path users dump J(t) to a file and post-process with numpy. Both are numerically equivalent under periodic padding \u2014 the operator layer no longer declares a `correlation_method` scheme."
       }
     }
   },
@@ -4618,30 +4429,24 @@ const EDGE_DATA = {
       "VelocityAutocorrelation"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
-      "correlation_method": "fft"
-    },
+    "schemes": {},
     "formula_latex": "{Cv}_{\\tau} = \\frac{\\sum_{\\substack{1 \\leq \\alpha \\leq 3\\\\1 \\leq i \\leq N_{atoms}\\\\1 \\leq t \\leq n_{lag}}} {v}_{i,\\alpha,\\tau + t} {v}_{i,\\alpha,t}}{N_{atoms} n_{lag}}",
     "auxiliary_latex": [],
-    "description": "Velocity autocorrelation function \u27e8v(0)\u00b7v(\u03c4)\u27e9 averaged over atoms and time origins. Same `correlation_method` choice as the heat-current ACF. The FT of Cv(\u03c4) yields the phonon DOS \u2014 see the `fourier_to_dos` edge.",
+    "description": "Velocity autocorrelation function \u27e8v(0)\u00b7v(\u03c4)\u27e9 averaged over atoms and time origins. The FT of Cv(\u03c4) yields the phonon DOS \u2014 see the `fourier_to_dos` edge.",
     "specs": {
       "gpumd": {
         "adapter": "gpumd",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
-          "correlation_method": "direct"
-        },
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "`compute_dos` produces the mass-weighted VAF (mvac.out) alongside the DOS. The two outputs share the same compute, which is why GPUMD_VELOCITY_AUTOCORRELATION and the GPUMD_FOURIER_TO_DOS spec below reference the same keyword."
       },
       "lammps": {
         "adapter": "lammps",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
-          "correlation_method": "direct"
-        },
+        "scheme_overrides": {},
         "discretization_choices": {},
-        "notes": "`compute vacf` is direct-sum. The compute resets at the step it was created on \u2014 for long correlation windows users re-create the compute periodically or run from a saved velocity dump."
+        "notes": "`compute vacf` is direct-sum. The compute resets at the step it was created on \u2014 for long correlation windows users re-create the compute periodically or run from a saved velocity dump. The FFT alternative is numerically equivalent under periodic padding."
       }
     }
   },
@@ -4654,7 +4459,7 @@ const EDGE_DATA = {
       "MeanSquaredDisplacement"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "unwrap_pbc": "true"
     },
     "formula_latex": "{M}_{\\tau} = \\frac{\\sum_{\\substack{1 \\leq \\alpha \\leq 3\\\\1 \\leq i \\leq N_{atoms}\\\\1 \\leq t \\leq n_{lag}}} \\left({r}_{i,\\alpha,\\tau + t} - {r}_{i,\\alpha,t}\\right)^{2}}{N_{atoms} n_{lag}}",
@@ -4664,7 +4469,7 @@ const EDGE_DATA = {
       "gpumd": {
         "adapter": "gpumd",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "unwrap_pbc": "true"
         },
         "discretization_choices": {},
@@ -4673,7 +4478,7 @@ const EDGE_DATA = {
       "lammps": {
         "adapter": "lammps",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "unwrap_pbc": "true"
         },
         "discretization_choices": {},
@@ -4690,7 +4495,7 @@ const EDGE_DATA = {
       "PhononDOS"
     ],
     "parameters": [],
-    "algorithmic_conventions": {
+    "schemes": {
       "dos_broadening": "gaussian"
     },
     "formula_latex": "{g}_{\\omega} = \\frac{\\int\\limits_{0}^{\\infty} \\cos{\\left(\\omega \\tau \\right)} {Cv}_{\\tau}\\, d\\tau}{\\pi}",
@@ -4700,14 +4505,14 @@ const EDGE_DATA = {
       "gpumd": {
         "adapter": "gpumd",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Folded into `compute_dos` alongside the VAF: GPUMD computes g(\u03c9) directly from the mass-weighted VAF on a Nw \u00d7 max_omega frequency grid and writes `dos.out`. From the operator's perspective this is one edge invocation, even though GPUMD performs VAF + FFT in a single internal step."
       },
       "lammps": {
         "adapter": "lammps",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Not exposed natively. The user dumps the VAF from `compute vacf` and FFTs it externally (numpy.fft.rfft + cosine kernel) to obtain g(\u03c9). Documented here so the adapter audit sees the edge \u2014 the contraction is real, just lives outside LAMMPS."
       }
@@ -4732,7 +4537,7 @@ const EDGE_DATA = {
         "dimension": "frequency"
       }
     ],
-    "algorithmic_conventions": {
+    "schemes": {
       "transport_model": "green_kubo"
     },
     "formula_latex": "{\\kappa^{MD}}_{\\alpha,\\beta} = \\frac{V_{cell} \\int\\limits_{0}^{\\tau_{max}} {Jcorr}_{\\alpha,\\beta,\\tau}\\, d\\tau}{T^{2} k_{B}}",
@@ -4745,7 +4550,7 @@ const EDGE_DATA = {
           "tau_max": "ps",
           "tau_min": "ps"
         },
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Integration is implicit: GPUMD's `compute_hac` writes the running \u03ba(\u03c4) = V/(k_B T\u00b2) \u222b\u2080^\u03c4 Jcorr d\u03c4 as it computes the ACF. \u03c4_max is the correlation depth `Nc` (in time-step units) \u00d7 the trajectory time step. The user reads the converged plateau."
       },
@@ -4755,7 +4560,7 @@ const EDGE_DATA = {
           "tau_max": "ps",
           "tau_min": "ps"
         },
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Integration is user-driven: dump J(t) (or J(0)J(t)) via `fix ave/correlate`, then numpy.trapz from tau_min to tau_max with the V/(k_B T\u00b2) prefactor. LAMMPS does not perform the integration itself."
       }
@@ -4780,7 +4585,7 @@ const EDGE_DATA = {
         "dimension": "frequency"
       }
     ],
-    "algorithmic_conventions": {
+    "schemes": {
       "nemd_method": "muller_plathe"
     },
     "formula_latex": "{\\kappa^{MD}}_{\\alpha,\\beta} = - \\frac{{J}_{\\alpha,t}}{{\\nabla T}_{\\beta}}",
@@ -4790,7 +4595,7 @@ const EDGE_DATA = {
       "gpumd": {
         "adapter": "gpumd",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Not exposed by GPUMD. GPUMD's design choice is to favour HNEMD over direct NEMD \u2014 the homogeneous driving force avoids the boundary thermostats and reservoir artefacts that direct NEMD introduces. Users wanting direct/M\u00fcller-Plathe NEMD on a GPUMD-trained NEP potential typically port the NEP to LAMMPS (via the `pair_style nep` interface) and run `fix thermal/conductivity` there. Documented here for the adapter audit; the canonical NEMD path is the LAMMPS adapter's LAMMPS_CONTRACT_KAPPA_NEMD."
       },
@@ -4800,7 +4605,7 @@ const EDGE_DATA = {
           "imposed_flux": "kcal/(mol*fs)",
           "imposed_gradient": "K/Angstrom"
         },
-        "algorithmic_convention_overrides": {
+        "scheme_overrides": {
           "nemd_method": "muller_plathe"
         },
         "discretization_choices": {},
@@ -4827,7 +4632,7 @@ const EDGE_DATA = {
         "dimension": "frequency"
       }
     ],
-    "algorithmic_conventions": {
+    "schemes": {
       "transport_model": "hnemd"
     },
     "formula_latex": "{\\kappa^{MD}}_{\\alpha,\\beta} = \\frac{{J}_{\\alpha,t}}{T V_{cell} {F_{e}}_{\\beta}}",
@@ -4840,14 +4645,14 @@ const EDGE_DATA = {
           "driving_force_magnitude": "1/Angstrom",
           "driving_direction": "dimensionless"
         },
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "GPUMD's `compute_hnemd` keyword applies a homogeneous driving force F_e to every atom and reports the running \u03ba. F_e must be small enough that the heat-current response is linear; GPUMD literature suggests |F_e| ~ 1e-4 to 1e-3 in 1/\u00c5 for typical potentials. The output file `kappa.out` carries the full \u03ba_\u03b1\u03b2 tensor."
       },
       "lammps": {
         "adapter": "lammps",
         "parameter_units": {},
-        "algorithmic_convention_overrides": {},
+        "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Not exposed by LAMMPS. The Evans / Fan HNEMD driving force is not implemented as a native fix; users wanting HNEMD on a LAMMPS Potential typically port the Potential to GPUMD (NEP training against LAMMPS-evaluated forces) and run `compute_hnemd` there instead. Documented here for the adapter audit; references the GPUMD adapter's GPUMD_CONTRACT_KAPPA_HNEMD."
       }
@@ -4893,7 +4698,6 @@ function renderNode(name, pipelineId) {
   if (d.description) html += `<p>${escapeHtml(d.description)}</p>`;
   const adapters = Object.keys(filteredSpecs);
   if (adapters.length) html += `<div class="coverage-row">${adapters.map(adapterChip).join('')}</div>`;
-  html += `<div class="section"><h3>Physics type</h3><code>${escapeHtml(d.physics_type)}</code></div>`;
   if (d.fields.length) {
     html += '<div class="section"><h3>Fields</h3><table><tr><th>name</th><th>dimension</th><th>indices</th></tr>';
     for (const f of d.fields) {
@@ -4903,21 +4707,10 @@ function renderNode(name, pipelineId) {
     }
     html += '</table></div>';
   }
-  if (Object.keys(d.canonical_conventions).length) {
-    html += '<div class="section"><h3>Canonical conventions</h3><table>';
-    for (const [k, v] of Object.entries(d.canonical_conventions)) {
+  if (Object.keys(d.labels).length) {
+    html += '<div class="section"><h3>Labels</h3><table>';
+    for (const [k, v] of Object.entries(d.labels)) {
       html += `<tr><td><code>${escapeHtml(k)}</code></td><td><code>${escapeHtml(v)}</code></td></tr>`;
-    }
-    html += '</table></div>';
-  }
-  if (d.convention_factors.length) {
-    html += '<div class="section"><h3>Convention factors</h3><table>' +
-            '<tr><th>convention</th><th>value</th><th>field</th><th>factor</th></tr>';
-    for (const c of d.convention_factors) {
-      html += `<tr><td><code>${escapeHtml(c.convention)}</code></td>` +
-              `<td><code>${escapeHtml(c.value)}</code></td>` +
-              `<td><code>${escapeHtml(c.field)}</code></td>` +
-              `<td>${c.factor}</td></tr>`;
     }
     html += '</table></div>';
   }
@@ -4932,13 +4725,13 @@ function renderNode(name, pipelineId) {
       }
       html += '</table>';
     }
-    if (Object.keys(spec.observable_units).length || Object.keys(spec.observable_convention_overrides).length) {
+    if (Object.keys(spec.observable_units).length || Object.keys(spec.observable_normalizations).length) {
       html += '<table>';
       for (const [k, v] of Object.entries(spec.observable_units)) {
         html += `<tr><td>unit (<code>${escapeHtml(k)}</code>)</td><td><code>${escapeHtml(v)}</code></td></tr>`;
       }
-      for (const [k, v] of Object.entries(spec.observable_convention_overrides)) {
-        html += `<tr><td>${escapeHtml(k)}</td><td><code>${escapeHtml(v)}</code></td></tr>`;
+      for (const [k, v] of Object.entries(spec.observable_normalizations)) {
+        html += `<tr><td>normalization (<code>${escapeHtml(k)}</code>)</td><td><code>${escapeHtml(v)}</code></td></tr>`;
       }
       html += '</table>';
     }
@@ -4979,9 +4772,9 @@ function renderEdge(name) {
     }
     html += '</table></div>';
   }
-  if (Object.keys(d.algorithmic_conventions).length) {
-    html += '<div class="section"><h3>Algorithmic conventions</h3><table>';
-    for (const [k, v] of Object.entries(d.algorithmic_conventions)) {
+  if (Object.keys(d.schemes).length) {
+    html += '<div class="section"><h3>Schemes</h3><table>';
+    for (const [k, v] of Object.entries(d.schemes)) {
       html += `<tr><td><code>${escapeHtml(k)}</code></td><td><code>${escapeHtml(v)}</code></td></tr>`;
     }
     html += '</table></div>';
@@ -5006,7 +4799,7 @@ function renderEdge(name) {
       tbl += `<tr><td>unit (<code>${escapeHtml(k)}</code>)</td><td><code>${escapeHtml(v)}</code></td></tr>`;
       any = true;
     }
-    for (const [k, v] of Object.entries(spec.algorithmic_convention_overrides)) {
+    for (const [k, v] of Object.entries(spec.scheme_overrides)) {
       tbl += `<tr><td>${escapeHtml(k)}</td><td><code>${escapeHtml(v)}</code></td></tr>`;
       any = true;
     }
@@ -5017,7 +4810,7 @@ function renderEdge(name) {
     tbl += '</table>';
     if (any) html += tbl;
     if (spec.notes) html += `<div class="notes">${escapeHtml(spec.notes)}</div>`;
-    if (!any && !spec.notes) html += '<div class="empty">(no parameters or conventions)</div>';
+    if (!any && !spec.notes) html += '<div class="empty">(no parameters or schemes)</div>';
     html += '</div>';
   }
   return html;

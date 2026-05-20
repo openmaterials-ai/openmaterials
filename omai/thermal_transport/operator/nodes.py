@@ -1,13 +1,14 @@
 """Operator nodes of the lattice thermal-transport DAG.
 
-Sixteen nodes, split into Observables (gauge-invariant, cross-code-comparable)
-and HiddenStates (adapter-internal scaffolding, not cross-code-comparable
-per-element). MeanFreeDisplacement and ThermalConductivity are parameterized
-by the upstream `bte_solver` choice: the RTA variants are HiddenStates (the
-approximation breaks gauge invariance), the direct-inverse / iterative
-variants are Observables (the full LBTE solution preserves it).
+Sixteen nodes, split into ObservableSpaces (gauge-invariant,
+cross-code-comparable) and HiddenSpaces (adapter-internal scaffolding, not
+cross-code-comparable per-element). MeanFreeDisplacement and
+ThermalConductivity are parameterized by the upstream `bte_solver` choice:
+the RTA variants are HiddenSpaces (the approximation breaks gauge
+invariance), the direct-inverse / iterative variants are ObservableSpaces
+(the full LBTE solution preserves it).
 
-  Observables (11):
+  ObservableSpaces (11):
     Potential, Temperature       — sources, scalar / opaque
     ForceConstants[order=2/3]    — real-space tensors, well-defined
     DynamicalMatrix              — Bloch sum, well-defined in standard basis
@@ -18,7 +19,7 @@ variants are Observables (the full LBTE solution preserves it).
     MeanFreeDisplacement[direct] — full LBTE solution; gauge-invariant
     ThermalConductivity[direct]  — contracted tensor; gauge-invariant
 
-  HiddenStates (5):
+  HiddenSpaces (5):
     Eigenvectors                 — phase + degenerate-subspace rotation
     GroupVelocity                — inherits eigenvector rotation at degenerate ω
     Linewidth                    — BZ-summation redistribution
@@ -47,87 +48,59 @@ from omai.operator.dimensions import (
     TEMPERATURE,
     THERMAL_CONDUCTIVITY,
 )
-from omai.operator.physics_types import PhysicsType
-from omai.operator.state import Field, HiddenState, Observable, State
+from omai.operator.space import Field, HiddenSpace, ObservableSpace, Space
 
 
 # ---------------------------------------------------------------------------
-# Observables (gauge-invariant; cross-code agreement required)
+# ObservableSpaces (gauge-invariant; cross-code agreement required)
 # ---------------------------------------------------------------------------
 
-POTENTIAL = Observable(
-    physics_type=PhysicsType.POTENTIAL,
+POTENTIAL = ObservableSpace(
     name="Potential",
     fields=(Field("potential", OPAQUE, indices=()),),
     description="Born-Oppenheimer potential of the material; in Phase 1 an opaque label.",
 )
 
-TEMPERATURE_STATE = Observable(
-    physics_type=PhysicsType.TEMPERATURE,
+TEMPERATURE_STATE = ObservableSpace(
     name="Temperature",
     fields=(Field("temperature", TEMPERATURE, indices=()),),
 )
 
-FORCE_CONSTANTS_2 = Observable(
-    physics_type=PhysicsType.FORCE_CONSTANTS,
+FORCE_CONSTANTS_2 = ObservableSpace(
     name="ForceConstants[order=2]",
     fields=(Field("phi", ENERGY_PER_LENGTH_SQUARED, indices=("i", "j", "R")),),
-    type_parameters={"order": 2},
+    labels={"order": 2},
 )
 
-FORCE_CONSTANTS_3 = Observable(
-    physics_type=PhysicsType.FORCE_CONSTANTS,
+FORCE_CONSTANTS_3 = ObservableSpace(
     name="ForceConstants[order=3]",
     fields=(Field("phi", ENERGY_PER_LENGTH_CUBED, indices=("i", "j", "k", "R", "R'")),),
-    type_parameters={"order": 3},
-    operator_conventions={
-        # Canonical: the natural ∂³V/∂u³ in eV/Å³ — the form kaldo and
-        # phono3py store. ShengBTE's reader silently uses a mixed-dimension
-        # form (see convention_factors below) that is numerically 10× smaller
-        # for the same physical quantity; declare its convention value at
-        # the ShengBTE adapter's spec to mechanise the cross-code factor.
-        "fc3_normalization": "eV_per_A3",
-    },
-    convention_factors=(
-        # ShengBTE's gruneisen.f90:44 documents the FC3-related unit chain
-        # as "nm·eV/(amu·Å³·THz²)" — nm in the numerator and Å³ in the
-        # denominator. Since 1 nm = 10 Å, 1 eV/Å³ = 10 eV/(Å²·nm), so the
-        # value ShengBTE implicitly expects is 0.1× the canonical eV/Å³
-        # value. processes.f90's comment claims "(eV/Å³)²·…" but the
-        # numerical implementation follows gruneisen.f90; the empirical
-        # cross-code agreement on Si-Tersoff (3×3×3 and 2×2×2 FC3
-        # supercells) confirms the factor is exactly 0.1, independent of
-        # supercell size.
-        ("fc3_normalization", "eV_per_A2_per_nm", "phi", 0.1),
-    ),
+    labels={"order": 3},
 )
 
-BORN_CHARGES = Observable(
-    physics_type=PhysicsType.BORN_CHARGES,
+BORN_CHARGES = ObservableSpace(
     name="BornCharges",
     fields=(Field("Z_star", DIMENSIONLESS, indices=("i", "alpha", "beta")),),
     description=(
         "Per-atom Born effective-charge tensor Z*_{i,αβ}, in units of the "
-        "elementary charge e. Source-tier Observable: read from a BORN file "
-        "or DFT linear-response output. Together with the macroscopic "
+        "elementary charge e. Source-tier ObservableSpace: read from a BORN "
+        "file or DFT linear-response output. Together with the macroscopic "
         "DielectricTensor ε∞ it parameterises the non-analytic correction "
         "(LO-TO splitting) for polar materials."
     ),
 )
 
-DIELECTRIC_TENSOR = Observable(
-    physics_type=PhysicsType.DIELECTRIC_TENSOR,
+DIELECTRIC_TENSOR = ObservableSpace(
     name="DielectricTensor",
     fields=(Field("epsilon_infinity", DIMENSIONLESS, indices=("alpha", "beta")),),
     description=(
         "Macroscopic (electronic) dielectric tensor ε∞ at infinite "
-        "frequency, dimensionless. Source-tier Observable. Enters the "
+        "frequency, dimensionless. Source-tier ObservableSpace. Enters the "
         "non-analytic correction to D(q) at q→0."
     ),
 )
 
-BARE_DYNAMICAL_MATRIX = Observable(
-    physics_type=PhysicsType.BARE_DYNAMICAL_MATRIX,
+BARE_DYNAMICAL_MATRIX = ObservableSpace(
     name="BareDynamicalMatrix",
     fields=(Field("D_bare", FREQUENCY, indices=("i", "j", "q")),),
     description=(
@@ -140,8 +113,7 @@ BARE_DYNAMICAL_MATRIX = Observable(
     ),
 )
 
-DYNAMICAL_MATRIX = Observable(
-    physics_type=PhysicsType.DYNAMICAL_MATRIX,
+DYNAMICAL_MATRIX = ObservableSpace(
     name="DynamicalMatrix",
     fields=(Field("D", FREQUENCY, indices=("i", "j", "q")),),
     description=(
@@ -152,20 +124,17 @@ DYNAMICAL_MATRIX = Observable(
     ),
 )
 
-FREQUENCY_STATE = Observable(
-    physics_type=PhysicsType.FREQUENCY,
+FREQUENCY_STATE = ObservableSpace(
     name="Frequency",
     fields=(Field("omega", FREQUENCY, indices=("q", "nu")),),
 )
 
-HEAT_CAPACITY = Observable(
-    physics_type=PhysicsType.HEAT_CAPACITY,
+HEAT_CAPACITY = ObservableSpace(
     name="HeatCapacity",
     fields=(Field("c", ENERGY_PER_TEMPERATURE, indices=("q", "nu")),),
 )
 
-VOLUMETRIC_HEAT_CAPACITY = Observable(
-    physics_type=PhysicsType.VOLUMETRIC_HEAT_CAPACITY,
+VOLUMETRIC_HEAT_CAPACITY = ObservableSpace(
     name="VolumetricHeatCapacity",
     fields=(Field("C_V_vol", ENERGY_PER_TEMPERATURE_PER_VOLUME, indices=()),),
     description=(
@@ -176,8 +145,7 @@ VOLUMETRIC_HEAT_CAPACITY = Observable(
     ),
 )
 
-MOLAR_HEAT_CAPACITY = Observable(
-    physics_type=PhysicsType.MOLAR_HEAT_CAPACITY,
+MOLAR_HEAT_CAPACITY = ObservableSpace(
     name="MolarHeatCapacity",
     fields=(Field("C_V_mol", ENERGY_PER_TEMPERATURE_PER_MOLE, indices=()),),
     description=(
@@ -191,12 +159,11 @@ MOLAR_HEAT_CAPACITY = Observable(
 
 # Per-mode harmonic thermodynamics (parallel to HeatCapacity). No code emits
 # these directly today; phonopy / phono3py compute them internally and
-# contract before exposing. The per-mode states are still declared at the
+# contract before exposing. The per-mode spaces are still declared at the
 # operator layer to keep the DAG honest and to give the contracted molar
 # variants a well-defined source.
 
-HELMHOLTZ_FREE_ENERGY = Observable(
-    physics_type=PhysicsType.HELMHOLTZ_FREE_ENERGY,
+HELMHOLTZ_FREE_ENERGY = ObservableSpace(
     name="HelmholtzFreeEnergy",
     fields=(Field("f", ENERGY, indices=("q", "nu")),),
     description=(
@@ -206,8 +173,7 @@ HELMHOLTZ_FREE_ENERGY = Observable(
     ),
 )
 
-ENTROPY = Observable(
-    physics_type=PhysicsType.ENTROPY,
+ENTROPY = ObservableSpace(
     name="Entropy",
     fields=(Field("s", ENERGY_PER_TEMPERATURE, indices=("q", "nu")),),
     description=(
@@ -216,8 +182,7 @@ ENTROPY = Observable(
     ),
 )
 
-INTERNAL_ENERGY = Observable(
-    physics_type=PhysicsType.INTERNAL_ENERGY,
+INTERNAL_ENERGY = ObservableSpace(
     name="InternalEnergy",
     fields=(Field("e", ENERGY, indices=("q", "nu")),),
     description=(
@@ -230,8 +195,7 @@ INTERNAL_ENERGY = Observable(
 # Contracted per-mole-of-primitive-cells variants. Phonopy's harmonic
 # thermal_properties output exposes these directly.
 
-MOLAR_HELMHOLTZ_FREE_ENERGY = Observable(
-    physics_type=PhysicsType.MOLAR_HELMHOLTZ_FREE_ENERGY,
+MOLAR_HELMHOLTZ_FREE_ENERGY = ObservableSpace(
     name="MolarHelmholtzFreeEnergy",
     fields=(Field("F_mol", ENERGY_PER_MOLE, indices=()),),
     description=(
@@ -241,8 +205,7 @@ MOLAR_HELMHOLTZ_FREE_ENERGY = Observable(
     ),
 )
 
-MOLAR_ENTROPY = Observable(
-    physics_type=PhysicsType.MOLAR_ENTROPY,
+MOLAR_ENTROPY = ObservableSpace(
     name="MolarEntropy",
     fields=(Field("S_mol", ENERGY_PER_TEMPERATURE_PER_MOLE, indices=()),),
     description=(
@@ -252,8 +215,7 @@ MOLAR_ENTROPY = Observable(
     ),
 )
 
-MOLAR_INTERNAL_ENERGY = Observable(
-    physics_type=PhysicsType.MOLAR_INTERNAL_ENERGY,
+MOLAR_INTERNAL_ENERGY = ObservableSpace(
     name="MolarInternalEnergy",
     fields=(Field("E_mol", ENERGY_PER_MOLE, indices=()),),
     description=(
@@ -263,11 +225,10 @@ MOLAR_INTERNAL_ENERGY = Observable(
     ),
 )
 
-THERMAL_CONDUCTIVITY_DIRECT = Observable(
-    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
+THERMAL_CONDUCTIVITY_DIRECT = ObservableSpace(
     name="ThermalConductivity[bte_solver=direct_inverse]",
     fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
-    type_parameters={"bte_solver": "direct_inverse"},
+    labels={"bte_solver": "direct_inverse"},
     description=(
         "Lattice thermal conductivity from the direct/iterative LBTE solver. "
         "Gauge-invariant: the collision matrix's off-diagonals preserve "
@@ -275,11 +236,10 @@ THERMAL_CONDUCTIVITY_DIRECT = Observable(
     ),
 )
 
-MEAN_FREE_DISPLACEMENT_DIRECT = Observable(
-    physics_type=PhysicsType.MEAN_FREE_DISPLACEMENT,
+MEAN_FREE_DISPLACEMENT_DIRECT = ObservableSpace(
     name="MeanFreeDisplacement[bte_solver=direct_inverse]",
     fields=(Field("F", LENGTH, indices=("alpha", "q", "nu")),),
-    type_parameters={"bte_solver": "direct_inverse"},
+    labels={"bte_solver": "direct_inverse"},
     description=(
         "F obtained from the full linearized BTE (direct inversion or "
         "iterative solution). Gauge-invariant by construction."
@@ -288,11 +248,10 @@ MEAN_FREE_DISPLACEMENT_DIRECT = Observable(
 
 
 # ---------------------------------------------------------------------------
-# HiddenStates (gauge-dependent; not cross-code comparable per-element)
+# HiddenSpaces (gauge-dependent; not cross-code comparable per-element)
 # ---------------------------------------------------------------------------
 
-EIGENVECTORS = HiddenState(
-    physics_type=PhysicsType.EIGENVECTORS,
+EIGENVECTORS = HiddenSpace(
     name="Eigenvectors",
     fields=(Field("e", DIMENSIONLESS, indices=("i", "q", "nu")),),
     gauge_group="U(1)_per_mode × U(d)_per_degenerate_subspace",
@@ -306,8 +265,7 @@ EIGENVECTORS = HiddenState(
     ),
 )
 
-GROUP_VELOCITY = HiddenState(
-    physics_type=PhysicsType.GROUP_VELOCITY,
+GROUP_VELOCITY = HiddenSpace(
     name="GroupVelocity",
     fields=(Field("v", LENGTH_TIMES_FREQUENCY, indices=("alpha", "q", "nu")),),
     gauge_group="U(d)_per_degenerate_subspace_on_eigenvectors",
@@ -320,17 +278,10 @@ GROUP_VELOCITY = HiddenState(
     ),
 )
 
-ANHARMONIC_LINEWIDTH = HiddenState(
-    physics_type=PhysicsType.LINEWIDTH,
+ANHARMONIC_LINEWIDTH = HiddenSpace(
     name="Linewidth[channel=anharmonic_3ph]",
     fields=(Field("Gamma", FREQUENCY, indices=("q", "nu")),),
-    type_parameters={"channel": "anharmonic_3ph"},
-    operator_conventions={
-        "gamma_definition": "imag_self_energy",
-    },
-    convention_factors=(
-        ("gamma_definition", "linewidth_2x_imag_self_energy", "Gamma", 2.0),
-    ),
+    labels={"channel": "anharmonic_3ph"},
     gauge_group="bz_summation_permutation",
     kind="scaffolding",
     gauge_invariant_contractions=("ThermalConductivity[bte_solver=direct_inverse]",),
@@ -350,17 +301,10 @@ ANHARMONIC_LINEWIDTH = HiddenState(
 LINEWIDTH = ANHARMONIC_LINEWIDTH
 
 
-ISOTOPIC_LINEWIDTH = HiddenState(
-    physics_type=PhysicsType.LINEWIDTH,
+ISOTOPIC_LINEWIDTH = HiddenSpace(
     name="Linewidth[channel=isotope]",
     fields=(Field("Gamma", FREQUENCY, indices=("q", "nu")),),
-    type_parameters={"channel": "isotope"},
-    operator_conventions={
-        "gamma_definition": "imag_self_energy",
-    },
-    convention_factors=(
-        ("gamma_definition", "linewidth_2x_imag_self_energy", "Gamma", 2.0),
-    ),
+    labels={"channel": "isotope"},
     gauge_group="bz_summation_permutation",
     kind="scaffolding",
     gauge_invariant_contractions=("ThermalConductivity[bte_solver=direct_inverse]",),
@@ -373,40 +317,26 @@ ISOTOPIC_LINEWIDTH = HiddenState(
 )
 
 
-BOUNDARY_LINEWIDTH = HiddenState(
-    physics_type=PhysicsType.LINEWIDTH,
+BOUNDARY_LINEWIDTH = HiddenSpace(
     name="Linewidth[channel=boundary]",
     fields=(Field("Gamma", FREQUENCY, indices=("q", "nu")),),
-    type_parameters={"channel": "boundary"},
-    operator_conventions={
-        "gamma_definition": "imag_self_energy",
-    },
-    convention_factors=(
-        ("gamma_definition", "linewidth_2x_imag_self_energy", "Gamma", 2.0),
-    ),
+    labels={"channel": "boundary"},
     gauge_group="bz_summation_permutation",
     kind="scaffolding",
     gauge_invariant_contractions=("ThermalConductivity[bte_solver=direct_inverse]",),
     description=(
         "Per-mode boundary scattering rate from the Casimir / Matthiessen "
         "form: Γ_boundary(qν) = |v_qν| / L where L is the boundary length "
-        "scale (operation parameter). Gauge-dependent inherits "
+        "scale (operator parameter). Gauge-dependent inherits "
         "GroupVelocity's basis dependence at degenerate ω."
     ),
 )
 
 
-TOTAL_LINEWIDTH = HiddenState(
-    physics_type=PhysicsType.LINEWIDTH,
+TOTAL_LINEWIDTH = HiddenSpace(
     name="Linewidth[channel=total]",
     fields=(Field("Gamma", FREQUENCY, indices=("q", "nu")),),
-    type_parameters={"channel": "total"},
-    operator_conventions={
-        "gamma_definition": "imag_self_energy",
-    },
-    convention_factors=(
-        ("gamma_definition", "linewidth_2x_imag_self_energy", "Gamma", 2.0),
-    ),
+    labels={"channel": "total"},
     gauge_group="bz_summation_permutation",
     kind="scaffolding",
     gauge_invariant_contractions=("ThermalConductivity[bte_solver=direct_inverse]",),
@@ -419,8 +349,7 @@ TOTAL_LINEWIDTH = HiddenState(
 )
 
 
-ISOTOPE_ABUNDANCES = Observable(
-    physics_type=PhysicsType.ISOTOPE_ABUNDANCES,
+ISOTOPE_ABUNDANCES = ObservableSpace(
     name="IsotopeAbundances",
     fields=(Field("g", DIMENSIONLESS, indices=("i",)),),
     description=(
@@ -428,13 +357,12 @@ ISOTOPE_ABUNDANCES = Observable(
         "(1 - m_{ix}/m̄_i)² where x runs over isotopes of atomic species i, "
         "f_{ix} is the abundance fraction, m_{ix} is the isotope mass, and "
         "m̄_i is the abundance-weighted average mass. Dimensionless. "
-        "Source-tier Observable: either natural-abundance defaults or "
+        "Source-tier ObservableSpace: either natural-abundance defaults or "
         "user-provided per-species values."
     ),
 )
 
-PHONON_DOS = Observable(
-    physics_type=PhysicsType.PHONON_DOS,
+PHONON_DOS = ObservableSpace(
     name="PhononDOS",
     fields=(Field("g", FREQUENCY, indices=("omega",)),),
     description=(
@@ -444,8 +372,7 @@ PHONON_DOS = Observable(
     ),
 )
 
-GRUNEISEN = Observable(
-    physics_type=PhysicsType.GRUNEISEN,
+GRUNEISEN = ObservableSpace(
     name="Gruneisen",
     fields=(Field("gamma_G", DIMENSIONLESS, indices=("q", "nu")),),
     description=(
@@ -455,8 +382,7 @@ GRUNEISEN = Observable(
     ),
 )
 
-PHASE_SPACE_3PH = Observable(
-    physics_type=PhysicsType.PHASE_SPACE_3PH,
+PHASE_SPACE_3PH = ObservableSpace(
     name="PhaseSpace3Phonon",
     fields=(Field("P3", DIMENSIONLESS, indices=("q", "nu")),),
     description=(
@@ -466,28 +392,26 @@ PHASE_SPACE_3PH = Observable(
     ),
 )
 
-MEAN_FREE_DISPLACEMENT_RTA = HiddenState(
-    physics_type=PhysicsType.MEAN_FREE_DISPLACEMENT,
+MEAN_FREE_DISPLACEMENT_RTA = HiddenSpace(
     name="MeanFreeDisplacement[bte_solver=rta]",
     fields=(Field("F", LENGTH, indices=("alpha", "q", "nu")),),
-    type_parameters={"bte_solver": "rta"},
+    labels={"bte_solver": "rta"},
     gauge_group="bz_summation_permutation_via_1_over_Gamma",
     kind="approximation",
-    gauge_invariant_contractions=(),  # terminal — no Observable downstream
+    gauge_invariant_contractions=(),  # terminal — no ObservableSpace downstream
     description=(
         "F = v / (2Γ) under the relaxation-time approximation. The 1/Γ "
-        "non-linearity is the gauge-breaking step. Approximation HiddenState: "
-        "terminal; there is no downstream operation that contracts it into "
-        "a gauge-invariant Observable. The LBTE branch (MFD[direct_inverse]) "
+        "non-linearity is the gauge-breaking step. Approximation HiddenSpace: "
+        "terminal; there is no downstream operator that contracts it into "
+        "a gauge-invariant ObservableSpace. The LBTE branch (MFD[direct_inverse]) "
         "is the gauge-invariant analogue."
     ),
 )
 
-THERMAL_CONDUCTIVITY_RTA = HiddenState(
-    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
+THERMAL_CONDUCTIVITY_RTA = HiddenSpace(
     name="ThermalConductivity[bte_solver=rta]",
     fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
-    type_parameters={"bte_solver": "rta"},
+    labels={"bte_solver": "rta"},
     gauge_group="bz_summation_permutation_via_1_over_Gamma",
     kind="approximation",
     gauge_invariant_contractions=(),
@@ -495,7 +419,7 @@ THERMAL_CONDUCTIVITY_RTA = HiddenState(
         "Lattice thermal conductivity from the RTA. The 1/Γ weighting is "
         "non-linear in Γ, so RTA κ inherits Linewidth's gauge-dependence "
         "(unlike the LBTE solution, which preserves gauge-invariance via "
-        "off-diagonal collision terms). Terminal approximation HiddenState."
+        "off-diagonal collision terms). Terminal approximation HiddenSpace."
     ),
 )
 
@@ -503,15 +427,14 @@ THERMAL_CONDUCTIVITY_RTA = HiddenState(
 # Wigner and QHGK transport models. Both are terminal κ nodes parameterised
 # by `transport_model` (Pattern A). The existing LBTE branch is implicitly
 # transport_model=lbte; only the new branches carry the parameter in their
-# state names. Wigner decomposes into populations + coherences sub-results
-# that combine into the total — each carried as its own sibling state so
+# space names. Wigner decomposes into populations + coherences sub-results
+# that combine into the total — each carried as its own sibling space so
 # that codes which emit one or the other independently can spec them.
 
-THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS = Observable(
-    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
+THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS = ObservableSpace(
     name="ThermalConductivity[transport_model=wigner_populations]",
     fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
-    type_parameters={"transport_model": "wigner_populations"},
+    labels={"transport_model": "wigner_populations"},
     description=(
         "Particle-like (populations) channel of the Wigner κ decomposition "
         "(Simoncelli et al., Nat. Phys. 2019). Numerically close to "
@@ -520,11 +443,10 @@ THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS = Observable(
     ),
 )
 
-THERMAL_CONDUCTIVITY_WIGNER_COHERENCES = Observable(
-    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
+THERMAL_CONDUCTIVITY_WIGNER_COHERENCES = ObservableSpace(
     name="ThermalConductivity[transport_model=wigner_coherences]",
     fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
-    type_parameters={"transport_model": "wigner_coherences"},
+    labels={"transport_model": "wigner_coherences"},
     description=(
         "Wave-like (coherences) channel of the Wigner κ decomposition. "
         "Couples bands at the same q through a Lorentzian-weighted "
@@ -533,24 +455,22 @@ THERMAL_CONDUCTIVITY_WIGNER_COHERENCES = Observable(
     ),
 )
 
-THERMAL_CONDUCTIVITY_WIGNER = Observable(
-    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
+THERMAL_CONDUCTIVITY_WIGNER = ObservableSpace(
     name="ThermalConductivity[transport_model=wigner]",
     fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
-    type_parameters={"transport_model": "wigner"},
+    labels={"transport_model": "wigner"},
     description=(
         "Unified Wigner κ = κ_populations + κ_coherences. The full "
         "expression interpolates between LBTE (when mode spacings ≫ Γ, "
         "coherences → 0) and a glass-like wave-transport regime "
-        "(spacings ≲ Γ). Gauge-invariant Observable."
+        "(spacings ≲ Γ). Gauge-invariant ObservableSpace."
     ),
 )
 
-CUMULATIVE_KAPPA_OMEGA = Observable(
-    physics_type=PhysicsType.CUMULATIVE_THERMAL_CONDUCTIVITY,
+CUMULATIVE_KAPPA_OMEGA = ObservableSpace(
     name="CumulativeKappa[wrt=omega]",
     fields=(Field("kappa_cum", THERMAL_CONDUCTIVITY, indices=("alpha", "beta", "omega_bin")),),
-    type_parameters={"wrt": "omega"},
+    labels={"wrt": "omega"},
     description=(
         "Cumulative thermal conductivity vs frequency: κ_cum(ω_c) "
         "= (1/(V N_q)) Σ_{ω_qν ≤ ω_c} c_qν v^α_qν F^β_qν. The distribution "
@@ -560,11 +480,10 @@ CUMULATIVE_KAPPA_OMEGA = Observable(
 )
 
 
-CUMULATIVE_KAPPA_MFP = Observable(
-    physics_type=PhysicsType.CUMULATIVE_THERMAL_CONDUCTIVITY,
+CUMULATIVE_KAPPA_MFP = ObservableSpace(
     name="CumulativeKappa[wrt=mfp]",
     fields=(Field("kappa_cum", THERMAL_CONDUCTIVITY, indices=("alpha", "beta", "mfp_bin")),),
-    type_parameters={"wrt": "mfp"},
+    labels={"wrt": "mfp"},
     description=(
         "Cumulative thermal conductivity vs mean free path: κ_cum(Λ_c) "
         "= (1/(V N_q)) Σ_{|F_qν| ≤ Λ_c} c_qν v^α_qν F^β_qν. Heavily used "
@@ -574,11 +493,10 @@ CUMULATIVE_KAPPA_MFP = Observable(
 )
 
 
-THERMAL_CONDUCTIVITY_QHGK = HiddenState(
-    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
+THERMAL_CONDUCTIVITY_QHGK = HiddenSpace(
     name="ThermalConductivity[transport_model=qhgk]",
     fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
-    type_parameters={"transport_model": "qhgk"},
+    labels={"transport_model": "qhgk"},
     gauge_group="bz_summation_permutation_via_lorentzian",
     kind="approximation",
     gauge_invariant_contractions=(),
@@ -587,7 +505,7 @@ THERMAL_CONDUCTIVITY_QHGK = HiddenState(
         "autocorrelation with Lorentzian mode broadening of width Γ. The "
         "Lorentzian-coupled mode overlap inherits Linewidth's "
         "gauge-dependence on the off-diagonal pairings, so per-element "
-        "κ_QHGK is treated as a HiddenState until a definitive analysis "
+        "κ_QHGK is treated as a HiddenSpace until a definitive analysis "
         "of its gauge structure says otherwise. Used primarily for "
         "amorphous systems where the BTE picture breaks down."
     ),
@@ -599,8 +517,7 @@ THERMAL_CONDUCTIVITY_QHGK = HiddenState(
 # and feeds the MD-based κ paths added in P3 (Green-Kubo, NEMD, HNEMD).
 # ---------------------------------------------------------------------------
 
-TRAJECTORY = HiddenState(
-    physics_type=PhysicsType.TRAJECTORY,
+TRAJECTORY = HiddenSpace(
     name="Trajectory",
     fields=(
         Field("r", LENGTH, indices=("i", "alpha", "t")),
@@ -625,8 +542,7 @@ TRAJECTORY = HiddenState(
     ),
 )
 
-HEAT_CURRENT = HiddenState(
-    physics_type=PhysicsType.HEAT_CURRENT,
+HEAT_CURRENT = HiddenSpace(
     name="HeatCurrent",
     fields=(Field("J", ENERGY_TIMES_LENGTH_PER_TIME, indices=("alpha", "t")),),
     gauge_group="md_ensemble_noise",
@@ -641,8 +557,7 @@ HEAT_CURRENT = HiddenState(
     ),
 )
 
-HEAT_CURRENT_ACF = Observable(
-    physics_type=PhysicsType.HEAT_CURRENT_ACF,
+HEAT_CURRENT_ACF = ObservableSpace(
     name="HeatCurrentACF",
     fields=(Field("Jcorr", OPAQUE, indices=("alpha", "beta", "tau")),),
     description=(
@@ -654,8 +569,7 @@ HEAT_CURRENT_ACF = Observable(
     ),
 )
 
-VELOCITY_AUTOCORRELATION = Observable(
-    physics_type=PhysicsType.VELOCITY_AUTOCORRELATION,
+VELOCITY_AUTOCORRELATION = ObservableSpace(
     name="VelocityAutocorrelation",
     fields=(Field("Cv", OPAQUE, indices=("tau",)),),
     description=(
@@ -668,8 +582,7 @@ VELOCITY_AUTOCORRELATION = Observable(
     ),
 )
 
-MEAN_SQUARED_DISPLACEMENT = Observable(
-    physics_type=PhysicsType.MEAN_SQUARED_DISPLACEMENT,
+MEAN_SQUARED_DISPLACEMENT = ObservableSpace(
     name="MeanSquaredDisplacement",
     fields=(Field("M", LENGTH_SQUARED, indices=("tau",)),),
     description=(
@@ -687,43 +600,40 @@ MEAN_SQUARED_DISPLACEMENT = Observable(
 # variants of ThermalConductivity, closing the cross-paradigm κ map.
 # ---------------------------------------------------------------------------
 
-THERMAL_CONDUCTIVITY_GREEN_KUBO = Observable(
-    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
+THERMAL_CONDUCTIVITY_GREEN_KUBO = ObservableSpace(
     name="ThermalConductivity[transport_model=green_kubo]",
     fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
-    type_parameters={"transport_model": "green_kubo"},
+    labels={"transport_model": "green_kubo"},
     description=(
         "Classical Green-Kubo κ: time-integrated heat-flux autocorrelation. "
-        "κ_αβ = V/(k_B T²) ∫₀^∞ ⟨J_α(0) J_β(τ)⟩ dτ. The Observable produced "
-        "from the HeatCurrentACF gauge-invariant contraction of the MD "
-        "Trajectory. Free of the perturbation a NEMD setup introduces; "
-        "the equilibrium-MD reference value for κ."
+        "κ_αβ = V/(k_B T²) ∫₀^∞ ⟨J_α(0) J_β(τ)⟩ dτ. The ObservableSpace "
+        "produced from the HeatCurrentACF gauge-invariant contraction of "
+        "the MD Trajectory. Free of the perturbation a NEMD setup "
+        "introduces; the equilibrium-MD reference value for κ."
     ),
 )
 
 
-THERMAL_CONDUCTIVITY_NEMD = Observable(
-    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
+THERMAL_CONDUCTIVITY_NEMD = ObservableSpace(
     name="ThermalConductivity[transport_model=nemd]",
     fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
-    type_parameters={"transport_model": "nemd"},
+    labels={"transport_model": "nemd"},
     description=(
         "Non-equilibrium MD κ: steady-state response to an imposed "
         "temperature gradient or imposed heat flux. κ = −⟨J⟩ / (∂T/∂z) "
         "for direct two-reservoir; for Müller-Plathe (imposed flux), the "
         "swap-rate-derived flux divides by the measured gradient. "
         "Finite-size scaling (κ vs 1/L_z) is a separate post-processing "
-        "step left out of this state's definition. Gauge-invariant once "
+        "step left out of this space's definition. Gauge-invariant once "
         "the steady state has converged."
     ),
 )
 
 
-THERMAL_CONDUCTIVITY_HNEMD = Observable(
-    physics_type=PhysicsType.THERMAL_CONDUCTIVITY,
+THERMAL_CONDUCTIVITY_HNEMD = ObservableSpace(
     name="ThermalConductivity[transport_model=hnemd]",
     fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
-    type_parameters={"transport_model": "hnemd"},
+    labels={"transport_model": "hnemd"},
     description=(
         "Homogeneous-NEMD κ (Evans 1982, Fan et al. 2019): a uniform "
         "driving force F_e is applied to every atom, biasing the heat "
@@ -735,7 +645,7 @@ THERMAL_CONDUCTIVITY_HNEMD = Observable(
 )
 
 
-NODES: tuple[State, ...] = (
+NODES: tuple[Space, ...] = (
     POTENTIAL,
     TEMPERATURE_STATE,
     FORCE_CONSTANTS_2,

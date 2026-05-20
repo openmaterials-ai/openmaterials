@@ -69,7 +69,7 @@ def test_shengbte_linewidth_to_kaldo_is_unity():
     arr = np.array([0.1, 0.2, 0.5])  # Γ in angular_THz
     mk = represent(KALDO_LINEWIDTH, "Gamma", arr)
     ms = represent(SHENGBTE_LINEWIDTH, "Gamma", arr)
-    # Linewidth is a HiddenState — per-element is NOT_COMPARABLE; contract.
+    # Linewidth is a HiddenSpace — per-element is NOT_COMPARABLE; contract.
     r = compare(ms, mk, contraction=np.sum, rtol=1e-9)
     assert r.agreed
     assert math.isclose(r.factor, 1.0, rel_tol=1e-9)
@@ -125,20 +125,20 @@ def test_shengbte_and_kaldo_share_adaptive_broadening_scheme():
     """kaldo (third_bandwidth=None) and ShengBTE (scalebroad=1.0) implement
     the same velocity-projection σ formula. The cross-operation algorithmic
     match should report them in agreement on broadening_param."""
-    from omai.representation.adapter import representation_algorithmic_match
+    from omai.representation.adapter import representation_scheme_match
     from omai.thermal_transport.representation import (
         KALDO_COMPUTE_LINEWIDTH,
         SHENGBTE_COMPUTE_LINEWIDTH,
     )
 
-    matched, msg = representation_algorithmic_match(
+    matched, msg = representation_scheme_match(
         KALDO_COMPUTE_LINEWIDTH, SHENGBTE_COMPUTE_LINEWIDTH, "broadening_param"
     )
     assert matched is True, msg
 
 
 def test_shengbte_linewidth_per_element_is_not_comparable():
-    """As with the other HiddenState comparisons, per-element shengbte vs kaldo
+    """As with the other HiddenSpace comparisons, per-element shengbte vs kaldo
     on Linewidth must return NOT_COMPARABLE."""
     arr = np.array([0.1, 0.2, 0.5])
     mk = represent(KALDO_LINEWIDTH, "Gamma", arr)

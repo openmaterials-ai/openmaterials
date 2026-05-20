@@ -21,7 +21,7 @@ References to the phonopy API (https://phonopy.github.io/phonopy/):
 
 from __future__ import annotations
 
-from omai.representation.adapter import OperationRepresentationSpec, StateRepresentationSpec
+from omai.representation.adapter import OperatorRepresentationSpec, SpaceRepresentationSpec
 from omai.thermal_transport.operator.edges import (
     apply_nac_correction,
     compute_dispersion,
@@ -66,8 +66,8 @@ from omai.thermal_transport.operator.nodes import (
 )
 
 
-PHONOPY_FREQUENCY = StateRepresentationSpec(
-    state=FREQUENCY_STATE,
+PHONOPY_FREQUENCY = SpaceRepresentationSpec(
+    space=FREQUENCY_STATE,
     representation_name="phonopy",
     observable_units={"omega": "linear_THz"},
     code_api={"omega": "Phonopy.get_mesh_dict()['frequencies']"},
@@ -79,8 +79,8 @@ PHONOPY_FREQUENCY = StateRepresentationSpec(
 )
 
 
-PHONOPY_MOLAR_HEAT_CAPACITY = StateRepresentationSpec(
-    state=MOLAR_HEAT_CAPACITY,
+PHONOPY_MOLAR_HEAT_CAPACITY = SpaceRepresentationSpec(
+    space=MOLAR_HEAT_CAPACITY,
     representation_name="phonopy",
     observable_units={"C_V_mol": "J_per_K_per_mol"},
     code_api={"C_V_mol": "get_thermal_properties_dict()['heat_capacity']"},
@@ -105,16 +105,16 @@ PHONOPY_MOLAR_HEAT_CAPACITY = StateRepresentationSpec(
 # ---------------------------------------------------------------------------
 
 
-PHONOPY_TEMPERATURE = StateRepresentationSpec(
-    state=TEMPERATURE_STATE,
+PHONOPY_TEMPERATURE = SpaceRepresentationSpec(
+    space=TEMPERATURE_STATE,
     representation_name="phonopy",
     code_api={"temperature": "Phonopy.run_thermal_properties(temperatures=...)"},
     notes="Temperature grid for thermal_properties output, in K.",
 )
 
 
-PHONOPY_FORCE_CONSTANTS_2 = StateRepresentationSpec(
-    state=FORCE_CONSTANTS_2,
+PHONOPY_FORCE_CONSTANTS_2 = SpaceRepresentationSpec(
+    space=FORCE_CONSTANTS_2,
     representation_name="phonopy",
     code_api={"phi": "Phonopy.force_constants"},
     notes=(
@@ -124,8 +124,8 @@ PHONOPY_FORCE_CONSTANTS_2 = StateRepresentationSpec(
 )
 
 
-PHONOPY_DYNAMICAL_MATRIX = StateRepresentationSpec(
-    state=DYNAMICAL_MATRIX,
+PHONOPY_DYNAMICAL_MATRIX = SpaceRepresentationSpec(
+    space=DYNAMICAL_MATRIX,
     representation_name="phonopy",
     code_api={"D": "Phonopy.dynamical_matrix"},
     notes=(
@@ -135,8 +135,8 @@ PHONOPY_DYNAMICAL_MATRIX = StateRepresentationSpec(
 )
 
 
-PHONOPY_EIGENVECTORS = StateRepresentationSpec(
-    state=EIGENVECTORS,
+PHONOPY_EIGENVECTORS = SpaceRepresentationSpec(
+    space=EIGENVECTORS,
     representation_name="phonopy",
     code_api={"e": "Phonopy.get_mesh_dict()['eigenvectors']"},
     notes=(
@@ -147,8 +147,8 @@ PHONOPY_EIGENVECTORS = StateRepresentationSpec(
 )
 
 
-PHONOPY_POTENTIAL = StateRepresentationSpec(
-    state=POTENTIAL,
+PHONOPY_POTENTIAL = SpaceRepresentationSpec(
+    space=POTENTIAL,
     representation_name="phonopy",
     code_api={"potential": "Phonopy(...) + ASE calculator or FORCE_SETS"},
     notes=(
@@ -160,8 +160,8 @@ PHONOPY_POTENTIAL = StateRepresentationSpec(
 )
 
 
-PHONOPY_GROUP_VELOCITY = StateRepresentationSpec(
-    state=GROUP_VELOCITY,
+PHONOPY_GROUP_VELOCITY = SpaceRepresentationSpec(
+    space=GROUP_VELOCITY,
     representation_name="phonopy",
     observable_units={"v": "angstrom_linear_THz"},
     code_api={"v": "Phonopy.get_mesh_dict()['group_velocities']"},
@@ -172,8 +172,8 @@ PHONOPY_GROUP_VELOCITY = StateRepresentationSpec(
 )
 
 
-PHONOPY_VOLUMETRIC_HEAT_CAPACITY = StateRepresentationSpec(
-    state=VOLUMETRIC_HEAT_CAPACITY,
+PHONOPY_VOLUMETRIC_HEAT_CAPACITY = SpaceRepresentationSpec(
+    space=VOLUMETRIC_HEAT_CAPACITY,
     representation_name="phonopy",
     code_api={"C_V_vol": "get_thermal_properties_dict()['heat_capacity'] / (V_cell * N_A)"},
     notes=(
@@ -183,8 +183,8 @@ PHONOPY_VOLUMETRIC_HEAT_CAPACITY = StateRepresentationSpec(
 )
 
 
-PHONOPY_PHONON_DOS = StateRepresentationSpec(
-    state=PHONON_DOS,
+PHONOPY_PHONON_DOS = SpaceRepresentationSpec(
+    space=PHONON_DOS,
     representation_name="phonopy",
     code_api={"g": "Phonopy.run_total_dos() / .get_total_DOS()"},
     notes=(
@@ -194,8 +194,8 @@ PHONOPY_PHONON_DOS = StateRepresentationSpec(
 )
 
 
-PHONOPY_GRUNEISEN = StateRepresentationSpec(
-    state=GRUNEISEN,
+PHONOPY_GRUNEISEN = SpaceRepresentationSpec(
+    space=GRUNEISEN,
     representation_name="phonopy",
     code_api={"gamma_G": "PhonopyGruneisen.get_gruneisen()"},
     notes=(
@@ -214,8 +214,8 @@ PHONOPY_GRUNEISEN = StateRepresentationSpec(
 # ---------------------------------------------------------------------------
 
 
-PHONOPY_PROVIDE_POTENTIAL = OperationRepresentationSpec(
-    operation=provide_potential,
+PHONOPY_PROVIDE_POTENTIAL = OperatorRepresentationSpec(
+    operator=provide_potential,
     representation_name="phonopy",
     notes=(
         "Phonopy provides the Potential either via an attached ASE "
@@ -226,17 +226,17 @@ PHONOPY_PROVIDE_POTENTIAL = OperationRepresentationSpec(
 )
 
 
-PHONOPY_PROVIDE_TEMPERATURE = OperationRepresentationSpec(
-    operation=provide_temperature,
+PHONOPY_PROVIDE_TEMPERATURE = OperatorRepresentationSpec(
+    operator=provide_temperature,
     representation_name="phonopy",
     notes="Set via Phonopy.run_thermal_properties(temperatures=...).",
 )
 
 
-PHONOPY_COMPUTE_FORCE_CONSTANTS_2 = OperationRepresentationSpec(
-    operation=compute_force_constants_2,
+PHONOPY_COMPUTE_FORCE_CONSTANTS_2 = OperatorRepresentationSpec(
+    operator=compute_force_constants_2,
     representation_name="phonopy",
-    algorithmic_convention_overrides={"symmetry_group": "spglib_auto"},
+    scheme_overrides={"symmetry_group": "spglib_auto"},
     notes=(
         "Phonopy.produce_force_constants applies spglib-driven space-group "
         "reduction by default. Disable via Phonopy(symprec=0) for the C1 "
@@ -245,8 +245,8 @@ PHONOPY_COMPUTE_FORCE_CONSTANTS_2 = OperationRepresentationSpec(
 )
 
 
-PHONOPY_COMPUTE_DYNAMICAL_MATRIX = OperationRepresentationSpec(
-    operation=compute_dynamical_matrix,
+PHONOPY_COMPUTE_DYNAMICAL_MATRIX = OperatorRepresentationSpec(
+    operator=compute_dynamical_matrix,
     representation_name="phonopy",
     notes=(
         "DynamicalMatrix.get_dynamical_matrix(q) — Bloch sum over Φ²(R) "
@@ -255,8 +255,8 @@ PHONOPY_COMPUTE_DYNAMICAL_MATRIX = OperationRepresentationSpec(
 )
 
 
-PHONOPY_COMPUTE_DISPERSION = OperationRepresentationSpec(
-    operation=compute_dispersion,
+PHONOPY_COMPUTE_DISPERSION = OperatorRepresentationSpec(
+    operator=compute_dispersion,
     representation_name="phonopy",
     notes=(
         "Eigenfrequencies / eigenvectors from numpy.linalg.eigh of D(q) — "
@@ -265,8 +265,8 @@ PHONOPY_COMPUTE_DISPERSION = OperationRepresentationSpec(
 )
 
 
-PHONOPY_COMPUTE_GROUP_VELOCITY = OperationRepresentationSpec(
-    operation=compute_group_velocity,
+PHONOPY_COMPUTE_GROUP_VELOCITY = OperatorRepresentationSpec(
+    operator=compute_group_velocity,
     representation_name="phonopy",
     notes=(
         "Phonopy.GroupVelocity uses the analytic Hellmann-Feynman formula, "
@@ -275,8 +275,8 @@ PHONOPY_COMPUTE_GROUP_VELOCITY = OperationRepresentationSpec(
 )
 
 
-PHONOPY_COMPUTE_HEAT_CAPACITY = OperationRepresentationSpec(
-    operation=compute_heat_capacity,
+PHONOPY_COMPUTE_HEAT_CAPACITY = OperatorRepresentationSpec(
+    operator=compute_heat_capacity,
     representation_name="phonopy",
     notes=(
         "Per-mode c_qν is computed internally via the Bose-Einstein form "
@@ -286,8 +286,8 @@ PHONOPY_COMPUTE_HEAT_CAPACITY = OperationRepresentationSpec(
 )
 
 
-PHONOPY_CONTRACT_VOLUMETRIC_HEAT_CAPACITY = OperationRepresentationSpec(
-    operation=contract_volumetric_heat_capacity,
+PHONOPY_CONTRACT_VOLUMETRIC_HEAT_CAPACITY = OperatorRepresentationSpec(
+    operator=contract_volumetric_heat_capacity,
     representation_name="phonopy",
     notes=(
         "Not emitted directly; derivable from the molar form by dividing "
@@ -296,8 +296,8 @@ PHONOPY_CONTRACT_VOLUMETRIC_HEAT_CAPACITY = OperationRepresentationSpec(
 )
 
 
-PHONOPY_CONTRACT_MOLAR_HEAT_CAPACITY = OperationRepresentationSpec(
-    operation=contract_molar_heat_capacity,
+PHONOPY_CONTRACT_MOLAR_HEAT_CAPACITY = OperatorRepresentationSpec(
+    operator=contract_molar_heat_capacity,
     representation_name="phonopy",
     notes=(
         "get_thermal_properties_dict()['heat_capacity'] in J/(K·mol of "
@@ -306,10 +306,10 @@ PHONOPY_CONTRACT_MOLAR_HEAT_CAPACITY = OperationRepresentationSpec(
 )
 
 
-PHONOPY_COMPUTE_DOS = OperationRepresentationSpec(
-    operation=compute_dos,
+PHONOPY_COMPUTE_DOS = OperatorRepresentationSpec(
+    operator=compute_dos,
     representation_name="phonopy",
-    algorithmic_convention_overrides={"dos_broadening": "tetrahedron"},
+    scheme_overrides={"dos_broadening": "tetrahedron"},
     notes=(
         "Phonopy.run_total_dos defaults to tetrahedron integration; "
         "Gaussian broadening is selectable via the `sigma` argument."
@@ -317,10 +317,10 @@ PHONOPY_COMPUTE_DOS = OperationRepresentationSpec(
 )
 
 
-PHONOPY_COMPUTE_GRUNEISEN = OperationRepresentationSpec(
-    operation=compute_gruneisen,
+PHONOPY_COMPUTE_GRUNEISEN = OperatorRepresentationSpec(
+    operator=compute_gruneisen,
     representation_name="phonopy",
-    algorithmic_convention_overrides={"gruneisen_method": "finite_difference"},
+    scheme_overrides={"gruneisen_method": "finite_difference"},
     notes=(
         "PhonopyGruneisen finite-differences ω(V) between three harmonic "
         "calculations at slightly different cell volumes — deviates from "
@@ -337,8 +337,8 @@ PHONOPY_COMPUTE_GRUNEISEN = OperationRepresentationSpec(
 # ---------------------------------------------------------------------------
 
 
-PHONOPY_BORN_CHARGES = StateRepresentationSpec(
-    state=BORN_CHARGES,
+PHONOPY_BORN_CHARGES = SpaceRepresentationSpec(
+    space=BORN_CHARGES,
     representation_name="phonopy",
     observable_units={"Z_star": "dimensionless"},
     code_api={"Z_star": "Phonopy.nac_params['born']"},
@@ -351,8 +351,8 @@ PHONOPY_BORN_CHARGES = StateRepresentationSpec(
 )
 
 
-PHONOPY_DIELECTRIC_TENSOR = StateRepresentationSpec(
-    state=DIELECTRIC_TENSOR,
+PHONOPY_DIELECTRIC_TENSOR = SpaceRepresentationSpec(
+    space=DIELECTRIC_TENSOR,
     representation_name="phonopy",
     observable_units={"epsilon_infinity": "dimensionless"},
     code_api={"epsilon_infinity": "Phonopy.nac_params['dielectric']"},
@@ -363,8 +363,8 @@ PHONOPY_DIELECTRIC_TENSOR = StateRepresentationSpec(
 )
 
 
-PHONOPY_BARE_DYNAMICAL_MATRIX = StateRepresentationSpec(
-    state=BARE_DYNAMICAL_MATRIX,
+PHONOPY_BARE_DYNAMICAL_MATRIX = SpaceRepresentationSpec(
+    space=BARE_DYNAMICAL_MATRIX,
     representation_name="phonopy",
     code_api={
         "D_bare": "DynamicalMatrix.get_dynamical_matrix() with NAC disabled"
@@ -379,8 +379,8 @@ PHONOPY_BARE_DYNAMICAL_MATRIX = StateRepresentationSpec(
 )
 
 
-PHONOPY_PROVIDE_BORN_CHARGES = OperationRepresentationSpec(
-    operation=provide_born_charges,
+PHONOPY_PROVIDE_BORN_CHARGES = OperatorRepresentationSpec(
+    operator=provide_born_charges,
     representation_name="phonopy",
     notes=(
         "Phonopy loads Born charges from a BORN file via "
@@ -390,15 +390,15 @@ PHONOPY_PROVIDE_BORN_CHARGES = OperationRepresentationSpec(
 )
 
 
-PHONOPY_PROVIDE_DIELECTRIC_TENSOR = OperationRepresentationSpec(
-    operation=provide_dielectric_tensor,
+PHONOPY_PROVIDE_DIELECTRIC_TENSOR = OperatorRepresentationSpec(
+    operator=provide_dielectric_tensor,
     representation_name="phonopy",
     notes="Read alongside Born charges from the BORN file (first 9 numbers).",
 )
 
 
-PHONOPY_IDENTITY_DM = OperationRepresentationSpec(
-    operation=identity_dm,
+PHONOPY_IDENTITY_DM = OperatorRepresentationSpec(
+    operator=identity_dm,
     representation_name="phonopy",
     notes=(
         "Non-polar runs (no BORN file, nac_params is None): the bare Bloch "
@@ -407,10 +407,10 @@ PHONOPY_IDENTITY_DM = OperationRepresentationSpec(
 )
 
 
-PHONOPY_APPLY_NAC_CORRECTION = OperationRepresentationSpec(
-    operation=apply_nac_correction,
+PHONOPY_APPLY_NAC_CORRECTION = OperatorRepresentationSpec(
+    operator=apply_nac_correction,
     representation_name="phonopy",
-    algorithmic_convention_overrides={"nac_scheme": "gonze_lee"},
+    scheme_overrides={"nac_scheme": "gonze_lee"},
     notes=(
         "Polar runs: Phonopy(nac_params=...) adds the non-analytic correction "
         "via `DynamicalMatrixNAC.get_dynamical_matrix()`. The default scheme "
@@ -431,8 +431,8 @@ PHONOPY_APPLY_NAC_CORRECTION = OperationRepresentationSpec(
 # ---------------------------------------------------------------------------
 
 
-PHONOPY_MOLAR_HELMHOLTZ_FREE_ENERGY = StateRepresentationSpec(
-    state=MOLAR_HELMHOLTZ_FREE_ENERGY,
+PHONOPY_MOLAR_HELMHOLTZ_FREE_ENERGY = SpaceRepresentationSpec(
+    space=MOLAR_HELMHOLTZ_FREE_ENERGY,
     representation_name="phonopy",
     observable_units={"F_mol": "kJ_per_mol"},
     code_api={"F_mol": "get_thermal_properties_dict()['free_energy']"},
@@ -444,8 +444,8 @@ PHONOPY_MOLAR_HELMHOLTZ_FREE_ENERGY = StateRepresentationSpec(
 )
 
 
-PHONOPY_MOLAR_ENTROPY = StateRepresentationSpec(
-    state=MOLAR_ENTROPY,
+PHONOPY_MOLAR_ENTROPY = SpaceRepresentationSpec(
+    space=MOLAR_ENTROPY,
     representation_name="phonopy",
     observable_units={"S_mol": "J_per_K_per_mol"},
     code_api={"S_mol": "get_thermal_properties_dict()['entropy']"},
@@ -456,8 +456,8 @@ PHONOPY_MOLAR_ENTROPY = StateRepresentationSpec(
 )
 
 
-PHONOPY_MOLAR_INTERNAL_ENERGY = StateRepresentationSpec(
-    state=MOLAR_INTERNAL_ENERGY,
+PHONOPY_MOLAR_INTERNAL_ENERGY = SpaceRepresentationSpec(
+    space=MOLAR_INTERNAL_ENERGY,
     representation_name="phonopy",
     observable_units={"E_mol": "kJ_per_mol"},
     code_api={"E_mol": "get_thermal_properties_dict()['internal_energy']"},
@@ -468,8 +468,8 @@ PHONOPY_MOLAR_INTERNAL_ENERGY = StateRepresentationSpec(
 )
 
 
-PHONOPY_COMPUTE_FREE_ENERGY = OperationRepresentationSpec(
-    operation=compute_free_energy,
+PHONOPY_COMPUTE_FREE_ENERGY = OperatorRepresentationSpec(
+    operator=compute_free_energy,
     representation_name="phonopy",
     notes=(
         "Per-mode F is computed internally inside the harmonic thermo loop; "
@@ -478,36 +478,36 @@ PHONOPY_COMPUTE_FREE_ENERGY = OperationRepresentationSpec(
 )
 
 
-PHONOPY_COMPUTE_ENTROPY = OperationRepresentationSpec(
-    operation=compute_entropy,
+PHONOPY_COMPUTE_ENTROPY = OperatorRepresentationSpec(
+    operator=compute_entropy,
     representation_name="phonopy",
     notes="Per-mode S computed internally, exposed only after molar contraction.",
 )
 
 
-PHONOPY_COMPUTE_INTERNAL_ENERGY = OperationRepresentationSpec(
-    operation=compute_internal_energy,
+PHONOPY_COMPUTE_INTERNAL_ENERGY = OperatorRepresentationSpec(
+    operator=compute_internal_energy,
     representation_name="phonopy",
     notes="Per-mode E computed internally, exposed only after molar contraction.",
 )
 
 
-PHONOPY_CONTRACT_MOLAR_FREE_ENERGY = OperationRepresentationSpec(
-    operation=contract_molar_free_energy,
+PHONOPY_CONTRACT_MOLAR_FREE_ENERGY = OperatorRepresentationSpec(
+    operator=contract_molar_free_energy,
     representation_name="phonopy",
     notes="Emitted as thermal_properties['free_energy'] (kJ/mol).",
 )
 
 
-PHONOPY_CONTRACT_MOLAR_ENTROPY = OperationRepresentationSpec(
-    operation=contract_molar_entropy,
+PHONOPY_CONTRACT_MOLAR_ENTROPY = OperatorRepresentationSpec(
+    operator=contract_molar_entropy,
     representation_name="phonopy",
     notes="Emitted as thermal_properties['entropy'] (J/K/mol).",
 )
 
 
-PHONOPY_CONTRACT_MOLAR_INTERNAL_ENERGY = OperationRepresentationSpec(
-    operation=contract_molar_internal_energy,
+PHONOPY_CONTRACT_MOLAR_INTERNAL_ENERGY = OperatorRepresentationSpec(
+    operator=contract_molar_internal_energy,
     representation_name="phonopy",
     notes="Emitted as thermal_properties['internal_energy'] (kJ/mol).",
 )

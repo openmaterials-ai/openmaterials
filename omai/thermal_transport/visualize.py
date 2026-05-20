@@ -9,7 +9,7 @@ arrows are visually distinguishable.
 
 Adapter discovery is automatic: any top-level submodule of
 `omai.thermal_transport.representation` that exposes module-level
-`StateRepresentationSpec` / `OperationRepresentationSpec` instances is picked up.
+`SpaceRepresentationSpec` / `OperatorRepresentationSpec` instances is picked up.
 
 Run:
     python -m omai.thermal_transport.visualize
@@ -27,11 +27,12 @@ from pathlib import Path
 
 import sympy as sp
 
-from omai.operator.state import HiddenState, Observable, State
+from omai.operator.space import HiddenSpace, ObservableSpace, Space
 from omai.representation.adapter import (
-    OperationRepresentationSpec,
-    StateRepresentationSpec,
-    inter_representation_factor,
+    OperatorRepresentationSpec,
+    SpaceRepresentationSpec,
+    operator_to_representation,
+    representation_to_operator,
 )
 from omai.thermal_transport import representation as representation_pkg
 from omai.thermal_transport.operator import EDGES, NODES
@@ -140,11 +141,11 @@ def _discover_adapter_modules() -> list[str]:
 
 
 def _collect_specs() -> tuple[
-    dict[str, dict[str, StateRepresentationSpec]],
-    dict[str, dict[str, OperationRepresentationSpec]],
+    dict[str, dict[str, SpaceRepresentationSpec]],
+    dict[str, dict[str, OperatorRepresentationSpec]],
 ]:
-    state_specs: dict[str, dict[str, StateRepresentationSpec]] = {}
-    op_specs: dict[str, dict[str, OperationRepresentationSpec]] = {}
+    state_specs: dict[str, dict[str, SpaceRepresentationSpec]] = {}
+    op_specs: dict[str, dict[str, OperatorRepresentationSpec]] = {}
 
     for mod_name in _discover_adapter_modules():
         mod = importlib.import_module(
@@ -154,10 +155,10 @@ def _collect_specs() -> tuple[
             if attr.startswith("_"):
                 continue
             obj = getattr(mod, attr)
-            if isinstance(obj, StateRepresentationSpec):
-                state_specs.setdefault(obj.representation_name, {})[obj.state.name] = obj
-            elif isinstance(obj, OperationRepresentationSpec):
-                op_specs.setdefault(obj.representation_name, {})[obj.operation.name] = obj
+            if isinstance(obj, SpaceRepresentationSpec):
+                state_specs.setdefault(obj.representation_name, {})[obj.space.name] = obj
+            elif isinstance(obj, OperatorRepresentationSpec):
+                op_specs.setdefault(obj.representation_name, {})[obj.operator.name] = obj
 
     return state_specs, op_specs
 
@@ -220,7 +221,7 @@ def _band_x(band_left: float, band_width: float,
 
 
 def _compute_layout(layers: dict[str, int]) -> dict:
-    by_layer: dict[int, list[State]] = {}
+    by_layer: dict[int, list[Space]] = {}
     for s in NODES:
         by_layer.setdefault(layers[s.name], []).append(s)
 
@@ -300,14 +301,14 @@ def _compute_layout(layers: dict[str, int]) -> dict:
 
 
 def _pipeline_covers(pipeline: dict, state_name: str,
-                     state_specs: dict[str, dict[str, StateRepresentationSpec]]) -> bool:
+                     state_specs: dict[str, dict[str, SpaceRepresentationSpec]]) -> bool:
     if pipeline["is_operator"]:
         return True
     return any(state_name in state_specs.get(a, {}) for a in pipeline["adapters"])
 
 
-def _pipeline_label(pipeline: dict, state: State,
-                    state_specs: dict[str, dict[str, StateRepresentationSpec]]) -> str:
+def _pipeline_label(pipeline: dict, state: Space,
+                    state_specs: dict[str, dict[str, SpaceRepresentationSpec]]) -> str:
     """Return the label text to render at this cell."""
     if pipeline["is_operator"]:
         return state.name
@@ -322,8 +323,8 @@ def _pipeline_label(pipeline: dict, state: State,
     return ""   # not represented — empty
 
 
-def _pipeline_secondary_label(pipeline: dict, state: State,
-                              state_specs: dict[str, dict[str, StateRepresentationSpec]]) -> str:
+def _pipeline_secondary_label(pipeline: dict, state: Space,
+                              state_specs: dict[str, dict[str, SpaceRepresentationSpec]]) -> str:
     """If multiple adapters in the pipeline cover this state, return the
     second one's label as a small secondary line."""
     if pipeline["is_operator"] or len(pipeline["adapters"]) <= 1:
@@ -342,8 +343,8 @@ def _pipeline_secondary_label(pipeline: dict, state: State,
     return f"{matched[1][0]} · {matched[1][1]}"
 
 
-def _pipeline_primary_adapter_tag(pipeline: dict, state: State,
-                                  state_specs: dict[str, dict[str, StateRepresentationSpec]]) -> str:
+def _pipeline_primary_adapter_tag(pipeline: dict, state: Space,
+                                  state_specs: dict[str, dict[str, SpaceRepresentationSpec]]) -> str:
     """For multi-adapter columns, indicate which adapter the primary
     label belongs to (so the reader can disambiguate)."""
     if pipeline["is_operator"] or len(pipeline["adapters"]) <= 1:
@@ -359,7 +360,7 @@ def _pipeline_primary_adapter_tag(pipeline: dict, state: State,
 # ---------------------------------------------------------------------------
 
 
-def _node_id(state: State) -> str:
+def _node_id(state: Space) -> str:
     return (
         state.name
         .replace("[", "_").replace("]", "")
@@ -368,13 +369,13 @@ def _node_id(state: State) -> str:
     )
 
 
-def _is_input_state(state: State, layers: dict[str, int]) -> bool:
+def _is_input_state(state: Space, layers: dict[str, int]) -> bool:
     """An 'input' state is a layer-0 source (Potential, Temperature) —
     the DAG's external inputs."""
     return layers.get(state.name, 0) == 0
 
 
-def _node_attach_points(state: State, c: int, layout: dict) -> tuple[float, float, float, float]:
+def _node_attach_points(state: Space, c: int, layout: dict) -> tuple[float, float, float, float]:
     """Return (top_x, top_y, bot_x, bot_y) for arrows attaching to the
     state's node in column c. Same vertical span for circles and
     squares — they share the same radius/half-side."""
@@ -391,8 +392,8 @@ def _node_attach_points(state: State, c: int, layout: dict) -> tuple[float, floa
 
 
 def _pipeline_op_covered(pipeline: dict, op_name: str,
-                         op_specs: dict[str, dict[str, OperationRepresentationSpec]]) -> bool:
-    """Whether any adapter in this pipeline declares an OperationRepresentationSpec
+                         op_specs: dict[str, dict[str, OperatorRepresentationSpec]]) -> bool:
+    """Whether any adapter in this pipeline declares an OperatorRepresentationSpec
     for `op_name`. The operator (no-adapter) column always counts as covered
     — the operator layer is the source of the operation declaration."""
     if not pipeline["adapters"]:
@@ -402,8 +403,8 @@ def _pipeline_op_covered(pipeline: dict, op_name: str,
 
 def _build_svg(
     layout: dict,
-    state_specs: dict[str, dict[str, StateRepresentationSpec]],
-    op_specs: dict[str, dict[str, OperationRepresentationSpec]],
+    state_specs: dict[str, dict[str, SpaceRepresentationSpec]],
+    op_specs: dict[str, dict[str, OperatorRepresentationSpec]],
 ) -> str:
     width = layout["total_width"]
     height = layout["total_height"]
@@ -503,7 +504,7 @@ def _build_svg(
     #   * Implicit edge — at least one endpoint lives inside the code but
     #     is not exposed as an adapter spec (e.g., Temperature parameter
     #     in kaldo, kaldo's internal DynamicalMatrix). The dependency
-    #     is real; the StateRepresentationSpec just hasn't been written yet.
+    #     is real; the SpaceRepresentationSpec just hasn't been written yet.
     #     Dashed, dimmed-but-readable.
     leaf_states = layout["leaf_states"]
     for c, p in enumerate(_PIPELINES):
@@ -596,7 +597,7 @@ def _build_svg(
             if is_sym:
                 cx = cl + layout["circle_x_within_sym"][state.name]
                 r = SYM_NODE_RADIUS
-                is_obs = isinstance(state, Observable)
+                is_obs = isinstance(state, ObservableSpace)
                 if is_obs:
                     c_fill = "#3B82F6"
                     c_stroke = "#1D4ED8"
@@ -654,7 +655,7 @@ def _build_svg(
                 # Split parameterised names into two lines: head + bracketed-tail.
                 head, params = _split_symbolic_name(state.name)
                 label_x = cl + SYM_LABEL_START
-                is_obs = isinstance(state, Observable)
+                is_obs = isinstance(state, ObservableSpace)
                 # Bigger, bolder font; sans-serif (this is the canonical state name).
                 if params is None:
                     parts.append(
@@ -677,8 +678,8 @@ def _build_svg(
                         f'fill="#475569">'
                         f'{_html.escape(params)}</text>'
                     )
-                # Small "hidden" pill annotation for HiddenStates
-                if not isinstance(state, Observable):
+                # Small "hidden" pill annotation for HiddenSpaces
+                if not isinstance(state, ObservableSpace):
                     badge_text = "hidden"
                     badge_x = label_x + max(len(head), len(params or "")) * 8.5 + 12
                     bw = 6 + len(badge_text) * 6.3
@@ -744,38 +745,34 @@ def _build_svg(
 # ---------------------------------------------------------------------------
 
 
-def _state_spec_to_dict(spec: StateRepresentationSpec) -> dict:
+def _state_spec_to_dict(spec: SpaceRepresentationSpec) -> dict:
     return {
         "adapter": spec.representation_name,
         "observable_units": dict(spec.observable_units),
-        "observable_convention_overrides": dict(spec.observable_convention_overrides),
+        "observable_normalizations": dict(spec.observable_normalizations),
         "code_api": dict(spec.code_api),
         "notes": spec.notes,
     }
 
 
-def _op_spec_to_dict(spec: OperationRepresentationSpec) -> dict:
+def _op_spec_to_dict(spec: OperatorRepresentationSpec) -> dict:
     return {
         "adapter": spec.representation_name,
         "parameter_units": dict(spec.parameter_units),
-        "algorithmic_convention_overrides": dict(spec.algorithmic_convention_overrides),
+        "scheme_overrides": dict(spec.scheme_overrides),
         "discretization_choices": dict(spec.discretization_choices),
         "notes": spec.notes,
     }
 
 
 def _state_to_json(
-    state: State,
-    state_specs: dict[str, dict[str, StateRepresentationSpec]],
+    state: Space,
+    state_specs: dict[str, dict[str, SpaceRepresentationSpec]],
     adapter_order: list[str],
 ) -> dict:
     fields = [
         {"name": f.name, "dimension": f.dimension.name, "indices": list(f.indices)}
         for f in state.fields
-    ]
-    convention_factors = [
-        {"convention": c[0], "value": c[1], "field": c[2], "factor": c[3]}
-        for c in state.convention_factors
     ]
     specs = {
         adapter: _state_spec_to_dict(state_specs[adapter][state.name])
@@ -789,19 +786,21 @@ def _state_to_json(
         per_field: dict[str, float] = {}
         for f in state.fields:
             try:
-                per_field[f.name] = inter_representation_factor(spec_a, spec_b, f.name)
+                # Cross-adapter factor A→B is the composition
+                # operator_to_representation(b, f) · representation_to_operator(a, f).
+                per_field[f.name] = (
+                    operator_to_representation(spec_b, f.name)
+                    * representation_to_operator(spec_a, f.name)
+                )
             except Exception:
                 pass
         if per_field:
             cross_factors[f"{a} → {b}"] = per_field
     return {
         "name": state.name,
-        "physics_type": state.physics_type.value,
-        "kind": "Observable" if isinstance(state, Observable) else "HiddenState",
+        "kind": "ObservableSpace" if isinstance(state, ObservableSpace) else "HiddenSpace",
         "fields": fields,
-        "operator_conventions": dict(state.operator_conventions),
-        "convention_factors": convention_factors,
-        "type_parameters": {k_: str(v_) for k_, v_ in state.type_parameters.items()},
+        "labels": {k_: str(v_) for k_, v_ in state.labels.items()},
         "description": state.description,
         "specs": specs,
         "cross_factors": cross_factors,
@@ -810,7 +809,7 @@ def _state_to_json(
 
 def _operation_to_json(
     op,
-    op_specs: dict[str, dict[str, OperationRepresentationSpec]],
+    op_specs: dict[str, dict[str, OperatorRepresentationSpec]],
     adapter_order: list[str],
 ) -> dict:
     def _to_latex(f):
@@ -835,7 +834,7 @@ def _operation_to_json(
             {"name": p.name, "dimension": p.dimension.name}
             for p in op.parameters
         ],
-        "algorithmic_conventions": dict(op.algorithmic_conventions),
+        "schemes": dict(op.schemes),
         "formula_latex": formula_latex,
         "auxiliary_latex": auxiliary_latex,
         "description": op.description,
@@ -1055,8 +1054,8 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
     font-weight: 600;
     letter-spacing: 0.05em;
   }}
-  #details h2 .kind.Observable {{ background: var(--observable); }}
-  #details h2 .kind.HiddenState {{ background: var(--hidden); }}
+  #details h2 .kind.ObservableSpace {{ background: var(--observable); }}
+  #details h2 .kind.HiddenSpace {{ background: var(--hidden); }}
   #details > p {{
     margin: 0 0 1rem;
     color: var(--text-secondary);
@@ -1167,8 +1166,8 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
   <div class="title-row">
     <h1>omai · thermal-transport DAG</h1>
     <span class="stats">
-      <span><strong>{n_observables}</strong> Observables</span>
-      <span><strong>{n_hidden}</strong> HiddenStates</span>
+      <span><strong>{n_observables}</strong> ObservableSpaces</span>
+      <span><strong>{n_hidden}</strong> HiddenSpaces</span>
       <span><strong>{n_edges}</strong> edges</span>
       <span><strong>{n_adapters}</strong> adapters</span>
     </span>
@@ -1178,11 +1177,11 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
       <span class="label">Operator</span>
       <span class="legend-item">
         <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2"/></svg>
-        Observable
+        ObservableSpace
       </span>
       <span class="legend-item">
         <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#FFFFFF" stroke="#64748B" stroke-width="2" stroke-dasharray="3 2"/></svg>
-        HiddenState
+        HiddenSpace
       </span>
       <span class="legend-item">
         <svg width="16" height="16" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2"/></svg>
@@ -1246,9 +1245,9 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
         different states. When adding a new variant, pick exactly one pattern:
       </p>
       <ol style="margin:0 0 0.6em 1.2em; padding:0;">
-        <li><strong>Pattern A — type parameter on the state.</strong> Only
-            when the variant changes the gauge type (Observable vs
-            HiddenState) AND the parameterised state is terminal-ish.
+        <li><strong>Pattern A — label on the space.</strong> Only
+            when the variant changes the gauge type (ObservableSpace vs
+            HiddenSpace) AND the labelled space is terminal-ish.
             Example: <code>ThermalConductivity[bte_solver=rta|direct_inverse]</code>,
             <code>[transport_model=lbte|wigner|qhgk]</code>.</li>
         <li><strong>Pattern B — sibling states, converging edge.</strong>
@@ -1336,7 +1335,6 @@ function renderNode(name, pipelineId) {{
   if (d.description) html += `<p>${{escapeHtml(d.description)}}</p>`;
   const adapters = Object.keys(filteredSpecs);
   if (adapters.length) html += `<div class="coverage-row">${{adapters.map(adapterChip).join('')}}</div>`;
-  html += `<div class="section"><h3>Physics type</h3><code>${{escapeHtml(d.physics_type)}}</code></div>`;
   if (d.fields.length) {{
     html += '<div class="section"><h3>Fields</h3><table><tr><th>name</th><th>dimension</th><th>indices</th></tr>';
     for (const f of d.fields) {{
@@ -1346,21 +1344,10 @@ function renderNode(name, pipelineId) {{
     }}
     html += '</table></div>';
   }}
-  if (Object.keys(d.operator_conventions).length) {{
-    html += '<div class="section"><h3>Canonical conventions</h3><table>';
-    for (const [k, v] of Object.entries(d.operator_conventions)) {{
+  if (Object.keys(d.labels).length) {{
+    html += '<div class="section"><h3>Labels</h3><table>';
+    for (const [k, v] of Object.entries(d.labels)) {{
       html += `<tr><td><code>${{escapeHtml(k)}}</code></td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
-    }}
-    html += '</table></div>';
-  }}
-  if (d.convention_factors.length) {{
-    html += '<div class="section"><h3>Convention factors</h3><table>' +
-            '<tr><th>convention</th><th>value</th><th>field</th><th>factor</th></tr>';
-    for (const c of d.convention_factors) {{
-      html += `<tr><td><code>${{escapeHtml(c.convention)}}</code></td>` +
-              `<td><code>${{escapeHtml(c.value)}}</code></td>` +
-              `<td><code>${{escapeHtml(c.field)}}</code></td>` +
-              `<td>${{c.factor}}</td></tr>`;
     }}
     html += '</table></div>';
   }}
@@ -1375,13 +1362,13 @@ function renderNode(name, pipelineId) {{
       }}
       html += '</table>';
     }}
-    if (Object.keys(spec.observable_units).length || Object.keys(spec.observable_convention_overrides).length) {{
+    if (Object.keys(spec.observable_units).length || Object.keys(spec.observable_normalizations).length) {{
       html += '<table>';
       for (const [k, v] of Object.entries(spec.observable_units)) {{
         html += `<tr><td>unit (<code>${{escapeHtml(k)}}</code>)</td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
       }}
-      for (const [k, v] of Object.entries(spec.observable_convention_overrides)) {{
-        html += `<tr><td>${{escapeHtml(k)}}</td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
+      for (const [k, v] of Object.entries(spec.observable_normalizations)) {{
+        html += `<tr><td>normalization (<code>${{escapeHtml(k)}}</code>)</td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
       }}
       html += '</table>';
     }}
@@ -1422,9 +1409,9 @@ function renderEdge(name) {{
     }}
     html += '</table></div>';
   }}
-  if (Object.keys(d.algorithmic_conventions).length) {{
-    html += '<div class="section"><h3>Algorithmic conventions</h3><table>';
-    for (const [k, v] of Object.entries(d.algorithmic_conventions)) {{
+  if (Object.keys(d.schemes).length) {{
+    html += '<div class="section"><h3>Schemes</h3><table>';
+    for (const [k, v] of Object.entries(d.schemes)) {{
       html += `<tr><td><code>${{escapeHtml(k)}}</code></td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
     }}
     html += '</table></div>';
@@ -1449,7 +1436,7 @@ function renderEdge(name) {{
       tbl += `<tr><td>unit (<code>${{escapeHtml(k)}}</code>)</td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
       any = true;
     }}
-    for (const [k, v] of Object.entries(spec.algorithmic_convention_overrides)) {{
+    for (const [k, v] of Object.entries(spec.scheme_overrides)) {{
       tbl += `<tr><td>${{escapeHtml(k)}}</td><td><code>${{escapeHtml(v)}}</code></td></tr>`;
       any = true;
     }}
@@ -1460,7 +1447,7 @@ function renderEdge(name) {{
     tbl += '</table>';
     if (any) html += tbl;
     if (spec.notes) html += `<div class="notes">${{escapeHtml(spec.notes)}}</div>`;
-    if (!any && !spec.notes) html += '<div class="empty">(no parameters or conventions)</div>';
+    if (!any && !spec.notes) html += '<div class="empty">(no parameters or schemes)</div>';
     html += '</div>';
   }}
   return html;
@@ -1552,8 +1539,8 @@ def render_html(output_path: Path | str) -> Path:
         for op in EDGES
     }
 
-    n_observables = sum(1 for s in NODES if isinstance(s, Observable))
-    n_hidden = sum(1 for s in NODES if isinstance(s, HiddenState))
+    n_observables = sum(1 for s in NODES if isinstance(s, ObservableSpace))
+    n_hidden = sum(1 for s in NODES if isinstance(s, HiddenSpace))
 
     html = _HTML_TEMPLATE.format(
         n_observables=n_observables,

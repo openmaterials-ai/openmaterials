@@ -1,8 +1,8 @@
 """Concrete gauge actions for the thermal-transport DAG.
 
 Each gauge action declares the operator transformation that defines a
-gauge equivalence on a HiddenState. The operator layer's check_invariance
-machinery verifies that an operation's formula is invariant under a
+gauge equivalence on a HiddenSpace. The operator layer's check_invariance
+machinery verifies that an operator's formula is invariant under a
 declared gauge action via operator substitution.
 
 Tractable today (sympy can verify):

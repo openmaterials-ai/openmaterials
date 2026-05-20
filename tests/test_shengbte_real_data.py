@@ -157,7 +157,7 @@ def test_real_linewidth_materializes_and_contracts():
     Gamma = _parse_w_anharmonic(_T300 / "BTE.w_anharmonic")
     a = represent(SHENGBTE_LINEWIDTH, "Gamma", Gamma)
     b = represent(SHENGBTE_LINEWIDTH, "Gamma", Gamma)
-    # Per-element on HiddenState: NOT_COMPARABLE
+    # Per-element on HiddenSpace: NOT_COMPARABLE
     r_per = compare(a, b, rtol=1e-12)
     assert r_per.not_comparable
     # Contracted sum: EXPECTED_AGREE

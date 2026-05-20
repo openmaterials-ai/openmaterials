@@ -1,10 +1,10 @@
-"""Operations (edges) of the lattice thermal-transport DAG.
+"""Operators (edges) of the lattice thermal-transport DAG.
 
-Each Operation declares its inputs, output(s), parameters, algorithmic
-conventions, and a sympy formula stating what it computes. The sympy
-symbols and IndexedBase used by the formulas live in this module too —
-they are the substantive content of "what is computed", and the indices
-they use match the index signatures declared on observables in `nodes`.
+Each Operator declares its inputs, output(s), parameters, schemes, and a
+sympy formula stating what it computes. The sympy symbols and IndexedBase
+used by the formulas live in this module too — they are the substantive
+content of "what is computed", and the indices they use match the index
+signatures declared on the spaces in `nodes`.
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from __future__ import annotations
 import sympy as sp
 
 from omai.operator.dimensions import FREQUENCY, LENGTH, LENGTH_PER_TIME, TEMPERATURE
-from omai.operator.operation import Operation, Parameter
+from omai.operator.operator import Operator, Parameter
 from omai.thermal_transport.operator.nodes import (
     ANHARMONIC_LINEWIDTH,
     BARE_DYNAMICAL_MATRIX,
@@ -348,12 +348,12 @@ _BTE_DIRECT_FORMULA_SYSTEM = sp.Eq(
     _c[_q, _nu] * _v[_alpha, _q, _nu],
 )
 
-# The Operation's formula carries the linear-system equation. The full
+# The Operator's formula carries the linear-system equation. The full
 # definition of M is available as `_M_DEFINITION` for any consumer that
 # wants to render or symbolically substitute it. Together they fully pin
 # down the linearized BTE — modulo the BZ-summation strategy for the
 # inner Σ_{ν''} and the outer Σ_{q'}, which remains an honest
-# discretization choice (declared on per-code OperationAdapterSpecs).
+# discretization choice (declared on per-code OperatorRepresentationSpecs).
 _BTE_DIRECT_FORMULA = _BTE_DIRECT_FORMULA_SYSTEM
 
 # κ^{αβ} = (1 / V_cell N_q) Σ_{q,ν} c_{q,ν} v^α_{q,ν} F^β_{q,ν}
@@ -369,10 +369,10 @@ _KAPPA_FORMULA = sp.Eq(
 
 
 # ---------------------------------------------------------------------------
-# Operations
+# Operators
 # ---------------------------------------------------------------------------
 
-provide_potential = Operation(
+provide_potential = Operator(
     name="provide_potential",
     inputs=(),
     outputs=(POTENTIAL,),
@@ -380,7 +380,7 @@ provide_potential = Operation(
     description="Source: an opaque label for the chosen potential (Tersoff, PBE, ...).",
 )
 
-provide_temperature = Operation(
+provide_temperature = Operator(
     name="provide_temperature",
     inputs=(),
     outputs=(TEMPERATURE_STATE,),
@@ -393,7 +393,7 @@ provide_temperature = Operation(
 _Z_star_provided = sp.Symbol(r"Z^*_{provided}")
 _eps_provided = sp.Symbol(r"\varepsilon_{\infty,provided}")
 
-provide_born_charges = Operation(
+provide_born_charges = Operator(
     name="provide_born_charges",
     inputs=(),
     outputs=(BORN_CHARGES,),
@@ -407,7 +407,7 @@ provide_born_charges = Operation(
 )
 
 
-provide_dielectric_tensor = Operation(
+provide_dielectric_tensor = Operator(
     name="provide_dielectric_tensor",
     inputs=(),
     outputs=(DIELECTRIC_TENSOR,),
@@ -419,11 +419,11 @@ provide_dielectric_tensor = Operation(
     ),
 )
 
-compute_force_constants_2 = Operation(
+compute_force_constants_2 = Operator(
     name="compute_force_constants[order=2]",
     inputs=(POTENTIAL,),
     outputs=(FORCE_CONSTANTS_2,),
-    algorithmic_conventions={"symmetry_group": "C1"},
+    schemes={"symmetry_group": "C1"},
     formula=_FC2_FORMULA,
     description=(
         "Second derivative of the potential at equilibrium, after harmonic "
@@ -437,11 +437,11 @@ compute_force_constants_2 = Operation(
     ),
 )
 
-compute_force_constants_3 = Operation(
+compute_force_constants_3 = Operator(
     name="compute_force_constants[order=3]",
     inputs=(POTENTIAL,),
     outputs=(FORCE_CONSTANTS_3,),
-    algorithmic_conventions={"symmetry_group": "C1"},
+    schemes={"symmetry_group": "C1"},
     formula=_FC3_FORMULA,
     description=(
         "Third derivative of the potential at equilibrium, after cubic "
@@ -452,7 +452,7 @@ compute_force_constants_3 = Operation(
     ),
 )
 
-compute_dynamical_matrix = Operation(
+compute_dynamical_matrix = Operator(
     name="compute_dynamical_matrix",
     inputs=(FORCE_CONSTANTS_2,),
     outputs=(BARE_DYNAMICAL_MATRIX,),
@@ -468,7 +468,7 @@ compute_dynamical_matrix = Operation(
 )
 
 
-identity_dm = Operation(
+identity_dm = Operator(
     name="identity_dm",
     inputs=(BARE_DYNAMICAL_MATRIX,),
     outputs=(DYNAMICAL_MATRIX,),
@@ -487,11 +487,11 @@ identity_dm = Operation(
 )
 
 
-apply_nac_correction = Operation(
+apply_nac_correction = Operator(
     name="apply_nac_correction",
     inputs=(BARE_DYNAMICAL_MATRIX, BORN_CHARGES, DIELECTRIC_TENSOR),
     outputs=(DYNAMICAL_MATRIX,),
-    algorithmic_conventions={"nac_scheme": "gonze_lee"},
+    schemes={"nac_scheme": "gonze_lee"},
     formula=_DM_NAC_FORMULA,
     description=(
         "Polar branch: adds the non-analytic correction (LO-TO splitting) "
@@ -506,7 +506,7 @@ apply_nac_correction = Operation(
     ),
 )
 
-compute_dispersion = Operation(
+compute_dispersion = Operator(
     name="compute_dispersion",
     inputs=(DYNAMICAL_MATRIX,),
     outputs=(FREQUENCY_STATE, EIGENVECTORS),
@@ -517,11 +517,11 @@ compute_dispersion = Operation(
     ),
 )
 
-compute_group_velocity = Operation(
+compute_group_velocity = Operator(
     name="compute_group_velocity",
     inputs=(DYNAMICAL_MATRIX, FREQUENCY_STATE, EIGENVECTORS),
     outputs=(GROUP_VELOCITY,),
-    algorithmic_conventions={"gv_method": "hellmann_feynman"},
+    schemes={"gv_method": "hellmann_feynman"},
     formula=_GV_FORMULA,
     description=(
         "Hellmann-Feynman applied to the eigenvalue equation. The alternative "
@@ -532,7 +532,7 @@ compute_group_velocity = Operation(
     ),
 )
 
-compute_heat_capacity = Operation(
+compute_heat_capacity = Operator(
     name="compute_heat_capacity",
     inputs=(FREQUENCY_STATE, TEMPERATURE_STATE),
     outputs=(HEAT_CAPACITY,),
@@ -544,7 +544,7 @@ compute_heat_capacity = Operation(
 )
 
 
-compute_free_energy = Operation(
+compute_free_energy = Operator(
     name="compute_free_energy",
     inputs=(FREQUENCY_STATE, TEMPERATURE_STATE),
     outputs=(HELMHOLTZ_FREE_ENERGY,),
@@ -559,7 +559,7 @@ compute_free_energy = Operation(
 )
 
 
-compute_entropy = Operation(
+compute_entropy = Operator(
     name="compute_entropy",
     inputs=(FREQUENCY_STATE, TEMPERATURE_STATE),
     outputs=(ENTROPY,),
@@ -575,7 +575,7 @@ compute_entropy = Operation(
 )
 
 
-compute_internal_energy = Operation(
+compute_internal_energy = Operator(
     name="compute_internal_energy",
     inputs=(FREQUENCY_STATE, TEMPERATURE_STATE),
     outputs=(INTERNAL_ENERGY,),
@@ -588,12 +588,12 @@ compute_internal_energy = Operation(
     ),
 )
 
-compute_anharmonic_linewidth = Operation(
+compute_anharmonic_linewidth = Operator(
     name="compute_linewidth[channel=anharmonic_3ph]",
     inputs=(FREQUENCY_STATE, EIGENVECTORS, FORCE_CONSTANTS_3, TEMPERATURE_STATE),
     outputs=(ANHARMONIC_LINEWIDTH,),
     parameters=(Parameter("broadening_sigma", FREQUENCY),),
-    algorithmic_conventions={
+    schemes={
         "broadening_param": "stdev",
         "symmetry_group": "C1",
     },
@@ -638,11 +638,11 @@ _ISO_FORMULA = sp.Eq(
     ),
 )
 
-compute_isotope_scattering = Operation(
+compute_isotope_scattering = Operator(
     name="compute_isotope_scattering",
     inputs=(FREQUENCY_STATE, EIGENVECTORS, ISOTOPE_ABUNDANCES),
     outputs=(ISOTOPIC_LINEWIDTH,),
-    algorithmic_conventions={"delta_broadening": "gaussian"},
+    schemes={"delta_broadening": "gaussian"},
     formula=_ISO_FORMULA,
     description=(
         "Isotopic disorder scattering rate per mode (Tamura model). "
@@ -667,7 +667,7 @@ _BOUNDARY_FORMULA = sp.Eq(
     )) / _L_boundary,
 )
 
-compute_boundary_scattering = Operation(
+compute_boundary_scattering = Operator(
     name="compute_boundary_scattering",
     inputs=(FREQUENCY_STATE, GROUP_VELOCITY),
     outputs=(BOUNDARY_LINEWIDTH,),
@@ -692,7 +692,7 @@ _SUM_LINEWIDTHS_FORMULA = sp.Eq(
     _GAMMA_anh[_q, _nu] + _GAMMA_iso[_q, _nu] + _GAMMA_bnd[_q, _nu],
 )
 
-sum_linewidths = Operation(
+sum_linewidths = Operator(
     name="sum_linewidths",
     inputs=(ANHARMONIC_LINEWIDTH, ISOTOPIC_LINEWIDTH, BOUNDARY_LINEWIDTH),
     outputs=(TOTAL_LINEWIDTH,),
@@ -708,7 +708,7 @@ sum_linewidths = Operation(
 )
 
 
-provide_isotope_abundances = Operation(
+provide_isotope_abundances = Operator(
     name="provide_isotope_abundances",
     inputs=(),
     outputs=(ISOTOPE_ABUNDANCES,),
@@ -724,11 +724,11 @@ provide_isotope_abundances = Operation(
     ),
 )
 
-solve_bte_rta = Operation(
+solve_bte_rta = Operator(
     name="solve_bte[bte_solver=rta]",
     inputs=(FREQUENCY_STATE, GROUP_VELOCITY, TOTAL_LINEWIDTH, TEMPERATURE_STATE),
     outputs=(MEAN_FREE_DISPLACEMENT_RTA,),
-    algorithmic_conventions={"bte_solver": "rta"},
+    schemes={"bte_solver": "rta"},
     formula=_BTE_RTA_FORMULA,
     description=(
         "Relaxation-time approximation: F = v / (2Γ). Closed-form per "
@@ -737,11 +737,11 @@ solve_bte_rta = Operation(
     ),
 )
 
-solve_bte_direct = Operation(
+solve_bte_direct = Operator(
     name="solve_bte[bte_solver=direct_inverse]",
     inputs=(FREQUENCY_STATE, GROUP_VELOCITY, HEAT_CAPACITY, TOTAL_LINEWIDTH, TEMPERATURE_STATE),
     outputs=(MEAN_FREE_DISPLACEMENT_DIRECT,),
-    algorithmic_conventions={
+    schemes={
         "bte_solver": "direct_inverse",
         "symmetry_group": "C1",
     },
@@ -764,7 +764,7 @@ solve_bte_direct = Operation(
     ),
 )
 
-contract_kappa_rta = Operation(
+contract_kappa_rta = Operator(
     name="contract_kappa[bte_solver=rta]",
     inputs=(HEAT_CAPACITY, GROUP_VELOCITY, MEAN_FREE_DISPLACEMENT_RTA),
     outputs=(THERMAL_CONDUCTIVITY_RTA,),
@@ -775,7 +775,7 @@ contract_kappa_rta = Operation(
     ),
 )
 
-contract_kappa_direct = Operation(
+contract_kappa_direct = Operator(
     name="contract_kappa[bte_solver=direct_inverse]",
     inputs=(HEAT_CAPACITY, GROUP_VELOCITY, MEAN_FREE_DISPLACEMENT_DIRECT),
     outputs=(THERMAL_CONDUCTIVITY_DIRECT,),
@@ -823,11 +823,11 @@ _KAPPA_WIGNER_TOTAL_FORMULA = sp.Eq(
 )
 
 
-compute_kappa_wigner_populations = Operation(
+compute_kappa_wigner_populations = Operator(
     name="compute_kappa[transport_model=wigner_populations]",
     inputs=(HEAT_CAPACITY, GROUP_VELOCITY, MEAN_FREE_DISPLACEMENT_DIRECT),
     outputs=(THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,),
-    algorithmic_conventions={"transport_model": "wigner_populations"},
+    schemes={"transport_model": "wigner_populations"},
     formula=_KAPPA_WIGNER_POP_FORMULA,
     description=(
         "Populations (particle-like) component of the Wigner κ. Uses the "
@@ -836,11 +836,11 @@ compute_kappa_wigner_populations = Operation(
 )
 
 
-compute_kappa_wigner_coherences = Operation(
+compute_kappa_wigner_coherences = Operator(
     name="compute_kappa[transport_model=wigner_coherences]",
     inputs=(HEAT_CAPACITY, FREQUENCY_STATE, GROUP_VELOCITY, TOTAL_LINEWIDTH),
     outputs=(THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,),
-    algorithmic_conventions={"transport_model": "wigner_coherences"},
+    schemes={"transport_model": "wigner_coherences"},
     formula=_KAPPA_WIGNER_COH_FORMULA,
     description=(
         "Coherences (wave-like) component of the Wigner κ. Lorentzian-"
@@ -850,7 +850,7 @@ compute_kappa_wigner_coherences = Operation(
 )
 
 
-combine_kappa_wigner = Operation(
+combine_kappa_wigner = Operator(
     name="combine_kappa_wigner",
     inputs=(THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
             THERMAL_CONDUCTIVITY_WIGNER_COHERENCES),
@@ -879,11 +879,11 @@ _KAPPA_QHGK_FORMULA = sp.Eq(
 )
 
 
-compute_kappa_qhgk = Operation(
+compute_kappa_qhgk = Operator(
     name="compute_kappa[transport_model=qhgk]",
     inputs=(HEAT_CAPACITY, FREQUENCY_STATE, GROUP_VELOCITY, TOTAL_LINEWIDTH, TEMPERATURE_STATE),
     outputs=(THERMAL_CONDUCTIVITY_QHGK,),
-    algorithmic_conventions={"transport_model": "qhgk"},
+    schemes={"transport_model": "qhgk"},
     formula=_KAPPA_QHGK_FORMULA,
     description=(
         "Quasi-harmonic Green-Kubo κ: time-integrated heat-flux "
@@ -922,11 +922,11 @@ _CUMULATIVE_KAPPA_MFP_FORMULA = sp.Eq(
 )
 
 
-contract_cumulative_kappa_omega = Operation(
+contract_cumulative_kappa_omega = Operator(
     name="contract_cumulative_kappa[wrt=omega]",
     inputs=(HEAT_CAPACITY, FREQUENCY_STATE, GROUP_VELOCITY, MEAN_FREE_DISPLACEMENT_DIRECT),
     outputs=(CUMULATIVE_KAPPA_OMEGA,),
-    algorithmic_conventions={"binning": "linear"},
+    schemes={"binning": "linear"},
     formula=_CUMULATIVE_KAPPA_OMEGA_FORMULA,
     description=(
         "Cumulative κ vs frequency threshold ω_c. Saturates at κ_LBTE "
@@ -936,11 +936,11 @@ contract_cumulative_kappa_omega = Operation(
 )
 
 
-contract_cumulative_kappa_mfp = Operation(
+contract_cumulative_kappa_mfp = Operator(
     name="contract_cumulative_kappa[wrt=mfp]",
     inputs=(HEAT_CAPACITY, GROUP_VELOCITY, MEAN_FREE_DISPLACEMENT_DIRECT),
     outputs=(CUMULATIVE_KAPPA_MFP,),
-    algorithmic_conventions={"binning": "log"},
+    schemes={"binning": "log"},
     formula=_CUMULATIVE_KAPPA_MFP_FORMULA,
     description=(
         "Cumulative κ vs mean-free-path threshold Λ_c. Heavily used "
@@ -968,7 +968,7 @@ _CV_MOL_FORMULA = sp.Eq(
 )
 
 
-contract_volumetric_heat_capacity = Operation(
+contract_volumetric_heat_capacity = Operator(
     name="contract_volumetric_heat_capacity",
     inputs=(HEAT_CAPACITY,),
     outputs=(VOLUMETRIC_HEAT_CAPACITY,),
@@ -982,7 +982,7 @@ contract_volumetric_heat_capacity = Operation(
 )
 
 
-contract_molar_heat_capacity = Operation(
+contract_molar_heat_capacity = Operator(
     name="contract_molar_heat_capacity",
     inputs=(HEAT_CAPACITY,),
     outputs=(MOLAR_HEAT_CAPACITY,),
@@ -996,7 +996,7 @@ contract_molar_heat_capacity = Operation(
 )
 
 
-contract_molar_free_energy = Operation(
+contract_molar_free_energy = Operator(
     name="contract_molar_free_energy",
     inputs=(HELMHOLTZ_FREE_ENERGY,),
     outputs=(MOLAR_HELMHOLTZ_FREE_ENERGY,),
@@ -1008,7 +1008,7 @@ contract_molar_free_energy = Operation(
 )
 
 
-contract_molar_entropy = Operation(
+contract_molar_entropy = Operator(
     name="contract_molar_entropy",
     inputs=(ENTROPY,),
     outputs=(MOLAR_ENTROPY,),
@@ -1020,7 +1020,7 @@ contract_molar_entropy = Operation(
 )
 
 
-contract_molar_internal_energy = Operation(
+contract_molar_internal_energy = Operator(
     name="contract_molar_internal_energy",
     inputs=(INTERNAL_ENERGY,),
     outputs=(MOLAR_INTERNAL_ENERGY,),
@@ -1075,11 +1075,11 @@ _P3_FORMULA = sp.Eq(
 )
 
 
-compute_dos = Operation(
+compute_dos = Operator(
     name="compute_dos",
     inputs=(FREQUENCY_STATE,),
     outputs=(PHONON_DOS,),
-    algorithmic_conventions={"dos_broadening": "gaussian"},
+    schemes={"dos_broadening": "gaussian"},
     formula=_DOS_FORMULA,
     description=(
         "Histogram / smeared sum of phonon frequencies into a 1-D density "
@@ -1090,11 +1090,11 @@ compute_dos = Operation(
 )
 
 
-compute_gruneisen = Operation(
+compute_gruneisen = Operator(
     name="compute_gruneisen",
     inputs=(FORCE_CONSTANTS_2, FORCE_CONSTANTS_3, FREQUENCY_STATE, EIGENVECTORS),
     outputs=(GRUNEISEN,),
-    algorithmic_conventions={"gruneisen_method": "maradudin_fein"},
+    schemes={"gruneisen_method": "maradudin_fein"},
     formula=_GRUNEISEN_FORMULA,
     description=(
         "Mode Grüneisen parameter from FC2, FC3 and the harmonic eigensystem "
@@ -1108,11 +1108,11 @@ compute_gruneisen = Operation(
 )
 
 
-compute_phase_space_3phonon = Operation(
+compute_phase_space_3phonon = Operator(
     name="compute_phase_space_3phonon",
     inputs=(FREQUENCY_STATE,),
     outputs=(PHASE_SPACE_3PH,),
-    algorithmic_conventions={"delta_broadening": "gaussian"},
+    schemes={"delta_broadening": "gaussian"},
     formula=_P3_FORMULA,
     description=(
         "Three-phonon kinematic phase space: counts the (q',ν',ν'') channels "
@@ -1232,7 +1232,7 @@ _FOURIER_TO_DOS_FORMULA = sp.Eq(
 )
 
 
-run_md = Operation(
+run_md = Operator(
     name="run_md",
     inputs=(POTENTIAL, TEMPERATURE_STATE),
     outputs=(TRAJECTORY,),
@@ -1240,7 +1240,7 @@ run_md = Operation(
         Parameter("time_step", FREQUENCY),  # 1/τ-style scale; concrete unit declared by adapter
         Parameter("n_steps", FREQUENCY),    # placeholder dim; truly a count
     ),
-    algorithmic_conventions={
+    schemes={
         "ensemble": "NVE",
         "thermostat": "none",
         "integrator": "velocity_verlet",
@@ -1258,11 +1258,11 @@ run_md = Operation(
     ),
 )
 
-compute_heat_current = Operation(
+compute_heat_current = Operator(
     name="compute_heat_current",
     inputs=(TRAJECTORY,),
     outputs=(HEAT_CURRENT,),
-    algorithmic_conventions={"definition": "irving_kirkwood"},
+    schemes={"definition": "irving_kirkwood"},
     formula=_HEAT_CURRENT_FORMULA,
     description=(
         "Per-timestep heat current J_α(t) from the MD trajectory. The "
@@ -1270,47 +1270,44 @@ compute_heat_current = Operation(
         "Σ_i E_i v_{i,α} plus the pair virial contribution (1/2) Σ_{i≠j} "
         "r_{ij,α} (F_{ij}·v_i). Alternatives ('hardy', 'virial') differ in "
         "how the per-atom energy E_i is decomposed for many-body "
-        "potentials; the algorithmic_convention `definition` records the "
-        "choice. Stays a HiddenState per-element (MD noise); the "
+        "potentials; the scheme `definition` records the "
+        "choice. Stays a HiddenSpace per-element (MD noise); the "
         "gauge-invariant content is the time correlation."
     ),
 )
 
-autocorrelate_heat_current = Operation(
+autocorrelate_heat_current = Operator(
     name="autocorrelate_heat_current",
     inputs=(HEAT_CURRENT,),
     outputs=(HEAT_CURRENT_ACF,),
-    algorithmic_conventions={"correlation_method": "fft"},
     formula=_AUTOCORRELATE_HEAT_CURRENT_FORMULA,
     description=(
         "Time-correlation tensor ⟨J_α(0) J_β(τ)⟩ from a stationary segment "
-        "of the heat-current trajectory. `correlation_method ∈ {direct, "
-        "fft}`: direct is the O(n_lag · n_origins) double sum, fft uses "
-        "the Wiener-Khinchin theorem for O(n log n) cost — numerically "
-        "identical in the periodic-padding limit. The output is the "
-        "Green-Kubo κ integrand."
+        "of the heat-current trajectory. Implementations are numerically "
+        "equivalent under the periodic-padding assumption — direct O(n_lag "
+        "· n_origins) double sum or O(n log n) FFT via the Wiener-Khinchin "
+        "theorem; both produce the same Green-Kubo κ integrand. The output "
+        "is the Green-Kubo κ integrand."
     ),
 )
 
-compute_velocity_autocorrelation = Operation(
+compute_velocity_autocorrelation = Operator(
     name="compute_velocity_autocorrelation",
     inputs=(TRAJECTORY,),
     outputs=(VELOCITY_AUTOCORRELATION,),
-    algorithmic_conventions={"correlation_method": "fft"},
     formula=_COMPUTE_VELOCITY_AUTOCORRELATION_FORMULA,
     description=(
         "Velocity autocorrelation function ⟨v(0)·v(τ)⟩ averaged over atoms "
-        "and time origins. Same `correlation_method` choice as the heat-"
-        "current ACF. The FT of Cv(τ) yields the phonon DOS — see the "
+        "and time origins. The FT of Cv(τ) yields the phonon DOS — see the "
         "`fourier_to_dos` edge."
     ),
 )
 
-compute_msd = Operation(
+compute_msd = Operator(
     name="compute_msd",
     inputs=(TRAJECTORY,),
     outputs=(MEAN_SQUARED_DISPLACEMENT,),
-    algorithmic_conventions={"unwrap_pbc": "true"},
+    schemes={"unwrap_pbc": "true"},
     formula=_COMPUTE_MSD_FORMULA,
     description=(
         "Mean-squared displacement ⟨|r(t+τ) − r(t)|²⟩ averaged over atoms "
@@ -1322,11 +1319,11 @@ compute_msd = Operation(
     ),
 )
 
-fourier_to_dos = Operation(
+fourier_to_dos = Operator(
     name="fourier_to_dos",
     inputs=(VELOCITY_AUTOCORRELATION,),
     outputs=(PHONON_DOS,),
-    algorithmic_conventions={"dos_broadening": "gaussian"},
+    schemes={"dos_broadening": "gaussian"},
     formula=_FOURIER_TO_DOS_FORMULA,
     description=(
         "Classical-MD route to the phonon DOS via the Wiener-Khinchin "
@@ -1373,7 +1370,7 @@ _CONTRACT_KAPPA_HNEMD_FORMULA = sp.Eq(
     _J_heat[_alpha, _t_idx] / (_T * _V_cell * _F_drive[_beta]),
 )
 
-contract_kappa_green_kubo = Operation(
+contract_kappa_green_kubo = Operator(
     name="contract_kappa[transport_model=green_kubo]",
     inputs=(HEAT_CURRENT_ACF, TEMPERATURE_STATE),
     outputs=(THERMAL_CONDUCTIVITY_GREEN_KUBO,),
@@ -1381,7 +1378,7 @@ contract_kappa_green_kubo = Operation(
         Parameter("tau_max", FREQUENCY),
         Parameter("tau_min", FREQUENCY),
     ),
-    algorithmic_conventions={"transport_model": "green_kubo"},
+    schemes={"transport_model": "green_kubo"},
     formula=_CONTRACT_KAPPA_GREEN_KUBO_FORMULA,
     description=(
         "Classical Green-Kubo κ from the heat-flux ACF: κ_αβ = "
@@ -1393,7 +1390,7 @@ contract_kappa_green_kubo = Operation(
     ),
 )
 
-contract_kappa_nemd = Operation(
+contract_kappa_nemd = Operator(
     name="contract_kappa[transport_model=nemd]",
     inputs=(HEAT_CURRENT, TEMPERATURE_STATE),
     outputs=(THERMAL_CONDUCTIVITY_NEMD,),
@@ -1401,7 +1398,7 @@ contract_kappa_nemd = Operation(
         Parameter("imposed_gradient", TEMPERATURE),
         Parameter("imposed_flux", FREQUENCY),
     ),
-    algorithmic_conventions={"nemd_method": "muller_plathe"},
+    schemes={"nemd_method": "muller_plathe"},
     formula=_CONTRACT_KAPPA_NEMD_FORMULA,
     description=(
         "Direct NEMD κ from steady-state ⟨J⟩ and dT/dz. Three method "
@@ -1415,7 +1412,7 @@ contract_kappa_nemd = Operation(
     ),
 )
 
-contract_kappa_hnemd = Operation(
+contract_kappa_hnemd = Operator(
     name="contract_kappa[transport_model=hnemd]",
     inputs=(HEAT_CURRENT, TEMPERATURE_STATE),
     outputs=(THERMAL_CONDUCTIVITY_HNEMD,),
@@ -1423,7 +1420,7 @@ contract_kappa_hnemd = Operation(
         Parameter("driving_force_magnitude", FREQUENCY),
         Parameter("driving_direction", FREQUENCY),
     ),
-    algorithmic_conventions={"transport_model": "hnemd"},
+    schemes={"transport_model": "hnemd"},
     formula=_CONTRACT_KAPPA_HNEMD_FORMULA,
     description=(
         "Homogeneous-NEMD κ: a uniform F_e applied to every atom biases "
@@ -1437,7 +1434,7 @@ contract_kappa_hnemd = Operation(
 )
 
 
-EDGES: tuple[Operation, ...] = (
+EDGES: tuple[Operator, ...] = (
     provide_potential,
     provide_temperature,
     provide_born_charges,

@@ -38,13 +38,13 @@ Concrete backends commonly used in this project's worked examples:
 
 from __future__ import annotations
 
-from omai.representation.adapter import OperationRepresentationSpec, StateRepresentationSpec
+from omai.representation.adapter import OperatorRepresentationSpec, SpaceRepresentationSpec
 from omai.thermal_transport.operator.edges import provide_potential
 from omai.thermal_transport.operator.nodes import POTENTIAL
 
 
-ASE_POTENTIAL = StateRepresentationSpec(
-    state=POTENTIAL,
+ASE_POTENTIAL = SpaceRepresentationSpec(
+    space=POTENTIAL,
     representation_name="ase",
     code_api={"potential": "ase.Atoms.calc"},
     notes=(
@@ -62,8 +62,8 @@ ASE_POTENTIAL = StateRepresentationSpec(
 )
 
 
-ASE_PROVIDE_POTENTIAL = OperationRepresentationSpec(
-    operation=provide_potential,
+ASE_PROVIDE_POTENTIAL = OperatorRepresentationSpec(
+    operator=provide_potential,
     representation_name="ase",
     notes=(
         "Provides Potential via the ASE calculator protocol. The user "

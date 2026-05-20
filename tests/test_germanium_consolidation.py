@@ -67,7 +67,7 @@ def test_germanium_kaldo_phonopy_frequencies_agree():
 
 def test_germanium_kappa_lbte_exceeds_kappa_rta():
     """Operator-layer prediction: gauge-invariant κ_LBTE ≥ κ_RTA (the RTA
-    HiddenState gauge-loss propagates into κ_RTA, biasing it low).
+    HiddenSpace gauge-loss propagates into κ_RTA, biasing it low).
 
     This is true on Si; should reproduce on Ge with no framework changes.
     """

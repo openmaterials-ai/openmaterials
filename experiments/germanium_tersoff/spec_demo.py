@@ -24,9 +24,18 @@ from pathlib import Path
 import numpy as np
 
 from omai.representation import (
-    inter_representation_factor,
-    inter_representation_unit_factor,
+    conversion_factor,
+    operator_to_representation,
+    representation_to_operator,
 )
+
+
+def _inter_rep_factor(a, b, obs):
+    return operator_to_representation(b, obs) * representation_to_operator(a, obs)
+
+
+def _inter_rep_unit_factor(a, b, obs):
+    return conversion_factor(a.declared_unit(obs), b.declared_unit(obs))
 from omai.thermal_transport.representation import (
     KALDO_FREQUENCY,
     PHONO3PY_FREQUENCY,
@@ -84,8 +93,8 @@ def main() -> None:
         p_sorted = np.sort(phonopy_freq, axis=1)
         max_abs_diff = float(np.max(np.abs(k_sorted - p_sorted)))
         # spec layer: kaldo and phonopy both declare linear_THz, factor = 1.
-        unit = inter_representation_unit_factor(KALDO_FREQUENCY, PHONO3PY_FREQUENCY, "omega")
-        total = inter_representation_factor(KALDO_FREQUENCY, PHONO3PY_FREQUENCY, "omega")
+        unit = _inter_rep_unit_factor(KALDO_FREQUENCY, PHONO3PY_FREQUENCY, "omega")
+        total = _inter_rep_factor(KALDO_FREQUENCY, PHONO3PY_FREQUENCY, "omega")
         print(f"  spec-derived factor (linear_THz, no conv): "
               f"unit={unit:.6f}, total={total:.6f}  (expect 1.0)")
         print(f"  max |ω_kaldo - ω_phonopy| (sorted)       : {max_abs_diff:.3e} THz")
@@ -126,10 +135,10 @@ def main() -> None:
     import importlib
     import pkgutil
     import omai.thermal_transport.representation as rep_pkg
-    from omai.representation.adapter import OperationRepresentationSpec, StateRepresentationSpec
+    from omai.representation.adapter import OperatorRepresentationSpec, SpaceRepresentationSpec
 
-    pot_state_specs: dict[str, StateRepresentationSpec] = {}
-    pot_op_specs: dict[str, OperationRepresentationSpec] = {}
+    pot_state_specs: dict[str, SpaceRepresentationSpec] = {}
+    pot_op_specs: dict[str, OperatorRepresentationSpec] = {}
     for info in pkgutil.iter_modules(rep_pkg.__path__):
         if info.name.startswith("_"):
             continue
@@ -140,15 +149,15 @@ def main() -> None:
             if attr.startswith("_"):
                 continue
             obj = getattr(mod, attr)
-            if isinstance(obj, StateRepresentationSpec) and obj.state.name == "Potential":
+            if isinstance(obj, SpaceRepresentationSpec) and obj.space.name == "Potential":
                 pot_state_specs[obj.representation_name] = obj
             elif (
-                isinstance(obj, OperationRepresentationSpec)
-                and obj.operation.name == "provide_potential"
+                isinstance(obj, OperatorRepresentationSpec)
+                and obj.operator.name == "provide_potential"
             ):
                 pot_op_specs[obj.representation_name] = obj
 
-    print(f"  POTENTIAL StateRepresentationSpec coverage ({len(pot_state_specs)} representations):")
+    print(f"  POTENTIAL SpaceRepresentationSpec coverage ({len(pot_state_specs)} representations):")
     for representation in sorted(pot_state_specs):
         spec = pot_state_specs[representation]
         api = spec.code_api.get("potential", "<no code_api>")

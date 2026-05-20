@@ -14,7 +14,7 @@ References to the phono3py API (https://phonopy.github.io/phono3py/):
 
 from __future__ import annotations
 
-from omai.representation.adapter import OperationRepresentationSpec, StateRepresentationSpec
+from omai.representation.adapter import OperatorRepresentationSpec, SpaceRepresentationSpec
 from omai.thermal_transport.operator.edges import (
     apply_nac_correction,
     combine_kappa_wigner,
@@ -83,8 +83,8 @@ from omai.thermal_transport.operator.nodes import (
 )
 
 
-PHONO3PY_FREQUENCY = StateRepresentationSpec(
-    state=FREQUENCY_STATE,
+PHONO3PY_FREQUENCY = SpaceRepresentationSpec(
+    space=FREQUENCY_STATE,
     representation_name="phono3py",
     observable_units={"omega": "linear_THz"},
     code_api={"omega": "thermal_conductivity.frequencies"},
@@ -92,8 +92,8 @@ PHONO3PY_FREQUENCY = StateRepresentationSpec(
 )
 
 
-PHONO3PY_GROUP_VELOCITY = StateRepresentationSpec(
-    state=GROUP_VELOCITY,
+PHONO3PY_GROUP_VELOCITY = SpaceRepresentationSpec(
+    space=GROUP_VELOCITY,
     representation_name="phono3py",
     observable_units={"v": "angstrom_linear_THz"},
     code_api={"v": "thermal_conductivity.group_velocities"},
@@ -101,8 +101,8 @@ PHONO3PY_GROUP_VELOCITY = StateRepresentationSpec(
 )
 
 
-PHONO3PY_LINEWIDTH = StateRepresentationSpec(
-    state=LINEWIDTH,
+PHONO3PY_LINEWIDTH = SpaceRepresentationSpec(
+    space=LINEWIDTH,
     representation_name="phono3py",
     observable_units={"Gamma": "linear_THz"},
     # No convention overrides: canonical "imag_self_energy".
@@ -114,8 +114,8 @@ PHONO3PY_LINEWIDTH = StateRepresentationSpec(
 )
 
 
-PHONO3PY_HEAT_CAPACITY = StateRepresentationSpec(
-    state=HEAT_CAPACITY,
+PHONO3PY_HEAT_CAPACITY = SpaceRepresentationSpec(
+    space=HEAT_CAPACITY,
     representation_name="phono3py",
     observable_units={"c": "eV_per_K"},
     code_api={"c": "thermal_conductivity.mode_heat_capacities"},
@@ -123,8 +123,8 @@ PHONO3PY_HEAT_CAPACITY = StateRepresentationSpec(
 )
 
 
-PHONO3PY_THERMAL_CONDUCTIVITY_RTA = StateRepresentationSpec(
-    state=THERMAL_CONDUCTIVITY_RTA,
+PHONO3PY_THERMAL_CONDUCTIVITY_RTA = SpaceRepresentationSpec(
+    space=THERMAL_CONDUCTIVITY_RTA,
     representation_name="phono3py",
     observable_units={"kappa": "W_per_m_per_K"},
     code_api={"kappa": "run_thermal_conductivity(is_LBTE=False).kappa"},
@@ -135,8 +135,8 @@ PHONO3PY_THERMAL_CONDUCTIVITY_RTA = StateRepresentationSpec(
 )
 
 
-PHONO3PY_THERMAL_CONDUCTIVITY_DIRECT = StateRepresentationSpec(
-    state=THERMAL_CONDUCTIVITY_DIRECT,
+PHONO3PY_THERMAL_CONDUCTIVITY_DIRECT = SpaceRepresentationSpec(
+    space=THERMAL_CONDUCTIVITY_DIRECT,
     representation_name="phono3py",
     observable_units={"kappa": "W_per_m_per_K"},
     code_api={"kappa": "run_thermal_conductivity(is_LBTE=True).kappa"},
@@ -148,11 +148,11 @@ PHONO3PY_THERMAL_CONDUCTIVITY_DIRECT = StateRepresentationSpec(
 )
 
 
-PHONO3PY_COMPUTE_LINEWIDTH = OperationRepresentationSpec(
-    operation=compute_linewidth,
+PHONO3PY_COMPUTE_LINEWIDTH = OperatorRepresentationSpec(
+    operator=compute_linewidth,
     representation_name="phono3py",
     parameter_units={"broadening_sigma": "linear_THz"},
-    algorithmic_convention_overrides={
+    scheme_overrides={
         # canonical broadening_param=stdev (no override).
         # phono3py calls spglib on the input structure and runs the BZ sum
         # on the irreducible wedge, unfolding via the resulting weights.
@@ -171,17 +171,17 @@ PHONO3PY_COMPUTE_LINEWIDTH = OperationRepresentationSpec(
 )
 
 
-PHONO3PY_COMPUTE_HEAT_CAPACITY = OperationRepresentationSpec(
-    operation=compute_heat_capacity,
+PHONO3PY_COMPUTE_HEAT_CAPACITY = OperatorRepresentationSpec(
+    operator=compute_heat_capacity,
     representation_name="phono3py",
     notes="No parameters or algorithmic conventions exposed.",
 )
 
 
-PHONO3PY_COMPUTE_FORCE_CONSTANTS_2 = OperationRepresentationSpec(
-    operation=compute_force_constants_2,
+PHONO3PY_COMPUTE_FORCE_CONSTANTS_2 = OperatorRepresentationSpec(
+    operator=compute_force_constants_2,
     representation_name="phono3py",
-    algorithmic_convention_overrides={
+    scheme_overrides={
         # Phono3py.produce_fc2 invokes the symfc / ALM backend, which uses
         # the structure's space group (spglib) to enumerate inequivalent
         # displacements and symmetrize the resulting Φ².
@@ -194,10 +194,10 @@ PHONO3PY_COMPUTE_FORCE_CONSTANTS_2 = OperationRepresentationSpec(
 )
 
 
-PHONO3PY_COMPUTE_FORCE_CONSTANTS_3 = OperationRepresentationSpec(
-    operation=compute_force_constants_3,
+PHONO3PY_COMPUTE_FORCE_CONSTANTS_3 = OperatorRepresentationSpec(
+    operator=compute_force_constants_3,
     representation_name="phono3py",
-    algorithmic_convention_overrides={
+    scheme_overrides={
         "symmetry_group": "spglib_auto",
     },
     notes=(
@@ -208,10 +208,10 @@ PHONO3PY_COMPUTE_FORCE_CONSTANTS_3 = OperationRepresentationSpec(
 )
 
 
-PHONO3PY_SOLVE_BTE_DIRECT = OperationRepresentationSpec(
-    operation=solve_bte_direct,
+PHONO3PY_SOLVE_BTE_DIRECT = OperatorRepresentationSpec(
+    operator=solve_bte_direct,
     representation_name="phono3py",
-    algorithmic_convention_overrides={
+    scheme_overrides={
         # is_LBTE=True builds and inverts the collision matrix on the
         # irreducible q-grid; the symmetry-unfolded F is then used to
         # contract κ.
@@ -235,16 +235,16 @@ PHONO3PY_SOLVE_BTE_DIRECT = OperationRepresentationSpec(
 # ---------------------------------------------------------------------------
 
 
-PHONO3PY_TEMPERATURE = StateRepresentationSpec(
-    state=TEMPERATURE_STATE,
+PHONO3PY_TEMPERATURE = SpaceRepresentationSpec(
+    space=TEMPERATURE_STATE,
     representation_name="phono3py",
     code_api={"temperature": "Phono3py.temperatures"},
     notes="Array of temperatures passed via run_thermal_conductivity(temperatures=[...]).",
 )
 
 
-PHONO3PY_FORCE_CONSTANTS_2 = StateRepresentationSpec(
-    state=FORCE_CONSTANTS_2,
+PHONO3PY_FORCE_CONSTANTS_2 = SpaceRepresentationSpec(
+    space=FORCE_CONSTANTS_2,
     representation_name="phono3py",
     code_api={"phi": "Phono3py.fc2"},
     notes=(
@@ -254,23 +254,23 @@ PHONO3PY_FORCE_CONSTANTS_2 = StateRepresentationSpec(
 )
 
 
-PHONO3PY_FORCE_CONSTANTS_3 = StateRepresentationSpec(
-    state=FORCE_CONSTANTS_3,
+PHONO3PY_FORCE_CONSTANTS_3 = SpaceRepresentationSpec(
+    space=FORCE_CONSTANTS_3,
     representation_name="phono3py",
     observable_units={"phi": "eV_per_A3"},
-    # canonical fc3_normalization = "eV_per_A3"; no override needed.
+    # canonical normalization (`canonical`) is implicit; no override needed.
     code_api={"phi": "Phono3py.fc3"},
     notes=(
         "Phono3py.fc3: ndarray of shape (n_supercell_atoms, n_supercell_atoms, "
         "n_supercell_atoms, 3, 3, 3) numerically in eV/Å³ — matches the "
-        "operator-layer canonical `fc3_normalization=eV_per_A3` value. "
-        "Built by Phono3py.produce_fc3()."
+        "operator-layer canonical `eV_per_A3` unit with the trivial "
+        "`canonical` normalization. Built by Phono3py.produce_fc3()."
     ),
 )
 
 
-PHONO3PY_DYNAMICAL_MATRIX = StateRepresentationSpec(
-    state=DYNAMICAL_MATRIX,
+PHONO3PY_DYNAMICAL_MATRIX = SpaceRepresentationSpec(
+    space=DYNAMICAL_MATRIX,
     representation_name="phono3py",
     code_api={"D": "Phono3py.dynamical_matrix"},
     notes=(
@@ -281,8 +281,8 @@ PHONO3PY_DYNAMICAL_MATRIX = StateRepresentationSpec(
 )
 
 
-PHONO3PY_EIGENVECTORS = StateRepresentationSpec(
-    state=EIGENVECTORS,
+PHONO3PY_EIGENVECTORS = SpaceRepresentationSpec(
+    space=EIGENVECTORS,
     representation_name="phono3py",
     code_api={"e": "thermal_conductivity.get_eigenvectors()"},
     notes=(
@@ -294,8 +294,8 @@ PHONO3PY_EIGENVECTORS = StateRepresentationSpec(
 )
 
 
-PHONO3PY_POTENTIAL = StateRepresentationSpec(
-    state=POTENTIAL,
+PHONO3PY_POTENTIAL = SpaceRepresentationSpec(
+    space=POTENTIAL,
     representation_name="phono3py",
     code_api={"potential": "Phono3py(...) + ASE calculator or DFT force sets"},
     notes=(
@@ -307,8 +307,8 @@ PHONO3PY_POTENTIAL = StateRepresentationSpec(
 )
 
 
-PHONO3PY_MEAN_FREE_DISPLACEMENT_RTA = StateRepresentationSpec(
-    state=MEAN_FREE_DISPLACEMENT_RTA,
+PHONO3PY_MEAN_FREE_DISPLACEMENT_RTA = SpaceRepresentationSpec(
+    space=MEAN_FREE_DISPLACEMENT_RTA,
     representation_name="phono3py",
     code_api={"F": "thermal_conductivity.mean_free_paths"},
     notes=(
@@ -319,8 +319,8 @@ PHONO3PY_MEAN_FREE_DISPLACEMENT_RTA = StateRepresentationSpec(
 )
 
 
-PHONO3PY_MEAN_FREE_DISPLACEMENT_DIRECT = StateRepresentationSpec(
-    state=MEAN_FREE_DISPLACEMENT_DIRECT,
+PHONO3PY_MEAN_FREE_DISPLACEMENT_DIRECT = SpaceRepresentationSpec(
+    space=MEAN_FREE_DISPLACEMENT_DIRECT,
     representation_name="phono3py",
     code_api={"F": "thermal_conductivity.f_vectors"},
     notes=(
@@ -331,8 +331,8 @@ PHONO3PY_MEAN_FREE_DISPLACEMENT_DIRECT = StateRepresentationSpec(
 )
 
 
-PHONO3PY_VOLUMETRIC_HEAT_CAPACITY = StateRepresentationSpec(
-    state=VOLUMETRIC_HEAT_CAPACITY,
+PHONO3PY_VOLUMETRIC_HEAT_CAPACITY = SpaceRepresentationSpec(
+    space=VOLUMETRIC_HEAT_CAPACITY,
     representation_name="phono3py",
     code_api={"C_V_vol": "np.sum(thermal_conductivity.mode_heat_capacities) / (V_cell * n_q)"},
     notes=(
@@ -342,8 +342,8 @@ PHONO3PY_VOLUMETRIC_HEAT_CAPACITY = StateRepresentationSpec(
 )
 
 
-PHONO3PY_MOLAR_HEAT_CAPACITY = StateRepresentationSpec(
-    state=MOLAR_HEAT_CAPACITY,
+PHONO3PY_MOLAR_HEAT_CAPACITY = SpaceRepresentationSpec(
+    space=MOLAR_HEAT_CAPACITY,
     representation_name="phono3py",
     code_api={"C_V_mol": "N_A * np.sum(thermal_conductivity.mode_heat_capacities) / n_q"},
     notes=(
@@ -353,16 +353,16 @@ PHONO3PY_MOLAR_HEAT_CAPACITY = StateRepresentationSpec(
 )
 
 
-PHONO3PY_PHONON_DOS = StateRepresentationSpec(
-    state=PHONON_DOS,
+PHONO3PY_PHONON_DOS = SpaceRepresentationSpec(
+    space=PHONON_DOS,
     representation_name="phono3py",
     code_api={"g": "Phonopy.get_total_DOS()"},
     notes="DOS via the parent Phonopy object's run_total_dos/get_total_DOS.",
 )
 
 
-PHONO3PY_GRUNEISEN = StateRepresentationSpec(
-    state=GRUNEISEN,
+PHONO3PY_GRUNEISEN = SpaceRepresentationSpec(
+    space=GRUNEISEN,
     representation_name="phono3py",
     code_api={"gamma_G": "Phono3py.run_phonon_gruneisen_parameters()"},
     notes=(
@@ -372,8 +372,8 @@ PHONO3PY_GRUNEISEN = StateRepresentationSpec(
 )
 
 
-PHONO3PY_PHASE_SPACE_3PH = StateRepresentationSpec(
-    state=PHASE_SPACE_3PH,
+PHONO3PY_PHASE_SPACE_3PH = SpaceRepresentationSpec(
+    space=PHASE_SPACE_3PH,
     representation_name="phono3py",
     code_api={"P3": "Phono3py.run_phonon_phase_space()"},
     notes=(
@@ -389,8 +389,8 @@ PHONO3PY_PHASE_SPACE_3PH = StateRepresentationSpec(
 # ---------------------------------------------------------------------------
 
 
-PHONO3PY_PROVIDE_POTENTIAL = OperationRepresentationSpec(
-    operation=provide_potential,
+PHONO3PY_PROVIDE_POTENTIAL = OperatorRepresentationSpec(
+    operator=provide_potential,
     representation_name="phono3py",
     notes=(
         "phono3py provides the Potential either via an attached ASE "
@@ -400,15 +400,15 @@ PHONO3PY_PROVIDE_POTENTIAL = OperationRepresentationSpec(
 )
 
 
-PHONO3PY_PROVIDE_TEMPERATURE = OperationRepresentationSpec(
-    operation=provide_temperature,
+PHONO3PY_PROVIDE_TEMPERATURE = OperatorRepresentationSpec(
+    operator=provide_temperature,
     representation_name="phono3py",
     notes="Set via Phono3py(temperatures=...).",
 )
 
 
-PHONO3PY_COMPUTE_DYNAMICAL_MATRIX = OperationRepresentationSpec(
-    operation=compute_dynamical_matrix,
+PHONO3PY_COMPUTE_DYNAMICAL_MATRIX = OperatorRepresentationSpec(
+    operator=compute_dynamical_matrix,
     representation_name="phono3py",
     notes=(
         "Inherited from the parent Phonopy object: DynamicalMatrix.get_dynamical_matrix() "
@@ -417,8 +417,8 @@ PHONO3PY_COMPUTE_DYNAMICAL_MATRIX = OperationRepresentationSpec(
 )
 
 
-PHONO3PY_COMPUTE_DISPERSION = OperationRepresentationSpec(
-    operation=compute_dispersion,
+PHONO3PY_COMPUTE_DISPERSION = OperatorRepresentationSpec(
+    operator=compute_dispersion,
     representation_name="phono3py",
     notes=(
         "Frequencies and eigenvectors come from a per-q numpy.linalg.eigh "
@@ -428,8 +428,8 @@ PHONO3PY_COMPUTE_DISPERSION = OperationRepresentationSpec(
 )
 
 
-PHONO3PY_COMPUTE_GROUP_VELOCITY = OperationRepresentationSpec(
-    operation=compute_group_velocity,
+PHONO3PY_COMPUTE_GROUP_VELOCITY = OperatorRepresentationSpec(
+    operator=compute_group_velocity,
     representation_name="phono3py",
     notes=(
         "Phonopy.GroupVelocity uses the analytic Hellmann-Feynman formula "
@@ -438,8 +438,8 @@ PHONO3PY_COMPUTE_GROUP_VELOCITY = OperationRepresentationSpec(
 )
 
 
-PHONO3PY_SOLVE_BTE_RTA = OperationRepresentationSpec(
-    operation=solve_bte_rta,
+PHONO3PY_SOLVE_BTE_RTA = OperatorRepresentationSpec(
+    operator=solve_bte_rta,
     representation_name="phono3py",
     notes=(
         "Phono3py.run_thermal_conductivity(is_LBTE=False): closed-form F = v / (2Γ) "
@@ -448,38 +448,38 @@ PHONO3PY_SOLVE_BTE_RTA = OperationRepresentationSpec(
 )
 
 
-PHONO3PY_CONTRACT_KAPPA_RTA = OperationRepresentationSpec(
-    operation=contract_kappa_rta,
+PHONO3PY_CONTRACT_KAPPA_RTA = OperatorRepresentationSpec(
+    operator=contract_kappa_rta,
     representation_name="phono3py",
     notes="kappa_RTA: c·v⊗v·τ summed over (q, ν) and divided by volume.",
 )
 
 
-PHONO3PY_CONTRACT_KAPPA_DIRECT = OperationRepresentationSpec(
-    operation=contract_kappa_direct,
+PHONO3PY_CONTRACT_KAPPA_DIRECT = OperatorRepresentationSpec(
+    operator=contract_kappa_direct,
     representation_name="phono3py",
     notes="kappa from the LBTE solve, accumulated as c·v⊗F over (q, ν).",
 )
 
 
-PHONO3PY_CONTRACT_VOLUMETRIC_HEAT_CAPACITY = OperationRepresentationSpec(
-    operation=contract_volumetric_heat_capacity,
+PHONO3PY_CONTRACT_VOLUMETRIC_HEAT_CAPACITY = OperatorRepresentationSpec(
+    operator=contract_volumetric_heat_capacity,
     representation_name="phono3py",
     notes="Derived from the per-mode heat_capacity array by summing and dividing by cell volume.",
 )
 
 
-PHONO3PY_CONTRACT_MOLAR_HEAT_CAPACITY = OperationRepresentationSpec(
-    operation=contract_molar_heat_capacity,
+PHONO3PY_CONTRACT_MOLAR_HEAT_CAPACITY = OperatorRepresentationSpec(
+    operator=contract_molar_heat_capacity,
     representation_name="phono3py",
     notes="Derived from the per-mode heat_capacity array via N_A × sum / N_q.",
 )
 
 
-PHONO3PY_COMPUTE_DOS = OperationRepresentationSpec(
-    operation=compute_dos,
+PHONO3PY_COMPUTE_DOS = OperatorRepresentationSpec(
+    operator=compute_dos,
     representation_name="phono3py",
-    algorithmic_convention_overrides={"dos_broadening": "tetrahedron"},
+    scheme_overrides={"dos_broadening": "tetrahedron"},
     notes=(
         "Phonopy.run_total_dos defaults to tetrahedron integration "
         "(is_tetrahedron=True); a Gaussian-broadened mode is available via "
@@ -488,8 +488,8 @@ PHONO3PY_COMPUTE_DOS = OperationRepresentationSpec(
 )
 
 
-PHONO3PY_COMPUTE_GRUNEISEN = OperationRepresentationSpec(
-    operation=compute_gruneisen,
+PHONO3PY_COMPUTE_GRUNEISEN = OperatorRepresentationSpec(
+    operator=compute_gruneisen,
     representation_name="phono3py",
     notes=(
         "Phono3py.run_phonon_gruneisen_parameters: Maradudin-Fein closed form "
@@ -499,8 +499,8 @@ PHONO3PY_COMPUTE_GRUNEISEN = OperationRepresentationSpec(
 )
 
 
-PHONO3PY_COMPUTE_PHASE_SPACE_3PH = OperationRepresentationSpec(
-    operation=compute_phase_space_3phonon,
+PHONO3PY_COMPUTE_PHASE_SPACE_3PH = OperatorRepresentationSpec(
+    operator=compute_phase_space_3phonon,
     representation_name="phono3py",
     notes=(
         "run_phonon_phase_space reuses the linewidth code's δ realisation; "
@@ -515,8 +515,8 @@ PHONO3PY_COMPUTE_PHASE_SPACE_3PH = OperationRepresentationSpec(
 # ---------------------------------------------------------------------------
 
 
-PHONO3PY_BORN_CHARGES = StateRepresentationSpec(
-    state=BORN_CHARGES,
+PHONO3PY_BORN_CHARGES = SpaceRepresentationSpec(
+    space=BORN_CHARGES,
     representation_name="phono3py",
     observable_units={"Z_star": "dimensionless"},
     code_api={"Z_star": "Phono3py.nac_params['born']"},
@@ -528,8 +528,8 @@ PHONO3PY_BORN_CHARGES = StateRepresentationSpec(
 )
 
 
-PHONO3PY_BARE_DYNAMICAL_MATRIX = StateRepresentationSpec(
-    state=BARE_DYNAMICAL_MATRIX,
+PHONO3PY_BARE_DYNAMICAL_MATRIX = SpaceRepresentationSpec(
+    space=BARE_DYNAMICAL_MATRIX,
     representation_name="phono3py",
     code_api={
         "D_bare": "DynamicalMatrix.get_dynamical_matrix() with NAC disabled"
@@ -543,8 +543,8 @@ PHONO3PY_BARE_DYNAMICAL_MATRIX = StateRepresentationSpec(
 )
 
 
-PHONO3PY_DIELECTRIC_TENSOR = StateRepresentationSpec(
-    state=DIELECTRIC_TENSOR,
+PHONO3PY_DIELECTRIC_TENSOR = SpaceRepresentationSpec(
+    space=DIELECTRIC_TENSOR,
     representation_name="phono3py",
     observable_units={"epsilon_infinity": "dimensionless"},
     code_api={"epsilon_infinity": "Phono3py.nac_params['dielectric']"},
@@ -552,8 +552,8 @@ PHONO3PY_DIELECTRIC_TENSOR = StateRepresentationSpec(
 )
 
 
-PHONO3PY_PROVIDE_BORN_CHARGES = OperationRepresentationSpec(
-    operation=provide_born_charges,
+PHONO3PY_PROVIDE_BORN_CHARGES = OperatorRepresentationSpec(
+    operator=provide_born_charges,
     representation_name="phono3py",
     notes=(
         "BORN file parsed via the Phonopy parser; attached to Phono3py via "
@@ -562,24 +562,24 @@ PHONO3PY_PROVIDE_BORN_CHARGES = OperationRepresentationSpec(
 )
 
 
-PHONO3PY_PROVIDE_DIELECTRIC_TENSOR = OperationRepresentationSpec(
-    operation=provide_dielectric_tensor,
+PHONO3PY_PROVIDE_DIELECTRIC_TENSOR = OperatorRepresentationSpec(
+    operator=provide_dielectric_tensor,
     representation_name="phono3py",
     notes="Same BORN file, dielectric block.",
 )
 
 
-PHONO3PY_IDENTITY_DM = OperationRepresentationSpec(
-    operation=identity_dm,
+PHONO3PY_IDENTITY_DM = OperatorRepresentationSpec(
+    operator=identity_dm,
     representation_name="phono3py",
     notes="Non-polar runs: bare Bloch sum passes through unchanged.",
 )
 
 
-PHONO3PY_APPLY_NAC_CORRECTION = OperationRepresentationSpec(
-    operation=apply_nac_correction,
+PHONO3PY_APPLY_NAC_CORRECTION = OperatorRepresentationSpec(
+    operator=apply_nac_correction,
     representation_name="phono3py",
-    algorithmic_convention_overrides={"nac_scheme": "gonze_lee"},
+    scheme_overrides={"nac_scheme": "gonze_lee"},
     notes=(
         "Polar phono3py runs apply NAC via the inherited Phonopy machinery — "
         "the default nac_method='gonze' is what BORN-using ph3 runs do "
@@ -599,8 +599,8 @@ PHONO3PY_APPLY_NAC_CORRECTION = OperationRepresentationSpec(
 # ---------------------------------------------------------------------------
 
 
-PHONO3PY_ISOTOPIC_LINEWIDTH = StateRepresentationSpec(
-    state=ISOTOPIC_LINEWIDTH,
+PHONO3PY_ISOTOPIC_LINEWIDTH = SpaceRepresentationSpec(
+    space=ISOTOPIC_LINEWIDTH,
     representation_name="phono3py",
     observable_units={"Gamma": "linear_THz"},
     # No convention overrides: canonical "imag_self_energy".
@@ -615,8 +615,8 @@ PHONO3PY_ISOTOPIC_LINEWIDTH = StateRepresentationSpec(
 )
 
 
-PHONO3PY_BOUNDARY_LINEWIDTH = StateRepresentationSpec(
-    state=BOUNDARY_LINEWIDTH,
+PHONO3PY_BOUNDARY_LINEWIDTH = SpaceRepresentationSpec(
+    space=BOUNDARY_LINEWIDTH,
     representation_name="phono3py",
     observable_units={"Gamma": "linear_THz"},
     code_api={
@@ -633,8 +633,8 @@ PHONO3PY_BOUNDARY_LINEWIDTH = StateRepresentationSpec(
 )
 
 
-PHONO3PY_TOTAL_LINEWIDTH = StateRepresentationSpec(
-    state=TOTAL_LINEWIDTH,
+PHONO3PY_TOTAL_LINEWIDTH = SpaceRepresentationSpec(
+    space=TOTAL_LINEWIDTH,
     representation_name="phono3py",
     observable_units={"Gamma": "linear_THz"},
     code_api={
@@ -651,8 +651,8 @@ PHONO3PY_TOTAL_LINEWIDTH = StateRepresentationSpec(
 )
 
 
-PHONO3PY_ISOTOPE_ABUNDANCES = StateRepresentationSpec(
-    state=ISOTOPE_ABUNDANCES,
+PHONO3PY_ISOTOPE_ABUNDANCES = SpaceRepresentationSpec(
+    space=ISOTOPE_ABUNDANCES,
     representation_name="phono3py",
     observable_units={"g": "dimensionless"},
     code_api={"g": "Phono3pyIsotope(mass_variances=...)"},
@@ -665,8 +665,8 @@ PHONO3PY_ISOTOPE_ABUNDANCES = StateRepresentationSpec(
 )
 
 
-PHONO3PY_PROVIDE_ISOTOPE_ABUNDANCES = OperationRepresentationSpec(
-    operation=provide_isotope_abundances,
+PHONO3PY_PROVIDE_ISOTOPE_ABUNDANCES = OperatorRepresentationSpec(
+    operator=provide_isotope_abundances,
     representation_name="phono3py",
     notes=(
         "Set via Phono3pyIsotope(mass_variances=...) or the CLI flag "
@@ -676,8 +676,8 @@ PHONO3PY_PROVIDE_ISOTOPE_ABUNDANCES = OperationRepresentationSpec(
 )
 
 
-PHONO3PY_COMPUTE_ISOTOPE_SCATTERING = OperationRepresentationSpec(
-    operation=compute_isotope_scattering,
+PHONO3PY_COMPUTE_ISOTOPE_SCATTERING = OperatorRepresentationSpec(
+    operator=compute_isotope_scattering,
     representation_name="phono3py",
     notes=(
         "phono3py.other.isotope.Isotope realises the Tamura δ with the same "
@@ -688,8 +688,8 @@ PHONO3PY_COMPUTE_ISOTOPE_SCATTERING = OperationRepresentationSpec(
 )
 
 
-PHONO3PY_COMPUTE_BOUNDARY_SCATTERING = OperationRepresentationSpec(
-    operation=compute_boundary_scattering,
+PHONO3PY_COMPUTE_BOUNDARY_SCATTERING = OperatorRepresentationSpec(
+    operator=compute_boundary_scattering,
     representation_name="phono3py",
     notes=(
         "phono3py.conductivity.scattering_solvers.compute_bulk_boundary_"
@@ -702,8 +702,8 @@ PHONO3PY_COMPUTE_BOUNDARY_SCATTERING = OperationRepresentationSpec(
 )
 
 
-PHONO3PY_SUM_LINEWIDTHS = OperationRepresentationSpec(
-    operation=sum_linewidths,
+PHONO3PY_SUM_LINEWIDTHS = OperatorRepresentationSpec(
+    operator=sum_linewidths,
     representation_name="phono3py",
     notes=(
         "Sum implemented by `compute_effective_gamma` in "
@@ -723,8 +723,8 @@ PHONO3PY_SUM_LINEWIDTHS = OperationRepresentationSpec(
 # ---------------------------------------------------------------------------
 
 
-PHONO3PY_THERMAL_CONDUCTIVITY_WIGNER = StateRepresentationSpec(
-    state=THERMAL_CONDUCTIVITY_WIGNER,
+PHONO3PY_THERMAL_CONDUCTIVITY_WIGNER = SpaceRepresentationSpec(
+    space=THERMAL_CONDUCTIVITY_WIGNER,
     representation_name="phono3py",
     observable_units={"kappa": "W_per_m_per_K"},
     code_api={"kappa": "thermal_conductivity.kappa_TOT_RTA"},
@@ -737,8 +737,8 @@ PHONO3PY_THERMAL_CONDUCTIVITY_WIGNER = StateRepresentationSpec(
 )
 
 
-PHONO3PY_THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS = StateRepresentationSpec(
-    state=THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
+PHONO3PY_THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS = SpaceRepresentationSpec(
+    space=THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
     representation_name="phono3py",
     observable_units={"kappa": "W_per_m_per_K"},
     code_api={"kappa": "thermal_conductivity.kappa_P_RTA"},
@@ -750,8 +750,8 @@ PHONO3PY_THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS = StateRepresentationSpec(
 )
 
 
-PHONO3PY_THERMAL_CONDUCTIVITY_WIGNER_COHERENCES = StateRepresentationSpec(
-    state=THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,
+PHONO3PY_THERMAL_CONDUCTIVITY_WIGNER_COHERENCES = SpaceRepresentationSpec(
+    space=THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,
     representation_name="phono3py",
     observable_units={"kappa": "W_per_m_per_K"},
     code_api={"kappa": "thermal_conductivity.kappa_C"},
@@ -764,8 +764,8 @@ PHONO3PY_THERMAL_CONDUCTIVITY_WIGNER_COHERENCES = StateRepresentationSpec(
 )
 
 
-PHONO3PY_COMPUTE_KAPPA_WIGNER_POPULATIONS = OperationRepresentationSpec(
-    operation=compute_kappa_wigner_populations,
+PHONO3PY_COMPUTE_KAPPA_WIGNER_POPULATIONS = OperatorRepresentationSpec(
+    operator=compute_kappa_wigner_populations,
     representation_name="phono3py",
     notes=(
         "Computed inside WignerRTAKappaSolver.finalize alongside the "
@@ -774,8 +774,8 @@ PHONO3PY_COMPUTE_KAPPA_WIGNER_POPULATIONS = OperationRepresentationSpec(
 )
 
 
-PHONO3PY_COMPUTE_KAPPA_WIGNER_COHERENCES = OperationRepresentationSpec(
-    operation=compute_kappa_wigner_coherences,
+PHONO3PY_COMPUTE_KAPPA_WIGNER_COHERENCES = OperatorRepresentationSpec(
+    operator=compute_kappa_wigner_coherences,
     representation_name="phono3py",
     notes=(
         "Lorentzian-weighted off-diagonal mode overlap built from the "
@@ -786,8 +786,8 @@ PHONO3PY_COMPUTE_KAPPA_WIGNER_COHERENCES = OperationRepresentationSpec(
 )
 
 
-PHONO3PY_COMBINE_KAPPA_WIGNER = OperationRepresentationSpec(
-    operation=combine_kappa_wigner,
+PHONO3PY_COMBINE_KAPPA_WIGNER = OperatorRepresentationSpec(
+    operator=combine_kappa_wigner,
     representation_name="phono3py",
     notes=(
         "WignerRTAKappaSolver.kappa returns self._kappa_P + self._kappa_C "
@@ -806,8 +806,8 @@ PHONO3PY_COMBINE_KAPPA_WIGNER = OperationRepresentationSpec(
 # ---------------------------------------------------------------------------
 
 
-PHONO3PY_CUMULATIVE_KAPPA_OMEGA = StateRepresentationSpec(
-    state=CUMULATIVE_KAPPA_OMEGA,
+PHONO3PY_CUMULATIVE_KAPPA_OMEGA = SpaceRepresentationSpec(
+    space=CUMULATIVE_KAPPA_OMEGA,
     representation_name="phono3py",
     observable_units={"kappa_cum": "W_per_m_per_K"},
     code_api={"kappa_cum": "phono3py-kaccum kappa-mXXXXXX.hdf5"},
@@ -822,8 +822,8 @@ PHONO3PY_CUMULATIVE_KAPPA_OMEGA = StateRepresentationSpec(
 )
 
 
-PHONO3PY_CUMULATIVE_KAPPA_MFP = StateRepresentationSpec(
-    state=CUMULATIVE_KAPPA_MFP,
+PHONO3PY_CUMULATIVE_KAPPA_MFP = SpaceRepresentationSpec(
+    space=CUMULATIVE_KAPPA_MFP,
     representation_name="phono3py",
     observable_units={"kappa_cum": "W_per_m_per_K"},
     code_api={"kappa_cum": "phono3py-kaccum --mfp kappa-mXXXXXX.hdf5"},
@@ -836,10 +836,10 @@ PHONO3PY_CUMULATIVE_KAPPA_MFP = StateRepresentationSpec(
 )
 
 
-PHONO3PY_CONTRACT_CUMULATIVE_KAPPA_OMEGA = OperationRepresentationSpec(
-    operation=contract_cumulative_kappa_omega,
+PHONO3PY_CONTRACT_CUMULATIVE_KAPPA_OMEGA = OperatorRepresentationSpec(
+    operator=contract_cumulative_kappa_omega,
     representation_name="phono3py",
-    algorithmic_convention_overrides={"binning": "linear"},
+    scheme_overrides={"binning": "linear"},
     notes=(
         "Linear ω-axis binning (uniform sampling between 0 and the maximum "
         "frequency, controlled by `--num-sampling-points`)."
@@ -847,10 +847,10 @@ PHONO3PY_CONTRACT_CUMULATIVE_KAPPA_OMEGA = OperationRepresentationSpec(
 )
 
 
-PHONO3PY_CONTRACT_CUMULATIVE_KAPPA_MFP = OperationRepresentationSpec(
-    operation=contract_cumulative_kappa_mfp,
+PHONO3PY_CONTRACT_CUMULATIVE_KAPPA_MFP = OperatorRepresentationSpec(
+    operator=contract_cumulative_kappa_mfp,
     representation_name="phono3py",
-    algorithmic_convention_overrides={"binning": "linear"},
+    scheme_overrides={"binning": "linear"},
     notes=(
         "phono3py-kaccum's default MFP sampling is linear (uniform "
         "between min/max |F|), not logarithmic. Cross-code comparison "

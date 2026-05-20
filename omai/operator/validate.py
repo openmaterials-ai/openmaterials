@@ -4,23 +4,23 @@ Walks a node + edge set and checks the structural invariants that the
 architectural commitments imply but that the type system
 alone can't enforce:
 
-  * Every HiddenState declares a gauge_group (non-empty string).
-  * Every HiddenState declares kind ∈ {"scaffolding", "approximation"}.
-  * Every scaffolding HiddenState declares at least one
+  * Every HiddenSpace declares a gauge_group (non-empty string).
+  * Every HiddenSpace declares kind ∈ {"scaffolding", "approximation"}.
+  * Every scaffolding HiddenSpace declares at least one
     gauge_invariant_contractions entry, and each named entry resolves
-    to an Observable that exists in the node set.
-  * Every approximation HiddenState declares zero
+    to an ObservableSpace that exists in the node set.
+  * Every approximation HiddenSpace declares zero
     gauge_invariant_contractions (otherwise it would be scaffolding).
   * Every node name is unique.
-  * Every operation's inputs and outputs are nodes that appear in the
+  * Every Operator's inputs and outputs are nodes that appear in the
     node set.
 
 In addition, AOT (declaration-time) content checks against each edge's
 sympy formula:
 
   * Every free symbol in `formula` is derivable from one of:
-      - the per-state allowed-symbol set of an input state
-      - the per-state allowed-symbol set of an output state (formulas
+      - the per-space allowed-symbol set of an input space
+      - the per-space allowed-symbol set of an output space (formulas
         commonly reference the LHS quantity they produce)
       - the edge's declared `parameters`
       - a fixed `_PERMITTED_CONSTANTS` set of bare physics symbols,
@@ -30,7 +30,7 @@ sympy formula:
 
   * For edges whose `formula` is a sympy.Eq with an Indexed LHS, the
     LHS's index tuple must match (positionally) the index tuple
-    declared on the output state's first field.
+    declared on the output space's first field.
 
   * Auxiliary formulas (`auxiliary_formulas`) are checked against the
     same vocabulary as the main formula, augmented with whatever
@@ -45,8 +45,8 @@ from __future__ import annotations
 
 import sympy as sp
 
-from omai.operator.operation import Operation
-from omai.operator.state import HiddenState, Observable, State
+from omai.operator.operator import Operator
+from omai.operator.space import HiddenSpace, ObservableSpace, Space
 
 _VALID_KINDS = {"scaffolding", "approximation"}
 
@@ -136,16 +136,16 @@ _PERMITTED_CONSTANTS: frozenset[str] = frozenset({
 })
 
 
-# Per-state allowed-symbol registry. Each entry lists the IndexedBase /
+# Per-space allowed-symbol registry. Each entry lists the IndexedBase /
 # Symbol *base names* that may legitimately appear in a formula whose
-# inputs OR outputs include that state.
+# inputs OR outputs include that space.
 #
 # Rationale: the operator layer's promise is "every edge carries a sympy
-# formula whose symbols are the quantities the state declares". The mapping
+# formula whose symbols are the quantities the space declares". The mapping
 # from field-name (Python convention, e.g. `omega`) to sympy IndexedBase
 # name (LaTeX convention, e.g. `\omega`) is non-trivial in places; this
 # registry encodes that mapping.
-_STATE_SYMBOLS: dict[str, frozenset[str]] = {
+_SPACE_SYMBOLS: dict[str, frozenset[str]] = {
     "Potential": frozenset({r"\{u\}", r"V_{\mathrm{provided}}"}),
     "Temperature": frozenset({"T", r"T_{\mathrm{provided}}"}),
     "ForceConstants[order=2]": frozenset({r"\Phi^{(2)}"}),
@@ -244,23 +244,23 @@ def _symbol_base_name(sym: sp.Basic) -> str:
     return str(sym)
 
 
-def _allowed_symbols_for_edge(op: Operation) -> set[str]:
-    """Allowed base-symbol names for a given Operation.
+def _allowed_symbols_for_edge(op: Operator) -> set[str]:
+    """Allowed base-symbol names for a given Operator.
 
     Union of:
       - _PERMITTED_CONSTANTS
-      - _STATE_SYMBOLS[input.name] for each input state
-      - _STATE_SYMBOLS[output.name] for each output state
+      - _SPACE_SYMBOLS[input.name] for each input space
+      - _SPACE_SYMBOLS[output.name] for each output space
       - the edge's parameter names
-    States not present in _STATE_SYMBOLS contribute nothing — they're
+    Spaces not present in _SPACE_SYMBOLS contribute nothing — they're
     treated as not yet registered, which means the check will flag
-    unregistered symbols. Add to _STATE_SYMBOLS when growing the DAG.
+    unregistered symbols. Add to _SPACE_SYMBOLS when growing the DAG.
     """
     allowed: set[str] = set(_PERMITTED_CONSTANTS)
     for inp in op.inputs:
-        allowed.update(_STATE_SYMBOLS.get(inp.name, frozenset()))
+        allowed.update(_SPACE_SYMBOLS.get(inp.name, frozenset()))
     for out in op.outputs:
-        allowed.update(_STATE_SYMBOLS.get(out.name, frozenset()))
+        allowed.update(_SPACE_SYMBOLS.get(out.name, frozenset()))
     for p in op.parameters:
         allowed.add(p.name)
     return allowed
@@ -272,7 +272,7 @@ def _formula_symbols(formula: sp.Basic) -> set[sp.Basic]:
 
 
 def _check_free_symbols(
-    op: Operation,
+    op: Operator,
     formula: sp.Basic,
     allowed: set[str],
     label: str,
@@ -288,9 +288,9 @@ def _check_free_symbols(
     return errors
 
 
-def _check_lhs_indices(op: Operation, formula: sp.Basic) -> list[str]:
+def _check_lhs_indices(op: Operator, formula: sp.Basic) -> list[str]:
     """If formula is sp.Eq with an Indexed LHS, check its index tuple
-    matches the output state's first field's declared indices.
+    matches the output space's first field's declared indices.
 
     The comparison is positional on the *index names* (i.e. the str of
     each sympy index symbol against the str in field.indices). Some
@@ -323,8 +323,8 @@ def _check_lhs_indices(op: Operation, formula: sp.Basic) -> list[str]:
 
 
 def validate_dag(
-    nodes: tuple[State, ...] | list[State],
-    edges: tuple[Operation, ...] | list[Operation],
+    nodes: tuple[Space, ...] | list[Space],
+    edges: tuple[Operator, ...] | list[Operator],
 ) -> list[str]:
     """Return a list of DAG-discipline violations (empty if clean)."""
     errors: list[str] = []
@@ -332,42 +332,42 @@ def validate_dag(
     # Name uniqueness
     names_seen: set[str] = set()
     observable_names: set[str] = set()
-    for state in nodes:
-        if state.name in names_seen:
-            errors.append(f"duplicate node name: {state.name!r}")
-        names_seen.add(state.name)
-        if isinstance(state, Observable):
-            observable_names.add(state.name)
+    for space in nodes:
+        if space.name in names_seen:
+            errors.append(f"duplicate node name: {space.name!r}")
+        names_seen.add(space.name)
+        if isinstance(space, ObservableSpace):
+            observable_names.add(space.name)
 
-    # Per-HiddenState discipline
-    for state in nodes:
-        if not isinstance(state, HiddenState):
+    # Per-HiddenSpace discipline
+    for space in nodes:
+        if not isinstance(space, HiddenSpace):
             continue
-        if not state.gauge_group:
+        if not space.gauge_group:
             errors.append(
-                f"{state.name}: HiddenState must declare a non-empty gauge_group"
+                f"{space.name}: HiddenSpace must declare a non-empty gauge_group"
             )
-        if state.kind not in _VALID_KINDS:
+        if space.kind not in _VALID_KINDS:
             errors.append(
-                f"{state.name}: kind must be one of {sorted(_VALID_KINDS)}, "
-                f"got {state.kind!r}"
+                f"{space.name}: kind must be one of {sorted(_VALID_KINDS)}, "
+                f"got {space.kind!r}"
             )
-        if state.kind == "scaffolding":
-            if not state.gauge_invariant_contractions:
+        if space.kind == "scaffolding":
+            if not space.gauge_invariant_contractions:
                 errors.append(
-                    f"{state.name}: scaffolding HiddenState must declare at least one "
+                    f"{space.name}: scaffolding HiddenSpace must declare at least one "
                     "gauge_invariant_contractions entry"
                 )
-            for obs_name in state.gauge_invariant_contractions:
+            for obs_name in space.gauge_invariant_contractions:
                 if obs_name not in observable_names:
                     errors.append(
-                        f"{state.name}: declared contraction {obs_name!r} is not an "
-                        "Observable in the node set"
+                        f"{space.name}: declared contraction {obs_name!r} is not an "
+                        "ObservableSpace in the node set"
                     )
-        elif state.kind == "approximation":
-            if state.gauge_invariant_contractions:
+        elif space.kind == "approximation":
+            if space.gauge_invariant_contractions:
                 errors.append(
-                    f"{state.name}: approximation HiddenState should not declare "
+                    f"{space.name}: approximation HiddenSpace should not declare "
                     "gauge_invariant_contractions (terminal by definition)"
                 )
 
@@ -376,12 +376,12 @@ def validate_dag(
         for inp in op.inputs:
             if inp.name not in names_seen:
                 errors.append(
-                    f"operation {op.name!r} input {inp.name!r} not in node set"
+                    f"operator {op.name!r} input {inp.name!r} not in node set"
                 )
         for out in op.outputs:
             if out.name not in names_seen:
                 errors.append(
-                    f"operation {op.name!r} output {out.name!r} not in node set"
+                    f"operator {op.name!r} output {out.name!r} not in node set"
                 )
 
     # Sympy-layer content checks on edges with sympy formulas.

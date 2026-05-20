@@ -72,7 +72,7 @@ _N_A = 6.02214076e23
 def _make_op_rep(state, observable_name, data) -> Representation:
     """Helper: build an operator-form Representation."""
     return Representation(
-        state_adapter_spec=operator_form_spec(state),
+        space_adapter_spec=operator_form_spec(state),
         observable_name=observable_name,
         data=np.asarray(data),
         is_operator=True,
@@ -91,7 +91,7 @@ def test_apply_edge_identity_dm_passes_data_through_unchanged() -> None:
     bare = _make_op_rep(BARE_DYNAMICAL_MATRIX, "D_bare", data)
     out = apply_edge(identity_dm, bare)
     assert out.is_operator is True
-    assert out.state.name == "DynamicalMatrix"
+    assert out.space.name == "DynamicalMatrix"
     assert out.observable_name == "D"
     np.testing.assert_array_equal(out.data, data)
 
@@ -111,7 +111,7 @@ def test_apply_edge_sum_linewidths_is_elementwise_three_way_sum() -> None:
     rep_c = _make_op_rep(BOUNDARY_LINEWIDTH, "Gamma", c)
     out = apply_edge(sum_linewidths, rep_a, rep_b, rep_c)
     np.testing.assert_array_equal(out.data, a + b + c)
-    assert out.state.name == "Linewidth[channel=total]"
+    assert out.space.name == "Linewidth[channel=total]"
 
 
 # ---------------------------------------------------------------------------
@@ -132,7 +132,7 @@ def test_apply_edge_combine_kappa_wigner_is_elementwise_tensor_sum() -> None:
     )
     out = apply_edge(combine_kappa_wigner, rep_pop, rep_coh)
     np.testing.assert_allclose(out.data, pop + coh)
-    assert out.state.name == "ThermalConductivity[transport_model=wigner]"
+    assert out.space.name == "ThermalConductivity[transport_model=wigner]"
 
 
 # ---------------------------------------------------------------------------
@@ -149,7 +149,7 @@ def test_apply_edge_contract_molar_heat_capacity_matches_full_bz_sum() -> None:
     out = apply_edge(contract_molar_heat_capacity, rep_c)
     expected = _N_A * np.sum(c) / c.shape[0]
     np.testing.assert_allclose(float(out.data), expected, rtol=1e-12)
-    assert out.state.name == "MolarHeatCapacity"
+    assert out.space.name == "MolarHeatCapacity"
 
 
 # ---------------------------------------------------------------------------
@@ -169,7 +169,7 @@ def test_apply_edge_compute_heat_capacity_matches_bose_einstein_closed_form() ->
         4 * _KB * T_value ** 2 * np.sinh(x) ** 2
     )
     np.testing.assert_allclose(out.data, c_ref, rtol=1e-12)
-    assert out.state.name == "HeatCapacity"
+    assert out.space.name == "HeatCapacity"
 
 
 # ---------------------------------------------------------------------------
@@ -187,7 +187,7 @@ def test_apply_edge_compute_free_energy_matches_closed_form() -> None:
     x = _HBAR_EFF * omega / (_KB * T_value)
     f_ref = _HBAR_EFF * omega / 2 + _KB * T_value * np.log(1 - np.exp(-x))
     np.testing.assert_allclose(out.data, f_ref, rtol=1e-12)
-    assert out.state.name == "HelmholtzFreeEnergy"
+    assert out.space.name == "HelmholtzFreeEnergy"
 
 
 # ---------------------------------------------------------------------------
@@ -206,7 +206,7 @@ def test_apply_edge_compute_entropy_matches_bose_einstein_form() -> None:
     n_BE = 1.0 / (np.exp(x) - 1.0)
     s_ref = _HBAR_EFF * omega / T_value * n_BE - _KB * np.log(1 - np.exp(-x))
     np.testing.assert_allclose(out.data, s_ref, rtol=1e-12)
-    assert out.state.name == "Entropy"
+    assert out.space.name == "Entropy"
 
 
 # ---------------------------------------------------------------------------
@@ -225,7 +225,7 @@ def test_apply_edge_compute_internal_energy_matches_bose_einstein_form() -> None
     n_BE = 1.0 / (np.exp(x) - 1.0)
     e_ref = _HBAR_EFF * omega * (0.5 + n_BE)
     np.testing.assert_allclose(out.data, e_ref, rtol=1e-12)
-    assert out.state.name == "InternalEnergy"
+    assert out.space.name == "InternalEnergy"
 
 
 # ---------------------------------------------------------------------------
@@ -261,7 +261,7 @@ def test_apply_edge_raises_value_error_on_wrong_input_count() -> None:
 def test_apply_edge_raises_value_error_on_input_not_in_operator_form() -> None:
     """Inputs must be in operator form; non-canonical inputs surface clearly."""
     omega_rep = Representation(
-        state_adapter_spec=operator_form_spec(FREQUENCY_STATE),
+        space_adapter_spec=operator_form_spec(FREQUENCY_STATE),
         observable_name="omega",
         data=np.array([5.0]),
         is_operator=False,  # deliberately not operator form
@@ -278,5 +278,5 @@ def test_apply_edge_raises_value_error_on_state_mismatch() -> None:
     # expected as the first input of compute_heat_capacity.
     T_rep = _make_op_rep(TEMPERATURE_STATE, "temperature", 300.0)
     omega_rep = _make_op_rep(FREQUENCY_STATE, "omega", np.array([5.0]))
-    with pytest.raises(ValueError, match="input state mismatch"):
+    with pytest.raises(ValueError, match="input space mismatch"):
         apply_edge(compute_heat_capacity, T_rep, omega_rep)

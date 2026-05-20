@@ -85,11 +85,11 @@ their alternatives or justifications; supporting definitions follow in later sec
         what it computes. The formula is the operator claim, machine-readable and
         Lean-projectable, against which adapter conformance can be checked.
 
-  \item \textbf{States are typed witnesses; nodes are Observables or HiddenStates.}
+  \item \textbf{States are typed witnesses; nodes are ObservableSpaces or HiddenSpaces.}
         A state is the typed claim that a operator physics object exists with a
         particular history. The operator layer splits states into two structural kinds:
-        \emph{Observables} (gauge-invariant, first-class, required to agree across
-        adapters) and \emph{HiddenStates} (gauge-dependent intermediate scaffolding
+        \emph{ObservableSpaces} (gauge-invariant, first-class, required to agree across
+        adapters) and \emph{HiddenSpaces} (gauge-dependent intermediate scaffolding
         whose per-element values reflect basis / phase / BZ-summation choices the
         framework does not pin down). Each state declares fields, and each field has an
         index signature (e.g.\ $\omega(\mathbf{q},\nu)$ has indices $(\mathbf{q}, \nu)$;
@@ -116,15 +116,15 @@ their alternatives or justifications; supporting definitions follow in later sec
         the operator state. Convergence is a relationship between a operator state and
         a family of its representations.
 
-  \item \textbf{Cross-code agreement is required at Observable nodes only.} Two
-        adapters' representations of an Observable must agree (after unit and
-        convention conversion) to within the observable's declared tolerance.
-        Representations of a HiddenState are not cross-code comparable per-element;
+  \item \textbf{Cross-code agreement is required at ObservableSpace nodes only.} Two
+        adapters' representations of an ObservableSpace must agree (after unit and
+        normalization conversion) to within the observable's declared tolerance.
+        Representations of a HiddenSpace are not cross-code comparable per-element;
         the operator layer's \texttt{compare} returns the status \texttt{NOT\_COMPARABLE}
-        and reports residuals as diagnostic information only. To make a HiddenState
-        cross-code comparable, contract it into an Observable (e.g., per-mode
-        $\Gamma_{q\nu}$ is a HiddenState; $\sum_{q\nu}\Gamma$ contracted via the
-        BZ sum is an Observable that does agree).
+        and reports residuals as diagnostic information only. To make a HiddenSpace
+        cross-code comparable, contract it into an ObservableSpace (e.g., per-mode
+        $\Gamma_{q\nu}$ is a HiddenSpace; $\sum_{q\nu}\Gamma$ contracted via the
+        BZ sum is an ObservableSpace that does agree).
 
   \item \textbf{Errors are designed-for.} Approximation errors live on operations;
         discretization errors live on representations. The type system reserves slots
@@ -247,8 +247,8 @@ Nothing else is a layer: tests, visualization, and experiment scripts are
 supporting infrastructure.
 
 \paragraph{Layer 1 --- operator.} Types, declarations, formulas, gauges.
-Machinery in \texttt{omai.operator} (the \texttt{State} and
-\texttt{Operation} types, \texttt{Field}, \texttt{Dimension},
+Machinery in \texttt{omai.operator} (the \texttt{Space} and
+\texttt{Operator} types, \texttt{Field}, \texttt{Dimension},
 \texttt{GaugeAction}, \texttt{SymmetryGroup}, \texttt{validate\_dag});
 domain instances in \texttt{omai.thermal\_transport.operator} (the
 46-node, 47-edge DAG with sympy formulas on each edge, gauge actions).
@@ -256,8 +256,8 @@ No values, no units, no per-code knowledge.
 
 \paragraph{Layer 2 --- representation.} Per-code declarations plus the
 runtime that operates on actual code outputs. Machinery in
-\texttt{omai.representation} (the \texttt{StateRepresentationSpec} and
-\texttt{OperationRepresentationSpec} types, \texttt{Unit} and unit conversions,
+\texttt{omai.representation} (the \texttt{SpaceRepresentationSpec} and
+\texttt{OperatorRepresentationSpec} types, \texttt{Unit} and unit conversions,
 the \texttt{Representation} runtime data class, \texttt{compare()} with
 its five-status verdicts); domain instances in
 \texttt{omai.thermal\_transport.represented} (one file per code:
@@ -265,7 +265,7 @@ its five-status verdicts); domain instances in
 
 \paragraph{External codes.} kaldo, phono3py, ShengBTE: do the actual
 physics computation in their own native code, output arrays in their
-native units and conventions.
+native units and normalizations.
 
 \paragraph{The chain in motion.} A typical cross-code verification flows
 through these layers like this:
@@ -278,9 +278,9 @@ through these layers like this:
         and produces a \texttt{Representation} object tagged with the
         right adapter spec.
   \item User calls \texttt{compare(m\_a, m\_b)}. \texttt{compare} consults
-        the operator layer for the cross-code factor (units +
-        conventions), applies it, optionally contracts, and consults the
-        operator layer again for the state's gauge kind to decide whether
+        the operator layer for the cross-code factor (units \(\times\)
+        normalizations), applies it, optionally contracts, and consults the
+        operator layer again for the space's gauge kind to decide whether
         an \textsc{Agree}/\textsc{Disagree} verdict is even meaningful or
         the comparison is \textsc{Not\_Comparable}.
   \item User gets a \texttt{RepresentationComparisonResult} with status, residuals,
@@ -309,9 +309,9 @@ unit choice. Numerical content and units appear only at representation time.
 
 A operator state $s$ is a tuple $(\kappa, \tau, \pi, F)$ where:
 \begin{itemize}[leftmargin=2em]
-  \item $\kappa \in \{\textsc{Observable}, \textsc{HiddenState}\}$ is the
-        \emph{gauge-invariance kind}: Observables are gauge-invariant and cross-code
-        comparable; HiddenStates carry gauge freedom (eigenvector phase, BZ-summation
+  \item $\kappa \in \{\textsc{ObservableSpace}, \textsc{HiddenSpace}\}$ is the
+        \emph{gauge-invariance kind}: ObservableSpaces are gauge-invariant and cross-code
+        comparable; HiddenSpaces carry gauge freedom (eigenvector phase, BZ-summation
         choice, degenerate-subspace rotation, …) that the operator layer doesn't pin down,
         so their per-element values differ across adapters by design;
   \item $\tau$ is a \emph{physics type} drawn from a finite registry. Derived types in
@@ -321,9 +321,9 @@ A operator state $s$ is a tuple $(\kappa, \tau, \pi, F)$ where:
         \texttt{MeanFreeDisplacement}, \texttt{ThermalConductivity}; sources include
         \texttt{Potential}, \texttt{Temperature}. Some types are further parameterized
         by upstream operation choices (e.g., \texttt{ThermalConductivity[bte\_solver=
-        rta]} is a HiddenState since RTA's $1/\Gamma$ non-linearity breaks gauge
+        rta]} is a HiddenSpace since RTA's $1/\Gamma$ non-linearity breaks gauge
         invariance, whereas \texttt{ThermalConductivity[bte\_solver=direct\_inverse]}
-        is an Observable because the full LBTE preserves it);
+        is an ObservableSpace because the full LBTE preserves it);
   \item $\pi$ is the \emph{provenance}: an ordered list $[\mathcal{O}_1, \mathcal{O}_2,
         \ldots, \mathcal{O}_n]$ of operator operations whose composition produced $s$.
         Provenance is never empty---source states have a single nullary operation
@@ -441,16 +441,17 @@ equipped with three pieces of metadata:
         perturbation, $T/T^*$ for a Sommerfeld expansion). Exact operations have
         $\epsilon_{\mathcal{O}} = 0$; approximating operations have
         $\epsilon_{\mathcal{O}} = O(p^k)$ for some parameter $p$ and order $k$;
-  \item a possibly empty set of \emph{algorithmic conventions} (per
+  \item a possibly empty set of \emph{schemes} (per
         \S\ref{ssec:parameterized-operation-identity}) and \emph{parameters}
         (dimensioned but unit-free at the operator layer).
 \end{itemize}
-Multi-output operations (e.g.\ \texttt{compute\_dispersion} producing
+Multi-output operators (e.g.\ \texttt{compute\_dispersion} producing
 \texttt{Frequency} and \texttt{Eigenvectors} together) are first-class. The formula
 $\mathcal{F}_\mathcal{O}$ is the operator layer's machine-readable claim about what the
-operation produces: adapter conformance can be expressed as ``the adapter's runtime
-behavior matches $\mathcal{F}_\mathcal{O}$ under its declared unit and convention
-choices,'' in principle automatable rather than reverse-engineered from kernels.
+operator produces: adapter conformance can be expressed as ``the adapter's runtime
+behavior matches $\mathcal{F}_\mathcal{O}$ under its declared unit, normalization,
+and scheme choices,'' in principle automatable rather than reverse-engineered
+from kernels.
 
 
 \paragraph{Operation identity is parameterized.}\label{ssec:parameterized-operation-identity}
@@ -493,19 +494,18 @@ added to the DAG, three patterns are available. The choice has structural
 consequences, so we record the rules here rather than leaving them to taste.
 
 \paragraph{Where formulas live.} \emph{Edges} carry the sympy formula and the
-declared algorithmic conventions; \emph{states} are typed places (a claim that
-``this physical quantity exists, with this dimension, this gauge type, this
-convention vocabulary''). Different production formulas do not, by themselves,
-force different states --- they force different edges.
+declared schemes; \emph{spaces} are typed places (a claim that ``this physical
+quantity exists, with this dimension, this gauge type, this label
+vocabulary''). Different production formulas do not, by themselves, force
+different spaces --- they force different edges.
 
-\paragraph{Pattern A --- type-level parameter on the state.} Use when the
-parameter changes the \emph{gauge type} (\textsc{Observable} vs.\
-\textsc{HiddenState}) of the produced quantity, \emph{and} the parameterised
-state is terminal (or its parameterised consumers are themselves a closed
-sub-branch). Existing examples:
+\paragraph{Pattern A --- label on the space.} Use when the label changes the
+\emph{gauge type} (\textsc{ObservableSpace} vs.\ \textsc{HiddenSpace}) of the
+produced quantity, \emph{and} the labelled space is terminal (or its
+labelled consumers are themselves a closed sub-branch). Existing examples:
 \begin{itemize}[leftmargin=2em]
   \item \texttt{MeanFreeDisplacement[bte\_solver=rta|direct\_inverse]} ---
-        RTA is \textsc{HiddenState}, direct is \textsc{Observable}. Propagates
+        RTA is \textsc{HiddenSpace}, direct is \textsc{ObservableSpace}. Propagates
         to \texttt{ThermalConductivity[bte\_solver=\ldots]} and stops there.
   \item \texttt{ThermalConductivity[transport\_model=lbte|wigner|qhgk]} ---
         adds the orthogonal axis for Wigner and QHGK transport. All terminal.
@@ -566,15 +566,15 @@ which are distinct.
 \paragraph{Two-tier validation.} Validation runs at two layers.
 \emph{Declarations} are checked at module load: \texttt{validate\_dag} on
 \texttt{NODES} and \texttt{EDGES} verifies the gauge-discipline invariants
-(every \textsc{HiddenState} declares its gauge group and gauge-invariant
-contractions; convention names referenced by adapters exist on their
-states; no cycles), and now also the sympy-layer invariants (every
+(every \textsc{HiddenSpace} declares its gauge group and gauge-invariant
+contractions; scheme names referenced by adapters exist on their
+operators; no cycles), and now also the sympy-layer invariants (every
 edge's \texttt{formula.free\_symbols} are derivable from its inputs and
-parameters; LHS indices match the output state's field; auxiliary
+parameters; LHS indices match the output space's field; auxiliary
 formulas close over the main formula's vocabulary). \emph{Cross-code
 data} is checked at comparison time: \texttt{compare\_operators} on a
-pair of \texttt{StateRepresentationSpec}s verifies that two codes are claiming
-the same operator (compatible units, canonicalisable conventions), and
+pair of \texttt{SpaceRepresentationSpec}s verifies that two codes are claiming
+the same operator (compatible units, canonicalisable normalizations), and
 \texttt{compare\_representations} on a pair of \texttt{Representation}s
 applies the spec-derived conversion and emits the five-status
 \texttt{RepresentationComparisonResult}. Mismatches at the declaration
@@ -593,40 +593,56 @@ giving the asymptotic dependence of the discretization error on these parameters
 \subsection{Representation}
 
 A representation $m$ is a runtime data class wrapping one adapter's emission of one
-field on one state:
+field on one space:
 \begin{equation*}
-  m = (\textsc{StateRepresentationSpec}, \texttt{field\_name}, x)
+  m = (\textsc{SpaceRepresentationSpec}, \texttt{field\_name}, x)
 \end{equation*}
-where \textsc{StateRepresentationSpec} carries the operator state $s$, the representation name, and
-the adapter's declarations (units of each field, convention overrides, notes);
+where \textsc{SpaceRepresentationSpec} carries the operator \texttt{Space} $s$, the
+representation name, and the adapter's declarations (the \emph{unit} of each
+field and the \emph{normalization} of each field, plus notes);
 \texttt{field\_name} selects which field of $s$ is represented; and $x$ is a concrete
 \texttt{numpy.ndarray}. The discretization scheme $\Sigma$ and discretization error
 $\epsilon_{\text{disc}}$ are deferred to Phase 2.
 
-\paragraph{Why the representation spec ships with the data.} Different codes
-express the same physics in different units (kaldo's linewidth is in angular-frequency
-THz while phono3py's is in linear-frequency THz; kaldo's heat capacity is in J/K,
-phono3py's in eV/K) and under different conventions (kaldo's $\Gamma$ is the linewidth
-$2\,\text{Im}\,\Sigma$ while phono3py's is $\text{Im}\,\Sigma$ directly). A raw array
-without its adapter spec is unsafe to compare against another. With the spec attached,
-the operator layer computes the cross-representation conversion factor mechanically and surfaces
-unit / convention mismatches as type-level declarations rather than as numerical
-mysteries.
+\paragraph{Why the representation spec ships with the data: unit $\times$ normalization.}
+Different codes express the same physics under two independent multiplicative
+choices, and the spec records both:
+\begin{itemize}[leftmargin=2em]
+  \item \textbf{Unit} (measure choice). kaldo's linewidth is in angular-frequency
+        THz while phono3py's is in linear-frequency THz; kaldo's heat capacity is
+        in J/K, phono3py's in eV/K. Each \texttt{Unit} entry carries a
+        \texttt{to\_operator} multiplier into the operator-canonical unit for
+        its dimension.
+  \item \textbf{Normalization} (definitional choice). kaldo emits $\Gamma = 2\,\text{Im}\,\Sigma$
+        while phono3py emits $\Gamma = \text{Im}\,\Sigma$; ShengBTE reads FC3 in
+        the mixed-dimension form $\text{eV}/(\text{\AA}^2 \cdot \text{nm})$ while
+        kaldo / phono3py read $\text{eV}/\text{\AA}^3$. Each \texttt{Normalization}
+        entry carries a \texttt{to\_operator} multiplier into the canonical
+        definitional form.
+\end{itemize}
+The two choices are orthogonal: a raw array without its spec is unsafe to
+compare against another; with the spec attached, the operator layer computes
+both factors mechanically and surfaces unit / normalization mismatches as
+type-level declarations rather than as numerical mysteries.
 
 \paragraph{Star topology: the operator layer is the unique hub.}
 The cross-representation conversion factor is \emph{never} a direct
-representation-to-representation primitive. The primitives are the two functions
-$\texttt{representation\_to\_operator}(A,\text{obs})$ and
-$\texttt{operator\_to\_representation}(B,\text{obs})$ which carry a
-value between a representation's emitted form and the operator form
-($x_{\text{operator}} = x_A \cdot u_A^{\text{canon}} / c_A$, where
-$u_A^{\text{canon}}$ is the unit's \texttt{to\_canonical} multiplier and
-$c_A$ is the representation's convention deviation from operator-canonical).
-The combined factor
-$\texttt{inter\_representation\_factor}(A, B, \text{obs}) =
-\texttt{operator\_to\_representation}(B, \text{obs}) \cdot
-\texttt{representation\_to\_operator}(A, \text{obs})$
-is \emph{derived}, never primitive. Geometrically the operator layer is the
+representation-to-representation primitive. The two primitives are
+$\texttt{representation\_to\_operator}(A,\text{obs})$ and its inverse
+$\texttt{operator\_to\_representation}(A,\text{obs})$, each defined as a
+clean composition of the unit's and normalization's
+\texttt{to\_operator} multipliers:
+\begin{equation*}
+  \texttt{representation\_to\_operator}(A,\text{obs})
+  \;=\; \texttt{UNITS}[u_A].\texttt{to\_operator}
+  \;\cdot\; \texttt{NORMALIZATIONS}[n_A].\texttt{to\_operator}.
+\end{equation*}
+The cross-adapter A$\to$B factor is the composition through the operator hub,
+\begin{equation*}
+  \texttt{operator\_to\_representation}(B,\text{obs}) \;\cdot\;
+  \texttt{representation\_to\_operator}(A,\text{obs}),
+\end{equation*}
+\emph{derived} and never primitive. Geometrically the operator layer is the
 unique hub of a star topology with each representation as a spoke; an
 $N$-representation domain requires $N$ spec sets to the operator hub, never
 $N^2$ pairwise conversions. Lean-side this is the right factoring: the
@@ -652,22 +668,22 @@ The bridge from spec to verified empirical fact is the function
   \texttt{compare}(m_a, m_b; \text{rtol}, \text{atol}, \text{contraction})
   \;\to\; \textsc{RepresentationComparisonResult}
 \end{equation*}
-which takes two representations of the same state and field, applies the cross-representation
-conversion factor derived from their declared units and conventions, optionally
+which takes two representations of the same space and field, applies the cross-representation
+conversion factor derived from their declared units and normalizations, optionally
 contracts both arrays via a user-supplied callable (e.g.\ \texttt{numpy.sum}), and
 reports residuals together with a \emph{status} drawn from five values:
 \begin{description}[leftmargin=2.5em, itemsep=0.2em]
-  \item[\textsc{Expected\_Agree}] the state is an Observable; the arrays agree within
+  \item[\textsc{Expected\_Agree}] the space is an ObservableSpace; the arrays agree within
         $(\text{rtol}, \text{atol})$. The operator layer's prediction holds.
   \item[\textsc{Expected\_Disagree}] the user predicted disagreement (override) and the
-        arrays disagree. Useful for intermediate contractions of a HiddenState that the
+        arrays disagree. Useful for intermediate contractions of a HiddenSpace that the
         user knows is only partially gauge-invariant.
-  \item[\textsc{Not\_Comparable}] the state is a HiddenState and no contraction was
+  \item[\textsc{Not\_Comparable}] the space is a HiddenSpace and no contraction was
         supplied. The operator layer refuses to make an agree/disagree verdict;
         residuals are still computed and returned for diagnostic inspection, but they
         carry no normative weight.
-  \item[\textsc{Unexpected\_Disagree}] the state is an Observable but the arrays
-        disagree. \emph{Real anomaly}: either the spec is missing a convention, or the
+  \item[\textsc{Unexpected\_Disagree}] the space is an ObservableSpace but the arrays
+        disagree. \emph{Real anomaly}: either the spec is missing a normalization, or the
         codes genuinely compute different physics, or rtol is too strict.
   \item[\textsc{Unexpected\_Agree}] the user predicted disagreement and the arrays
         agreed. Rare; the per-element protocol may be tighter than declared.
@@ -678,35 +694,35 @@ conflated: the operator layer's \emph{prediction} (would these agree?), the empi
 \emph{outcome} (did they?), and whether the comparison is even \emph{meaningful} for
 the given state kind. Only \textsc{Unexpected\_Disagree} flags an anomaly that needs
 investigation; \textsc{Expected\_Agree} and \textsc{Expected\_Disagree} are successful
-predictions; \textsc{Not\_Comparable} is a HiddenState saying ``don't ask this
+predictions; \textsc{Not\_Comparable} is a HiddenSpace saying ``don't ask this
 question.''
 
-\subsection{HiddenState discipline and gauge actions}
+\subsection{HiddenSpace discipline and gauge actions}
 \label{ssec:gauge-discipline}
 
-The Observable / HiddenState distinction is load-bearing, so the operator layer
-enforces a discipline on how HiddenStates are declared. Each HiddenState
+The ObservableSpace / HiddenSpace distinction is load-bearing, so the operator layer
+enforces a discipline on how HiddenSpaces are declared. Each HiddenSpace
 carries three additional fields:
 
 \begin{itemize}[leftmargin=2em, itemsep=0.2em]
   \item \texttt{gauge\_group}: a named identifier for the gauge equivalence
         acting on this state (e.g.\ ``U(1)\_phase\_on\_eigenvector'',
         ``bz\_summation\_permutation'').
-  \item \texttt{kind}: one of \texttt{scaffolding} (the HiddenState is
-        consumed by a downstream operation producing an Observable, so the
+  \item \texttt{kind}: one of \texttt{scaffolding} (the HiddenSpace is
+        consumed by a downstream operation producing an ObservableSpace, so the
         gauge orbit is eventually summed away) or \texttt{approximation}
-        (the HiddenState is terminal --- an approximation of an Observable
+        (the HiddenSpace is terminal --- an approximation of an ObservableSpace
         that happens to break gauge invariance, with no downstream recovery;
         $\kappa$\texttt{[bte\_solver=rta]} is the canonical example).
-  \item \texttt{gauge\_invariant\_contractions}: names of Observables in the
+  \item \texttt{gauge\_invariant\_contractions}: names of ObservableSpaces in the
         DAG that capture this state's gauge-invariant content (empty for
         \texttt{approximation} kind).
 \end{itemize}
 
 A \texttt{validate\_dag} function walks the node and edge sets at
 load time and rejects: undeclared gauge groups, invalid kinds, scaffolding
-HiddenStates with empty or non-resolving contractions, approximation
-HiddenStates that incorrectly declare contractions, and edges that
+HiddenSpaces with empty or non-resolving contractions, approximation
+HiddenSpaces that incorrectly declare contractions, and edges that
 reference unknown nodes. The thermal-transport DAG passes this
 validator; tests check it on every CI run.
 
@@ -852,7 +868,7 @@ tier the three MD-based $\kappa$ contractions (Green-Kubo from HeatCurrentACF,
 NEMD and HNEMD from time-averaged HeatCurrent) close the cross-paradigm
 $\kappa$ map alongside the LBTE / Wigner / QHGK variants.
 
-\paragraph{Nodes (Observable / HiddenState):}
+\paragraph{Nodes (ObservableSpace / HiddenSpace):}
 \begin{itemize}[leftmargin=2em, itemsep=0.2em]
   \item \texttt{Potential} (\textbf{O}): the operator root, stubbed in Phase 1;
   \item \texttt{Temperature} (\textbf{O}): scalar source $T$;
@@ -895,7 +911,7 @@ $\kappa$ map alongside the LBTE / Wigner / QHGK variants.
         \texttt{DynamicalMatrix});
   \item \texttt{HelmholtzFreeEnergy} (\textbf{O}), \texttt{Entropy}
         (\textbf{O}), \texttt{InternalEnergy} (\textbf{O}), plus their
-        \texttt{Molar*} contractions --- sibling Observables of
+        \texttt{Molar*} contractions --- sibling ObservableSpaces of
         \texttt{HeatCapacity};
   \item \texttt{Linewidth[channel=anharmonic\_3ph|isotope|boundary|total]}
         (\textbf{H}) --- four channels with different inputs, summed via
@@ -923,7 +939,7 @@ $\kappa$ map alongside the LBTE / Wigner / QHGK variants.
         the diffusion-limit observable.
   \item \emph{MD-based $\kappa$ terminals (P3):} three Pattern-A
         \texttt{transport\_model} variants of \texttt{ThermalConductivity}, all
-        Observables --- \texttt{[transport\_model=green\_kubo]} from the
+        ObservableSpaces --- \texttt{[transport\_model=green\_kubo]} from the
         time-integrated heat-flux ACF; \texttt{[transport\_model=nemd]} from
         the imposed-gradient/Müller-Plathe steady state; and
         \texttt{[transport\_model=hnemd]} from the homogeneous-NEMD driving
@@ -944,12 +960,12 @@ $\kappa$ map alongside the LBTE / Wigner / QHGK variants.
         $\sum_j D_{ij}(\mathbf{q})\, e_{j,q,\nu} = \omega^2_{q,\nu}\, e_{i,q,\nu}$;
   \item \texttt{compute\_group\_velocity}: Hellmann--Feynman
         $v^\alpha_{q,\nu} = \frac{1}{2\omega_{q,\nu}} e^\dagger_{q,\nu}\,
-        \partial D / \partial q^\alpha\, e_{q,\nu}$; algorithmic convention
+        \partial D / \partial q^\alpha\, e_{q,\nu}$; scheme
         \texttt{gv\_method} $\in$ \{\texttt{hellmann\_feynman} (canonical),
         \texttt{finite\_difference}\} captures the two estimators codes use;
   \item \texttt{compute\_heat\_capacity}: closed form above;
   \item \texttt{compute\_linewidth}: triple BZ sum (Fermi's golden rule);
-        algorithmic convention \texttt{broadening\_param} $\in$ \{stdev,
+        scheme \texttt{broadening\_param} $\in$ \{stdev,
         halfwidth, adaptive\_scaled\}, plus an auxiliary equation
         \texttt{auxiliary\_formulas[0]} that spells out the Maradudin--Fein
         kernel $|V_3|^2 = |\sum_{ijk,RR'} \Phi^3_{ijk}\, e\, e\, e /
@@ -964,31 +980,31 @@ $\kappa$ map alongside the LBTE / Wigner / QHGK variants.
         direct\_inverse]}: same BZ contraction
         $\kappa^{\alpha\beta} = \frac{1}{V N_q}\sum c\, v^\alpha\, F^\beta$;
         the two operations differ only in their input and output state types,
-        ensuring $\kappa_\text{RTA}$ is typed as a HiddenState and $\kappa_\text{LBTE}$
-        as an Observable;
+        ensuring $\kappa_\text{RTA}$ is typed as a HiddenSpace and $\kappa_\text{LBTE}$
+        as an ObservableSpace;
   \item \texttt{contract\_volumetric\_heat\_capacity}, \texttt{contract\_molar\_heat\_capacity}:
         BZ-and-mode sums of \texttt{HeatCapacity}, divided by cell volume or
         multiplied by $N_A/N_q$ respectively, so adapters that emit only the
         contracted form (ShengBTE, phonopy) land on a shared operator state;
   \item \texttt{compute\_dos}: $g(\omega) = N_q^{-1} \sum_{q\nu}
-        \delta(\omega - \omega_{q\nu})$, with convention
+        \delta(\omega - \omega_{q\nu})$, with scheme
         \texttt{dos\_broadening} $\in$ \{\texttt{gaussian} (canonical),
         \texttt{tetrahedron}, \texttt{adaptive\_scaled}\};
   \item \texttt{compute\_gruneisen}: Maradudin--Fein closed form, with
-        convention \texttt{gruneisen\_method} $\in$ \{\texttt{maradudin\_fein}
+        scheme \texttt{gruneisen\_method} $\in$ \{\texttt{maradudin\_fein}
         (canonical), \texttt{finite\_difference}\} --- phonopy uses the
         latter (deformed-cell finite difference), the other three codes the
         former;
   \item \texttt{compute\_phase\_space\_3phonon}: $P_3(\mathbf{q}, \nu)$ from
-        energy + crystal-momentum conservation, with convention
+        energy + crystal-momentum conservation, with scheme
         \texttt{delta\_broadening} mirroring \texttt{dos\_broadening};
   \item \texttt{provide\_born\_charges},
         \texttt{provide\_dielectric\_tensor},
         \texttt{provide\_isotope\_abundances} --- nullary sources for the
         polar / isotope inputs;
   \item \texttt{identity\_dm} and \texttt{apply\_nac\_correction}:
-        Pattern-C siblings into \texttt{DynamicalMatrix} (algorithmic
-        convention \texttt{nac\_scheme} $\in$ \{gonze\_lee canonical,
+        Pattern-C siblings into \texttt{DynamicalMatrix} (scheme
+        \texttt{nac\_scheme} $\in$ \{gonze\_lee canonical,
         wang, ewald\});
   \item \texttt{compute\_free\_energy}, \texttt{compute\_entropy},
         \texttt{compute\_internal\_energy} and their
@@ -1004,7 +1020,7 @@ $\kappa$ map alongside the LBTE / Wigner / QHGK variants.
         \texttt{compute\_kappa\_qhgk};
   \item \texttt{contract\_cumulative\_kappa[wrt=omega|mfp]} ---
         Heaviside-$\theta$ encoded cumulative thresholds with
-        \texttt{binning} convention (linear for $\omega$, log for MFP).
+        \texttt{binning} scheme (linear for $\omega$, log for MFP).
   \item \emph{MD-primitive tier (P2):}
         \texttt{run\_md} --- Velocity-Verlet recurrence with
         \texttt{ensemble} $\in$ \{nve, nvt, npt\},
@@ -1012,13 +1028,14 @@ $\kappa$ map alongside the LBTE / Wigner / QHGK variants.
         csvr, none\}, \texttt{integrator} $\in$ \{velocity\_verlet,
         leapfrog\};
         \texttt{compute\_heat\_current} --- Irving--Kirkwood / Hardy
-        / virial decomposition (\texttt{definition} convention);
+        / virial decomposition (\texttt{definition} scheme);
         \texttt{autocorrelate\_heat\_current} --- direct/FFT time
-        correlation of $J(t)$;
+        correlation of $J(t)$ (numerically equivalent under periodic
+        padding, so no \texttt{correlation\_method} scheme is declared);
         \texttt{compute\_velocity\_autocorrelation} --- direct/FFT
         $\langle v(0)\cdot v(\tau)\rangle$;
         \texttt{compute\_msd} --- $\langle |r(t+\tau)-r(t)|^2\rangle$,
-        with \texttt{unwrap\_pbc} convention;
+        with \texttt{unwrap\_pbc} scheme;
         \texttt{fourier\_to\_dos} --- Wiener--Khinchin $g(\omega) =
         (1/\pi)\int C_v(\tau)\cos\omega\tau\,d\tau$, a Pattern-C
         alternative producer of \texttt{PhononDOS} alongside
@@ -1029,7 +1046,7 @@ $\kappa$ map alongside the LBTE / Wigner / QHGK variants.
         \langle J^\alpha(0)J^\beta(\tau)\rangle\,d\tau$;
         \texttt{contract\_kappa[transport\_model=nemd]} ---
         $\kappa = -\langle J\rangle / (\partial T/\partial z)$, with
-        \texttt{nemd\_method} convention $\in$ \{\texttt{direct\_two\_
+        \texttt{nemd\_method} scheme $\in$ \{\texttt{direct\_two\_
         reservoir}, \texttt{muller\_plathe}, \texttt{ehex}\} (LAMMPS-side
         method);
         \texttt{contract\_kappa[transport\_model=hnemd]} ---
@@ -1133,13 +1150,13 @@ $\kappa$ Pattern-A terminals (Green-Kubo, NEMD, HNEMD) --- is included; see
 two darker top boxes (\texttt{Potential}, \texttt{Temperature}) are source nodes;
 the dashed edges from \texttt{Potential} represent the stubbed Phase-1 upstream.
 \texttt{MeanFreeDisplacement} and $\kappa$ split into two parameterized variants by
-\texttt{bte\_solver}: the gray-shaded \texttt{[rta]} variants are HiddenStates
+\texttt{bte\_solver}: the gray-shaded \texttt{[rta]} variants are HiddenSpaces
 (RTA's $1/\Gamma$ non-linearity breaks gauge invariance), the unshaded
-\texttt{[direct\_inverse]} variants are Observables (the full LBTE preserves it).
+\texttt{[direct\_inverse]} variants are ObservableSpaces (the full LBTE preserves it).
 Each derived edge carries a sympy formula; sources carry identity formulas. All
-nodes are outputs of some operation; cross-code comparison happens at Observable
-nodes (after the operator layer's spec-derived unit and convention conversion). Other
-HiddenStates (\texttt{Eigenvectors}, \texttt{GroupVelocity}, \texttt{Linewidth})
+nodes are outputs of some operator; cross-code comparison happens at ObservableSpace
+nodes (after the operator layer's spec-derived unit and normalization conversion). Other
+HiddenSpaces (\texttt{Eigenvectors}, \texttt{GroupVelocity}, \texttt{Linewidth})
 are not visually distinguished in this diagram but are gauge-dependent in the same
 sense.}
 \label{fig:dag}
@@ -1175,9 +1192,9 @@ are now ingested:
         rather than \texttt{HeatCapacity} on that branch.
 \end{itemize}
 
-Each adapter spec declares per-state units, convention overrides, and notes
-(\texttt{StateRepresentationSpec}), plus per-operation parameter units, algorithmic-convention
-overrides, and discretization choices (\texttt{OperationRepresentationSpec}). Differences
+Each adapter spec declares per-space units, normalization overrides, and notes
+(\texttt{SpaceRepresentationSpec}), plus per-operator parameter units, scheme
+overrides, and discretization choices (\texttt{OperatorRepresentationSpec}). Differences
 from the operator layer's canonical declarations surface as conversion factors at
 spec-load time.
 
@@ -1191,7 +1208,7 @@ q-mesh, $T = 300\,\text{K}$, broadening stdev $0.1\,\text{THz}$:
 \begin{center}
 \begin{tabular}{lll}
 \toprule
-Observable / contraction & Operator prediction & Empirical residual \\
+ObservableSpace / contraction & Operator prediction & Empirical residual \\
 \midrule
 \texttt{Frequency} per-mode (\textbf{O})            & factor $1$ (both linear THz)  & $5\times 10^{-4}$ \\
 \texttt{HeatCapacity} per-mode (\textbf{O})         & factor $1/e \approx 6\times 10^{18}$ & $3\times 10^{-5}$ \\
@@ -1204,17 +1221,19 @@ $\kappa$\texttt{[bte\_solver=rta]} (\textbf{H})     & \textsc{Not\_Comparable} &
 \end{tabular}
 \end{center}
 
-All Observable comparisons pass at $\le 1\%$ tolerance; all HiddenState per-element
+All ObservableSpace comparisons pass at $\le 1\%$ tolerance; all HiddenSpace per-element
 comparisons return \textsc{Not\_Comparable}. The $1/(4\pi)$ factor on $\Gamma$
-decomposes into $1/(2\pi)$ unit (kaldo angular vs phono3py linear THz) and $1/2$
-convention (kaldo $\Gamma = 2\,\text{Im}\,\Sigma$, phono3py $\Gamma = \text{Im}\,\Sigma$).
-Both factors were derived by the operator layer from declared adapter specs, then
+decomposes into a $1/(2\pi)$ \emph{unit} factor (kaldo angular vs phono3py linear
+THz) and a $1/2$ \emph{normalization} factor (kaldo $\Gamma = 2\,\text{Im}\,\Sigma$
+$\Rightarrow$ \texttt{linewidth\_2x\_imag\_self\_energy} with
+\texttt{to\_operator}~$=0.5$; phono3py uses the canonical normalization). Both
+factors were derived by the operator layer from declared adapter specs, then
 applied mechanically to the diagnostic data.
 
 The 4\% disagreement on $\kappa_\text{RTA}$ is the operator layer's structural prediction
 working as designed: RTA's approximation breaks $\kappa$'s gauge invariance via the
 $1/\Gamma$ non-linearity, so the per-mode Linewidth redistribution propagates into
-$\kappa$. Typing $\kappa_\text{RTA}$ as a HiddenState makes this a non-anomaly; the
+$\kappa$. Typing $\kappa_\text{RTA}$ as a HiddenSpace makes this a non-anomaly; the
 gauge-invariant $\kappa_\text{LBTE}$ agrees to 0.4\%.
 
 \paragraph{Cross-paradigm $\kappa$ (phase 2 P4).} On the same Si-Tersoff
@@ -1269,10 +1288,10 @@ plus one per domain:
 
 \begin{itemize}[leftmargin=2em, itemsep=0.3em]
   \item \texttt{omai.operator} --- operator layer machinery for the operator world.
-        \texttt{State} (base class), \texttt{Observable} and \texttt{HiddenState}
+        \texttt{Space} (base class), \texttt{ObservableSpace} and \texttt{HiddenSpace}
         (subclasses, with gauge-discipline fields on the latter), \texttt{Field},
-        \texttt{Operation}, \texttt{Parameter}, \texttt{Dimension},
-        \texttt{PhysicsType}, \texttt{topological\_order},
+        \texttt{Operator}, \texttt{Parameter}, \texttt{Dimension},
+        \texttt{topological\_order},
         \texttt{validate\_dag} (Level 1 discipline enforcement), and
         \texttt{GaugeAction} / \texttt{check\_invariance} (Level 2 operator
         gauge proofs). Code-agnostic and domain-agnostic.
@@ -1280,13 +1299,19 @@ plus one per domain:
     \begin{itemize}[leftmargin=1.2em]
       \item \texttt{units.py}: the \texttt{Unit} class, named unit instances, strict
             same-dimension \texttt{conversion\_factor}.
-      \item \texttt{adapter.py}: \texttt{StateRepresentationSpec} and
-            \texttt{OperationRepresentationSpec}, plus inter-representation factor
-            helpers (\texttt{inter\_representation\_unit\_factor},
-            \texttt{inter\_representation\_factor},
-            \texttt{representation\_convention\_match},
-            \texttt{representation\_algorithmic\_match},
-            \texttt{representation\_discretization\_match}).
+      \item \texttt{normalizations.py}: the \texttt{Normalization} registry
+            mirroring \texttt{units.UNITS} in shape --- each entry carries a
+            \texttt{to\_operator} multiplier into canonical definitional form
+            (e.g.\ \texttt{linewidth\_2x\_imag\_self\_energy} with factor
+            $0.5$, \texttt{eV\_per\_A2\_per\_nm} with factor $10$).
+      \item \texttt{adapter.py}: \texttt{SpaceRepresentationSpec} and
+            \texttt{OperatorRepresentationSpec}; the two primitives
+            \texttt{representation\_to\_operator} and
+            \texttt{operator\_to\_representation} (each defined as the
+            composition \texttt{unit.to\_operator}~$\cdot$~\texttt{normalization.to\_operator});
+            and the diagnostic helpers
+            \texttt{representation\_scheme\_match} and
+            \texttt{representation\_discretization\_match}.
       \item \texttt{instance.py}: the \texttt{Representation} runtime data class
             and \texttt{represent()} constructor.
       \item \texttt{compare.py}: numerical and structural comparison APIs.
@@ -1302,24 +1327,24 @@ plus one per domain:
     Code-agnostic.
   \item \texttt{omai.thermal\_transport} --- the lattice-thermal-transport domain.
     \begin{itemize}[leftmargin=1.2em]
-      \item \texttt{operator/nodes.py}: the 46 states as \texttt{Observable} or
-            \texttt{HiddenState} instances with their fields.
-      \item \texttt{operator/edges.py}: the 47 operations with sympy formulas
+      \item \texttt{operator/nodes.py}: the 46 spaces as \texttt{ObservableSpace} or
+            \texttt{HiddenSpace} instances with their fields.
+      \item \texttt{operator/edges.py}: the 47 operators with sympy formulas
             and \texttt{auxiliary\_formulas} (the \texttt{compute\_linewidth}
             $|V_3|^2$ kernel and the \texttt{solve\_bte[direct\_inverse]}
             collision matrix $M$); sympy symbols and \texttt{IndexedBase}
             declarations.
       \item \texttt{operator/gauges.py}: concrete \texttt{GaugeAction}
             instances for the domain (e.g.\ U(1) phase on Eigenvectors).
-            Mechanically verifies operation formulas are gauge-invariant.
+            Mechanically verifies operator formulas are gauge-invariant.
       \item \texttt{representation/kaldo.py},
             \texttt{representation/phono3py.py},
             \texttt{representation/phonopy.py},
             \texttt{representation/shengbte.py}: per-code adapter specs
-            (one file per code), declaring units, conventions, and
-            discretization choices. Every operation in scope for a code now
-            carries an \texttt{OperationRepresentationSpec}; trivial source /
-            contraction ops carry no conventions but exist to mark coverage
+            (one file per code), declaring units, normalizations, schemes,
+            and discretization choices. Every operator in scope for a code
+            now carries an \texttt{OperatorRepresentationSpec}; trivial source /
+            contraction ops carry no schemes but exist to mark coverage
             in the visualization.
       \item \texttt{visualize.py}: emits \texttt{docs/dag.html}, an interactive
             single-file visualization (per-pipeline SVG DAGs with row-aligned

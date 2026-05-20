@@ -32,7 +32,7 @@ Skipped states:
 
 from __future__ import annotations
 
-from omai.representation.adapter import OperationRepresentationSpec, StateRepresentationSpec
+from omai.representation.adapter import OperatorRepresentationSpec, SpaceRepresentationSpec
 from omai.thermal_transport.operator.edges import (
     apply_nac_correction,
     compute_anharmonic_linewidth,
@@ -88,8 +88,8 @@ from omai.thermal_transport.operator.nodes import (
 )
 
 
-SHENGBTE_FREQUENCY = StateRepresentationSpec(
-    state=FREQUENCY_STATE,
+SHENGBTE_FREQUENCY = SpaceRepresentationSpec(
+    space=FREQUENCY_STATE,
     representation_name="shengbte",
     observable_units={"omega": "angular_THz"},
     code_api={"omega": "BTE.omega"},
@@ -100,8 +100,8 @@ SHENGBTE_FREQUENCY = StateRepresentationSpec(
 )
 
 
-SHENGBTE_GROUP_VELOCITY = StateRepresentationSpec(
-    state=GROUP_VELOCITY,
+SHENGBTE_GROUP_VELOCITY = SpaceRepresentationSpec(
+    space=GROUP_VELOCITY,
     representation_name="shengbte",
     observable_units={"v": "km_per_s"},
     code_api={"v": "BTE.v"},
@@ -112,17 +112,17 @@ SHENGBTE_GROUP_VELOCITY = StateRepresentationSpec(
 )
 
 
-SHENGBTE_LINEWIDTH = StateRepresentationSpec(
-    state=LINEWIDTH,
+SHENGBTE_LINEWIDTH = SpaceRepresentationSpec(
+    space=LINEWIDTH,
     representation_name="shengbte",
     observable_units={"Gamma": "angular_THz"},
-    observable_convention_overrides={
+    observable_normalizations={
         # BTE.w_anharmonic is the three-phonon scattering rate 1/τ in ps⁻¹.
         # Under the lattice-dynamics convention where Γ is in angular
         # frequency, 1/τ = 2 Im Σ — same factor-of-2 relative to the bare
         # imaginary self-energy that kaldo's `bandwidth` carries. So
-        # ShengBTE shares kaldo's gamma_definition value.
-        "gamma_definition": "linewidth_2x_imag_self_energy",
+        # ShengBTE shares kaldo's normalization choice.
+        "Gamma": "linewidth_2x_imag_self_energy",
     },
     code_api={"Gamma": "BTE.w_anharmonic"},
     notes=(
@@ -135,8 +135,8 @@ SHENGBTE_LINEWIDTH = StateRepresentationSpec(
 )
 
 
-SHENGBTE_VOLUMETRIC_HEAT_CAPACITY = StateRepresentationSpec(
-    state=VOLUMETRIC_HEAT_CAPACITY,
+SHENGBTE_VOLUMETRIC_HEAT_CAPACITY = SpaceRepresentationSpec(
+    space=VOLUMETRIC_HEAT_CAPACITY,
     representation_name="shengbte",
     observable_units={"C_V_vol": "J_per_m3_per_K"},
     code_api={"C_V_vol": "BTE.cv"},
@@ -151,8 +151,8 @@ SHENGBTE_VOLUMETRIC_HEAT_CAPACITY = StateRepresentationSpec(
 )
 
 
-SHENGBTE_THERMAL_CONDUCTIVITY_RTA = StateRepresentationSpec(
-    state=THERMAL_CONDUCTIVITY_RTA,
+SHENGBTE_THERMAL_CONDUCTIVITY_RTA = SpaceRepresentationSpec(
+    space=THERMAL_CONDUCTIVITY_RTA,
     representation_name="shengbte",
     observable_units={"kappa": "W_per_m_per_K"},
     code_api={"kappa": "BTE.KappaTensorVsT_RTA"},
@@ -165,8 +165,8 @@ SHENGBTE_THERMAL_CONDUCTIVITY_RTA = StateRepresentationSpec(
 )
 
 
-SHENGBTE_THERMAL_CONDUCTIVITY_DIRECT = StateRepresentationSpec(
-    state=THERMAL_CONDUCTIVITY_DIRECT,
+SHENGBTE_THERMAL_CONDUCTIVITY_DIRECT = SpaceRepresentationSpec(
+    space=THERMAL_CONDUCTIVITY_DIRECT,
     representation_name="shengbte",
     observable_units={"kappa": "W_per_m_per_K"},
     code_api={"kappa": "BTE.KappaTensorVsT_CONV"},
@@ -187,10 +187,10 @@ SHENGBTE_THERMAL_CONDUCTIVITY_DIRECT = StateRepresentationSpec(
 # ---------------------------------------------------------------------------
 
 
-SHENGBTE_COMPUTE_FORCE_CONSTANTS_2 = OperationRepresentationSpec(
-    operation=compute_force_constants_2,
+SHENGBTE_COMPUTE_FORCE_CONSTANTS_2 = OperatorRepresentationSpec(
+    operator=compute_force_constants_2,
     representation_name="shengbte",
-    algorithmic_convention_overrides={
+    scheme_overrides={
         # ShengBTE does not compute Φ²; it consumes FORCE_CONSTANTS_2ND in
         # phonopy format (or espresso.ifc2 in QE format). Symmetry handling
         # is whatever the upstream code applied. We declare spglib_auto
@@ -208,10 +208,10 @@ SHENGBTE_COMPUTE_FORCE_CONSTANTS_2 = OperationRepresentationSpec(
 )
 
 
-SHENGBTE_COMPUTE_FORCE_CONSTANTS_3 = OperationRepresentationSpec(
-    operation=compute_force_constants_3,
+SHENGBTE_COMPUTE_FORCE_CONSTANTS_3 = OperatorRepresentationSpec(
+    operator=compute_force_constants_3,
     representation_name="shengbte",
-    algorithmic_convention_overrides={
+    scheme_overrides={
         "symmetry_group": "spglib_auto",
     },
     notes=(
@@ -224,11 +224,11 @@ SHENGBTE_COMPUTE_FORCE_CONSTANTS_3 = OperationRepresentationSpec(
 )
 
 
-SHENGBTE_COMPUTE_LINEWIDTH = OperationRepresentationSpec(
-    operation=compute_linewidth,
+SHENGBTE_COMPUTE_LINEWIDTH = OperatorRepresentationSpec(
+    operator=compute_linewidth,
     representation_name="shengbte",
     parameter_units={"broadening_sigma": "angular_THz"},
-    algorithmic_convention_overrides={
+    scheme_overrides={
         # ShengBTE's per-channel σ is computed by `base_sigma` in
         # Src/config.f90:462-476:
         #   σ_base = sqrt( Σ_ν=1..3 [(rlattvec_ν · Δv) / ngrid_ν]² / 6 )
@@ -258,10 +258,10 @@ SHENGBTE_COMPUTE_LINEWIDTH = OperationRepresentationSpec(
 )
 
 
-SHENGBTE_SOLVE_BTE_DIRECT = OperationRepresentationSpec(
-    operation=solve_bte_direct,
+SHENGBTE_SOLVE_BTE_DIRECT = OperatorRepresentationSpec(
+    operator=solve_bte_direct,
     representation_name="shengbte",
-    algorithmic_convention_overrides={
+    scheme_overrides={
         "symmetry_group": "spglib_auto",
     },
     discretization_choices={
@@ -287,16 +287,16 @@ SHENGBTE_SOLVE_BTE_DIRECT = OperationRepresentationSpec(
 # ---------------------------------------------------------------------------
 
 
-SHENGBTE_TEMPERATURE = StateRepresentationSpec(
-    state=TEMPERATURE_STATE,
+SHENGBTE_TEMPERATURE = SpaceRepresentationSpec(
+    space=TEMPERATURE_STATE,
     representation_name="shengbte",
     code_api={"temperature": "CONTROL &parameters T="},
     notes="Set in the CONTROL file under &parameters via T= (or T_min/T_max/T_step).",
 )
 
 
-SHENGBTE_FORCE_CONSTANTS_2 = StateRepresentationSpec(
-    state=FORCE_CONSTANTS_2,
+SHENGBTE_FORCE_CONSTANTS_2 = SpaceRepresentationSpec(
+    space=FORCE_CONSTANTS_2,
     representation_name="shengbte",
     code_api={"phi": "FORCE_CONSTANTS_2ND"},
     notes=(
@@ -307,20 +307,20 @@ SHENGBTE_FORCE_CONSTANTS_2 = StateRepresentationSpec(
 )
 
 
-SHENGBTE_FORCE_CONSTANTS_3 = StateRepresentationSpec(
-    state=FORCE_CONSTANTS_3,
+SHENGBTE_FORCE_CONSTANTS_3 = SpaceRepresentationSpec(
+    space=FORCE_CONSTANTS_3,
     representation_name="shengbte",
     observable_units={"phi": "eV_per_A3"},
-    observable_convention_overrides={
+    observable_normalizations={
         # ShengBTE's reader silently uses an `eV/(Å²·nm)` interpretation
         # for FC3 values (documented in gruneisen.f90:44 as
         # "nm·eV/(amu·Å³·THz²)"). For the same physical FC3 in eV/Å³,
         # ShengBTE expects values 10× smaller numerically. The
-        # `fc3_normalization` convention on ForceConstants[order=3] carries
-        # this; the convention_factor 0.1 then drives the cross-code
-        # `inter_representation_factor(phono3py_or_kaldo_spec,
-        # this_spec, "phi") == 0.1`.
-        "fc3_normalization": "eV_per_A2_per_nm",
+        # `eV_per_A2_per_nm` normalization (defined in
+        # `omai.representation.normalizations`) carries the 10× factor;
+        # composed with the canonical `eV/Å³` unit it recovers the
+        # 0.1× cross-code factor against phono3py/kaldo.
+        "phi": "eV_per_A2_per_nm",
     },
     code_api={"phi": "FORCE_CONSTANTS_3RD"},
     notes=(
@@ -328,15 +328,15 @@ SHENGBTE_FORCE_CONSTANTS_3 = StateRepresentationSpec(
         "in the ShengBTE README). The file's documentation claims eV/Å³ but "
         "the reader's internal unit chain (per gruneisen.f90:44) is "
         "eV/(Å²·nm), so the values ShengBTE actually consumes are 0.1× the "
-        "natural eV/Å³ form. Captured at the convention layer via the "
-        "fc3_normalization override above. Typically produced by "
+        "natural eV/Å³ form. Captured at the normalization layer via the "
+        "`eV_per_A2_per_nm` override above. Typically produced by "
         "thirdorder.py or thirdorder_espresso.py."
     ),
 )
 
 
-SHENGBTE_MOLAR_HEAT_CAPACITY = StateRepresentationSpec(
-    state=MOLAR_HEAT_CAPACITY,
+SHENGBTE_MOLAR_HEAT_CAPACITY = SpaceRepresentationSpec(
+    space=MOLAR_HEAT_CAPACITY,
     representation_name="shengbte",
     code_api={"C_V_mol": "BTE.cv * V_cell * N_A"},
     notes=(
@@ -346,16 +346,16 @@ SHENGBTE_MOLAR_HEAT_CAPACITY = StateRepresentationSpec(
 )
 
 
-SHENGBTE_PHONON_DOS = StateRepresentationSpec(
-    state=PHONON_DOS,
+SHENGBTE_PHONON_DOS = SpaceRepresentationSpec(
+    space=PHONON_DOS,
     representation_name="shengbte",
     code_api={"g": "BTE.dos"},
     notes="BTE.dos: phonon density of states vs angular frequency (rad/ps).",
 )
 
 
-SHENGBTE_GRUNEISEN = StateRepresentationSpec(
-    state=GRUNEISEN,
+SHENGBTE_GRUNEISEN = SpaceRepresentationSpec(
+    space=GRUNEISEN,
     representation_name="shengbte",
     code_api={"gamma_G": "BTE.gruneisen"},
     notes=(
@@ -365,8 +365,8 @@ SHENGBTE_GRUNEISEN = StateRepresentationSpec(
 )
 
 
-SHENGBTE_PHASE_SPACE_3PH = StateRepresentationSpec(
-    state=PHASE_SPACE_3PH,
+SHENGBTE_PHASE_SPACE_3PH = SpaceRepresentationSpec(
+    space=PHASE_SPACE_3PH,
     representation_name="shengbte",
     code_api={"P3": "BTE.P3"},
     notes=(
@@ -383,8 +383,8 @@ SHENGBTE_PHASE_SPACE_3PH = StateRepresentationSpec(
 # ---------------------------------------------------------------------------
 
 
-SHENGBTE_PROVIDE_POTENTIAL = OperationRepresentationSpec(
-    operation=provide_potential,
+SHENGBTE_PROVIDE_POTENTIAL = OperatorRepresentationSpec(
+    operator=provide_potential,
     representation_name="shengbte",
     notes=(
         "ShengBTE consumes a pair of pre-computed force-constant files; "
@@ -396,15 +396,15 @@ SHENGBTE_PROVIDE_POTENTIAL = OperationRepresentationSpec(
 )
 
 
-SHENGBTE_PROVIDE_TEMPERATURE = OperationRepresentationSpec(
-    operation=provide_temperature,
+SHENGBTE_PROVIDE_TEMPERATURE = OperatorRepresentationSpec(
+    operator=provide_temperature,
     representation_name="shengbte",
     notes="Temperatures are listed in the CONTROL namelist (T= / T_min/T_max/T_step).",
 )
 
 
-SHENGBTE_COMPUTE_DYNAMICAL_MATRIX = OperationRepresentationSpec(
-    operation=compute_dynamical_matrix,
+SHENGBTE_COMPUTE_DYNAMICAL_MATRIX = OperatorRepresentationSpec(
+    operator=compute_dynamical_matrix,
     representation_name="shengbte",
     notes=(
         "Implicit: ShengBTE computes the dynamical matrix internally from "
@@ -414,8 +414,8 @@ SHENGBTE_COMPUTE_DYNAMICAL_MATRIX = OperationRepresentationSpec(
 )
 
 
-SHENGBTE_COMPUTE_DISPERSION = OperationRepresentationSpec(
-    operation=compute_dispersion,
+SHENGBTE_COMPUTE_DISPERSION = OperatorRepresentationSpec(
+    operator=compute_dispersion,
     representation_name="shengbte",
     notes=(
         "BTE.omega / BTE.eigenvectors come from a per-q diagonalisation of "
@@ -424,8 +424,8 @@ SHENGBTE_COMPUTE_DISPERSION = OperationRepresentationSpec(
 )
 
 
-SHENGBTE_COMPUTE_GROUP_VELOCITY = OperationRepresentationSpec(
-    operation=compute_group_velocity,
+SHENGBTE_COMPUTE_GROUP_VELOCITY = OperatorRepresentationSpec(
+    operator=compute_group_velocity,
     representation_name="shengbte",
     notes=(
         "BTE.v / BTE.v_full computed via the analytic Hellmann-Feynman form, "
@@ -434,8 +434,8 @@ SHENGBTE_COMPUTE_GROUP_VELOCITY = OperationRepresentationSpec(
 )
 
 
-SHENGBTE_SOLVE_BTE_RTA = OperationRepresentationSpec(
-    operation=solve_bte_rta,
+SHENGBTE_SOLVE_BTE_RTA = OperatorRepresentationSpec(
+    operator=solve_bte_rta,
     representation_name="shengbte",
     notes=(
         "BTE.KappaTensorVsT_RTA: closed-form F = v / (2Γ) at each T on the "
@@ -444,22 +444,22 @@ SHENGBTE_SOLVE_BTE_RTA = OperationRepresentationSpec(
 )
 
 
-SHENGBTE_CONTRACT_KAPPA_RTA = OperationRepresentationSpec(
-    operation=contract_kappa_rta,
+SHENGBTE_CONTRACT_KAPPA_RTA = OperatorRepresentationSpec(
+    operator=contract_kappa_rta,
     representation_name="shengbte",
     notes="κ tensor written to BTE.KappaTensorVsT_RTA after the RTA solve.",
 )
 
 
-SHENGBTE_CONTRACT_KAPPA_DIRECT = OperationRepresentationSpec(
-    operation=contract_kappa_direct,
+SHENGBTE_CONTRACT_KAPPA_DIRECT = OperatorRepresentationSpec(
+    operator=contract_kappa_direct,
     representation_name="shengbte",
     notes="κ tensor written to BTE.KappaTensorVsT_CONV after the iterative LBTE solve.",
 )
 
 
-SHENGBTE_CONTRACT_VOLUMETRIC_HEAT_CAPACITY = OperationRepresentationSpec(
-    operation=contract_volumetric_heat_capacity,
+SHENGBTE_CONTRACT_VOLUMETRIC_HEAT_CAPACITY = OperatorRepresentationSpec(
+    operator=contract_volumetric_heat_capacity,
     representation_name="shengbte",
     notes=(
         "BTE.cv: volumetric C_V in J/(m³·K) at each T, contracted directly "
@@ -468,10 +468,10 @@ SHENGBTE_CONTRACT_VOLUMETRIC_HEAT_CAPACITY = OperationRepresentationSpec(
 )
 
 
-SHENGBTE_COMPUTE_DOS = OperationRepresentationSpec(
-    operation=compute_dos,
+SHENGBTE_COMPUTE_DOS = OperatorRepresentationSpec(
+    operator=compute_dos,
     representation_name="shengbte",
-    algorithmic_convention_overrides={"dos_broadening": "adaptive_scaled"},
+    scheme_overrides={"dos_broadening": "adaptive_scaled"},
     notes=(
         "BTE.dos uses the same adaptive Gaussian as the linewidth δ — "
         "deviates from the canonical dos_broadening=gaussian."
@@ -479,8 +479,8 @@ SHENGBTE_COMPUTE_DOS = OperationRepresentationSpec(
 )
 
 
-SHENGBTE_COMPUTE_GRUNEISEN = OperationRepresentationSpec(
-    operation=compute_gruneisen,
+SHENGBTE_COMPUTE_GRUNEISEN = OperatorRepresentationSpec(
+    operator=compute_gruneisen,
     representation_name="shengbte",
     notes=(
         "BTE.gruneisen: Maradudin-Fein closed form, matching the canonical "
@@ -489,10 +489,10 @@ SHENGBTE_COMPUTE_GRUNEISEN = OperationRepresentationSpec(
 )
 
 
-SHENGBTE_COMPUTE_PHASE_SPACE_3PH = OperationRepresentationSpec(
-    operation=compute_phase_space_3phonon,
+SHENGBTE_COMPUTE_PHASE_SPACE_3PH = OperatorRepresentationSpec(
+    operator=compute_phase_space_3phonon,
     representation_name="shengbte",
-    algorithmic_convention_overrides={"delta_broadening": "adaptive_scaled"},
+    scheme_overrides={"delta_broadening": "adaptive_scaled"},
     notes=(
         "BTE.P3 uses the same adaptive Gaussian δ as the linewidth — "
         "deviates from the canonical delta_broadening=gaussian."
@@ -507,8 +507,8 @@ SHENGBTE_COMPUTE_PHASE_SPACE_3PH = OperationRepresentationSpec(
 # ---------------------------------------------------------------------------
 
 
-SHENGBTE_BORN_CHARGES = StateRepresentationSpec(
-    state=BORN_CHARGES,
+SHENGBTE_BORN_CHARGES = SpaceRepresentationSpec(
+    space=BORN_CHARGES,
     representation_name="shengbte",
     observable_units={"Z_star": "dimensionless"},
     code_api={"Z_star": "CONTROL &crystal: born(3,3,natoms)"},
@@ -519,8 +519,8 @@ SHENGBTE_BORN_CHARGES = StateRepresentationSpec(
 )
 
 
-SHENGBTE_DIELECTRIC_TENSOR = StateRepresentationSpec(
-    state=DIELECTRIC_TENSOR,
+SHENGBTE_DIELECTRIC_TENSOR = SpaceRepresentationSpec(
+    space=DIELECTRIC_TENSOR,
     representation_name="shengbte",
     observable_units={"epsilon_infinity": "dimensionless"},
     code_api={"epsilon_infinity": "CONTROL &crystal: epsilon(3,3)"},
@@ -528,22 +528,22 @@ SHENGBTE_DIELECTRIC_TENSOR = StateRepresentationSpec(
 )
 
 
-SHENGBTE_PROVIDE_BORN_CHARGES = OperationRepresentationSpec(
-    operation=provide_born_charges,
+SHENGBTE_PROVIDE_BORN_CHARGES = OperatorRepresentationSpec(
+    operator=provide_born_charges,
     representation_name="shengbte",
     notes="Read from CONTROL &crystal block at the start of each run.",
 )
 
 
-SHENGBTE_PROVIDE_DIELECTRIC_TENSOR = OperationRepresentationSpec(
-    operation=provide_dielectric_tensor,
+SHENGBTE_PROVIDE_DIELECTRIC_TENSOR = OperatorRepresentationSpec(
+    operator=provide_dielectric_tensor,
     representation_name="shengbte",
     notes="Read from CONTROL &crystal block.",
 )
 
 
-SHENGBTE_IDENTITY_DM = OperationRepresentationSpec(
-    operation=identity_dm,
+SHENGBTE_IDENTITY_DM = OperatorRepresentationSpec(
+    operator=identity_dm,
     representation_name="shengbte",
     notes=(
         "Non-polar runs (born=0, epsilon=identity in CONTROL): the bare DM "
@@ -552,10 +552,10 @@ SHENGBTE_IDENTITY_DM = OperationRepresentationSpec(
 )
 
 
-SHENGBTE_APPLY_NAC_CORRECTION = OperationRepresentationSpec(
-    operation=apply_nac_correction,
+SHENGBTE_APPLY_NAC_CORRECTION = OperatorRepresentationSpec(
+    operator=apply_nac_correction,
     representation_name="shengbte",
-    algorithmic_convention_overrides={"nac_scheme": "ewald"},
+    scheme_overrides={"nac_scheme": "ewald"},
     notes=(
         "Polar runs: ShengBTE applies the Wang-Ewald form of the NAC "
         "correction (per the original Wang-Tang paper). Distinct from the "
@@ -574,12 +574,12 @@ SHENGBTE_APPLY_NAC_CORRECTION = OperationRepresentationSpec(
 # ---------------------------------------------------------------------------
 
 
-SHENGBTE_ISOTOPIC_LINEWIDTH = StateRepresentationSpec(
-    state=ISOTOPIC_LINEWIDTH,
+SHENGBTE_ISOTOPIC_LINEWIDTH = SpaceRepresentationSpec(
+    space=ISOTOPIC_LINEWIDTH,
     representation_name="shengbte",
     observable_units={"Gamma": "angular_THz"},
-    observable_convention_overrides={
-        "gamma_definition": "linewidth_2x_imag_self_energy",
+    observable_normalizations={
+        "Gamma": "linewidth_2x_imag_self_energy",
     },
     code_api={"Gamma": "BTE.w_isotopic"},
     notes=(
@@ -590,12 +590,12 @@ SHENGBTE_ISOTOPIC_LINEWIDTH = StateRepresentationSpec(
 )
 
 
-SHENGBTE_BOUNDARY_LINEWIDTH = StateRepresentationSpec(
-    state=BOUNDARY_LINEWIDTH,
+SHENGBTE_BOUNDARY_LINEWIDTH = SpaceRepresentationSpec(
+    space=BOUNDARY_LINEWIDTH,
     representation_name="shengbte",
     observable_units={"Gamma": "angular_THz"},
-    observable_convention_overrides={
-        "gamma_definition": "linewidth_2x_imag_self_energy",
+    observable_normalizations={
+        "Gamma": "linewidth_2x_imag_self_energy",
     },
     code_api={"Gamma": "BTE.w_boundary"},
     notes=(
@@ -606,8 +606,8 @@ SHENGBTE_BOUNDARY_LINEWIDTH = StateRepresentationSpec(
 )
 
 
-SHENGBTE_ISOTOPE_ABUNDANCES = StateRepresentationSpec(
-    state=ISOTOPE_ABUNDANCES,
+SHENGBTE_ISOTOPE_ABUNDANCES = SpaceRepresentationSpec(
+    space=ISOTOPE_ABUNDANCES,
     representation_name="shengbte",
     observable_units={"g": "dimensionless"},
     code_api={"g": "CONTROL &flags: isotopes=.TRUE. (natural-abundance defaults)"},
@@ -620,10 +620,10 @@ SHENGBTE_ISOTOPE_ABUNDANCES = StateRepresentationSpec(
 )
 
 
-SHENGBTE_COMPUTE_ISOTOPE_SCATTERING = OperationRepresentationSpec(
-    operation=compute_isotope_scattering,
+SHENGBTE_COMPUTE_ISOTOPE_SCATTERING = OperatorRepresentationSpec(
+    operator=compute_isotope_scattering,
     representation_name="shengbte",
-    algorithmic_convention_overrides={"delta_broadening": "adaptive_scaled"},
+    scheme_overrides={"delta_broadening": "adaptive_scaled"},
     notes=(
         "ShengBTE evaluates the Tamura δ with the same adaptive Gaussian "
         "as the anharmonic linewidth — deviates from the canonical "
@@ -632,8 +632,8 @@ SHENGBTE_COMPUTE_ISOTOPE_SCATTERING = OperationRepresentationSpec(
 )
 
 
-SHENGBTE_COMPUTE_BOUNDARY_SCATTERING = OperationRepresentationSpec(
-    operation=compute_boundary_scattering,
+SHENGBTE_COMPUTE_BOUNDARY_SCATTERING = OperatorRepresentationSpec(
+    operator=compute_boundary_scattering,
     representation_name="shengbte",
     notes=(
         "Casimir Γ_boundary = |v| / L; L set via the `length` parameter "
@@ -642,15 +642,15 @@ SHENGBTE_COMPUTE_BOUNDARY_SCATTERING = OperationRepresentationSpec(
 )
 
 
-SHENGBTE_PROVIDE_ISOTOPE_ABUNDANCES = OperationRepresentationSpec(
-    operation=provide_isotope_abundances,
+SHENGBTE_PROVIDE_ISOTOPE_ABUNDANCES = OperatorRepresentationSpec(
+    operator=provide_isotope_abundances,
     representation_name="shengbte",
     notes="Read from CONTROL; natural-abundance defaults when isotopes=.TRUE.",
 )
 
 
-SHENGBTE_SUM_LINEWIDTHS = OperationRepresentationSpec(
-    operation=sum_linewidths,
+SHENGBTE_SUM_LINEWIDTHS = OperatorRepresentationSpec(
+    operator=sum_linewidths,
     representation_name="shengbte",
     notes=(
         "Matthiessen sum is applied implicitly in the BTE solver loop: "
@@ -667,8 +667,8 @@ SHENGBTE_SUM_LINEWIDTHS = OperationRepresentationSpec(
 # ---------------------------------------------------------------------------
 
 
-SHENGBTE_CUMULATIVE_KAPPA_OMEGA = StateRepresentationSpec(
-    state=CUMULATIVE_KAPPA_OMEGA,
+SHENGBTE_CUMULATIVE_KAPPA_OMEGA = SpaceRepresentationSpec(
+    space=CUMULATIVE_KAPPA_OMEGA,
     representation_name="shengbte",
     observable_units={"kappa_cum": "W_per_m_per_K"},
     code_api={"kappa_cum": "BTE.cumulative_kappaVsOmega_tensor"},
@@ -679,8 +679,8 @@ SHENGBTE_CUMULATIVE_KAPPA_OMEGA = StateRepresentationSpec(
 )
 
 
-SHENGBTE_CUMULATIVE_KAPPA_MFP = StateRepresentationSpec(
-    state=CUMULATIVE_KAPPA_MFP,
+SHENGBTE_CUMULATIVE_KAPPA_MFP = SpaceRepresentationSpec(
+    space=CUMULATIVE_KAPPA_MFP,
     representation_name="shengbte",
     observable_units={"kappa_cum": "W_per_m_per_K"},
     code_api={"kappa_cum": "BTE.cumulative_kappa_tensor"},
@@ -692,17 +692,17 @@ SHENGBTE_CUMULATIVE_KAPPA_MFP = StateRepresentationSpec(
 )
 
 
-SHENGBTE_CONTRACT_CUMULATIVE_KAPPA_OMEGA = OperationRepresentationSpec(
-    operation=contract_cumulative_kappa_omega,
+SHENGBTE_CONTRACT_CUMULATIVE_KAPPA_OMEGA = OperatorRepresentationSpec(
+    operator=contract_cumulative_kappa_omega,
     representation_name="shengbte",
-    algorithmic_convention_overrides={"binning": "linear"},
+    scheme_overrides={"binning": "linear"},
     notes="Linear-ω axis matches the canonical convention.",
 )
 
 
-SHENGBTE_CONTRACT_CUMULATIVE_KAPPA_MFP = OperationRepresentationSpec(
-    operation=contract_cumulative_kappa_mfp,
+SHENGBTE_CONTRACT_CUMULATIVE_KAPPA_MFP = OperatorRepresentationSpec(
+    operator=contract_cumulative_kappa_mfp,
     representation_name="shengbte",
-    algorithmic_convention_overrides={"binning": "log"},
+    scheme_overrides={"binning": "log"},
     notes="Logarithmic Λ axis matches the canonical convention.",
 )

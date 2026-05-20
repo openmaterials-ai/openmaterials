@@ -2,31 +2,31 @@
 
 We borrow vocabulary from quantum mechanics:
 
-  * A operator State is an **abstract operator** — basis-independent,
-    defined by its dimension, fields, gauge group, and canonical
-    conventions.
-  * A Representation is that operator in a **specific representation**
-    — a particular code's units and conventions.
+  * A operator `Space` is an **abstract operator** — basis-independent,
+    defined by its fields, gauge group, and labels.
+  * A `Representation` is that operator in a **specific representation**
+    — a particular code's units and normalizations.
   * `to_operator(m)` strips the representation and returns the
     representation in operator form (canonical reference: canonical
-    unit and canonical convention values).
+    unit and canonical normalization).
   * `to_representation(m_op, target_spec)` is the inverse: given a
     representation already in operator form, re-express it in some
     target adapter's representation.
   * `compare_operators(spec_a, spec_b)` is a structural / type-level
     check: do the two specs claim the same operator (same operator
-    state, compatible units, conventions resolving to the same
-    canonical values)? No tolerance — categorical answer.
+    `Space`, compatible units and normalizations)? No tolerance —
+    categorical answer.
   * `compare_representations(m_a, m_b, …, rtol, atol, contraction)` is
     the numerical check: are the actual array values equal once
-    expressed in a common representation? Returns a RepresentationComparisonResult
-    with residuals and the agree/disagree verdict.
+    expressed in a common representation? Returns a
+    RepresentationComparisonResult with residuals and the agree/disagree
+    verdict.
 
 The QM analogy isn't decorative — it matches the gauge structure:
-Observables behave like the spectrum of an operator (basis-invariant,
-cross-code-comparable), HiddenStates behave like matrix elements in a
-specific basis (per-element only meaningful after a basis-matching
-contraction).
+ObservableSpaces behave like the spectrum of an operator (basis-
+invariant, cross-code-comparable), HiddenSpaces behave like matrix
+elements in a specific basis (per-element only meaningful after a
+basis-matching contraction).
 """
 
 from __future__ import annotations
@@ -37,8 +37,11 @@ from typing import Any
 
 import numpy as np
 
-from omai.operator.state import HiddenState
-from omai.representation.adapter import StateRepresentationSpec
+from omai.operator.space import HiddenSpace
+from omai.representation.adapter import (
+    SpaceRepresentationSpec,
+    representation_to_operator,
+)
 from omai.representation.instance import Representation
 from omai.representation.units import conversion_factor
 
@@ -53,13 +56,10 @@ class OperatorComparisonResult:
     """Categorical structural verdict from `compare_operators`.
 
     Two adapter specs describe the same operator iff:
-      * they wrap the same operator State,
+      * they wrap the same operator `Space`,
       * for every declared observable, their declared units have the
         same physical dimension (otherwise canonicalisation is
-        impossible — they're not even comparable),
-      * for every convention the state declares, both specs resolve to
-        the same canonical-value chain (i.e. after applying their
-        convention factors, they land on the same canonical operator).
+        impossible — they're not even comparable).
     """
 
     same_operator: bool
@@ -72,7 +72,7 @@ class OperatorComparisonResult:
 
 
 def compare_operators(
-    spec_a: StateRepresentationSpec, spec_b: StateRepresentationSpec
+    spec_a: SpaceRepresentationSpec, spec_b: SpaceRepresentationSpec
 ) -> OperatorComparisonResult:
     """Structural check: do two adapter specs describe the same operator?
 
@@ -83,15 +83,15 @@ def compare_operators(
     """
     mismatches: list[str] = []
 
-    if spec_a.state != spec_b.state:
+    if spec_a.space != spec_b.space:
         mismatches.append(
-            f"different operator states: {spec_a.state.name!r} vs "
-            f"{spec_b.state.name!r}"
+            f"different operator spaces: {spec_a.space.name!r} vs "
+            f"{spec_b.space.name!r}"
         )
         return OperatorComparisonResult(False, tuple(mismatches))
 
-    state = spec_a.state
-    for field in state.fields:
+    space = spec_a.space
+    for field in space.fields:
         # Units must have the same dimension (otherwise no canonicalisation).
         try:
             u_a = spec_a.declared_unit(field.name)
@@ -106,38 +106,6 @@ def compare_operators(
         except ValueError as exc:
             mismatches.append(f"field {field.name!r} unit incompatibility: {exc}")
 
-    # Convention canonicalisation: each spec's declared convention values
-    # must produce the same canonical operator. Concretely, two specs
-    # describe the same operator only if for every convention key the
-    # canonical *operator* arrived at is the same. Since the canonical
-    # operator is defined by the operator State (single source of
-    # truth), what we actually check is that the specs' declared
-    # conventions resolve to a known convention value in the state.
-    # The state's canonicalisation chain then guarantees both land on
-    # the same canonical operator.
-    for conv_name, canonical_value in state.operator_conventions.items():
-        try:
-            val_a = spec_a.declared_convention(conv_name)
-            val_b = spec_b.declared_convention(conv_name)
-        except KeyError:
-            continue
-        # Each must be either canonical or a known non-canonical value
-        # with a defined convention_factor. If either spec's value is
-        # unknown to the state, we cannot canonicalise it.
-        known_values = {canonical_value} | {
-            v for _, v, _, _ in state.convention_factors
-        }
-        if val_a not in known_values:
-            mismatches.append(
-                f"adapter {spec_a.representation_name!r}: convention {conv_name}="
-                f"{val_a!r} is not a known canonical/non-canonical value"
-            )
-        if val_b not in known_values:
-            mismatches.append(
-                f"adapter {spec_b.representation_name!r}: convention {conv_name}="
-                f"{val_b!r} is not a known canonical/non-canonical value"
-            )
-
     return OperatorComparisonResult(not mismatches, tuple(mismatches))
 
 
@@ -147,56 +115,26 @@ def compare_operators(
 
 
 def _spec_to_canonical_factor(
-    spec: StateRepresentationSpec, observable_name: str
+    spec: SpaceRepresentationSpec, observable_name: str
 ) -> float:
     """Factor f such that (spec's emitted value) × f = (canonical value).
 
-    Combines the unit factor (to the canonical unit) and the convention
-    factor (to the canonical convention values). Raises a clear
-    KeyError if either piece is missing on the spec.
+    Composes the unit's `to_operator` multiplier with the normalization's
+    `to_operator` multiplier — see
+    :func:`omai.representation.adapter.representation_to_operator`.
+    Raises a clear KeyError if the spec declares no unit for the named
+    observable.
     """
-    state = spec.state
-    field = state.field(observable_name)
-    canonical_unit = _canonical_unit_for(state, field.name)
     try:
-        unit = spec.declared_unit(observable_name)
+        return representation_to_operator(spec, observable_name)
     except KeyError as exc:
         raise KeyError(
             f"adapter {spec.representation_name!r} declares no unit for field "
-            f"{observable_name!r} of state {state.name!r}; cannot place "
+            f"{observable_name!r} of space {spec.space.name!r}; cannot place "
             f"this representation into operator form. Add an "
-            f"observable_units entry to its StateRepresentationSpec, or "
+            f"observable_units entry to its SpaceRepresentationSpec, or "
             f"represent the canonical form directly."
         ) from exc
-    u_factor = conversion_factor(unit, canonical_unit)
-    # observable_convention_factor returns c such that
-    # emitted_value = c × canonical_value (in matching units), so to go
-    # from emitted to canonical we divide by c.
-    c_factor = spec.observable_convention_factor(observable_name)
-    return u_factor / c_factor
-
-
-def _canonical_unit_for(state, observable_name: str) -> str:
-    """Look up the canonical unit name for an observable.
-
-    The canonical unit is whichever named unit on the state's field
-    dimension carries a to_operator factor of 1.0.
-    """
-    from omai.representation.units import UNITS
-
-    field = state.field(observable_name)
-    for u in UNITS.values():
-        if u.dimension == field.dimension and u.to_operator == 1.0:
-            return u.name
-    # Fallback: use any unit on this dimension. (Shouldn't happen if
-    # the unit registry is well-formed.)
-    for u in UNITS.values():
-        if u.dimension == field.dimension:
-            return u.name
-    raise KeyError(
-        f"no unit registered for dimension {field.dimension.name!r} of "
-        f"state {state.name!r} field {observable_name!r}"
-    )
 
 
 def to_operator(m: Representation) -> Representation:
@@ -204,20 +142,20 @@ def to_operator(m: Representation) -> Representation:
 
     The returned Representation carries data multiplied by the spec's
     `to_canonical_factor`, and `is_operator=True`. The
-    state_adapter_spec on the returned object is unchanged (it still
+    space_adapter_spec on the returned object is unchanged (it still
     records the *originating* adapter), but downstream consumers should
     treat the data as basis-independent — units are the operator
-    layer's canonical unit, conventions are the canonical values.
+    layer's canonical unit, normalizations are the canonical values.
     """
     if m.is_operator:
         return m
-    factor = _spec_to_canonical_factor(m.state_adapter_spec, m.observable_name)
+    factor = _spec_to_canonical_factor(m.space_adapter_spec, m.observable_name)
     new_data = np.asarray(m.data, dtype=float) * factor
     return replace(m, data=new_data, is_operator=True)
 
 
 def to_representation(
-    m_op: Representation, target_spec: StateRepresentationSpec
+    m_op: Representation, target_spec: SpaceRepresentationSpec
 ) -> Representation:
     """Reframe an operator-form Representation in a target adapter's
     representation. Multiplicatively inverse of `to_operator`.
@@ -228,15 +166,15 @@ def to_representation(
     """
     if not m_op.is_operator:
         m_op = to_operator(m_op)
-    if target_spec.state != m_op.state:
+    if target_spec.space != m_op.space:
         raise ValueError(
-            f"target_spec wraps a different state: "
-            f"{target_spec.state.name!r} vs {m_op.state.name!r}"
+            f"target_spec wraps a different space: "
+            f"{target_spec.space.name!r} vs {m_op.space.name!r}"
         )
     factor = _spec_to_canonical_factor(target_spec, m_op.observable_name)
     new_data = np.asarray(m_op.data, dtype=float) / factor
     return Representation(
-        state_adapter_spec=target_spec,
+        space_adapter_spec=target_spec,
         observable_name=m_op.observable_name,
         data=new_data,
         is_operator=False,
@@ -255,26 +193,29 @@ class RepresentationComparisonResult:
     The status flag mirrors the QM analogy: comparing matrix elements
     (representation-level) is a numerical agree/disagree question. The
     operator layer (operator-level) predicts whether the matrix elements
-    *should* agree given the gauge type of the state:
+    *should* agree given the gauge type of the space:
 
-      * Observable per-element  → predicted to agree (basis-independent
-                                  in the gauge-invariant sense).
-      * HiddenState per-element → NOT_COMPARABLE without a contraction
-                                  (matrix elements only meaningful in a
-                                  matched basis).
-      * Any state, contracted   → predicted to agree (the contraction
-                                  is the gauge-invariant content).
+      * ObservableSpace per-element  → predicted to agree (basis-
+                                       independent in the gauge-
+                                       invariant sense).
+      * HiddenSpace per-element      → NOT_COMPARABLE without a
+                                       contraction (matrix elements
+                                       only meaningful in a matched
+                                       basis).
+      * Any space, contracted        → predicted to agree (the
+                                       contraction is the gauge-
+                                       invariant content).
 
     EXPECTED_AGREE      — predicted to agree, observed agreement.
     EXPECTED_DISAGREE   — predicted not to agree, observed disagreement
                           (user override for partial contractions).
     UNEXPECTED_DISAGREE — predicted to agree, observed disagreement
-                          (real anomaly: missing convention, real
+                          (real anomaly: missing normalization, real
                           physics disagreement, or rtol too strict).
     UNEXPECTED_AGREE    — predicted not to agree, observed agreement
                           (rare; per-element protocol tighter than
                           declared).
-    NOT_COMPARABLE      — HiddenState per-element; residuals reported
+    NOT_COMPARABLE      — HiddenSpace per-element; residuals reported
                           for diagnostic inspection only.
     """
 
@@ -329,25 +270,26 @@ def compare_representations(
     it isn't used in the comparison itself.
 
     Args:
-        m_a, m_b: representations of the same operator state and
+        m_a, m_b: representations of the same operator `Space` and
             observable, in any (possibly differing) representations.
         contraction: optional callable applied to both canonical arrays
             before comparison (e.g., np.sum to compare contracted
             scalars). When None, comparison is per-element.
         rtol, atol: passed to np.allclose for the verdict.
         expected_to_agree: override the operator layer's prediction. By
-            default inferred from the state's kind (Observable / per
-            element-tight; HiddenState per-element / NOT_COMPARABLE;
+            default inferred from the space's kind (ObservableSpace per
+            element-tight; HiddenSpace per-element / NOT_COMPARABLE;
             contracted forms / agree).
 
     Returns:
-        RepresentationComparisonResult with residuals and a status reflecting how
-        the empirical outcome lines up with the operator prediction.
+        RepresentationComparisonResult with residuals and a status
+        reflecting how the empirical outcome lines up with the operator
+        prediction.
     """
-    if m_a.state != m_b.state:
+    if m_a.space != m_b.space:
         raise ValueError(
-            f"representations wrap different states: "
-            f"{m_a.state.name!r} vs {m_b.state.name!r}"
+            f"representations wrap different spaces: "
+            f"{m_a.space.name!r} vs {m_b.space.name!r}"
         )
     if m_a.observable_name != m_b.observable_name:
         raise ValueError(
@@ -365,9 +307,9 @@ def compare_representations(
     if m_a.is_operator and m_b.is_operator:
         factor_a_to_b = 1.0
     else:
-        f_a = _spec_to_canonical_factor(m_a.state_adapter_spec, m_a.observable_name) \
+        f_a = _spec_to_canonical_factor(m_a.space_adapter_spec, m_a.observable_name) \
             if not m_a.is_operator else 1.0
-        f_b = _spec_to_canonical_factor(m_b.state_adapter_spec, m_b.observable_name) \
+        f_b = _spec_to_canonical_factor(m_b.space_adapter_spec, m_b.observable_name) \
             if not m_b.is_operator else 1.0
         # a_op_value = a_value * f_a; b_op_value = b_value * f_b.
         # In operator form they should match: a_value * f_a ≈ b_value * f_b
@@ -395,7 +337,7 @@ def compare_representations(
     agreed = bool(np.allclose(a_arr, b_arr, rtol=rtol, atol=atol))
 
     is_hidden_per_element = (
-        isinstance(m_a.state, HiddenState) and contraction is None
+        isinstance(m_a.space, HiddenSpace) and contraction is None
     )
 
     if expected_to_agree is None:

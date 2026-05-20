@@ -6,7 +6,7 @@ contraction edges that close the cross-paradigm κ map.
 
 Adapter coverage extends `lammps` (green_kubo + nemd; HNEMD declared
 not-exposed) and `gpumd` (green_kubo + hnemd; NEMD declared
-not-exposed). The not-exposed entries are *also* OperationRepresentationSpec
+not-exposed). The not-exposed entries are *also* OperatorRepresentationSpec
 instances — they're documented as routing through the other adapter,
 but they still appear in the audit.
 """
@@ -16,9 +16,9 @@ from __future__ import annotations
 import sympy as sp
 
 from omai.operator.dimensions import THERMAL_CONDUCTIVITY
-from omai.operator.state import Observable
+from omai.operator.space import ObservableSpace
 from omai.operator.validate import validate_dag
-from omai.representation.adapter import OperationRepresentationSpec, StateRepresentationSpec
+from omai.representation.adapter import OperatorRepresentationSpec, SpaceRepresentationSpec
 from omai.thermal_transport.operator import EDGES, NODES
 from omai.thermal_transport.operator.edges import (
     contract_kappa_green_kubo,
@@ -46,7 +46,7 @@ def test_three_new_kappa_variants_are_observables():
         THERMAL_CONDUCTIVITY_NEMD,
         THERMAL_CONDUCTIVITY_HNEMD,
     ):
-        assert isinstance(kappa, Observable)
+        assert isinstance(kappa, ObservableSpace)
         (field,) = kappa.fields
         assert field.name == "kappa"
         assert field.dimension is THERMAL_CONDUCTIVITY
@@ -54,11 +54,11 @@ def test_three_new_kappa_variants_are_observables():
 
 
 def test_kappa_variants_carry_transport_model_parameter():
-    assert THERMAL_CONDUCTIVITY_GREEN_KUBO.type_parameters == {
+    assert THERMAL_CONDUCTIVITY_GREEN_KUBO.labels == {
         "transport_model": "green_kubo"
     }
-    assert THERMAL_CONDUCTIVITY_NEMD.type_parameters == {"transport_model": "nemd"}
-    assert THERMAL_CONDUCTIVITY_HNEMD.type_parameters == {"transport_model": "hnemd"}
+    assert THERMAL_CONDUCTIVITY_NEMD.labels == {"transport_model": "nemd"}
+    assert THERMAL_CONDUCTIVITY_HNEMD.labels == {"transport_model": "hnemd"}
 
 
 # ---------------------------------------------------------------------------
@@ -80,7 +80,7 @@ def test_contract_kappa_nemd_wires_from_heat_current():
     assert set(contract_kappa_nemd.inputs) == {HEAT_CURRENT, TEMPERATURE_STATE}
     assert contract_kappa_nemd.outputs == (THERMAL_CONDUCTIVITY_NEMD,)
     assert isinstance(contract_kappa_nemd.formula, sp.Eq)
-    assert "nemd_method" in contract_kappa_nemd.algorithmic_conventions
+    assert "nemd_method" in contract_kappa_nemd.schemes
     param_names = {p.name for p in contract_kappa_nemd.parameters}
     assert {"imposed_gradient", "imposed_flux"} <= param_names
 
@@ -148,9 +148,9 @@ def test_lammps_covers_green_kubo_and_nemd_states():
         (LAMMPS_THERMAL_CONDUCTIVITY_NEMD, THERMAL_CONDUCTIVITY_NEMD),
     ]
     for spec, state in pairs:
-        assert isinstance(spec, StateRepresentationSpec)
+        assert isinstance(spec, SpaceRepresentationSpec)
         assert spec.representation_name == "lammps"
-        assert spec.state is state
+        assert spec.space is state
         assert spec.code_api, f"{state.name}: empty code_api"
 
 
@@ -160,17 +160,17 @@ def test_lammps_covers_green_kubo_and_nemd_edges():
         LAMMPS_CONTRACT_KAPPA_NEMD,
     )
 
-    assert isinstance(LAMMPS_CONTRACT_KAPPA_GREEN_KUBO, OperationRepresentationSpec)
-    assert LAMMPS_CONTRACT_KAPPA_GREEN_KUBO.operation is contract_kappa_green_kubo
-    assert isinstance(LAMMPS_CONTRACT_KAPPA_NEMD, OperationRepresentationSpec)
-    assert LAMMPS_CONTRACT_KAPPA_NEMD.operation is contract_kappa_nemd
+    assert isinstance(LAMMPS_CONTRACT_KAPPA_GREEN_KUBO, OperatorRepresentationSpec)
+    assert LAMMPS_CONTRACT_KAPPA_GREEN_KUBO.operator is contract_kappa_green_kubo
+    assert isinstance(LAMMPS_CONTRACT_KAPPA_NEMD, OperatorRepresentationSpec)
+    assert LAMMPS_CONTRACT_KAPPA_NEMD.operator is contract_kappa_nemd
 
 
 def test_lammps_hnemd_is_documented_as_not_exposed():
     from omai.thermal_transport.representation.lammps import LAMMPS_CONTRACT_KAPPA_HNEMD
 
-    assert isinstance(LAMMPS_CONTRACT_KAPPA_HNEMD, OperationRepresentationSpec)
-    assert LAMMPS_CONTRACT_KAPPA_HNEMD.operation is contract_kappa_hnemd
+    assert isinstance(LAMMPS_CONTRACT_KAPPA_HNEMD, OperatorRepresentationSpec)
+    assert LAMMPS_CONTRACT_KAPPA_HNEMD.operator is contract_kappa_hnemd
     # Notes mention that HNEMD is not exposed in LAMMPS — content check is light.
     notes = LAMMPS_CONTRACT_KAPPA_HNEMD.notes.lower()
     assert "not exposed" in notes or "gpumd" in notes
@@ -192,9 +192,9 @@ def test_gpumd_covers_green_kubo_and_hnemd_states():
         (GPUMD_THERMAL_CONDUCTIVITY_HNEMD, THERMAL_CONDUCTIVITY_HNEMD),
     ]
     for spec, state in pairs:
-        assert isinstance(spec, StateRepresentationSpec)
+        assert isinstance(spec, SpaceRepresentationSpec)
         assert spec.representation_name == "gpumd"
-        assert spec.state is state
+        assert spec.space is state
         assert spec.code_api, f"{state.name}: empty code_api"
 
 
@@ -204,16 +204,16 @@ def test_gpumd_covers_green_kubo_and_hnemd_edges():
         GPUMD_CONTRACT_KAPPA_HNEMD,
     )
 
-    assert isinstance(GPUMD_CONTRACT_KAPPA_GREEN_KUBO, OperationRepresentationSpec)
-    assert GPUMD_CONTRACT_KAPPA_GREEN_KUBO.operation is contract_kappa_green_kubo
-    assert isinstance(GPUMD_CONTRACT_KAPPA_HNEMD, OperationRepresentationSpec)
-    assert GPUMD_CONTRACT_KAPPA_HNEMD.operation is contract_kappa_hnemd
+    assert isinstance(GPUMD_CONTRACT_KAPPA_GREEN_KUBO, OperatorRepresentationSpec)
+    assert GPUMD_CONTRACT_KAPPA_GREEN_KUBO.operator is contract_kappa_green_kubo
+    assert isinstance(GPUMD_CONTRACT_KAPPA_HNEMD, OperatorRepresentationSpec)
+    assert GPUMD_CONTRACT_KAPPA_HNEMD.operator is contract_kappa_hnemd
 
 
 def test_gpumd_nemd_is_documented_as_not_exposed():
     from omai.thermal_transport.representation.gpumd import GPUMD_CONTRACT_KAPPA_NEMD
 
-    assert isinstance(GPUMD_CONTRACT_KAPPA_NEMD, OperationRepresentationSpec)
-    assert GPUMD_CONTRACT_KAPPA_NEMD.operation is contract_kappa_nemd
+    assert isinstance(GPUMD_CONTRACT_KAPPA_NEMD, OperatorRepresentationSpec)
+    assert GPUMD_CONTRACT_KAPPA_NEMD.operator is contract_kappa_nemd
     notes = GPUMD_CONTRACT_KAPPA_NEMD.notes.lower()
     assert "not exposed" in notes or "lammps" in notes

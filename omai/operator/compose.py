@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import sympy as sp
 
-from omai.operator.operation import Operation
+from omai.operator.operator import Operator
 
 __all__ = ["ImplicitEdgeBoundary", "compose_path"]
 
@@ -32,7 +32,7 @@ class ImplicitEdgeBoundary(Exception):
     and use it as the boundary condition for the external solve.
     """
 
-    def __init__(self, edge: Operation, partial: sp.Expr | None) -> None:
+    def __init__(self, edge: Operator, partial: sp.Expr | None) -> None:
         super().__init__(f"composition halts at implicit edge {edge.name!r}")
         self.edge = edge
         self.partial = partial
@@ -83,13 +83,13 @@ def _substitute(prev_lhs: sp.Basic, prev_rhs: sp.Expr, into: sp.Expr) -> sp.Expr
     )
 
 
-def compose_path(edges: tuple[Operation, ...]) -> sp.Expr | None:
+def compose_path(edges: tuple[Operator, ...]) -> sp.Expr | None:
     """Compose a sequence of explicit-equation edges into a single sympy
     expression for the final output.
 
     For each edge in ``edges`` (in order):
 
-      * If the edge is not :attr:`Operation.is_executable_in_sympy`,
+      * If the edge is not :attr:`Operator.is_executable_in_sympy`,
         raise :class:`ImplicitEdgeBoundary` with the partial expression
         accumulated so far.
       * Take the edge's formula (an :class:`sp.Eq`); the LHS is the

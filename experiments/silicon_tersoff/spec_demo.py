@@ -22,12 +22,21 @@ import numpy as np
 
 from omai.representation import (
     compare,
-    representation_algorithmic_match,
+    conversion_factor,
+    operator_to_representation,
     representation_discretization_match,
-    inter_representation_factor,
-    inter_representation_unit_factor,
+    representation_scheme_match,
+    representation_to_operator,
     represent,
 )
+
+
+def _inter_rep_factor(a, b, obs):
+    return operator_to_representation(b, obs) * representation_to_operator(a, obs)
+
+
+def _inter_rep_unit_factor(a, b, obs):
+    return conversion_factor(a.declared_unit(obs), b.declared_unit(obs))
 from omai.thermal_transport.representation import (
     KALDO_COMPUTE_LINEWIDTH,
     KALDO_FREQUENCY,
@@ -59,40 +68,44 @@ def main() -> None:
 
     a, b = KALDO_LINEWIDTH, PHONO3PY_LINEWIDTH
 
-    section("State [Linewidth]: observable Gamma")
+    from omai.representation.normalizations import NORMALIZATIONS
+
+    section("Space [Linewidth]: observable Gamma")
+    a_norm = a.observable_normalizations.get("Gamma", "canonical")
+    b_norm = b.observable_normalizations.get("Gamma", "canonical")
     print(f"  kaldo    declares : Gamma in {a.declared_unit('Gamma')}, "
-          f"convention {a.declared_convention('gamma_definition')}")
+          f"normalization {a_norm}")
     print(f"  phono3py declares : Gamma in {b.declared_unit('Gamma')}, "
-          f"convention {b.declared_convention('gamma_definition')}")
-    unit = inter_representation_unit_factor(a, b, "Gamma")
-    c_a = a.observable_convention_factor("Gamma")
-    c_b = b.observable_convention_factor("Gamma")
-    total = inter_representation_factor(a, b, "Gamma")
+          f"normalization {b_norm}")
+    unit = _inter_rep_unit_factor(a, b, "Gamma")
+    a_n = NORMALIZATIONS[a_norm].to_operator
+    b_n = NORMALIZATIONS[b_norm].to_operator
+    total = _inter_rep_factor(a, b, "Gamma")
     print(f"  unit factor (angular_THz → linear_THz)       : {unit:.6f}  [= 1/(2π)]")
-    print(f"  kaldo output factor relative to canonical    : {c_a:.1f}    [Gamma = 2 Im Σ]")
-    print(f"  phono3py output factor relative to canonical : {c_b:.1f}    [Gamma = Im Σ]")
+    print(f"  kaldo normalization to_operator              : {a_n}    [Gamma = 2 Im Σ → 0.5]")
+    print(f"  phono3py normalization to_operator           : {b_n}    [canonical → 1.0]")
     print(f"  → total: kaldo × {total:.6f} = phono3py       [= 1/(4π) = {1/(4*math.pi):.6f}]")
     print(f"  matches the empirical kaldo/phono3py ratio of 4π.")
 
     a, b = KALDO_HEAT_CAPACITY, PHONO3PY_HEAT_CAPACITY
 
-    section("State [HeatCapacity]: observable c")
+    section("Space [HeatCapacity]: observable c")
     print(f"  kaldo    declares : c in {a.declared_unit('c')}")
     print(f"  phono3py declares : c in {b.declared_unit('c')}")
-    factor = inter_representation_factor(a, b, "c")
+    factor = _inter_rep_factor(a, b, "c")
     print(f"  → total: kaldo × {factor:.6e} = phono3py     [= 1/e ≈ 6.241e+18]")
 
     a_op, b_op = KALDO_COMPUTE_LINEWIDTH, PHONO3PY_COMPUTE_LINEWIDTH
 
-    section("Operation [compute_linewidth]: algorithmic conventions")
-    matched, msg = representation_algorithmic_match(a_op, b_op, "broadening_param")
+    section("Operator [compute_linewidth]: algorithmic conventions")
+    matched, msg = representation_scheme_match(a_op, b_op, "broadening_param")
     if matched:
         print(f"  broadening_param: agreed.")
     else:
         print(f"  broadening_param MISMATCH: {msg}")
         print(f"  → kaldo σ = phono3py σ × √2  (halfwidth = stdev × √2 ≈ {math.sqrt(2):.6f})")
 
-    section("Operation [compute_linewidth]: discretization choices")
+    section("Operator [compute_linewidth]: discretization choices")
     for choice in ("bz_summation", "delta_cutoff_sigmas", "degeneracy_averaging"):
         matched, msg = representation_discretization_match(a_op, b_op, choice)
         if matched:
@@ -137,7 +150,7 @@ def main() -> None:
     r = compare(mk, mp, rtol=1e-3, atol=1e-2)
     print(f"  {r.summary()}")
 
-    section("GroupVelocity: HiddenState — per-element not cross-compared")
+    section("GroupVelocity: HiddenSpace — per-element not cross-compared")
     kaldo_v_norm = np.linalg.norm(data["kaldo_gv"], axis=-1)
     ph3_v_norm = np.linalg.norm(data["ph3_gv"], axis=-1)
     mk = represent(KALDO_GROUP_VELOCITY, "v", kaldo_v_norm)
@@ -151,7 +164,7 @@ def main() -> None:
         f"max = {float(diff.max()):.3f}, "
         f"{n_disagreeing}/{diff.size} modes > 0.5 Å·THz."
     )
-    print("  → GroupVelocity is a HiddenState (eigenvector rotation at degenerate ω");
+    print("  → GroupVelocity is a HiddenSpace (eigenvector rotation at degenerate ω");
     print("    + apparent definitional differences); per-element comparison")
     print("    isn't a substrate verdict, just a diagnostic.")
 
@@ -161,10 +174,10 @@ def main() -> None:
     r = compare(mk, mp, rtol=1e-3)
     print(f"  {r.summary()}")
 
-    section("Linewidth: HiddenState — only contractions are observables")
+    section("Linewidth: HiddenSpace — only contractions are observables")
     mk = represent(KALDO_LINEWIDTH, "Gamma", data["kaldo_gamma"])
     mp = represent(PHONO3PY_LINEWIDTH, "Gamma", data["ph3_gamma"])
-    # Linewidth is a HiddenState. Per-element compare returns NOT_COMPARABLE
+    # Linewidth is a HiddenSpace. Per-element compare returns NOT_COMPARABLE
     # (diagnostic residual only). Contractions are the cross-code observables.
     per_mode = compare(mk, mp, rtol=0.01)
     # per-q is intermediate (still gauge-affected by BZ-summation choice)
@@ -172,7 +185,7 @@ def main() -> None:
         mk, mp, contraction=lambda x: np.sum(x, axis=-1), rtol=0.02, expected_to_agree=False
     )
     total = compare(mk, mp, contraction=np.sum, rtol=1e-2)
-    print(f"  per-mode (HiddenState):                    {per_mode.summary()}")
+    print(f"  per-mode (HiddenSpace):                    {per_mode.summary()}")
     print(f"  per-q Σ_ν Γ_qν (rtol=2e-2):                {per_q.summary()}")
     print(f"  total Σ_qν Γ contracted (rtol=1e-2):       {total.summary()}")
 
@@ -199,7 +212,7 @@ def main() -> None:
         if kaldo_rta is None:
             print(f"  no σ=0.10 row in {csv_path}; skipping.")
         else:
-            # κ[bte_solver=rta] is a HiddenState → NOT_COMPARABLE per-element
+            # κ[bte_solver=rta] is a HiddenSpace → NOT_COMPARABLE per-element
             mk = represent(
                 KALDO_THERMAL_CONDUCTIVITY_RTA, "kappa", np.array(kaldo_rta)
             )
@@ -207,7 +220,7 @@ def main() -> None:
                 PHONO3PY_THERMAL_CONDUCTIVITY_RTA, "kappa", np.array(ph3_rta)
             )
             r_rta = compare(mk, mp, rtol=0.01)
-            # κ[bte_solver=direct_inverse] is an Observable → tight comparison
+            # κ[bte_solver=direct_inverse] is an ObservableSpace → tight comparison
             mk = represent(
                 KALDO_THERMAL_CONDUCTIVITY_DIRECT, "kappa", np.array(kaldo_direct)
             )
@@ -226,14 +239,14 @@ def main() -> None:
             )
             print(f"    {r_direct.summary()}")
             print(
-                "  → κ[rta] is a HiddenState: RTA's 1/Γ non-linearity inherits"
+                "  → κ[rta] is a HiddenSpace: RTA's 1/Γ non-linearity inherits"
             )
             print(
                 "    Linewidth's gauge-dependence. Per-element disagreement is"
             )
             print("    diagnostic, not anomalous.")
             print(
-                "  → κ[direct] is an Observable: the LBTE off-diagonals cancel"
+                "  → κ[direct] is an ObservableSpace: the LBTE off-diagonals cancel"
             )
             print("    the redistribution, so κ is gauge-invariant.")
 
@@ -413,10 +426,10 @@ def main() -> None:
     import pkgutil
 
     import omai.thermal_transport.representation as rep_pkg
-    from omai.representation.adapter import OperationRepresentationSpec, StateRepresentationSpec
+    from omai.representation.adapter import OperatorRepresentationSpec, SpaceRepresentationSpec
 
-    pot_state_specs: dict[str, StateRepresentationSpec] = {}
-    pot_op_specs: dict[str, OperationRepresentationSpec] = {}
+    pot_state_specs: dict[str, SpaceRepresentationSpec] = {}
+    pot_op_specs: dict[str, OperatorRepresentationSpec] = {}
     for info in pkgutil.iter_modules(rep_pkg.__path__):
         if info.name.startswith("_"):
             continue
@@ -427,16 +440,16 @@ def main() -> None:
             if attr.startswith("_"):
                 continue
             obj = getattr(mod, attr)
-            if isinstance(obj, StateRepresentationSpec) and obj.state.name == "Potential":
+            if isinstance(obj, SpaceRepresentationSpec) and obj.space.name == "Potential":
                 pot_state_specs[obj.representation_name] = obj
             elif (
-                isinstance(obj, OperationRepresentationSpec)
-                and obj.operation.name == "provide_potential"
+                isinstance(obj, OperatorRepresentationSpec)
+                and obj.operator.name == "provide_potential"
             ):
                 pot_op_specs[obj.representation_name] = obj
 
     print(
-        f"  POTENTIAL StateRepresentationSpec coverage ({len(pot_state_specs)} representations):"
+        f"  POTENTIAL SpaceRepresentationSpec coverage ({len(pot_state_specs)} representations):"
     )
     for representation in sorted(pot_state_specs):
         spec = pot_state_specs[representation]
@@ -444,7 +457,7 @@ def main() -> None:
         print(f"    {representation:<10s} : {api}")
     print()
     print(
-        f"  provide_potential OperationRepresentationSpec coverage "
+        f"  provide_potential OperatorRepresentationSpec coverage "
         f"({len(pot_op_specs)} adapters):"
     )
     for representation in sorted(pot_op_specs):

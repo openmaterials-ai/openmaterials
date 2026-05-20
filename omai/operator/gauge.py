@@ -72,15 +72,15 @@ class GaugeAction:
 
 
 def check_invariance(
-    operation_formula: sp.Basic,
+    operator_formula: sp.Basic,
     gauge_actions: Iterable[GaugeAction],
 ) -> dict[str, bool]:
-    """Check whether an operation's formula is invariant under each
+    """Check whether an operator's formula is invariant under each
     gauge action.
 
     Returns a dict mapping each gauge action's name to True/False.
-    Useful for building tables of "this operation preserves these gauges"
+    Useful for building tables of "this operator preserves these gauges"
     that the operator layer can use to propagate invariance claims through
     the DAG.
     """
-    return {g.name: g.verifies_invariance(operation_formula) for g in gauge_actions}
+    return {g.name: g.verifies_invariance(operator_formula) for g in gauge_actions}

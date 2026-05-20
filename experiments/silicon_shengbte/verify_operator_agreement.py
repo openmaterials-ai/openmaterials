@@ -1,11 +1,11 @@
 """Check that the operator formulas the three codes implement are byte-identical.
 
 By construction the operator layer attaches *one* sympy formula to each
-Operation; kaldo, phono3py, and shengbte all reference the same Operation
+Operator; kaldo, phono3py, and shengbte all reference the same Operator
 in their adapter specs. So the formulas should be the same Python object,
 not just equal — `is` comparison suffices.
 
-The legitimate cross-code differences are in algorithmic_convention_overrides
+The legitimate cross-code differences are in scheme_overrides
 and discretization_choices. This script tabulates both: identical formulas
 on the left, divergent conventions on the right. The point is to make
 clear that any residual κ disagreement is method-difference, not
@@ -17,7 +17,7 @@ from __future__ import annotations
 import sympy as sp
 
 from omai.representation.adapter import (
-    representation_algorithmic_match,
+    representation_scheme_match,
     representation_discretization_match,
 )
 from omai.thermal_transport.representation import (
@@ -66,9 +66,9 @@ _CHAIN = [
 
 
 def _check_identical_formula(specs: list) -> tuple[bool, sp.Basic | str | None]:
-    """All specs must reference the same Operation (and therefore the
+    """All specs must reference the same Operator (and therefore the
     same formula). Returns (identical, formula_object)."""
-    ops = [s.operation for s in specs]
+    ops = [s.operator for s in specs]
     if not all(op is ops[0] for op in ops):
         return False, None
     return True, ops[0].formula
@@ -79,14 +79,14 @@ def _collect_convention_diffs(specs: list) -> dict[str, dict[str, str]]:
     {convention_name: {representation_name: declared_value}}."""
     keys: set[str] = set()
     for s in specs:
-        keys.update(s.operation.algorithmic_conventions.keys())
-        keys.update(s.algorithmic_convention_overrides.keys())
+        keys.update(s.operator.schemes.keys())
+        keys.update(s.scheme_overrides.keys())
     out: dict[str, dict[str, str]] = {}
     for k in sorted(keys):
         out[k] = {}
         for s in specs:
             try:
-                out[k][s.representation_name] = s.declared_algorithmic_convention(k)
+                out[k][s.representation_name] = s.declared_scheme(k)
             except KeyError:
                 out[k][s.representation_name] = "—"
     return out
@@ -106,12 +106,12 @@ def main() -> None:
     for op_name, specs in _CHAIN:
         identical, formula = _check_identical_formula(specs)
         adapters = [s.representation_name for s in specs]
-        op = specs[0].operation
+        op = specs[0].operator
         aux = getattr(op, "auxiliary_formulas", ())
         print("=" * 78)
-        print(f"Operation: {op_name}")
+        print(f"Operator: {op_name}")
         print(f"  adapters: {', '.join(adapters)}")
-        print(f"  formula identical (same Operation object): {identical}")
+        print(f"  formula identical (same Operator object): {identical}")
         if isinstance(formula, sp.Basic):
             print(f"  LaTeX: {sp.latex(formula)}")
         elif isinstance(formula, str):
@@ -151,13 +151,13 @@ def main() -> None:
         print(f"\n  {op_name}")
         keys: set[str] = set()
         for s in specs:
-            keys.update(s.operation.algorithmic_conventions.keys())
-            keys.update(s.algorithmic_convention_overrides.keys())
+            keys.update(s.operator.schemes.keys())
+            keys.update(s.scheme_overrides.keys())
         for k in sorted(keys):
             row = f"    {k:<28}"
             for i, s_a in enumerate(specs):
                 for s_b in specs[i + 1:]:
-                    matched, _msg = representation_algorithmic_match(s_a, s_b, k)
+                    matched, _msg = representation_scheme_match(s_a, s_b, k)
                     sym = "✓" if matched else "✗"
                     row += f" {s_a.representation_name[0].upper()}-{s_b.representation_name[0].upper()}:{sym}"
             print(row)

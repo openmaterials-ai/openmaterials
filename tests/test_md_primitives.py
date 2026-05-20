@@ -22,9 +22,9 @@ from omai.operator.dimensions import (
     LENGTH_PER_TIME,
     LENGTH_SQUARED,
 )
-from omai.operator.state import HiddenState, Observable
+from omai.operator.space import HiddenSpace, ObservableSpace
 from omai.operator.validate import validate_dag
-from omai.representation.adapter import OperationRepresentationSpec, StateRepresentationSpec
+from omai.representation.adapter import OperatorRepresentationSpec, SpaceRepresentationSpec
 from omai.thermal_transport.operator import EDGES, NODES
 from omai.thermal_transport.operator.edges import (
     autocorrelate_heat_current,
@@ -52,7 +52,7 @@ from omai.thermal_transport.operator.nodes import (
 
 
 def test_trajectory_is_hidden_state_with_r_and_v():
-    assert isinstance(TRAJECTORY, HiddenState)
+    assert isinstance(TRAJECTORY, HiddenSpace)
     assert TRAJECTORY.name == "Trajectory"
     field_names = {f.name for f in TRAJECTORY.fields}
     assert field_names == {"r", "v"}
@@ -65,7 +65,7 @@ def test_trajectory_is_hidden_state_with_r_and_v():
 
 
 def test_heat_current_is_hidden_state_with_J():
-    assert isinstance(HEAT_CURRENT, HiddenState)
+    assert isinstance(HEAT_CURRENT, HiddenSpace)
     assert HEAT_CURRENT.name == "HeatCurrent"
     (J,) = HEAT_CURRENT.fields
     assert J.name == "J"
@@ -74,21 +74,21 @@ def test_heat_current_is_hidden_state_with_J():
 
 
 def test_heat_current_acf_is_observable():
-    assert isinstance(HEAT_CURRENT_ACF, Observable)
+    assert isinstance(HEAT_CURRENT_ACF, ObservableSpace)
     (Jcorr,) = HEAT_CURRENT_ACF.fields
     assert Jcorr.name == "Jcorr"
     assert Jcorr.indices == ("alpha", "beta", "tau")
 
 
 def test_vaf_is_observable():
-    assert isinstance(VELOCITY_AUTOCORRELATION, Observable)
+    assert isinstance(VELOCITY_AUTOCORRELATION, ObservableSpace)
     (Cv,) = VELOCITY_AUTOCORRELATION.fields
     assert Cv.name == "Cv"
     assert Cv.indices == ("tau",)
 
 
 def test_msd_is_observable_with_length_squared():
-    assert isinstance(MEAN_SQUARED_DISPLACEMENT, Observable)
+    assert isinstance(MEAN_SQUARED_DISPLACEMENT, ObservableSpace)
     (M,) = MEAN_SQUARED_DISPLACEMENT.fields
     assert M.name == "M"
     assert M.dimension is LENGTH_SQUARED
@@ -99,7 +99,7 @@ def test_trajectory_scaffolding_contractions_match_observables():
     """Trajectory is scaffolding-kind; its declared contractions must be
     Observables in the node set."""
     assert TRAJECTORY.kind == "scaffolding"
-    obs_names = {n.name for n in NODES if isinstance(n, Observable)}
+    obs_names = {n.name for n in NODES if isinstance(n, ObservableSpace)}
     for contraction in TRAJECTORY.gauge_invariant_contractions:
         assert contraction in obs_names
 
@@ -120,7 +120,7 @@ def test_run_md_inputs_outputs():
 
 
 def test_run_md_declares_md_conventions():
-    convs = run_md.algorithmic_conventions
+    convs = run_md.schemes
     assert "ensemble" in convs
     assert "thermostat" in convs
     assert "integrator" in convs
@@ -132,7 +132,7 @@ def test_compute_heat_current_inputs_outputs():
     assert compute_heat_current.outputs == (HEAT_CURRENT,)
     assert isinstance(compute_heat_current.formula, sp.Eq)
     assert len(compute_heat_current.formula.lhs.indices) == 2  # (alpha, t)
-    assert "definition" in compute_heat_current.algorithmic_conventions
+    assert "definition" in compute_heat_current.schemes
 
 
 def test_autocorrelate_heat_current_inputs_outputs():
@@ -141,7 +141,10 @@ def test_autocorrelate_heat_current_inputs_outputs():
     assert autocorrelate_heat_current.outputs == (HEAT_CURRENT_ACF,)
     assert isinstance(autocorrelate_heat_current.formula, sp.Eq)
     assert len(autocorrelate_heat_current.formula.lhs.indices) == 3
-    assert "correlation_method" in autocorrelate_heat_current.algorithmic_conventions
+    # `correlation_method` was dropped: direct and FFT are numerically
+    # equivalent under periodic padding (no canonical/non-canonical split),
+    # so no scheme is declared at the operator layer.
+    assert "correlation_method" not in autocorrelate_heat_current.schemes
 
 
 def test_compute_velocity_autocorrelation_inputs_outputs():
@@ -155,7 +158,7 @@ def test_compute_msd_inputs_outputs():
     assert compute_msd.name == "compute_msd"
     assert set(compute_msd.inputs) == {TRAJECTORY}
     assert compute_msd.outputs == (MEAN_SQUARED_DISPLACEMENT,)
-    assert "unwrap_pbc" in compute_msd.algorithmic_conventions
+    assert "unwrap_pbc" in compute_msd.schemes
 
 
 def test_fourier_to_dos_is_pattern_c_alternative_producer_of_dos():
@@ -197,10 +200,10 @@ def test_lammps_covers_all_five_md_states():
         (LAMMPS_MEAN_SQUARED_DISPLACEMENT, MEAN_SQUARED_DISPLACEMENT),
     ]
     for spec, state in pairs:
-        assert isinstance(spec, StateRepresentationSpec)
+        assert isinstance(spec, SpaceRepresentationSpec)
         assert spec.representation_name == "lammps"
-        assert spec.state is state
-        assert spec.code_api, f"{spec.state.name}: empty code_api"
+        assert spec.space is state
+        assert spec.code_api, f"{spec.space.name}: empty code_api"
 
 
 def test_lammps_covers_all_six_md_edges():
@@ -222,9 +225,9 @@ def test_lammps_covers_all_six_md_edges():
         (LAMMPS_FOURIER_TO_DOS, fourier_to_dos),
     ]
     for spec, op in pairs:
-        assert isinstance(spec, OperationRepresentationSpec)
+        assert isinstance(spec, OperatorRepresentationSpec)
         assert spec.representation_name == "lammps"
-        assert spec.operation is op
+        assert spec.operator is op
 
 
 # ---------------------------------------------------------------------------
@@ -249,10 +252,10 @@ def test_gpumd_covers_all_five_md_states():
         (GPUMD_MEAN_SQUARED_DISPLACEMENT, MEAN_SQUARED_DISPLACEMENT),
     ]
     for spec, state in pairs:
-        assert isinstance(spec, StateRepresentationSpec)
+        assert isinstance(spec, SpaceRepresentationSpec)
         assert spec.representation_name == "gpumd"
-        assert spec.state is state
-        assert spec.code_api, f"{spec.state.name}: empty code_api"
+        assert spec.space is state
+        assert spec.code_api, f"{spec.space.name}: empty code_api"
 
 
 def test_gpumd_covers_all_six_md_edges():
@@ -274,6 +277,6 @@ def test_gpumd_covers_all_six_md_edges():
         (GPUMD_FOURIER_TO_DOS, fourier_to_dos),
     ]
     for spec, op in pairs:
-        assert isinstance(spec, OperationRepresentationSpec)
+        assert isinstance(spec, OperatorRepresentationSpec)
         assert spec.representation_name == "gpumd"
-        assert spec.operation is op
+        assert spec.operator is op

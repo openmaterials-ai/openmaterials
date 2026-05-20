@@ -1,6 +1,6 @@
 """Per-code adapter specs for the thermal-transport DAG.
 
-Each submodule holds the StateRepresentationSpec and OperationRepresentationSpec instances
+Each submodule holds the SpaceRepresentationSpec and OperatorRepresentationSpec instances
 for one code (kaldo, phono3py, ...). All instances are constructed against
 the shared operator DAG in `omai.thermal_transport.operator`, so cross-code
 agreement is checked at the operator level (per Principle 7).

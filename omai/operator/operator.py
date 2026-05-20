@@ -1,18 +1,18 @@
-"""Operator operations (edges in the DAG).
+"""Operators (edges in the DAG).
 
-An Operation is a typed transformation between operator states. It declares
-its input states, output state(s), parameters (dimensioned but unit-free),
-algorithmic conventions (canonical-valued semantic choices that change *what*
+An `Operator` is a typed transformation between operator `Space`s. It
+declares its input spaces, output space(s), parameters (dimensioned but
+unit-free), schemes (canonical-valued semantic choices that change *what*
 is computed, as opposed to *how*), and a operator formula.
 
-The formula is the operator layer's claim about what the operation produces: a
-sympy expression for closed-form ops, a sympy.Eq for implicit ones, or a
+The formula is the operator layer's claim about what the operator produces:
+a sympy expression for closed-form ops, a sympy.Eq for implicit ones, or a
 LaTeX string for ones whose formal sympy encoding is awkward (typically
 indexed sums over the Brillouin zone).
 
-The operator layer's operator promise is that every edge carries this
-formula, so adapter conformance can be expressed as a statement comparable
-against the formula rather than reverse-engineered from kernels.
+The operator layer's promise is that every edge carries this formula, so
+adapter conformance can be expressed as a statement comparable against the
+formula rather than reverse-engineered from kernels.
 """
 
 from __future__ import annotations
@@ -22,9 +22,9 @@ from dataclasses import dataclass, field
 import sympy
 
 from omai.operator.dimensions import Dimension
-from omai.operator.state import State
+from omai.operator.space import Space
 
-__all__ = ["Operation", "Parameter", "topological_order"]
+__all__ = ["Operator", "Parameter", "topological_order"]
 
 
 @dataclass(frozen=True)
@@ -34,13 +34,13 @@ class Parameter:
 
 
 @dataclass(frozen=True)
-class Operation:
+class Operator:
     name: str
-    inputs: tuple[State, ...]
-    outputs: tuple[State, ...]  # tuple to support multi-output ops like compute_dispersion
+    inputs: tuple[Space, ...]
+    outputs: tuple[Space, ...]  # tuple to support multi-output ops like compute_dispersion
     parameters: tuple[Parameter, ...] = ()
-    algorithmic_conventions: dict[str, str] = field(default_factory=dict)
-    # The operator statement of what the operation computes. Either a sympy
+    schemes: dict[str, str] = field(default_factory=dict)
+    # The operator statement of what the operator computes. Either a sympy
     # expression / sympy.Eq, or a LaTeX string for ops whose sympy encoding
     # is awkward. None means "described in prose only" (rare).
     formula: sympy.Basic | str | None = None
@@ -48,7 +48,7 @@ class Operation:
     # main formula. E.g., solve_bte_direct's main formula is a linear system
     # in the collision matrix M; the auxiliary formula defines M in terms of
     # fundamentals (Γ, |V₃|², occupations, energy-δ). Codes that claim to
-    # implement the Operation must implement both the main formula AND the
+    # implement the Operator must implement both the main formula AND the
     # auxiliary definitions; mismatches here are real physics disagreement.
     auxiliary_formulas: tuple[sympy.Basic | str, ...] = ()
     description: str = ""
@@ -60,11 +60,11 @@ class Operation:
     is_executable_in_sympy_override: bool | None = None
 
     def __hash__(self) -> int:
-        # Identity by name: operations are singletons in the operator layer registry.
+        # Identity by name: operators are singletons in the operator-layer registry.
         return hash(self.name)
 
     def __eq__(self, other: object) -> bool:
-        if not isinstance(other, Operation):
+        if not isinstance(other, Operator):
             return NotImplemented
         return self.name == other.name
 
@@ -76,7 +76,7 @@ class Operation:
 
     def __post_init__(self) -> None:
         if not self.outputs:
-            raise ValueError(f"operation {self.name!r} must have at least one output state")
+            raise ValueError(f"operator {self.name!r} must have at least one output space")
 
     def formula_text(self) -> str:
         """Human-readable rendering of the formula."""
@@ -108,7 +108,7 @@ class Operation:
     def is_executable_in_sympy(self) -> bool:
         """Resolved sympy-executability flag.
 
-        Returns the explicit override if set on the Operation
+        Returns the explicit override if set on the Operator
         (``is_executable_in_sympy_override``); otherwise falls back to
         ``is_executable_in_sympy_default``. Consumers (e.g. the representation
         executor) should read this property rather than the raw override.
@@ -118,40 +118,40 @@ class Operation:
         return self.is_executable_in_sympy_default
 
 
-def topological_order(operations: tuple[Operation, ...]) -> list[Operation]:
-    """Return the operations in topological order.
+def topological_order(operators: tuple[Operator, ...]) -> list[Operator]:
+    """Return the operators in topological order.
 
     Useful for emitting code or rendering the DAG in dependency order. Raises
     ValueError on a cycle (which would mean someone built a non-DAG).
 
-    A state may have more than one producing operation (Pattern C in the DAG
+    A space may have more than one producing operator (Pattern C in the DAG
     extension rules: alternative producing edges into a shared output node,
     e.g. identity_dm and apply_nac_correction both producing DynamicalMatrix).
     At runtime exactly one fires per workflow instance; for topological
-    ordering, all producers of a state are scheduled before any consumer.
+    ordering, all producers of a space are scheduled before any consumer.
     """
-    by_state: dict[State, list[Operation]] = {}
-    for op in operations:
+    by_space: dict[Space, list[Operator]] = {}
+    for op in operators:
         for out in op.outputs:
-            by_state.setdefault(out, []).append(op)
+            by_space.setdefault(out, []).append(op)
 
-    visited: set[Operation] = set()
-    result: list[Operation] = []
-    visiting: set[Operation] = set()
+    visited: set[Operator] = set()
+    result: list[Operator] = []
+    visiting: set[Operator] = set()
 
-    def visit(op: Operation) -> None:
+    def visit(op: Operator) -> None:
         if op in visited:
             return
         if op in visiting:
             raise ValueError(f"cycle in DAG involving {op.name!r}")
         visiting.add(op)
         for inp in op.inputs:
-            for producer in by_state.get(inp, ()):
+            for producer in by_space.get(inp, ()):
                 visit(producer)
         visiting.discard(op)
         visited.add(op)
         result.append(op)
 
-    for op in operations:
+    for op in operators:
         visit(op)
     return result

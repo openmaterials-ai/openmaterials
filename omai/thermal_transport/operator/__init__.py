@@ -1,17 +1,17 @@
 """Lattice thermal-transport: the operator DAG.
 
-  * `nodes`  — forty-six States (observables / hidden states in the DAG)
-  * `edges`  — forty-seven Operations (calculations in the DAG, with sympy formulas)
+  * `nodes`  — forty-six Spaces (observables / hidden spaces in the DAG)
+  * `edges`  — forty-seven Operators (calculations in the DAG, with sympy formulas)
 
-States are pure declarations: type, fields, conventions, indices, gauge-
-invariance kind (Observable vs HiddenState). No sympy, no calculation. Edges
+Spaces are pure declarations: fields, labels, indices, gauge-invariance
+kind (ObservableSpace vs HiddenSpace). No sympy, no calculation. Edges
 live in their own file because they carry the substantive operator content
-(sympy expressions, indexed sums, equations); mixing them with state
+(sympy expressions, indexed sums, equations); mixing them with space
 declarations would conflate "what exists" with "how it's computed."
 
 MeanFreeDisplacement and ThermalConductivity are parameterized by
-`bte_solver`: the RTA variants are HiddenStates (the approximation breaks
-gauge invariance), the direct/iterative LBTE variants are Observables.
+`bte_solver`: the RTA variants are HiddenSpaces (the approximation breaks
+gauge invariance), the direct/iterative LBTE variants are ObservableSpaces.
 
 This module re-exports both for convenience.
 """

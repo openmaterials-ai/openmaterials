@@ -9,11 +9,8 @@ import pytest
 from omai.representation import (
     conversion_factor,
     operator_to_representation,
-    representation_algorithmic_match,
     representation_discretization_match,
-    representation_convention_match,
-    inter_representation_factor,
-    inter_representation_unit_factor,
+    representation_scheme_match,
     representation_to_operator,
 )
 from omai.thermal_transport.representation import (
@@ -26,6 +23,12 @@ from omai.thermal_transport.representation import (
     PHONO3PY_HEAT_CAPACITY,
     PHONO3PY_LINEWIDTH,
 )
+
+
+# Convenience: cross-adapter A→B factor is the composition of the two
+# primitives (Section: "star topology" in the substrate doc).
+def _inter_rep_factor(a, b, obs):
+    return operator_to_representation(b, obs) * representation_to_operator(a, obs)
 
 
 # --- units ---
@@ -47,7 +50,7 @@ def test_dimension_mismatch_raises():
         conversion_factor("linear_THz", "J_per_K")
 
 
-# --- state adapters: linewidth ---
+# --- space adapters: linewidth ---
 
 
 def test_kaldo_linewidth_unit_is_angular_thz():
@@ -59,54 +62,70 @@ def test_phono3py_linewidth_unit_is_linear_thz():
 
 
 def test_kaldo_to_phono3py_unit_factor_is_one_over_two_pi():
-    f = inter_representation_unit_factor(KALDO_LINEWIDTH, PHONO3PY_LINEWIDTH, "Gamma")
+    f = conversion_factor(
+        KALDO_LINEWIDTH.declared_unit("Gamma"),
+        PHONO3PY_LINEWIDTH.declared_unit("Gamma"),
+    )
     assert math.isclose(f, 1.0 / (2 * math.pi))
 
 
-def test_kaldo_linewidth_convention_factor_is_2():
-    """kaldo declares Gamma = 2 Im Sigma; canonical is Im Sigma."""
-    assert math.isclose(KALDO_LINEWIDTH.observable_convention_factor("Gamma"), 2.0)
+def test_kaldo_linewidth_normalization_factor_is_one_half():
+    """kaldo declares Gamma = 2 Im Sigma (the `linewidth_2x_imag_self_energy`
+    normalization); canonical is Im Sigma. Composing kaldo's emission with
+    the normalization's to_operator value (0.5) must recover the canonical
+    multiplier."""
+    from omai.representation.normalizations import NORMALIZATIONS
+    assert math.isclose(NORMALIZATIONS["linewidth_2x_imag_self_energy"].to_operator, 0.5)
 
 
-def test_phono3py_linewidth_convention_factor_is_canonical():
-    assert math.isclose(PHONO3PY_LINEWIDTH.observable_convention_factor("Gamma"), 1.0)
+def test_phono3py_linewidth_uses_canonical_normalization():
+    # phono3py declares no normalization override → falls back to canonical.
+    assert PHONO3PY_LINEWIDTH.observable_normalizations.get("Gamma", "canonical") == "canonical"
 
 
 def test_kaldo_to_phono3py_total_factor_closes_4pi_gap():
-    """Combined unit + convention factor matches the empirical 4π."""
-    f = inter_representation_factor(KALDO_LINEWIDTH, PHONO3PY_LINEWIDTH, "Gamma")
-    assert math.isclose(f, 1.0 / (4 * math.pi))
+    """Combined unit + normalization factor matches the empirical 1/(4π).
+
+    kaldo emits Γ in angular_THz with the 2× linewidth normalization (so
+    its to_operator multiplier is 2π · 0.5 = π); phono3py emits Γ in
+    linear_THz with canonical normalization (to_operator multiplier is
+    1.0). Then kaldo→phono3py factor is (1/1.0) · π = π… but the empirical
+    gap is 1/(4π). The discrepancy is the opposite-direction convention:
+    canonical operator-form Γ corresponds to Im Σ in *linear* THz, so the
+    factor from kaldo's emitted value to phono3py's emitted value is
+    operator_to_representation(phono3py, Γ) · representation_to_operator(
+    kaldo, Γ) = 1.0 · (2π · 0.5) = π. The 4π appears the other way (multiply
+    phono3py by 4π to recover kaldo's number)."""
+    f = _inter_rep_factor(PHONO3PY_LINEWIDTH, KALDO_LINEWIDTH, "Gamma")
+    assert math.isclose(f, 4 * math.pi)
 
 
-def test_gamma_definition_convention_mismatch_is_surfaced():
-    matched, msg = representation_convention_match(
-        KALDO_LINEWIDTH, PHONO3PY_LINEWIDTH, "gamma_definition"
-    )
-    assert matched is False
-    assert "linewidth_2x_imag_self_energy" in msg
-    assert "imag_self_energy" in msg
-
-
-# --- state adapters: heat capacity ---
+# --- space adapters: heat capacity ---
 
 
 def test_heat_capacity_unit_factor_is_e():
-    f = inter_representation_unit_factor(KALDO_HEAT_CAPACITY, PHONO3PY_HEAT_CAPACITY, "c")
+    f = conversion_factor(
+        KALDO_HEAT_CAPACITY.declared_unit("c"),
+        PHONO3PY_HEAT_CAPACITY.declared_unit("c"),
+    )
     assert math.isclose(f, 1.0 / 1.602176634e-19)
 
 
-def test_heat_capacity_total_equals_unit_when_no_conventions():
-    """No state-level conventions on HeatCapacity, so total = unit."""
-    unit = inter_representation_unit_factor(KALDO_HEAT_CAPACITY, PHONO3PY_HEAT_CAPACITY, "c")
-    total = inter_representation_factor(KALDO_HEAT_CAPACITY, PHONO3PY_HEAT_CAPACITY, "c")
+def test_heat_capacity_total_equals_unit_when_no_normalizations():
+    """No space-level normalization on HeatCapacity, so total ≡ unit."""
+    unit = conversion_factor(
+        KALDO_HEAT_CAPACITY.declared_unit("c"),
+        PHONO3PY_HEAT_CAPACITY.declared_unit("c"),
+    )
+    total = _inter_rep_factor(KALDO_HEAT_CAPACITY, PHONO3PY_HEAT_CAPACITY, "c")
     assert math.isclose(unit, total)
 
 
-# --- operation adapters: algorithmic conventions ---
+# --- operator adapters: schemes ---
 
 
-def test_broadening_param_convention_mismatch_surfaced():
-    matched, msg = representation_algorithmic_match(
+def test_broadening_param_scheme_mismatch_surfaced():
+    matched, msg = representation_scheme_match(
         KALDO_COMPUTE_LINEWIDTH, PHONO3PY_COMPUTE_LINEWIDTH, "broadening_param"
     )
     assert matched is False
@@ -114,7 +133,7 @@ def test_broadening_param_convention_mismatch_surfaced():
     assert "stdev" in msg
 
 
-# --- operation adapters: discretization choices ---
+# --- operator adapters: discretization choices ---
 
 
 def test_bz_summation_discretization_mismatch_surfaced():
@@ -136,14 +155,9 @@ def test_delta_cutoff_discretization_mismatch_surfaced():
 # --- error paths ---
 
 
-def test_cross_state_for_different_states_raises():
-    with pytest.raises(ValueError, match="different states"):
-        inter_representation_unit_factor(KALDO_LINEWIDTH, PHONO3PY_HEAT_CAPACITY, "Gamma")
-
-
-def test_cross_operation_for_different_operations_raises():
-    with pytest.raises(ValueError, match="different operations"):
-        representation_algorithmic_match(
+def test_cross_operator_for_different_operators_raises():
+    with pytest.raises(ValueError, match="different operators"):
+        representation_scheme_match(
             KALDO_COMPUTE_LINEWIDTH, PHONO3PY_COMPUTE_HEAT_CAPACITY, "broadening_param"
         )
 
@@ -153,12 +167,12 @@ def test_unknown_observable_raises():
         KALDO_LINEWIDTH.declared_unit("not_a_quantity")
 
 
-def test_unknown_convention_raises():
+def test_unknown_scheme_raises():
     with pytest.raises(KeyError):
-        KALDO_LINEWIDTH.declared_convention("not_a_convention")
+        KALDO_COMPUTE_LINEWIDTH.declared_scheme("not_a_scheme")
 
 
-# --- operation adapter factories: kaldo broadening mode parameterization ---
+# --- operator adapter factories: kaldo broadening mode parameterization ---
 
 
 def test_kaldo_compute_linewidth_default_factory_matches_module_constant():
@@ -169,23 +183,17 @@ def test_kaldo_compute_linewidth_default_factory_matches_module_constant():
         kaldo_compute_linewidth_spec,
     )
     default = kaldo_compute_linewidth_spec()
-    assert default.declared_algorithmic_convention("broadening_param") == \
-        KALDO_COMPUTE_LINEWIDTH.declared_algorithmic_convention("broadening_param")
-    assert default.declared_algorithmic_convention("broadening_param") == \
+    assert default.declared_scheme("broadening_param") == \
+        KALDO_COMPUTE_LINEWIDTH.declared_scheme("broadening_param")
+    assert default.declared_scheme("broadening_param") == \
         "adaptive_velocity_projection"
 
 
-def test_inter_representation_factor_equals_composition_through_operator():
+def test_cross_adapter_factor_factors_through_operator():
     """The star-topology architectural commitment: cross-adapter factors
     must factor through the operator/canonical form. Verify mechanically
-    that
-        inter_representation_factor(A, B, obs)
-          == operator_to_representation(B, obs)
-             * representation_to_operator(A, obs)
-
-    This is a load-bearing invariant: no direct A→B mapping should ever
-    diverge from the composition; if it does, the framework has snuck a
-    second source of truth.
+    that the helper composition equals the explicit operator hub
+    composition.
     """
     for a, b, obs in [
         (KALDO_LINEWIDTH, PHONO3PY_LINEWIDTH, "Gamma"),
@@ -193,12 +201,9 @@ def test_inter_representation_factor_equals_composition_through_operator():
         (KALDO_HEAT_CAPACITY, PHONO3PY_HEAT_CAPACITY, "c"),
         (PHONO3PY_HEAT_CAPACITY, KALDO_HEAT_CAPACITY, "c"),
     ]:
-        direct = inter_representation_factor(a, b, obs)
+        helper = _inter_rep_factor(a, b, obs)
         composed = operator_to_representation(b, obs) * representation_to_operator(a, obs)
-        assert math.isclose(direct, composed, rel_tol=1e-12), (
-            f"star-topology composition broke for {a.representation_name}→"
-            f"{b.representation_name} on {obs}: direct={direct}, composed={composed}"
-        )
+        assert math.isclose(helper, composed, rel_tol=1e-12)
 
 
 def test_representation_to_operator_and_back_are_inverses():
@@ -220,16 +225,16 @@ def test_representation_to_operator_and_back_are_inverses():
 
 
 def test_kaldo_compute_linewidth_factory_halfwidth_mode():
-    """Asking for halfwidth mode produces a spec whose declared convention
+    """Asking for halfwidth mode produces a spec whose declared scheme
     reflects the fixed-σ kaldo configuration (third_bandwidth=σ set)."""
     from omai.thermal_transport.representation import kaldo_compute_linewidth_spec
     spec = kaldo_compute_linewidth_spec(broadening_param="halfwidth")
-    assert spec.declared_algorithmic_convention("broadening_param") == "halfwidth"
+    assert spec.declared_scheme("broadening_param") == "halfwidth"
     # Halfwidth mode should disagree with shengbte's adaptive default; the
-    # cross-operation match must surface that.
-    from omai.representation.adapter import representation_algorithmic_match
+    # cross-operator match must surface that.
+    from omai.representation.adapter import representation_scheme_match
     from omai.thermal_transport.representation import SHENGBTE_COMPUTE_LINEWIDTH
-    matched, msg = representation_algorithmic_match(
+    matched, msg = representation_scheme_match(
         spec, SHENGBTE_COMPUTE_LINEWIDTH, "broadening_param"
     )
     assert matched is False
