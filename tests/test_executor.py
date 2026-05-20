@@ -75,7 +75,7 @@ def _make_op_rep(state, observable_name, data) -> Representation:
         state_adapter_spec=operator_form_spec(state),
         observable_name=observable_name,
         data=np.asarray(data),
-        is_operator_form=True,
+        is_operator=True,
     )
 
 
@@ -90,7 +90,7 @@ def test_apply_edge_identity_dm_passes_data_through_unchanged() -> None:
     data = rng.random((3, 3, 5))  # arbitrary (i, j, q) array
     bare = _make_op_rep(BARE_DYNAMICAL_MATRIX, "D_bare", data)
     out = apply_edge(identity_dm, bare)
-    assert out.is_operator_form is True
+    assert out.is_operator is True
     assert out.state.name == "DynamicalMatrix"
     assert out.observable_name == "D"
     np.testing.assert_array_equal(out.data, data)
@@ -264,7 +264,7 @@ def test_apply_edge_raises_value_error_on_input_not_in_operator_form() -> None:
         state_adapter_spec=operator_form_spec(FREQUENCY_STATE),
         observable_name="omega",
         data=np.array([5.0]),
-        is_operator_form=False,  # deliberately not operator form
+        is_operator=False,  # deliberately not operator form
     )
     T_rep = _make_op_rep(TEMPERATURE_STATE, "temperature", 300.0)
     with pytest.raises(ValueError, match="not in operator form"):

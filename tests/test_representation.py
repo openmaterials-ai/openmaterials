@@ -8,13 +8,13 @@ import pytest
 
 from omai.representation import (
     conversion_factor,
-    from_operator_form_factor,
+    operator_to_representation,
     representation_algorithmic_match,
     representation_discretization_match,
     representation_convention_match,
     inter_representation_factor,
     inter_representation_unit_factor,
-    to_operator_form_factor,
+    representation_to_operator,
 )
 from omai.thermal_transport.representation import (
     KALDO_COMPUTE_HEAT_CAPACITY,
@@ -178,7 +178,10 @@ def test_kaldo_compute_linewidth_default_factory_matches_module_constant():
 def test_inter_representation_factor_equals_composition_through_operator():
     """The star-topology architectural commitment: cross-adapter factors
     must factor through the operator/canonical form. Verify mechanically
-    that inter_representation_factor(A, B, obs) == from_op(B) * to_op(A).
+    that
+        inter_representation_factor(A, B, obs)
+          == operator_to_representation(B, obs)
+             * representation_to_operator(A, obs)
 
     This is a load-bearing invariant: no direct A→B mapping should ever
     diverge from the composition; if it does, the framework has snuck a
@@ -191,27 +194,28 @@ def test_inter_representation_factor_equals_composition_through_operator():
         (PHONO3PY_HEAT_CAPACITY, KALDO_HEAT_CAPACITY, "c"),
     ]:
         direct = inter_representation_factor(a, b, obs)
-        composed = from_operator_form_factor(b, obs) * to_operator_form_factor(a, obs)
+        composed = operator_to_representation(b, obs) * representation_to_operator(a, obs)
         assert math.isclose(direct, composed, rel_tol=1e-12), (
-            f"star-topology composition broke for {a.adapter_name}→"
-            f"{b.adapter_name} on {obs}: direct={direct}, composed={composed}"
+            f"star-topology composition broke for {a.representation_name}→"
+            f"{b.representation_name} on {obs}: direct={direct}, composed={composed}"
         )
 
 
-def test_to_and_from_operator_form_factor_are_inverses():
-    """to_operator_form_factor(A) * from_operator_form_factor(A) ≈ 1 for
-    every (spec, observable). Round-trip identity."""
+def test_representation_to_operator_and_back_are_inverses():
+    """representation_to_operator(A) * operator_to_representation(A) ≈ 1
+    for every (spec, observable). Round-trip identity."""
     for spec, obs in [
         (KALDO_LINEWIDTH, "Gamma"),
         (PHONO3PY_LINEWIDTH, "Gamma"),
         (KALDO_HEAT_CAPACITY, "c"),
         (PHONO3PY_HEAT_CAPACITY, "c"),
     ]:
-        forward = to_operator_form_factor(spec, obs)
-        reverse = from_operator_form_factor(spec, obs)
+        forward = representation_to_operator(spec, obs)
+        reverse = operator_to_representation(spec, obs)
         assert math.isclose(forward * reverse, 1.0, rel_tol=1e-12), (
-            f"to/from operator-form-factor not inverse for "
-            f"{spec.adapter_name} on {obs}: forward={forward}, reverse={reverse}"
+            f"representation_to_operator and operator_to_representation "
+            f"not inverse for {spec.representation_name} on {obs}: "
+            f"forward={forward}, reverse={reverse}"
         )
 
 

@@ -7,7 +7,7 @@ representation-layer machinery:
 
   * `units` — concrete unit choices that representations carry, with
     strict same-dimension conversion
-  * `adapter` — StateAdapterSpec and OperationAdapterSpec, which declare
+  * `adapter` — StateRepresentationSpec and OperationRepresentationSpec, which declare
     how a particular code's outputs map onto operator states (units,
     conventions, discretization choices)
 
@@ -16,15 +16,15 @@ alongside their domain DAG, e.g. omai.thermal_transport.representation.
 """
 
 from omai.representation.adapter import (
-    OperationAdapterSpec,
-    StateAdapterSpec,
-    from_operator_form_factor,
+    OperationRepresentationSpec,
+    StateRepresentationSpec,
+    operator_to_representation,
     representation_algorithmic_match,
     representation_discretization_match,
     representation_convention_match,
     inter_representation_factor,
     inter_representation_unit_factor,
-    to_operator_form_factor,
+    representation_to_operator,
 )
 from omai.representation.compare import RepresentationComparisonResult, compare
 from omai.representation.instance import Representation, represent
@@ -33,17 +33,17 @@ from omai.representation.units import Unit, conversion_factor
 __all__ = [
     "RepresentationComparisonResult",
     "Representation",
-    "OperationAdapterSpec",
-    "StateAdapterSpec",
+    "OperationRepresentationSpec",
+    "StateRepresentationSpec",
     "Unit",
     "compare",
     "conversion_factor",
     "representation_algorithmic_match",
     "representation_discretization_match",
     "representation_convention_match",
-    "from_operator_form_factor",
+    "operator_to_representation",
     "inter_representation_factor",
     "inter_representation_unit_factor",
     "represent",
-    "to_operator_form_factor",
+    "representation_to_operator",
 ]

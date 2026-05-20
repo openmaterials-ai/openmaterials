@@ -31,7 +31,7 @@ import sympy as sp
 from omai.operator.operation import Operation
 from omai.operator.state import State
 from omai.operator.validate import _STATE_SYMBOLS
-from omai.representation.adapter import StateAdapterSpec
+from omai.representation.adapter import StateRepresentationSpec
 from omai.representation.instance import Representation
 
 
@@ -90,24 +90,24 @@ _PHYSICS_CONSTANTS: dict[str, float] = {
 
 
 @dataclass(frozen=True)
-class _OperatorFormStateAdapterSpec(StateAdapterSpec):
-    """Synthetic StateAdapterSpec representing operator (canonical) form.
+class _OperatorFormStateAdapterSpec(StateRepresentationSpec):
+    """Synthetic StateRepresentationSpec representing operator (canonical) form.
 
     Used as the ``state_adapter_spec`` on Representations produced by the
     executor. Carries no unit / convention overrides — values are in
-    canonical units by definition (``is_operator_form=True``).
+    canonical units by definition (``is_operator=True``).
     """
 
 
-def operator_form_spec(state: State) -> StateAdapterSpec:
-    """Return a synthetic StateAdapterSpec representing operator form.
+def operator_form_spec(state: State) -> StateRepresentationSpec:
+    """Return a synthetic StateRepresentationSpec representing operator form.
 
-    The result has ``adapter_name='operator'`` and declares no
+    The result has ``representation_name='operator'`` and declares no
     observable_units; any consumer that tries to canonicalise it via
-    ``to_operator`` will see ``is_operator_form=True`` and skip the
+    ``to_operator`` will see ``is_operator=True`` and skip the
     multiplication.
     """
-    return _OperatorFormStateAdapterSpec(state=state, adapter_name="operator")
+    return _OperatorFormStateAdapterSpec(state=state, representation_name="operator")
 
 
 # ---------------------------------------------------------------------------
@@ -246,7 +246,7 @@ def apply_edge(
     """Evaluate ``op`` against the input Representations and return the
     output Representation.
 
-    All inputs must be in operator form (``is_operator_form=True``).
+    All inputs must be in operator form (``is_operator=True``).
     The output Representation is returned in operator form too.
 
     Raises:
@@ -290,7 +290,7 @@ def apply_edge(
                 f"operation {op.name!r}: input state mismatch — expected "
                 f"{expected_state.name!r}, got {rep.state.name!r}"
             )
-        if not rep.is_operator_form:
+        if not rep.is_operator:
             raise ValueError(
                 f"operation {op.name!r}: input for state "
                 f"{rep.state.name!r} is not in operator form; call "
@@ -507,7 +507,7 @@ def apply_edge(
         state_adapter_spec=operator_form_spec(out_state),
         observable_name=out_field_name,
         data=result_arr,
-        is_operator_form=True,
+        is_operator=True,
     )
 
 

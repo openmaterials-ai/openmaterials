@@ -76,7 +76,7 @@ def _check_identical_formula(specs: list) -> tuple[bool, sp.Basic | str | None]:
 
 def _collect_convention_diffs(specs: list) -> dict[str, dict[str, str]]:
     """For each algorithmic convention name appearing on any spec, return
-    {convention_name: {adapter_name: declared_value}}."""
+    {convention_name: {representation_name: declared_value}}."""
     keys: set[str] = set()
     for s in specs:
         keys.update(s.operation.algorithmic_conventions.keys())
@@ -86,9 +86,9 @@ def _collect_convention_diffs(specs: list) -> dict[str, dict[str, str]]:
         out[k] = {}
         for s in specs:
             try:
-                out[k][s.adapter_name] = s.declared_algorithmic_convention(k)
+                out[k][s.representation_name] = s.declared_algorithmic_convention(k)
             except KeyError:
-                out[k][s.adapter_name] = "—"
+                out[k][s.representation_name] = "—"
     return out
 
 
@@ -98,14 +98,14 @@ def _collect_discretization(specs: list) -> dict[str, dict[str, str]]:
         keys.update(s.discretization_choices.keys())
     out: dict[str, dict[str, str]] = {}
     for k in sorted(keys):
-        out[k] = {s.adapter_name: s.discretization_choices.get(k, "—") for s in specs}
+        out[k] = {s.representation_name: s.discretization_choices.get(k, "—") for s in specs}
     return out
 
 
 def main() -> None:
     for op_name, specs in _CHAIN:
         identical, formula = _check_identical_formula(specs)
-        adapters = [s.adapter_name for s in specs]
+        adapters = [s.representation_name for s in specs]
         op = specs[0].operation
         aux = getattr(op, "auxiliary_formulas", ())
         print("=" * 78)
@@ -159,7 +159,7 @@ def main() -> None:
                 for s_b in specs[i + 1:]:
                     matched, _msg = representation_algorithmic_match(s_a, s_b, k)
                     sym = "✓" if matched else "✗"
-                    row += f" {s_a.adapter_name[0].upper()}-{s_b.adapter_name[0].upper()}:{sym}"
+                    row += f" {s_a.representation_name[0].upper()}-{s_b.representation_name[0].upper()}:{sym}"
             print(row)
 
 

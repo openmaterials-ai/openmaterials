@@ -33,7 +33,7 @@ from omai.operator.dimensions import (
 class Unit:
     name: str
     dimension: Dimension
-    to_canonical: float
+    to_operator: float
 
 
 _E = 1.602176634e-19  # Joules per electron-volt
@@ -115,4 +115,4 @@ def conversion_factor(from_unit: str, to_unit: str) -> float:
             f"cannot convert {from_unit} ({a.dimension.name}) to "
             f"{to_unit} ({b.dimension.name}): different dimensions"
         )
-    return a.to_canonical / b.to_canonical
+    return a.to_operator / b.to_operator

@@ -24,7 +24,7 @@ from omai.operator.dimensions import (
 )
 from omai.operator.state import HiddenState, Observable
 from omai.operator.validate import validate_dag
-from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
+from omai.representation.adapter import OperationRepresentationSpec, StateRepresentationSpec
 from omai.thermal_transport.operator import EDGES, NODES
 from omai.thermal_transport.operator.edges import (
     autocorrelate_heat_current,
@@ -197,8 +197,8 @@ def test_lammps_covers_all_five_md_states():
         (LAMMPS_MEAN_SQUARED_DISPLACEMENT, MEAN_SQUARED_DISPLACEMENT),
     ]
     for spec, state in pairs:
-        assert isinstance(spec, StateAdapterSpec)
-        assert spec.adapter_name == "lammps"
+        assert isinstance(spec, StateRepresentationSpec)
+        assert spec.representation_name == "lammps"
         assert spec.state is state
         assert spec.code_api, f"{spec.state.name}: empty code_api"
 
@@ -222,8 +222,8 @@ def test_lammps_covers_all_six_md_edges():
         (LAMMPS_FOURIER_TO_DOS, fourier_to_dos),
     ]
     for spec, op in pairs:
-        assert isinstance(spec, OperationAdapterSpec)
-        assert spec.adapter_name == "lammps"
+        assert isinstance(spec, OperationRepresentationSpec)
+        assert spec.representation_name == "lammps"
         assert spec.operation is op
 
 
@@ -249,8 +249,8 @@ def test_gpumd_covers_all_five_md_states():
         (GPUMD_MEAN_SQUARED_DISPLACEMENT, MEAN_SQUARED_DISPLACEMENT),
     ]
     for spec, state in pairs:
-        assert isinstance(spec, StateAdapterSpec)
-        assert spec.adapter_name == "gpumd"
+        assert isinstance(spec, StateRepresentationSpec)
+        assert spec.representation_name == "gpumd"
         assert spec.state is state
         assert spec.code_api, f"{spec.state.name}: empty code_api"
 
@@ -274,6 +274,6 @@ def test_gpumd_covers_all_six_md_edges():
         (GPUMD_FOURIER_TO_DOS, fourier_to_dos),
     ]
     for spec, op in pairs:
-        assert isinstance(spec, OperationAdapterSpec)
-        assert spec.adapter_name == "gpumd"
+        assert isinstance(spec, OperationRepresentationSpec)
+        assert spec.representation_name == "gpumd"
         assert spec.operation is op

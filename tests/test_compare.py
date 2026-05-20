@@ -22,7 +22,7 @@ from omai.thermal_transport.representation import (
 def test_materialize_returns_typed_object():
     m = represent(KALDO_LINEWIDTH, "Gamma", np.array([1.0, 2.0, 3.0]))
     assert isinstance(m, Representation)
-    assert m.adapter_name == "kaldo"
+    assert m.representation_name == "kaldo"
     assert m.observable_name == "Gamma"
     assert m.data.shape == (3,)
 

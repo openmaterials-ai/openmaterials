@@ -29,7 +29,7 @@ which is what cross-code comparison should reference.
 
 from __future__ import annotations
 
-from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
+from omai.representation.adapter import OperationRepresentationSpec, StateRepresentationSpec
 from omai.thermal_transport.operator.edges import (
     apply_nac_correction,
     combine_kappa_wigner,
@@ -100,27 +100,27 @@ from omai.thermal_transport.operator.nodes import (
 )
 
 
-KALDO_FREQUENCY = StateAdapterSpec(
+KALDO_FREQUENCY = StateRepresentationSpec(
     state=FREQUENCY_STATE,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"omega": "linear_THz"},
     code_api={"omega": "Phonons.frequency"},
     notes="Phonons.frequency in linear THz, shape (n_q, n_modes).",
 )
 
 
-KALDO_GROUP_VELOCITY = StateAdapterSpec(
+KALDO_GROUP_VELOCITY = StateRepresentationSpec(
     state=GROUP_VELOCITY,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"v": "angstrom_linear_THz"},
     code_api={"v": "Phonons.velocity"},
     notes="Phonons.velocity in Å·THz, shape (n_q, n_modes, 3).",
 )
 
 
-KALDO_LINEWIDTH = StateAdapterSpec(
+KALDO_LINEWIDTH = StateRepresentationSpec(
     state=LINEWIDTH,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"Gamma": "angular_THz"},
     observable_convention_overrides={
         "gamma_definition": "linewidth_2x_imag_self_energy",
@@ -134,27 +134,27 @@ KALDO_LINEWIDTH = StateAdapterSpec(
 )
 
 
-KALDO_HEAT_CAPACITY = StateAdapterSpec(
+KALDO_HEAT_CAPACITY = StateRepresentationSpec(
     state=HEAT_CAPACITY,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"c": "J_per_K"},
     code_api={"c": "Phonons.heat_capacity"},
     notes="Phonons.heat_capacity in J/K per mode.",
 )
 
 
-KALDO_THERMAL_CONDUCTIVITY_RTA = StateAdapterSpec(
+KALDO_THERMAL_CONDUCTIVITY_RTA = StateRepresentationSpec(
     state=THERMAL_CONDUCTIVITY_RTA,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"kappa": "W_per_m_per_K"},
     code_api={"kappa": "Conductivity(method='rta').conductivity"},
     notes="Conductivity(method='rta').conductivity in W/(m·K), tensor shape (3, 3).",
 )
 
 
-KALDO_THERMAL_CONDUCTIVITY_DIRECT = StateAdapterSpec(
+KALDO_THERMAL_CONDUCTIVITY_DIRECT = StateRepresentationSpec(
     state=THERMAL_CONDUCTIVITY_DIRECT,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"kappa": "W_per_m_per_K"},
     code_api={"kappa": "Conductivity(method='inverse').conductivity"},
     notes=(
@@ -170,7 +170,7 @@ def kaldo_compute_linewidth_spec(
     *,
     broadening_param: str = "adaptive_velocity_projection",
     symmetry_group: str = "C1",
-) -> OperationAdapterSpec:
+) -> OperationRepresentationSpec:
     """Build a kaldo compute_linewidth adapter spec for a specific run mode.
 
     kaldo's broadening behavior is set at Phonons() construction:
@@ -187,7 +187,7 @@ def kaldo_compute_linewidth_spec(
             or ``"spglib_auto"`` (kaldo `main` with `use_symmetry=True`).
 
     Returns:
-        An OperationAdapterSpec describing the requested run mode.
+        An OperationRepresentationSpec describing the requested run mode.
     """
     if broadening_param == "adaptive_velocity_projection":
         broadening_note = (
@@ -203,9 +203,9 @@ def kaldo_compute_linewidth_spec(
     else:
         broadening_note = f"Non-standard broadening_param={broadening_param!r}."
 
-    return OperationAdapterSpec(
+    return OperationRepresentationSpec(
         operation=compute_linewidth,
-        adapter_name="kaldo",
+        representation_name="kaldo",
         parameter_units={"broadening_sigma": "linear_THz"},
         algorithmic_convention_overrides={
             "broadening_param": broadening_param,
@@ -233,16 +233,16 @@ def kaldo_compute_linewidth_spec(
 KALDO_COMPUTE_LINEWIDTH = kaldo_compute_linewidth_spec()
 
 
-KALDO_COMPUTE_HEAT_CAPACITY = OperationAdapterSpec(
+KALDO_COMPUTE_HEAT_CAPACITY = OperationRepresentationSpec(
     operation=compute_heat_capacity,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes="No parameters or algorithmic conventions exposed.",
 )
 
 
-KALDO_COMPUTE_FORCE_CONSTANTS_2 = OperationAdapterSpec(
+KALDO_COMPUTE_FORCE_CONSTANTS_2 = OperationRepresentationSpec(
     operation=compute_force_constants_2,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     algorithmic_convention_overrides={
         # Stable kaldo's ForceConstants(second) consumes a precomputed
         # Φ² (numpy array or hiPhive object) without internal symmetrization.
@@ -257,9 +257,9 @@ KALDO_COMPUTE_FORCE_CONSTANTS_2 = OperationAdapterSpec(
 )
 
 
-KALDO_COMPUTE_FORCE_CONSTANTS_3 = OperationAdapterSpec(
+KALDO_COMPUTE_FORCE_CONSTANTS_3 = OperationRepresentationSpec(
     operation=compute_force_constants_3,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     algorithmic_convention_overrides={
         "symmetry_group": "C1",
     },
@@ -270,9 +270,9 @@ KALDO_COMPUTE_FORCE_CONSTANTS_3 = OperationAdapterSpec(
 )
 
 
-KALDO_SOLVE_BTE_DIRECT = OperationAdapterSpec(
+KALDO_SOLVE_BTE_DIRECT = OperationRepresentationSpec(
     operation=solve_bte_direct,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     algorithmic_convention_overrides={
         # Conductivity(method='inverse') assembles M on the full BZ grid
         # and calls scipy.linalg.solve. No irreducible-wedge reduction.
@@ -300,17 +300,17 @@ KALDO_SOLVE_BTE_DIRECT = OperationAdapterSpec(
 # ---------------------------------------------------------------------------
 
 
-KALDO_TEMPERATURE = StateAdapterSpec(
+KALDO_TEMPERATURE = StateRepresentationSpec(
     state=TEMPERATURE_STATE,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     code_api={"temperature": "Phonons(temperature=...)"},
     notes="Scalar parameter passed to the Phonons constructor.",
 )
 
 
-KALDO_FORCE_CONSTANTS_2 = StateAdapterSpec(
+KALDO_FORCE_CONSTANTS_2 = StateRepresentationSpec(
     state=FORCE_CONSTANTS_2,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     code_api={"phi": "ForceConstants.second.value"},
     notes=(
         "kaldo stores FC2 as a numpy array under ForceConstants.second.value, "
@@ -319,9 +319,9 @@ KALDO_FORCE_CONSTANTS_2 = StateAdapterSpec(
 )
 
 
-KALDO_FORCE_CONSTANTS_3 = StateAdapterSpec(
+KALDO_FORCE_CONSTANTS_3 = StateRepresentationSpec(
     state=FORCE_CONSTANTS_3,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"phi": "eV_per_A3"},
     # canonical fc3_normalization = "eV_per_A3"; no override needed.
     code_api={"phi": "ForceConstants.third.value"},
@@ -333,9 +333,9 @@ KALDO_FORCE_CONSTANTS_3 = StateAdapterSpec(
 )
 
 
-KALDO_EIGENVECTORS = StateAdapterSpec(
+KALDO_EIGENVECTORS = StateRepresentationSpec(
     state=EIGENVECTORS,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     code_api={"e": "Phonons.eigenvectors"},
     notes=(
         "Phonons.eigenvectors: complex array of shape (n_q, n_modes, n_modes). "
@@ -345,9 +345,9 @@ KALDO_EIGENVECTORS = StateAdapterSpec(
 )
 
 
-KALDO_MEAN_FREE_DISPLACEMENT_RTA = StateAdapterSpec(
+KALDO_MEAN_FREE_DISPLACEMENT_RTA = StateRepresentationSpec(
     state=MEAN_FREE_DISPLACEMENT_RTA,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     code_api={"F": "Conductivity(method='rta').mean_free_path"},
     notes=(
         "kaldo computes F = v / (2Γ) per-mode under RTA. Exposed as the "
@@ -356,9 +356,9 @@ KALDO_MEAN_FREE_DISPLACEMENT_RTA = StateAdapterSpec(
 )
 
 
-KALDO_MEAN_FREE_DISPLACEMENT_DIRECT = StateAdapterSpec(
+KALDO_MEAN_FREE_DISPLACEMENT_DIRECT = StateRepresentationSpec(
     state=MEAN_FREE_DISPLACEMENT_DIRECT,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     code_api={"F": "Conductivity(method='inverse').mean_free_path"},
     notes=(
         "Full LBTE F: kaldo solves M·F = c·v via scipy.linalg.solve and "
@@ -367,9 +367,9 @@ KALDO_MEAN_FREE_DISPLACEMENT_DIRECT = StateAdapterSpec(
 )
 
 
-KALDO_DYNAMICAL_MATRIX = StateAdapterSpec(
+KALDO_DYNAMICAL_MATRIX = StateRepresentationSpec(
     state=DYNAMICAL_MATRIX,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     code_api={"D": "HarmonicWithQ(q).dynmat"},
     notes=(
         "kaldo builds D(q) per q-point inside HarmonicWithQ. There is no "
@@ -379,9 +379,9 @@ KALDO_DYNAMICAL_MATRIX = StateAdapterSpec(
 )
 
 
-KALDO_POTENTIAL = StateAdapterSpec(
+KALDO_POTENTIAL = StateRepresentationSpec(
     state=POTENTIAL,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     code_api={"potential": "ForceConstants(calculator=<ASE calculator>)"},
     notes=(
         "kaldo consumes an ASE-compatible calculator: the Potential is "
@@ -393,9 +393,9 @@ KALDO_POTENTIAL = StateAdapterSpec(
 )
 
 
-KALDO_VOLUMETRIC_HEAT_CAPACITY = StateAdapterSpec(
+KALDO_VOLUMETRIC_HEAT_CAPACITY = StateRepresentationSpec(
     state=VOLUMETRIC_HEAT_CAPACITY,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     code_api={"C_V_vol": "np.sum(Phonons.heat_capacity) / (V_cell * n_q_points)"},
     notes=(
         "Derived from the per-mode form (no native API for the volumetric "
@@ -405,9 +405,9 @@ KALDO_VOLUMETRIC_HEAT_CAPACITY = StateAdapterSpec(
 )
 
 
-KALDO_MOLAR_HEAT_CAPACITY = StateAdapterSpec(
+KALDO_MOLAR_HEAT_CAPACITY = StateRepresentationSpec(
     state=MOLAR_HEAT_CAPACITY,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     code_api={"C_V_mol": "N_A * np.sum(Phonons.heat_capacity) / n_q_points"},
     notes=(
         "Derived from the per-mode form. One-line application of "
@@ -416,9 +416,9 @@ KALDO_MOLAR_HEAT_CAPACITY = StateAdapterSpec(
 )
 
 
-KALDO_PHONON_DOS = StateAdapterSpec(
+KALDO_PHONON_DOS = StateRepresentationSpec(
     state=PHONON_DOS,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     code_api={"g": "plotter.plot_dos(phonons, bandwidth, n_points)"},
     notes=(
         "kaldo computes a Gaussian-broadened DOS internally inside "
@@ -430,9 +430,9 @@ KALDO_PHONON_DOS = StateAdapterSpec(
 )
 
 
-KALDO_PHASE_SPACE_3PH = StateAdapterSpec(
+KALDO_PHASE_SPACE_3PH = StateRepresentationSpec(
     state=PHASE_SPACE_3PH,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     code_api={"P3": "Phonons.phase_space"},
     notes=(
         "Phonons.phase_space: per-mode 3-phonon phase-space density "
@@ -452,9 +452,9 @@ KALDO_PHASE_SPACE_3PH = StateAdapterSpec(
 # ---------------------------------------------------------------------------
 
 
-KALDO_PROVIDE_POTENTIAL = OperationAdapterSpec(
+KALDO_PROVIDE_POTENTIAL = OperationRepresentationSpec(
     operation=provide_potential,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes=(
         "kaldo provides the Potential through the ASE-calculator "
         "protocol (see the `ase` adapter for the canonical description). "
@@ -464,16 +464,16 @@ KALDO_PROVIDE_POTENTIAL = OperationAdapterSpec(
 )
 
 
-KALDO_PROVIDE_TEMPERATURE = OperationAdapterSpec(
+KALDO_PROVIDE_TEMPERATURE = OperationRepresentationSpec(
     operation=provide_temperature,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes="Set via Phonons(temperature=...).",
 )
 
 
-KALDO_COMPUTE_DYNAMICAL_MATRIX = OperationAdapterSpec(
+KALDO_COMPUTE_DYNAMICAL_MATRIX = OperationRepresentationSpec(
     operation=compute_dynamical_matrix,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes=(
         "ForceConstants.dynamical_matrix(q): Bloch sum implemented as a "
         "mass-weighted Fourier transform of Φ²(R)."
@@ -481,9 +481,9 @@ KALDO_COMPUTE_DYNAMICAL_MATRIX = OperationAdapterSpec(
 )
 
 
-KALDO_COMPUTE_DISPERSION = OperationAdapterSpec(
+KALDO_COMPUTE_DISPERSION = OperationRepresentationSpec(
     operation=compute_dispersion,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes=(
         "Phonons.frequency / Phonons.eigenvectors come from a per-q "
         "numpy.linalg.eigh of the dynamical matrix. Degenerate subspaces "
@@ -493,9 +493,9 @@ KALDO_COMPUTE_DISPERSION = OperationAdapterSpec(
 )
 
 
-KALDO_COMPUTE_GROUP_VELOCITY = OperationAdapterSpec(
+KALDO_COMPUTE_GROUP_VELOCITY = OperationRepresentationSpec(
     operation=compute_group_velocity,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes=(
         "Phonons.velocity uses the analytic Hellmann-Feynman form "
         "v_qν = (1/2ω_qν) ⟨e_qν| ∂D/∂q |e_qν⟩ — matches the canonical "
@@ -504,9 +504,9 @@ KALDO_COMPUTE_GROUP_VELOCITY = OperationAdapterSpec(
 )
 
 
-KALDO_SOLVE_BTE_RTA = OperationAdapterSpec(
+KALDO_SOLVE_BTE_RTA = OperationRepresentationSpec(
     operation=solve_bte_rta,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes=(
         "Conductivity(method='rta'): closed-form F = v / (2Γ), no "
         "algorithmic choice beyond the inherited Linewidth conventions."
@@ -514,16 +514,16 @@ KALDO_SOLVE_BTE_RTA = OperationAdapterSpec(
 )
 
 
-KALDO_CONTRACT_KAPPA_RTA = OperationAdapterSpec(
+KALDO_CONTRACT_KAPPA_RTA = OperationRepresentationSpec(
     operation=contract_kappa_rta,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes="Conductivity(method='rta').conductivity — per-mode contraction.",
 )
 
 
-KALDO_CONTRACT_KAPPA_DIRECT = OperationAdapterSpec(
+KALDO_CONTRACT_KAPPA_DIRECT = OperationRepresentationSpec(
     operation=contract_kappa_direct,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes=(
         "Conductivity(method='inverse'|'sc').conductivity — per-mode "
         "contraction after the BTE solve."
@@ -531,23 +531,23 @@ KALDO_CONTRACT_KAPPA_DIRECT = OperationAdapterSpec(
 )
 
 
-KALDO_CONTRACT_VOLUMETRIC_HEAT_CAPACITY = OperationAdapterSpec(
+KALDO_CONTRACT_VOLUMETRIC_HEAT_CAPACITY = OperationRepresentationSpec(
     operation=contract_volumetric_heat_capacity,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes="Derived from Phonons.heat_capacity by summing and dividing by cell volume.",
 )
 
 
-KALDO_CONTRACT_MOLAR_HEAT_CAPACITY = OperationAdapterSpec(
+KALDO_CONTRACT_MOLAR_HEAT_CAPACITY = OperationRepresentationSpec(
     operation=contract_molar_heat_capacity,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes="Derived from Phonons.heat_capacity via N_A × sum / N_q.",
 )
 
 
-KALDO_COMPUTE_DOS = OperationAdapterSpec(
+KALDO_COMPUTE_DOS = OperationRepresentationSpec(
     operation=compute_dos,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     algorithmic_convention_overrides={"dos_broadening": "gaussian"},
     notes=(
         "controllers.plotter.plot_dos sums Gaussians of fixed width "
@@ -557,9 +557,9 @@ KALDO_COMPUTE_DOS = OperationAdapterSpec(
 )
 
 
-KALDO_COMPUTE_PHASE_SPACE_3PH = OperationAdapterSpec(
+KALDO_COMPUTE_PHASE_SPACE_3PH = OperationRepresentationSpec(
     operation=compute_phase_space_3phonon,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     algorithmic_convention_overrides={"delta_broadening": "gaussian"},
     notes=(
         "Phonons.phase_space reuses the same Gaussian δ as the linewidth "
@@ -577,9 +577,9 @@ KALDO_COMPUTE_PHASE_SPACE_3PH = OperationAdapterSpec(
 # ---------------------------------------------------------------------------
 
 
-KALDO_BORN_CHARGES = StateAdapterSpec(
+KALDO_BORN_CHARGES = StateRepresentationSpec(
     state=BORN_CHARGES,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"Z_star": "dimensionless"},
     code_api={"Z_star": "atoms.info['born_charges']"},
     notes=(
@@ -590,9 +590,9 @@ KALDO_BORN_CHARGES = StateAdapterSpec(
 )
 
 
-KALDO_BARE_DYNAMICAL_MATRIX = StateAdapterSpec(
+KALDO_BARE_DYNAMICAL_MATRIX = StateRepresentationSpec(
     state=BARE_DYNAMICAL_MATRIX,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     code_api={"D_bare": "HarmonicWithQ(q)._dynmat_fourier"},
     notes=(
         "kaldo builds the bare Bloch sum inside HarmonicWithQ as "
@@ -604,9 +604,9 @@ KALDO_BARE_DYNAMICAL_MATRIX = StateAdapterSpec(
 )
 
 
-KALDO_DIELECTRIC_TENSOR = StateAdapterSpec(
+KALDO_DIELECTRIC_TENSOR = StateRepresentationSpec(
     state=DIELECTRIC_TENSOR,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"epsilon_infinity": "dimensionless"},
     code_api={"epsilon_infinity": "atoms.info['dielectric']"},
     notes=(
@@ -616,9 +616,9 @@ KALDO_DIELECTRIC_TENSOR = StateAdapterSpec(
 )
 
 
-KALDO_PROVIDE_BORN_CHARGES = OperationAdapterSpec(
+KALDO_PROVIDE_BORN_CHARGES = OperationRepresentationSpec(
     operation=provide_born_charges,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes=(
         "Populated via kaldo.interfaces.shengbte_io's BORN reader, which "
         "fills atoms.info from a ShengBTE-format BORN file."
@@ -626,16 +626,16 @@ KALDO_PROVIDE_BORN_CHARGES = OperationAdapterSpec(
 )
 
 
-KALDO_PROVIDE_DIELECTRIC_TENSOR = OperationAdapterSpec(
+KALDO_PROVIDE_DIELECTRIC_TENSOR = OperationRepresentationSpec(
     operation=provide_dielectric_tensor,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes="Same BORN reader; the dielectric tensor sits at the top of the file.",
 )
 
 
-KALDO_IDENTITY_DM = OperationAdapterSpec(
+KALDO_IDENTITY_DM = OperationRepresentationSpec(
     operation=identity_dm,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes=(
         "Non-polar runs (atoms.info has no 'dielectric' key): "
         "HarmonicWithQ.is_nac is False and the bare DM is used directly."
@@ -643,9 +643,9 @@ KALDO_IDENTITY_DM = OperationAdapterSpec(
 )
 
 
-KALDO_APPLY_NAC_CORRECTION = OperationAdapterSpec(
+KALDO_APPLY_NAC_CORRECTION = OperationRepresentationSpec(
     operation=apply_nac_correction,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     algorithmic_convention_overrides={"nac_scheme": "gonze_lee"},
     notes=(
         "Polar runs: HarmonicWithQ inserts the Gonze-Lee NAC term into the "
@@ -663,9 +663,9 @@ KALDO_APPLY_NAC_CORRECTION = OperationAdapterSpec(
 # ---------------------------------------------------------------------------
 
 
-KALDO_THERMAL_CONDUCTIVITY_WIGNER = StateAdapterSpec(
+KALDO_THERMAL_CONDUCTIVITY_WIGNER = StateRepresentationSpec(
     state=THERMAL_CONDUCTIVITY_WIGNER,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"kappa": "W_per_m_per_K"},
     code_api={"kappa": "Conductivity(method='wigner').conductivity"},
     notes=(
@@ -677,27 +677,27 @@ KALDO_THERMAL_CONDUCTIVITY_WIGNER = StateAdapterSpec(
 )
 
 
-KALDO_THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS = StateAdapterSpec(
+KALDO_THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS = StateRepresentationSpec(
     state=THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"kappa": "W_per_m_per_K"},
     code_api={"kappa": "Conductivity(method='wigner').populations_conductivity"},
     notes="The diagonal-in-band (particle) part of the Wigner κ.",
 )
 
 
-KALDO_THERMAL_CONDUCTIVITY_WIGNER_COHERENCES = StateAdapterSpec(
+KALDO_THERMAL_CONDUCTIVITY_WIGNER_COHERENCES = StateRepresentationSpec(
     state=THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"kappa": "W_per_m_per_K"},
     code_api={"kappa": "Conductivity(method='wigner').coherences_conductivity"},
     notes="The off-diagonal (coherence / wave-like) part of the Wigner κ.",
 )
 
 
-KALDO_THERMAL_CONDUCTIVITY_QHGK = StateAdapterSpec(
+KALDO_THERMAL_CONDUCTIVITY_QHGK = StateRepresentationSpec(
     state=THERMAL_CONDUCTIVITY_QHGK,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"kappa": "W_per_m_per_K"},
     code_api={"kappa": "Conductivity(method='qhgk').conductivity"},
     notes=(
@@ -709,9 +709,9 @@ KALDO_THERMAL_CONDUCTIVITY_QHGK = StateAdapterSpec(
 )
 
 
-KALDO_COMPUTE_KAPPA_WIGNER_POPULATIONS = OperationAdapterSpec(
+KALDO_COMPUTE_KAPPA_WIGNER_POPULATIONS = OperationRepresentationSpec(
     operation=compute_kappa_wigner_populations,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes=(
         "Computed alongside the coherences channel inside "
         "Conductivity(method='wigner'); exposed separately via "
@@ -720,9 +720,9 @@ KALDO_COMPUTE_KAPPA_WIGNER_POPULATIONS = OperationAdapterSpec(
 )
 
 
-KALDO_COMPUTE_KAPPA_WIGNER_COHERENCES = OperationAdapterSpec(
+KALDO_COMPUTE_KAPPA_WIGNER_COHERENCES = OperationRepresentationSpec(
     operation=compute_kappa_wigner_coherences,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes=(
         "Lorentzian-weighted off-diagonal mode overlap; the linewidth "
         "feeds in as the broadening width."
@@ -730,9 +730,9 @@ KALDO_COMPUTE_KAPPA_WIGNER_COHERENCES = OperationAdapterSpec(
 )
 
 
-KALDO_COMBINE_KAPPA_WIGNER = OperationAdapterSpec(
+KALDO_COMBINE_KAPPA_WIGNER = OperationRepresentationSpec(
     operation=combine_kappa_wigner,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes=(
         "The kaldo Conductivity object exposes the sum directly as "
         ".conductivity when method='wigner'."
@@ -740,9 +740,9 @@ KALDO_COMBINE_KAPPA_WIGNER = OperationAdapterSpec(
 )
 
 
-KALDO_COMPUTE_KAPPA_QHGK = OperationAdapterSpec(
+KALDO_COMPUTE_KAPPA_QHGK = OperationRepresentationSpec(
     operation=compute_kappa_qhgk,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes=(
         "Conductivity(method='qhgk'): time-integrated heat-flux "
         "autocorrelation with Lorentzian mode broadening of width Γ "
@@ -758,9 +758,9 @@ KALDO_COMPUTE_KAPPA_QHGK = OperationAdapterSpec(
 # ---------------------------------------------------------------------------
 
 
-KALDO_CUMULATIVE_KAPPA_OMEGA = StateAdapterSpec(
+KALDO_CUMULATIVE_KAPPA_OMEGA = StateRepresentationSpec(
     state=CUMULATIVE_KAPPA_OMEGA,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"kappa_cum": "W_per_m_per_K"},
     code_api={"kappa_cum": "Conductivity.cumulative_conductivity_per_omega"},
     notes=(
@@ -771,26 +771,26 @@ KALDO_CUMULATIVE_KAPPA_OMEGA = StateAdapterSpec(
 )
 
 
-KALDO_CUMULATIVE_KAPPA_MFP = StateAdapterSpec(
+KALDO_CUMULATIVE_KAPPA_MFP = StateRepresentationSpec(
     state=CUMULATIVE_KAPPA_MFP,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"kappa_cum": "W_per_m_per_K"},
     code_api={"kappa_cum": "Conductivity.cumulative_conductivity_per_mfp"},
     notes="Cumulative κ vs |F| (mean-free-path threshold).",
 )
 
 
-KALDO_CONTRACT_CUMULATIVE_KAPPA_OMEGA = OperationAdapterSpec(
+KALDO_CONTRACT_CUMULATIVE_KAPPA_OMEGA = OperationRepresentationSpec(
     operation=contract_cumulative_kappa_omega,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     algorithmic_convention_overrides={"binning": "linear"},
     notes="Linear ω-axis binning by default.",
 )
 
 
-KALDO_CONTRACT_CUMULATIVE_KAPPA_MFP = OperationAdapterSpec(
+KALDO_CONTRACT_CUMULATIVE_KAPPA_MFP = OperationRepresentationSpec(
     operation=contract_cumulative_kappa_mfp,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     algorithmic_convention_overrides={"binning": "log"},
     notes="Logarithmic Λ-axis binning to span the wide MFP distribution.",
 )
@@ -804,9 +804,9 @@ KALDO_CONTRACT_CUMULATIVE_KAPPA_MFP = OperationAdapterSpec(
 # ---------------------------------------------------------------------------
 
 
-KALDO_HELMHOLTZ_FREE_ENERGY = StateAdapterSpec(
+KALDO_HELMHOLTZ_FREE_ENERGY = StateRepresentationSpec(
     state=HELMHOLTZ_FREE_ENERGY,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"f": "eV"},
     code_api={"f": "Phonons.free_energy"},
     notes=(
@@ -820,9 +820,9 @@ KALDO_HELMHOLTZ_FREE_ENERGY = StateAdapterSpec(
 )
 
 
-KALDO_COMPUTE_FREE_ENERGY = OperationAdapterSpec(
+KALDO_COMPUTE_FREE_ENERGY = OperationRepresentationSpec(
     operation=compute_free_energy,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes=(
         "Phonons.free_energy: closed-form F = (ℏω/2) + k_B T ln(1 - "
         "exp(-ℏω/k_B T)) per mode. Imaginary frequencies are excluded with "
@@ -841,9 +841,9 @@ KALDO_COMPUTE_FREE_ENERGY = OperationAdapterSpec(
 # ---------------------------------------------------------------------------
 
 
-KALDO_ISOTOPIC_LINEWIDTH = StateAdapterSpec(
+KALDO_ISOTOPIC_LINEWIDTH = StateRepresentationSpec(
     state=ISOTOPIC_LINEWIDTH,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"Gamma": "angular_THz"},
     observable_convention_overrides={
         "gamma_definition": "linewidth_2x_imag_self_energy",
@@ -858,9 +858,9 @@ KALDO_ISOTOPIC_LINEWIDTH = StateAdapterSpec(
 )
 
 
-KALDO_BOUNDARY_LINEWIDTH = StateAdapterSpec(
+KALDO_BOUNDARY_LINEWIDTH = StateRepresentationSpec(
     state=BOUNDARY_LINEWIDTH,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"Gamma": "angular_THz"},
     observable_convention_overrides={
         "gamma_definition": "linewidth_2x_imag_self_energy",
@@ -878,9 +878,9 @@ KALDO_BOUNDARY_LINEWIDTH = StateAdapterSpec(
 )
 
 
-KALDO_TOTAL_LINEWIDTH = StateAdapterSpec(
+KALDO_TOTAL_LINEWIDTH = StateRepresentationSpec(
     state=TOTAL_LINEWIDTH,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"Gamma": "angular_THz"},
     observable_convention_overrides={
         "gamma_definition": "linewidth_2x_imag_self_energy",
@@ -895,9 +895,9 @@ KALDO_TOTAL_LINEWIDTH = StateAdapterSpec(
 )
 
 
-KALDO_ISOTOPE_ABUNDANCES = StateAdapterSpec(
+KALDO_ISOTOPE_ABUNDANCES = StateRepresentationSpec(
     state=ISOTOPE_ABUNDANCES,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     observable_units={"g": "dimensionless"},
     code_api={"g": "Phonons(g_factor=...)"},
     notes=(
@@ -909,9 +909,9 @@ KALDO_ISOTOPE_ABUNDANCES = StateAdapterSpec(
 )
 
 
-KALDO_PROVIDE_ISOTOPE_ABUNDANCES = OperationAdapterSpec(
+KALDO_PROVIDE_ISOTOPE_ABUNDANCES = OperationRepresentationSpec(
     operation=provide_isotope_abundances,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes=(
         "Set via the Phonons(g_factor=...) constructor argument. With "
         "include_isotopes=True and g_factor=None kaldo falls back to NIST "
@@ -920,9 +920,9 @@ KALDO_PROVIDE_ISOTOPE_ABUNDANCES = OperationAdapterSpec(
 )
 
 
-KALDO_COMPUTE_ISOTOPE_SCATTERING = OperationAdapterSpec(
+KALDO_COMPUTE_ISOTOPE_SCATTERING = OperationRepresentationSpec(
     operation=compute_isotope_scattering,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes=(
         "kaldo.controllers.isotopic.compute_isotopic_bw evaluates the Tamura "
         "expression with the same Gaussian δ as the anharmonic linewidth "
@@ -932,9 +932,9 @@ KALDO_COMPUTE_ISOTOPE_SCATTERING = OperationAdapterSpec(
 )
 
 
-KALDO_COMPUTE_BOUNDARY_SCATTERING = OperationAdapterSpec(
+KALDO_COMPUTE_BOUNDARY_SCATTERING = OperationRepresentationSpec(
     operation=compute_boundary_scattering,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes=(
         "McKelvey-Schockley form Γ_boundary = 2|v_α|/L_α, applied inline "
         "inside Conductivity.calculate_mfp_inv when "
@@ -943,9 +943,9 @@ KALDO_COMPUTE_BOUNDARY_SCATTERING = OperationAdapterSpec(
 )
 
 
-KALDO_SUM_LINEWIDTHS = OperationAdapterSpec(
+KALDO_SUM_LINEWIDTHS = OperationRepresentationSpec(
     operation=sum_linewidths,
-    adapter_name="kaldo",
+    representation_name="kaldo",
     notes=(
         "Phonons.bandwidth is the explicit Matthiessen sum of "
         "anharmonic_bandwidth and (when include_isotopes) isotopic_bandwidth. "

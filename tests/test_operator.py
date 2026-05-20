@@ -217,8 +217,8 @@ def test_thermal_conductivity_is_terminal():
 
 
 def test_linewidth_state_has_gamma_definition_convention():
-    assert "gamma_definition" in LINEWIDTH.canonical_conventions
-    assert LINEWIDTH.canonical_conventions["gamma_definition"] == "imag_self_energy"
+    assert "gamma_definition" in LINEWIDTH.operator_conventions
+    assert LINEWIDTH.operator_conventions["gamma_definition"] == "imag_self_energy"
 
 
 def test_linewidth_convention_factor_table():
@@ -234,8 +234,8 @@ def test_fc3_state_has_fc3_normalization_convention():
     convention_factor of 0.1 for ShengBTE's eV_per_A2_per_nm form."""
     from omai.thermal_transport.operator import FORCE_CONSTANTS_3
 
-    assert "fc3_normalization" in FORCE_CONSTANTS_3.canonical_conventions
-    assert FORCE_CONSTANTS_3.canonical_conventions["fc3_normalization"] == "eV_per_A3"
+    assert "fc3_normalization" in FORCE_CONSTANTS_3.operator_conventions
+    assert FORCE_CONSTANTS_3.operator_conventions["fc3_normalization"] == "eV_per_A3"
     assert (
         "fc3_normalization", "eV_per_A2_per_nm", "phi", 0.1,
     ) in FORCE_CONSTANTS_3.convention_factors

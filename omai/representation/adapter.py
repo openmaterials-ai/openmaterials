@@ -1,10 +1,10 @@
 """Representation-layer adapter specs.
 
-A StateAdapterSpec declares one code's claim about a node (operator State):
+A StateRepresentationSpec declares one code's claim about a node (operator State):
   * the unit each observable is in (within that code's natural emission)
   * the convention each observable carries (overrides of canonical)
 
-An OperationAdapterSpec declares one code's claim about an edge (operator
+An OperationRepresentationSpec declares one code's claim about an edge (operator
 Operation):
   * the unit each parameter is in (within that code's API surface)
   * the algorithmic-convention overrides
@@ -29,9 +29,9 @@ from omai.representation.units import UNITS, conversion_factor
 
 
 @dataclass(frozen=True)
-class StateAdapterSpec:
+class StateRepresentationSpec:
     state: State
-    adapter_name: str
+    representation_name: str
     observable_units: dict[str, str] = field(default_factory=dict)
     observable_convention_overrides: dict[str, str] = field(default_factory=dict)
     # Per-field native API name in the code. Used by tooling (visualization,
@@ -52,18 +52,18 @@ class StateAdapterSpec:
         # FC2/FC3, DM, MFD, ...) intentionally omit units — they exist to
         # mark coverage on the DAG, not to support numerical comparison.
         raise KeyError(
-            f"adapter {self.adapter_name!r} has no unit declared for "
+            f"adapter {self.representation_name!r} has no unit declared for "
             f"observable {observable_name!r} of state {self.state.name!r} "
             f"— cannot canonicalise. Add an observable_units entry "
-            f"({{'{observable_name}': '<unit_name>'}}) to its StateAdapterSpec, "
+            f"({{'{observable_name}': '<unit_name>'}}) to its StateRepresentationSpec, "
             f"or operate on the canonical (operator-form) Representation."
         )
 
     def declared_convention(self, convention_name: str) -> str:
         if convention_name in self.observable_convention_overrides:
             return self.observable_convention_overrides[convention_name]
-        if convention_name in self.state.canonical_conventions:
-            return self.state.canonical_conventions[convention_name]
+        if convention_name in self.state.operator_conventions:
+            return self.state.operator_conventions[convention_name]
         raise KeyError(
             f"state {self.state.name!r} declares no convention {convention_name!r}"
         )
@@ -81,9 +81,9 @@ class StateAdapterSpec:
 
 
 @dataclass(frozen=True)
-class OperationAdapterSpec:
+class OperationRepresentationSpec:
     operation: Operation
-    adapter_name: str
+    representation_name: str
     parameter_units: dict[str, str] = field(default_factory=dict)
     algorithmic_convention_overrides: dict[str, str] = field(default_factory=dict)
     discretization_choices: dict[str, str] = field(default_factory=dict)
@@ -93,7 +93,7 @@ class OperationAdapterSpec:
         unit = self.parameter_units.get(parameter_name)
         if unit is None:
             raise KeyError(
-                f"adapter {self.adapter_name!r} did not declare a unit for "
+                f"adapter {self.representation_name!r} did not declare a unit for "
                 f"parameter {parameter_name!r} of operation {self.operation.name!r}"
             )
         return unit
@@ -114,7 +114,7 @@ class OperationAdapterSpec:
 # ---------------------------------------------------------------------------
 
 
-def _require_same_state(a: StateAdapterSpec, b: StateAdapterSpec) -> None:
+def _require_same_state(a: StateRepresentationSpec, b: StateRepresentationSpec) -> None:
     if a.state != b.state:
         raise ValueError(
             f"adapters wrap different states: "
@@ -122,21 +122,21 @@ def _require_same_state(a: StateAdapterSpec, b: StateAdapterSpec) -> None:
         )
 
 
-def to_operator_form_factor(
-    spec: StateAdapterSpec, observable_name: str
+def representation_to_operator(
+    spec: StateRepresentationSpec, observable_name: str
 ) -> float:
     """Multiplier from this adapter's emitted value to operator-canonical form.
 
     The operator layer is unit-free at the *dimension* level but each
-    `Unit` carries a `to_canonical` factor that names the canonical
+    `Unit` carries a `to_operator` factor that names the canonical
     numerical form for its dimension (linear_THz for FREQUENCY, J/K for
     ENERGY_PER_TEMPERATURE, W/(m·K) for THERMAL_CONDUCTIVITY, …). The
     convention factor `c_a` is this adapter's deviation from canonical
     convention. So:
 
-        operator_value = adapter_value · (unit.to_canonical / c_a)
+        operator_value = adapter_value · (unit.to_operator / c_a)
 
-    Together with `from_operator_form_factor`, this is the only primitive
+    Together with `operator_to_representation`, this is the only primitive
     cross-form mapping. `inter_representation_factor(a, b, …)` is *defined*
     as their composition; there is no direct A→B primitive in the framework.
     Adapters talk to each other only through the operator hub — a star
@@ -145,31 +145,31 @@ def to_operator_form_factor(
     """
     unit = UNITS[spec.declared_unit(observable_name)]
     c_a = spec.observable_convention_factor(observable_name)
-    return unit.to_canonical / c_a
+    return unit.to_operator / c_a
 
 
-def from_operator_form_factor(
-    spec: StateAdapterSpec, observable_name: str
+def operator_to_representation(
+    spec: StateRepresentationSpec, observable_name: str
 ) -> float:
     """Multiplier from operator-canonical form to this adapter's emitted value.
 
-    Inverse of `to_operator_form_factor` (modulo float round-off):
+    Inverse of `representation_to_operator` (modulo float round-off):
 
-        adapter_value = operator_value · (c_b / unit.to_canonical)
+        adapter_value = operator_value · (c_b / unit.to_operator)
     """
     unit = UNITS[spec.declared_unit(observable_name)]
     c_b = spec.observable_convention_factor(observable_name)
-    return c_b / unit.to_canonical
+    return c_b / unit.to_operator
 
 
 def inter_representation_unit_factor(
-    a: StateAdapterSpec, b: StateAdapterSpec, observable_name: str
+    a: StateRepresentationSpec, b: StateRepresentationSpec, observable_name: str
 ) -> float:
     """Factor f such that A's emitted value × f = the same value in B's unit
     (ignoring any convention-driven scaling).
 
     Derived view: this is `conversion_factor(A.unit, B.unit)` which in turn
-    equals `A.unit.to_canonical / B.unit.to_canonical` — the unit jump
+    equals `A.unit.to_operator / B.unit.to_operator` — the unit jump
     factors through canonical SI form by construction.
     """
     _require_same_state(a, b)
@@ -179,14 +179,14 @@ def inter_representation_unit_factor(
 
 
 def inter_representation_factor(
-    a: StateAdapterSpec, b: StateAdapterSpec, observable_name: str
+    a: StateRepresentationSpec, b: StateRepresentationSpec, observable_name: str
 ) -> float:
     """Combined unit + convention factor: A's emitted value × this = B's
     emitted value for the same physical state.
 
     **Derived, not primitive.** This is the composition
 
-        from_operator_form_factor(b, …) · to_operator_form_factor(a, …)
+        operator_to_representation(b, …) · representation_to_operator(a, …)
 
     Cross-adapter conversions are never direct A→B in this framework;
     every such factor is the composition of `A → operator` and
@@ -194,15 +194,15 @@ def inter_representation_factor(
     topology. This convenience function exists to make Si-Tersoff-style
     audit code read naturally; new adapters need not declare anything
     relative to other adapters, only relative to the operator-canonical
-    form (`to_canonical` on `Unit`, `convention_factors` on `State`).
+    form (`to_operator` on `Unit`, `convention_factors` on `State`).
     """
-    return from_operator_form_factor(b, observable_name) * to_operator_form_factor(
+    return operator_to_representation(b, observable_name) * representation_to_operator(
         a, observable_name
     )
 
 
 def representation_convention_match(
-    a: StateAdapterSpec, b: StateAdapterSpec, convention_name: str
+    a: StateRepresentationSpec, b: StateRepresentationSpec, convention_name: str
 ) -> tuple[bool, str]:
     """Whether two state adapters agree on a state-level convention."""
     _require_same_state(a, b)
@@ -211,8 +211,8 @@ def representation_convention_match(
     if ca == cb:
         return True, ""
     return False, (
-        f"{a.adapter_name} uses {convention_name}={ca}; "
-        f"{b.adapter_name} uses {convention_name}={cb}"
+        f"{a.representation_name} uses {convention_name}={ca}; "
+        f"{b.representation_name} uses {convention_name}={cb}"
     )
 
 
@@ -221,7 +221,7 @@ def representation_convention_match(
 # ---------------------------------------------------------------------------
 
 
-def _require_same_operation(a: OperationAdapterSpec, b: OperationAdapterSpec) -> None:
+def _require_same_operation(a: OperationRepresentationSpec, b: OperationRepresentationSpec) -> None:
     if a.operation != b.operation:
         raise ValueError(
             f"adapters wrap different operations: "
@@ -230,7 +230,7 @@ def _require_same_operation(a: OperationAdapterSpec, b: OperationAdapterSpec) ->
 
 
 def representation_algorithmic_match(
-    a: OperationAdapterSpec, b: OperationAdapterSpec, convention_name: str
+    a: OperationRepresentationSpec, b: OperationRepresentationSpec, convention_name: str
 ) -> tuple[bool, str]:
     """Whether two operation adapters agree on an algorithmic convention."""
     _require_same_operation(a, b)
@@ -239,13 +239,13 @@ def representation_algorithmic_match(
     if ca == cb:
         return True, ""
     return False, (
-        f"{a.adapter_name} uses {convention_name}={ca}; "
-        f"{b.adapter_name} uses {convention_name}={cb}"
+        f"{a.representation_name} uses {convention_name}={ca}; "
+        f"{b.representation_name} uses {convention_name}={cb}"
     )
 
 
 def representation_discretization_match(
-    a: OperationAdapterSpec, b: OperationAdapterSpec, choice_name: str
+    a: OperationRepresentationSpec, b: OperationRepresentationSpec, choice_name: str
 ) -> tuple[bool, str]:
     """Whether two operation adapters agree on a discretization choice
     (e.g., BZ summation strategy)."""
@@ -255,6 +255,6 @@ def representation_discretization_match(
     if ca == cb:
         return True, ""
     return False, (
-        f"{a.adapter_name} uses {choice_name}={ca}; "
-        f"{b.adapter_name} uses {choice_name}={cb}"
+        f"{a.representation_name} uses {choice_name}={ca}; "
+        f"{b.representation_name} uses {choice_name}={cb}"
     )

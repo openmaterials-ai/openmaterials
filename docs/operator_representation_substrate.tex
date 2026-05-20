@@ -256,8 +256,8 @@ No values, no units, no per-code knowledge.
 
 \paragraph{Layer 2 --- representation.} Per-code declarations plus the
 runtime that operates on actual code outputs. Machinery in
-\texttt{omai.representation} (the \texttt{StateAdapterSpec} and
-\texttt{OperationAdapterSpec} types, \texttt{Unit} and unit conversions,
+\texttt{omai.representation} (the \texttt{StateRepresentationSpec} and
+\texttt{OperationRepresentationSpec} types, \texttt{Unit} and unit conversions,
 the \texttt{Representation} runtime data class, \texttt{compare()} with
 its five-status verdicts); domain instances in
 \texttt{omai.thermal\_transport.represented} (one file per code:
@@ -573,7 +573,7 @@ edge's \texttt{formula.free\_symbols} are derivable from its inputs and
 parameters; LHS indices match the output state's field; auxiliary
 formulas close over the main formula's vocabulary). \emph{Cross-code
 data} is checked at comparison time: \texttt{compare\_operators} on a
-pair of \texttt{StateAdapterSpec}s verifies that two codes are claiming
+pair of \texttt{StateRepresentationSpec}s verifies that two codes are claiming
 the same operator (compatible units, canonicalisable conventions), and
 \texttt{compare\_representations} on a pair of \texttt{Representation}s
 applies the spec-derived conversion and emits the five-status
@@ -595,61 +595,64 @@ giving the asymptotic dependence of the discretization error on these parameters
 A representation $m$ is a runtime data class wrapping one adapter's emission of one
 field on one state:
 \begin{equation*}
-  m = (\textsc{StateAdapterSpec}, \texttt{field\_name}, x)
+  m = (\textsc{StateRepresentationSpec}, \texttt{field\_name}, x)
 \end{equation*}
-where \textsc{StateAdapterSpec} carries the operator state $s$, the adapter name, and
+where \textsc{StateRepresentationSpec} carries the operator state $s$, the representation name, and
 the adapter's declarations (units of each field, convention overrides, notes);
 \texttt{field\_name} selects which field of $s$ is represented; and $x$ is a concrete
 \texttt{numpy.ndarray}. The discretization scheme $\Sigma$ and discretization error
 $\epsilon_{\text{disc}}$ are deferred to Phase 2.
 
-\paragraph{Why the adapter spec is part of the representation.} Different codes
+\paragraph{Why the representation spec ships with the data.} Different codes
 express the same physics in different units (kaldo's linewidth is in angular-frequency
 THz while phono3py's is in linear-frequency THz; kaldo's heat capacity is in J/K,
 phono3py's in eV/K) and under different conventions (kaldo's $\Gamma$ is the linewidth
 $2\,\text{Im}\,\Sigma$ while phono3py's is $\text{Im}\,\Sigma$ directly). A raw array
 without its adapter spec is unsafe to compare against another. With the spec attached,
-the operator layer computes the cross-adapter conversion factor mechanically and surfaces
+the operator layer computes the cross-representation conversion factor mechanically and surfaces
 unit / convention mismatches as type-level declarations rather than as numerical
 mysteries.
 
 \paragraph{Star topology: the operator layer is the unique hub.}
-The cross-adapter conversion factor is \emph{never} a direct
-representation-to-representation primitive. The primitives are the two factor functions
-$\texttt{to\_operator\_form\_factor}(A,\text{obs})$ and
-$\texttt{from\_operator\_form\_factor}(B,\text{obs})$ which carry a value
-between an adapter's emitted form and the operator-canonical form
+The cross-representation conversion factor is \emph{never} a direct
+representation-to-representation primitive. The primitives are the two functions
+$\texttt{representation\_to\_operator}(A,\text{obs})$ and
+$\texttt{operator\_to\_representation}(B,\text{obs})$ which carry a
+value between a representation's emitted form and the operator form
 ($x_{\text{operator}} = x_A \cdot u_A^{\text{canon}} / c_A$, where
 $u_A^{\text{canon}}$ is the unit's \texttt{to\_canonical} multiplier and
-$c_A$ is the adapter's convention deviation from canonical). The
-combined factor
+$c_A$ is the representation's convention deviation from operator-canonical).
+The combined factor
 $\texttt{inter\_representation\_factor}(A, B, \text{obs}) =
-\texttt{from\_operator}(B, \text{obs}) \cdot \texttt{to\_operator}(A, \text{obs})$
+\texttt{operator\_to\_representation}(B, \text{obs}) \cdot
+\texttt{representation\_to\_operator}(A, \text{obs})$
 is \emph{derived}, never primitive. Geometrically the operator layer is the
-unique hub of a star topology with each adapter as a spoke; an $N$-adapter
-domain requires $N$ canonical spec sets, never $N^2$ pairwise conversions.
-Lean-side this is the right factoring: the operator layer is the \emph{theory},
-each adapter is a \emph{model}, and any cross-adapter morphism factors through
-the theory by construction.
+unique hub of a star topology with each representation as a spoke; an
+$N$-representation domain requires $N$ spec sets to the operator hub, never
+$N^2$ pairwise conversions. Lean-side this is the right factoring: the
+operator layer is the \emph{theory}, each representation is a \emph{model},
+and any representation-to-representation morphism factors through the theory
+by construction.
 
 The same discipline applies edge-by-edge in the executor: when the
-operator-side runtime walks the DAG and dispatches an edge to code $A$,
-the value returned MUST be canonicalised via $A$'s
-\texttt{to\_operator\_form\_factor} before the next edge runs --- whether
-that next edge is sympy-executable (closed-form on the operator layer)
-or dispatched to a different code $B$ (which then applies $B$'s
-\texttt{from\_operator\_form\_factor}). Operator-form intermediates are
-the lingua franca between heterogeneous edges; no edge-to-edge handshake
-bypasses canonical.
+operator-side runtime walks the DAG and dispatches an edge to code $A$
+(i.e.\ to representation $A$), the value returned MUST be carried back
+through $A$'s \texttt{representation\_to\_operator} before the
+next edge runs --- whether that next edge is sympy-executable (closed-form
+on the operator layer) or dispatched to a different representation $B$
+(which then applies $B$'s
+\texttt{operator\_to\_representation}). Operator-form intermediates
+are the lingua franca between heterogeneous edges; no edge-to-edge handshake
+bypasses the operator hub.
 
-\subsection{Cross-adapter comparison: \texttt{compare}}
+\subsection{Cross-representation comparison: \texttt{compare}}
 
 The bridge from spec to verified empirical fact is the function
 \begin{equation*}
   \texttt{compare}(m_a, m_b; \text{rtol}, \text{atol}, \text{contraction})
   \;\to\; \textsc{RepresentationComparisonResult}
 \end{equation*}
-which takes two representations of the same state and field, applies the cross-adapter
+which takes two representations of the same state and field, applies the cross-representation
 conversion factor derived from their declared units and conventions, optionally
 contracts both arrays via a user-supplied callable (e.g.\ \texttt{numpy.sum}), and
 reports residuals together with a \emph{status} drawn from five values:
@@ -1173,8 +1176,8 @@ are now ingested:
 \end{itemize}
 
 Each adapter spec declares per-state units, convention overrides, and notes
-(\texttt{StateAdapterSpec}), plus per-operation parameter units, algorithmic-convention
-overrides, and discretization choices (\texttt{OperationAdapterSpec}). Differences
+(\texttt{StateRepresentationSpec}), plus per-operation parameter units, algorithmic-convention
+overrides, and discretization choices (\texttt{OperationRepresentationSpec}). Differences
 from the operator layer's canonical declarations surface as conversion factors at
 spec-load time.
 
@@ -1277,8 +1280,8 @@ plus one per domain:
     \begin{itemize}[leftmargin=1.2em]
       \item \texttt{units.py}: the \texttt{Unit} class, named unit instances, strict
             same-dimension \texttt{conversion\_factor}.
-      \item \texttt{adapter.py}: \texttt{StateAdapterSpec} and
-            \texttt{OperationAdapterSpec}, plus inter-representation factor
+      \item \texttt{adapter.py}: \texttt{StateRepresentationSpec} and
+            \texttt{OperationRepresentationSpec}, plus inter-representation factor
             helpers (\texttt{inter\_representation\_unit\_factor},
             \texttt{inter\_representation\_factor},
             \texttt{representation\_convention\_match},
@@ -1315,7 +1318,7 @@ plus one per domain:
             \texttt{representation/shengbte.py}: per-code adapter specs
             (one file per code), declaring units, conventions, and
             discretization choices. Every operation in scope for a code now
-            carries an \texttt{OperationAdapterSpec}; trivial source /
+            carries an \texttt{OperationRepresentationSpec}; trivial source /
             contraction ops carry no conventions but exist to mark coverage
             in the visualization.
       \item \texttt{visualize.py}: emits \texttt{docs/dag.html}, an interactive

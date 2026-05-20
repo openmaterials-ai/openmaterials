@@ -126,10 +126,10 @@ def main() -> None:
     import importlib
     import pkgutil
     import omai.thermal_transport.representation as rep_pkg
-    from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
+    from omai.representation.adapter import OperationRepresentationSpec, StateRepresentationSpec
 
-    pot_state_specs: dict[str, StateAdapterSpec] = {}
-    pot_op_specs: dict[str, OperationAdapterSpec] = {}
+    pot_state_specs: dict[str, StateRepresentationSpec] = {}
+    pot_op_specs: dict[str, OperationRepresentationSpec] = {}
     for info in pkgutil.iter_modules(rep_pkg.__path__):
         if info.name.startswith("_"):
             continue
@@ -140,19 +140,19 @@ def main() -> None:
             if attr.startswith("_"):
                 continue
             obj = getattr(mod, attr)
-            if isinstance(obj, StateAdapterSpec) and obj.state.name == "Potential":
-                pot_state_specs[obj.adapter_name] = obj
+            if isinstance(obj, StateRepresentationSpec) and obj.state.name == "Potential":
+                pot_state_specs[obj.representation_name] = obj
             elif (
-                isinstance(obj, OperationAdapterSpec)
+                isinstance(obj, OperationRepresentationSpec)
                 and obj.operation.name == "provide_potential"
             ):
-                pot_op_specs[obj.adapter_name] = obj
+                pot_op_specs[obj.representation_name] = obj
 
-    print(f"  POTENTIAL StateAdapterSpec coverage ({len(pot_state_specs)} adapters):")
-    for adapter in sorted(pot_state_specs):
-        spec = pot_state_specs[adapter]
+    print(f"  POTENTIAL StateRepresentationSpec coverage ({len(pot_state_specs)} representations):")
+    for representation in sorted(pot_state_specs):
+        spec = pot_state_specs[representation]
         api = spec.code_api.get("potential", "<no code_api>")
-        print(f"    {adapter:<10s} : {api}")
+        print(f"    {representation:<10s} : {api}")
     print()
     print(f"  → operator-layer audit reads identically on any material. The")
     print("    Ge-Tersoff and Si-Tersoff cross-code agreement results from the")

@@ -38,7 +38,7 @@ from typing import Any
 import numpy as np
 
 from omai.operator.state import HiddenState
-from omai.representation.adapter import StateAdapterSpec
+from omai.representation.adapter import StateRepresentationSpec
 from omai.representation.instance import Representation
 from omai.representation.units import conversion_factor
 
@@ -72,7 +72,7 @@ class OperatorComparisonResult:
 
 
 def compare_operators(
-    spec_a: StateAdapterSpec, spec_b: StateAdapterSpec
+    spec_a: StateRepresentationSpec, spec_b: StateRepresentationSpec
 ) -> OperatorComparisonResult:
     """Structural check: do two adapter specs describe the same operator?
 
@@ -115,7 +115,7 @@ def compare_operators(
     # conventions resolve to a known convention value in the state.
     # The state's canonicalisation chain then guarantees both land on
     # the same canonical operator.
-    for conv_name, canonical_value in state.canonical_conventions.items():
+    for conv_name, canonical_value in state.operator_conventions.items():
         try:
             val_a = spec_a.declared_convention(conv_name)
             val_b = spec_b.declared_convention(conv_name)
@@ -129,12 +129,12 @@ def compare_operators(
         }
         if val_a not in known_values:
             mismatches.append(
-                f"adapter {spec_a.adapter_name!r}: convention {conv_name}="
+                f"adapter {spec_a.representation_name!r}: convention {conv_name}="
                 f"{val_a!r} is not a known canonical/non-canonical value"
             )
         if val_b not in known_values:
             mismatches.append(
-                f"adapter {spec_b.adapter_name!r}: convention {conv_name}="
+                f"adapter {spec_b.representation_name!r}: convention {conv_name}="
                 f"{val_b!r} is not a known canonical/non-canonical value"
             )
 
@@ -147,7 +147,7 @@ def compare_operators(
 
 
 def _spec_to_canonical_factor(
-    spec: StateAdapterSpec, observable_name: str
+    spec: StateRepresentationSpec, observable_name: str
 ) -> float:
     """Factor f such that (spec's emitted value) × f = (canonical value).
 
@@ -162,10 +162,10 @@ def _spec_to_canonical_factor(
         unit = spec.declared_unit(observable_name)
     except KeyError as exc:
         raise KeyError(
-            f"adapter {spec.adapter_name!r} declares no unit for field "
+            f"adapter {spec.representation_name!r} declares no unit for field "
             f"{observable_name!r} of state {state.name!r}; cannot place "
             f"this representation into operator form. Add an "
-            f"observable_units entry to its StateAdapterSpec, or "
+            f"observable_units entry to its StateRepresentationSpec, or "
             f"represent the canonical form directly."
         ) from exc
     u_factor = conversion_factor(unit, canonical_unit)
@@ -180,13 +180,13 @@ def _canonical_unit_for(state, observable_name: str) -> str:
     """Look up the canonical unit name for an observable.
 
     The canonical unit is whichever named unit on the state's field
-    dimension carries a to_canonical factor of 1.0.
+    dimension carries a to_operator factor of 1.0.
     """
     from omai.representation.units import UNITS
 
     field = state.field(observable_name)
     for u in UNITS.values():
-        if u.dimension == field.dimension and u.to_canonical == 1.0:
+        if u.dimension == field.dimension and u.to_operator == 1.0:
             return u.name
     # Fallback: use any unit on this dimension. (Shouldn't happen if
     # the unit registry is well-formed.)
@@ -203,21 +203,21 @@ def to_operator(m: Representation) -> Representation:
     """Reframe a Representation in operator (canonical) form.
 
     The returned Representation carries data multiplied by the spec's
-    `to_canonical_factor`, and `is_operator_form=True`. The
+    `to_canonical_factor`, and `is_operator=True`. The
     state_adapter_spec on the returned object is unchanged (it still
     records the *originating* adapter), but downstream consumers should
     treat the data as basis-independent — units are the operator
     layer's canonical unit, conventions are the canonical values.
     """
-    if m.is_operator_form:
+    if m.is_operator:
         return m
     factor = _spec_to_canonical_factor(m.state_adapter_spec, m.observable_name)
     new_data = np.asarray(m.data, dtype=float) * factor
-    return replace(m, data=new_data, is_operator_form=True)
+    return replace(m, data=new_data, is_operator=True)
 
 
 def to_representation(
-    m_op: Representation, target_spec: StateAdapterSpec
+    m_op: Representation, target_spec: StateRepresentationSpec
 ) -> Representation:
     """Reframe an operator-form Representation in a target adapter's
     representation. Multiplicatively inverse of `to_operator`.
@@ -226,7 +226,7 @@ def to_representation(
     value or a published number) and want to know what a specific code
     would have printed if it had agreed.
     """
-    if not m_op.is_operator_form:
+    if not m_op.is_operator:
         m_op = to_operator(m_op)
     if target_spec.state != m_op.state:
         raise ValueError(
@@ -239,7 +239,7 @@ def to_representation(
         state_adapter_spec=target_spec,
         observable_name=m_op.observable_name,
         data=new_data,
-        is_operator_form=False,
+        is_operator=False,
     )
 
 
@@ -362,13 +362,13 @@ def compare_representations(
     # Inter-representation factor, reconstructed for diagnostics:
     # factor_A→B = (b_emitted_value) / (a_emitted_value) where both
     # represent the same canonical value.
-    if m_a.is_operator_form and m_b.is_operator_form:
+    if m_a.is_operator and m_b.is_operator:
         factor_a_to_b = 1.0
     else:
         f_a = _spec_to_canonical_factor(m_a.state_adapter_spec, m_a.observable_name) \
-            if not m_a.is_operator_form else 1.0
+            if not m_a.is_operator else 1.0
         f_b = _spec_to_canonical_factor(m_b.state_adapter_spec, m_b.observable_name) \
-            if not m_b.is_operator_form else 1.0
+            if not m_b.is_operator else 1.0
         # a_op_value = a_value * f_a; b_op_value = b_value * f_b.
         # In operator form they should match: a_value * f_a ≈ b_value * f_b
         # → a_value = b_value * (f_b / f_a), so factor_a_to_b = f_a / f_b.

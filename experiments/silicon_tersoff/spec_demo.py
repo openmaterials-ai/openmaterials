@@ -413,10 +413,10 @@ def main() -> None:
     import pkgutil
 
     import omai.thermal_transport.representation as rep_pkg
-    from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
+    from omai.representation.adapter import OperationRepresentationSpec, StateRepresentationSpec
 
-    pot_state_specs: dict[str, StateAdapterSpec] = {}
-    pot_op_specs: dict[str, OperationAdapterSpec] = {}
+    pot_state_specs: dict[str, StateRepresentationSpec] = {}
+    pot_op_specs: dict[str, OperationRepresentationSpec] = {}
     for info in pkgutil.iter_modules(rep_pkg.__path__):
         if info.name.startswith("_"):
             continue
@@ -427,31 +427,31 @@ def main() -> None:
             if attr.startswith("_"):
                 continue
             obj = getattr(mod, attr)
-            if isinstance(obj, StateAdapterSpec) and obj.state.name == "Potential":
-                pot_state_specs[obj.adapter_name] = obj
+            if isinstance(obj, StateRepresentationSpec) and obj.state.name == "Potential":
+                pot_state_specs[obj.representation_name] = obj
             elif (
-                isinstance(obj, OperationAdapterSpec)
+                isinstance(obj, OperationRepresentationSpec)
                 and obj.operation.name == "provide_potential"
             ):
-                pot_op_specs[obj.adapter_name] = obj
+                pot_op_specs[obj.representation_name] = obj
 
     print(
-        f"  POTENTIAL StateAdapterSpec coverage ({len(pot_state_specs)} adapters):"
+        f"  POTENTIAL StateRepresentationSpec coverage ({len(pot_state_specs)} representations):"
     )
-    for adapter in sorted(pot_state_specs):
-        spec = pot_state_specs[adapter]
+    for representation in sorted(pot_state_specs):
+        spec = pot_state_specs[representation]
         api = spec.code_api.get("potential", "<no code_api>")
-        print(f"    {adapter:<10s} : {api}")
+        print(f"    {representation:<10s} : {api}")
     print()
     print(
-        f"  provide_potential OperationAdapterSpec coverage "
+        f"  provide_potential OperationRepresentationSpec coverage "
         f"({len(pot_op_specs)} adapters):"
     )
-    for adapter in sorted(pot_op_specs):
-        spec = pot_op_specs[adapter]
+    for representation in sorted(pot_op_specs):
+        spec = pot_op_specs[representation]
         cites_ase = "ase" in spec.notes.lower()
         marker = "✓" if cites_ase else "·"
-        print(f"    {adapter:<10s} {marker}  cites the `ase` adapter")
+        print(f"    {representation:<10s} {marker}  cites the `ase` adapter")
     print()
     print(
         "  → kaldo / phono3py / phonopy / shengbte cite the `ase` adapter "

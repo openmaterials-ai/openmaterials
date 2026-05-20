@@ -54,7 +54,7 @@ References:
 
 from __future__ import annotations
 
-from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
+from omai.representation.adapter import OperationRepresentationSpec, StateRepresentationSpec
 from omai.thermal_transport.operator.edges import (
     autocorrelate_heat_current,
     compute_heat_current,
@@ -79,9 +79,9 @@ from omai.thermal_transport.operator.nodes import (
 )
 
 
-LAMMPS_POTENTIAL = StateAdapterSpec(
+LAMMPS_POTENTIAL = StateRepresentationSpec(
     state=POTENTIAL,
-    adapter_name="lammps",
+    representation_name="lammps",
     code_api={
         "potential": "LAMMPS input script: pair_style <name> + pair_coeff <args>"
     },
@@ -98,9 +98,9 @@ LAMMPS_POTENTIAL = StateAdapterSpec(
 )
 
 
-LAMMPS_PROVIDE_POTENTIAL = OperationAdapterSpec(
+LAMMPS_PROVIDE_POTENTIAL = OperationRepresentationSpec(
     operation=provide_potential,
-    adapter_name="lammps",
+    representation_name="lammps",
     notes=(
         "Provides Potential via LAMMPS's native scripting interface. The "
         "Potential's identity (pair_style + parameters) is read from the "
@@ -116,9 +116,9 @@ LAMMPS_PROVIDE_POTENTIAL = OperationAdapterSpec(
 # MD primitives (phase 2 P2)
 # ---------------------------------------------------------------------------
 
-LAMMPS_TRAJECTORY = StateAdapterSpec(
+LAMMPS_TRAJECTORY = StateRepresentationSpec(
     state=TRAJECTORY,
-    adapter_name="lammps",
+    representation_name="lammps",
     code_api={
         "r": "dump custom <id> all custom <every> <file> id x y z",
         "v": "dump custom <id> all custom <every> <file> id vx vy vz",
@@ -133,9 +133,9 @@ LAMMPS_TRAJECTORY = StateAdapterSpec(
 )
 
 
-LAMMPS_HEAT_CURRENT = StateAdapterSpec(
+LAMMPS_HEAT_CURRENT = StateRepresentationSpec(
     state=HEAT_CURRENT,
-    adapter_name="lammps",
+    representation_name="lammps",
     code_api={"J": "compute <id> all heat/flux ke pe stress"},
     notes=(
         "LAMMPS-native instantaneous heat current via `compute heat/flux`, "
@@ -148,9 +148,9 @@ LAMMPS_HEAT_CURRENT = StateAdapterSpec(
 )
 
 
-LAMMPS_HEAT_CURRENT_ACF = StateAdapterSpec(
+LAMMPS_HEAT_CURRENT_ACF = StateRepresentationSpec(
     state=HEAT_CURRENT_ACF,
-    adapter_name="lammps",
+    representation_name="lammps",
     code_api={
         "Jcorr": "fix <id> all ave/correlate <Nevery> <Nrepeat> <Nfreq> c_heatflux[1] c_heatflux[2] c_heatflux[3]"
     },
@@ -165,9 +165,9 @@ LAMMPS_HEAT_CURRENT_ACF = StateAdapterSpec(
 )
 
 
-LAMMPS_VELOCITY_AUTOCORRELATION = StateAdapterSpec(
+LAMMPS_VELOCITY_AUTOCORRELATION = StateRepresentationSpec(
     state=VELOCITY_AUTOCORRELATION,
-    adapter_name="lammps",
+    representation_name="lammps",
     code_api={
         "Cv": "compute <id> all vacf  +  fix <id> all ave/time <Nevery> <Nrepeat> <Nfreq> c_vacf[*]"
     },
@@ -180,9 +180,9 @@ LAMMPS_VELOCITY_AUTOCORRELATION = StateAdapterSpec(
 )
 
 
-LAMMPS_MEAN_SQUARED_DISPLACEMENT = StateAdapterSpec(
+LAMMPS_MEAN_SQUARED_DISPLACEMENT = StateRepresentationSpec(
     state=MEAN_SQUARED_DISPLACEMENT,
-    adapter_name="lammps",
+    representation_name="lammps",
     code_api={
         "M": "compute <id> all msd com yes  +  fix <id> all ave/time <Nevery> <Nrepeat> <Nfreq> c_msd[4]"
     },
@@ -195,9 +195,9 @@ LAMMPS_MEAN_SQUARED_DISPLACEMENT = StateAdapterSpec(
 )
 
 
-LAMMPS_RUN_MD = OperationAdapterSpec(
+LAMMPS_RUN_MD = OperationRepresentationSpec(
     operation=run_md,
-    adapter_name="lammps",
+    representation_name="lammps",
     notes=(
         "LAMMPS production MD: `velocity all create <T> <seed>` to "
         "initialise, `fix <id> all nve` / `fix <id> all nvt temp <T> <T> "
@@ -210,9 +210,9 @@ LAMMPS_RUN_MD = OperationAdapterSpec(
 )
 
 
-LAMMPS_COMPUTE_HEAT_CURRENT = OperationAdapterSpec(
+LAMMPS_COMPUTE_HEAT_CURRENT = OperationRepresentationSpec(
     operation=compute_heat_current,
-    adapter_name="lammps",
+    representation_name="lammps",
     notes=(
         "LAMMPS computes the heat current with `compute heat/flux` "
         "during the production `run`. Requires the per-atom KE, PE, and "
@@ -223,9 +223,9 @@ LAMMPS_COMPUTE_HEAT_CURRENT = OperationAdapterSpec(
 )
 
 
-LAMMPS_AUTOCORRELATE_HEAT_CURRENT = OperationAdapterSpec(
+LAMMPS_AUTOCORRELATE_HEAT_CURRENT = OperationRepresentationSpec(
     operation=autocorrelate_heat_current,
-    adapter_name="lammps",
+    representation_name="lammps",
     algorithmic_convention_overrides={"correlation_method": "direct"},
     notes=(
         "`fix ave/correlate` is the direct-sum, O(N²) variant. For the "
@@ -235,9 +235,9 @@ LAMMPS_AUTOCORRELATE_HEAT_CURRENT = OperationAdapterSpec(
 )
 
 
-LAMMPS_COMPUTE_VELOCITY_AUTOCORRELATION = OperationAdapterSpec(
+LAMMPS_COMPUTE_VELOCITY_AUTOCORRELATION = OperationRepresentationSpec(
     operation=compute_velocity_autocorrelation,
-    adapter_name="lammps",
+    representation_name="lammps",
     algorithmic_convention_overrides={"correlation_method": "direct"},
     notes=(
         "`compute vacf` is direct-sum. The compute resets at the step it "
@@ -247,9 +247,9 @@ LAMMPS_COMPUTE_VELOCITY_AUTOCORRELATION = OperationAdapterSpec(
 )
 
 
-LAMMPS_COMPUTE_MSD = OperationAdapterSpec(
+LAMMPS_COMPUTE_MSD = OperationRepresentationSpec(
     operation=compute_msd,
-    adapter_name="lammps",
+    representation_name="lammps",
     algorithmic_convention_overrides={"unwrap_pbc": "true"},
     notes=(
         "`compute msd` operates on unwrapped coordinates internally — "
@@ -259,9 +259,9 @@ LAMMPS_COMPUTE_MSD = OperationAdapterSpec(
 )
 
 
-LAMMPS_FOURIER_TO_DOS = OperationAdapterSpec(
+LAMMPS_FOURIER_TO_DOS = OperationRepresentationSpec(
     operation=fourier_to_dos,
-    adapter_name="lammps",
+    representation_name="lammps",
     notes=(
         "Not exposed natively. The user dumps the VAF from `compute "
         "vacf` and FFTs it externally (numpy.fft.rfft + cosine kernel) "
@@ -275,9 +275,9 @@ LAMMPS_FOURIER_TO_DOS = OperationAdapterSpec(
 # MD-based κ paths (phase 2 P3)
 # ---------------------------------------------------------------------------
 
-LAMMPS_THERMAL_CONDUCTIVITY_GREEN_KUBO = StateAdapterSpec(
+LAMMPS_THERMAL_CONDUCTIVITY_GREEN_KUBO = StateRepresentationSpec(
     state=THERMAL_CONDUCTIVITY_GREEN_KUBO,
-    adapter_name="lammps",
+    representation_name="lammps",
     code_api={
         "kappa": "post-processed numpy.trapz on dumped J(t)·J(t) tensor (no native kappa.out)"
     },
@@ -293,9 +293,9 @@ LAMMPS_THERMAL_CONDUCTIVITY_GREEN_KUBO = StateAdapterSpec(
 )
 
 
-LAMMPS_THERMAL_CONDUCTIVITY_NEMD = StateAdapterSpec(
+LAMMPS_THERMAL_CONDUCTIVITY_NEMD = StateRepresentationSpec(
     state=THERMAL_CONDUCTIVITY_NEMD,
-    adapter_name="lammps",
+    representation_name="lammps",
     code_api={
         "kappa": "post-processed: flux / (linear fit of binned T(z))"
     },
@@ -312,9 +312,9 @@ LAMMPS_THERMAL_CONDUCTIVITY_NEMD = StateAdapterSpec(
 )
 
 
-LAMMPS_CONTRACT_KAPPA_GREEN_KUBO = OperationAdapterSpec(
+LAMMPS_CONTRACT_KAPPA_GREEN_KUBO = OperationRepresentationSpec(
     operation=contract_kappa_green_kubo,
-    adapter_name="lammps",
+    representation_name="lammps",
     parameter_units={"tau_max": "ps", "tau_min": "ps"},
     notes=(
         "Integration is user-driven: dump J(t) (or J(0)J(t)) via `fix "
@@ -325,9 +325,9 @@ LAMMPS_CONTRACT_KAPPA_GREEN_KUBO = OperationAdapterSpec(
 )
 
 
-LAMMPS_CONTRACT_KAPPA_NEMD = OperationAdapterSpec(
+LAMMPS_CONTRACT_KAPPA_NEMD = OperationRepresentationSpec(
     operation=contract_kappa_nemd,
-    adapter_name="lammps",
+    representation_name="lammps",
     algorithmic_convention_overrides={"nemd_method": "muller_plathe"},
     parameter_units={"imposed_flux": "kcal/(mol*fs)", "imposed_gradient": "K/Angstrom"},
     notes=(
@@ -340,9 +340,9 @@ LAMMPS_CONTRACT_KAPPA_NEMD = OperationAdapterSpec(
 )
 
 
-LAMMPS_CONTRACT_KAPPA_HNEMD = OperationAdapterSpec(
+LAMMPS_CONTRACT_KAPPA_HNEMD = OperationRepresentationSpec(
     operation=contract_kappa_hnemd,
-    adapter_name="lammps",
+    representation_name="lammps",
     notes=(
         "Not exposed by LAMMPS. The Evans / Fan HNEMD driving force is "
         "not implemented as a native fix; users wanting HNEMD on a "

@@ -17,7 +17,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from omai.representation.adapter import StateAdapterSpec
+from omai.representation.adapter import StateRepresentationSpec
 
 
 @dataclass(frozen=True)
@@ -29,27 +29,27 @@ class Representation:
     specific representation (basis). The adapter spec encodes which
     representation. `to_operator(m)` removes the basis (canonical form);
     `to_representation(m_op, spec)` re-expresses in a target basis.
-    `is_operator_form=True` flags a representation that has been
+    `is_operator=True` flags a representation that has been
     canonicalized — its data is already in the operator layer's
     canonical units and conventions.
     """
 
-    state_adapter_spec: StateAdapterSpec
+    state_adapter_spec: StateRepresentationSpec
     observable_name: str
     data: np.ndarray
-    is_operator_form: bool = False
+    is_operator: bool = False
 
     @property
     def state(self):  # type: ignore[no-untyped-def]
         return self.state_adapter_spec.state
 
     @property
-    def adapter_name(self) -> str:
-        return self.state_adapter_spec.adapter_name
+    def representation_name(self) -> str:
+        return self.state_adapter_spec.representation_name
 
 
 def represent(
-    state_adapter_spec: StateAdapterSpec,
+    state_adapter_spec: StateRepresentationSpec,
     observable_name: str,
     data: np.ndarray | float | list,
 ) -> Representation:

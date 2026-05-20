@@ -1,7 +1,7 @@
 """Operator-representation boundary behavioural tests (full operator layer).
 
 This file exercises the *contract* at the operator/representation boundary
-across every ``StateAdapterSpec`` discoverable in the four adapter modules
+across every ``StateRepresentationSpec`` discoverable in the four adapter modules
 ``omai.thermal_transport.representation.{kaldo,phono3py,phonopy,shengbte}``.
 
 Four families of checks (each parametrized over discovered specs):
@@ -24,11 +24,11 @@ Four families of checks (each parametrized over discovered specs):
 
   3B.4: Helpful KeyError path -- for a spec that omits ``observable_units``,
       verify ``to_operator`` raises ``KeyError`` whose message names both
-      the spec's ``adapter_name`` and the field name.
+      the spec's ``representation_name`` and the field name.
 
 Discovery mirrors ``omai.thermal_transport.visualize._collect_specs``: walk
 the adapter sub-package, import each module, and collect every
-``StateAdapterSpec`` instance via attribute introspection.
+``StateRepresentationSpec`` instance via attribute introspection.
 """
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ import omai.thermal_transport.representation as _representation_pkg
 from omai.operator.state import HiddenState, Observable
 from omai.representation import Representation, compare
 from omai.representation.adapter import (
-    StateAdapterSpec,
+    StateRepresentationSpec,
     inter_representation_factor,
 )
 from omai.representation.compare import (
@@ -74,23 +74,23 @@ def _dimension_has_registered_unit(dimension) -> bool:
 
 @dataclass(frozen=True)
 class _DiscoveredSpec:
-    """A StateAdapterSpec located via discovery, with provenance for ids."""
+    """A StateRepresentationSpec located via discovery, with provenance for ids."""
 
     module: str  # e.g. "kaldo"
     attr: str  # module-level attribute name, e.g. "KALDO_LINEWIDTH"
-    spec: StateAdapterSpec
+    spec: StateRepresentationSpec
 
     @property
     def state_name(self) -> str:
         return self.spec.state.name
 
     @property
-    def adapter_name(self) -> str:
-        return self.spec.adapter_name
+    def representation_name(self) -> str:
+        return self.spec.representation_name
 
 
 def _discover_specs() -> list[_DiscoveredSpec]:
-    """All ``StateAdapterSpec`` instances across the four adapter modules."""
+    """All ``StateRepresentationSpec`` instances across the four adapter modules."""
     found: list[_DiscoveredSpec] = []
     for info in sorted(pkgutil.iter_modules(_representation_pkg.__path__)):
         if info.name.startswith("_"):
@@ -102,7 +102,7 @@ def _discover_specs() -> list[_DiscoveredSpec]:
             if attr.startswith("_"):
                 continue
             obj = getattr(mod, attr)
-            if isinstance(obj, StateAdapterSpec):
+            if isinstance(obj, StateRepresentationSpec):
                 found.append(_DiscoveredSpec(module=info.name, attr=attr, spec=obj))
     return found
 
@@ -163,7 +163,7 @@ def _cross_adapter_pair_id(
     value: tuple[str, _DiscoveredSpec, _DiscoveredSpec]
 ) -> str:
     state_name, a, b = value
-    return f"{state_name}::{a.adapter_name}-vs-{b.adapter_name}"
+    return f"{state_name}::{a.representation_name}-vs-{b.representation_name}"
 
 
 def _cross_adapter_pairs_with_units() -> list[
@@ -199,7 +199,7 @@ def _pair_with_field_id(
     value: tuple[str, _DiscoveredSpec, _DiscoveredSpec, str]
 ) -> str:
     state_name, a, b, field = value
-    return f"{state_name}::{a.adapter_name}-vs-{b.adapter_name}::{field}"
+    return f"{state_name}::{a.representation_name}-vs-{b.representation_name}::{field}"
 
 
 # A small synthetic array. Shape (3,) is broadly compatible with the float
@@ -258,9 +258,9 @@ def test_round_trip_through_operator_form_is_identity(
         data=data,
     )
     m_op = to_operator(m)
-    assert m_op.is_operator_form is True
+    assert m_op.is_operator is True
     m_round = to_representation(m_op, ds.spec)
-    assert m_round.is_operator_form is False
+    assert m_round.is_operator is False
     np.testing.assert_allclose(
         m_round.data, data, rtol=1e-12, atol=0.0,
         err_msg=(
@@ -459,9 +459,9 @@ def test_to_operator_raises_helpful_keyerror_for_unitless_specs(
     with pytest.raises(KeyError) as excinfo:
         to_operator(m)
     msg = str(excinfo.value)
-    assert ds.spec.adapter_name in msg, (
+    assert ds.spec.representation_name in msg, (
         f"KeyError for {ds.attr} did not name the adapter "
-        f"{ds.spec.adapter_name!r}: {msg}"
+        f"{ds.spec.representation_name!r}: {msg}"
     )
     assert field_name in msg, (
         f"KeyError for {ds.attr} did not name the field {field_name!r}: {msg}"

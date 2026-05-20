@@ -57,7 +57,7 @@ class State:
     physics_type: PhysicsType
     name: str
     fields: tuple[Field, ...] = ()
-    canonical_conventions: dict[str, str] = dc_field(default_factory=dict)
+    operator_conventions: dict[str, str] = dc_field(default_factory=dict)
     convention_factors: tuple[tuple[str, str, str, float], ...] = ()
     type_parameters: dict[str, int | str] = dc_field(default_factory=dict)
     description: str = ""

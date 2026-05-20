@@ -80,7 +80,7 @@ FORCE_CONSTANTS_3 = Observable(
     name="ForceConstants[order=3]",
     fields=(Field("phi", ENERGY_PER_LENGTH_CUBED, indices=("i", "j", "k", "R", "R'")),),
     type_parameters={"order": 3},
-    canonical_conventions={
+    operator_conventions={
         # Canonical: the natural ∂³V/∂u³ in eV/Å³ — the form kaldo and
         # phono3py store. ShengBTE's reader silently uses a mixed-dimension
         # form (see convention_factors below) that is numerically 10× smaller
@@ -325,7 +325,7 @@ ANHARMONIC_LINEWIDTH = HiddenState(
     name="Linewidth[channel=anharmonic_3ph]",
     fields=(Field("Gamma", FREQUENCY, indices=("q", "nu")),),
     type_parameters={"channel": "anharmonic_3ph"},
-    canonical_conventions={
+    operator_conventions={
         "gamma_definition": "imag_self_energy",
     },
     convention_factors=(
@@ -355,7 +355,7 @@ ISOTOPIC_LINEWIDTH = HiddenState(
     name="Linewidth[channel=isotope]",
     fields=(Field("Gamma", FREQUENCY, indices=("q", "nu")),),
     type_parameters={"channel": "isotope"},
-    canonical_conventions={
+    operator_conventions={
         "gamma_definition": "imag_self_energy",
     },
     convention_factors=(
@@ -378,7 +378,7 @@ BOUNDARY_LINEWIDTH = HiddenState(
     name="Linewidth[channel=boundary]",
     fields=(Field("Gamma", FREQUENCY, indices=("q", "nu")),),
     type_parameters={"channel": "boundary"},
-    canonical_conventions={
+    operator_conventions={
         "gamma_definition": "imag_self_energy",
     },
     convention_factors=(
@@ -401,7 +401,7 @@ TOTAL_LINEWIDTH = HiddenState(
     name="Linewidth[channel=total]",
     fields=(Field("Gamma", FREQUENCY, indices=("q", "nu")),),
     type_parameters={"channel": "total"},
-    canonical_conventions={
+    operator_conventions={
         "gamma_definition": "imag_self_energy",
     },
     convention_factors=(

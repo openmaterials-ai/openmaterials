@@ -6,7 +6,7 @@ contraction edges that close the cross-paradigm κ map.
 
 Adapter coverage extends `lammps` (green_kubo + nemd; HNEMD declared
 not-exposed) and `gpumd` (green_kubo + hnemd; NEMD declared
-not-exposed). The not-exposed entries are *also* OperationAdapterSpec
+not-exposed). The not-exposed entries are *also* OperationRepresentationSpec
 instances — they're documented as routing through the other adapter,
 but they still appear in the audit.
 """
@@ -18,7 +18,7 @@ import sympy as sp
 from omai.operator.dimensions import THERMAL_CONDUCTIVITY
 from omai.operator.state import Observable
 from omai.operator.validate import validate_dag
-from omai.representation.adapter import OperationAdapterSpec, StateAdapterSpec
+from omai.representation.adapter import OperationRepresentationSpec, StateRepresentationSpec
 from omai.thermal_transport.operator import EDGES, NODES
 from omai.thermal_transport.operator.edges import (
     contract_kappa_green_kubo,
@@ -148,8 +148,8 @@ def test_lammps_covers_green_kubo_and_nemd_states():
         (LAMMPS_THERMAL_CONDUCTIVITY_NEMD, THERMAL_CONDUCTIVITY_NEMD),
     ]
     for spec, state in pairs:
-        assert isinstance(spec, StateAdapterSpec)
-        assert spec.adapter_name == "lammps"
+        assert isinstance(spec, StateRepresentationSpec)
+        assert spec.representation_name == "lammps"
         assert spec.state is state
         assert spec.code_api, f"{state.name}: empty code_api"
 
@@ -160,16 +160,16 @@ def test_lammps_covers_green_kubo_and_nemd_edges():
         LAMMPS_CONTRACT_KAPPA_NEMD,
     )
 
-    assert isinstance(LAMMPS_CONTRACT_KAPPA_GREEN_KUBO, OperationAdapterSpec)
+    assert isinstance(LAMMPS_CONTRACT_KAPPA_GREEN_KUBO, OperationRepresentationSpec)
     assert LAMMPS_CONTRACT_KAPPA_GREEN_KUBO.operation is contract_kappa_green_kubo
-    assert isinstance(LAMMPS_CONTRACT_KAPPA_NEMD, OperationAdapterSpec)
+    assert isinstance(LAMMPS_CONTRACT_KAPPA_NEMD, OperationRepresentationSpec)
     assert LAMMPS_CONTRACT_KAPPA_NEMD.operation is contract_kappa_nemd
 
 
 def test_lammps_hnemd_is_documented_as_not_exposed():
     from omai.thermal_transport.representation.lammps import LAMMPS_CONTRACT_KAPPA_HNEMD
 
-    assert isinstance(LAMMPS_CONTRACT_KAPPA_HNEMD, OperationAdapterSpec)
+    assert isinstance(LAMMPS_CONTRACT_KAPPA_HNEMD, OperationRepresentationSpec)
     assert LAMMPS_CONTRACT_KAPPA_HNEMD.operation is contract_kappa_hnemd
     # Notes mention that HNEMD is not exposed in LAMMPS — content check is light.
     notes = LAMMPS_CONTRACT_KAPPA_HNEMD.notes.lower()
@@ -192,8 +192,8 @@ def test_gpumd_covers_green_kubo_and_hnemd_states():
         (GPUMD_THERMAL_CONDUCTIVITY_HNEMD, THERMAL_CONDUCTIVITY_HNEMD),
     ]
     for spec, state in pairs:
-        assert isinstance(spec, StateAdapterSpec)
-        assert spec.adapter_name == "gpumd"
+        assert isinstance(spec, StateRepresentationSpec)
+        assert spec.representation_name == "gpumd"
         assert spec.state is state
         assert spec.code_api, f"{state.name}: empty code_api"
 
@@ -204,16 +204,16 @@ def test_gpumd_covers_green_kubo_and_hnemd_edges():
         GPUMD_CONTRACT_KAPPA_HNEMD,
     )
 
-    assert isinstance(GPUMD_CONTRACT_KAPPA_GREEN_KUBO, OperationAdapterSpec)
+    assert isinstance(GPUMD_CONTRACT_KAPPA_GREEN_KUBO, OperationRepresentationSpec)
     assert GPUMD_CONTRACT_KAPPA_GREEN_KUBO.operation is contract_kappa_green_kubo
-    assert isinstance(GPUMD_CONTRACT_KAPPA_HNEMD, OperationAdapterSpec)
+    assert isinstance(GPUMD_CONTRACT_KAPPA_HNEMD, OperationRepresentationSpec)
     assert GPUMD_CONTRACT_KAPPA_HNEMD.operation is contract_kappa_hnemd
 
 
 def test_gpumd_nemd_is_documented_as_not_exposed():
     from omai.thermal_transport.representation.gpumd import GPUMD_CONTRACT_KAPPA_NEMD
 
-    assert isinstance(GPUMD_CONTRACT_KAPPA_NEMD, OperationAdapterSpec)
+    assert isinstance(GPUMD_CONTRACT_KAPPA_NEMD, OperationRepresentationSpec)
     assert GPUMD_CONTRACT_KAPPA_NEMD.operation is contract_kappa_nemd
     notes = GPUMD_CONTRACT_KAPPA_NEMD.notes.lower()
     assert "not exposed" in notes or "lammps" in notes
