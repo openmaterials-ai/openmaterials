@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import sympy as sp
 
-from omai.operator.dimensions import FREQUENCY, LENGTH, LENGTH_PER_TIME, TEMPERATURE
+from omai.operator.dimensions import FREQUENCY, LENGTH, LENGTH_PER_TIME, TEMPERATURE, VOLUME
 from omai.operator.operator import Operator, Parameter
 from omai.thermal_transport.operator.nodes import (
     ANHARMONIC_LINEWIDTH,
@@ -779,6 +779,7 @@ contract_kappa_direct = Operator(
     name="contract_kappa[bte_solver=direct_inverse]",
     inputs=(HEAT_CAPACITY, GROUP_VELOCITY, MEAN_FREE_DISPLACEMENT_DIRECT),
     outputs=(THERMAL_CONDUCTIVITY_DIRECT,),
+    parameters=(Parameter("V_{cell}", VOLUME),),
     formula=_KAPPA_FORMULA,
     description="Per-mode contraction with the LBTE F; result is gauge-invariant.",
     # κ[α,β] shares the α,β index symbols across LHS/RHS — those are dummy
@@ -977,6 +978,7 @@ contract_volumetric_heat_capacity = Operator(
     name="contract_volumetric_heat_capacity",
     inputs=(HEAT_CAPACITY,),
     outputs=(VOLUMETRIC_HEAT_CAPACITY,),
+    parameters=(Parameter("V_{cell}", VOLUME),),
     formula=_CV_VOL_FORMULA,
     description=(
         "BZ-and-mode sum of the per-mode heat capacity, divided by cell "
