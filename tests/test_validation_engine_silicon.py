@@ -78,9 +78,8 @@ def test_example_b_kappa_direct_matches_kaldo():
     """Framework-contracted κ_LBTE (from loaded c-derivation + GV + MFD) agrees
     with kaldo's emitted kappa_inverse.
 
-    Unit note: the canonical (Å, linear-THz, J/K) unit system gives κ in
-    J·THz/(K·Å) = 10²² W/(m·K).  The factor 1e22 converts to SI W/(m·K),
-    matching kaldo's own `*1e22` conversion in calculate_conductivity_per_mode.
+    Unit note: the executor's apply_edge bridge rescales the κ contraction by
+    1e22 automatically, so result.representation.data is already in W/(m·K).
     """
     _require(_KALDO / "frequencies_THz.npy")
     _require(_KALDO / "group_velocities_AT.npy")
@@ -101,9 +100,8 @@ def test_example_b_kappa_direct_matches_kaldo():
             data=np.load(_KALDO / "mean_free_displacement.npy"), is_operator=True),
     }
     result = compute(THERMAL_CONDUCTIVITY_DIRECT, sources, constants={"V_{cell}": v_cell})
-    # Convert from canonical (Å, linear-THz, J/K) units to SI W/(m·K).
-    # κ_canonical [J·THz/(K·Å)] × 1e22 = κ_SI [W/(m·K)].
-    kappa = np.asarray(result.representation.data) * 1e22
+    # Bridge in apply_edge already rescaled to W/(m·K) — use data directly.
+    kappa = np.asarray(result.representation.data)
     gt = np.load(_KALDO / "kappa_inverse_tensor_WmK.npy")
     rel = abs(np.trace(kappa) / 3.0 - np.trace(gt) / 3.0) / abs(np.trace(gt) / 3.0)
     assert rel < 0.05, f"framework κ {np.trace(kappa)/3:.3f} vs kaldo {np.trace(gt)/3:.3f} (rel {rel:.2%})"

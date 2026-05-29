@@ -87,9 +87,8 @@ def example_b():
             _op_rep(MEAN_FREE_DISPLACEMENT_DIRECT, "F", np.load(mfd)),
     }
     result = compute(THERMAL_CONDUCTIVITY_DIRECT, sources, constants={"V_{cell}": v_cell})
-    # Convert from canonical (Å, linear-THz, J/K) units to SI W/(m·K).
-    # κ_canonical [J·THz/(K·Å)] × 1e22 = κ_SI [W/(m·K)].
-    kappa = np.asarray(result.representation.data) * 1e22
+    # Bridge in apply_edge rescales to W/(m·K) automatically — no manual factor needed.
+    kappa = np.asarray(result.representation.data)
     gt = np.load(_KALDO / "kappa_inverse_tensor_WmK.npy")
     print("  framework kappa (tr/3)  : %.4f W/(m K)" % (np.trace(kappa) / 3.0))
     print("  kaldo emitted kappa     : %.4f W/(m K)" % (np.trace(gt) / 3.0))
