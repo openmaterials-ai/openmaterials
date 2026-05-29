@@ -37,6 +37,12 @@ from omai.representation.executor import (
 from omai.representation.instance import Representation, represent
 from omai.representation.normalizations import NORMALIZATIONS, Normalization
 from omai.representation.units import Unit, conversion_factor
+from omai.representation.validation import (
+    Route,
+    PairVerdict,
+    ValidationReport,
+    cross_check,
+)
 
 __all__ = [
     "NORMALIZATIONS",
@@ -58,4 +64,8 @@ __all__ = [
     "representation_to_operator",
     "Source",
     "TraceStep",
+    "Route",
+    "PairVerdict",
+    "ValidationReport",
+    "cross_check",
 ]
