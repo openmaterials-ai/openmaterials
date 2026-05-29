@@ -12,8 +12,11 @@ from omai.representation.instance import Representation
 from omai.representation.validation import cross_check
 from omai.thermal_transport.operator import (
     FREQUENCY_STATE,
+    GROUP_VELOCITY,
+    MEAN_FREE_DISPLACEMENT_DIRECT,
     MOLAR_HEAT_CAPACITY,
     TEMPERATURE_STATE,
+    THERMAL_CONDUCTIVITY_DIRECT,
 )
 
 _REPO = Path(__file__).resolve().parent.parent
@@ -69,3 +72,38 @@ def test_example_a_cross_code_frequency_routes_agree():
     }
     report = cross_check(MOLAR_HEAT_CAPACITY, routes, rtol=1e-2)
     assert report.ok(), report.render()
+
+
+def test_example_b_kappa_direct_matches_kaldo():
+    """Framework-contracted κ_LBTE (from loaded c-derivation + GV + MFD) agrees
+    with kaldo's emitted kappa_inverse.
+
+    Unit note: the canonical (Å, linear-THz, J/K) unit system gives κ in
+    J·THz/(K·Å) = 10²² W/(m·K).  The factor 1e22 converts to SI W/(m·K),
+    matching kaldo's own `*1e22` conversion in calculate_conductivity_per_mode.
+    """
+    _require(_KALDO / "frequencies_THz.npy")
+    _require(_KALDO / "group_velocities_AT.npy")
+    _require(_KALDO / "mean_free_displacement.npy")
+    _require(_KALDO / "kappa_inverse_tensor_WmK.npy")
+
+    a = 5.431
+    v_cell = a ** 3 / 4.0
+    sources = {
+        "Frequency": _freq_source(_KALDO),
+        "Temperature": _temperature_source(),
+        "GroupVelocity": Representation(
+            space_adapter_spec=operator_form_spec(GROUP_VELOCITY), observable_name="v",
+            data=np.load(_KALDO / "group_velocities_AT.npy"), is_operator=True),
+        "MeanFreeDisplacement[bte_solver=direct_inverse]": Representation(
+            space_adapter_spec=operator_form_spec(MEAN_FREE_DISPLACEMENT_DIRECT),
+            observable_name="F",
+            data=np.load(_KALDO / "mean_free_displacement.npy"), is_operator=True),
+    }
+    result = compute(THERMAL_CONDUCTIVITY_DIRECT, sources, constants={"V_{cell}": v_cell})
+    # Convert from canonical (Å, linear-THz, J/K) units to SI W/(m·K).
+    # κ_canonical [J·THz/(K·Å)] × 1e22 = κ_SI [W/(m·K)].
+    kappa = np.asarray(result.representation.data) * 1e22
+    gt = np.load(_KALDO / "kappa_inverse_tensor_WmK.npy")
+    rel = abs(np.trace(kappa) / 3.0 - np.trace(gt) / 3.0) / abs(np.trace(gt) / 3.0)
+    assert rel < 0.05, f"framework κ {np.trace(kappa)/3:.3f} vs kaldo {np.trace(gt)/3:.3f} (rel {rel:.2%})"

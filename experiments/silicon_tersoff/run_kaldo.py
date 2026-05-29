@@ -96,7 +96,10 @@ def main() -> None:
     # ----- Save outputs -----
     np.save(OUT / "frequencies_THz.npy", frequencies)
     np.save(OUT / "eigenvectors.npy", eigenvectors)
-    np.save(OUT / "group_velocities_AT.npy", velocities)
+    # Save group velocity in canonical operator form (alpha, q, nu) = (3, n_q, n_modes).
+    # kaldo emits Phonons.velocity as (n_q, n_modes, 3); transpose to canonical layout.
+    velocities_canonical = np.transpose(velocities, (2, 0, 1))  # (3, n_q, n_modes)
+    np.save(OUT / "group_velocities_AT.npy", velocities_canonical)
 
     # Save the q-point grid (kaldo's default Monkhorst-Pack grid for the chosen kmesh)
     try:
@@ -113,8 +116,22 @@ def main() -> None:
 
     print("[kaldo] computing thermal conductivity (direct inversion) ...")
     t5 = time.time()
-    inv = Conductivity(phonons=phonons, method="inverse").conductivity.sum(axis=0)
+    # Use storage="memory" so the solve is not cached and mean_free_path is
+    # computed fresh (avoids a load-format conflict with pre-existing .dat files).
+    inv_cond = Conductivity(phonons=phonons, method="inverse", storage="memory")
+    inv = inv_cond.conductivity.sum(axis=0)
     print(f"[kaldo]   inverse done in {time.time() - t5:.1f} s")
+
+    # Per-mode mean free displacement F (BTE direct-inverse solve output) for
+    # the validation engine's kappa contraction. Saved as (alpha, q, nu).
+    mfp = np.asarray(inv_cond.mean_free_path)  # shape (n_q*n_modes, 3) = (3072, 3)
+    print(f"[kaldo] mean_free_path raw shape: {mfp.shape}")
+    n_q = frequencies.shape[0]
+    n_modes = frequencies.shape[1]
+    mfp = mfp.reshape(n_q, n_modes, 3)         # (n_q, n_modes, 3) = (512, 6, 3)
+    F = np.transpose(mfp, (2, 0, 1))           # (3, n_q, n_modes) = (alpha, q, nu)
+    np.save(OUT / "mean_free_displacement.npy", F)
+    print(f"[kaldo] saved mean_free_displacement.npy shape {F.shape}")
 
     kappa_rta_diag_avg = float(np.mean(np.diag(rta)))
     kappa_inv_diag_avg = float(np.mean(np.diag(inv)))

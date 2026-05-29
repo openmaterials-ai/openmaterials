@@ -87,10 +87,13 @@ def example_b():
             _op_rep(MEAN_FREE_DISPLACEMENT_DIRECT, "F", np.load(mfd)),
     }
     result = compute(THERMAL_CONDUCTIVITY_DIRECT, sources, constants={"V_{cell}": v_cell})
-    kappa = np.asarray(result.representation.data)
+    # Convert from canonical (Å, linear-THz, J/K) units to SI W/(m·K).
+    # κ_canonical [J·THz/(K·Å)] × 1e22 = κ_SI [W/(m·K)].
+    kappa = np.asarray(result.representation.data) * 1e22
     gt = np.load(_KALDO / "kappa_inverse_tensor_WmK.npy")
     print("  framework kappa (tr/3)  : %.4f W/(m K)" % (np.trace(kappa) / 3.0))
     print("  kaldo emitted kappa     : %.4f W/(m K)" % (np.trace(gt) / 3.0))
+    print("  relative error          : %.3e" % (abs(np.trace(kappa)/3 - np.trace(gt)/3) / abs(np.trace(gt)/3)))
 
 
 if __name__ == "__main__":
