@@ -697,6 +697,26 @@ investigation; \textsc{Expected\_Agree} and \textsc{Expected\_Disagree} are succ
 predictions; \textsc{Not\_Comparable} is a HiddenSpace saying ``don't ask this
 question.''
 
+\subsection{The validation engine: execute, compose, cross-check}
+
+The representation layer carries a runtime that \emph{runs} the operator DAG,
+not merely compares emitted arrays. \texttt{compute(target, sources)} lazily
+resolves a target space: a space with a registered source is loaded and lifted
+to operator form (units and normalizations applied automatically), and every
+other space is derived by executing its producing operator's sympy formula via
+\texttt{apply\_edge}. Closed-form paths can also be fused symbolically
+(\texttt{compose\_executable}) into one synthetic edge; the composed-then-executed
+value must equal the edge-by-edge value, so the symbolic composer and the
+numerical executor validate each other. Finally \texttt{cross\_check} computes a
+target by several redundant routes (different codes per leaf, or different
+operator paths) and pairwise-compares them, with agree/disagree verdicts
+governed by the target's Observable/HiddenSpace typing: routes to an Observable
+must agree, routes through a HiddenSpace need not. On Si-Tersoff the engine
+derives molar heat capacity from frequencies and matches phonopy's emitted value
+to $0.1\%$, and contracts $\kappa_{\mathrm{LBTE}}$ from loaded group velocity,
+mean free displacement, and a derived heat capacity, matching kaldo's emitted
+conductivity.
+
 \subsection{HiddenSpace discipline and gauge actions}
 \label{ssec:gauge-discipline}
 

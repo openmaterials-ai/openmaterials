@@ -15,6 +15,48 @@ Substrate doc reflects the current counts and the new patterns; the
 "Two-tier validation" paragraph and the "T3-evolve as a pre-Lean
 realisation" paragraph are committed.
 
+## Validation engine (landed 2026-05-20)
+
+`compute` / `compose_executable` / `cross_check` ship in
+`omai/representation/{executor,validation}.py` and `omai/operator/compose.py`.
+The executor's Sum evaluator now handles elementwise summands and tensor
+contractions (einsum); `contract_kappa_direct` is executable. Example A
+(molar Cv vs phonopy, 0.1%) and Example B (κ_LBTE vs kaldo, 3.9e-7) pass.
+
+Open follow-ups surfaced during implementation:
+
+- **κ-contraction unit reconciliation.** Contracting canonical-unit inputs
+  (c [J/K], v [Å·THz], F [Å], V_cell [Å³]) through `contract_kappa_direct`
+  yields κ in J·THz/(K·Å) = 1e22 × W/(m·K). The declared canonical unit of
+  `ThermalConductivity` is W/(m·K) (to_operator=1.0), so there is a 1e22
+  mismatch between the contraction result and the declared output unit.
+  Example B applies the ×1e22 explicitly in the example/test as a documented
+  interim. The proper fix is in the executor's contraction layer: derive the
+  output's canonical scale from the inputs' canonical units and reconcile it
+  against the output space's declared unit, emitting the factor automatically.
+  Not a `units.py` value change — the individual unit definitions are correct.
+
+- **Cross-driver `group_velocities_AT.npy` layout split.** `run_kaldo.py`
+  (silicon) now saves group velocity as (3, n_q, n_modes) to match the
+  GroupVelocity operator field signature (alpha, q, nu); silicon `run_phonopy.py`
+  and both germanium drivers still save native (n_q, n_modes, 3). No current
+  code path crosses these layouts, but it is a latent trap. Normalize the
+  layout — preferably at consume/represent time rather than at each driver's
+  save site.
+
+- **`compute_dos` is executable-by-default but cannot lambdify.** Its summand
+  contains a DiracDelta δ(ω−ω[q,ν]); the default executability heuristic passes
+  it (Eq with disjoint LHS/RHS symbols) but `apply_edge` would hit a
+  DiracDelta at lambdify time. No test currently runs it through the executor.
+  Either set `is_executable_in_sympy_override=False` on `compute_dos`, or have
+  the executor detect non-lambdifiable kernels and raise a clean error.
+
+- **Automatic route enumeration** (cross_check takes routes explicitly),
+  **multi-output edge derivation** (compute requires multi-output spaces as
+  sources), **cross-mesh route comparison** (examples hold the q-mesh fixed),
+  and **live-invoking Source thunks** (codes are loaded oracles today) remain
+  open by design.
+
 ## Phase 2 — MD-based κ paths (the next major phase)
 
 The user-direction in this consolidation pass: LAMMPS + ASE as Potential
