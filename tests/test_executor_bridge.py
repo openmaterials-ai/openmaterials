@@ -71,3 +71,38 @@ def test_apply_edge_kappa_yields_physical_units_without_manual_factor():
     )
     expected = np.einsum("qn,aqn,bqn->ab", c, v, F) / (N_q * v_cell) * 1e22
     np.testing.assert_allclose(out.data, expected, rtol=1e-10)
+
+
+def test_bridge_computable_for_every_executable_edge():
+    """No executable edge may raise in _dimensional_bridge (e.g. an input
+    dimension lacking a canonical si_scale). Guards the regression where
+    contract_molar_free_energy / _internal_energy hit the 'energy' dimension
+    which had no unit."""
+    from omai.thermal_transport.operator import EDGES
+    for op in EDGES:
+        if not op.is_executable_in_sympy:
+            continue
+        bridge = _dimensional_bridge(op)   # must not raise
+        assert np.isfinite(bridge) and bridge > 0, f"{op.name}: bad bridge {bridge}"
+
+
+def test_bridge_unity_for_molar_energy_contractions():
+    from omai.thermal_transport.operator import (
+        contract_molar_free_energy, contract_molar_internal_energy,
+        contract_molar_entropy,
+    )
+    assert _dimensional_bridge(contract_molar_free_energy) == 1.0
+    assert _dimensional_bridge(contract_molar_internal_energy) == 1.0
+    assert _dimensional_bridge(contract_molar_entropy) == 1.0
+
+
+def test_apply_edge_molar_free_energy_executes_without_raising():
+    from omai.thermal_transport.operator import (
+        HELMHOLTZ_FREE_ENERGY, contract_molar_free_energy,
+    )
+    f = np.array([[1e-21, 2e-21], [3e-21, 4e-21]])  # (N_q, N_modes), per-mode J
+    out = apply_edge(contract_molar_free_energy, _op_rep(HELMHOLTZ_FREE_ENERGY, "f", f))
+    # bridge is 1.0; result is N_A * sum(f) / N_q
+    N_A = 6.02214076e23
+    expected = N_A * np.sum(f) / f.shape[0]
+    np.testing.assert_allclose(float(out.data), expected, rtol=1e-10)

@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from omai.operator.dimensions import (
     Dimension,
     DIMENSIONLESS,
+    ENERGY,
     ENERGY_PER_LENGTH_CUBED,
     ENERGY_PER_MOLE,
     ENERGY_PER_TEMPERATURE,
@@ -26,6 +27,7 @@ from omai.operator.dimensions import (
     FREQUENCY,
     LENGTH,
     LENGTH_TIMES_FREQUENCY,
+    TEMPERATURE,
     THERMAL_CONDUCTIVITY,
     VOLUME,
 )
@@ -40,6 +42,15 @@ class Unit:
 
 
 _E = 1.602176634e-19  # Joules per electron-volt
+
+
+# Canonical energy unit: Joule. Per-mode energies (Helmholtz free energy,
+# internal energy) are bound in Joules by the executor's ℏ_eff convention.
+JOULE = Unit("joule", ENERGY, 1.0, si_scale=1.0)
+
+
+# Canonical temperature unit: Kelvin.
+KELVIN = Unit("kelvin", TEMPERATURE, 1.0, si_scale=1.0)
 
 
 # Canonical frequency unit: linear_THz. Angular_THz = 2π × linear_THz.
@@ -92,12 +103,14 @@ ANGSTROM_CUBED = Unit("angstrom_cubed", VOLUME, 1.0, si_scale=1e-30)
 
 
 # Dimensionless quantities (Born charges in units of e, dielectric tensor).
-DIMENSIONLESS_UNIT = Unit("dimensionless", DIMENSIONLESS, 1.0)
+DIMENSIONLESS_UNIT = Unit("dimensionless", DIMENSIONLESS, 1.0, si_scale=1.0)
 
 
 UNITS: dict[str, Unit] = {
     u.name: u
     for u in [
+        JOULE,
+        KELVIN,
         LINEAR_THZ,
         ANGULAR_THZ,
         J_PER_K,

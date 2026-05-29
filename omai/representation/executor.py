@@ -631,8 +631,16 @@ def _dimensional_bridge(op: Operator) -> float:
     rescaling the raw canonical-unit contraction into the output's declared
     canonical unit. Closed-form (hbar/k_B-bearing, transcendental), identity,
     and additive edges are not monomials -> 1.0 (left untouched).
+
+    Nullary operators (no inputs, no parameters) are source-injection edges
+    whose formula is a trivial equality (e.g. T = T_provided). They carry no
+    dimensional contraction to reconcile, so the bridge is always 1.0.
     """
     from omai.representation.units import dimension_si_scale
+
+    # Nullary source edges: no inputs to rescale; bridge is always unity.
+    if op.is_nullary() and not op.parameters:
+        return 1.0
 
     formula = op.formula
     if not isinstance(formula, sp.Eq):
