@@ -21,6 +21,7 @@ formulas need the override to be marked executable.
 """
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 from typing import Callable, Union
 
@@ -596,6 +597,11 @@ def apply_edge(
     result = fn(*arg_values)
     result_arr = np.asarray(result)
 
+    # Dimensional reconciliation: rescale the raw canonical-unit contraction
+    # into the output space's declared canonical unit (no-op for closed-form,
+    # identity, and additive edges — see _dimensional_bridge).
+    result_arr = result_arr * _dimensional_bridge(op)
+
     # 10. Wrap as an operator-form Representation.
     out_space = op.outputs[0]
     out_field_name = out_space.fields[0].name
@@ -610,6 +616,76 @@ def apply_edge(
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _dimensional_bridge(op: Operator) -> float:
+    """Unit-bridge factor for a pure-monomial contraction edge; 1.0 otherwise.
+
+    Applies iff the operator's formula RHS — with each Sum made transparent to
+    its summand (summation over a dimensionless index does not change units) —
+    is a monomial in the input Indexed-bases and declared-Parameter symbols:
+    a product/quotient of those factors at integer powers, with no factor
+    wrapped in a transcendental function and no additive structure. Counters
+    (N_q, N) and physics constants (hbar, k_B, N_A) are excluded. The bridge is
+    (prod input/param canonical-unit SI scale ** power) / (output canonical SI),
+    rescaling the raw canonical-unit contraction into the output's declared
+    canonical unit. Closed-form (hbar/k_B-bearing, transcendental), identity,
+    and additive edges are not monomials -> 1.0 (left untouched).
+    """
+    from omai.representation.units import dimension_si_scale
+
+    formula = op.formula
+    if not isinstance(formula, sp.Eq):
+        return 1.0
+    rhs = formula.rhs
+
+    mono = rhs
+    for s in list(mono.atoms(sp.Sum)):
+        mono = mono.xreplace({s: s.function})
+
+    if mono.atoms(sp.Function):
+        return 1.0
+    if isinstance(sp.expand(mono), sp.Add):
+        return 1.0
+
+    name_to_dim: dict[str, object] = {}
+    for space in op.inputs:
+        for a in _find_input_indexed_atoms(rhs, space):
+            name_to_dim[str(a.base.name)] = space.fields[0].dimension
+    for p in op.parameters:
+        name_to_dim[p.name] = p.dimension
+
+    # Accumulate net (input/param) − output SI scale as a base-10 exponent
+    # plus a residual mantissa. Every canonical si_scale in this codebase is a
+    # decimal power of ten; splitting the power-of-ten part out and applying a
+    # single 10**exp keeps the result *exactly* representable (1.0/1e-30 is
+    # 9.999…e29 in IEEE float, but 10.0**30 is exactly 1e30). The mantissa
+    # carries any non-power-of-ten factor, so the math stays general.
+    powers = mono.as_powers_dict()
+    # Output dimension enters the quotient at power −1; inputs/params at +power.
+    si_dim: list[tuple[object, int]] = [
+        (op.outputs[0].fields[0].dimension, -1),
+    ]
+    for base, exp in powers.items():
+        if isinstance(base, sp.Indexed):
+            nm = str(base.base.name)
+        elif isinstance(base, sp.Symbol):
+            nm = str(base.name)
+        else:
+            continue
+        if nm in name_to_dim:
+            si_dim.append((name_to_dim[nm], int(exp)))
+
+    exp10 = 0
+    mantissa = 1.0
+    for dim, exp in si_dim:
+        scale = dimension_si_scale(dim)
+        rounded = round(math.log10(scale)) if scale > 0 else None
+        if rounded is not None and scale == 10.0 ** rounded:
+            exp10 += rounded * exp
+        else:
+            mantissa *= scale ** exp
+    return mantissa * 10.0 ** exp10
 
 
 def _sanitize(s: str) -> str:

@@ -35,7 +35,10 @@ def test_apply_edge_binds_supplied_V_cell_constant():
     rep = _op_rep(HEAT_CAPACITY, "c", c)
     v_cell = 40.0
     out = apply_edge(contract_volumetric_heat_capacity, rep, constants={"V_{cell}": v_cell})
-    expected = np.sum(c) / (v_cell * c.shape[0])
+    # ×1e30 = the volumetric-Cv dimensional bridge (J/K per Å³ → J/(m³·K));
+    # the executor now rescales the raw canonical-unit sum into the output's
+    # declared SI unit. See test_executor_bridge.test_bridge_for_volumetric_cv_is_1e30.
+    expected = np.sum(c) / (v_cell * c.shape[0]) * 1e30
     np.testing.assert_allclose(float(out.data), expected, rtol=1e-12)
 
 
@@ -67,7 +70,7 @@ def test_general_sum_evaluates_cvF_tensor_contraction():
     rep_F = _op_rep(MEAN_FREE_DISPLACEMENT_DIRECT, "F", F)
     out = apply_edge(contract_kappa_direct, rep_c, rep_v, rep_F,
                      constants={"V_{cell}": v_cell})
-    expected = np.einsum("qn,aqn,bqn->ab", c, v, F) / (N_q * v_cell)
+    expected = np.einsum("qn,aqn,bqn->ab", c, v, F) / (N_q * v_cell) * 1e22
     assert out.data.shape == (3, 3)
     np.testing.assert_allclose(out.data, expected, rtol=1e-10)
 
