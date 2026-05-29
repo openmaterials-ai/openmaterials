@@ -24,8 +24,10 @@ from omai.operator.dimensions import (
     ENERGY_PER_TEMPERATURE_PER_MOLE,
     ENERGY_PER_TEMPERATURE_PER_VOLUME,
     FREQUENCY,
+    LENGTH,
     LENGTH_TIMES_FREQUENCY,
     THERMAL_CONDUCTIVITY,
+    VOLUME,
 )
 
 
@@ -34,42 +36,43 @@ class Unit:
     name: str
     dimension: Dimension
     to_operator: float
+    si_scale: float | None = None
 
 
 _E = 1.602176634e-19  # Joules per electron-volt
 
 
 # Canonical frequency unit: linear_THz. Angular_THz = 2π × linear_THz.
-LINEAR_THZ = Unit("linear_THz", FREQUENCY, 1.0)
+LINEAR_THZ = Unit("linear_THz", FREQUENCY, 1.0, si_scale=1e12)
 ANGULAR_THZ = Unit("angular_THz", FREQUENCY, 1.0 / (2 * math.pi))
 
 
 # Canonical heat-capacity unit: J/K. eV/K = e × J/K.
-J_PER_K = Unit("J_per_K", ENERGY_PER_TEMPERATURE, 1.0)
+J_PER_K = Unit("J_per_K", ENERGY_PER_TEMPERATURE, 1.0, si_scale=1.0)
 EV_PER_K = Unit("eV_per_K", ENERGY_PER_TEMPERATURE, _E)
 
 
 # Canonical volumetric heat capacity: J/(m³·K). ShengBTE's BTE.cv.
-J_PER_M3_PER_K = Unit("J_per_m3_per_K", ENERGY_PER_TEMPERATURE_PER_VOLUME, 1.0)
+J_PER_M3_PER_K = Unit("J_per_m3_per_K", ENERGY_PER_TEMPERATURE_PER_VOLUME, 1.0, si_scale=1.0)
 
 
 # Canonical molar heat capacity: J/(K·mol). Phonopy's thermal-properties output.
-J_PER_K_PER_MOL = Unit("J_per_K_per_mol", ENERGY_PER_TEMPERATURE_PER_MOLE, 1.0)
+J_PER_K_PER_MOL = Unit("J_per_K_per_mol", ENERGY_PER_TEMPERATURE_PER_MOLE, 1.0, si_scale=1.0)
 
 
 # Canonical group-velocity unit: Å × linear_THz (= Å/ps).
-ANGSTROM_LINEAR_THZ = Unit("angstrom_linear_THz", LENGTH_TIMES_FREQUENCY, 1.0)
+ANGSTROM_LINEAR_THZ = Unit("angstrom_linear_THz", LENGTH_TIMES_FREQUENCY, 1.0, si_scale=1e2)
 # km/s = nm × THz = 10 × Å × linear_THz. ShengBTE emits group velocities in km/s.
 KM_PER_S = Unit("km_per_s", LENGTH_TIMES_FREQUENCY, 10.0)
 
 
 # Canonical thermal-conductivity unit: W/(m·K).
-W_PER_M_PER_K = Unit("W_per_m_per_K", THERMAL_CONDUCTIVITY, 1.0)
+W_PER_M_PER_K = Unit("W_per_m_per_K", THERMAL_CONDUCTIVITY, 1.0, si_scale=1.0)
 
 
 # Canonical molar-energy unit: J/mol. Phonopy's free_energy / internal_energy
 # come in kJ/mol; convert factor is 1000.
-J_PER_MOL = Unit("J_per_mol", ENERGY_PER_MOLE, 1.0)
+J_PER_MOL = Unit("J_per_mol", ENERGY_PER_MOLE, 1.0, si_scale=1.0)
 KJ_PER_MOL = Unit("kJ_per_mol", ENERGY_PER_MOLE, 1000.0)
 
 
@@ -81,6 +84,11 @@ KJ_PER_MOL = Unit("kJ_per_mol", ENERGY_PER_MOLE, 1000.0)
 # omai/thermal_transport/operator/nodes.py for the `fc3_normalization`
 # convention that handles the 10× cross-code factor.
 EV_PER_A3 = Unit("eV_per_A3", ENERGY_PER_LENGTH_CUBED, 1.0)
+
+
+# Canonical length unit: Å (angstrom). Canonical volume unit: Å³.
+ANGSTROM = Unit("angstrom", LENGTH, 1.0, si_scale=1e-10)
+ANGSTROM_CUBED = Unit("angstrom_cubed", VOLUME, 1.0, si_scale=1e-30)
 
 
 # Dimensionless quantities (Born charges in units of e, dielectric tensor).
@@ -102,6 +110,8 @@ UNITS: dict[str, Unit] = {
         J_PER_MOL,
         KJ_PER_MOL,
         EV_PER_A3,
+        ANGSTROM,
+        ANGSTROM_CUBED,
         DIMENSIONLESS_UNIT,
     ]
 }
@@ -116,3 +126,16 @@ def conversion_factor(from_unit: str, to_unit: str) -> float:
             f"{to_unit} ({b.dimension.name}): different dimensions"
         )
     return a.to_operator / b.to_operator
+
+
+def dimension_si_scale(dimension: Dimension) -> float:
+    """Absolute SI scale of `dimension`'s canonical unit (the registered Unit
+    with to_operator == 1.0). Raises ValueError if the dimension has no
+    canonical unit with an si_scale set."""
+    for u in UNITS.values():
+        if u.dimension == dimension and u.to_operator == 1.0 and u.si_scale is not None:
+            return u.si_scale
+    raise ValueError(
+        f"dimension {dimension.name!r} has no canonical unit with an si_scale; "
+        f"register one in omai/representation/units.py"
+    )

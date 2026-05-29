@@ -39,6 +39,7 @@ LENGTH_SQUARED = Dimension("length_squared")  # MeanSquaredDisplacement
 # spell the dimension out as energy × length / time to keep the chain unambiguous.
 ENERGY_TIMES_LENGTH_PER_TIME = Dimension("energy_times_length_per_time")
 OPAQUE = Dimension("opaque")  # for parameter states like Potential whose internal structure is unmodeled
+VOLUME = Dimension("volume")
 
 
 DIMENSIONS: dict[str, Dimension] = {
@@ -61,5 +62,6 @@ DIMENSIONS: dict[str, Dimension] = {
         LENGTH_SQUARED,
         ENERGY_TIMES_LENGTH_PER_TIME,
         OPAQUE,
+        VOLUME,
     ]
 }
