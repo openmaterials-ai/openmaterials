@@ -25,16 +25,13 @@ contractions (einsum); `contract_kappa_direct` is executable. Example A
 
 Open follow-ups surfaced during implementation:
 
-- **κ-contraction unit reconciliation.** Contracting canonical-unit inputs
-  (c [J/K], v [Å·THz], F [Å], V_cell [Å³]) through `contract_kappa_direct`
-  yields κ in J·THz/(K·Å) = 1e22 × W/(m·K). The declared canonical unit of
-  `ThermalConductivity` is W/(m·K) (to_operator=1.0), so there is a 1e22
-  mismatch between the contraction result and the declared output unit.
-  Example B applies the ×1e22 explicitly in the example/test as a documented
-  interim. The proper fix is in the executor's contraction layer: derive the
-  output's canonical scale from the inputs' canonical units and reconcile it
-  against the output space's declared unit, emitting the factor automatically.
-  Not a `units.py` value change — the individual unit definitions are correct.
+- **κ-contraction unit reconciliation — RESOLVED (2026-05-29).** The executor
+  now applies a monomial-gated dimensional bridge: each dimension's canonical
+  unit carries an SI scale (`Unit.si_scale`, `dimension_si_scale`), and pure
+  contraction edges are rescaled to the output's declared canonical unit
+  automatically. κ → 1e22 and volumetric Cv → 1e30 emerge with no hand
+  constants; Example B dropped its manual ×1e22. `V_cell` is now a typed
+  VOLUME Parameter. See spec 2026-05-29-dimensional-reconciliation-design.md.
 
 - **Cross-driver `group_velocities_AT.npy` layout split.** `run_kaldo.py`
   (silicon) now saves group velocity as (3, n_q, n_modes) to match the

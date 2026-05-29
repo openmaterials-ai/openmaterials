@@ -717,6 +717,16 @@ to $0.1\%$, and contracts $\kappa_{\mathrm{LBTE}}$ from loaded group velocity,
 mean free displacement, and a derived heat capacity, matching kaldo's emitted
 conductivity.
 
+The executor reconciles units dimensionally: each dimension's canonical unit
+carries an absolute SI scale, and when an operator's formula is a pure
+contraction (a monomial in its input fields and declared parameters), the
+executor rescales the raw canonical-unit result into the output's declared
+canonical unit automatically. This is what lets the $\kappa_{\mathrm{LBTE}}$
+contraction of \AA{}/THz-canonical group velocity and mean free displacement with
+an \AA{}$^3$ cell volume emerge directly in $\mathrm{W/(m\cdot K)}$, with no
+hand-applied conversion. Closed-form edges (whose constants already carry the
+SI conversion) and additive edges are not monomials and are left untouched.
+
 \subsection{HiddenSpace discipline and gauge actions}
 \label{ssec:gauge-discipline}
 
