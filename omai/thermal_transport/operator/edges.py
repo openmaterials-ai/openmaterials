@@ -781,6 +781,11 @@ contract_kappa_direct = Operator(
     outputs=(THERMAL_CONDUCTIVITY_DIRECT,),
     formula=_KAPPA_FORMULA,
     description="Per-mode contraction with the LBTE F; result is gauge-invariant.",
+    # κ[α,β] shares the α,β index symbols across LHS/RHS — those are dummy
+    # contraction indices, not the unknown — so the default disjoint-free-
+    # symbol heuristic false-negatives. The contraction is closed-form
+    # (an einsum), evaluable by the general Sum evaluator.
+    is_executable_in_sympy_override=True,
 )
 
 

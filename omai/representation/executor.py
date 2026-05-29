@@ -431,48 +431,126 @@ def apply_edge(
             else:
                 input_dummies.append((scalar_sym, data))
 
-    # 6a. Eliminate full-range BZ Sums. The closed-form contraction edges
-    #     (contract_molar_*, contract_volumetric_*) wrap a single Indexed
-    #     summand in a Sum over the full BZ × mode grid. For each Sum we
-    #     accept, the result is just np.sum(input_array_for_that_indexed)
-    #     and we bind a dummy symbol to that scalar. We also bind the
-    #     BZ-mesh counters (N_q, N) from the same input's shape.
-    sum_dummies: list[tuple[sp.Symbol, float]] = []
+    # 6a. Evaluate full-range BZ Sums. A Sum's summand can be:
+    #       * a single bare Indexed (c[q,ν]) — np.sum(array), scalar;
+    #       * an elementwise scalar kernel over one Indexed (the composed
+    #         molar-Cv sinh form Σ_qν c(ω_qν,T)) — np.sum of the kernel
+    #         evaluated per mode, scalar;
+    #       * a product of several Indexed with free indices surviving the
+    #         sum (κ[α,β] = Σ_qν c v F) — an einsum, tensor result.
+    #     The unified algorithm broadcasts every summand-input array into a
+    #     common (free… , bound…) layout, evaluates the elementwise kernel
+    #     via lambdify, and np.sum's over the trailing bound axes. The result
+    #     (scalar or tensor) is bound as an *array* dummy in input_dummies so
+    #     the FINAL lambdify treats scalar and tensor cases uniformly.
     bzmesh_subs: dict[sp.Symbol, float] = {}
     for sum_atom in list(rhs.atoms(sp.Sum)):
         summand = sum_atom.function
-        # The summand may be a single Indexed (c[q,ν]) or a product
-        # containing one Indexed plus only constants / dummy indices.
-        indexed_in_summand = list(summand.atoms(sp.Indexed))
-        if len(indexed_in_summand) != 1:
+        bound_indices = tuple(lim[0] for lim in sum_atom.limits)
+
+        indexed_atoms = list(summand.atoms(sp.Indexed))
+        if not indexed_atoms:
             raise NotImplementedError(
-                f"operator {op.name!r}: Sum {sum_atom!r} has "
-                f"{len(indexed_in_summand)} Indexed atoms; executor only "
-                f"handles single-Indexed summands."
+                f"operator {op.name!r}: Sum {sum_atom!r} has no Indexed "
+                f"atoms; the executor cannot map it to any input array."
             )
-        ix = indexed_in_summand[0]
-        base = str(ix.base.name)
-        if base not in base_name_to_array:
-            raise NotImplementedError(
-                f"operator {op.name!r}: Sum summand uses IndexedBase "
-                f"{base!r} which doesn't correspond to any input."
+
+        # 6a.i. Free indices that survive the sum, in LHS order, plus any
+        #       leftover unbound indices (defensive).
+        lhs_index_order = (
+            tuple(formula.lhs.indices)
+            if isinstance(formula.lhs, sp.Indexed)
+            else ()
+        )
+        all_idx: list[sp.Symbol] = []
+        for atom in indexed_atoms:
+            for ix in atom.indices:
+                if ix not in all_idx:
+                    all_idx.append(ix)
+        free_indices = [
+            ix for ix in lhs_index_order
+            if ix in all_idx and ix not in bound_indices
+        ]
+        for ix in all_idx:
+            if ix not in bound_indices and ix not in free_indices:
+                free_indices.append(ix)
+        free_indices = tuple(free_indices)
+        full_order = free_indices + bound_indices
+
+        # 6a.ii. Broadcast each distinct summand-input array into full_order
+        #        layout (size-1 on missing axes), binding a fresh dummy per
+        #        base. Substitute each Indexed atom by its base dummy.
+        base_to_dummy: dict[str, sp.Symbol] = {}
+        summand_dummies: list[tuple[sp.Symbol, np.ndarray]] = []
+        indexed_subs: dict[sp.Indexed, sp.Symbol] = {}
+        for atom in indexed_atoms:
+            base = str(atom.base.name)
+            if base not in base_name_to_array:
+                raise NotImplementedError(
+                    f"operator {op.name!r}: Sum summand uses IndexedBase "
+                    f"{base!r} which doesn't correspond to any input."
+                )
+            if base not in base_to_dummy:
+                arr = base_name_to_array[base]
+                sig = tuple(atom.indices)
+                broadcast = _to_full_layout(arr, sig, full_order)
+                dummy = sp.Symbol(f"_sum_{_sanitize(base)}_in", positive=False)
+                base_to_dummy[base] = dummy
+                summand_dummies.append((dummy, broadcast))
+            indexed_subs[atom] = base_to_dummy[base]
+
+        # 6a.iii. Numeric physics constants inside the summand (ℏ, k_B,
+        #         V_cell, …) — substitute before lambdify, since after the
+        #         Sum atom is replaced the outer physics_subs pass won't
+        #         reach inside.
+        kernel = summand.xreplace(indexed_subs)
+        if physics_subs:
+            kernel = kernel.xreplace(physics_subs)
+
+        # Scalar-input symbols (e.g. Temperature T) referenced inside the
+        # kernel must be passed to the kernel lambdify too.
+        scalar_args: list[tuple[sp.Symbol, float]] = [
+            (sym, val)
+            for sym, val in input_dummies
+            if not isinstance(val, np.ndarray) and sym in kernel.free_symbols
+        ]
+
+        kernel_syms = [d for d, _ in summand_dummies] + [s for s, _ in scalar_args]
+        kernel_vals = [v for _, v in summand_dummies] + [v for _, v in scalar_args]
+        kernel_fn = sp.lambdify(kernel_syms, kernel, modules="numpy")
+        per_mode = np.asarray(kernel_fn(*kernel_vals))
+        # np.sum over the trailing bound axes → (free…) array (scalar if no
+        # free indices). The bound axes are the last len(bound_indices).
+        n_bound = len(bound_indices)
+        if n_bound:
+            bound_axes = tuple(
+                range(per_mode.ndim - n_bound, per_mode.ndim)
             )
-        arr = base_name_to_array[base]
-        sum_value = float(np.sum(arr))
-        # Bind BZ-mesh counters from the array shape. Convention: 2-D BZ
-        # array is shape (N_q, N_modes), and N_modes = 3 * N_atoms.
+            summed = np.sum(per_mode, axis=bound_axes)
+        else:
+            summed = per_mode
+
+        # 6a.iv. Bind BZ-mesh counters from the summand-input shapes.
         for sym in rhs.atoms(sp.Symbol):
             if isinstance(sym, sp.Indexed):
                 continue
             name = str(sym.name)
             if name == "N_q":
-                bzmesh_subs[sym] = float(arr.shape[0])
-            elif name == "N" and arr.ndim >= 2:
-                bzmesh_subs[sym] = float(arr.shape[1]) / 3.0
-        # Replace the Sum with a fresh dummy symbol carrying the summed value.
-        dummy = sp.Symbol(f"_sum_{_sanitize(base)}", positive=False)
-        rhs = rhs.xreplace({sum_atom: dummy})
-        sum_dummies.append((dummy, sum_value))
+                bzmesh_subs[sym] = float(
+                    _infer_n_q(base_name_to_array, indexed_atoms)
+                )
+            elif name == "N":
+                bzmesh_subs[sym] = _infer_n_modes(base_name_to_array) / 3.0
+
+        # 6a.v. Replace the Sum atom with a fresh array dummy and route the
+        #       summed result through input_dummies (handles scalar AND
+        #       tensor results uniformly via the final lambdify).
+        sum_result = np.asarray(summed)
+        sum_dummy = sp.Symbol(
+            f"_sum_{len(input_dummies)}", positive=False
+        )
+        rhs = rhs.xreplace({sum_atom: sum_dummy})
+        input_dummies.append((sum_dummy, sum_result))
 
     # Apply the elementwise Indexed → dummy substitutions in a single pass.
     if seen_replacements:
@@ -483,9 +561,6 @@ def apply_edge(
         rhs = rhs.xreplace(physics_subs)
     if bzmesh_subs:
         rhs = rhs.xreplace(bzmesh_subs)
-    # Sum dummies bind directly as numeric scalars.
-    if sum_dummies:
-        rhs = rhs.xreplace({sym: val for sym, val in sum_dummies})
 
     # 8. Remaining free symbols: must all be input dummies (or stray index
     #    variables that should have been eliminated by Indexed → dummy
@@ -548,6 +623,68 @@ def _sanitize(s: str) -> str:
             out.append("_")
     name = "".join(out)
     return name or "sym"
+
+
+def _to_full_layout(arr, sig, full_order):
+    """Reshape ``arr`` (whose axes are indexed by ``sig``) into the canonical
+    ``full_order`` layout, with size-1 axes wherever ``full_order`` names an
+    index that ``sig`` lacks.
+
+    The result has ``len(full_order)`` dimensions; numpy broadcasting then
+    aligns it against the other summand inputs (each transformed the same
+    way) so an elementwise product over the common grid Just Works, and a
+    trailing ``np.sum`` contracts the bound axes.
+
+    Example: ``c`` with sig ``(q, ν)`` under full_order ``(α, β, q, ν)`` →
+    shape ``(1, 1, N_q, N_modes)``; ``v`` with sig ``(α, q, ν)`` →
+    ``(3, 1, N_q, N_modes)``.
+    """
+    arr = np.asarray(arr)
+    if len(sig) != arr.ndim:
+        raise NotImplementedError(
+            f"executor: Indexed signature {tuple(str(i) for i in sig)!r} has "
+            f"{len(sig)} indices but its bound array has {arr.ndim} "
+            f"dimensions; cannot place it in the contraction layout."
+        )
+    # Indices present in this array, ordered as they appear in full_order.
+    present = [ix for ix in full_order if ix in sig]
+    # Transpose the array's axes into that relative order.
+    perm = [sig.index(ix) for ix in present]
+    transposed = np.transpose(arr, perm) if perm else arr
+    # Build the full-rank shape: a present index takes its (transposed) size;
+    # a missing index takes size 1.
+    size_of = {ix: transposed.shape[i] for i, ix in enumerate(present)}
+    target_shape = tuple(size_of.get(ix, 1) for ix in full_order)
+    return transposed.reshape(target_shape)
+
+
+def _infer_n_q(base_name_to_array, indexed_atoms) -> int:
+    """N_q = the q-axis size, found via the index symbol printing as a
+    q-vector on any summand Indexed atom."""
+    q_names = {r"\mathbf{q}", "q"}
+    for atom in indexed_atoms:
+        base = str(atom.base.name)
+        arr = base_name_to_array.get(base)
+        if arr is None:
+            continue
+        for axis, ix in enumerate(atom.indices):
+            if str(ix) in q_names:
+                return int(arr.shape[axis])
+    for arr in base_name_to_array.values():
+        if arr.ndim >= 2:
+            return int(arr.shape[0])
+    raise NotImplementedError("cannot infer N_q from input shapes")
+
+
+def _infer_n_modes(base_name_to_array) -> int:
+    """N_modes = the mode-axis size (3·N_atoms)."""
+    for arr in base_name_to_array.values():
+        if arr.ndim == 2:
+            return int(arr.shape[1])
+    for arr in base_name_to_array.values():
+        if arr.ndim >= 1:
+            return int(arr.shape[-1])
+    raise NotImplementedError("cannot infer N_modes from input shapes")
 
 
 # ---------------------------------------------------------------------------
