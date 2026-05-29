@@ -27,6 +27,13 @@ from omai.representation.adapter import (
     representation_to_operator,
 )
 from omai.representation.compare import RepresentationComparisonResult, compare
+from omai.representation.executor import (
+    ComputeResult,
+    NoSourceError,
+    Source,
+    TraceStep,
+    compute,
+)
 from omai.representation.instance import Representation, represent
 from omai.representation.normalizations import NORMALIZATIONS, Normalization
 from omai.representation.units import Unit, conversion_factor
@@ -40,10 +47,15 @@ __all__ = [
     "SpaceRepresentationSpec",
     "Unit",
     "compare",
+    "compute",
+    "ComputeResult",
     "conversion_factor",
+    "NoSourceError",
     "operator_to_representation",
     "represent",
     "representation_discretization_match",
     "representation_scheme_match",
     "representation_to_operator",
+    "Source",
+    "TraceStep",
 ]

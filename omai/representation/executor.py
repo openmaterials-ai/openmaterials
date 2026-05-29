@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field as dc_field
-from typing import Any
+from typing import Any, Callable, Union
 
 import numpy as np
 import sympy as sp
@@ -37,7 +37,12 @@ from omai.representation.instance import Representation
 
 __all__ = [
     "ExternalSolveRequired",
+    "NoSourceError",
+    "Source",
+    "TraceStep",
+    "ComputeResult",
     "apply_edge",
+    "compute",
     "operator_form_spec",
 ]
 
@@ -50,6 +55,11 @@ class ExternalSolveRequired(RuntimeError):
     that doesn't lambdify cleanly). The caller must dispatch to an
     adapter-owned external solver.
     """
+
+
+class NoSourceError(RuntimeError):
+    """Raised by ``compute`` when a space has neither a registered Source
+    nor a producing Operator in the edge set."""
 
 
 # ---------------------------------------------------------------------------
@@ -242,6 +252,7 @@ def _identify_single_indexed_for_input(
 def apply_edge(
     op: Operator,
     *inputs: Representation,
+    constants: dict[str, float] | None = None,
 ) -> Representation:
     """Evaluate ``op`` against the input Representations and return the
     output Representation.
@@ -526,3 +537,104 @@ def _sanitize(s: str) -> str:
             out.append("_")
     name = "".join(out)
     return name or "sym"
+
+
+# ---------------------------------------------------------------------------
+# Lazy DAG resolver
+# ---------------------------------------------------------------------------
+
+Source = Union[Representation, Callable[[], Representation]]
+
+
+@dataclass(frozen=True)
+class TraceStep:
+    kind: str    # "LOAD" | "LIFT" | "EXEC"
+    space: str   # space.name produced by this step
+    detail: str  # representation_name for LOAD/LIFT; operator.name for EXEC
+
+
+@dataclass(frozen=True)
+class ComputeResult:
+    representation: Representation
+    trace: tuple[TraceStep, ...]
+
+
+def _materialize(src: "Source") -> Representation:
+    return src() if callable(src) else src
+
+
+def compute(
+    target: Space,
+    sources: dict[str, "Source"],
+    *,
+    edges: tuple | None = None,
+    constants: dict[str, float] | None = None,
+) -> ComputeResult:
+    """Resolve ``target`` from ``sources`` over the operator DAG.
+
+    A space is satisfied by a registered Source (materialized + lifted to
+    operator form) or derived by executing its producing Operator via
+    ``apply_edge``. Lazy (only resolves what ``target`` needs), memoized
+    (each space resolved once), and traced.
+
+    ``edges`` defaults to the thermal-transport ``EDGES`` (imported lazily
+    to keep the executor domain-agnostic at module import time and avoid a
+    circular import). Pass an explicit edge set for other domains.
+
+    Raises NoSourceError for a space with no source and no producer;
+    ExternalSolveRequired for a non-sympy-executable producer with no source.
+    """
+    from omai.representation.compare import to_operator
+
+    if edges is None:
+        from omai.thermal_transport.operator import EDGES as edges
+
+    memo: dict[str, Representation] = {}
+    trace: list[TraceStep] = []
+    constants = constants or {}
+
+    producers_by_space: dict[str, Operator] = {}
+    for op in edges:
+        for out in op.outputs:
+            producers_by_space.setdefault(out.name, op)  # first by declaration order
+
+    def resolve(space: Space) -> Representation:
+        if space.name in memo:
+            return memo[space.name]
+        if space.name in sources:
+            rep = _materialize(sources[space.name])
+            trace.append(TraceStep("LOAD", space.name, rep.representation_name))
+            op_rep = to_operator(rep)
+            if op_rep is not rep:
+                trace.append(TraceStep("LIFT", space.name, rep.representation_name))
+            memo[space.name] = op_rep
+            return op_rep
+        op = producers_by_space.get(space.name)
+        if op is None:
+            raise NoSourceError(
+                f"space {space.name!r} has no registered Source and no "
+                f"producing Operator; register a Source for it in `sources`."
+            )
+        # Nullary operators (no inputs) are "provider" edges that inject an
+        # external parameter (e.g. provide_temperature). They cannot be derived
+        # automatically — a Source must be registered for the space.
+        if op.is_nullary():
+            raise NoSourceError(
+                f"space {space.name!r} is produced by nullary operator "
+                f"{op.name!r} which requires external parameter injection; "
+                f"register a Source for it in `sources`."
+            )
+        if not op.is_executable_in_sympy:
+            raise ExternalSolveRequired(
+                f"space {space.name!r} is produced by implicit operator "
+                f"{op.name!r} (external solve); register a Source carrying a "
+                f"loaded array for it (e.g. the code's emitted .npy)."
+            )
+        inputs = [resolve(inp) for inp in op.inputs]
+        out = apply_edge(op, *inputs, constants=constants)
+        trace.append(TraceStep("EXEC", space.name, op.name))
+        memo[space.name] = out
+        return out
+
+    rep = resolve(target)
+    return ComputeResult(representation=rep, trace=tuple(trace))
