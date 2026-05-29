@@ -20,7 +20,7 @@ import sympy as sp
 
 from omai.operator.operator import Operator
 
-__all__ = ["ImplicitEdgeBoundary", "compose_path"]
+__all__ = ["ImplicitEdgeBoundary", "compose_path", "compose_executable"]
 
 
 class ImplicitEdgeBoundary(Exception):
@@ -134,3 +134,41 @@ def compose_path(edges: tuple[Operator, ...]) -> sp.Expr | None:
         prev_lhs = this_lhs
 
     return expr
+
+
+def compose_executable(edges: tuple[Operator, ...]) -> Operator:
+    """Fuse a path of explicit-equation edges into a single synthetic
+    Operator that runs through the SAME apply_edge as a primitive edge.
+
+    The formula is ``sp.Eq(terminal_LHS, compose_path(edges))`` — the
+    terminal edge's LHS paired with the composed RHS (``compose_path``
+    returns only the RHS, so we re-attach the last edge's LHS). Inputs are
+    the chain's *leaf* spaces: inputs of any edge that are not produced by
+    an earlier edge in the chain. Output is the terminal edge's output.
+    Marked executable via the override (the composed Eq is closed-form by
+    construction).
+    """
+    if not edges:
+        raise ValueError("compose_executable: empty edge sequence")
+    composed_rhs = compose_path(edges)
+    terminal = edges[-1]
+    if not isinstance(terminal.formula, sp.Eq):
+        raise TypeError(
+            f"compose_executable: terminal edge {terminal.name!r} has no Eq formula"
+        )
+    terminal_lhs = terminal.formula.lhs
+
+    produced = {out for e in edges for out in e.outputs}
+    leaves: list = []
+    for e in edges:
+        for inp in e.inputs:
+            if inp not in produced and inp not in leaves:
+                leaves.append(inp)
+
+    return Operator(
+        name="compose[" + "→".join(e.name for e in edges) + "]",
+        inputs=tuple(leaves),
+        outputs=terminal.outputs,
+        formula=sp.Eq(terminal_lhs, composed_rhs),
+        is_executable_in_sympy_override=True,
+    )
