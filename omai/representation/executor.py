@@ -329,6 +329,17 @@ def apply_edge(
         if name in _PHYSICS_CONSTANTS:
             physics_subs[atom] = _PHYSICS_CONSTANTS[name]
 
+    # Bind user-supplied constants (material/run data like V_{cell}) by
+    # atomic symbol name. These are values the operator formula references
+    # but that aren't universal physics constants.
+    supplied = constants or {}
+    for atom in list(rhs.atoms(sp.Symbol)):
+        if isinstance(atom, sp.Indexed):
+            continue
+        name = str(atom.name)
+        if name in supplied:
+            physics_subs[atom] = float(supplied[name])
+
     # Identify n_BE applications (sympy Function `n_{BE}`) and expand them
     # *before* the indexed-symbol substitutions, since the expansion uses
     # ℏ / k_B explicitly. The substitution happens against the *raw* ω/T
