@@ -1194,8 +1194,9 @@ sense.}
 
 \subsection{Representation functors (codes)}
 
-Each adapter is a representation functor over the operator DAG. Four adapters
-are now ingested:
+Each adapter is a representation functor over the operator DAG. Seven adapters
+are now ingested, in two tiers. The four BTE / harmonic codes that consume
+force constants:
 
 \begin{itemize}[leftmargin=2em]
   \item \textbf{kaldo} (Python). Computes harmonic and anharmonic phonon transport from
@@ -1220,6 +1221,33 @@ are now ingested:
         P3, dos\}}, etc. Per-mode heat capacity is not exposed (only
         \texttt{BTE.cv}), so the adapter targets \texttt{VolumetricHeatCapacity}
         rather than \texttt{HeatCapacity} on that branch.
+\end{itemize}
+
+\noindent and three phase-2 additions --- an ASE Potential anchor and two
+molecular-dynamics codes that realise the MD-primitive tier and the MD-based
+$\kappa$ paths:
+
+\begin{itemize}[leftmargin=2em]
+  \item \textbf{ase} (Python protocol). Not a thermal-transport code: it supplies
+        only the shared \emph{Potential} / force-evaluation anchor
+        (\texttt{provide\_potential} via \texttt{ase.Atoms.calc}). The four BTE
+        codes above cite the \texttt{ase} adapter as their canonical Potential
+        source, so a cross-code $\kappa$ comparison rests on one declared force
+        field rather than an implicit shared assumption.
+  \item \textbf{LAMMPS} (C++/Python). Classical molecular dynamics. Native
+        \texttt{pair\_style} Potential, plus the MD-primitive tier
+        (\texttt{Trajectory}, \texttt{HeatCurrent}, \texttt{HeatCurrentACF},
+        \texttt{VelocityAutocorrelation}, \texttt{MeanSquaredDisplacement} via
+        \texttt{compute heat/flux}, \texttt{compute vacf}, \texttt{compute msd},
+        \texttt{fix ave/correlate}) and the equilibrium Green-Kubo and
+        Müller-Plathe NEMD $\kappa$ paths. HNEMD is recorded as not-exposed
+        (it routes through GPUMD).
+  \item \textbf{GPUMD} (CUDA/C++). GPU-accelerated classical MD specialised for
+        thermal transport. NEP-potential (neuro-evolution) anchor, the same
+        MD-primitive tier, and the Green-Kubo (\texttt{compute\_hac}) and
+        HNEMD (\texttt{compute\_hnemd}) $\kappa$ paths --- HNEMD being GPUMD's
+        signature method; direct NEMD is recorded as not-exposed (routes
+        through LAMMPS).
 \end{itemize}
 
 Each adapter spec declares per-space units, normalization overrides, and notes
