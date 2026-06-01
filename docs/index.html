@@ -3770,7 +3770,12 @@ const EDGE_DATA = {
     "outputs": [
       "ThermalConductivity[bte_solver=direct_inverse]"
     ],
-    "parameters": [],
+    "parameters": [
+      {
+        "name": "V_{cell}",
+        "dimension": "volume"
+      }
+    ],
     "schemes": {},
     "formula_latex": "{\\kappa}_{\\alpha,\\beta} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {F}_{\\beta,\\mathbf{q},\\nu} {c}_{\\mathbf{q},\\nu} {v}_{\\alpha,\\mathbf{q},\\nu}}{N_{q} V_{cell}}",
     "auxiliary_latex": [],
@@ -3936,7 +3941,12 @@ const EDGE_DATA = {
     "outputs": [
       "VolumetricHeatCapacity"
     ],
-    "parameters": [],
+    "parameters": [
+      {
+        "name": "V_{cell}",
+        "dimension": "volume"
+      }
+    ],
     "schemes": {},
     "formula_latex": "C_V^{vol} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N}} {c}_{\\mathbf{q},\\nu}}{N_{q} V_{cell}}",
     "auxiliary_latex": [],

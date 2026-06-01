@@ -40,7 +40,7 @@ Regenerate the interactive single-file visualization (operator layer plus the
 per-code columns):
 
 ```bash
-python -m omai.thermal_transport.visualize   # writes docs/dag.html
+python -m omai.thermal_transport.visualize   # writes docs/index.html
 ```
 
 ## Layout
@@ -55,11 +55,11 @@ omai/
     operator/        # the lattice-thermal-transport DAG (Spaces + Operators)
     representation/  # per-code adapters (kaldo, phono3py, phonopy,
                      #   shengbte, ase, lammps, gpumd)
-    visualize.py     # emits docs/dag.html
+    visualize.py     # emits docs/index.html
 examples/            # runnable tours; start with quickstart.py
 experiments/         # full cross-code material studies (silicon, germanium, NaCl)
 tests/               # pytest suite
-docs/                # design doc + dag.html
+docs/                # design doc + index.html
 ```
 
 ## Design

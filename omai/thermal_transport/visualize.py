@@ -13,7 +13,7 @@ Adapter discovery is automatic: any top-level submodule of
 
 Run:
     python -m omai.thermal_transport.visualize
-to write docs/dag.html (single self-contained file; no build step).
+to write docs/index.html (single self-contained file; no build step).
 """
 
 from __future__ import annotations
@@ -1562,7 +1562,7 @@ def render_html(output_path: Path | str) -> Path:
 def main() -> None:
     here = Path(__file__).resolve()
     repo_root = here.parent.parent.parent
-    out = render_html(repo_root / "docs" / "dag.html")
+    out = render_html(repo_root / "docs" / "index.html")
     print(f"wrote {out}")
 
 
