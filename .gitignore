@@ -27,8 +27,7 @@ venv/
 # generated planning/spec docs (superpowers brainstorm + writing-plans output)
 docs/superpowers/
 
-# latex build artifacts (PDF is generated from the .tex; keep only source)
-docs/*.pdf
+# latex build artifacts
 docs/*.aux
 docs/*.log
 docs/*.out
