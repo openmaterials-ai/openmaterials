@@ -209,4 +209,32 @@ is, deliberately, Lean for computational physics, and like a proof assistant its
 worth is that correctness is checked, not trusted. It is only partly built, but the
 shape is already here.
 
+\section{Where we are, and what is next}
+
+Today the framework is real and small. It has an operator layer and a
+representation layer, seven ingested codes (kaldo, phono3py, phonopy, ShengBTE,
+ASE, LAMMPS, and GPUMD), and a validation engine that executes the graph, composes
+edges symbolically, and cross-checks redundant routes. Units reconcile
+automatically from the typed dimensions. The worked domain is lattice thermal
+transport, a graph of 46 quantities and 47 operators, and the whole is held
+together by a suite of 609 passing tests.
+
+What is next is mostly upward and outward. The upstream from the
+Born-Oppenheimer potential, the force constants from which everything descends, is
+currently stubbed rather than modeled in full. The symbolic composition of error,
+the approximation error carried by an operation and the discretization error
+carried by a representation, is designed and not yet built. And the largest reach,
+the one this document is really about, is to ingest not only codes but whole
+papers: to turn a published result into an object the substrate can hold, re-run,
+and check, the same way it already ingests a code.
+
+\bigskip
+\begin{center}
+\color{abstrcol}\itshape
+Git gave code a standard object, and an ecosystem grew on it. Give science the
+same, and a result stops being a dead end: it becomes a contribution to a
+compounding, machine-usable, verifiable body of physics.\\[0.5em]
+\normalfont\bfseries The standard to store science.
+\end{center}
+
 \end{document}
