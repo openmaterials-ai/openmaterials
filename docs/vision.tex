@@ -143,4 +143,28 @@ differ is as much of the design as defining what must match. The project already
 ingests a \emph{code} this way; the vision is to ingest a \emph{paper} the same
 way, turning its claims into objects the substrate can hold, re-run, and check.
 
+\section{Proof it is real}
+
+None of this is a promise about future software; the substrate runs today. Take
+the lattice thermal conductivity of silicon. Computed through the operator graph,
+it comes out directly in watts per meter per kelvin, with the unit conversion
+applied automatically from the typed dimensions rather than pasted in by hand. The
+same conductivity assembled along two different routes, the total on one side and
+the sum of its population and coherence parts on the other, agrees to within about
+$10^{-6}\,\mathrm{W/(m\,K)}$ on a value of order $100$, because the two routes are
+views of one object and the substrate holds them to it.
+
+The repository ships a smaller version you can run in seconds.
+\texttt{examples/quickstart.py} builds the operator graph (46 quantities, 47
+operators), derives the molar heat capacity of a crystal from a phonon frequency
+array, $11.83\,\mathrm{J/(K\,mol)}$ at $300\,\mathrm{K}$, and cross-checks two
+independent inputs at a gauge-invariant observable; the validation report returns
+expected agreement with zero residual. This is merge, for science, and it already
+runs.
+
+\medskip
+\noindent{\small The live operator graph is at
+\href{https://giuseppe.barbalinardo.com/openmaterials/}{the project page}; the
+architecture is documented in \texttt{operator\_representation\_substrate.pdf}.}
+
 \end{document}
