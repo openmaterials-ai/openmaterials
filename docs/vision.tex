@@ -85,4 +85,62 @@ happened to carry it, and recovering it, deciding what a given number actually
 claims, is left to the reader. What cannot be recovered mechanically cannot be
 checked mechanically, and so it cannot accumulate.
 
+\section{The bet: store the physics, not the printout}
+
+The move is to store the object. A result becomes a typed quantity, thermal
+conductivity or a phonon frequency or a heat capacity, declared as what it is. The
+formula that produces it rides on the edge that produces it, written symbolically
+rather than implied by code, and the quantity carries its lineage, the ordered
+chain of operations behind it, along with its units and gauge. A code is then no
+longer the result; it is one \emph{representation} of it, a projection of a single
+shared operator layer into one discretization and one set of conventions.
+
+Every representation factors through that shared layer, never code to code. That
+is what makes reconciliation mechanical: two codes that computed the same
+observable are two projections of one object, so comparing them is a structural
+operation on the graph rather than a feat of expert translation. It is merge, for
+science.
+
+\begin{figure}[h]
+\centering
+\begin{tikzpicture}[
+  node distance=6mm,
+  obj/.style={draw=abstrcol, very thick, rounded corners, fill=boxbg,
+              minimum width=3.2cm, minimum height=1.1cm, align=center},
+  tag/.style={draw=numcol, thick, rounded corners, fill=white,
+              font=\small, align=center, minimum height=0.7cm},
+  rep/.style={draw, dashed, rounded corners, font=\small, align=center}]
+
+  \node[obj] (q) {Typed result\\$\kappa^{\alpha\beta}$ (observable)};
+  \node[tag, above left=5mm and -1cm of q] (f) {formula};
+  \node[tag, above right=5mm and -1cm of q] (l) {lineage};
+  \node[tag, below left=5mm and -1cm of q] (u) {units, gauge};
+  \node[tag, below right=5mm and -1cm of q] (p) {representation};
+  \foreach \n in {f,l,u,p} \draw[numcol, thick] (q) -- (\n);
+
+  \node[rep, right=2.6cm of q] (codes) {kaldo\\phono3py\\LAMMPS};
+  \draw[->, >=Stealth, abstrcol, very thick] (codes) -- node[above, font=\small]{reconcile} (q);
+\end{tikzpicture}
+\caption{A scientific result as a structured object: a typed quantity carrying its
+formula, lineage, units and gauge, with each code a representation that reconciles
+into it at the observable. Merge, for science.}
+\end{figure}
+
+This is the same decision git made. A commit is identified by its content and its
+parents; a result here is identified by its type and its lineage. Git won on its
+object model, the blobs and trees and commits, not on its interface, and the
+contribution here is the analogous object model for a scientific result. Getting
+that object right is the whole game.
+
+One difference is worth stating plainly, because it is where the real work lives.
+Code is discrete and born digital, while a scientific result carries approximation,
+continuous quantities, and gauge freedom: a per-mode lifetime depends on a basis
+choice no two codes share, even though the conductivity it sums to does not. That
+is why the object is typed, why units travel with it, and why the layer separates
+\emph{observable} quantities, which must agree across codes, from
+representation-dependent scaffolding, which need not. Defining what is allowed to
+differ is as much of the design as defining what must match. The project already
+ingests a \emph{code} this way; the vision is to ingest a \emph{paper} the same
+way, turning its claims into objects the substrate can hold, re-run, and check.
+
 \end{document}
