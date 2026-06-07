@@ -1172,6 +1172,11 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
       <span><strong>{n_adapters}</strong> adapters</span>
     </span>
   </div>
+  <div class="navlinks" style="margin-top:6px; font-size:13px;">
+    <a href="vision.pdf" style="color:#D4850A; text-decoration:none;">Vision: Git for Science (PDF)</a>
+    &nbsp;&middot;&nbsp;
+    <a href="slides/" style="color:#D4850A; text-decoration:none;">Slides</a>
+  </div>
   <div class="legend">
     <div class="legend-group">
       <span class="label">Operator</span>

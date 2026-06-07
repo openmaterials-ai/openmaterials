@@ -11,6 +11,12 @@ framework reconciles results across codes mechanically, runs calculations
 itself, and validates them. The longer aim is a semantic action space for AI
 agents that reason over typed physics rather than text tokens.
 
+## Vision
+
+Why this matters, in a few pages: **[Git for Science](docs/vision.pdf)** (the
+larger picture), with a [slide version](https://giuseppe.barbalinardo.com/openmaterials/slides/).
+The architecture is in `docs/operator_representation_substrate.pdf`.
+
 ## Install
 
 ```bash
