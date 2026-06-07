@@ -50,6 +50,66 @@
       </ul>
     </section>
 
+    <section>
+      <h2>The same physics, a dozen codes</h2>
+      <p>kaldo, phono3py, ShengBTE, LAMMPS, VASP, Quantum ESPRESSO.</p>
+      <p>They never quite agree, and most results are <em>not reproducible</em>.</p>
+    </section>
+
+    <section>
+      <h2>Meaning is implicit</h2>
+      <p>Knowledge lives in three lossy forms:</p>
+      <p><em>prose</em> (rich, not runnable) &middot; <em>code</em> (runs, meaning buried) &middot; <em>data</em> (numbers, no provenance)</p>
+      <p>None is at once machine-checkable and runnable.</p>
+    </section>
+
+    <section>
+      <h2>Store the physics, not the printout</h2>
+      <p>A result is a typed object; each code is one <em>representation</em> of it.</p>
+      <div style="display:flex; align-items:center; justify-content:center; gap:1.2em; margin-top:0.4em;">
+        <div style="border:3px solid var(--abstr); border-radius:10px; background:#F5F5F5; padding:0.5em 0.9em;">
+          typed result<br><span class="num">&kappa;<sup>&alpha;&beta;</sup></span>
+        </div>
+        <div style="text-align:left; font-size:0.7em; color:var(--num);">
+          + formula<br>+ lineage<br>+ units, gauge<br>+ representation
+        </div>
+      </div>
+      <p style="font-size:0.8em; margin-top:0.4em;">Everything factors through one shared layer, never code to code.</p>
+    </section>
+
+    <section>
+      <h2>Merge for science, and it already runs</h2>
+      <p>Silicon &kappa; comes out in <em>W/(m&middot;K)</em> automatically, no hand-applied factor.</p>
+      <p>\[ \kappa^{\alpha\beta} = \frac{1}{V}\sum_{q\nu} c_{q\nu}\, v^{\alpha}_{q\nu}\, v^{\beta}_{q\nu}\, \tau_{q\nu} \]</p>
+      <p style="font-size:0.75em;">Total vs. populations + coherences agree to ~10<sup>&minus;6</sup> W/(m&middot;K). Molar heat capacity 11.83 J/(K&middot;mol), cross-check with zero residual.</p>
+      <p><a href="../index.html">see the live operator graph &rarr;</a></p>
+    </section>
+
+    <section>
+      <h2>Knowledge that compounds</h2>
+      <p>Every stored result makes the graph denser and more cross-validated.</p>
+      <p>The <em>git &rarr; GitHub</em> network effect, on verified physics.</p>
+    </section>
+
+    <section>
+      <h2>A semantic action space for AI</h2>
+      <p>Agents act on the typed graph, not on token text.</p>
+      <p>An invalid step is a <em>type error</em>, not a silent number.</p>
+      <p>Redundant routes are a built-in <em>verifier</em>: verification scales with compute.</p>
+      <p class="big">Lean for computational physics.</p>
+    </section>
+
+    <section>
+      <h2>Where we are, and what is next</h2>
+      <p style="font-size:0.85em;"><strong>Today:</strong> operator + representation layers, seven codes, a validation engine, automatic units, a thermal-transport graph (46 quantities, 47 operators), 609 passing tests.</p>
+      <p style="font-size:0.85em;"><strong>Next:</strong> the upstream from the potential, symbolic error composition, and ingesting whole <em>papers</em>.</p>
+    </section>
+
+    <section class="title">
+      <p class="big" style="font-size:1.8em;">The standard to store science.</p>
+      <p class="sub"><a href="../vision.pdf">read the vision</a> &middot; <a href="https://github.com/gbarbalinardo/openmaterials">github.com/gbarbalinardo/openmaterials</a></p>
+    </section>
+
   </div></div>
   <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/math/math.js"></script>
