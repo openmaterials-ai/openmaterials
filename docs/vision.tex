@@ -167,4 +167,46 @@ runs.
 \href{https://giuseppe.barbalinardo.com/openmaterials/}{the project page}; the
 architecture is documented in \texttt{operator\_representation\_substrate.pdf}.}
 
+\section{The payoff: knowledge that compounds}
+
+When results live as typed, reproducible objects, they stop being isolated. Each
+one added to the graph makes the whole denser: a new code is a new representation
+that can be checked against the others, and a new quantity opens new routes that
+cross-validate the old ones. Reproducibility is the proof that a result was
+captured faithfully; compounding is the dividend. The value is no longer locked in
+any single paper but accrues in the shared, checkable object that all of them
+project into.
+
+This is the network effect git set off. Git made a standard object for code, and
+on top of it grew GitHub, continuous integration, pull requests, and code review,
+an entire ecosystem that exists because the object underneath was shared and
+mechanical. A standard object for science invites the same: reproducibility
+infrastructure, automated review, and a body of physics that grows more valuable,
+and more trustworthy, with every result poured into it.
+
+\section{The horizon: a semantic action space for AI}
+
+There is a reason to care about this beyond tidiness. Today's models reason about
+science in token space: they manipulate text that describes physics, and they
+re-derive correctness from statistical pattern every time they are asked. That is
+why a model can produce a fluent, confident, wrong step whose error only surfaces
+three papers downstream. The substrate underneath is lossy, so the reasoning on
+top cannot be trusted by construction.
+
+A typed substrate offers a different footing: a semantic action space. An agent
+that acts on the graph does not write a description of a calculation; it composes
+an edge, materializes a quantity in a chosen code, contracts a hidden quantity into
+an observable, cross-checks two routes. Each move is type-checked and dimensionally
+sound by construction, so an invalid step becomes a type error rather than a silent
+number. And because the routes are redundant, the substrate is its own verifier,
+which is the scarce ingredient for reinforcement learning in any open-ended domain:
+an agent can search and be told, mechanically, whether the answer holds.
+
+The analogy closes the loop. The structured corpus of code that accumulated in git
+is what made today's code models possible; a structured corpus of science is what
+will let an agent reason over physics rather than over prose about physics. This
+is, deliberately, Lean for computational physics, and like a proof assistant its
+worth is that correctness is checked, not trusted. It is only partly built, but the
+shape is already here.
+
 \end{document}
