@@ -55,4 +55,34 @@ semantic place to act.
   \creed{The native substrate for scientific AI is semantic, not token text.}
 \end{enumerate}
 
+\section{The problem: science that does not accumulate}
+
+Computational materials science is a Tower of Babel. A single physical quantity,
+say the lattice thermal conductivity of a crystal, is computed by a dozen codes:
+kaldo, phono3py, ShengBTE, LAMMPS, VASP, Quantum ESPRESSO. Each has its own input
+formats, its own unit conventions, its own gauge and basis choices, and its own
+unspoken assumptions about what was held fixed. The physics is the same. The codes
+never quite agree, and deciding whether two of them \emph{should} agree is itself
+expert work.
+
+That work does not accumulate. Reconciling two calculations is artisanal, done by
+a handful of people who carry the conventions in their heads, and most published
+computational results are effectively irreproducible because the real workflow
+lives in tribal knowledge and one-off scripts rather than in the paper. The paper
+is the tarball we email. Once it is sent, the object that produced it is gone.
+
+\section{The diagnosis: meaning is implicit}
+
+The reason the codes do not agree mechanically is that their meaning is implicit.
+Scientific knowledge today lives in three forms, and each loses something. Prose,
+in papers, carries rich meaning but does not run. Code runs, but its meaning is
+entangled with implementation: the physics is mixed in with array layouts, loop
+orders, and file formats. Data is numbers stripped of their provenance. None of
+the three carries meaning that is at once machine-checkable and runnable.
+
+So the physics is never stored directly. It is buried inside whichever artifact
+happened to carry it, and recovering it, deciding what a given number actually
+claims, is left to the reader. What cannot be recovered mechanically cannot be
+checked mechanically, and so it cannot accumulate.
+
 \end{document}
