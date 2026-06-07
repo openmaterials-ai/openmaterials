@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Git for Science</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css">
+  <style>
+    :root { --abstr: #2C5F8A; --num: #D4850A; }
+    .reveal h1, .reveal h2, .reveal h3 { color: var(--abstr); text-transform: none; }
+    .reveal { font-size: 30px; }
+    .reveal em, .reveal .num { color: var(--num); font-style: normal; }
+    .reveal .creed li { margin: 0.35em 0; }
+    .reveal section.title h1 { font-size: 2.0em; }
+    .reveal .sub { color: #555; font-size: 0.8em; }
+    .reveal a { color: var(--num); }
+    .reveal .big { font-size: 1.3em; color: var(--abstr); }
+  </style>
+</head>
+<body>
+  <div class="reveal"><div class="slides">
+
+    <section class="title">
+      <h1>Git for Science</h1>
+      <p class="sub">A substrate for reproducible, compounding scientific knowledge</p>
+      <p class="sub">G. Barbalinardo &middot; UC Davis</p>
+    </section>
+
+    <section>
+      <h2>Git stored the object, not the printout</h2>
+      <p>Not files. The <em>repository</em>: a structured object with identity and lineage.</p>
+      <p>That object is why merge, provenance, and collaboration became mechanical.</p>
+    </section>
+
+    <section>
+      <h2>Science is still pre-git</h2>
+      <p>We ship the paper, the <em>printout</em> of a result.</p>
+      <p class="big">The object is thrown away.</p>
+    </section>
+
+    <section>
+      <h2>The creed</h2>
+      <ul class="creed">
+        <li>Physics is the invariant. A code is one representation of it.</li>
+        <li>A result is a structured object with identity and lineage, not a number in a table.</li>
+        <li>A result you cannot re-run is a claim, not yet knowledge.</li>
+        <li>Correctness should be structural, not re-derived by trust.</li>
+        <li>The native substrate for scientific AI is semantic, not token text.</li>
+      </ul>
+    </section>
+
+  </div></div>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/math/math.js"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      transition: 'fade',
+      plugins: [ RevealMath.KaTeX ]
+    });
+  </script>
+</body>
+</html>
