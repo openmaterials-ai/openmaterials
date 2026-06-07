@@ -1,0 +1,58 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=1.1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage[hidelinks]{hyperref}
+\usepackage{enumitem}
+\usepackage{tikz}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage[expansion=false]{microtype}
+\usetikzlibrary{arrows.meta,positioning,fit,backgrounds,shapes.geometric}
+
+\definecolor{abstrcol}{HTML}{2C5F8A}
+\definecolor{numcol}{HTML}{D4850A}
+\definecolor{boxbg}{HTML}{F5F5F5}
+
+\titleformat{\section}{\Large\bfseries\color{abstrcol}}{}{0em}{}
+\titlespacing{\section}{0pt}{1.4em}{0.5em}
+
+\newcommand{\creed}[1]{\item \textbf{#1}}
+
+\title{\textbf{Git for Science}\\[0.3em]
+       \large\normalfont A substrate for reproducible, compounding scientific knowledge}
+\author{G. Barbalinardo\\\small University of California, Davis}
+\date{\today}
+
+\begin{document}
+\maketitle
+\thispagestyle{empty}
+
+% ---- Hook ----
+\noindent
+Git did not just store files. It stored the \emph{repository}: a structured,
+content-addressed object with identity and lineage, of which the working files
+are one view. That object is why merging, provenance, and collaboration became
+mechanical, and why a planet's worth of code could accumulate in one shared form.
+Science is still pre-git. We ship the paper, the printout of a result, and throw
+the object away. This is an attempt to store the object: what a result
+\emph{is} (a typed physical quantity, its formula, its lineage, and the code that
+produced it as one representation of it), so that results become reproducible by
+construction, knowledge compounds instead of evaporating, and an AI agent has a
+semantic place to act.
+
+% ---- Creed ----
+\section*{\color{abstrcol}The creed}
+\begin{enumerate}[leftmargin=1.4em, itemsep=0.35em]
+  \creed{The unit of scientific knowledge is meaning, not text.}
+  \creed{Physics is the invariant. A code is one representation of it.}
+  \creed{A scientific result is a structured object with identity and lineage, not a number in a table.}
+  \creed{A result you cannot re-run is a claim, not yet knowledge.}
+  \creed{Units, gauge, and lineage are part of a result, not footnotes to it.}
+  \creed{Knowledge should compound, not evaporate into scripts.}
+  \creed{Correctness should be structural, checked by the substrate, not re-derived by trust.}
+  \creed{Verification must scale with compute, not with reviewers.}
+  \creed{The native substrate for scientific AI is semantic, not token text.}
+\end{enumerate}
+
+\end{document}
