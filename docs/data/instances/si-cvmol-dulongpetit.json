@@ -1,0 +1,1 @@
+{"variable":"MolarHeatCapacity","material":"Si","conditions":{"T":300},"value":20.0,"units":"J/(K mol)","uncertainty":1.0,"source":{"kind":"measurement","ref":"Dulong-Petit limit","detail":"3R reference"}}

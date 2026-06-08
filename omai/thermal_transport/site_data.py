@@ -72,6 +72,28 @@ def write_graph(path: Path | None = None) -> Path:
     return path
 
 
+def build_instances(instances_dir: Path | None = None) -> list[dict]:
+    instances_dir = instances_dir or (_DOCS / "data" / "instances")
+    out = []
+    for f in sorted(instances_dir.glob("*.json")):
+        rec = json.loads(f.read_text())
+        for key in ("variable", "material", "conditions", "value", "units", "source"):
+            if key not in rec:
+                raise ValueError(f"{f.name}: missing '{key}'")
+        if rec["source"].get("kind") not in ("simulation", "measurement"):
+            raise ValueError(f"{f.name}: source.kind must be simulation|measurement")
+        out.append(rec)
+    return out
+
+
+def write_instances(path: Path | None = None) -> Path:
+    path = path or (_DOCS / "data" / "instances.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(build_instances()))
+    return path
+
+
 if __name__ == "__main__":
-    p = write_graph()
-    print(f"wrote {p}")
+    g = write_graph()
+    i = write_instances()
+    print(f"wrote {g}\nwrote {i}")

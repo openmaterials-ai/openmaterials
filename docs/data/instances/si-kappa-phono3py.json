@@ -1,0 +1,1 @@
+{"variable":"ThermalConductivity[transport_model=wigner]","material":"Si","conditions":{"T":300},"value":141.8,"units":"W/(m K)","uncertainty":null,"source":{"kind":"simulation","ref":"phono3py","detail":"LBTE"}}

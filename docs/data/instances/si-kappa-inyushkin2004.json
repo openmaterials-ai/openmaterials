@@ -1,0 +1,1 @@
+{"variable":"ThermalConductivity[transport_model=wigner]","material":"Si","conditions":{"T":300},"value":130.0,"units":"W/(m K)","uncertainty":15.0,"source":{"kind":"measurement","ref":"Inyushkin 2004","detail":"single crystal, natural Si"}}
