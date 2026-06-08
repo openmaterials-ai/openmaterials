@@ -181,7 +181,42 @@ def record_instance(
     return path
 
 
+def build_codes() -> dict:
+    """Per-code adapter coverage: {code: {variable: {"api": ..., "unit": ...}}}.
+
+    Walks the representation adapters and reports, for each code, which operator
+    variables it maps and the code's native API name + emitted unit for each. This
+    is the mapping work each code did onto the shared layer.
+    """
+    import importlib
+    import pkgutil
+
+    from omai.representation.adapter import SpaceRepresentationSpec
+    from omai.thermal_transport import representation as rep_pkg
+
+    codes: dict[str, dict[str, dict]] = {}
+    for m in pkgutil.iter_modules(rep_pkg.__path__):
+        mod = importlib.import_module(f"omai.thermal_transport.representation.{m.name}")
+        for attr in dir(mod):
+            if attr.startswith("_"):
+                continue
+            obj = getattr(mod, attr)
+            if isinstance(obj, SpaceRepresentationSpec):
+                api = next(iter(obj.code_api.values()), None) if obj.code_api else None
+                unit = next(iter(obj.observable_units.values()), None) if obj.observable_units else None
+                codes.setdefault(obj.representation_name, {})[obj.space.name] = {"api": api, "unit": unit}
+    return codes
+
+
+def write_codes(path: Path | None = None) -> Path:
+    path = path or (_DOCS / "data" / "codes.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(build_codes()))
+    return path
+
+
 if __name__ == "__main__":
     g = write_graph()
     i = write_instances()
-    print(f"wrote {g}\nwrote {i}")
+    c = write_codes()
+    print(f"wrote {g}\nwrote {i}\nwrote {c}")

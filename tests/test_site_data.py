@@ -1,10 +1,23 @@
 import pytest
 
 from omai.thermal_transport.site_data import (
+    build_codes,
     build_graph_dict,
     build_instances,
     record_instance,
 )
+
+
+def test_build_codes_maps_real_variables():
+    codes = build_codes()
+    assert "kaldo" in codes and "phono3py" in codes
+    ids = {n["id"] for n in build_graph_dict()["nodes"]}
+    for code, mapping in codes.items():
+        assert mapping, f"{code} maps nothing"
+        for var in mapping:
+            assert var in ids, f"{code} maps unknown variable {var}"
+    # kaldo maps a broad swath including the phonon frequency
+    assert "Frequency" in codes["kaldo"]
 
 
 def test_build_graph_dict_shape():

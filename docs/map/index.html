@@ -44,6 +44,16 @@
   .legend .g{color:var(--ink2);font-weight:700;text-transform:uppercase;font-size:.66rem;letter-spacing:.06em;}
   .legend .sep{width:1px;height:16px;background:var(--line);}
   .sw{width:12px;height:12px;border-radius:4px;display:inline-block;}
+  .codes{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);max-width:min(92vw,920px);display:flex;align-items:center;gap:7px;padding:8px 12px;background:rgba(255,255,255,.93);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 26px rgba(16,24,40,.12);z-index:9;overflow-x:auto;}
+  .codes .lab2{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;font-weight:800;}
+  .codes .code{font-size:.82rem;font-weight:600;color:#334155;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer;white-space:nowrap;transition:.12s;}
+  .codes .code:hover{border-color:var(--obs);color:var(--obs);}
+  .codes .code.on{background:var(--obs);color:#fff;border-color:var(--obs);}
+  .codes .code .n{opacity:.55;font-weight:500;margin-left:5px;}
+  .codes .code.on .n{opacity:.85;}
+  .mapby .row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:.82rem;border-top:1px solid var(--line);}
+  .mapby .row:first-child{border-top:none;}
+  .mapby .c{font-weight:700;color:#312e81;} .mapby .d{color:#64748b;font-size:.78rem;}
   .panel{position:fixed;top:76px;right:18px;width:352px;max-height:calc(100vh - 96px);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 64px rgba(16,24,40,.18);padding:20px;z-index:8;display:none;}
   .panel .x{float:right;cursor:pointer;color:#cbd5e1;font-size:1.3rem;line-height:1;transition:.12s;} .panel .x:hover{color:#64748b;}
   .panel .sym{font-size:1.7rem;color:#312e81;}
@@ -87,6 +97,7 @@
   <span><i class="sw" style="background:#e9f9f1;border:1.5px solid var(--green)"></i>numerical</span>
   <span><i class="sw" style="background:#fdf2e3;border:1.5px solid var(--gold)"></i>lab</span>
 </div>
+<div class="codes" id="codes"><span class="lab2">codes</span></div>
 <div class="panel" id="panel"></div>
 
 <script>window.onerror=function(m){var e=document.getElementById('err');e.style.display='block';e.textContent='Error: '+m;};</script>
@@ -95,7 +106,7 @@
 <script>
 const svg=document.getElementById('svg'), vp=document.getElementById('vp'), measure=document.getElementById('measure');
 let VB={x:0,y:0,w:1000,h:1000}, GW=1000, GH=1000;
-let nodeById={}, parents={}, children={}, byVar={}, symHtml={}, pos={};
+let nodeById={}, parents={}, children={}, byVar={}, symHtml={}, pos={}, codesData={}, activeCode=null;
 function setVB(){ svg.setAttribute('viewBox', VB.x+' '+VB.y+' '+VB.w+' '+VB.h); }
 function tex(latex,display){ try{ return katex.renderToString(latex,{throwOnError:false,displayMode:!!display}); }catch(e){ return '<code>'+latex+'</code>'; } }
 function smooth(pts){ if(!pts||pts.length<2) return ''; if(pts.length===2) return 'M'+pts[0].x+' '+pts[0].y+' L'+pts[1].x+' '+pts[1].y; let d='M'+pts[0].x+' '+pts[0].y; for(let i=1;i<pts.length-1;i++){ const mx=(pts[i].x+pts[i+1].x)/2, my=(pts[i].y+pts[i+1].y)/2; d+=' Q'+pts[i].x+' '+pts[i].y+' '+mx+' '+my; } d+=' L'+pts[pts.length-1].x+' '+pts[pts.length-1].y; return d; }
@@ -103,11 +114,13 @@ function smooth(pts){ if(!pts||pts.length<2) return ''; if(pts.length===2) retur
 if(typeof dagre==='undefined'){ err('dagre failed to load (no internet on this browser?)'); }
 else Promise.all([
   fetch('../data/graph.json?v='+Date.now()).then(r=>r.json()),
-  fetch('../data/instances.json?v='+Date.now()).then(r=>r.json()).catch(()=>[])
+  fetch('../data/instances.json?v='+Date.now()).then(r=>r.json()).catch(()=>[]),
+  fetch('../data/codes.json?v='+Date.now()).then(r=>r.json()).catch(()=>({}))
 ]).then(build).catch(e=> err('data: '+e));
 function err(m){ var e=document.getElementById('err'); e.style.display='block'; e.textContent='Error: '+m; }
 
-function build([graph, insts]){
+function build([graph, insts, codes]){
+  codesData = codes || {};
   insts.forEach(it=>{ (byVar[it.variable]=byVar[it.variable]||[]).push(it); });
   graph.nodes.forEach(n=>{ nodeById[n.id]=n; symHtml[n.id]=tex(n.symbol); });
   const seen=new Set(), edges=[];
@@ -132,10 +145,23 @@ function build([graph, insts]){
   });
   vp.innerHTML=s;
   fitAll();
+  renderCodeBar();
 }
 function esc(s){ return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 function fitAll(){ VB={x:0,y:0,w:GW,h:GH}; setVB(); }
 function fitTo(ids){ let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; ids.forEach(id=>{const q=pos[id]; if(!q)return; x0=Math.min(x0,q.x-q.w/2); y0=Math.min(y0,q.y-q.h/2); x1=Math.max(x1,q.x+q.w/2); y1=Math.max(y1,q.y+q.h/2);}); if(x1<x0)return; const pad=90; VB={x:x0-pad,y:y0-pad,w:(x1-x0)+2*pad,h:(y1-y0)+2*pad}; setVB(); }
+function renderCodeBar(){ const el=document.getElementById('codes'); Object.keys(codesData).sort().forEach(code=>{ const c=document.createElement('span'); c.className='code'; c.dataset.code=code; c.innerHTML=code+'<span class="n">'+Object.keys(codesData[code]).length+'</span>'; c.onclick=()=>toggleCode(code); el.appendChild(c); }); }
+function toggleCode(code){
+  if(activeCode===code){ activeCode=null; document.querySelectorAll('.codes .code').forEach(e=>e.classList.remove('on')); vp.querySelectorAll('.dim').forEach(e=>e.classList.remove('dim')); fitAll(); return; }
+  activeCode=code; document.querySelectorAll('.codes .code').forEach(e=> e.classList.toggle('on', e.dataset.code===code));
+  const set=new Set(Object.keys(codesData[code]||{}));
+  vp.querySelectorAll('.node').forEach(el=> el.classList.toggle('dim', !set.has(el.dataset.id)));
+  vp.querySelectorAll('.edge').forEach(el=>{ const ab=el.dataset.edge.split('>>'); el.classList.toggle('dim', !(set.has(ab[0])&&set.has(ab[1]))); });
+  vp.querySelectorAll('.att').forEach(el=> el.classList.add('dim'));
+  document.getElementById('panel').style.display='none';
+  fitTo([...set]);
+}
+function mappedByHtml(id){ const rows=Object.keys(codesData).filter(c=> codesData[c][id]).map(c=>{ const m=codesData[c][id]; return '<div class="row"><span class="c">'+c+'</span><span class="d">'+(m.api||'')+(m.unit?(' · '+m.unit):'')+'</span></div>'; }); return rows.length? ('<div class="lab">mapped by '+rows.length+' code'+(rows.length>1?'s':'')+'</div><div class="mapby">'+rows.join('')+'</div>') : ''; }
 
 let dragging=false, moved=false, sx=0, sy=0, vbs=null;
 svg.addEventListener('mousedown', e=>{ dragging=true; moved=false; sx=e.clientX; sy=e.clientY; vbs={x:VB.x,y:VB.y}; svg.classList.add('drag'); });
@@ -145,7 +171,7 @@ svg.addEventListener('wheel', e=>{ e.preventDefault(); const m=svg.getScreenCTM(
 
 svg.addEventListener('click', e=>{ if(moved)return; const nd=e.target.closest('.node'); if(nd){ selectNode(nodeById[nd.dataset.id]); return; } const ed=e.target.closest('.edge'); if(ed){ selectEdge(ed.dataset.edge); return; } clearSel(); });
 
-function clearSel(){ vp.querySelectorAll('.dim,.sel').forEach(el=>el.classList.remove('dim','sel')); document.getElementById('panel').style.display='none'; }
+function clearSel(){ vp.querySelectorAll('.dim,.sel').forEach(el=>el.classList.remove('dim','sel')); document.getElementById('panel').style.display='none'; activeCode=null; document.querySelectorAll('.codes .code.on').forEach(e=>e.classList.remove('on')); }
 function focusNode(id){
   const keep=new Set([id].concat(parents[id]||[]).concat(children[id]||[]));
   vp.querySelectorAll('.node').forEach(el=>{ el.classList.toggle('dim', !keep.has(el.dataset.id)); el.classList.toggle('sel', el.dataset.id===id); });
@@ -170,6 +196,7 @@ function selectNode(node){
   if(outs.length){ h+='<div class="lab">produces &darr;</div><div class="chips">'+outs.map(chip).join('')+'</div>'; }
   if(ins.length){ h+='<div class="lab">&uarr; from</div><div class="chips">'+ins.map(chip).join('')+'</div>'; }
   h+=expHtml(id);
+  h+=mappedByHtml(id);
   const p=document.getElementById('panel'); p.innerHTML=h; p.style.display='block';
 }
 function selectEdge(key){
