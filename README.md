@@ -11,11 +11,21 @@ framework reconciles results across codes mechanically, runs calculations
 itself, and validates them. The longer aim is a semantic action space for AI
 agents that reason over typed physics rather than text tokens.
 
-## Vision
+## openmaterials.ai
 
-Why this matters, in a few pages: **[Git for Science](docs/vision.pdf)** (the
-larger picture), with a [slide version](https://giuseppe.barbalinardo.com/openmaterials/slides/).
-The architecture is in `docs/operator_representation_substrate.pdf`.
+An open, forkable **database for physics**: the schema is the physics itself, a graph of
+typed quantities and the formulas relating them, with simulation and measured values appended
+as instances. Browse it as an interactive [3D map](https://openmaterials.ai/map/), or read the
+[vision](docs/vision.pdf) and the [architecture](docs/operator_representation_substrate.pdf).
+
+The database is just files in this repo: `docs/data/graph.json` (variables + formulas, generated
+from the operator layer) and `docs/data/instances/` (one file per value). Rebuild the data with:
+
+```bash
+CUDA_VISIBLE_DEVICES="" PYTHONPATH=. python -m omai.thermal_transport.site_data
+```
+
+To append a value, add a JSON file under `docs/data/instances/` and open a pull request.
 
 ## Install
 

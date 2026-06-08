@@ -24,8 +24,9 @@ dist/
 .venv/
 venv/
 
-# generated planning/spec docs (superpowers brainstorm + writing-plans output)
+# generated planning/spec docs + visual-companion scratch
 docs/superpowers/
+.superpowers/
 
 # latex build artifacts
 docs/*.aux
