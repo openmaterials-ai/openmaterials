@@ -25,6 +25,15 @@
   .reveal .formula{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 18px;display:inline-block;margin-top:8px;}
   .reveal a{color:var(--accent);}
   .reveal .foot{position:absolute;bottom:18px;left:0;right:0;color:#475569;font-size:.5em;}
+  @media print {
+    @page { size: 960px 700px; margin: 0; }
+    html, body, .reveal, .reveal .slides, .reveal .backgrounds, .reveal .slides>section { background:#0b0e1a !important; }
+    .reveal, .reveal .lede, .reveal .big, .reveal code, .reveal .nums { color:#e5e7eb !important; }
+    .reveal .slides h2, .reveal .slides h3 { color:#ffffff !important; }
+    .reveal .slides h1 { background:none !important; -webkit-text-fill-color:#a5b4fc !important; color:#a5b4fc !important; }
+    .reveal .sub { color:#94a3b8 !important; }
+    .reveal .pill { color:#c7d2fe !important; }
+  }
 </style>
 </head>
 <body>
