@@ -95,15 +95,15 @@
 <script>
 const svg=document.getElementById('svg'), vp=document.getElementById('vp'), measure=document.getElementById('measure');
 let VB={x:0,y:0,w:1000,h:1000}, GW=1000, GH=1000;
-let nodeById={}, parents={}, children={}, byVar={}, symHtml={};
+let nodeById={}, parents={}, children={}, byVar={}, symHtml={}, pos={};
 function setVB(){ svg.setAttribute('viewBox', VB.x+' '+VB.y+' '+VB.w+' '+VB.h); }
 function tex(latex,display){ try{ return katex.renderToString(latex,{throwOnError:false,displayMode:!!display}); }catch(e){ return '<code>'+latex+'</code>'; } }
 function smooth(pts){ if(!pts||pts.length<2) return ''; if(pts.length===2) return 'M'+pts[0].x+' '+pts[0].y+' L'+pts[1].x+' '+pts[1].y; let d='M'+pts[0].x+' '+pts[0].y; for(let i=1;i<pts.length-1;i++){ const mx=(pts[i].x+pts[i+1].x)/2, my=(pts[i].y+pts[i+1].y)/2; d+=' Q'+pts[i].x+' '+pts[i].y+' '+mx+' '+my; } d+=' L'+pts[pts.length-1].x+' '+pts[pts.length-1].y; return d; }
 
 if(typeof dagre==='undefined'){ err('dagre failed to load (no internet on this browser?)'); }
 else Promise.all([
-  fetch('../data/graph.json').then(r=>r.json()),
-  fetch('../data/instances.json').then(r=>r.json()).catch(()=>[])
+  fetch('../data/graph.json?v='+Date.now()).then(r=>r.json()),
+  fetch('../data/instances.json?v='+Date.now()).then(r=>r.json()).catch(()=>[])
 ]).then(build).catch(e=> err('data: '+e));
 function err(m){ var e=document.getElementById('err'); e.style.display='block'; e.textContent='Error: '+m; }
 
@@ -123,7 +123,7 @@ function build([graph, insts]){
 
   let s='';
   edges.forEach(e=>{ const ed=g.edge({v:e.source,w:e.target}); if(!ed)return; s+='<path class="edge" data-edge="'+e.source+'>>'+e.target+'" d="'+smooth(ed.points)+'" marker-end="url(#arrow)"></path>'; });
-  graph.nodes.forEach(n=>{ const p=g.node(n.id); const x=p.x-p.width/2, y=p.y-p.height/2; const cls=(n.type==='observable'?'obs':'hid')+((byVar[n.id]||[]).length?' exp':'');
+  graph.nodes.forEach(n=>{ const p=g.node(n.id); pos[n.id]={x:p.x,y:p.y,w:p.width,h:p.height}; const x=p.x-p.width/2, y=p.y-p.height/2; const cls=(n.type==='observable'?'obs':'hid')+((byVar[n.id]||[]).length?' exp':'');
     s+='<g class="node '+cls+'" data-id="'+esc(n.id)+'"><rect x="'+x+'" y="'+y+'" width="'+p.width+'" height="'+p.height+'" rx="11"></rect><foreignObject x="'+x+'" y="'+y+'" width="'+p.width+'" height="'+p.height+'"><div xmlns="http://www.w3.org/1999/xhtml" class="nl">'+symHtml[n.id]+'</div></foreignObject></g>'; });
   graph.nodes.forEach(n=>{ const list=byVar[n.id]||[]; if(!list.length) return; const p=g.node(n.id); const bx=p.x+p.width/2, cx=bx+30;
     s+='<path class="att-link" d="M'+bx+' '+p.y+' L'+(cx-4)+' '+p.y+'"></path>';
@@ -135,6 +135,7 @@ function build([graph, insts]){
 }
 function esc(s){ return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 function fitAll(){ VB={x:0,y:0,w:GW,h:GH}; setVB(); }
+function fitTo(ids){ let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; ids.forEach(id=>{const q=pos[id]; if(!q)return; x0=Math.min(x0,q.x-q.w/2); y0=Math.min(y0,q.y-q.h/2); x1=Math.max(x1,q.x+q.w/2); y1=Math.max(y1,q.y+q.h/2);}); if(x1<x0)return; const pad=90; VB={x:x0-pad,y:y0-pad,w:(x1-x0)+2*pad,h:(y1-y0)+2*pad}; setVB(); }
 
 let dragging=false, moved=false, sx=0, sy=0, vbs=null;
 svg.addEventListener('mousedown', e=>{ dragging=true; moved=false; sx=e.clientX; sy=e.clientY; vbs={x:VB.x,y:VB.y}; svg.classList.add('drag'); });
@@ -188,6 +189,7 @@ document.getElementById('q').addEventListener('input', function(){
   vp.querySelectorAll('.node').forEach(el=> el.classList.toggle('dim', !set.has(el.dataset.id)));
   vp.querySelectorAll('.edge').forEach(el=> el.classList.add('dim'));
   vp.querySelectorAll('.att').forEach(el=> el.classList.toggle('dim', !set.has(el.dataset.id)));
+  if(hits.length) fitTo(hits);
 });
 </script>
 </body>
