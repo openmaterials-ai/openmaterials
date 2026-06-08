@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>openmaterials.ai — 3D map (prototype)</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<style>
+  *{box-sizing:border-box;} html,body{margin:0;height:100%;overflow:hidden;background:#05060d;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  #g{position:fixed;inset:0;}
+  #err{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;font:13px/1.4 monospace;padding:8px 12px;z-index:30;display:none;white-space:pre-wrap;}
+  .topbar{position:fixed;top:0;left:0;right:0;display:flex;align-items:center;gap:12px;padding:12px 18px;color:#e5e7eb;z-index:5;pointer-events:none;}
+  .topbar .brand{font-weight:700;color:#fff;letter-spacing:.2px;}
+  .topbar .pill{font-size:.66rem;font-weight:700;background:linear-gradient(90deg,#f59e0b,#fbbf24);color:#3b2606;border-radius:999px;padding:3px 9px;}
+  .topbar .modes{margin-left:auto;display:flex;gap:6px;pointer-events:auto;}
+  .topbar button{font-size:.76rem;color:#cbd5e1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:6px 11px;cursor:pointer;}
+  .topbar button:hover{background:rgba(255,255,255,.16);color:#fff;}
+  .legend{position:fixed;left:18px;bottom:16px;z-index:5;color:#94a3b8;font-size:.76rem;display:flex;flex-direction:column;gap:5px;}
+  .legend span{display:inline-flex;align-items:center;gap:8px;}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;box-shadow:0 0 10px currentColor;}
+  .hint{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);color:#475569;font-size:.75rem;z-index:5;text-align:center;}
+  .nav{position:fixed;top:54px;right:18px;width:362px;max-height:calc(100vh - 80px);overflow:auto;background:rgba(248,250,252,.98);border-radius:16px;box-shadow:0 16px 50px rgba(0,0,0,.55);padding:16px 18px;z-index:6;display:none;}
+  .nav .here{font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;color:#94a3b8;}
+  .nav .sym{font-size:1.7rem;color:#0c4a6e;font-weight:700;}
+  .nav .badge{display:inline-block;font-size:.6rem;font-weight:700;color:#fff;border-radius:999px;padding:2px 8px;margin-left:8px;vertical-align:middle;}
+  .nav .badge.observable{background:#0284c7;} .nav .badge.hidden{background:#64748b;}
+  .nav .stage{float:right;font-size:.7rem;color:#64748b;background:#eef2f7;border-radius:999px;padding:2px 9px;margin-top:6px;}
+  .nav .name{color:#475569;font-size:.82rem;margin:.25em 0;word-break:break-word;}
+  .lab{font-size:.64rem;letter-spacing:.09em;text-transform:uppercase;color:#94a3b8;margin:14px 0 6px;}
+  .formula{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:11px 10px;overflow-x:auto;}
+  .step{display:flex;align-items:center;gap:10px;border:1px solid #e2e8f0;border-radius:11px;padding:8px 10px;margin-bottom:7px;cursor:pointer;background:#fff;transition:border-color .12s,background .12s;}
+  .step:hover{border-color:#38bdf8;background:#f0f9ff;}
+  .step .go{font-size:1.1rem;color:#0284c7;}
+  .step .tgt{font-weight:700;color:#0c4a6e;min-width:46px;}
+  .step .fx{flex:1;overflow:hidden;font-size:.9rem;}
+  .back{display:flex;flex-wrap:wrap;gap:5px;}
+  .back .chip{font-size:.74rem;border:1px solid #e2e8f0;background:#fff;border-radius:999px;padding:2px 9px;color:#475569;cursor:pointer;}
+  .back .chip:hover{border-color:#94a3b8;}
+  .proj{border:1px dashed #cbd5e1;border-radius:11px;padding:9px 11px;background:#fbfdff;}
+  .proj .row{display:flex;justify-content:space-between;font-size:.82rem;margin:2px 0;}
+  .proj .sim{color:#047857;} .proj .meas{color:#b45309;}
+  .proj .cap{font-size:.7rem;color:#94a3b8;margin-top:5px;}
+  .muted{color:#94a3b8;}
+  .katex{font-size:1em;}
+</style>
+</head>
+<body>
+<div id="err"></div>
+<div id="g"></div>
+<div class="topbar">
+  <span class="brand">openmaterials.ai</span>
+  <span class="pill">3D map · prototype</span>
+  <span class="modes">
+    <button onclick="setMode('lr')">order &rarr;</button>
+    <button onclick="setMode('td')">order &darr;</button>
+    <button onclick="setMode('radialout')">radial</button>
+    <button onclick="toggleSpin()">spin</button>
+  </span>
+</div>
+<div class="legend">
+  <span style="color:#38bdf8"><i class="dot" style="background:#38bdf8"></i> observable</span>
+  <span style="color:#cbd5e1"><i class="dot" style="background:#cbd5e1"></i> hidden (gauge-dependent)</span>
+  <span style="color:#34d399"><i class="dot" style="background:#34d399"></i> simulation (projection)</span>
+  <span style="color:#fbbf24"><i class="dot" style="background:#fbbf24"></i> measurement (projection)</span>
+</div>
+<div class="hint">click a node to navigate · hover an edge to read its formula · forward = direction of the arrows</div>
+<div class="nav" id="nav"></div>
+
+<script>
+window.onerror = function(m){ var e=document.getElementById('err'); e.style.display='block'; e.textContent='Error: '+m; };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/3d-force-graph@1.73.4/dist/3d-force-graph.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script>
+const KAPPA='ThermalConductivity[transport_model=wigner]';
+const MAP={'Potential':'V','Temperature':'T','ForceConstants[order=2]':'Φ⁽²⁾','ForceConstants[order=3]':'Φ⁽³⁾','BareDynamicalMatrix':'D⁰','DynamicalMatrix':'D','Frequency':'ω','Eigenvectors':'e','GroupVelocity':'v','HeatCapacity':'c','MolarHeatCapacity':'Cₘₒₗ','VolumetricHeatCapacity':'Cᵥₒₗ','Gruneisen':'γ','PhononDOS':'g(ω)','HelmholtzFreeEnergy':'F','Entropy':'S','InternalEnergy':'E','HeatCurrent':'J','HeatCurrentACF':'⟨JJ⟩','BornCharges':'Z*','DielectricTensor':'ε∞','MeanSquaredDisplacement':'MSD','VelocityAutocorrelation':'⟨vv⟩','Trajectory':'traj','IsotopeAbundances':'iso'};
+const BASE={ThermalConductivity:'κ',Linewidth:'Γ',CumulativeKappa:'κᶜᵘᵐ',MeanFreeDisplacement:'λ',ForceConstants:'Φ'};
+function shortLabel(id){ if(MAP[id])return MAP[id]; const m=id.match(/^([A-Za-z]+)\[(.*)\]$/); if(!m)return id; return (BASE[m[1]]||m[1])+'·'+m[2].split('=').pop(); }
+function colorFor(n){ if(n.kind==='simulation')return '#34d399'; if(n.kind==='measurement')return '#fbbf24'; return n.type==='observable'?'#38bdf8':'#cbd5e1'; }
+function makeNode(n){
+  if(typeof THREE==='undefined') return false;
+  const r = n.kind==='symbolic' ? (n.type==='observable'?7:6) : 4;
+  const col = colorFor(n);
+  const grp = new THREE.Group();
+  grp.add(new THREE.Mesh(new THREE.SphereGeometry(r,20,20), new THREE.MeshBasicMaterial({color:col, transparent:true, opacity:n.kind==='symbolic'?1:0.9})));
+  grp.add(new THREE.Mesh(new THREE.SphereGeometry(r*2.1,16,16), new THREE.MeshBasicMaterial({color:col, transparent:true, opacity:0.14, depthWrite:false})));
+  return grp;
+}
+function fx(latex,display){ try{ return katex.renderToString(latex,{throwOnError:false,displayMode:!!display}); }catch(e){ return '<code>'+latex+'</code>'; } }
+
+let Graph, spinning=false, nodeById={}, children={}, parents={};
+if(typeof ForceGraph3D==='undefined'){ document.getElementById('err').style.display='block'; document.getElementById('err').textContent='Error: 3d-force-graph failed to load (no internet on this browser?).'; }
+else { fetch('../data/graph.json').then(r=>r.json()).then(boot).catch(e=>{ document.getElementById('err').style.display='block'; document.getElementById('err').textContent='graph.json: '+e; }); }
+
+function boot(data){
+  fetch('../data/instances.json').then(r=>r.json()).then(insts=>build(data,insts)).catch(()=>build(data,[]));
+}
+function build(data, insts){
+  const byVar={};
+  insts.forEach(it=>{ (byVar[it.variable]=byVar[it.variable]||[]).push(it); });
+  Object.keys(byVar).forEach(vid=>{
+    byVar[vid].forEach((it,k)=>{
+      const id='inst:'+vid+':'+k;
+      data.nodes.push({id, kind:(it.source.kind==='measurement'?'measurement':'simulation'), type:it.source.kind,
+        source: it.source.ref + (it.source.detail ? (' ('+it.source.detail+')') : ''),
+        value: it.value + (it.uncertainty ? (' ± '+it.uncertainty) : '') + ' ' + it.units, instOf:vid});
+      data.links.push({source:vid, target:id, op:'attach'});
+    });
+  });
+
+  data.nodes.forEach(n=> nodeById[n.id]=n);
+  data.links.forEach(l=>{ (children[l.source]=children[l.source]||[]).push(l.target); (parents[l.target]=parents[l.target]||[]).push(l.source); if(l.op!=='attach'){ const t=nodeById[l.target]; l.__label = t&&t.formula ? '<span style="color:#fff">'+fx(t.formula)+'</span>' : (l.op||''); } else { l.__label='<span style="color:#fbbf24">projection</span>'; } });
+
+  Graph=ForceGraph3D({controlType:'orbit'})(document.getElementById('g'))
+    .backgroundColor('#05060d')
+    .graphData(data)
+    .dagMode('lr').dagLevelDistance(70).onDagError(()=>{})
+    .nodeRelSize(5)
+    .nodeColor(colorFor)
+    .nodeVal(n=> n.kind==='symbolic' ? (n.type==='observable'?9:6) : 3.5)
+    .nodeOpacity(n=> n.kind==='symbolic'?1:0.8)
+    .nodeResolution(18)
+    .nodeThreeObject(makeNode)
+    .nodeThreeObjectExtend(false)
+    .nodeLabel(n=> n.kind==='symbolic' ? ('<b>'+shortLabel(n.id)+'</b> · '+n.id) : ('projection · <b>'+n.source+'</b>: '+n.value))
+    .linkLabel(l=> l.__label || '')
+    .linkColor(l=> l.op==='attach' ? '#f59e0b' : '#24507e')
+    .linkOpacity(0.4)
+    .linkWidth(l=> l.op==='attach'?0.5:0.6)
+    .linkDirectionalArrowLength(l=> l.op==='attach'?0:3.5)
+    .linkDirectionalArrowRelPos(1)
+    .linkDirectionalArrowColor(()=> '#7dd3fc')
+    .linkDirectionalParticles(l=> l.op==='attach'?3:0)
+    .linkDirectionalParticleSpeed(0.012)
+    .linkDirectionalParticleWidth(2.2)
+    .linkDirectionalParticleColor(()=> '#fbbf24')
+    .onNodeClick(go);
+
+  try{ Graph.d3Force('charge').strength(-130); }catch(e){}
+  try{ Graph.controls().autoRotate=false; }catch(e){}
+  let fitted=false; Graph.onEngineStop(()=>{ if(!fitted){ fitted=true; Graph.zoomToFit(700,60);
+    try{ Graph.scene().children.forEach(o=>{ if(o.isLight||/Light/.test(o.type||'')){ o.intensity=(o.intensity||1)*2.2; } }); }catch(e){}
+  } });
+}
+
+function setMode(m){ if(!Graph)return; Graph.dagMode(m); Graph.dagLevelDistance(70); Graph.d3ReheatSimulation(); }
+function toggleSpin(){ if(!Graph)return; spinning=!spinning; try{ Graph.controls().autoRotate=spinning; }catch(e){} }
+window.navTo=function(id){ const n=nodeById[id]; if(n) go(n); };
+
+function go(n){
+  const node = n.kind==='symbolic' ? n : (nodeById[(parents[n.id]||[])[0]] || n);
+  try{ const d=Math.hypot(node.x||1,node.y||1,node.z||1), r=1+120/d; Graph.cameraPosition({x:(node.x||0)*r,y:(node.y||0)*r,z:(node.z||0)*r}, node, 900); }catch(e){}
+
+  const outs=(children[node.id]||[]).map(t=>nodeById[t]).filter(x=>x&&x.kind==='symbolic');
+  const ins=(parents[node.id]||[]).map(s=>nodeById[s]).filter(x=>x&&x.kind==='symbolic');
+  const proj=(children[node.id]||[]).map(t=>nodeById[t]).filter(x=>x&&x.kind!=='symbolic');
+
+  let h='<div class="here">you are here · stage '+(node.layer)+'</div>';
+  h+='<div><span class="sym">'+shortLabel(node.id)+'</span><span class="badge '+node.type+'">'+node.type+'</span></div>';
+  h+='<div class="name">'+node.id+'</div>';
+  h+='<div class="lab">the calculation that produced this</div><div class="formula">'+(node.formula?fx(node.formula,true):'<span class="muted">source (provided value)</span>')+'</div>';
+
+  if(outs.length){
+    h+='<div class="lab">go next — '+outs.length+' operation'+(outs.length>1?'s':'')+' forward</div>';
+    outs.forEach(t=>{ h+='<div class="step" onclick="navTo(\''+t.id.replace(/'/g,"\\'")+'\')"><span class="go">→</span><span class="tgt">'+shortLabel(t.id)+'</span><span class="fx">'+(t.formula?fx(t.formula):'')+'</span></div>'; });
+  } else { h+='<div class="lab">go next</div><div class="muted" style="font-size:.85rem">end of a branch (an observable you can compare against experiment).</div>'; }
+
+  if(ins.length){ h+='<div class="lab">came from</div><div class="back">'+ins.map(s=>'<span class="chip" onclick="navTo(\''+s.id.replace(/'/g,"\\'")+'\')">'+shortLabel(s.id)+'</span>').join('')+'</div>'; }
+
+  if(proj.length){
+    h+='<div class="lab">projections — experiments attached here</div><div class="proj">';
+    proj.forEach(pj=>{ h+='<div class="row"><span class="'+(pj.kind==='measurement'?'meas':'sim')+'">'+pj.source+'</span><b>'+pj.value+'</b></div>'; });
+    h+='<div class="cap">'+proj.length+' value'+(proj.length>1?'s':'')+' attached, reconciled at this observable.</div></div>';
+  }
+
+  const nav=document.getElementById('nav'); nav.innerHTML=h; nav.style.display='block';
+}
+</script>
+</body>
+</html>
