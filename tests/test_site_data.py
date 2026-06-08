@@ -22,8 +22,12 @@ def test_build_codes_maps_real_variables():
 
 def test_build_graph_dict_shape():
     g = build_graph_dict()
-    assert len(g["nodes"]) == 46
-    assert len(g["links"]) == 92
+    symbolic = [n for n in g["nodes"] if n["type"] in ("observable", "hidden")]
+    assert len(symbolic) == 46
+    assert {n["id"] for n in g["nodes"] if n["type"] == "parameter"} == {
+        "CellVolume", "AtomicMass", "AtomCount",
+    }
+    assert len(g["links"]) >= 92
     by_id = {n["id"]: n for n in g["nodes"]}
     kappa = by_id["ThermalConductivity[transport_model=wigner]"]
     assert kappa["type"] == "observable"

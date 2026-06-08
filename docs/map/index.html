@@ -27,11 +27,14 @@
                  linear-gradient(180deg,#fcfdff,#f4f7fc);}
   svg{width:100%;height:100%;display:block;cursor:grab;} svg.drag{cursor:grabbing;}
   .edge{fill:none;stroke:#d3dbe8;stroke-width:1.4;stroke-linecap:round;}
+  .edge.param{stroke:#c3ccdb;stroke-width:1;stroke-dasharray:3 3;opacity:.4;}
   .att-link{stroke:var(--gold);stroke-width:1.2;stroke-dasharray:2 3;fill:none;opacity:.8;stroke-linecap:round;}
   .att text{font-weight:700;} .att .pill{stroke-width:1.5;filter:drop-shadow(0 1px 3px rgba(16,24,40,.12));}
   .node rect{stroke-width:1.4;filter:drop-shadow(0 2px 5px rgba(16,24,40,.10));transition:filter .12s;}
   .node.obs rect{fill:var(--obs);stroke:var(--obs2);}
   .node.hid rect{fill:#ffffff;stroke:var(--hidbd);}
+  .node.param rect{fill:#eef2f7;stroke:#94a3b8;stroke-dasharray:4 3;}
+  .node.param .nl{color:#334155;}
   .node.exp rect{stroke:var(--gold);stroke-width:2.2;}
   .node.sel rect{stroke:#0b1220;stroke-width:2.6;filter:drop-shadow(0 5px 14px rgba(16,24,40,.24));}
   .node{cursor:pointer;}
@@ -58,7 +61,7 @@
   .panel .x{float:right;cursor:pointer;color:#cbd5e1;font-size:1.3rem;line-height:1;transition:.12s;} .panel .x:hover{color:#64748b;}
   .panel .sym{font-size:1.7rem;color:#312e81;}
   .panel .badge{display:inline-block;font-size:.58rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;border-radius:999px;padding:3px 9px;margin-left:10px;vertical-align:middle;}
-  .panel .badge.observable{background:var(--obs);} .panel .badge.hidden{background:#94a3b8;}
+  .panel .badge.observable{background:var(--obs);} .panel .badge.hidden{background:#94a3b8;} .panel .badge.parameter{background:#64748b;}
   .panel .name{color:#64748b;font-size:.8rem;margin:.55em 0 .1em;word-break:break-word;}
   .lab{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:#a3aec0;margin:17px 0 7px;font-weight:700;}
   .formula{background:linear-gradient(180deg,#fafbff,#f3f6fc);border:1px solid var(--line);border-radius:12px;padding:13px 12px;overflow-x:auto;}
@@ -92,6 +95,7 @@
   <span class="g">layer</span>
   <span><i class="sw" style="background:var(--obs)"></i>observable</span>
   <span><i class="sw" style="background:#fff;border:1.5px solid #cbd5e1"></i>hidden</span>
+  <span><i class="sw" style="background:#eef2f7;border:1.5px dashed #94a3b8"></i>parameter</span>
   <span class="sep"></span>
   <span class="g">attached</span>
   <span><i class="sw" style="background:#e9f9f1;border:1.5px solid var(--green)"></i>numerical</span>
@@ -135,8 +139,8 @@ function build([graph, insts, codes]){
   GW=g.graph().width; GH=g.graph().height;
 
   let s='';
-  edges.forEach(e=>{ const ed=g.edge({v:e.source,w:e.target}); if(!ed)return; s+='<path class="edge" data-edge="'+e.source+'>>'+e.target+'" d="'+smooth(ed.points)+'" marker-end="url(#arrow)"></path>'; });
-  graph.nodes.forEach(n=>{ const p=g.node(n.id); pos[n.id]={x:p.x,y:p.y,w:p.width,h:p.height}; const x=p.x-p.width/2, y=p.y-p.height/2; const cls=(n.type==='observable'?'obs':'hid')+((byVar[n.id]||[]).length?' exp':'');
+  edges.forEach(e=>{ const ed=g.edge({v:e.source,w:e.target}); if(!ed)return; s+='<path class="edge'+(e.kind==='param'?' param':'')+'" data-edge="'+e.source+'>>'+e.target+'" d="'+smooth(ed.points)+'" marker-end="url(#arrow)"></path>'; });
+  graph.nodes.forEach(n=>{ const p=g.node(n.id); pos[n.id]={x:p.x,y:p.y,w:p.width,h:p.height}; const x=p.x-p.width/2, y=p.y-p.height/2; const cls=(n.type==='observable'?'obs':(n.type==='parameter'?'param':'hid'))+((byVar[n.id]||[]).length?' exp':'');
     s+='<g class="node '+cls+'" data-id="'+esc(n.id)+'"><rect x="'+x+'" y="'+y+'" width="'+p.width+'" height="'+p.height+'" rx="11"></rect><foreignObject x="'+x+'" y="'+y+'" width="'+p.width+'" height="'+p.height+'"><div xmlns="http://www.w3.org/1999/xhtml" class="nl">'+symHtml[n.id]+'</div></foreignObject></g>'; });
   graph.nodes.forEach(n=>{ const list=byVar[n.id]||[]; if(!list.length) return; const p=g.node(n.id); const bx=p.x+p.width/2, cx=bx+30;
     s+='<path class="att-link" d="M'+bx+' '+p.y+' L'+(cx-4)+' '+p.y+'"></path>';

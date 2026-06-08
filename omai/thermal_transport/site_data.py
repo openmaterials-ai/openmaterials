@@ -115,6 +115,41 @@ def build_graph_dict() -> dict:
         for i in op.inputs:
             for o in op.outputs:
                 links.append({"source": i.name, "target": o.name, "op": op.name})
+
+    # Promote the physical-quantity parameters that appear in formulas to nodes
+    # with an edge into every formula that uses them (cell volume, atomic mass,
+    # atom count). Universal constants and mesh parameters (hbar, k_B, N_q) stay out.
+    from omai.thermal_transport.operator import edges as _edges
+
+    params = [
+        ("CellVolume", r"V_{\mathrm{cell}}", _edges._V_cell),
+        ("AtomicMass", r"M", _edges._M),
+        ("AtomCount", r"N", _edges._N_atoms),
+    ]
+
+    def _uses(formula, sym):
+        if formula is None:
+            return False
+        if sym in formula.free_symbols:
+            return True
+        return isinstance(sym, sp.IndexedBase) and sym in formula.atoms(sp.IndexedBase)
+
+    for pid, psym, sobj in params:
+        consumers = []
+        seen_c: set[str] = set()
+        for op in EDGES:
+            if _uses(getattr(op, "formula", None), sobj):
+                for o in op.outputs:
+                    if o.name not in seen_c:
+                        seen_c.add(o.name)
+                        consumers.append(o.name)
+        if not consumers:
+            continue
+        nodes.append({"id": pid, "type": "parameter", "layer": 0,
+                      "kind": "symbolic", "symbol": psym, "formula": None})
+        for c in consumers:
+            links.append({"source": pid, "target": c, "op": "provide_" + pid, "kind": "param"})
+
     return {"nodes": nodes, "links": links}
 
 
