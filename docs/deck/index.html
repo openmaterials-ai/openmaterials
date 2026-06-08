@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>openmaterials.ai</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root{--accent:#818cf8;--accent2:#a78bfa;--green:#34d399;--gold:#fbbf24;}
+  .reveal{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:30px;}
+  .reveal h1,.reveal h2,.reveal h3{text-transform:none;font-weight:800;letter-spacing:-.02em;}
+  .reveal h1{font-size:2.1em;background:linear-gradient(90deg,#818cf8,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .reveal h2{color:#fff;font-size:1.5em;}
+  .reveal .sub{color:#94a3b8;font-weight:500;}
+  .reveal .lede{color:#cbd5e1;}
+  .reveal .accent{color:var(--accent);}
+  .reveal .big{font-size:1.25em;color:#fff;}
+  .reveal em{color:var(--accent);font-style:normal;}
+  .reveal .pill{display:inline-block;background:rgba(129,140,248,.14);color:#c7d2fe;border:1px solid rgba(129,140,248,.35);border-radius:999px;padding:3px 11px;font-size:.55em;margin:4px;}
+  .reveal .nums{display:inline-block;text-align:left;font-size:.7em;color:#cbd5e1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 20px;margin-top:10px;}
+  .reveal .nums b{color:#fff;}
+  .reveal .g{color:var(--green);} .reveal .y{color:var(--gold);}
+  .reveal .formula{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 18px;display:inline-block;margin-top:8px;}
+  .reveal a{color:var(--accent);}
+  .reveal .foot{position:absolute;bottom:18px;left:0;right:0;color:#475569;font-size:.5em;}
+</style>
+</head>
+<body>
+<div class="reveal"><div class="slides">
+
+  <section>
+    <h1>openmaterials.ai</h1>
+    <p class="sub" style="font-size:1.1em">A database for physics.</p>
+    <p class="sub">The schema is the physics itself.</p>
+  </section>
+
+  <section>
+    <h2>The same physics, a dozen codes</h2>
+    <p class="sub">kaldo · phono3py · ShengBTE · LAMMPS · VASP · Quantum ESPRESSO</p>
+    <p class="lede">They rarely agree, and published computational results rarely reproduce. The workflow lives in scripts and tribal knowledge.</p>
+  </section>
+
+  <section>
+    <h2>Store the physics, not the printout</h2>
+    <p class="lede">A graph of typed <em>variables</em>, connected by the <em>formulas</em> that relate them. The law itself, not a number in a table.</p>
+    <p class="formula">\[ \kappa^{\alpha\beta} = \frac{1}{V}\sum_{q\nu} c_{q\nu}\, v^{\alpha}_{q\nu} v^{\beta}_{q\nu}\, \tau_{q\nu} \]</p>
+  </section>
+
+  <section>
+    <h2>Every code maps onto the layer</h2>
+    <p class="lede">Seven adapters pin each code's outputs to the variables, with units and conventions. Variables mapped per code:</p>
+    <p>
+      <span class="pill">kaldo · 32</span><span class="pill">phono3py · 31</span><span class="pill">ShengBTE · 20</span><span class="pill">phonopy · 17</span><span class="pill">GPUMD · 8</span><span class="pill">LAMMPS · 8</span><span class="pill">ASE · 1</span>
+    </p>
+  </section>
+
+  <section>
+    <h2>Simulations and experiments attach</h2>
+    <p class="lede">Values from codes (<span class="g">numerical</span>) and papers (<span class="y">lab</span>) attach to the same variables and reconcile at the observable.</p>
+    <div class="nums">
+      Silicon thermal conductivity, Tersoff, 8×8×8, 300 K<br>
+      RTA &nbsp;&nbsp;&nbsp; <span class="g">kaldo 19.46</span> · <span class="g">phono3py 16.74</span><br>
+      direct &nbsp; <span class="g">kaldo 26.91</span> · <span class="g">phono3py 24.30</span> &nbsp; W/m·K
+    </div>
+  </section>
+
+  <section>
+    <h2>A computable, self-checking database</h2>
+    <p class="lede">Because the formulas are stored too, it can</p>
+    <p class="big"><em>derive</em> · <em>reconcile</em> · <em>invert</em></p>
+    <p class="sub">run the formulas forward, cross-check redundant routes, and (next) solve them backwards. Not a data lake.</p>
+  </section>
+
+  <section>
+    <h2>Open and forkable</h2>
+    <p class="lede">The whole database is files in a repo.</p>
+    <p class="big"><code>git clone</code> to run locally · pull request to append</p>
+    <p class="sub">Storing science the way git stores code.</p>
+  </section>
+
+  <section>
+    <h2>A semantic layer for scientific AI</h2>
+    <p class="lede">Agents act on typed physics, not text. An invalid step is a <em>type error</em>, not a silent wrong number. Redundant routes are a built-in verifier, so verification scales with compute.</p>
+  </section>
+
+  <section>
+    <h1>The standard to store science.</h1>
+    <p class="sub" style="margin-top:.6em"><a href="../map/">explore the live map &rarr;</a> &nbsp;·&nbsp; openmaterials.ai</p>
+  </section>
+
+</div></div>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/math/math.js"></script>
+<script>
+  Reveal.initialize({ hash:true, transition:'fade', controls:true, progress:true, plugins:[ RevealMath.KaTeX ] });
+</script>
+</body>
+</html>
