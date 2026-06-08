@@ -1567,7 +1567,7 @@ def render_html(output_path: Path | str) -> Path:
 def main() -> None:
     here = Path(__file__).resolve()
     repo_root = here.parent.parent.parent
-    out = render_html(repo_root / "docs" / "index.html")
+    out = render_html(repo_root / "docs" / "pipeline.html")
     print(f"wrote {out}")
 
 
