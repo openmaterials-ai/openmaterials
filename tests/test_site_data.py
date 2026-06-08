@@ -1,4 +1,10 @@
-from omai.thermal_transport.site_data import build_graph_dict, build_instances
+import pytest
+
+from omai.thermal_transport.site_data import (
+    build_graph_dict,
+    build_instances,
+    record_instance,
+)
 
 
 def test_build_graph_dict_shape():
@@ -26,4 +32,26 @@ def test_instances_bundle_valid():
         assert required <= set(it), it
         assert it["variable"] in ids, f"instance points at unknown variable {it['variable']}"
         assert it["source"]["kind"] in ("simulation", "measurement")
+
+
+def test_record_instance_roundtrip(tmp_path):
+    p = record_instance(
+        variable="ThermalConductivity[bte_solver=rta]", material="Si",
+        value=15.76, units="W/(m K)", source_kind="simulation", source_ref="kaldo",
+        conditions={"T": 300, "mesh": "8x8x8"}, detail="Tersoff, RTA",
+        instances_dir=tmp_path,
+    )
+    assert p.exists()
+    recs = build_instances(tmp_path)
+    assert len(recs) == 1
+    assert recs[0]["value"] == 15.76
+    assert recs[0]["source"]["ref"] == "kaldo"
+
+
+def test_record_instance_rejects_unknown_variable(tmp_path):
+    with pytest.raises(ValueError):
+        record_instance(
+            variable="NotAVariable", material="Si", value=1.0, units="x",
+            source_kind="simulation", source_ref="kaldo", instances_dir=tmp_path,
+        )
 

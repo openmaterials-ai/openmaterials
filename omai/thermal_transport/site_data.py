@@ -4,6 +4,7 @@ instances.json (bundled from docs/data/instances/*.json)."""
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import sympy as sp
@@ -142,6 +143,41 @@ def write_instances(path: Path | None = None) -> Path:
     path = path or (_DOCS / "data" / "instances.json")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(build_instances()))
+    return path
+
+
+def _slug(text: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
+
+
+def record_instance(
+    *, variable, material, value, units, source_kind, source_ref,
+    conditions=None, uncertainty=None, detail=None, instances_dir=None,
+):
+    """Append one real value of a variable to the database as an instance file.
+
+    This is the bridge a code (or a paper) calls to attach a value: pass the
+    variable it computed/measured, the value and units, and the source. The value
+    must be real; nothing here invents data.
+    """
+    known = {n["id"] for n in build_graph_dict()["nodes"]}
+    if variable not in known:
+        raise ValueError(f"unknown variable {variable!r}")
+    if source_kind not in ("simulation", "measurement"):
+        raise ValueError("source_kind must be 'simulation' or 'measurement'")
+    instances_dir = Path(instances_dir) if instances_dir else (_DOCS / "data" / "instances")
+    instances_dir.mkdir(parents=True, exist_ok=True)
+    rec = {
+        "variable": variable,
+        "material": material,
+        "conditions": conditions or {},
+        "value": value,
+        "units": units,
+        "uncertainty": uncertainty,
+        "source": {"kind": source_kind, "ref": source_ref, "detail": detail},
+    }
+    path = instances_dir / (_slug(f"{material}-{variable}-{source_ref}") + ".json")
+    path.write_text(json.dumps(rec))
     return path
 
 

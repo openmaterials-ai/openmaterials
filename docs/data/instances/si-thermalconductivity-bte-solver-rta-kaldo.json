@@ -1,0 +1,1 @@
+{"variable": "ThermalConductivity[bte_solver=rta]", "material": "Si", "conditions": {"T": 300, "mesh": "8x8x8", "potential": "Si.tersoff"}, "value": 19.46, "units": "W/(m K)", "uncertainty": null, "source": {"kind": "simulation", "ref": "kaldo", "detail": "RTA; Tersoff; 8x8x8 mesh (cross-code meaningful, absolute under-converged)"}}

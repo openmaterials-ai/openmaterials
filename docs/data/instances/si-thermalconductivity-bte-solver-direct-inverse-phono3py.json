@@ -1,0 +1,1 @@
+{"variable": "ThermalConductivity[bte_solver=direct_inverse]", "material": "Si", "conditions": {"T": 300, "mesh": "8x8x8", "potential": "Si.tersoff"}, "value": 24.301, "units": "W/(m K)", "uncertainty": null, "source": {"kind": "simulation", "ref": "phono3py", "detail": "LBTE; Tersoff; 8x8x8 mesh"}}
