@@ -3,36 +3,40 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>openmaterials.ai</title>
+<title>openmaterials.ai — collaboration proposal</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
   :root{--accent:#818cf8;--accent2:#a78bfa;--green:#34d399;--gold:#fbbf24;}
-  .reveal{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:30px;}
-  .reveal h1,.reveal h2,.reveal h3{text-transform:none;font-weight:800;letter-spacing:-.02em;}
-  .reveal h1{font-size:2.1em;background:linear-gradient(90deg,#818cf8,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent;}
-  .reveal h2{color:#fff;font-size:1.5em;}
+  .reveal{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:28px;}
+  .reveal h1,.reveal h2,.reveal h3,.reveal h4{text-transform:none;font-weight:800;letter-spacing:-.02em;}
+  .reveal h1{font-size:2.0em;background:linear-gradient(90deg,#818cf8,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .reveal h2{color:#fff;font-size:1.35em;margin-bottom:.4em;}
+  .reveal p{margin:.45em 0;}
   .reveal .sub{color:#94a3b8;font-weight:500;}
   .reveal .lede{color:#cbd5e1;}
-  .reveal .accent{color:var(--accent);}
-  .reveal .big{font-size:1.25em;color:#fff;}
   .reveal em{color:var(--accent);font-style:normal;}
-  .reveal .pill{display:inline-block;background:rgba(129,140,248,.14);color:#c7d2fe;border:1px solid rgba(129,140,248,.35);border-radius:999px;padding:3px 11px;font-size:.55em;margin:4px;}
-  .reveal .nums{display:inline-block;text-align:left;font-size:.7em;color:#cbd5e1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 20px;margin-top:10px;}
-  .reveal .nums b{color:#fff;}
-  .reveal .g{color:var(--green);} .reveal .y{color:var(--gold);}
-  .reveal .formula{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 18px;display:inline-block;margin-top:8px;}
+  .reveal .big{font-size:1.2em;color:#fff;}
+  .reveal ul{display:inline-block;text-align:left;font-size:.82em;color:#cbd5e1;}
+  .reveal ul li{margin:.3em 0;}
+  .reveal .pill{display:inline-block;background:rgba(129,140,248,.14);color:#c7d2fe;border:1px solid rgba(129,140,248,.35);border-radius:999px;padding:3px 11px;font-size:.5em;margin:3px;}
+  .reveal .nums{display:inline-block;text-align:left;font-size:.66em;color:#cbd5e1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 20px;margin:10px 0;}
+  .reveal .nums b{color:#fff;} .reveal .g{color:var(--green);} .reveal .y{color:var(--gold);}
+  .reveal .formula{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 18px;display:inline-block;margin-top:6px;}
+  .reveal .cols{display:flex;gap:18px;text-align:left;font-size:.62em;margin-top:14px;}
+  .reveal .cols .col{flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:13px 15px;}
+  .reveal .cols h4{color:var(--accent);margin:0 0 .4em;font-size:1.05em;}
   .reveal a{color:var(--accent);}
-  .reveal .foot{position:absolute;bottom:18px;left:0;right:0;color:#475569;font-size:.5em;}
+  .reveal .foot{color:#475569;font-size:.5em;margin-top:14px;}
   @media print {
     @page { size: 960px 700px; margin: 0; }
     html, body, .reveal, .reveal .slides, .reveal .backgrounds, .reveal .slides>section { background:#0b0e1a !important; }
-    .reveal, .reveal .lede, .reveal .big, .reveal code, .reveal .nums { color:#e5e7eb !important; }
+    .reveal, .reveal .lede, .reveal .big, .reveal code, .reveal .nums, .reveal ul, .reveal .cols .col { color:#e5e7eb !important; }
     .reveal .slides h2, .reveal .slides h3 { color:#ffffff !important; }
+    .reveal .slides h4 { color:#a5b4fc !important; }
     .reveal .slides h1 { background:none !important; -webkit-text-fill-color:#a5b4fc !important; color:#a5b4fc !important; }
-    .reveal .sub { color:#94a3b8 !important; }
-    .reveal .pill { color:#c7d2fe !important; }
+    .reveal .sub { color:#94a3b8 !important; } .reveal .pill { color:#c7d2fe !important; }
   }
 </style>
 </head>
@@ -41,62 +45,90 @@
 
   <section>
     <h1>openmaterials.ai</h1>
-    <p class="sub" style="font-size:1.1em">A database for physics.</p>
-    <p class="sub">The schema is the physics itself.</p>
+    <p class="sub" style="font-size:1.05em">A typed substrate for reproducible computational materials science</p>
+    <p class="sub">Collaboration proposal &nbsp;·&nbsp; G. Barbalinardo, UC Davis</p>
   </section>
 
   <section>
-    <h2>The same physics, a dozen codes</h2>
-    <p class="sub">kaldo · phono3py · ShengBTE · LAMMPS · VASP · Quantum ESPRESSO</p>
-    <p class="lede">They rarely agree, and published computational results rarely reproduce. The workflow lives in scripts and tribal knowledge.</p>
+    <h2>The same physics, a dozen codes — and they don't agree</h2>
+    <p class="lede">Lattice thermal conductivity of one crystal, computed by kaldo, phono3py, ShengBTE, LAMMPS — each with its own inputs, units, gauge, and conventions.</p>
+    <p class="lede">Comparing two of them is expert, manual work. Most published computational results never reproduce.</p>
   </section>
 
   <section>
-    <h2>Store the physics, not the printout</h2>
-    <p class="lede">A graph of typed <em>variables</em>, connected by the <em>formulas</em> that relate them. The law itself, not a number in a table.</p>
+    <h2>The physics is buried in the code</h2>
+    <p class="lede">Units, broadening, Brillouin-zone sums, array layouts, gauge choices — the meaning lives in scripts and tribal knowledge, not in any shared, checkable form.</p>
+    <p class="lede">So reconciliation and reproducibility stay artisanal.</p>
+  </section>
+
+  <section>
+    <h2>Make the physics the invariant; the code a representation</h2>
+    <p class="lede">A typed graph: nodes are physical quantities (ω, D, Γ, c, κ…), edges are the symbolic formulas relating them. Each code is an <em>adapter</em> that pins its outputs onto the shared layer, units and conventions declared.</p>
     <p class="formula">\[ \kappa^{\alpha\beta} = \frac{1}{V}\sum_{q\nu} c_{q\nu}\, v^{\alpha}_{q\nu} v^{\beta}_{q\nu}\, \tau_{q\nu} \]</p>
   </section>
 
   <section>
-    <h2>Every code maps onto the layer</h2>
-    <p class="lede">Seven adapters pin each code's outputs to the variables, with units and conventions. Variables mapped per code:</p>
-    <p>
-      <span class="pill">kaldo · 32</span><span class="pill">phono3py · 31</span><span class="pill">ShengBTE · 20</span><span class="pill">phonopy · 17</span><span class="pill">GPUMD · 8</span><span class="pill">LAMMPS · 8</span><span class="pill">ASE · 1</span>
-    </p>
+    <h2>Reconciliation becomes mechanical</h2>
+    <ul>
+      <li>Gauge-invariant <em>observables</em> must agree across codes; gauge-dependent intermediates need not — a typed distinction.</li>
+      <li>Units reconcile automatically from declared dimensions.</li>
+      <li>Cross-code comparison is a structural operation on the graph, not a feat of translation.</li>
+    </ul>
   </section>
 
   <section>
-    <h2>Simulations and experiments attach</h2>
-    <p class="lede">Values from codes (<span class="g">numerical</span>) and papers (<span class="y">lab</span>) attach to the same variables and reconcile at the observable.</p>
+    <h2>It already runs — not a proposal for vaporware</h2>
+    <p class="lede">A working operator + representation framework, with:</p>
+    <p>
+      <span class="pill">7 codes mapped</span>
+      <span class="pill">kaldo · 32 variables</span><span class="pill">phono3py · 31</span><span class="pill">ShengBTE · 20</span><span class="pill">phonopy · 17</span><span class="pill">GPUMD · 8</span><span class="pill">LAMMPS · 8</span><span class="pill">ASE · 1</span>
+    </p>
+    <p class="lede" style="font-size:.85em">validation engine (derive · compose · cross-check) · automatic units · 600+ tests · an interactive map of the whole graph.</p>
+  </section>
+
+  <section>
+    <h2>Real cross-code result</h2>
     <div class="nums">
-      Silicon thermal conductivity, Tersoff, 8×8×8, 300 K<br>
+      Silicon, Tersoff potential, 8×8×8 mesh, 300 K — computed through the framework:<br>
       RTA &nbsp;&nbsp;&nbsp; <span class="g">kaldo 19.46</span> · <span class="g">phono3py 16.74</span><br>
       direct &nbsp; <span class="g">kaldo 26.91</span> · <span class="g">phono3py 24.30</span> &nbsp; W/m·K
+    </div>
+    <p class="lede" style="font-size:.85em">The ~15% gap is real — and the substrate <em>localizes</em> it: the broadening convention on the scattering rates (Gaussian vs tetrahedron). Reproducibility you can audit, not argue about.</p>
+  </section>
+
+  <section>
+    <h2>An open, forkable database of physics</h2>
+    <p class="lede">Variables + formulas + attached values (simulations and measurements), reconciled at the observables. <code>git clone</code> to run locally; pull request to append.</p>
+    <p class="sub">Storing computational physics the way git stores code. <a href="../map/">explore the live map &rarr;</a></p>
+  </section>
+
+  <section>
+    <h2>And the same substrate is what scientific AI will need</h2>
+    <p class="lede">Agents that act on typed physics instead of text; an invalid step becomes a <em>type error</em>, not a silent wrong number; redundant routes are a built-in verifier. The horizon — and lattice transport is the proving ground.</p>
+  </section>
+
+  <section>
+    <h2>Let's build it together</h2>
+    <div class="cols">
+      <div class="col"><h4>MIT brings</h4>domain depth in phonon transport, methods and codes, benchmark systems, students.</div>
+      <div class="col"><h4>We bring</h4>the typed/symbolic substrate, the design, and a working, tested framework.</div>
+      <div class="col"><h4>Together</h4>harden it into a community standard, extend codes and domains, seed the open database, publish the methodology.</div>
     </div>
   </section>
 
   <section>
-    <h2>A computable, self-checking database</h2>
-    <p class="lede">Because the formulas are stored too, it can</p>
-    <p class="big"><em>derive</em> · <em>reconcile</em> · <em>invert</em></p>
-    <p class="sub">run the formulas forward, cross-check redundant routes, and (next) solve them backwards. Not a data lake.</p>
+    <h2>Concrete first steps</h2>
+    <ul>
+      <li>Ingest your group's code(s) as adapters onto the shared layer.</li>
+      <li>Reproduce a shared benchmark across codes, on the substrate, and pin where they diverge.</li>
+      <li>Co-author the cross-code reconciliation methodology (a paper).</li>
+      <li>Co-own and grow the open project.</li>
+    </ul>
   </section>
 
   <section>
-    <h2>Open and forkable</h2>
-    <p class="lede">The whole database is files in a repo.</p>
-    <p class="big"><code>git clone</code> to run locally · pull request to append</p>
-    <p class="sub">Storing science the way git stores code.</p>
-  </section>
-
-  <section>
-    <h2>A semantic layer for scientific AI</h2>
-    <p class="lede">Agents act on typed physics, not text. An invalid step is a <em>type error</em>, not a silent wrong number. Redundant routes are a built-in verifier, so verification scales with compute.</p>
-  </section>
-
-  <section>
-    <h1>The standard to store science.</h1>
-    <p class="sub" style="margin-top:.6em"><a href="../map/">explore the live map &rarr;</a> &nbsp;·&nbsp; openmaterials.ai</p>
+    <h1>The standard for computational physics — built together.</h1>
+    <p class="sub" style="margin-top:.6em"><a href="../map/">explore the live map &rarr;</a> &nbsp;·&nbsp; openmaterials.ai &nbsp;·&nbsp; G. Barbalinardo, UC Davis</p>
   </section>
 
 </div></div>
