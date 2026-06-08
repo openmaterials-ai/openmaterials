@@ -1,1 +1,0 @@
-{"variable":"MolarHeatCapacity","material":"Si","conditions":{"T":300},"value":19.8,"units":"J/(K mol)","uncertainty":null,"source":{"kind":"simulation","ref":"kaldo","detail":"harmonic"}}

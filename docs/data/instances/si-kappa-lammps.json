@@ -1,1 +1,0 @@
-{"variable":"ThermalConductivity[transport_model=wigner]","material":"Si","conditions":{"T":300},"value":140.0,"units":"W/(m K)","uncertainty":null,"source":{"kind":"simulation","ref":"LAMMPS","detail":"Green-Kubo"}}

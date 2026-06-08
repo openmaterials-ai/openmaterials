@@ -13,6 +13,57 @@ from omai.thermal_transport.operator import EDGES, NODES
 
 _DOCS = Path(__file__).resolve().parents[2] / "docs"
 
+# Canonical LaTeX symbol per variable (consistent symbolic names, not words).
+# Matches the IndexedBase symbols the operator-layer formulas are written in.
+SYMBOLS = {
+    "Potential": r"V",
+    "Temperature": r"T",
+    "BornCharges": r"Z^{*}",
+    "DielectricTensor": r"\varepsilon_{\infty}",
+    "IsotopeAbundances": r"g_{\mathrm{iso}}",
+    "Trajectory": r"\mathbf{r}(t)",
+    "ForceConstants[order=2]": r"\Phi^{(2)}",
+    "ForceConstants[order=3]": r"\Phi^{(3)}",
+    "HeatCurrent": r"\mathbf{J}",
+    "BareDynamicalMatrix": r"D^{0}",
+    "MeanSquaredDisplacement": r"\langle u^{2}\rangle",
+    "VelocityAutocorrelation": r"\langle v(0)v(t)\rangle",
+    "DynamicalMatrix": r"D",
+    "HeatCurrentACF": r"\langle JJ\rangle",
+    "PhononDOS": r"g(\omega)",
+    "ThermalConductivity[transport_model=hnemd]": r"\kappa_{\mathrm{hnemd}}",
+    "ThermalConductivity[transport_model=nemd]": r"\kappa_{\mathrm{nemd}}",
+    "Eigenvectors": r"e",
+    "Frequency": r"\omega",
+    "ThermalConductivity[transport_model=green_kubo]": r"\kappa_{\mathrm{gk}}",
+    "GroupVelocity": r"v",
+    "Linewidth[channel=anharmonic_3ph]": r"\Gamma_{\mathrm{3ph}}",
+    "Linewidth[channel=isotope]": r"\Gamma_{\mathrm{iso}}",
+    "Entropy": r"S",
+    "Gruneisen": r"\gamma",
+    "HeatCapacity": r"c",
+    "HelmholtzFreeEnergy": r"F",
+    "InternalEnergy": r"E",
+    "PhaseSpace3Phonon": r"P_{3}",
+    "Linewidth[channel=boundary]": r"\Gamma_{\mathrm{bnd}}",
+    "MolarEntropy": r"S_{\mathrm{m}}",
+    "MolarHeatCapacity": r"C_{\mathrm{m}}",
+    "MolarHelmholtzFreeEnergy": r"F_{\mathrm{m}}",
+    "MolarInternalEnergy": r"E_{\mathrm{m}}",
+    "VolumetricHeatCapacity": r"C_{V}",
+    "Linewidth[channel=total]": r"\Gamma",
+    "MeanFreeDisplacement[bte_solver=rta]": r"\lambda_{\mathrm{rta}}",
+    "ThermalConductivity[transport_model=qhgk]": r"\kappa_{\mathrm{qhgk}}",
+    "MeanFreeDisplacement[bte_solver=direct_inverse]": r"\lambda_{\mathrm{dinv}}",
+    "ThermalConductivity[transport_model=wigner_coherences]": r"\kappa_{\mathrm{coh}}",
+    "ThermalConductivity[bte_solver=rta]": r"\kappa^{\mathrm{rta}}",
+    "CumulativeKappa[wrt=mfp]": r"\kappa^{\mathrm{cum}}_{\lambda}",
+    "CumulativeKappa[wrt=omega]": r"\kappa^{\mathrm{cum}}_{\omega}",
+    "ThermalConductivity[bte_solver=direct_inverse]": r"\kappa^{\mathrm{dinv}}",
+    "ThermalConductivity[transport_model=wigner_populations]": r"\kappa_{\mathrm{pop}}",
+    "ThermalConductivity[transport_model=wigner]": r"\kappa",
+}
+
 
 def _layers() -> dict[str, int]:
     producer = {}
@@ -53,6 +104,7 @@ def build_graph_dict() -> dict:
             "type": "observable" if isinstance(s, ObservableSpace) else "hidden",
             "layer": layers.get(s.name, 0),
             "kind": "symbolic",
+            "symbol": SYMBOLS.get(s.name, s.name),
             "formula": target_formula.get(s.name),
         }
         for s in NODES
