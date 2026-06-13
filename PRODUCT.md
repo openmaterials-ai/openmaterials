@@ -24,13 +24,12 @@ The protocol is a standard anyone can implement, self-host, and fork. The
 mother map and its index are the shared artifact the community builds through
 the protocol; they belong to no one and to everyone.
 
-The app (the website, a separate project) adds the hosted conveniences: sign up
-for an API key, store custom or private maps in our storage, or paste and
-upload a map and have it rendered immediately in rich traversal views, the way
-mermaid.live renders a diagram with no setup. Private and custom maps and any
-future entitlements live entirely app-side; they never touch the protocol or
-the commons. Pricing is metered, free for students, and initially free for
-everyone.
+The app (the website, a separate project) adds the hosted conveniences: paste
+and upload a map and have it rendered immediately in rich traversal views, the
+way mermaid.live renders a diagram with no setup, and optionally store custom or
+private maps. Anything hosted lives entirely app-side; it never touches the
+protocol or the commons. The app is free while we build it, and how it is funded
+later is out of scope here. The priority is the protocol and the map.
 
 The priority is explicit: first build the community that builds the mother map,
 and a rich initial map worth using. The app comes second. Protocol adoption is
