@@ -18,6 +18,8 @@ typed quantities and the formulas relating them, with simulation and measured va
 as instances. Browse it as an interactive [3D map](https://openmaterials.ai/map/), or read the
 [vision](docs/vision.pdf) and the [architecture](docs/operator_representation_substrate.pdf).
 
+For the full product picture (the free protocol and the hosted app), see [PRODUCT.md](PRODUCT.md).
+
 The database is just files in this repo: `docs/data/graph.json` (variables + formulas, generated
 from the operator layer) and `docs/data/instances/` (one file per value). Rebuild the data with:
 
