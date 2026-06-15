@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>openmaterials.ai — derivation tracer</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root{
+    --bg:#080b13; --bg2:#0d1220; --grid:#121a2c;
+    --rest:#243049;        /* node at rest */
+    --restink:#3c4a66;     /* label at rest */
+    --up:#f5a524;          /* upstream / how it's built (anharmonic-warm) */
+    --down:#7c93ff;        /* downstream / where it flows */
+    --sel:#ffffff;         /* selected node */
+    --dest:#38e0b0;        /* observable destinations */
+    --ink:#e6ecf7; --muted:#8694ad; --faint:#5b6b80;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);-webkit-font-smoothing:antialiased;}
+  #err{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;font:13px/1.4 monospace;padding:8px 12px;z-index:40;display:none;white-space:pre-wrap;}
+  .top{position:fixed;top:0;left:0;right:0;height:58px;display:flex;align-items:center;gap:14px;padding:0 20px;
+    background:rgba(8,11,19,.72);backdrop-filter:blur(14px);border-bottom:1px solid #161e30;z-index:10;}
+  .top .mark{width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,#7c93ff,#38e0b0);box-shadow:0 0 16px rgba(124,147,255,.5);}
+  .top .brand{font-weight:800;letter-spacing:-.02em;color:#fff;} .top .brand b{color:var(--down);}
+  .top .sub{color:var(--faint);font-size:.8rem;font-weight:500;}
+  .top .search{margin-left:12px;flex:1;max-width:320px;position:relative;display:flex;align-items:center;}
+  .top .search .ic{position:absolute;left:11px;color:#46536e;pointer-events:none;}
+  .top .search input{width:100%;border:1px solid #1c2740;border-radius:11px;padding:8px 12px 8px 34px;font-size:.88rem;
+    font-family:inherit;outline:none;background:#0e1626;color:var(--ink);transition:.15s;}
+  .top .search input:focus{border-color:var(--down);box-shadow:0 0 0 3px rgba(124,147,255,.16);}
+  .top .hint{margin-left:auto;color:var(--muted);font-size:.78rem;display:flex;gap:14px;align-items:center;}
+  .top .hint kbd{background:#0e1626;border:1px solid #1c2740;border-radius:6px;padding:2px 7px;font:600 .72rem 'Inter';color:#b9c4da;}
+  .top .btn{border:1px solid #1c2740;background:#0e1626;border-radius:10px;padding:7px 13px;font-size:.82rem;font-weight:600;cursor:pointer;color:#b9c4da;transition:.15s;}
+  .top .btn:hover{border-color:var(--down);color:#fff;}
+  #cy{position:fixed;top:58px;left:0;right:0;bottom:0;
+      background:radial-gradient(circle at 1px 1px,var(--grid) 1px,transparent 0) -1px -1px/30px 30px,
+                 radial-gradient(1200px 700px at 70% 8%, #101a30 0%, transparent 60%),
+                 linear-gradient(180deg,var(--bg2),var(--bg));}
+  svg{width:100%;height:100%;display:block;cursor:grab;} svg.drag{cursor:grabbing;}
+
+  /* edges */
+  .edge{fill:none;stroke:#1a2236;stroke-width:1.2;stroke-linecap:round;transition:stroke .25s,opacity .25s,stroke-width .25s;}
+  .edge.up{stroke:var(--up);stroke-width:2;opacity:.95;filter:drop-shadow(0 0 5px rgba(245,165,36,.5));}
+  .edge.down{stroke:var(--down);stroke-width:2;opacity:.95;filter:drop-shadow(0 0 6px rgba(124,147,255,.55));}
+  .edge.flow{stroke-dasharray:5 7;animation:flow 1s linear infinite;}
+  @keyframes flow{to{stroke-dashoffset:-24;}}
+
+  /* nodes */
+  .node{cursor:pointer;}
+  .node rect{fill:#0e1626;stroke:var(--rest);stroke-width:1.3;transition:stroke .2s,fill .2s,filter .2s;}
+  .node .nl{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;color:var(--restink);transition:color .2s;}
+  .node.dest rect{stroke:#1d4f43;} .node.dest .nl{color:#2f6b5c;}
+  .node.dim rect{opacity:.34;} .node.dim .nl{opacity:.34;}
+  .node.up rect{fill:#1b1505;stroke:var(--up);filter:drop-shadow(0 0 12px rgba(245,165,36,.35));}
+  .node.up .nl{color:#ffd98a;}
+  .node.down rect{fill:#0b1330;stroke:var(--down);filter:drop-shadow(0 0 12px rgba(124,147,255,.4));}
+  .node.down .nl{color:#cdd6ff;}
+  .node.sel rect{fill:#1a2238;stroke:var(--sel);stroke-width:2.6;filter:drop-shadow(0 0 22px rgba(255,255,255,.4));}
+  .node.sel .nl{color:#fff;}
+  #measure{position:absolute;left:-9999px;top:-9999px;font-size:18px;visibility:hidden;}
+
+  /* derivation panel */
+  .panel{position:fixed;top:72px;right:16px;width:392px;max-height:calc(100vh - 92px);overflow:auto;
+    background:rgba(13,18,32,.92);backdrop-filter:blur(16px);border:1px solid #1c2740;border-radius:18px;
+    box-shadow:0 30px 80px rgba(0,0,0,.6);padding:20px;z-index:8;display:none;}
+  .panel .x{float:right;cursor:pointer;color:#3c4a66;font-size:1.3rem;line-height:1;transition:.12s;} .panel .x:hover{color:#a9b5cc;}
+  .panel .sym{font-size:1.7rem;color:#fff;}
+  .panel .badge{display:inline-block;font-size:.56rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#06121f;border-radius:999px;padding:3px 9px;margin-left:10px;vertical-align:middle;}
+  .panel .badge.observable{background:var(--dest);} .panel .badge.hidden{background:#5b6b86;color:#fff;} .panel .badge.parameter{background:#8694ad;}
+  .panel .name{color:var(--muted);font-size:.78rem;margin:.5em 0 .2em;word-break:break-word;}
+  .lab{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:#6b7a96;margin:18px 0 8px;font-weight:800;display:flex;align-items:center;gap:8px;}
+  .lab .dot{width:8px;height:8px;border-radius:50%;}
+  .lab .dot.u{background:var(--up);} .lab .dot.d{background:var(--down);}
+  .step{display:flex;gap:10px;padding:9px 0;border-top:1px solid #18223a;}
+  .step:first-of-type{border-top:none;}
+  .step .n{flex:0 0 22px;height:22px;border-radius:6px;background:#0e1626;border:1px solid #22304e;color:#7e8db0;font:700 .72rem 'Inter';display:flex;align-items:center;justify-content:center;margin-top:2px;}
+  .step .body{flex:1;min-width:0;}
+  .step .rel{font-size:.95rem;color:#dbe3f4;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .step .op{font:600 .66rem 'Inter';color:#8694ad;background:#0e1626;border:1px solid #1c2740;border-radius:6px;padding:2px 7px;letter-spacing:.02em;}
+  .step .fx{margin-top:6px;font-size:.82rem;color:#aeb9d2;overflow-x:auto;}
+  .step .fx .katex{color:#cdd6ff;}
+  .arrow{color:#5b6b86;}
+  .empty{color:#5b6b86;font-size:.82rem;font-style:italic;padding:4px 0;}
+  .summary{font-size:.82rem;color:#aeb9d2;background:#0e1626;border:1px solid #1c2740;border-radius:11px;padding:10px 12px;margin-top:4px;line-height:1.5;}
+  .summary b{color:#fff;}
+  .pathbar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:none;align-items:center;gap:10px;
+    background:rgba(13,18,32,.94);backdrop-filter:blur(12px);border:1px solid #22304e;border-radius:14px;padding:9px 14px;
+    box-shadow:0 12px 40px rgba(0,0,0,.5);z-index:9;font-size:.85rem;}
+  .pathbar .ep{font-size:1.05rem;color:#fff;background:#0e1626;border:1px solid #2a3a5e;border-radius:9px;padding:3px 10px;}
+  .pathbar .clear{cursor:pointer;color:#8694ad;border:1px solid #1c2740;border-radius:8px;padding:4px 9px;font-size:.76rem;font-weight:600;}
+  .pathbar .clear:hover{color:#fff;border-color:var(--down);}
+  .rest-hint{position:fixed;left:50%;top:54%;transform:translate(-50%,-50%);text-align:center;color:#46536e;z-index:2;pointer-events:none;transition:opacity .4s;}
+  .rest-hint .big{font-size:1.05rem;color:#7e8db0;font-weight:600;margin-bottom:6px;}
+  .legend{position:fixed;left:16px;bottom:16px;z-index:5;display:flex;gap:14px;align-items:center;
+    background:rgba(13,18,32,.85);backdrop-filter:blur(8px);border:1px solid #1c2740;border-radius:12px;padding:8px 13px;font-size:.76rem;color:var(--muted);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;} .legend i{width:11px;height:11px;border-radius:3px;display:inline-block;}
+</style>
+</head>
+<body>
+<div id="err"></div>
+<div class="top">
+  <span class="mark"></span>
+  <span class="brand">openmaterials<b>.ai</b></span>
+  <span class="sub">derivation tracer</span>
+  <span class="search"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input id="q" placeholder="Find a quantity…"></span>
+  <span class="hint"><span><kbd>click</kbd> trace lineage</span><span><kbd>shift</kbd>+click path A→B</span><button class="btn" onclick="resetAll()">Reset</button></span>
+</div>
+<div id="cy"><svg id="svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <marker id="arrU" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#f5a524"></path></marker>
+    <marker id="arrD" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#7c93ff"></path></marker>
+  </defs>
+  <g id="vp"></g>
+</svg></div>
+<div id="measure"></div>
+<div class="rest-hint" id="resthint"><div class="big">Trace a derivation</div>Click any quantity to light up how it is built and where it flows.</div>
+<div class="legend">
+  <span><i style="background:var(--up)"></i>how it's built (upstream)</span>
+  <span><i style="background:var(--down)"></i>where it flows (downstream)</span>
+  <span><i style="background:var(--dest);"></i>observable</span>
+</div>
+<div class="pathbar" id="pathbar"></div>
+<div class="panel" id="panel"></div>
+
+<script>window.onerror=function(m){var e=document.getElementById('err');e.style.display='block';e.textContent='Error: '+m;};</script>
+<script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script>
+const svg=document.getElementById('svg'), vp=document.getElementById('vp'), measure=document.getElementById('measure');
+let VB={x:0,y:0,w:1000,h:1000}, GW=1000, GH=1000;
+let nodeById={}, parents={}, children={}, pos={}, symHtml={}, opByEdge={}, byVar={};
+function setVB(){ svg.setAttribute('viewBox', VB.x+' '+VB.y+' '+VB.w+' '+VB.h); }
+function tex(latex,display){ try{ return katex.renderToString(latex,{throwOnError:false,displayMode:!!display}); }catch(e){ return '<code>'+latex+'</code>'; } }
+function smooth(pts){ if(!pts||pts.length<2) return ''; if(pts.length===2) return 'M'+pts[0].x+' '+pts[0].y+' L'+pts[1].x+' '+pts[1].y; let d='M'+pts[0].x+' '+pts[0].y; for(let i=1;i<pts.length-1;i++){ const mx=(pts[i].x+pts[i+1].x)/2, my=(pts[i].y+pts[i+1].y)/2; d+=' Q'+pts[i].x+' '+pts[i].y+' '+mx+' '+my; } d+=' L'+pts[pts.length-1].x+' '+pts[pts.length-1].y; return d; }
+function err(m){ var e=document.getElementById('err'); e.style.display='block'; e.textContent='Error: '+m; }
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+if(typeof dagre==='undefined'){ err('dagre failed to load (no internet?)'); }
+else Promise.all([
+  fetch('../data/graph.json?v='+Date.now()).then(r=>r.json()),
+  fetch('../data/instances.json?v='+Date.now()).then(r=>r.json()).catch(()=>[])
+]).then(build).catch(e=> err('data: '+e));
+
+function build([graph, insts]){
+  insts.forEach(it=>{ (byVar[it.variable]=byVar[it.variable]||[]).push(it); });
+  graph.nodes.forEach(n=>{ nodeById[n.id]=n; symHtml[n.id]=tex(n.symbol); });
+  const seen=new Set(), edges=[];
+  graph.links.forEach(l=>{ const k=l.source+'>>'+l.target; if(!seen.has(k)&&l.source!==l.target){ seen.add(k); edges.push(l); opByEdge[k]=l.op||''; (children[l.source]=children[l.source]||[]).push(l.target); (parents[l.target]=parents[l.target]||[]).push(l.source); } });
+
+  graph.nodes.forEach(n=>{ measure.innerHTML=symHtml[n.id]; n._w=Math.max(46, measure.offsetWidth+24); n._h=Math.max(36, measure.offsetHeight+16); });
+  const g=new dagre.graphlib.Graph(); g.setGraph({rankdir:'TB',nodesep:16,ranksep:104,marginx:30,marginy:34}); g.setDefaultEdgeLabel(()=>({}));
+  graph.nodes.forEach(n=> g.setNode(n.id,{width:n._w,height:n._h}));
+  edges.forEach(e=> g.setEdge(e.source,e.target));
+  dagre.layout(g);
+  GW=g.graph().width; GH=g.graph().height;
+
+  let s='';
+  edges.forEach(e=>{ const ed=g.edge({v:e.source,w:e.target}); if(!ed)return; s+='<path class="edge" data-edge="'+e.source+'>>'+e.target+'" d="'+smooth(ed.points)+'"></path>'; });
+  graph.nodes.forEach(n=>{ const p=g.node(n.id); pos[n.id]={x:p.x,y:p.y,w:p.width,h:p.height}; const x=p.x-p.width/2, y=p.y-p.height/2; const dest=(n.type==='observable' && (children[n.id]||[]).length===0)?' dest':'';
+    s+='<g class="node'+dest+'" data-id="'+esc(n.id)+'"><rect x="'+x+'" y="'+y+'" width="'+p.width+'" height="'+p.height+'" rx="11"></rect><foreignObject x="'+x+'" y="'+y+'" width="'+p.width+'" height="'+p.height+'"><div xmlns="http://www.w3.org/1999/xhtml" class="nl">'+symHtml[n.id]+'</div></foreignObject></g>'; });
+  vp.innerHTML=s;
+  fitAll();
+}
+function fitAll(){ VB={x:0,y:0,w:GW,h:GH}; setVB(); }
+function fitTo(ids){ let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; ids.forEach(id=>{const q=pos[id]; if(!q)return; x0=Math.min(x0,q.x-q.w/2); y0=Math.min(y0,q.y-q.h/2); x1=Math.max(x1,q.x+q.w/2); y1=Math.max(y1,q.y+q.h/2);}); if(x1<x0)return; const pad=120; VB={x:x0-pad,y:y0-pad,w:(x1-x0)+2*pad,h:(y1-y0)+2*pad}; setVB(); }
+
+// ---- graph reachability ----
+function reach(id, adj){ const out=new Set(), dq=[id]; while(dq.length){ const x=dq.pop(); (adj[x]||[]).forEach(y=>{ if(!out.has(y)){ out.add(y); dq.push(y);} }); } return out; }
+function pathBetween(a,b){ // directed a->...->b over children; fall back b->a
+  function bfs(src,dst){ const prev={}, dq=[src], seen=new Set([src]); while(dq.length){ const x=dq.shift(); if(x===dst){ const p=[dst]; let c=dst; while(c!==src){ c=prev[c]; p.unshift(c);} return p; } (children[x]||[]).forEach(y=>{ if(!seen.has(y)){ seen.add(y); prev[y]=x; dq.push(y);} }); } return null; }
+  return bfs(a,b) || (bfs(b,a)||[]).slice().reverse();
+}
+
+// ---- visual application ----
+function clearClasses(){ vp.querySelectorAll('.node').forEach(el=>el.classList.remove('dim','up','down','sel')); vp.querySelectorAll('.edge').forEach(el=>{el.classList.remove('up','down','flow');el.removeAttribute('marker-end');}); }
+function dimAllExcept(keep){ vp.querySelectorAll('.node').forEach(el=> el.classList.toggle('dim', !keep.has(el.dataset.id))); }
+function paintEdge(s,t,kind){ const el=vp.querySelector('.edge[data-edge="'+cssesc(s+'>>'+t)+'"]'); if(el){ el.classList.add(kind,'flow'); el.setAttribute('marker-end', kind==='up'?'url(#arrU)':'url(#arrD)'); } }
+function cssesc(s){ return (window.CSS&&CSS.escape)?CSS.escape(s):s.replace(/["\\\]]/g,'\\$&'); }
+
+function trace(id){
+  document.getElementById('resthint').style.opacity=0;
+  pathMode=null; document.getElementById('pathbar').style.display='none';
+  clearClasses();
+  const anc=reach(id,parents), desc=reach(id,children);
+  const keep=new Set([id, ...anc, ...desc]);
+  dimAllExcept(keep);
+  vp.querySelector('.node[data-id="'+cssesc(id)+'"]').classList.add('sel');
+  anc.forEach(a=> vp.querySelector('.node[data-id="'+cssesc(a)+'"]')?.classList.add('up'));
+  desc.forEach(d=> vp.querySelector('.node[data-id="'+cssesc(d)+'"]')?.classList.add('down'));
+  // edges: upstream subgraph (both in anc∪id), downstream (both in desc∪id)
+  const up=new Set([id,...anc]), dn=new Set([id,...desc]);
+  Object.keys(opByEdge).forEach(k=>{ const [s,t]=k.split('>>'); if(up.has(s)&&up.has(t)) paintEdge(s,t,'up'); else if(dn.has(s)&&dn.has(t)) paintEdge(s,t,'down'); });
+  derivationPanel(id, anc, desc);
+  fitTo([...keep]);
+}
+
+function stepHtml(s,t,i,kind){
+  const op=opByEdge[s+'>>'+t]||''; const f=nodeById[t]&&nodeById[t].formula;
+  return '<div class="step"><div class="n">'+i+'</div><div class="body"><div class="rel">'+symHtml[s]+' <span class="arrow">&rarr;</span> '+symHtml[t]+(op?' <span class="op">'+esc(op)+'</span>':'')+'</div>'+(f?'<div class="fx">'+tex(f,false)+'</div>':'')+'</div></div>';
+}
+function orderedEdges(nodeSet){ // edges fully inside nodeSet, ordered by target layer
+  const es=[]; Object.keys(opByEdge).forEach(k=>{ const [s,t]=k.split('>>'); if(nodeSet.has(s)&&nodeSet.has(t)) es.push([s,t]); });
+  es.sort((a,b)=> (nodeById[a[1]].layer||0)-(nodeById[b[1]].layer||0)); return es;
+}
+function derivationPanel(id, anc, desc){
+  const node=nodeById[id];
+  const up=orderedEdges(new Set([id,...anc])), dn=orderedEdges(new Set([id,...desc]));
+  const dests=[...desc].filter(d=> nodeById[d].type==='observable' && (children[d]||[]).length===0);
+  let h='<span class="x" onclick="resetAll()">×</span>';
+  h+='<div><span class="sym">'+tex(node.symbol)+'</span><span class="badge '+node.type+'">'+node.type+'</span></div><div class="name">'+esc(node.id)+'</div>';
+  h+='<div class="summary">'+(anc.size?('Built from <b>'+anc.size+'</b> upstream quantit'+(anc.size>1?'ies':'y')):'A <b>source</b> quantity')+'. '+(desc.size?('Flows into <b>'+desc.size+'</b> downstream'+(dests.length?(', reaching '+dests.map(d=>tex(nodeById[d].symbol)).join(' ')):'')):'A terminal observable')+'.</div>';
+  h+='<div class="lab"><span class="dot u"></span>how it is built</div>';
+  h+= up.length? up.map((e,i)=>stepHtml(e[0],e[1],i+1,'up')).join('') : '<div class="empty">nothing upstream — this is a source.</div>';
+  h+='<div class="lab"><span class="dot d"></span>where it flows</div>';
+  h+= dn.length? dn.map((e,i)=>stepHtml(e[0],e[1],i+1,'down')).join('') : '<div class="empty">nothing downstream — this is a terminal observable.</div>';
+  const p=document.getElementById('panel'); p.innerHTML=h; p.style.display='block';
+}
+
+// ---- pick-two path mode ----
+let pathMode=null; // {a}
+function startPath(a){ pathMode={a}; const pb=document.getElementById('pathbar'); pb.style.display='flex'; pb.innerHTML='<span>path from</span><span class="ep">'+symHtml[a]+'</span><span style="color:#5b6b86">→ shift-click a target…</span><span class="clear" onclick="resetAll()">cancel</span>'; }
+function finishPath(a,b){
+  const path=pathBetween(a,b);
+  document.getElementById('resthint').style.opacity=0;
+  clearClasses();
+  if(!path||!path.length){ const pb=document.getElementById('pathbar'); pb.innerHTML='<span>no directed path between</span><span class="ep">'+symHtml[a]+'</span><span class="ep">'+symHtml[b]+'</span><span class="clear" onclick="resetAll()">clear</span>'; pathMode=null; return; }
+  const keep=new Set(path); dimAllExcept(keep);
+  path.forEach((n,i)=>{ const el=vp.querySelector('.node[data-id="'+cssesc(n)+'"]'); if(el) el.classList.add(i===0?'up':(i===path.length-1?'sel':'down')); });
+  for(let i=0;i<path.length-1;i++){ if(opByEdge[path[i]+'>>'+path[i+1]]!==undefined) paintEdge(path[i],path[i+1],'down'); else paintEdge(path[i+1],path[i],'up'); }
+  // panel: the linear chain
+  let h='<span class="x" onclick="resetAll()">×</span><div class="lab"><span class="dot d"></span>derivation path</div>';
+  h+='<div class="summary"><b>'+(path.length-1)+'</b> steps from '+tex(nodeById[a].symbol)+' to '+tex(nodeById[b].symbol)+'.</div>';
+  for(let i=0;i<path.length-1;i++){ const fwd=opByEdge[path[i]+'>>'+path[i+1]]!==undefined; h+= fwd? stepHtml(path[i],path[i+1],i+1,'down') : stepHtml(path[i+1],path[i],i+1,'up'); }
+  const p=document.getElementById('panel'); p.innerHTML=h; p.style.display='block';
+  const pb=document.getElementById('pathbar'); pb.innerHTML='<span class="ep">'+symHtml[a]+'</span><span style="color:#5b6b86">→</span><span class="ep">'+symHtml[b]+'</span><span class="clear" onclick="resetAll()">clear</span>';
+  fitTo(path); pathMode=null;
+}
+
+function resetAll(){ clearClasses(); document.getElementById('panel').style.display='none'; document.getElementById('pathbar').style.display='none'; document.getElementById('resthint').style.opacity=1; pathMode=null; }
+
+// ---- pan / zoom / click ----
+let dragging=false, moved=false, sx=0, sy=0, vbs=null;
+svg.addEventListener('mousedown', e=>{ dragging=true; moved=false; sx=e.clientX; sy=e.clientY; vbs={x:VB.x,y:VB.y}; svg.classList.add('drag'); });
+window.addEventListener('mouseup', ()=>{ dragging=false; svg.classList.remove('drag'); });
+window.addEventListener('mousemove', e=>{ if(!dragging)return; const m=svg.getScreenCTM(); if(!m)return; const dx=(e.clientX-sx)/m.a, dy=(e.clientY-sy)/m.d; if(Math.abs(e.clientX-sx)+Math.abs(e.clientY-sy)>4) moved=true; VB.x=vbs.x-dx; VB.y=vbs.y-dy; setVB(); });
+svg.addEventListener('wheel', e=>{ e.preventDefault(); const m=svg.getScreenCTM(); if(!m)return; const pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY; const u=pt.matrixTransform(m.inverse()); const f=e.deltaY>0?1.12:0.893; VB.x=u.x-(u.x-VB.x)*f; VB.y=u.y-(u.y-VB.y)*f; VB.w*=f; VB.h*=f; setVB(); }, {passive:false});
+svg.addEventListener('click', e=>{ if(moved)return; const nd=e.target.closest('.node'); if(!nd){ resetAll(); return; } const id=nd.dataset.id;
+  if(e.shiftKey){ if(pathMode&&pathMode.a&&pathMode.a!==id){ finishPath(pathMode.a,id); } else { startPath(id); } return; }
+  trace(id);
+});
+window.navTo=function(id){ if(nodeById[id]) trace(id); };
+document.getElementById('q').addEventListener('input', function(){
+  const v=this.value.trim().toLowerCase(); if(!v){ resetAll(); return; }
+  const hits=Object.values(nodeById).filter(n=> (n.id+' '+n.symbol).toLowerCase().includes(v)).map(n=>n.id);
+  if(hits.length===1){ trace(hits[0]); return; }
+  const set=new Set(hits); document.getElementById('resthint').style.opacity=0; clearClasses();
+  dimAllExcept(set); hits.forEach(h=> vp.querySelector('.node[data-id="'+cssesc(h)+'"]')?.classList.add('sel'));
+  document.getElementById('panel').style.display='none';
+  if(hits.length) fitTo(hits);
+});
+</script>
+</body>
+</html>

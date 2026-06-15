@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Orbital Knowledge Map</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #000;
+    overflow: hidden;
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    color: #e8e8f0;
+  }
+  #scene {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+  }
+  #orbit-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+  }
+  #orbit-svg.dragging { cursor: grabbing; }
+
+  /* Error bar */
+  #err-bar {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: #c0392b;
+    color: #fff;
+    font-size: 13px;
+    padding: 8px 16px;
+    z-index: 9999;
+    white-space: pre-wrap;
+  }
+
+  /* Side panel */
+  #panel {
+    position: fixed;
+    top: 0; right: 0;
+    width: 320px;
+    height: 100%;
+    background: rgba(10,10,20,0.92);
+    border-left: 1px solid rgba(255,255,255,0.08);
+    padding: 28px 22px 28px 22px;
+    overflow-y: auto;
+    transform: translateX(100%);
+    transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    z-index: 100;
+    backdrop-filter: blur(8px);
+  }
+  #panel.open { transform: translateX(0); }
+  #panel-close {
+    position: absolute;
+    top: 14px; right: 14px;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: color 0.15s;
+  }
+  #panel-close:hover { color: #fff; }
+  #panel-type-badge {
+    display: inline-block;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+  .badge-observable { background: rgba(130,200,255,0.18); color: #82c8ff; border: 1px solid rgba(130,200,255,0.35); }
+  .badge-hidden     { background: rgba(160,130,255,0.15); color: #a082ff; border: 1px solid rgba(160,130,255,0.3); }
+  .badge-parameter  { background: rgba(255,200,100,0.12); color: #ffc864; border: 1px solid rgba(255,200,100,0.25); }
+  #panel-symbol {
+    font-size: 28px;
+    min-height: 42px;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+  #panel-id {
+    font-size: 11px;
+    color: rgba(255,255,255,0.38);
+    font-family: 'Fira Mono', 'Courier New', monospace;
+    word-break: break-all;
+    margin-bottom: 18px;
+    text-align: center;
+    line-height: 1.5;
+  }
+  #panel-formula-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  #panel-formula {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 8px;
+    padding: 14px 12px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  #panel-instances-label {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 10px;
+    font-weight: 600;
+  }
+  .instance-card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    line-height: 1.55;
+  }
+  .instance-material {
+    font-weight: 600;
+    color: #b4d8f4;
+    margin-bottom: 3px;
+  }
+  .instance-value {
+    color: #e8e8f0;
+    font-family: 'Fira Mono', 'Courier New', monospace;
+    font-size: 13px;
+  }
+  .instance-source {
+    color: rgba(255,255,255,0.35);
+    font-size: 11px;
+    margin-top: 4px;
+  }
+  #panel-no-instances {
+    color: rgba(255,255,255,0.22);
+    font-size: 12px;
+    font-style: italic;
+  }
+
+  /* Controls overlay */
+  #controls {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    z-index: 50;
+  }
+  #play-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+    padding: 7px 16px;
+    border-radius: 20px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: background 0.15s, color 0.15s;
+    backdrop-filter: blur(6px);
+  }
+  #play-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+  #hint {
+    font-size: 12px;
+    color: rgba(255,255,255,0.28);
+    letter-spacing: 0.04em;
+  }
+
+  /* Legend */
+  #legend {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    background: rgba(10,10,20,0.72);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    line-height: 1.8;
+    backdrop-filter: blur(8px);
+    z-index: 50;
+  }
+  .leg-dot {
+    display: inline-block;
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+  }
+  .leg-line {
+    display: inline-block;
+    width: 22px; height: 1px;
+    background: rgba(255,255,255,0.3);
+    vertical-align: middle;
+    margin-right: 5px;
+  }
+  .leg-row { display: flex; align-items: center; margin-bottom: 3px; }
+
+  /* KaTeX rendering fixes */
+  .katex-display { overflow-x: auto; overflow-y: hidden; }
+  .katex { font-size: 1.1em; }
+</style>
+</head>
+<body>
+
+<div id="err-bar"></div>
+
+<div id="scene">
+  <svg id="orbit-svg" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bg-grad" cx="50%" cy="50%" r="60%">
+        <stop offset="0%" stop-color="#0b0e1a"/>
+        <stop offset="60%" stop-color="#060810"/>
+        <stop offset="100%" stop-color="#020307"/>
+      </radialGradient>
+      <radialGradient id="hero-glow" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ffe066" stop-opacity="0.45"/>
+        <stop offset="40%" stop-color="#ffaa00" stop-opacity="0.18"/>
+        <stop offset="100%" stop-color="#ff6600" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="hero-core" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#fff8d0"/>
+        <stop offset="40%" stop-color="#ffe066"/>
+        <stop offset="100%" stop-color="#ff9900"/>
+      </radialGradient>
+      <filter id="hero-blur" x="-100%" y="-100%" width="300%" height="300%">
+        <feGaussianBlur stdDeviation="14"/>
+      </filter>
+      <filter id="node-glow" x="-60%" y="-60%" width="220%" height="220%">
+        <feGaussianBlur stdDeviation="2.5" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="node-glow-sel" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur stdDeviation="5" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <marker id="arrow" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L6,3 z" fill="rgba(255,255,255,0.18)"/>
+      </marker>
+      <marker id="arrow-sel" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L6,3 z" fill="rgba(255,200,80,0.85)"/>
+      </marker>
+    </defs>
+    <!-- background rect filled by radial gradient -->
+    <rect id="bg-rect" x="0" y="0" fill="url(#bg-grad)"/>
+    <!-- star field -->
+    <g id="stars"></g>
+    <!-- guide rings -->
+    <g id="rings"></g>
+    <!-- hemisphere labels -->
+    <g id="hemi-labels"></g>
+    <!-- rotating orbital group -->
+    <g id="orbital">
+      <g id="edges"></g>
+      <g id="nodes-g"></g>
+    </g>
+    <!-- hero (fixed center, not rotating) -->
+    <g id="hero-g"></g>
+  </svg>
+</div>
+
+<div id="panel">
+  <button id="panel-close" title="Close">&#x2715;</button>
+  <div id="panel-type-badge"></div>
+  <div id="panel-symbol"></div>
+  <div id="panel-id"></div>
+  <div id="panel-formula-wrap">
+    <div id="panel-formula-label">Formula</div>
+    <div id="panel-formula"></div>
+  </div>
+  <div id="panel-instances-label">Measured values</div>
+  <div id="panel-instances"></div>
+</div>
+
+<div id="controls">
+  <button id="play-btn">&#9646;&#9646; Pause</button>
+  <span id="hint">Click a node to explore &middot; scroll to zoom &middot; drag to pan</span>
+</div>
+
+<div id="legend">
+  <div class="leg-row"><span class="leg-dot" style="background:#ffe066;box-shadow:0 0 6px #ffe066;"></span> Hero observable (sun)</div>
+  <div class="leg-row"><span class="leg-dot" style="background:#7ec8ff;"></span> Observable</div>
+  <div class="leg-row"><span class="leg-dot" style="background:#9b7eea;"></span> Hidden</div>
+  <div class="leg-row"><span class="leg-dot" style="background:transparent;border:1.5px dashed #c8a84a;"></span> Parameter</div>
+  <div class="leg-row" style="margin-top:6px;"><span style="display:inline-block;width:22px;height:2px;background:linear-gradient(90deg,rgba(100,180,255,0.5),rgba(100,180,255,0.1));margin-right:5px;vertical-align:middle;"></span> Edge (data flow)</div>
+  <div class="leg-row" style="margin-top:6px;color:rgba(255,255,255,0.3);">&#x25C1; Left = harmonic &nbsp; &#x25B7; Right = anharmonic</div>
+  <div class="leg-row"><span style="color:rgba(255,255,255,0.3);">Rings = hop distance to &#x3BA;</span></div>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ---- error handler ----
+  window.onerror = function(msg, src, line, col, err) {
+    var bar = document.getElementById('err-bar');
+    bar.style.display = 'block';
+    bar.textContent = 'JS Error: ' + msg + (src ? ' @ ' + src + ':' + line : '');
+    return false;
+  };
+
+  // ---- constants ----
+  var HERO_ID = 'ThermalConductivity[transport_model=wigner]';
+  var RING_GAP = 90;          // px between rings
+  var BASE_RADIUS = 0;        // hero at 0
+  var OUTER_RING_MULT = 1.35; // nodes not in hero ancestry
+  var ROT_SPEED_DEG_PER_SEC = 2.5;
+  var CHIP_W = 62, CHIP_H = 24, CHIP_R = 6;
+
+  // ---- layout state ----
+  var W = window.innerWidth, H = window.innerHeight;
+  var CX = W / 2, CY = H / 2;
+  var vpX = 0, vpY = 0, vpScale = 1;
+  var rotating = true;
+  var rotAngle = 0;
+  var lastTime = null;
+  var selectedId = null;
+  var nodePositions = {};  // id -> {x, y, screenX, screenY}
+  var graphData = null, instancesData = [], codesData = {};
+
+  // ---- SVG helpers ----
+  var svg = document.getElementById('orbit-svg');
+  var bgRect = document.getElementById('bg-rect');
+
+  function svgEl(tag, attrs) {
+    var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for (var k in attrs) el.setAttribute(k, attrs[k]);
+    return el;
+  }
+
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    CX = W / 2; CY = H / 2;
+    bgRect.setAttribute('width', W);
+    bgRect.setAttribute('height', H);
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  }
+  resize();
+  window.addEventListener('resize', function() {
+    resize();
+    if (graphData) render();
+  });
+
+  // ---- star field ----
+  function makeStars() {
+    var g = document.getElementById('stars');
+    g.innerHTML = '';
+    var count = Math.floor((W * H) / 3200);
+    for (var i = 0; i < count; i++) {
+      var x = Math.random() * W;
+      var y = Math.random() * H;
+      var r = Math.random() < 0.12 ? (Math.random() * 1.2 + 0.6) : (Math.random() * 0.6 + 0.2);
+      var op = Math.random() * 0.5 + 0.08;
+      var c = svgEl('circle', { cx: x, cy: y, r: r, fill: '#fff', opacity: op });
+      g.appendChild(c);
+    }
+  }
+
+  // ---- data loading ----
+  function fetchJSON(url, fallback) {
+    return fetch(url + '?v=' + Date.now())
+      .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .catch(function() { return fallback; });
+  }
+
+  // ---- KaTeX render ----
+  function renderKatex(latex, display) {
+    if (!window.katex) return escapeHtml(latex);
+    try {
+      return katex.renderToString(latex, { throwOnError: false, displayMode: !!display });
+    } catch(e) {
+      return escapeHtml(latex);
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  // ---- graph analysis ----
+  function buildAncestry(nodes, links) {
+    // Build adjacency: parent -> children (link.source -> link.target)
+    var parents = {};    // id -> [parent ids]
+    var children = {};   // id -> [child ids]
+    nodes.forEach(function(n) { parents[n.id] = []; children[n.id] = []; });
+    links.forEach(function(l) {
+      var s = typeof l.source === 'object' ? l.source.id : l.source;
+      var t = typeof l.target === 'object' ? l.target.id : l.target;
+      if (!children[s]) children[s] = [];
+      if (!parents[t]) parents[t] = [];
+      children[s].push(t);
+      parents[t].push(s);
+    });
+
+    // BFS from HERO going UPSTREAM (following parent edges backwards)
+    // i.e. starting from hero, we trace what nodes feed INTO it
+    // hop distance = how many steps upstream from hero
+    var hopDist = {};
+    hopDist[HERO_ID] = 0;
+    var queue = [HERO_ID];
+    var qi = 0;
+    while (qi < queue.length) {
+      var cur = queue[qi++];
+      var pars = parents[cur] || [];
+      for (var i = 0; i < pars.length; i++) {
+        var p = pars[i];
+        if (!(p in hopDist)) {
+          hopDist[p] = hopDist[cur] + 1;
+          queue.push(p);
+        }
+      }
+    }
+
+    // downstream of ForceConstants[order=2] = harmonic
+    // downstream of ForceConstants[order=3] = anharmonic
+    var harmDescendants = new Set();
+    var anharmDescendants = new Set();
+
+    function markDescendants(startId, bucket) {
+      var bfsQ = [startId];
+      var bi = 0;
+      var visited = new Set([startId]);
+      while (bi < bfsQ.length) {
+        var c = bfsQ[bi++];
+        bucket.add(c);
+        var chs = children[c] || [];
+        for (var ii = 0; ii < chs.length; ii++) {
+          if (!visited.has(chs[ii])) { visited.add(chs[ii]); bfsQ.push(chs[ii]); }
+        }
+      }
+    }
+
+    if (children['ForceConstants[order=2]']) markDescendants('ForceConstants[order=2]', harmDescendants);
+    if (children['ForceConstants[order=3]']) markDescendants('ForceConstants[order=3]', anharmDescendants);
+
+    return { hopDist: hopDist, harmDescendants: harmDescendants, anharmDescendants: anharmDescendants, parents: parents, children: children };
+  }
+
+  function classifyNode(id, harm, anharm) {
+    var isH = harm.has(id), isA = anharm.has(id);
+    if (isH && isA) return 'mixed';
+    if (isH) return 'harmonic';
+    if (isA) return 'anharmonic';
+    return 'neutral';
+  }
+
+  // ---- position computation ----
+  // angles in radians. harmonic: left hemisphere ~100..260 deg
+  //                   anharmonic: right hemisphere ~-80..80 deg
+  //                   mixed: top/bottom ~260..360 (top) or 80..100 (mid)
+  //                   neutral: outer ring evenly spaced
+  function computePositions(nodes, ancestry) {
+    var hopDist = ancestry.hopDist;
+    var harm = ancestry.harmDescendants;
+    var anharm = ancestry.anharmDescendants;
+
+    // group by (ring, hemi)
+    var maxRing = 0;
+    nodes.forEach(function(n) {
+      if (n.id === HERO_ID) return;
+      var d = (n.id in hopDist) ? hopDist[n.id] : -1;
+      if (d > maxRing) maxRing = d;
+    });
+    var outerRing = maxRing + 2;
+
+    // bucket: ring -> hemi -> [ids]
+    var buckets = {};
+    nodes.forEach(function(n) {
+      if (n.id === HERO_ID) return;
+      var ring, hemi;
+      if (n.id in hopDist) {
+        ring = hopDist[n.id];
+        hemi = classifyNode(n.id, harm, anharm);
+        if (hemi === 'neutral') {
+          ring = outerRing;
+          hemi = 'outer';
+        }
+      } else {
+        ring = outerRing;
+        hemi = 'outer';
+      }
+      if (!buckets[ring]) buckets[ring] = {};
+      if (!buckets[ring][hemi]) buckets[ring][hemi] = [];
+      buckets[ring][hemi].push(n.id);
+    });
+
+    var pos = {};
+    pos[HERO_ID] = { x: 0, y: 0 };
+
+    // angle ranges (degrees)
+    var hemiRanges = {
+      harmonic:   { start: 100, end: 260 },
+      anharmonic: { start: -80, end:  80 },
+      mixed:      { start:  80, end: 100 },   // near top
+      outer:      { start:   0, end: 360 }
+    };
+
+    Object.keys(buckets).forEach(function(ring) {
+      var r = parseInt(ring);
+      var radius = r * RING_GAP;
+      if (r === outerRing) radius = (maxRing + 2) * RING_GAP * 1.2;
+
+      Object.keys(buckets[r]).forEach(function(hemi) {
+        var ids = buckets[r][hemi];
+        var range = hemiRanges[hemi] || hemiRanges['outer'];
+        var spanDeg = range.end - range.start;
+        // for mixed/tight sectors, expand span if few nodes
+        if (spanDeg < 30 && ids.length > 1) spanDeg = Math.min(50, ids.length * 18);
+        var n = ids.length;
+        ids.forEach(function(id, i) {
+          var frac = n === 1 ? 0.5 : i / (n - 1);
+          var deg = range.start + frac * spanDeg;
+          // if outer full circle, distribute including wrapping
+          if (hemi === 'outer' && n > 1) {
+            deg = (360 / n) * i;
+          }
+          var rad = deg * Math.PI / 180;
+          pos[id] = {
+            x: Math.cos(rad) * radius,
+            y: Math.sin(rad) * radius
+          };
+        });
+      });
+    });
+
+    return pos;
+  }
+
+  // ---- path finding (ancestors toward hero) ----
+  function findSpoke(id, parents, visited) {
+    var path = [id];
+    var cur = id;
+    visited = visited || new Set();
+    visited.add(id);
+    // follow first parent that gets us closer to hero
+    while (cur !== HERO_ID) {
+      var pars = parents[cur] || [];
+      var next = null;
+      for (var i = 0; i < pars.length; i++) {
+        if (!visited.has(pars[i])) { next = pars[i]; break; }
+      }
+      if (!next) break;
+      visited.add(next);
+      path.push(next);
+      cur = next;
+    }
+    return path;
+  }
+
+  // ---- rendering ----
+  var edgeEls = {};   // edgeKey -> svgElement
+  var nodeEls = {};   // id -> g element
+  var ringEls = [];
+  var rendered = false;
+
+  function render() {
+    if (!graphData) return;
+    var nodes = graphData.nodes;
+    var links = graphData.links;
+    var ancestry = buildAncestry(nodes, links);
+    var pos = computePositions(nodes, ancestry);
+    nodePositions = pos;
+
+    // guide rings
+    var ringsG = document.getElementById('rings');
+    ringsG.innerHTML = '';
+    var maxR = 0;
+    nodes.forEach(function(n) {
+      var p = pos[n.id];
+      if (!p) return;
+      var r = Math.sqrt(p.x*p.x + p.y*p.y);
+      if (r > maxR) maxR = r;
+    });
+    for (var ri = RING_GAP; ri <= maxR + 10; ri += RING_GAP) {
+      var ring = svgEl('circle', {
+        cx: CX, cy: CY, r: ri,
+        fill: 'none',
+        stroke: 'rgba(255,255,255,0.035)',
+        'stroke-width': 1,
+        'stroke-dasharray': '4 8'
+      });
+      ringsG.appendChild(ring);
+    }
+
+    // hemisphere dividers (subtle)
+    var hlG = document.getElementById('hemi-labels');
+    hlG.innerHTML = '';
+    var lineLen = maxR + 60;
+    // vertical divider
+    var vLine = svgEl('line', {
+      x1: CX, y1: CY - lineLen, x2: CX, y2: CY + lineLen,
+      stroke: 'rgba(255,255,255,0.04)', 'stroke-width': 1
+    });
+    hlG.appendChild(vLine);
+
+    // edges
+    var edgesG = document.getElementById('edges');
+    edgesG.innerHTML = '';
+    edgeEls = {};
+
+    // collect unique edges
+    var edgeMap = {};
+    links.forEach(function(l) {
+      var s = typeof l.source === 'object' ? l.source.id : l.source;
+      var t = typeof l.target === 'object' ? l.target.id : l.target;
+      var key = s + '|' + t;
+      if (!edgeMap[key]) edgeMap[key] = { source: s, target: t, kind: l.kind };
+    });
+
+    Object.keys(edgeMap).forEach(function(key) {
+      var e = edgeMap[key];
+      var sp = pos[e.source], tp = pos[e.target];
+      if (!sp || !tp) return;
+      // curved arc bowing toward center (0,0)
+      var mx = (sp.x + tp.x) / 2;
+      var my = (sp.y + tp.y) / 2;
+      // pull midpoint toward center by 25%
+      var controlX = mx * 0.65;
+      var controlY = my * 0.65;
+      var isParam = e.kind === 'param';
+      var pathD = 'M ' + sp.x + ' ' + sp.y + ' Q ' + controlX + ' ' + controlY + ' ' + tp.x + ' ' + tp.y;
+      var pathEl = svgEl('path', {
+        d: pathD,
+        fill: 'none',
+        stroke: isParam ? 'rgba(255,200,80,0.15)' : 'rgba(100,160,255,0.18)',
+        'stroke-width': isParam ? 1 : 1.2,
+        'stroke-dasharray': isParam ? '3 5' : 'none',
+        'marker-end': 'url(#arrow)'
+      });
+      edgesG.appendChild(pathEl);
+      edgeEls[key] = pathEl;
+    });
+
+    // nodes
+    var nodesG = document.getElementById('nodes-g');
+    nodesG.innerHTML = '';
+    nodeEls = {};
+
+    nodes.forEach(function(n) {
+      var p = pos[n.id];
+      if (!p) return;
+      if (n.id === HERO_ID) return; // hero drawn separately
+
+      var g = svgEl('g', {
+        transform: 'translate(' + p.x + ',' + p.y + ')',
+        style: 'cursor:pointer'
+      });
+      g.setAttribute('data-id', n.id);
+
+      var isParam = n.type === 'parameter';
+      var isHidden = n.type === 'hidden';
+      var isObs = n.type === 'observable';
+
+      // chip background
+      var fill = isParam ? 'rgba(18,14,6,0.85)' : isHidden ? 'rgba(14,10,24,0.88)' : 'rgba(8,14,26,0.88)';
+      var stroke = isParam ? '#8a6a20' : isHidden ? '#5a3ea8' : '#2a6a9a';
+      var strokeW = isParam ? '1' : '1.5';
+      var strokeDash = isParam ? '4 3' : 'none';
+
+      var rect = svgEl('rect', {
+        x: -(CHIP_W/2), y: -(CHIP_H/2),
+        width: CHIP_W, height: CHIP_H,
+        rx: CHIP_R, ry: CHIP_R,
+        fill: fill,
+        stroke: stroke,
+        'stroke-width': strokeW,
+        'stroke-dasharray': strokeDash,
+        opacity: isHidden ? 0.75 : 1
+      });
+      g.appendChild(rect);
+
+      // foreground label (KaTeX rendered to foreignObject)
+      var fo = svgEl('foreignObject', {
+        x: -(CHIP_W/2), y: -(CHIP_H/2),
+        width: CHIP_W, height: CHIP_H
+      });
+      var div = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+      div.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden;pointer-events:none;';
+      div.style.color = isParam ? '#c8a84a' : isHidden ? '#9b7eea' : '#7ec8ff';
+      div.style.fontSize = '9px';
+      if (n.symbol) {
+        div.innerHTML = renderKatex(n.symbol, false);
+      } else {
+        div.style.fontSize = '8px';
+        div.textContent = n.id.substring(0, 14);
+      }
+      fo.appendChild(div);
+      g.appendChild(fo);
+
+      // hit area (transparent, full chip + margin)
+      var hit = svgEl('rect', {
+        x: -(CHIP_W/2+8), y: -(CHIP_H/2+8),
+        width: CHIP_W+16, height: CHIP_H+16,
+        rx: CHIP_R+4, ry: CHIP_R+4,
+        fill: 'transparent',
+        stroke: 'none'
+      });
+      g.appendChild(hit);
+
+      g.addEventListener('click', function(ev) {
+        ev.stopPropagation();
+        selectNode(n.id, ancestry.parents);
+      });
+
+      nodesG.appendChild(g);
+      nodeEls[n.id] = g;
+    });
+
+    // hero (in hero-g, not rotating)
+    drawHero(pos[HERO_ID], nodes.find(function(n){ return n.id === HERO_ID; }), ancestry.parents);
+
+    rendered = true;
+  }
+
+  function drawHero(p, node, parents) {
+    var g = document.getElementById('hero-g');
+    g.innerHTML = '';
+
+    // We draw the hero at fixed CX, CY in screen space
+    // The orbital field rotates but hero stays put
+    var hx = CX, hy = CY;
+
+    // outer glow
+    var glow = svgEl('circle', {
+      cx: hx, cy: hy, r: 70,
+      fill: 'url(#hero-glow)',
+      filter: 'url(#hero-blur)',
+      opacity: 0.9
+    });
+    g.appendChild(glow);
+
+    // mid halo
+    var halo = svgEl('circle', {
+      cx: hx, cy: hy, r: 28,
+      fill: 'rgba(255,200,60,0.18)',
+      stroke: 'rgba(255,220,80,0.4)',
+      'stroke-width': 1.5
+    });
+    g.appendChild(halo);
+
+    // core
+    var core = svgEl('circle', {
+      cx: hx, cy: hy, r: 16,
+      fill: 'url(#hero-core)',
+      filter: 'url(#node-glow)'
+    });
+    g.appendChild(core);
+
+    // symbol
+    if (node && node.symbol) {
+      var fo = svgEl('foreignObject', { x: hx-30, y: hy-14, width: 60, height: 28 });
+      var div = document.createElementNS('http://www.w3.org/1999/xhtml', 'div');
+      div.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff8cc;pointer-events:none;';
+      div.innerHTML = renderKatex(node.symbol, false);
+      fo.appendChild(div);
+      g.appendChild(fo);
+    }
+
+    // hit area
+    var hit = svgEl('circle', { cx: hx, cy: hy, r: 36, fill: 'transparent', style: 'cursor:pointer' });
+    hit.addEventListener('click', function(ev) {
+      ev.stopPropagation();
+      selectNode(HERO_ID, parents);
+    });
+    g.appendChild(hit);
+  }
+
+  // ---- selection & panel ----
+  function selectNode(id, parents) {
+    selectedId = id;
+    // reset all edges
+    var edgesG = document.getElementById('edges');
+    var paths = edgesG.querySelectorAll('path');
+    paths.forEach(function(p) {
+      p.setAttribute('stroke', p.getAttribute('stroke').indexOf('255,200,80') >= 0 ? 'rgba(255,200,80,0.15)' : 'rgba(100,160,255,0.18)');
+      p.setAttribute('stroke-width', p.getAttribute('stroke').indexOf('255,200,80') >= 0 ? '1' : '1.2');
+      p.setAttribute('opacity', '1');
+      p.setAttribute('marker-end', 'url(#arrow)');
+    });
+    // reset node borders
+    Object.keys(nodeEls).forEach(function(nid) {
+      var rect = nodeEls[nid].querySelector('rect');
+      if (rect) { rect.setAttribute('filter', ''); }
+    });
+
+    // highlight spoke
+    var spoke = findSpokeIds(id, parents);
+    highlightSpoke(spoke);
+
+    // open panel
+    openPanel(id);
+  }
+
+  function findSpokeIds(id, parents) {
+    // BFS toward HERO_ID following parent edges
+    var visited = {};
+    var queue = [id];
+    var prev = {};
+    visited[id] = true;
+    var found = false;
+    while (queue.length > 0) {
+      var cur = queue.shift();
+      if (cur === HERO_ID) { found = true; break; }
+      var pars = parents[cur] || [];
+      for (var i = 0; i < pars.length; i++) {
+        if (!visited[pars[i]]) {
+          visited[pars[i]] = true;
+          prev[pars[i]] = cur;
+          queue.push(pars[i]);
+        }
+      }
+    }
+    // rebuild path
+    if (!found) return [id];
+    var path = [HERO_ID];
+    var c = HERO_ID;
+    while (prev[c] !== undefined) {
+      c = prev[c];  // no - we went backwards
+      break; // just highlight direct edges
+    }
+    // collect all edges in paths from id -> HERO ancestors
+    return spoke_collect(id, parents, new Set(), []);
+  }
+
+  function spoke_collect(id, parents, visited, acc) {
+    if (visited.has(id)) return acc;
+    visited.add(id);
+    acc.push(id);
+    if (id === HERO_ID) return acc;
+    var pars = parents[id] || [];
+    for (var i = 0; i < pars.length; i++) {
+      spoke_collect(pars[i], parents, visited, acc);
+    }
+    return acc;
+  }
+
+  function highlightSpoke(spokeIds) {
+    var idSet = new Set(spokeIds);
+    var edgesG = document.getElementById('edges');
+    var paths = edgesG.querySelectorAll('path');
+
+    // dim all
+    paths.forEach(function(p) {
+      p.setAttribute('opacity', '0.15');
+    });
+
+    // highlight edges in spoke
+    // We re-check each edge key
+    Object.keys(edgeEls).forEach(function(key) {
+      var parts = key.split('|');
+      var s = parts[0], t = parts[1];
+      if (idSet.has(s) && idSet.has(t)) {
+        var el = edgeEls[key];
+        el.setAttribute('opacity', '1');
+        el.setAttribute('stroke', 'rgba(255,200,80,0.85)');
+        el.setAttribute('stroke-width', '2');
+        el.setAttribute('marker-end', 'url(#arrow-sel)');
+        // bring to front
+        el.parentNode.appendChild(el);
+      }
+    });
+
+    // highlight nodes in spoke
+    idSet.forEach(function(nid) {
+      if (nodeEls[nid]) {
+        var rect = nodeEls[nid].querySelector('rect');
+        if (rect) {
+          rect.setAttribute('stroke', '#ffe066');
+          rect.setAttribute('stroke-width', '2');
+          rect.setAttribute('filter', 'url(#node-glow-sel)');
+        }
+      }
+    });
+  }
+
+  function openPanel(id) {
+    var node = graphData.nodes.find(function(n) { return n.id === id; });
+    if (!node) return;
+
+    var panel = document.getElementById('panel');
+    var badge = document.getElementById('panel-type-badge');
+    badge.textContent = node.type;
+    badge.className = 'badge-' + node.type;
+
+    var symEl = document.getElementById('panel-symbol');
+    if (node.symbol) {
+      symEl.innerHTML = renderKatex(node.symbol, true);
+    } else {
+      symEl.textContent = '';
+    }
+
+    document.getElementById('panel-id').textContent = id;
+
+    var fwrap = document.getElementById('panel-formula-wrap');
+    var fEl = document.getElementById('panel-formula');
+    if (node.formula) {
+      fwrap.style.display = '';
+      fEl.innerHTML = renderKatex(node.formula, true);
+    } else {
+      fwrap.style.display = 'none';
+    }
+
+    // instances
+    var instEl = document.getElementById('panel-instances');
+    instEl.innerHTML = '';
+    var matches = instancesData.filter(function(inst) { return inst.variable === id; });
+    if (matches.length === 0) {
+      var noEl = document.createElement('div');
+      noEl.id = 'panel-no-instances';
+      noEl.textContent = 'No measured values';
+      instEl.appendChild(noEl);
+    } else {
+      matches.forEach(function(inst) {
+        var card = document.createElement('div');
+        card.className = 'instance-card';
+        var mat = document.createElement('div');
+        mat.className = 'instance-material';
+        mat.textContent = inst.material || '&#x2014;';
+        card.appendChild(mat);
+        var val = document.createElement('div');
+        val.className = 'instance-value';
+        var valStr = inst.value !== undefined ? String(inst.value) : '?';
+        if (inst.uncertainty) valStr += ' &plusmn; ' + inst.uncertainty;
+        if (inst.units) valStr += ' ' + escapeHtml(inst.units);
+        val.innerHTML = valStr;
+        card.appendChild(val);
+        if (inst.source && inst.source.ref) {
+          var src = document.createElement('div');
+          src.className = 'instance-source';
+          src.textContent = inst.source.ref;
+          card.appendChild(src);
+        }
+        instEl.appendChild(card);
+      });
+    }
+
+    panel.classList.add('open');
+  }
+
+  function closePanel() {
+    document.getElementById('panel').classList.remove('open');
+    selectedId = null;
+    // reset highlights
+    if (graphData) {
+      var edgesG = document.getElementById('edges');
+      var paths = edgesG.querySelectorAll('path');
+      paths.forEach(function(p) {
+        p.setAttribute('opacity', '1');
+        // restore original colors
+        var isParam = p.getAttribute('stroke').indexOf('255,200') >= 0;
+        p.setAttribute('stroke', isParam ? 'rgba(255,200,80,0.15)' : 'rgba(100,160,255,0.18)');
+        p.setAttribute('stroke-width', isParam ? '1' : '1.2');
+        p.setAttribute('marker-end', 'url(#arrow)');
+      });
+      Object.keys(nodeEls).forEach(function(nid) {
+        var n = graphData.nodes.find(function(nn){ return nn.id === nid; });
+        if (!n) return;
+        var rect = nodeEls[nid].querySelector('rect');
+        if (!rect) return;
+        rect.setAttribute('filter', '');
+        var isParam = n.type === 'parameter';
+        var isHidden = n.type === 'hidden';
+        var stroke = isParam ? '#8a6a20' : isHidden ? '#5a3ea8' : '#2a6a9a';
+        rect.setAttribute('stroke', stroke);
+        rect.setAttribute('stroke-width', isParam ? '1' : '1.5');
+      });
+    }
+  }
+
+  document.getElementById('panel-close').addEventListener('click', closePanel);
+  svg.addEventListener('click', function(ev) {
+    if (ev.target === svg || ev.target === bgRect || ev.target.id === 'bg-rect' || ev.target.tagName === 'rect' && ev.target.parentNode.id === 'bg-rect') {
+      closePanel();
+    }
+  });
+
+  // ---- pan & zoom ----
+  var dragging = false, dragStartX, dragStartY, dragVpX, dragVpY;
+  var orbital = document.getElementById('orbital');
+  var heroG = document.getElementById('hero-g');
+  var rings = document.getElementById('rings');
+  var hemiLbls = document.getElementById('hemi-labels');
+
+  function updateTransform() {
+    // orbital group: scale + translate + rotate around CX,CY
+    // We combine scale/translate separately from rotation
+    // The orbital group is centered at CX,CY in screen space
+    var tx = CX + vpX;
+    var ty = CY + vpY;
+    orbital.setAttribute('transform',
+      'translate(' + tx + ',' + ty + ') scale(' + vpScale + ') rotate(' + rotAngle + ')'
+    );
+    // rings and hemi labels also follow pan/zoom but not rotation
+    rings.setAttribute('transform', 'translate(' + vpX + ',' + vpY + ') scale(' + vpScale + ' ' + vpScale + ') translate(' + (-CX*(1-1)) + ',' + (-CY*(1-1)) + ')');
+    // simpler: rings centered at CX,CY
+    rings.setAttribute('transform', 'translate(' + (CX + vpX) + ',' + (CY + vpY) + ') scale(' + vpScale + ')');
+    hemiLbls.setAttribute('transform', 'translate(' + (CX + vpX) + ',' + (CY + vpY) + ') scale(' + vpScale + ')');
+    // hero stays at screen CX+vpX, CY+vpY (center of orbital)
+    // Redraw hero at the pan+zoom center
+    if (graphData) {
+      var hg = document.getElementById('hero-g');
+      var hx = CX + vpX, hy = CY + vpY;
+      // reposition hero elements
+      var circles = hg.querySelectorAll('circle');
+      circles.forEach(function(c) { c.setAttribute('cx', hx); c.setAttribute('cy', hy); });
+      var fos = hg.querySelectorAll('foreignObject');
+      fos.forEach(function(fo) {
+        var w = parseFloat(fo.getAttribute('width')) || 60;
+        var h = parseFloat(fo.getAttribute('height')) || 28;
+        fo.setAttribute('x', hx - w/2); fo.setAttribute('y', hy - h/2);
+      });
+    }
+  }
+
+  svg.addEventListener('mousedown', function(ev) {
+    if (ev.button !== 0) return;
+    dragging = true;
+    dragStartX = ev.clientX;
+    dragStartY = ev.clientY;
+    dragVpX = vpX; dragVpY = vpY;
+    svg.classList.add('dragging');
+  });
+  window.addEventListener('mousemove', function(ev) {
+    if (!dragging) return;
+    vpX = dragVpX + (ev.clientX - dragStartX);
+    vpY = dragVpY + (ev.clientY - dragStartY);
+    updateTransform();
+  });
+  window.addEventListener('mouseup', function() {
+    dragging = false;
+    svg.classList.remove('dragging');
+  });
+  svg.addEventListener('wheel', function(ev) {
+    ev.preventDefault();
+    var delta = ev.deltaY > 0 ? 0.88 : 1.14;
+    vpScale = Math.max(0.2, Math.min(4, vpScale * delta));
+    updateTransform();
+  }, { passive: false });
+
+  // touch support
+  var lastTouchDist = null;
+  svg.addEventListener('touchstart', function(ev) {
+    if (ev.touches.length === 1) {
+      dragging = true;
+      dragStartX = ev.touches[0].clientX;
+      dragStartY = ev.touches[0].clientY;
+      dragVpX = vpX; dragVpY = vpY;
+    } else if (ev.touches.length === 2) {
+      dragging = false;
+      var dx = ev.touches[0].clientX - ev.touches[1].clientX;
+      var dy = ev.touches[0].clientY - ev.touches[1].clientY;
+      lastTouchDist = Math.sqrt(dx*dx+dy*dy);
+    }
+  }, { passive: true });
+  svg.addEventListener('touchmove', function(ev) {
+    ev.preventDefault();
+    if (ev.touches.length === 1 && dragging) {
+      vpX = dragVpX + (ev.touches[0].clientX - dragStartX);
+      vpY = dragVpY + (ev.touches[0].clientY - dragStartY);
+      updateTransform();
+    } else if (ev.touches.length === 2 && lastTouchDist) {
+      var dx = ev.touches[0].clientX - ev.touches[1].clientX;
+      var dy = ev.touches[0].clientY - ev.touches[1].clientY;
+      var dist = Math.sqrt(dx*dx+dy*dy);
+      var ratio = dist / lastTouchDist;
+      vpScale = Math.max(0.2, Math.min(4, vpScale * ratio));
+      lastTouchDist = dist;
+      updateTransform();
+    }
+  }, { passive: false });
+  svg.addEventListener('touchend', function() { dragging = false; lastTouchDist = null; });
+
+  // ---- animation loop ----
+  function animate(ts) {
+    if (lastTime !== null && rotating) {
+      var dt = (ts - lastTime) / 1000;
+      rotAngle = (rotAngle + ROT_SPEED_DEG_PER_SEC * dt) % 360;
+      updateTransform();
+    }
+    lastTime = ts;
+    requestAnimationFrame(animate);
+  }
+
+  // ---- play/pause ----
+  var playBtn = document.getElementById('play-btn');
+  playBtn.addEventListener('click', function() {
+    rotating = !rotating;
+    if (rotating) {
+      playBtn.innerHTML = '&#9646;&#9646; Pause';
+      lastTime = null;
+    } else {
+      playBtn.innerHTML = '&#9654; Play';
+    }
+  });
+
+  // ---- click on background ----
+  document.getElementById('bg-rect').addEventListener('click', closePanel);
+
+  // ---- main init ----
+  Promise.all([
+    fetchJSON('../data/graph.json', null),
+    fetchJSON('../data/instances.json', []),
+    fetchJSON('../data/codes.json', {})
+  ]).then(function(results) {
+    graphData = results[0];
+    instancesData = results[1] || [];
+    codesData = results[2] || {};
+
+    if (!graphData || !graphData.nodes) {
+      throw new Error('graph.json missing or invalid');
+    }
+
+    // If hero not found, pick first observable with no children-toward-hero
+    if (!graphData.nodes.find(function(n){ return n.id === HERO_ID; })) {
+      var obs = graphData.nodes.filter(function(n){ return n.type === 'observable'; });
+      if (obs.length > 0) HERO_ID = obs[obs.length-1].id;
+    }
+
+    makeStars();
+    render();
+    updateTransform();
+    requestAnimationFrame(animate);
+  }).catch(function(e) {
+    var bar = document.getElementById('err-bar');
+    bar.style.display = 'block';
+    bar.textContent = 'Data error: ' + e.message;
+  });
+
+  // Wait for KaTeX then render
+  function waitKatex(cb, tries) {
+    tries = tries || 0;
+    if (window.katex) { cb(); return; }
+    if (tries > 40) { cb(); return; }
+    setTimeout(function(){ waitKatex(cb, tries+1); }, 120);
+  }
+
+  // Re-render once KaTeX is ready (deferred script may load after DOMContentLoaded)
+  waitKatex(function() {
+    if (graphData) render();
+  });
+
+})();
+</script>
+</body>
+</html>

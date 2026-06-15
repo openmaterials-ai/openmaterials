@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strata &mdash; Assembly Line</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+    background: #f0f2f5;
+    color: #1e2433;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  #error-bar {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    background: #c0392b;
+    color: #fff;
+    padding: 8px 16px;
+    font-size: 13px;
+    z-index: 9999;
+  }
+
+  #canvas-wrap {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+  }
+
+  svg#main {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: grab;
+  }
+
+  svg#main.panning {
+    cursor: grabbing;
+  }
+
+  /* Band stripes */
+  .band-stripe {
+    rx: 6;
+    ry: 6;
+    opacity: 0.55;
+    transition: opacity 0.15s;
+  }
+  .band-stripe:hover { opacity: 0.85; }
+
+  .band-label {
+    font-size: 10px;
+    font-variant: small-caps;
+    letter-spacing: 0.12em;
+    font-weight: 600;
+    fill: #8892a4;
+    text-anchor: start;
+    dominant-baseline: middle;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  /* Edges */
+  .edge {
+    fill: none;
+    stroke-width: 1.2;
+    opacity: 0.5;
+    transition: opacity 0.15s, stroke-width 0.15s;
+  }
+
+  .edge-arrow {
+    opacity: 0.5;
+    transition: opacity 0.15s;
+  }
+
+  .edge.highlighted, .edge-arrow.highlighted {
+    opacity: 1;
+    stroke-width: 2;
+  }
+
+  .edge.dimmed, .edge-arrow.dimmed { opacity: 0.1; }
+
+  /* Nodes */
+  .node-bg {
+    rx: 7;
+    ry: 7;
+    stroke-width: 1.5;
+    transition: filter 0.15s;
+  }
+
+  .node-wrap:hover .node-bg {
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.18));
+  }
+
+  .node-wrap.selected .node-bg {
+    stroke-width: 2.5;
+    filter: drop-shadow(0 3px 10px rgba(99,102,241,0.35));
+  }
+
+  .node-symbol {
+    font-size: 11px;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+    user-select: none;
+    fill: #1e2433;
+  }
+
+  /* Node type colours */
+  .node-observable .node-bg {
+    fill: #eef0fd;
+    stroke: #6366f1;
+  }
+
+  .node-hidden .node-bg {
+    fill: #f0f4f8;
+    stroke: #64748b;
+  }
+
+  .node-parameter .node-bg {
+    fill: #fdf8ed;
+    stroke: #b78200;
+    stroke-dasharray: 5 3;
+  }
+
+  /* Side panel */
+  #panel {
+    position: fixed;
+    top: 0; right: 0;
+    width: 300px;
+    height: 100vh;
+    background: #fff;
+    border-left: 1px solid #dce1eb;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 100;
+    overflow: hidden;
+  }
+
+  #panel.open {
+    transform: translateX(0);
+    box-shadow: -4px 0 24px rgba(0,0,0,0.08);
+  }
+
+  #panel-header {
+    padding: 20px 18px 14px;
+    border-bottom: 1px solid #eaecf0;
+    background: #f8f9fc;
+    flex-shrink: 0;
+  }
+
+  #panel-close {
+    position: absolute;
+    top: 14px; right: 14px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    color: #8892a4;
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  #panel-close:hover { background: #eaecf0; color: #1e2433; }
+
+  #panel-symbol {
+    font-size: 22px;
+    min-height: 36px;
+    margin-bottom: 6px;
+  }
+
+  #panel-id {
+    font-size: 11px;
+    color: #8892a4;
+    font-family: 'Courier New', monospace;
+    word-break: break-all;
+    margin-bottom: 4px;
+  }
+
+  #panel-type-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    margin-top: 4px;
+  }
+
+  .badge-observable { background: #eef0fd; color: #4f46e5; border: 1px solid #c7d2fe; }
+  .badge-hidden     { background: #f0f4f8; color: #475569; border: 1px solid #cbd5e1; }
+  .badge-parameter  { background: #fdf8ed; color: #92400e; border: 1px solid #fcd34d; }
+
+  #panel-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 18px;
+  }
+
+  .panel-section-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8892a4;
+    margin-bottom: 8px;
+    margin-top: 16px;
+  }
+
+  .panel-section-title:first-child { margin-top: 0; }
+
+  #panel-formula {
+    background: #f8f9fc;
+    border: 1px solid #eaecf0;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 13px;
+    min-height: 42px;
+    overflow-x: auto;
+  }
+
+  .instance-card {
+    background: #f8f9fc;
+    border: 1px solid #eaecf0;
+    border-radius: 6px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 12px;
+  }
+
+  .instance-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: #1e2433;
+    margin-bottom: 3px;
+  }
+
+  .instance-material {
+    font-size: 11px;
+    color: #4f46e5;
+    font-weight: 600;
+    margin-bottom: 3px;
+  }
+
+  .instance-ref {
+    font-size: 10px;
+    color: #8892a4;
+    font-family: 'Courier New', monospace;
+    word-break: break-all;
+  }
+
+  .no-instances {
+    font-size: 12px;
+    color: #b0b8c9;
+    font-style: italic;
+  }
+
+  /* Controls row */
+  #controls {
+    position: fixed;
+    bottom: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 8px;
+    z-index: 50;
+    pointer-events: none;
+  }
+
+  .ctrl-btn {
+    background: rgba(255,255,255,0.92);
+    border: 1px solid #dce1eb;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: #475569;
+    cursor: pointer;
+    pointer-events: all;
+    backdrop-filter: blur(6px);
+    font-family: inherit;
+  }
+
+  .ctrl-btn:hover { background: #fff; color: #1e2433; border-color: #b0b8c9; }
+
+  /* Legend */
+  #legend {
+    position: fixed;
+    bottom: 58px;
+    left: 18px;
+    background: rgba(255,255,255,0.92);
+    border: 1px solid #dce1eb;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 11px;
+    backdrop-filter: blur(6px);
+    z-index: 50;
+    min-width: 150px;
+  }
+
+  .legend-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8892a4;
+    margin-bottom: 8px;
+  }
+
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 5px;
+  }
+
+  .legend-swatch {
+    width: 20px;
+    height: 12px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .legend-label { color: #475569; }
+
+  /* Hint */
+  #hint {
+    position: fixed;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,0.88);
+    border: 1px solid #dce1eb;
+    border-radius: 20px;
+    padding: 5px 16px;
+    font-size: 11.5px;
+    color: #8892a4;
+    backdrop-filter: blur(6px);
+    z-index: 50;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<div id="error-bar"></div>
+
+<div id="canvas-wrap">
+  <svg id="main" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#94a3b8"/>
+      </marker>
+      <marker id="arrowhead-hi" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#6366f1"/>
+      </marker>
+      <marker id="arrowhead-dim" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="#94a3b8" opacity="0.15"/>
+      </marker>
+    </defs>
+    <g id="scene"></g>
+  </svg>
+</div>
+
+<div id="hint">Click a node to inspect &nbsp;&middot;&nbsp; Drag to pan &nbsp;&middot;&nbsp; Scroll to zoom</div>
+
+<div id="legend">
+  <div class="legend-title">Node types</div>
+  <div class="legend-row">
+    <div class="legend-swatch" style="background:#eef0fd;border:1.5px solid #6366f1;"></div>
+    <span class="legend-label">Observable</span>
+  </div>
+  <div class="legend-row">
+    <div class="legend-swatch" style="background:#f0f4f8;border:1.5px solid #64748b;"></div>
+    <span class="legend-label">Hidden</span>
+  </div>
+  <div class="legend-row">
+    <div class="legend-swatch" style="background:#fdf8ed;border:1.5px dashed #b78200;"></div>
+    <span class="legend-label">Parameter</span>
+  </div>
+</div>
+
+<div id="controls">
+  <button class="ctrl-btn" onclick="resetView()">Reset view</button>
+</div>
+
+<div id="panel">
+  <div id="panel-header">
+    <button id="panel-close" title="Close" onclick="clearSelection()">&times;</button>
+    <div id="panel-symbol"></div>
+    <div id="panel-id"></div>
+    <span id="panel-type-badge"></span>
+  </div>
+  <div id="panel-body">
+    <div class="panel-section-title">Formula</div>
+    <div id="panel-formula"></div>
+    <div class="panel-section-title" id="instances-title">Instances</div>
+    <div id="panel-instances"></div>
+  </div>
+</div>
+
+<script>
+window.onerror = function(msg, src, line, col, err) {
+  var bar = document.getElementById('error-bar');
+  bar.style.display = 'block';
+  bar.textContent = 'JS error: ' + msg + ' (' + (src||'') + ':' + line + ')';
+};
+
+// ---- Band definitions (first match wins) ----
+var BANDS = [
+  {
+    id: 'sources',
+    label: 'Sources',
+    color: '#fef3c7',
+    borderColor: '#f59e0b',
+    test: function(n) {
+      return n.type === 'parameter' ||
+        ['Potential','Structure','Temperature','BornCharges','DielectricTensor','IsotopeAbundances'].indexOf(n.id) !== -1 ||
+        n.layer === 0;
+    }
+  },
+  {
+    id: 'harmonic',
+    label: 'Harmonic Structure',
+    color: '#dbeafe',
+    borderColor: '#3b82f6',
+    test: function(n) {
+      return /ForceConstants\[order=2\]|DynamicalMatrix|Frequency|Eigenvectors|GroupVelocity|PhononDOS/.test(n.id);
+    }
+  },
+  {
+    id: 'thermo',
+    label: 'Thermodynamics',
+    color: '#d1fae5',
+    borderColor: '#10b981',
+    test: function(n) {
+      return /HeatCapacity|FreeEnergy|Entropy|InternalEnergy|Molar|Gruneisen|Volumetric/.test(n.id);
+    }
+  },
+  {
+    id: 'scattering',
+    label: 'Scattering',
+    color: '#fce7f3',
+    borderColor: '#ec4899',
+    test: function(n) {
+      return /Linewidth|PhaseSpace|ForceConstants\[order=3\]/.test(n.id);
+    }
+  },
+  {
+    id: 'transport',
+    label: 'Transport',
+    color: '#ede9fe',
+    borderColor: '#7c3aed',
+    test: function(n) {
+      return /MeanFreeDisplacement|Trajectory|HeatCurrent|VelocityAutocorrelation|MeanSquaredDisplacement|Cumulative|Diffusiv/.test(n.id);
+    }
+  },
+  {
+    id: 'observables',
+    label: 'Observables',
+    color: '#fee2e2',
+    borderColor: '#ef4444',
+    test: function(n) {
+      return /ThermalConductivity|ActivationEnergy/.test(n.id);
+    }
+  }
+];
+
+var MISC_BAND = { id: 'misc', label: 'Misc', color: '#f1f5f9', borderColor: '#94a3b8' };
+
+function assignBand(node) {
+  for (var i = 0; i < BANDS.length; i++) {
+    if (BANDS[i].test(node)) return BANDS[i];
+  }
+  return MISC_BAND;
+}
+
+// ---- Layout constants ----
+var NODE_W = 130;
+var NODE_H = 42;
+var NODE_GAP_X = 22;
+var NODE_GAP_Y = 16;
+var BAND_PAD_TOP = 34;
+var BAND_PAD_BOT = 18;
+var BAND_PAD_LEFT = 110;
+var BAND_PAD_RIGHT = 30;
+var BAND_GAP = 14;
+var NODES_PER_ROW = 6;
+var LABEL_MARGIN = 14;
+
+// ---- Pan/Zoom state ----
+var transform = { x: 0, y: 0, k: 1 };
+var panning = false;
+var panStart = { x: 0, y: 0, tx: 0, ty: 0 };
+
+// ---- Render state ----
+var allNodes = [];
+var allLinks = [];
+var allInstances = [];
+var allCodes = {};
+var selectedNodeId = null;
+var nodePositions = {};  // id -> {cx, cy, band}
+var nodeBandMap = {};    // id -> band
+
+// ---- Utilities ----
+function escAttr(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function safeId(id) {
+  // CSS.escape equivalent inline
+  if (typeof CSS !== 'undefined' && CSS.escape) return CSS.escape(id);
+  return id.replace(/([^\w-])/g, '\\$1');
+}
+
+function renderKatex(el, tex, displayMode) {
+  if (!tex) { el.textContent = ''; return; }
+  try {
+    katex.render(tex, el, { displayMode: !!displayMode, throwOnError: false, trust: true });
+  } catch(e) {
+    el.textContent = tex;
+  }
+}
+
+// ---- Pan/Zoom ----
+var svg = document.getElementById('main');
+var scene = document.getElementById('scene');
+
+function applyTransform() {
+  scene.setAttribute('transform', 'translate(' + transform.x + ',' + transform.y + ') scale(' + transform.k + ')');
+}
+
+svg.addEventListener('mousedown', function(e) {
+  if (e.target !== svg && e.target.closest && !e.target.closest('.node-wrap') && !e.target.closest('.band-stripe')) {
+    // drag on empty space
+  }
+  if (e.button !== 0) return;
+  panning = true;
+  panStart = { x: e.clientX, y: e.clientY, tx: transform.x, ty: transform.y };
+  svg.classList.add('panning');
+});
+
+window.addEventListener('mousemove', function(e) {
+  if (!panning) return;
+  transform.x = panStart.tx + (e.clientX - panStart.x);
+  transform.y = panStart.ty + (e.clientY - panStart.y);
+  applyTransform();
+});
+
+window.addEventListener('mouseup', function() {
+  panning = false;
+  svg.classList.remove('panning');
+});
+
+svg.addEventListener('wheel', function(e) {
+  e.preventDefault();
+  var factor = e.deltaY < 0 ? 1.1 : 0.91;
+  var rect = svg.getBoundingClientRect();
+  var mx = e.clientX - rect.left;
+  var my = e.clientY - rect.top;
+  transform.x = mx - factor * (mx - transform.x);
+  transform.y = my - factor * (my - transform.y);
+  transform.k = Math.max(0.15, Math.min(4, transform.k * factor));
+  applyTransform();
+}, { passive: false });
+
+function resetView() {
+  // Fit the scene into viewport
+  var vw = svg.clientWidth;
+  var vh = svg.clientHeight;
+  var sceneW = layoutWidth + BAND_PAD_LEFT + BAND_PAD_RIGHT;
+  var sceneH = totalHeight;
+  var kx = (vw - 40) / sceneW;
+  var ky = (vh - 40) / sceneH;
+  var k = Math.min(kx, ky, 1);
+  transform.k = k;
+  transform.x = (vw - sceneW * k) / 2;
+  transform.y = 20;
+  applyTransform();
+}
+
+// ---- Data fetching ----
+var v = '?v=' + Date.now();
+
+function fetchJSON(url, fallback) {
+  return fetch(url).then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }).catch(function() { return fallback; });
+}
+
+var layoutWidth = 0;
+var totalHeight = 0;
+
+Promise.all([
+  fetchJSON('../data/graph.json' + v, { nodes: [], links: [] }),
+  fetchJSON('../data/instances.json' + v, []),
+  fetchJSON('../data/codes.json' + v, {})
+]).then(function(results) {
+  allNodes    = results[0].nodes || [];
+  allLinks    = results[0].links || [];
+  allInstances = results[1] || [];
+  allCodes    = results[2] || {};
+  render();
+});
+
+// ---- Main render ----
+function render() {
+  // 1. Assign bands
+  var bandNodes = {};
+  BANDS.forEach(function(b) { bandNodes[b.id] = []; });
+  bandNodes['misc'] = [];
+
+  allNodes.forEach(function(n) {
+    var b = assignBand(n);
+    nodeBandMap[n.id] = b;
+    if (!bandNodes[b.id]) bandNodes[b.id] = [];
+    bandNodes[b.id].push(n);
+  });
+
+  // 2. Order bands (BANDS order + misc if any)
+  var orderedBands = BANDS.slice();
+  if (bandNodes['misc'] && bandNodes['misc'].length > 0) {
+    orderedBands.push(MISC_BAND);
+  }
+
+  // 3. Determine column count for layout
+  var maxNodesPerBand = 0;
+  orderedBands.forEach(function(b) {
+    var ns = bandNodes[b.id] || [];
+    if (ns.length > maxNodesPerBand) maxNodesPerBand = ns.length;
+  });
+  var cols = Math.min(NODES_PER_ROW, Math.max(3, maxNodesPerBand));
+
+  layoutWidth = cols * NODE_W + (cols - 1) * NODE_GAP_X;
+
+  // 4. Compute positions per band
+  var curY = 10;
+  var bandRects = [];  // {band, x, y, w, h}
+
+  orderedBands.forEach(function(band) {
+    var ns = bandNodes[band.id] || [];
+    if (ns.length === 0) return;
+
+    // Sort nodes: by layer asc, then id asc
+    ns.sort(function(a, b) {
+      if (a.layer !== b.layer) return a.layer - b.layer;
+      return a.id < b.id ? -1 : 1;
+    });
+
+    var rows = Math.ceil(ns.length / cols);
+    var bandH = BAND_PAD_TOP + rows * NODE_H + (rows - 1) * NODE_GAP_Y + BAND_PAD_BOT;
+
+    var bx = 0;
+    var by = curY;
+
+    // Position each node
+    ns.forEach(function(n, idx) {
+      var row = Math.floor(idx / cols);
+      var col = idx % cols;
+      var cx = bx + BAND_PAD_LEFT + col * (NODE_W + NODE_GAP_X) + NODE_W / 2;
+      var cy = by + BAND_PAD_TOP + row * (NODE_H + NODE_GAP_Y) + NODE_H / 2;
+      nodePositions[n.id] = { cx: cx, cy: cy, band: band };
+    });
+
+    bandRects.push({ band: band, x: bx, y: by, w: BAND_PAD_LEFT + layoutWidth + BAND_PAD_RIGHT, h: bandH });
+    curY += bandH + BAND_GAP;
+  });
+
+  totalHeight = curY;
+
+  // 5. Build SVG
+  var svg_el = document.getElementById('main');
+  var sceneEl = document.getElementById('scene');
+  sceneEl.innerHTML = '';
+
+  // Background rect
+  var bg = document.createElementNS('http://www.w3.org/2000/svg','rect');
+  bg.setAttribute('x', -2000);
+  bg.setAttribute('y', -2000);
+  bg.setAttribute('width', 10000);
+  bg.setAttribute('height', 10000);
+  bg.setAttribute('fill', '#f0f2f5');
+  bg.setAttribute('class', 'svg-bg');
+  sceneEl.appendChild(bg);
+
+  // Band stripes
+  var bandLayer = document.createElementNS('http://www.w3.org/2000/svg','g');
+  bandLayer.setAttribute('id', 'band-layer');
+  sceneEl.appendChild(bandLayer);
+
+  bandRects.forEach(function(br) {
+    var rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('class', 'band-stripe');
+    rect.setAttribute('x', br.x + 4);
+    rect.setAttribute('y', br.y + 4);
+    rect.setAttribute('width', br.w - 8);
+    rect.setAttribute('height', br.h - 8);
+    rect.setAttribute('fill', br.band.color);
+    rect.setAttribute('stroke', br.band.borderColor);
+    rect.setAttribute('stroke-width', '1');
+    rect.setAttribute('data-band', escAttr(br.band.id));
+    rect.style.opacity = '0.45';
+    rect.addEventListener('mouseenter', function() { rect.style.opacity = '0.75'; });
+    rect.addEventListener('mouseleave', function() { rect.style.opacity = '0.45'; });
+    bandLayer.appendChild(rect);
+
+    // Band label
+    var lbl = document.createElementNS('http://www.w3.org/2000/svg','text');
+    lbl.setAttribute('class', 'band-label');
+    lbl.setAttribute('x', br.x + LABEL_MARGIN);
+    lbl.setAttribute('y', br.y + br.h / 2);
+    lbl.setAttribute('fill', br.band.borderColor);
+    lbl.textContent = br.band.label;
+    bandLayer.appendChild(lbl);
+  });
+
+  // Edge layer
+  var edgeLayer = document.createElementNS('http://www.w3.org/2000/svg','g');
+  edgeLayer.setAttribute('id', 'edge-layer');
+  sceneEl.appendChild(edgeLayer);
+
+  allLinks.forEach(function(lk, idx) {
+    var sp = nodePositions[lk.source];
+    var tp = nodePositions[lk.target];
+    if (!sp || !tp) return;
+
+    var x1 = sp.cx, y1 = sp.cy + NODE_H / 2;
+    var x2 = tp.cx, y2 = tp.cy - NODE_H / 2 - 6;
+
+    // Bezier control points
+    var dy = y2 - y1;
+    var cpY = Math.abs(dy) * 0.5;
+    var d = 'M ' + x1 + ' ' + y1 +
+            ' C ' + x1 + ' ' + (y1 + cpY) + ', ' +
+                    x2 + ' ' + (y2 - cpY) + ', ' +
+                    x2 + ' ' + y2;
+
+    var path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('class', 'edge');
+    path.setAttribute('d', d);
+    path.setAttribute('stroke', '#94a3b8');
+    path.setAttribute('marker-end', 'url(#arrowhead)');
+    path.setAttribute('data-source', escAttr(lk.source));
+    path.setAttribute('data-target', escAttr(lk.target));
+    path.setAttribute('data-idx', idx);
+    edgeLayer.appendChild(path);
+  });
+
+  // Node layer
+  var nodeLayer = document.createElementNS('http://www.w3.org/2000/svg','g');
+  nodeLayer.setAttribute('id', 'node-layer');
+  sceneEl.appendChild(nodeLayer);
+
+  allNodes.forEach(function(n) {
+    var pos = nodePositions[n.id];
+    if (!pos) return;
+
+    var g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class', 'node-wrap node-' + n.type);
+    g.setAttribute('transform', 'translate(' + pos.cx + ',' + pos.cy + ')');
+    g.setAttribute('data-id', escAttr(n.id));
+    g.style.cursor = 'pointer';
+
+    var rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('class', 'node-bg');
+    rect.setAttribute('x', -NODE_W/2);
+    rect.setAttribute('y', -NODE_H/2);
+    rect.setAttribute('width', NODE_W);
+    rect.setAttribute('height', NODE_H);
+    g.appendChild(rect);
+
+    // Symbol text (rendered after KaTeX loads, fallback plain text)
+    var fo = document.createElementNS('http://www.w3.org/2000/svg','foreignObject');
+    fo.setAttribute('x', -NODE_W/2 + 4);
+    fo.setAttribute('y', -NODE_H/2);
+    fo.setAttribute('width', NODE_W - 8);
+    fo.setAttribute('height', NODE_H);
+    fo.style.overflow = 'visible';
+
+    var div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:center;justify-content:center;height:' + NODE_H + 'px;font-size:12px;';
+    try {
+      katex.render(n.symbol || n.id, div, { throwOnError: false, displayMode: false });
+    } catch(e) {
+      div.textContent = n.symbol || n.id;
+    }
+    fo.appendChild(div);
+    g.appendChild(fo);
+
+    g.addEventListener('click', function(e) {
+      e.stopPropagation();
+      selectNode(n.id);
+    });
+
+    nodeLayer.appendChild(g);
+  });
+
+  // Click on background -> clear
+  bg.addEventListener('click', function() { clearSelection(); });
+
+  // Initial view
+  resetView();
+}
+
+// ---- Selection ----
+function selectNode(id) {
+  selectedNodeId = id;
+
+  // Highlight edges
+  var edges = document.querySelectorAll('.edge');
+  edges.forEach(function(e) {
+    var src = e.getAttribute('data-source');
+    var tgt = e.getAttribute('data-target');
+    if (src === id || tgt === id) {
+      e.classList.remove('dimmed');
+      e.classList.add('highlighted');
+      e.setAttribute('stroke', '#6366f1');
+      e.setAttribute('marker-end', 'url(#arrowhead-hi)');
+    } else {
+      e.classList.remove('highlighted');
+      e.classList.add('dimmed');
+      e.setAttribute('stroke', '#94a3b8');
+      e.setAttribute('marker-end', 'url(#arrowhead-dim)');
+    }
+  });
+
+  // Highlight nodes
+  var nodes = document.querySelectorAll('.node-wrap');
+  nodes.forEach(function(n) {
+    var nid = n.getAttribute('data-id');
+    if (nid === id) {
+      n.classList.add('selected');
+    } else {
+      n.classList.remove('selected');
+    }
+  });
+
+  showPanel(id);
+}
+
+function clearSelection() {
+  selectedNodeId = null;
+
+  var edges = document.querySelectorAll('.edge');
+  edges.forEach(function(e) {
+    e.classList.remove('highlighted','dimmed');
+    e.setAttribute('stroke', '#94a3b8');
+    e.setAttribute('marker-end', 'url(#arrowhead)');
+  });
+
+  var nodes = document.querySelectorAll('.node-wrap');
+  nodes.forEach(function(n) { n.classList.remove('selected'); });
+
+  document.getElementById('panel').classList.remove('open');
+}
+
+function showPanel(id) {
+  var node = allNodes.filter(function(n) { return n.id === id; })[0];
+  if (!node) return;
+
+  // Symbol
+  var symEl = document.getElementById('panel-symbol');
+  symEl.innerHTML = '';
+  renderKatex(symEl, node.symbol || node.id, false);
+
+  // ID
+  document.getElementById('panel-id').textContent = id;
+
+  // Badge
+  var badge = document.getElementById('panel-type-badge');
+  badge.textContent = node.type;
+  badge.className = 'panel-type-badge badge-' + node.type;
+
+  // Formula
+  var formulaEl = document.getElementById('panel-formula');
+  formulaEl.innerHTML = '';
+  if (node.formula) {
+    renderKatex(formulaEl, node.formula, true);
+  } else {
+    formulaEl.innerHTML = '<span style="color:#b0b8c9;font-style:italic;font-size:12px;">No formula</span>';
+  }
+
+  // Instances
+  var insts = allInstances.filter(function(i) { return i.variable === id; });
+  var instContainer = document.getElementById('panel-instances');
+  instContainer.innerHTML = '';
+
+  if (insts.length === 0) {
+    instContainer.innerHTML = '<div class="no-instances">No recorded instances</div>';
+  } else {
+    insts.forEach(function(inst) {
+      var card = document.createElement('div');
+      card.className = 'instance-card';
+
+      var mat = document.createElement('div');
+      mat.className = 'instance-material';
+      mat.textContent = inst.material || '';
+      card.appendChild(mat);
+
+      var val = document.createElement('div');
+      val.className = 'instance-value';
+      var valStr = inst.value !== undefined && inst.value !== null ? String(inst.value) : '?';
+      if (inst.uncertainty !== undefined && inst.uncertainty !== null) {
+        valStr += ' &plusmn; ' + inst.uncertainty;
+      }
+      if (inst.units) valStr += ' ' + escAttr(inst.units);
+      val.innerHTML = valStr;
+      card.appendChild(val);
+
+      if (inst.source && inst.source.ref) {
+        var ref = document.createElement('div');
+        ref.className = 'instance-ref';
+        ref.textContent = inst.source.ref;
+        card.appendChild(ref);
+      }
+
+      if (inst.source && inst.source.detail) {
+        var det = document.createElement('div');
+        det.style.cssText = 'font-size:10px;color:#8892a4;margin-top:3px;';
+        det.textContent = inst.source.detail;
+        card.appendChild(det);
+      }
+
+      instContainer.appendChild(card);
+    });
+  }
+
+  document.getElementById('panel').classList.add('open');
+}
+
+// Prevent panel click from propagating to svg
+document.getElementById('panel').addEventListener('click', function(e) { e.stopPropagation(); });
+</script>
+</body>
+</html>

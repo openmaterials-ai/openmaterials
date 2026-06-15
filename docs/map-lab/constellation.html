@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cross-Code Star Map</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;height:100%;overflow:hidden;background:#02030a;color:#c8d8f0;font-family:'Segoe UI',system-ui,sans-serif;font-size:13px}
+#error-bar{display:none;position:fixed;top:0;left:0;right:0;z-index:9999;background:#8b0000;color:#fff;padding:8px 14px;font-size:12px;white-space:pre-wrap}
+#canvas-wrap{position:fixed;inset:0}
+svg#sky{width:100%;height:100%;cursor:grab}
+svg#sky.panning{cursor:grabbing}
+/* vignette overlay */
+#vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,8,0.72) 100%)}
+/* controls top-left */
+#controls{position:fixed;top:16px;left:16px;display:flex;flex-direction:column;gap:8px;z-index:100}
+#codes-panel{background:rgba(4,8,24,0.82);border:1px solid rgba(100,140,255,0.18);border-radius:10px;padding:12px 14px;min-width:180px;max-width:260px;backdrop-filter:blur(8px)}
+#codes-panel h3{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#6a90c8;margin-bottom:10px;font-weight:600}
+#code-chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:20px;border:1.5px solid;cursor:pointer;font-size:11px;font-weight:600;letter-spacing:0.04em;transition:all 0.18s;user-select:none;white-space:nowrap}
+.chip .chip-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.chip .chip-count{opacity:0.65;font-size:10px;font-weight:400}
+.chip.active{filter:brightness(1.35);box-shadow:0 0 10px 2px var(--chip-glow)}
+.chip:not(.active){opacity:0.55;filter:grayscale(0.45)}
+/* legend bottom-left */
+#legend{position:fixed;bottom:18px;left:16px;background:rgba(4,8,24,0.78);border:1px solid rgba(100,140,255,0.14);border-radius:8px;padding:10px 14px;z-index:100;backdrop-filter:blur(6px)}
+#legend h3{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#6a90c8;margin-bottom:8px;font-weight:600}
+.legend-row{display:flex;align-items:center;gap:7px;margin-bottom:5px;font-size:11px;color:#9ab0cc}
+.legend-row:last-child{margin-bottom:0}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+/* hint bottom-center */
+#hint{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(4,8,24,0.72);border:1px solid rgba(100,140,255,0.12);border-radius:20px;padding:7px 18px;font-size:12px;color:#6a90c8;z-index:100;pointer-events:none;backdrop-filter:blur(5px);white-space:nowrap;transition:opacity 0.4s}
+/* info panel right */
+#info-panel{position:fixed;top:16px;right:16px;width:320px;max-height:calc(100vh - 32px);overflow-y:auto;background:rgba(4,8,24,0.90);border:1px solid rgba(100,140,255,0.22);border-radius:10px;padding:16px;z-index:100;backdrop-filter:blur(10px);display:none;scrollbar-width:thin;scrollbar-color:#2a3a5a transparent}
+#info-panel h2{font-size:13px;font-weight:700;color:#c8d8f8;margin-bottom:4px;line-height:1.3}
+#info-panel .info-id{font-size:10px;color:#6a90c8;font-family:monospace;margin-bottom:10px;word-break:break-all}
+#info-panel .info-symbol{margin:8px 0;font-size:20px;text-align:center;min-height:30px}
+#info-panel .info-formula{margin:8px 0;font-size:13px;overflow-x:auto;padding:6px 4px;background:rgba(20,30,60,0.5);border-radius:6px}
+#info-panel .info-formula .katex-display{margin:0}
+#info-panel .info-section-title{font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#5a7aaa;margin:12px 0 6px;font-weight:600;border-top:1px solid rgba(100,140,255,0.1);padding-top:10px}
+.coverage-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:7px;font-size:11px}
+.coverage-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:2px}
+.coverage-label{font-weight:600;color:#c8d8f0}
+.coverage-api{color:#6a8aaa;font-family:monospace;font-size:10px;word-break:break-all;margin-top:1px}
+.coverage-unit{color:#8aaa78;font-size:10px}
+.instance-item{margin-bottom:6px;font-size:11px;color:#9ab0cc;background:rgba(10,20,50,0.4);border-radius:5px;padding:5px 7px}
+.instance-val{font-weight:700;color:#d0e8b0}
+.instance-src{font-size:10px;color:#5a7090;margin-top:2px}
+#agree-badge{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:rgba(0,40,20,0.90);border:1.5px solid #00e87a;border-radius:20px;padding:6px 16px;font-size:12px;font-weight:700;color:#00e87a;z-index:100;pointer-events:none;display:none;letter-spacing:0.04em;text-shadow:0 0 8px #00e87a80}
+/* scrollbar */
+#info-panel::-webkit-scrollbar{width:5px}
+#info-panel::-webkit-scrollbar-track{background:transparent}
+#info-panel::-webkit-scrollbar-thumb{background:#2a3a5a;border-radius:3px}
+</style>
+</head>
+<body>
+<div id="error-bar"></div>
+<div id="canvas-wrap">
+  <svg id="sky" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="halo-obs" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#b8d8ff" stop-opacity="0.55"/>
+        <stop offset="100%" stop-color="#b8d8ff" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="halo-hero" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ffe0a0" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="#ff8800" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="halo-hidden" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#8090c0" stop-opacity="0.4"/>
+        <stop offset="100%" stop-color="#8090c0" stop-opacity="0"/>
+      </radialGradient>
+      <radialGradient id="halo-param" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#a0c8ff" stop-opacity="0.35"/>
+        <stop offset="100%" stop-color="#a0c8ff" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="glow-soft" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur stdDeviation="3.5" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="glow-hero" x="-150%" y="-150%" width="400%" height="400%">
+        <feGaussianBlur stdDeviation="7" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="glow-agree" x="-80%" y="-80%" width="260%" height="260%">
+        <feGaussianBlur stdDeviation="5" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+    </defs>
+    <g id="bg-stars"></g>
+    <g id="scene">
+      <g id="edge-layer"></g>
+      <g id="node-layer"></g>
+      <g id="label-layer"></g>
+    </g>
+  </svg>
+</div>
+<div id="vignette"></div>
+<div id="controls">
+  <div id="codes-panel">
+    <h3>Codes</h3>
+    <div id="code-chips"></div>
+  </div>
+</div>
+<div id="legend">
+  <h3>Legend</h3>
+  <div class="legend-row"><div class="legend-dot" style="background:#e8f0ff;box-shadow:0 0 6px #b8d8ff"></div> Observable</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#7080a8;box-shadow:0 0 4px #5060a0"></div> Hidden</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#607890;box-shadow:0 0 3px #506080"></div> Parameter</div>
+  <div class="legend-row"><div class="legend-dot" style="background:#00e87a;box-shadow:0 0 8px #00e87a"></div> Overlap (agree)</div>
+  <div class="legend-row">
+    <svg width="24" height="8" style="flex-shrink:0"><line x1="0" y1="4" x2="24" y2="4" stroke="#4060a0" stroke-width="1.5" stroke-dasharray="4 2"/></svg>
+    Constellation edge
+  </div>
+</div>
+<div id="hint">Pick a code to see its coverage &mdash; pick two to see where they must agree</div>
+<div id="agree-badge"></div>
+<div id="info-panel"></div>
+
+<script>
+window.onerror = function(msg, src, line, col, err) {
+  var bar = document.getElementById('error-bar');
+  bar.style.display = 'block';
+  bar.textContent = 'JS Error: ' + msg + ' (' + src + ':' + line + ')';
+};
+
+// ---- palette ----
+var CODE_COLORS = {
+  'ase':                  '#ff7043',
+  'gpumd':               '#42a5f5',
+  'kaldo':               '#ab47bc',
+  'lammps':              '#26c6da',
+  'phono3py':            '#ffca28',
+  'phonopy':             '#66bb6a',
+  'shengbte':            '#ef5350',
+  'mat-diffusion-analysis': '#8d6e63'
+};
+var DEFAULT_COLOR = '#8888aa';
+
+function codeColor(code) {
+  return CODE_COLORS[code] || DEFAULT_COLOR;
+}
+
+function hexToRgb(hex) {
+  var r = parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
+  return r+','+g+','+b;
+}
+
+// ---- LaTeX render helpers ----
+function renderTeX(tex, display) {
+  try {
+    return katex.renderToString(tex, {displayMode:!!display, throwOnError:false, output:'html'});
+  } catch(e) {
+    return '<span style="color:#f88">'+escHtml(tex)+'</span>';
+  }
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ---- state ----
+var graphData = {nodes:[], links:[]};
+var codesData = {};
+var instancesData = [];
+var selectedCodes = [];
+var highlightedNodeId = null;
+
+// coverage lookup: nodeId -> count (how many codes cover it)
+var nodeCoverageCount = {};
+// nodeId -> {code: {api, unit}}
+var nodeCoverageMap = {};
+
+// dagre positions
+var nodePos = {};  // id -> {x,y}
+var svgW = 0, svgH = 0;
+
+// pan/zoom
+var transform = {x:0, y:0, k:1};
+var isPanning = false;
+var panStart = {x:0, y:0, tx:0, ty:0};
+
+// ---- SVG helpers ----
+var SVG_NS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs) {
+  var el = document.createElementNS(SVG_NS, tag);
+  for (var k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+
+// ---- load data + init ----
+function fetchJson(url, fallback) {
+  return fetch(url + '?v=' + Date.now())
+    .then(function(r){ return r.ok ? r.json() : fallback; })
+    .catch(function(){ return fallback; });
+}
+
+Promise.all([
+  fetchJson('../data/graph.json', {nodes:[], links:[]}),
+  fetchJson('../data/codes.json', {}),
+  fetchJson('../data/instances.json', [])
+]).then(function(results) {
+  graphData  = results[0];
+  codesData  = results[1];
+  instancesData = results[2];
+  buildCoverageMaps();
+  buildLayout();
+  buildBgStars();
+  renderGraph();
+  buildChips();
+}).catch(function(e){
+  document.getElementById('error-bar').style.display = 'block';
+  document.getElementById('error-bar').textContent = 'Init error: '+e;
+});
+
+function buildCoverageMaps() {
+  nodeCoverageCount = {};
+  nodeCoverageMap = {};
+  for (var code in codesData) {
+    for (var nid in codesData[code]) {
+      nodeCoverageCount[nid] = (nodeCoverageCount[nid]||0) + 1;
+      if (!nodeCoverageMap[nid]) nodeCoverageMap[nid] = {};
+      nodeCoverageMap[nid][code] = codesData[code][nid];
+    }
+  }
+}
+
+// ---- dagre layout ----
+function buildLayout() {
+  var g = new dagre.graphlib.Graph();
+  g.setGraph({rankdir:'TB', nodesep:60, ranksep:72, marginx:60, marginy:60});
+  g.setDefaultEdgeLabel(function(){ return {}; });
+  graphData.nodes.forEach(function(n) {
+    g.setNode(n.id, {width:28, height:28, label:n.id});
+  });
+  graphData.links.forEach(function(l,i) {
+    try { g.setEdge(l.source, l.target, {}, 'e'+i); } catch(e){}
+  });
+  dagre.layout(g);
+  g.nodes().forEach(function(id) {
+    var n = g.node(id);
+    if (n) nodePos[id] = {x: n.x, y: n.y};
+  });
+}
+
+// ---- background stars ----
+function buildBgStars() {
+  var bg = document.getElementById('bg-stars');
+  var W = window.innerWidth, H = window.innerHeight;
+  // use SVG viewBox to make them fixed
+  for (var i=0; i<260; i++) {
+    var x = Math.random()*W, y=Math.random()*H;
+    var r = Math.random()*0.9+0.2;
+    var op = (Math.random()*0.35+0.04).toFixed(3);
+    var c = ['#c8d8ff','#d8e8ff','#b8c8e8','#a8b8d8'][Math.floor(Math.random()*4)];
+    var s = svgEl('circle',{cx:x.toFixed(1),cy:y.toFixed(1),r:r.toFixed(2),fill:c,opacity:op});
+    bg.appendChild(s);
+  }
+}
+
+// ---- node visual params ----
+var HERO_ID = 'ThermalConductivity[transport_model=wigner_populations]';
+var maxCoverage = 1;
+function getMaxCoverage() {
+  var m=1;
+  for (var id in nodeCoverageCount) if (nodeCoverageCount[id]>m) m=nodeCoverageCount[id];
+  return m;
+}
+
+function nodeBaseRadius(node) {
+  var c = nodeCoverageCount[node.id] || 0;
+  var mx = maxCoverage || 1;
+  var base = (node.type==='observable') ? 5.5 : (node.type==='hidden') ? 4 : 3.5;
+  var bonus = (c/mx)*5;
+  if (node.id===HERO_ID) bonus += 5;
+  return base + bonus;
+}
+
+function nodeBaseColor(node) {
+  if (node.id===HERO_ID) return '#ffe4a0';
+  if (node.type==='observable') return '#c8dcff';
+  if (node.type==='hidden') return '#7888b8';
+  return '#607890';
+}
+
+function nodeHaloId(node) {
+  if (node.id===HERO_ID) return 'url(#halo-hero)';
+  if (node.type==='observable') return 'url(#halo-obs)';
+  if (node.type==='hidden') return 'url(#halo-hidden)';
+  return 'url(#halo-param)';
+}
+
+function nodeFilterId(node) {
+  if (node.id===HERO_ID) return 'url(#glow-hero)';
+  return 'url(#glow-soft)';
+}
+
+// ---- render graph ----
+function renderGraph() {
+  maxCoverage = getMaxCoverage();
+  var edgeLayer = document.getElementById('edge-layer');
+  var nodeLayer = document.getElementById('node-layer');
+  var labelLayer = document.getElementById('label-layer');
+  edgeLayer.innerHTML=''; nodeLayer.innerHTML=''; labelLayer.innerHTML='';
+
+  // edges (default dim)
+  graphData.links.forEach(function(l,i) {
+    var sp = nodePos[l.source], tp = nodePos[l.target];
+    if (!sp||!tp) return;
+    var line = svgEl('line',{
+      x1:sp.x, y1:sp.y, x2:tp.x, y2:tp.y,
+      stroke:'#1a2a50', 'stroke-width':'1',
+      opacity:'0.28', id:'edge-'+i,
+      'class':'graph-edge',
+      'data-source': l.source, 'data-target': l.target
+    });
+    edgeLayer.appendChild(line);
+  });
+
+  // nodes
+  graphData.nodes.forEach(function(n) {
+    var pos = nodePos[n.id];
+    if (!pos) return;
+    var r = nodeBaseRadius(n);
+    var col = nodeBaseColor(n);
+    var haloR = r * 3.5;
+
+    // halo
+    var halo = svgEl('ellipse',{
+      cx:pos.x, cy:pos.y, rx:haloR, ry:haloR,
+      fill: nodeHaloId(n), opacity:'0.9',
+      'class':'node-halo', 'data-id': n.id
+    });
+    nodeLayer.appendChild(halo);
+
+    // star body
+    var circ = svgEl('circle',{
+      cx:pos.x, cy:pos.y, r:r,
+      fill:col,
+      filter: nodeFilterId(n),
+      'class':'star-node', 'data-id': n.id,
+      cursor:'pointer',
+      opacity:'0.92'
+    });
+    nodeLayer.appendChild(circ);
+
+    // hero spikes
+    if (n.id===HERO_ID) {
+      var spikes = [[0,-1],[0,1],[1,0],[-1,0],[0.7,-0.7],[0.7,0.7],[-0.7,-0.7],[-0.7,0.7]];
+      spikes.forEach(function(d){
+        var slen = r*2.8;
+        var sp2 = svgEl('line',{
+          x1:pos.x, y1:pos.y,
+          x2:(pos.x+d[0]*slen).toFixed(2), y2:(pos.y+d[1]*slen).toFixed(2),
+          stroke:'#ffe4a0', 'stroke-width':'1',
+          opacity:'0.55', 'class':'hero-spike'
+        });
+        nodeLayer.insertBefore(sp2, circ);
+      });
+    }
+
+    // label (symbol via katex in foreignObject)
+    // We use a text label with the symbol (plain-text fallback) since foreignObject
+    // in SVG can be tricky; we'll put labels as HTML overlays positioned absolutely.
+    // Actually let's put them as title tooltips + separate HTML labels
+  });
+
+  // place HTML labels absolutely over the SVG
+  placeForeignLabels();
+  setupInteraction();
+  fitToWindow();
+}
+
+// ---- HTML labels overlay ----
+var labelOverlay = null;
+function placeForeignLabels() {
+  if (labelOverlay) labelOverlay.remove();
+  labelOverlay = document.createElement('div');
+  labelOverlay.id = 'label-overlay';
+  labelOverlay.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:10;overflow:hidden';
+  document.body.appendChild(labelOverlay);
+  // labels are repositioned on transform change
+  graphData.nodes.forEach(function(n) {
+    var div = document.createElement('div');
+    div.setAttribute('data-nid', n.id);
+    div.style.cssText = 'position:absolute;pointer-events:none;white-space:nowrap;font-size:10px;color:#8090b8;line-height:1;transform:translate(-50%,0);opacity:0.7';
+    try {
+      div.innerHTML = katex.renderToString(n.symbol||n.id, {throwOnError:false, output:'html'});
+    } catch(e) {
+      div.textContent = n.id;
+    }
+    labelOverlay.appendChild(div);
+  });
+  updateLabelPositions();
+}
+
+function updateLabelPositions() {
+  if (!labelOverlay) return;
+  var labels = labelOverlay.querySelectorAll('[data-nid]');
+  labels.forEach(function(div) {
+    var nid = div.getAttribute('data-nid');
+    var pos = nodePos[nid];
+    if (!pos) return;
+    var sx = pos.x*transform.k + transform.x;
+    var sy = pos.y*transform.k + transform.y;
+    var n = graphData.nodes.find(function(x){return x.id===nid;});
+    var r = n ? nodeBaseRadius(n)*transform.k : 7*transform.k;
+    div.style.left = sx+'px';
+    div.style.top  = (sy + r + 3)+'px';
+  });
+}
+
+// ---- fit to window ----
+function fitToWindow() {
+  var xs = [], ys = [];
+  graphData.nodes.forEach(function(n){
+    var p=nodePos[n.id]; if(p){xs.push(p.x);ys.push(p.y);}
+  });
+  if (!xs.length) return;
+  var minX=Math.min.apply(null,xs), maxX=Math.max.apply(null,xs);
+  var minY=Math.min.apply(null,ys), maxY=Math.max.apply(null,ys);
+  var W=window.innerWidth, H=window.innerHeight;
+  var pad=80;
+  var kx=(W-pad*2)/(maxX-minX||1), ky=(H-pad*2)/(maxY-minY||1);
+  var k=Math.min(kx,ky,1.2);
+  transform.k=k;
+  transform.x=W/2 - (minX+maxX)/2*k;
+  transform.y=H/2 - (minY+maxY)/2*k;
+  applyTransform();
+}
+
+function applyTransform() {
+  var scene = document.getElementById('scene');
+  scene.setAttribute('transform','translate('+transform.x+','+transform.y+') scale('+transform.k+')');
+  updateLabelPositions();
+}
+
+// ---- pan + zoom ----
+function setupInteraction() {
+  var svg = document.getElementById('sky');
+  svg.addEventListener('mousedown', function(e) {
+    if (e.target.classList.contains('star-node') || e.target.classList.contains('node-halo')) return;
+    isPanning=true;
+    svg.classList.add('panning');
+    panStart={x:e.clientX,y:e.clientY,tx:transform.x,ty:transform.y};
+  });
+  window.addEventListener('mousemove', function(e) {
+    if (!isPanning) return;
+    transform.x=panStart.tx+(e.clientX-panStart.x);
+    transform.y=panStart.ty+(e.clientY-panStart.y);
+    applyTransform();
+  });
+  window.addEventListener('mouseup', function() {
+    isPanning=false;
+    document.getElementById('sky').classList.remove('panning');
+  });
+  svg.addEventListener('wheel', function(e) {
+    e.preventDefault();
+    var factor = e.deltaY < 0 ? 1.12 : 0.89;
+    var mx=e.clientX, my=e.clientY;
+    transform.x = mx + (transform.x-mx)*factor;
+    transform.y = my + (transform.y-my)*factor;
+    transform.k = Math.max(0.1, Math.min(4, transform.k*factor));
+    applyTransform();
+  }, {passive:false});
+
+  // node click
+  var nodeLayer = document.getElementById('node-layer');
+  nodeLayer.addEventListener('click', function(e) {
+    var el = e.target;
+    var nid = el.getAttribute('data-id');
+    if (!nid && el.parentElement) nid = el.parentElement.getAttribute('data-id');
+    if (nid) {
+      e.stopPropagation();
+      showNodeInfo(nid);
+    }
+  });
+
+  // click on bg to close panel
+  document.getElementById('sky').addEventListener('click', function(e) {
+    if (e.target === document.getElementById('sky') ||
+        e.target.id==='bg-stars' ||
+        e.target.tagName==='svg') {
+      hideInfoPanel();
+    }
+  });
+}
+
+// ---- chips ----
+function buildChips() {
+  var container = document.getElementById('code-chips');
+  container.innerHTML='';
+  var codes = Object.keys(codesData);
+  if (!codes.length) {
+    container.textContent='No code data';
+    return;
+  }
+  codes.forEach(function(code) {
+    var col = codeColor(code);
+    var count = Object.keys(codesData[code]).length;
+    var chip = document.createElement('div');
+    chip.className='chip';
+    chip.setAttribute('data-code', code);
+    chip.style.borderColor=col;
+    chip.style.color=col;
+    chip.style.setProperty('--chip-glow', col+'88');
+    chip.innerHTML =
+      '<span class="chip-dot" style="background:'+col+'"></span>'+
+      escHtml(code)+
+      '<span class="chip-count">&times;'+count+'</span>';
+    chip.addEventListener('click', function(){
+      toggleCode(code);
+    });
+    container.appendChild(chip);
+  });
+}
+
+function toggleCode(code) {
+  var idx = selectedCodes.indexOf(code);
+  if (idx>=0) {
+    selectedCodes.splice(idx,1);
+  } else {
+    if (selectedCodes.length>=2) {
+      // deselect oldest
+      selectedCodes.shift();
+    }
+    selectedCodes.push(code);
+  }
+  updateChipStates();
+  applyHighlight();
+}
+
+function updateChipStates() {
+  var chips = document.querySelectorAll('.chip');
+  chips.forEach(function(c) {
+    var code=c.getAttribute('data-code');
+    if (selectedCodes.indexOf(code)>=0) c.classList.add('active');
+    else c.classList.remove('active');
+  });
+}
+
+// ---- highlighting ----
+function applyHighlight() {
+  var nodeLayer = document.getElementById('node-layer');
+  var edgeLayer = document.getElementById('edge-layer');
+  var agree = document.getElementById('agree-badge');
+
+  if (selectedCodes.length===0) {
+    // reset all to base
+    nodeLayer.querySelectorAll('.star-node').forEach(function(c){
+      var nid=c.getAttribute('data-id');
+      var n=graphData.nodes.find(function(x){return x.id===nid;});
+      if (!n) return;
+      c.setAttribute('fill', nodeBaseColor(n));
+      c.setAttribute('opacity','0.92');
+      c.removeAttribute('filter');
+      c.setAttribute('filter', nodeFilterId(n));
+    });
+    nodeLayer.querySelectorAll('.node-halo').forEach(function(h){
+      h.setAttribute('opacity','0.9');
+    });
+    edgeLayer.querySelectorAll('.graph-edge').forEach(function(e){
+      e.setAttribute('stroke','#1a2a50');
+      e.setAttribute('stroke-width','1');
+      e.setAttribute('stroke-dasharray','');
+      e.setAttribute('opacity','0.28');
+    });
+    agree.style.display='none';
+    updateHint('Pick a code to see its coverage &mdash; pick two to see where they must agree');
+    return;
+  }
+
+  var codeA = selectedCodes[0];
+  var codeB = selectedCodes.length>1 ? selectedCodes[1] : null;
+  var covA = codesData[codeA] || {};
+  var covB = codeB ? (codesData[codeB]||{}) : null;
+  var colA = codeColor(codeA);
+  var colB = codeB ? codeColor(codeB) : null;
+
+  // overlap
+  var overlapIds = {};
+  if (codeB) {
+    for (var nid in covA) {
+      if (covB[nid]) overlapIds[nid]=true;
+    }
+  }
+
+  // edges in codeA
+  var edgesInA = {};
+  var edgesInB = {};
+  graphData.links.forEach(function(l,i) {
+    if (covA[l.source]&&covA[l.target]) edgesInA[i]=true;
+    if (covB&&covB[l.source]&&covB[l.target]) edgesInB[i]=true;
+  });
+
+  nodeLayer.querySelectorAll('.star-node').forEach(function(c){
+    var nid=c.getAttribute('data-id');
+    var inA=!!covA[nid], inB=codeB?!!covB[nid]:false;
+    var n=graphData.nodes.find(function(x){return x.id===nid;});
+    if (!n) return;
+
+    if (codeB && overlapIds[nid]) {
+      c.setAttribute('fill','#00e87a');
+      c.setAttribute('opacity','1');
+      c.setAttribute('filter','url(#glow-agree)');
+    } else if (inA && !codeB) {
+      c.setAttribute('fill',colA);
+      c.setAttribute('opacity','1');
+      c.setAttribute('filter','url(#glow-soft)');
+    } else if (inA && codeB) {
+      c.setAttribute('fill',colA);
+      c.setAttribute('opacity','0.85');
+      c.setAttribute('filter','url(#glow-soft)');
+    } else if (inB) {
+      c.setAttribute('fill',colB);
+      c.setAttribute('opacity','0.85');
+      c.setAttribute('filter','url(#glow-soft)');
+    } else {
+      c.setAttribute('fill', nodeBaseColor(n));
+      c.setAttribute('opacity','0.15');
+      c.setAttribute('filter','none');
+    }
+  });
+
+  nodeLayer.querySelectorAll('.node-halo').forEach(function(h){
+    var nid=h.getAttribute('data-id');
+    var inA=!!covA[nid], inB=codeB?!!covB[nid]:false;
+    if (codeB && overlapIds[nid]) h.setAttribute('opacity','1');
+    else if (inA||inB) h.setAttribute('opacity','0.7');
+    else h.setAttribute('opacity','0.08');
+  });
+
+  edgeLayer.querySelectorAll('.graph-edge').forEach(function(e,i){
+    var src=e.getAttribute('data-source'), tgt=e.getAttribute('data-target');
+    var idx=null;
+    graphData.links.forEach(function(l,li){if(l.source===src&&l.target===tgt) idx=li;});
+    var inA=idx!==null&&edgesInA[idx];
+    var inB=idx!==null&&edgesInB[idx];
+
+    if (inA&&inB) {
+      e.setAttribute('stroke','#80ff80');
+      e.setAttribute('stroke-width','1.5');
+      e.setAttribute('stroke-dasharray','6 3');
+      e.setAttribute('opacity','0.55');
+    } else if (inA) {
+      e.setAttribute('stroke',colA);
+      e.setAttribute('stroke-width','1.2');
+      e.setAttribute('stroke-dasharray','5 3');
+      e.setAttribute('opacity','0.5');
+    } else if (inB) {
+      e.setAttribute('stroke',colB);
+      e.setAttribute('stroke-width','1.2');
+      e.setAttribute('stroke-dasharray','5 3');
+      e.setAttribute('opacity','0.5');
+    } else {
+      e.setAttribute('stroke','#0a1028');
+      e.setAttribute('stroke-width','0.8');
+      e.setAttribute('stroke-dasharray','');
+      e.setAttribute('opacity','0.1');
+    }
+  });
+
+  if (codeB) {
+    var cnt = Object.keys(overlapIds).length;
+    agree.textContent = cnt + ' shared node'+(cnt!==1?'s':'')+' — agree here';
+    agree.style.display = cnt>0 ? 'block' : 'none';
+    updateHint(cnt+' overlap node'+(cnt!==1?'s':'')+' in green — cross-code agreement required');
+  } else {
+    agree.style.display='none';
+    var cnt2=Object.keys(covA).length;
+    updateHint(codeA+' covers '+cnt2+' node'+(cnt2!==1?'s':'')+' — select a second code to see overlaps');
+  }
+}
+
+function updateHint(msg) {
+  document.getElementById('hint').innerHTML = msg;
+}
+
+// ---- node info panel ----
+function showNodeInfo(nid) {
+  highlightedNodeId = nid;
+  var panel = document.getElementById('info-panel');
+  panel.style.display='block';
+
+  var n = graphData.nodes.find(function(x){return x.id===nid;});
+  if (!n) { panel.innerHTML='<div style="color:#f88">Node not found</div>'; return; }
+
+  var html = '';
+
+  // symbol (KaTeX large)
+  if (n.symbol) {
+    html += '<div class="info-symbol">'+renderTeX(n.symbol, false)+'</div>';
+  }
+
+  // id
+  html += '<div class="info-id">'+escHtml(n.id)+'</div>';
+
+  // type badge
+  var typeColor = n.type==='observable'?'#c8dcff':n.type==='hidden'?'#7888b8':'#607890';
+  html += '<span style="font-size:10px;color:'+typeColor+';border:1px solid '+typeColor+';border-radius:10px;padding:2px 8px;margin-bottom:8px;display:inline-block">'+escHtml(n.type)+' &middot; layer '+n.layer+'</span>';
+
+  // formula
+  if (n.formula) {
+    html += '<div class="info-section-title">Formula</div>';
+    html += '<div class="info-formula">'+renderTeX(n.formula, true)+'</div>';
+  }
+
+  // codes coverage
+  var cov = nodeCoverageMap[nid];
+  if (cov && Object.keys(cov).length) {
+    html += '<div class="info-section-title">Code Coverage ('+Object.keys(cov).length+')</div>';
+    for (var code in cov) {
+      var col = codeColor(code);
+      var entry = cov[code];
+      html += '<div class="coverage-item">';
+      html += '<div class="coverage-dot" style="background:'+col+'"></div>';
+      html += '<div>';
+      html += '<div class="coverage-label">'+escHtml(code)+'</div>';
+      if (entry.api) html += '<div class="coverage-api">'+escHtml(entry.api)+'</div>';
+      if (entry.unit) html += '<div class="coverage-unit">unit: '+escHtml(entry.unit)+'</div>';
+      html += '</div></div>';
+    }
+  } else {
+    html += '<div class="info-section-title">Code Coverage</div>';
+    html += '<div style="color:#4a6080;font-size:11px">No code covers this node</div>';
+  }
+
+  // instances
+  var insts = instancesData.filter(function(inst){
+    return inst.variable === nid ||
+      (inst.variable && nid && inst.variable.replace(/\s/g,'').toLowerCase()===nid.replace(/\s/g,'').toLowerCase());
+  });
+  if (!insts.length) {
+    // partial match
+    insts = instancesData.filter(function(inst){
+      return inst.variable && nid && inst.variable.indexOf(nid.split('[')[0])>=0;
+    });
+  }
+  if (insts.length) {
+    html += '<div class="info-section-title">Data Instances ('+insts.length+')</div>';
+    insts.forEach(function(inst){
+      html += '<div class="instance-item">';
+      html += '<span class="instance-val">'+inst.value+' '+escHtml(inst.units||'')+'</span>';
+      if (inst.uncertainty) html += ' <span style="color:#8aaa60">&plusmn;'+inst.uncertainty+'</span>';
+      html += ' &mdash; <span style="color:#9ab0cc">'+escHtml(inst.material||'')+'</span>';
+      if (inst.source && inst.source.ref) {
+        html += '<div class="instance-src">'+escHtml(inst.source.kind||'')+': '+escHtml(inst.source.ref)+
+          (inst.source.detail?' &mdash; '+escHtml(inst.source.detail):'')+
+          '</div>';
+      }
+      html += '</div>';
+    });
+  }
+
+  panel.innerHTML = html;
+}
+
+function hideInfoPanel() {
+  highlightedNodeId = null;
+  document.getElementById('info-panel').style.display='none';
+}
+
+// handle window resize
+window.addEventListener('resize', function(){
+  // rebuild bg stars
+  var bg=document.getElementById('bg-stars');
+  bg.innerHTML='';
+  buildBgStars();
+  // re-fit
+  // (don't re-layout, just keep current transform)
+  updateLabelPositions();
+});
+</script>
+</body>
+</html>
