@@ -39,6 +39,17 @@ def test_shared_primitives_reuse_existing_nodes():
     assert sp_mod.STRUCTURE.name == "Structure"
 
 
+def test_diffusion_nodes_edges_present_and_connected():
+    from omai import map_data
+    g = map_data.build_graph_dict(map_data.DOMAINS)
+    ids = {n["id"] for n in g["nodes"]}
+    assert "Diffusivity" in ids
+    assert "ActivationEnergy" in ids
+    # connected to the existing MeanSquaredDisplacement leaf
+    assert any(l["source"] == "MeanSquaredDisplacement" and l["target"] == "Diffusivity"
+               for l in g["links"])
+
+
 def test_skills_catalog_schema():
     import json
     import pathlib

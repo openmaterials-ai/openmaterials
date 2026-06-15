@@ -5,7 +5,11 @@ from omai.map_data import Domain
 from omai.materials import representation as mat_rep
 from omai.materials.operator import EDGES, NODES
 
-SYMBOLS: dict[str, str] = {}
+SYMBOLS: dict[str, str] = {
+    "Diffusivity": r"D",
+    "ActivationEnergy": r"E_a",
+    "Structure": r"\mathcal{S}",
+}
 
 MATERIALS = Domain(
     name="materials",
