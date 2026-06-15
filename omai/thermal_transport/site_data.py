@@ -4,13 +4,7 @@ instances.json (bundled from docs/data/instances/*.json)."""
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
-
-import sympy as sp
-
-from omai.operator.space import ObservableSpace
-from omai.thermal_transport.operator import EDGES, NODES
 
 _DOCS = Path(__file__).resolve().parents[2] / "docs"
 
@@ -66,91 +60,10 @@ SYMBOLS = {
 }
 
 
-def _layers() -> dict[str, int]:
-    producer = {}
-    for op in EDGES:
-        for out in op.outputs:
-            producer[out.name] = op
-    cache: dict[str, int] = {}
-
-    def layer_of(name: str) -> int:
-        if name in cache:
-            return cache[name]
-        op = producer.get(name)
-        if op is None or not getattr(op, "inputs", None):
-            cache[name] = 0
-            return 0
-        cache[name] = 1 + max(layer_of(i.name) for i in op.inputs)
-        return cache[name]
-
-    for s in NODES:
-        layer_of(s.name)
-    return cache
-
-
 def build_graph_dict() -> dict:
-    layers = _layers()
-    target_formula: dict[str, str] = {}
-    for op in EDGES:
-        try:
-            latex = sp.latex(op.formula) if getattr(op, "formula", None) is not None else None
-        except Exception:
-            latex = None
-        for o in op.outputs:
-            if latex and o.name not in target_formula:
-                target_formula[o.name] = latex
-    nodes = [
-        {
-            "id": s.name,
-            "type": "observable" if isinstance(s, ObservableSpace) else "hidden",
-            "layer": layers.get(s.name, 0),
-            "kind": "symbolic",
-            "symbol": SYMBOLS.get(s.name, s.name),
-            "formula": target_formula.get(s.name),
-        }
-        for s in NODES
-    ]
-    links = []
-    for op in EDGES:
-        for i in op.inputs:
-            for o in op.outputs:
-                links.append({"source": i.name, "target": o.name, "op": op.name})
-
-    # Promote the physical-quantity parameters that appear in formulas to nodes
-    # with an edge into every formula that uses them (cell volume, atomic mass,
-    # atom count). Universal constants and mesh parameters (hbar, k_B, N_q) stay out.
-    from omai.thermal_transport.operator import edges as _edges
-
-    params = [
-        ("CellVolume", r"V_{\mathrm{cell}}", _edges._V_cell),
-        ("AtomicMass", r"M", _edges._M),
-        ("AtomCount", r"N", _edges._N_atoms),
-    ]
-
-    def _uses(formula, sym):
-        if formula is None:
-            return False
-        if sym in formula.free_symbols:
-            return True
-        return isinstance(sym, sp.IndexedBase) and sym in formula.atoms(sp.IndexedBase)
-
-    for pid, psym, sobj in params:
-        consumers = []
-        seen_c: set[str] = set()
-        for op in EDGES:
-            if _uses(getattr(op, "formula", None), sobj):
-                for o in op.outputs:
-                    if o.name not in seen_c:
-                        seen_c.add(o.name)
-                        consumers.append(o.name)
-        if not consumers:
-            continue
-        nodes.append({"id": pid, "type": "parameter", "layer": 0,
-                      "kind": "symbolic", "symbol": psym, "formula": None})
-        for c in consumers:
-            links.append({"source": pid, "target": c, "op": "provide_" + pid, "kind": "param"})
-
-    return {"nodes": nodes, "links": links}
+    from omai import map_data
+    from omai.thermal_transport.domain import THERMAL_TRANSPORT
+    return map_data.build_graph_dict((THERMAL_TRANSPORT,))
 
 
 def write_graph(path: Path | None = None) -> Path:
@@ -161,17 +74,8 @@ def write_graph(path: Path | None = None) -> Path:
 
 
 def build_instances(instances_dir: Path | None = None) -> list[dict]:
-    instances_dir = instances_dir or (_DOCS / "data" / "instances")
-    out = []
-    for f in sorted(instances_dir.glob("*.json")):
-        rec = json.loads(f.read_text())
-        for key in ("variable", "material", "conditions", "value", "units", "source"):
-            if key not in rec:
-                raise ValueError(f"{f.name}: missing '{key}'")
-        if rec["source"].get("kind") not in ("simulation", "measurement"):
-            raise ValueError(f"{f.name}: source.kind must be simulation|measurement")
-        out.append(rec)
-    return out
+    from omai import map_data
+    return map_data.build_instances(instances_dir)
 
 
 def write_instances(path: Path | None = None) -> Path:
@@ -179,10 +83,6 @@ def write_instances(path: Path | None = None) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(build_instances()))
     return path
-
-
-def _slug(text: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
 def record_instance(
@@ -195,25 +95,13 @@ def record_instance(
     variable it computed/measured, the value and units, and the source. The value
     must be real; nothing here invents data.
     """
-    known = {n["id"] for n in build_graph_dict()["nodes"]}
-    if variable not in known:
-        raise ValueError(f"unknown variable {variable!r}")
-    if source_kind not in ("simulation", "measurement"):
-        raise ValueError("source_kind must be 'simulation' or 'measurement'")
-    instances_dir = Path(instances_dir) if instances_dir else (_DOCS / "data" / "instances")
-    instances_dir.mkdir(parents=True, exist_ok=True)
-    rec = {
-        "variable": variable,
-        "material": material,
-        "conditions": conditions or {},
-        "value": value,
-        "units": units,
-        "uncertainty": uncertainty,
-        "source": {"kind": source_kind, "ref": source_ref, "detail": detail},
-    }
-    path = instances_dir / (_slug(f"{material}-{variable}-{source_ref}") + ".json")
-    path.write_text(json.dumps(rec))
-    return path
+    from omai import map_data
+    from omai.thermal_transport.domain import THERMAL_TRANSPORT
+    return map_data.record_instance(
+        domains=(THERMAL_TRANSPORT,), variable=variable, material=material,
+        value=value, units=units, source_kind=source_kind, source_ref=source_ref,
+        conditions=conditions, uncertainty=uncertainty, detail=detail,
+        instances_dir=instances_dir)
 
 
 def build_codes() -> dict:
@@ -223,24 +111,9 @@ def build_codes() -> dict:
     variables it maps and the code's native API name + emitted unit for each. This
     is the mapping work each code did onto the shared layer.
     """
-    import importlib
-    import pkgutil
-
-    from omai.representation.adapter import SpaceRepresentationSpec
-    from omai.thermal_transport import representation as rep_pkg
-
-    codes: dict[str, dict[str, dict]] = {}
-    for m in pkgutil.iter_modules(rep_pkg.__path__):
-        mod = importlib.import_module(f"omai.thermal_transport.representation.{m.name}")
-        for attr in dir(mod):
-            if attr.startswith("_"):
-                continue
-            obj = getattr(mod, attr)
-            if isinstance(obj, SpaceRepresentationSpec):
-                api = next(iter(obj.code_api.values()), None) if obj.code_api else None
-                unit = next(iter(obj.observable_units.values()), None) if obj.observable_units else None
-                codes.setdefault(obj.representation_name, {})[obj.space.name] = {"api": api, "unit": unit}
-    return codes
+    from omai import map_data
+    from omai.thermal_transport.domain import THERMAL_TRANSPORT
+    return map_data.build_codes((THERMAL_TRANSPORT,))
 
 
 def write_codes(path: Path | None = None) -> Path:
