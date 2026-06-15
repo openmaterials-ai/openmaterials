@@ -50,6 +50,20 @@ def test_diffusion_nodes_edges_present_and_connected():
                for l in g["links"])
 
 
+def test_diffusion_representation_and_instance(tmp_path):
+    from omai import map_data
+    codes = map_data.build_codes(map_data.DOMAINS)
+    assert "mat-diffusion-analysis" in codes
+    assert "Diffusivity" in codes["mat-diffusion-analysis"]
+    # instance validates against the unified node set
+    p = map_data.record_instance(
+        domains=map_data.DOMAINS, variable="ActivationEnergy", material="LGPS",
+        value=0.152, units="eV", source_kind="simulation",
+        source_ref="atomisticskills-mat-diffusion-analysis-LGPS",
+        conditions={"T_range": "600-1000K"}, instances_dir=tmp_path)
+    assert p.exists()
+
+
 def test_skills_catalog_schema():
     import json
     import pathlib

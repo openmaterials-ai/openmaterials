@@ -41,9 +41,12 @@ def test_build_graph_dict_shape():
 
 
 def test_instances_bundle_valid():
-    # The seed ships empty (no invented data); validate any instances that exist.
+    # Instances live in one shared dir and may belong to any domain, so validate
+    # their variables against the unified map (all domains), not thermal-only.
+    from omai import map_data
+
     insts = build_instances()
-    ids = {n["id"] for n in build_graph_dict()["nodes"]}
+    ids = {n["id"] for n in map_data.build_graph_dict(map_data.DOMAINS)["nodes"]}
     required = {"variable", "material", "conditions", "value", "units", "source"}
     for it in insts:
         assert required <= set(it), it

@@ -1,0 +1,1 @@
+{"variable": "ActivationEnergy", "material": "LGPS", "conditions": {"T_range": "600-1000K", "potential": "MatPES-r2SCAN"}, "value": 0.152, "units": "eV", "uncertainty": 0.035, "source": {"kind": "simulation", "ref": "atomisticskills-mat-diffusion-analysis-LGPS", "detail": "Li-ion Arrhenius fit, NVT MD"}}
