@@ -59,3 +59,4 @@ experiments/*/__pycache__/
 *~
 log.lammps
 experiments/*/log.lammps
+AtomisticSkills/

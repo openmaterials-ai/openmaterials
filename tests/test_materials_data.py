@@ -37,3 +37,23 @@ def test_shared_primitives_reuse_existing_nodes():
     assert sp_mod.TEMPERATURE is TEMPERATURE_STATE
     assert sp_mod.MEAN_SQUARED_DISPLACEMENT is MEAN_SQUARED_DISPLACEMENT
     assert sp_mod.STRUCTURE.name == "Structure"
+
+
+def test_skills_catalog_schema():
+    import json
+    import pathlib
+
+    catalog = pathlib.Path(__file__).resolve().parents[1] / "omai" / "materials" / "skills_catalog.json"
+    cat = json.loads(catalog.read_text())
+    assert len(cat) >= 30                      # ~40+ mat-* skills; some are data-only
+    for rec in cat:
+        assert rec["name"].startswith("mat-")
+        assert isinstance(rec["produces"], list)
+        for p in rec["produces"]:
+            assert {"quantity", "symbol", "units", "gauge"} <= set(p)
+            assert p["gauge"] in ("observable", "hidden", "parameter")
+        assert isinstance(rec["consumes"], list)
+        assert isinstance(rec["operation"], dict) and "kind" in rec["operation"]
+        assert isinstance(rec["codes"], list)
+        for inst in rec.get("example_instances", []):
+            assert isinstance(inst["value"], (int, float))   # real numbers only

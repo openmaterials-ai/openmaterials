@@ -1,0 +1,2615 @@
+[
+ {
+  "name": "mat-amorphization",
+  "produces": [
+   {
+    "quantity": "radial_distribution_function",
+    "symbol": "g(r)",
+    "units": null,
+    "gauge": "observable",
+    "indices": [
+     "r"
+    ]
+   },
+   {
+    "quantity": "coordination_number",
+    "symbol": "CN",
+    "units": null,
+    "gauge": "observable",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   },
+   {
+    "quantity": "temperature",
+    "units": "K"
+   },
+   {
+    "quantity": "cooling_rate",
+    "units": "K/ps"
+   }
+  ],
+  "operation": {
+   "kind": "melt_quench_md",
+   "closed_form": null
+  },
+  "codes": [
+   "MACE-MP",
+   "CHGNet",
+   "ASE",
+   "pymatgen"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-calphad-phase-diagram",
+  "produces": [],
+  "consumes": [
+   {
+    "quantity": "thermodynamic_database",
+    "units": null
+   },
+   {
+    "quantity": "temperature",
+    "units": "K"
+   },
+   {
+    "quantity": "composition",
+    "units": "mol fraction"
+   }
+  ],
+  "operation": {
+   "kind": "calphad_phase_diagram",
+   "closed_form": null
+  },
+  "codes": [
+   "pycalphad"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-calphad-property-diagram",
+  "produces": [
+   {
+    "quantity": "phase_fraction",
+    "symbol": "NP",
+    "units": null,
+    "gauge": "observable",
+    "indices": [
+     "phase",
+     "temperature"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "thermodynamic_database",
+    "units": null
+   },
+   {
+    "quantity": "composition",
+    "units": "mol fraction"
+   },
+   {
+    "quantity": "temperature",
+    "units": "K"
+   }
+  ],
+  "operation": {
+   "kind": "calphad_equilibrium",
+   "closed_form": null
+  },
+  "codes": [
+   "pycalphad"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-db-mp",
+  "produces": [],
+  "consumes": [
+   {
+    "quantity": "chemical_formula_or_system",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "db_query",
+   "closed_form": null
+  },
+  "codes": [
+   "mp-api",
+   "pymatgen"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-db-nist-janaf",
+  "produces": [],
+  "consumes": [
+   {
+    "quantity": "chemical_formula",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "db_query",
+   "closed_form": null
+  },
+  "codes": [
+   "beautifulsoup4"
+  ],
+  "example_instances": [
+   {
+    "material": "CH4",
+    "value": -74.87,
+    "units": "kJ/mol",
+    "conditions": "standard gas phase",
+    "ref": "examples/webbook-methane/methane_thermo.json"
+   },
+   {
+    "material": "CH4",
+    "value": 188.66,
+    "units": "J/mol*K",
+    "conditions": "standard gas phase entropy",
+    "ref": "examples/webbook-methane/methane_thermo.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-db-optimade",
+  "produces": [],
+  "consumes": [
+   {
+    "quantity": "optimade_filter_string",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "db_query",
+   "closed_form": null
+  },
+  "codes": [
+   "optimade-client"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-defect-energy",
+  "produces": [
+   {
+    "quantity": "defect_formation_energy",
+    "symbol": "E_f",
+    "units": "eV",
+    "gauge": "observable",
+    "indices": [
+     "defect_type"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   },
+   {
+    "quantity": "chemical_potential",
+    "units": "eV"
+   }
+  ],
+  "operation": {
+   "kind": "mlip_relax_defect",
+   "closed_form": "E_f = E_defect - (n_defect/n_bulk)*E_bulk + sum_i(delta_n_i * mu_i)"
+  },
+  "codes": [
+   "MACE-MP",
+   "CHGNet",
+   "pymatgen-analysis-defects",
+   "ASE"
+  ],
+  "example_instances": [
+   {
+    "material": "MgO O-vacancy",
+    "value": 7.124574669735101,
+    "units": "eV",
+    "conditions": "neutral charge, metal-rich limit, MACE-MH-1 matpes_r2scan, 2x2x2 supercell",
+    "ref": "examples/MgO_vacancy/defect_energies.json"
+   },
+   {
+    "material": "MgO Mg-vacancy",
+    "value": 7.3849191666641545,
+    "units": "eV",
+    "conditions": "neutral charge, metal-rich limit, MACE-MH-1 matpes_r2scan, 2x2x2 supercell",
+    "ref": "examples/MgO_vacancy/defect_energies.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-defect-energy-dft",
+  "produces": [
+   {
+    "quantity": "charged_defect_formation_energy",
+    "symbol": "E_f[D^q]",
+    "units": "eV",
+    "gauge": "observable",
+    "indices": [
+     "defect_type",
+     "charge_state"
+    ]
+   },
+   {
+    "quantity": "charge_transition_level",
+    "symbol": "epsilon(q/q')",
+    "units": "eV",
+    "gauge": "observable",
+    "indices": [
+     "charge_pair"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   },
+   {
+    "quantity": "chemical_potential",
+    "units": "eV"
+   },
+   {
+    "quantity": "fermi_energy",
+    "units": "eV"
+   },
+   {
+    "quantity": "dielectric_constant",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "dft_defect_freysoldt",
+   "closed_form": "E_f[D^q] = E[D^q] - E[bulk] + sum_i(delta_n_i * mu_i) + q*(E_VBM + delta_E_F) + E_corr"
+  },
+  "codes": [
+   "VASP",
+   "atomate2",
+   "pymatgen-analysis-defects",
+   "jobflow"
+  ],
+  "example_instances": [
+   {
+    "material": "MgO V_O^0",
+    "value": 6.659080779999989,
+    "units": "eV",
+    "conditions": "PBE, O-rich limit, E_F=0 (VBM), no Freysoldt correction",
+    "ref": "examples/MgO_charged_vacancy/full_results.json"
+   },
+   {
+    "material": "MgO V_O^0 (HSE06 literature)",
+    "value": 7.05,
+    "units": "eV",
+    "conditions": "HSE06, E_F=0 (VBM), O-rich",
+    "ref": "examples/MgO_charged_vacancy/charged_formation_energies.json"
+   },
+   {
+    "material": "MgO transition level +2/+1",
+    "value": 3.0915785799999753,
+    "units": "eV",
+    "conditions": "PBE, relative to VBM",
+    "ref": "examples/MgO_charged_vacancy/full_results.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-dft-electron-phonon",
+  "produces": [
+   {
+    "quantity": "bandgap_renormalization",
+    "symbol": "\\Delta E_g(T)",
+    "units": "eV",
+    "gauge": "observable",
+    "indices": [
+     "temperature"
+    ]
+   },
+   {
+    "quantity": "zero_point_renormalization",
+    "symbol": "ZPR",
+    "units": "eV",
+    "gauge": "observable",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   },
+   {
+    "quantity": "temperature_list",
+    "units": "K"
+   }
+  ],
+  "operation": {
+   "kind": "stochastic-snapshot DFT average",
+   "closed_form": null
+  },
+  "codes": [
+   "VASP",
+   "atomate2",
+   "phonopy",
+   "jobflow"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-dft-electronic-transport",
+  "produces": [
+   {
+    "quantity": "carrier_mobility",
+    "symbol": "mu",
+    "units": "cm^2/(V s)",
+    "gauge": "observable",
+    "indices": [
+     "carrier_type",
+     "temperature",
+     "doping_concentration"
+    ]
+   },
+   {
+    "quantity": "electrical_conductivity",
+    "symbol": "sigma",
+    "units": "S/m",
+    "gauge": "observable",
+    "indices": [
+     "temperature",
+     "doping_concentration"
+    ]
+   },
+   {
+    "quantity": "seebeck_coefficient",
+    "symbol": "S",
+    "units": "uV/K",
+    "gauge": "observable",
+    "indices": [
+     "temperature",
+     "doping_concentration"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   },
+   {
+    "quantity": "temperature",
+    "units": "K"
+   },
+   {
+    "quantity": "doping_concentration",
+    "units": "cm^-3"
+   }
+  ],
+  "operation": {
+   "kind": "dft_amset_transport",
+   "closed_form": null
+  },
+  "codes": [
+   "VASP",
+   "AMSET",
+   "atomate2",
+   "jobflow"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-dft-ferroelectric",
+  "produces": [
+   {
+    "quantity": "spontaneous_polarization",
+    "symbol": "P_s",
+    "units": "uC/cm^2",
+    "gauge": "observable",
+    "indices": [
+     "component"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "polar_structure",
+    "units": null
+   },
+   {
+    "quantity": "nonpolar_reference_structure",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "Berry-phase integration",
+   "closed_form": null
+  },
+  "codes": [
+   "VASP",
+   "atomate2",
+   "jobflow"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-dft-lobster",
+  "produces": [
+   {
+    "quantity": "crystal_orbital_hamilton_population",
+    "symbol": "COHP(E)",
+    "units": "eV^{-1}",
+    "gauge": "observable",
+    "indices": [
+     "bond_pair",
+     "energy"
+    ]
+   },
+   {
+    "quantity": "integrated_cohp",
+    "symbol": "ICOHP",
+    "units": "eV",
+    "gauge": "observable",
+    "indices": [
+     "bond_pair"
+    ]
+   },
+   {
+    "quantity": "atomic_charge",
+    "symbol": "q_i",
+    "units": "e",
+    "gauge": "observable",
+    "indices": [
+     "site"
+    ]
+   },
+   {
+    "quantity": "projected_dos",
+    "symbol": "pDOS(E)",
+    "units": "eV^{-1}",
+    "gauge": "hidden",
+    "indices": [
+     "site",
+     "orbital",
+     "energy"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "plane-wave to atomic-orbital projection",
+   "closed_form": null
+  },
+  "codes": [
+   "VASP",
+   "LOBSTER",
+   "atomate2",
+   "lobsterpy",
+   "jobflow"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-dft-mixing-functionals",
+  "produces": [
+   {
+    "quantity": "corrected_total_energy",
+    "symbol": "E_{corr}",
+    "units": "eV",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "energy_correction",
+    "symbol": "\\Delta E_{MP2020}",
+    "units": "eV",
+    "gauge": "hidden",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "total_energy",
+    "units": "eV"
+   },
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "MP2020 compatibility energy correction",
+   "closed_form": null
+  },
+  "codes": [
+   "pymatgen",
+   "MACE-MP",
+   "MACE-OMAT",
+   "M3GNet",
+   "UMA"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-dft-vasp",
+  "produces": [
+   {
+    "quantity": "total_energy",
+    "symbol": "E_{tot}",
+    "units": "eV",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "forces",
+    "symbol": "F_i",
+    "units": "eV/Ang",
+    "gauge": "observable",
+    "indices": [
+     "atom",
+     "component"
+    ]
+   },
+   {
+    "quantity": "stress_tensor",
+    "symbol": "\\sigma_{ij}",
+    "units": "kbar",
+    "gauge": "observable",
+    "indices": [
+     "i",
+     "j"
+    ]
+   },
+   {
+    "quantity": "relaxed_structure",
+    "symbol": null,
+    "units": null,
+    "gauge": "observable",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "plane-wave DFT SCF/relaxation",
+   "closed_form": null
+  },
+  "codes": [
+   "VASP",
+   "pymatgen",
+   "atomate2"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-dielectric-response",
+  "produces": [
+   {
+    "quantity": "dielectric_function_real",
+    "symbol": "\\epsilon_1(\\omega)",
+    "units": null,
+    "gauge": "observable",
+    "indices": [
+     "frequency",
+     "tensor_component"
+    ]
+   },
+   {
+    "quantity": "dielectric_function_imaginary",
+    "symbol": "\\epsilon_2(\\omega)",
+    "units": null,
+    "gauge": "observable",
+    "indices": [
+     "frequency",
+     "tensor_component"
+    ]
+   },
+   {
+    "quantity": "static_dielectric_tensor",
+    "symbol": "\\epsilon_{ij}^{0}",
+    "units": null,
+    "gauge": "observable",
+    "indices": [
+     "i",
+     "j"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "relaxed_crystal_structure",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "independent-particle optics (VASP LOPTICS)",
+   "closed_form": null
+  },
+  "codes": [
+   "VASP",
+   "atomate2",
+   "pymatgen"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-diffusion-analysis",
+  "produces": [
+   {
+    "quantity": "diffusivity",
+    "symbol": "D",
+    "units": "cm^2/s",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "activation_energy",
+    "symbol": "E_a",
+    "units": "eV",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "mean_square_displacement",
+    "symbol": "MSD(t)",
+    "units": "Ang^2",
+    "gauge": "hidden",
+    "indices": [
+     "time"
+    ]
+   },
+   {
+    "quantity": "room_temperature_conductivity",
+    "symbol": "\\sigma_{RT}",
+    "units": "mS/cm",
+    "gauge": "observable",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "md_trajectory",
+    "units": null
+   },
+   {
+    "quantity": "temperature",
+    "units": "K"
+   }
+  ],
+  "operation": {
+   "kind": "Einstein MSD + Arrhenius fit",
+   "closed_form": "D(T) = D_0 * exp(-E_a / (k_B * T))"
+  },
+  "codes": [
+   "pymatgen",
+   "ASE"
+  ],
+  "example_instances": [
+   {
+    "material": "Li10GeP2S12 (LGPS)",
+    "value": 0.152,
+    "units": "eV",
+    "conditions": "Li-ion activation energy, 600-1000 K NVT MD, MatPES-r2SCAN",
+    "ref": "examples/LGPS/README.md"
+   },
+   {
+    "material": "Li10GeP2S12 (LGPS)",
+    "value": 91.44,
+    "units": "mS/cm",
+    "conditions": "RT conductivity extrapolated at 300 K",
+    "ref": "examples/LGPS/README.md"
+   }
+  ]
+ },
+ {
+  "name": "mat-disorder",
+  "produces": [
+   {
+    "quantity": "ordered_structure_candidates",
+    "symbol": null,
+    "units": null,
+    "gauge": "observable",
+    "indices": [
+     "candidate_index"
+    ]
+   },
+   {
+    "quantity": "ewald_energy",
+    "symbol": "E_{Ewald}",
+    "units": "eV",
+    "gauge": "hidden",
+    "indices": [
+     "candidate_index"
+    ]
+   },
+   {
+    "quantity": "cluster_expansion_energy",
+    "symbol": "E_{CE}",
+    "units": "eV/atom",
+    "gauge": "observable",
+    "indices": [
+     "configuration"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "disordered_structure",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "Ewald ranking + cluster expansion Monte Carlo",
+   "closed_form": null
+  },
+  "codes": [
+   "pymatgen",
+   "smol",
+   "MACE",
+   "CHGNet"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-elasticity",
+  "produces": [
+   {
+    "quantity": "elastic_tensor",
+    "symbol": "C_{ij}",
+    "units": "GPa",
+    "gauge": "observable",
+    "indices": [
+     "i",
+     "j"
+    ]
+   },
+   {
+    "quantity": "bulk_modulus_vrh",
+    "symbol": "B_{VRH}",
+    "units": "GPa",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "shear_modulus_vrh",
+    "symbol": "G_{VRH}",
+    "units": "GPa",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "youngs_modulus",
+    "symbol": "E",
+    "units": "GPa",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "poissons_ratio",
+    "symbol": "\\nu",
+    "units": null,
+    "gauge": "observable",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "finite-strain stress fitting",
+   "closed_form": "C_{ij} = d\\sigma_i / d\\epsilon_j"
+  },
+  "codes": [
+   "matcalc",
+   "MACE",
+   "MatGL",
+   "FairChem"
+  ],
+  "example_instances": [
+   {
+    "material": "Cu",
+    "value": 145.85,
+    "units": "GPa",
+    "conditions": "bulk modulus VRH, MACE-OMAT-0-small",
+    "ref": "examples/Cu/elasticity_results.json"
+   },
+   {
+    "material": "Cu",
+    "value": 51.45,
+    "units": "GPa",
+    "conditions": "shear modulus VRH, MACE-OMAT-0-small",
+    "ref": "examples/Cu/elasticity_results.json"
+   },
+   {
+    "material": "Cu",
+    "value": 138.11,
+    "units": "GPa",
+    "conditions": "Young's modulus, MACE-OMAT-0-small",
+    "ref": "examples/Cu/elasticity_results.json"
+   },
+   {
+    "material": "Cu",
+    "value": 0.34217507884737186,
+    "units": null,
+    "conditions": "Poisson's ratio, MACE-OMAT-0-small",
+    "ref": "examples/Cu/elasticity_results.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-electrochemical-window",
+  "produces": [
+   {
+    "quantity": "reduction_potential",
+    "symbol": "V_red",
+    "units": "V",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "oxidation_potential",
+    "symbol": "V_ox",
+    "units": "V",
+    "gauge": "observable",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "mp_material_id",
+    "units": null
+   },
+   {
+    "quantity": "mobile_ion_chemical_potential",
+    "units": "eV"
+   }
+  ],
+  "operation": {
+   "kind": "grand-potential phase diagram",
+   "closed_form": "V = -(mu_Li - mu_Li_ref)"
+  },
+  "codes": [
+   "pymatgen",
+   "mp-api"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-electronic-structure",
+  "produces": [
+   {
+    "quantity": "band_gap",
+    "symbol": "E_g",
+    "units": "eV",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "band_structure",
+    "symbol": "E_n(k)",
+    "units": "eV",
+    "gauge": "hidden",
+    "indices": [
+     "band_index",
+     "k_point"
+    ]
+   },
+   {
+    "quantity": "density_of_states",
+    "symbol": "g(E)",
+    "units": "states/eV",
+    "gauge": "observable",
+    "indices": [
+     "energy"
+    ]
+   },
+   {
+    "quantity": "fermi_energy",
+    "symbol": "E_F",
+    "units": "eV",
+    "gauge": "hidden",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "DFT band structure (SCF + non-SCF)",
+   "closed_form": null
+  },
+  "codes": [
+   "VASP",
+   "atomate2",
+   "pymatgen"
+  ],
+  "example_instances": [
+   {
+    "material": "Si",
+    "value": 0.581,
+    "units": "eV",
+    "conditions": "PBE/OMAT, indirect gap Gamma->BZ boundary",
+    "ref": "examples/README.md"
+   },
+   {
+    "material": "Si",
+    "value": 0.496,
+    "units": "eV",
+    "conditions": "PBE/OMAT, DOS uniform k-mesh",
+    "ref": "examples/README.md"
+   }
+  ]
+ },
+ {
+  "name": "mat-elemental-energies",
+  "produces": [
+   {
+    "quantity": "ground_state_energy_per_atom",
+    "symbol": "E_0",
+    "units": "eV/atom",
+    "gauge": "hidden",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "element_symbol",
+    "units": null
+   },
+   {
+    "quantity": "mlip_checkpoint_name",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "MLIP single-point / relaxation energy lookup",
+   "closed_form": null
+  },
+  "codes": [
+   "MACE",
+   "MatGL",
+   "FairChem",
+   "pymatgen",
+   "mp-api"
+  ],
+  "example_instances": [
+   {
+    "material": "Li",
+    "value": -1.9065287907918294,
+    "units": "eV/atom",
+    "conditions": "MACE-MP-medium",
+    "ref": "resources/MACE-MP-medium_energies.json"
+   },
+   {
+    "material": "Fe",
+    "value": -8.390863418579102,
+    "units": "eV/atom",
+    "conditions": "MACE-MP-medium",
+    "ref": "resources/MACE-MP-medium_energies.json"
+   },
+   {
+    "material": "O",
+    "value": -5.788797855377197,
+    "units": "eV/atom",
+    "conditions": "MACE-MP-medium",
+    "ref": "resources/MACE-MP-medium_energies.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-equation-of-state",
+  "produces": [
+   {
+    "quantity": "bulk_modulus",
+    "symbol": "B_0",
+    "units": "GPa",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "equilibrium_volume",
+    "symbol": "V_0",
+    "units": "Angstrom^3",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "equilibrium_energy",
+    "symbol": "E_0",
+    "units": "eV",
+    "gauge": "hidden",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   },
+   {
+    "quantity": "volumetric_strain_points",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "Birch-Murnaghan EOS fit",
+   "closed_form": "E(V) = E_0 + (9 V_0 B_0 / 16) { [(V_0/V)^(2/3) - 1]^3 B_0' + [(V_0/V)^(2/3) - 1]^2 [6 - 4(V_0/V)^(2/3)] }"
+  },
+  "codes": [
+   "MACE",
+   "MatGL",
+   "FairChem",
+   "matcalc",
+   "pymatgen"
+  ],
+  "example_instances": [
+   {
+    "material": "Si",
+    "value": 96.42681590768773,
+    "units": "GPa",
+    "conditions": "MACE-OMAT-0-small, bulk modulus",
+    "ref": "examples/Si/eos_results.json"
+   },
+   {
+    "material": "Si",
+    "value": 31.34880012190209,
+    "units": "Angstrom^3",
+    "conditions": "MACE-OMAT-0-small, equilibrium volume",
+    "ref": "examples/Si/eos_results.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-grain-boundary",
+  "produces": [
+   {
+    "quantity": "grain_boundary_energy",
+    "symbol": "gamma_GB",
+    "units": "J/m^2",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "misorientation_angle",
+    "symbol": "theta",
+    "units": "deg",
+    "gauge": "parameter",
+    "indices": []
+   },
+   {
+    "quantity": "sigma_value",
+    "symbol": "Sigma",
+    "units": null,
+    "gauge": "parameter",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "bulk_energy_per_atom",
+    "units": "eV/atom"
+   },
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   },
+   {
+    "quantity": "rotation_axis",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "CSL grain boundary energy",
+   "closed_form": "gamma_GB = (E_GB - N * E_bulk) / (2 A)"
+  },
+  "codes": [
+   "MatGL",
+   "MACE",
+   "pymatgen",
+   "ASE"
+  ],
+  "example_instances": [
+   {
+    "material": "Cu",
+    "value": 0.9768,
+    "units": "J/m^2",
+    "conditions": "TensorNet-MatPES-r2SCAN, Sigma5, 36.87 deg, [001] tilt",
+    "ref": "examples/Cu-001-tilt-TensorNet/gb_energy_results.json"
+   },
+   {
+    "material": "Cu",
+    "value": 0.7759,
+    "units": "J/m^2",
+    "conditions": "TensorNet-MatPES-r2SCAN, Sigma13, 22.62 deg, [001] tilt",
+    "ref": "examples/Cu-001-tilt-TensorNet/gb_energy_results.json"
+   },
+   {
+    "material": "Cu",
+    "value": 0.7196,
+    "units": "J/m^2",
+    "conditions": "TensorNet-MatPES-r2SCAN, Sigma25, 16.26 deg, [001] tilt",
+    "ref": "examples/Cu-001-tilt-TensorNet/gb_energy_results.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-grand-canonical-mc",
+  "produces": [],
+  "consumes": [
+   {
+    "quantity": "cluster_expansion_model",
+    "units": null
+   },
+   {
+    "quantity": "temperature",
+    "units": "K"
+   },
+   {
+    "quantity": "chemical_potential_difference",
+    "units": "eV"
+   }
+  ],
+  "operation": {
+   "kind": "semigrand canonical Monte Carlo composition sweep",
+   "closed_form": "P(sigma) ~ exp[-(E(sigma) - Delta_mu * N_A) / k_B T]"
+  },
+  "codes": [
+   "smol",
+   "pymatgen"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-intercalation-voltage",
+  "produces": [
+   {
+    "quantity": "average_open_circuit_voltage",
+    "symbol": "V_OCV",
+    "units": "V",
+    "gauge": "observable",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "energy_intercalated_structure",
+    "units": "eV"
+   },
+   {
+    "quantity": "energy_deintercalated_structure",
+    "units": "eV"
+   },
+   {
+    "quantity": "chemical_potential_bulk_metal",
+    "units": "eV/atom"
+   },
+   {
+    "quantity": "number_of_intercalated_ions",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "intercalation voltage from energy difference",
+   "closed_form": "V = -(E_full - E_empty - n * mu_metal) / n"
+  },
+  "codes": [
+   "MACE",
+   "MatGL",
+   "FairChem",
+   "pymatgen"
+  ],
+  "example_instances": [
+   {
+    "material": "LiFePO4",
+    "value": 3.260441522078377,
+    "units": "V",
+    "conditions": "MACE-MH-1 matpes_r2scan, vs Li/Li+",
+    "ref": "examples/LiFePO4/voltage_results.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-ionic-substitution",
+  "produces": [],
+  "consumes": [
+   {
+    "quantity": "source_crystal_structure",
+    "units": null
+   },
+   {
+    "quantity": "substitution_probability_threshold",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "data-mined ionic substitution (Hautier 2011)",
+   "closed_form": null
+  },
+  "codes": [
+   "pymatgen",
+   "mp-api"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-kinetic-monte-carlo",
+  "produces": [
+   {
+    "quantity": "tracer_diffusivity",
+    "symbol": "D_tracer",
+    "units": "m^2/s",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "collective_diffusivity",
+    "symbol": "D_J",
+    "units": "m^2/s",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "haven_ratio",
+    "symbol": "H_R",
+    "units": null,
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "mean_square_displacement",
+    "symbol": "MSD",
+    "units": "Angstrom^2",
+    "gauge": "observable",
+    "indices": [
+     "time"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "migration_barrier",
+    "units": "eV"
+   },
+   {
+    "quantity": "attempt_frequency",
+    "units": "Hz"
+   },
+   {
+    "quantity": "site_network",
+    "units": null
+   },
+   {
+    "quantity": "temperature",
+    "units": "K"
+   }
+  ],
+  "operation": {
+   "kind": "rejection-free kinetic Monte Carlo (Gillespie / n-fold way)",
+   "closed_form": "dt = -ln(u) / R, D = MSD / (2 d t)"
+  },
+  "codes": [
+   "custom Python KMC engine",
+   "ASE",
+   "pymatgen"
+  ],
+  "example_instances": [
+   {
+    "material": "simple cubic lattice (analytical validation)",
+    "value": 84451240902.92921,
+    "units": "Angstrom^2/s",
+    "conditions": "T=500 K, barrier=0.3 eV, nu=1e13 Hz, c=0.05, D_tracer KMC",
+    "ref": "examples/analytical_validation/validation_summary.json"
+   },
+   {
+    "material": "simple cubic lattice (analytical validation)",
+    "value": 1127634761420.336,
+    "units": "Angstrom^2/s",
+    "conditions": "T=800 K, barrier=0.3 eV, nu=1e13 Hz, c=0.05, D_tracer KMC",
+    "ref": "examples/analytical_validation/validation_summary.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-lammps-md",
+  "produces": [],
+  "consumes": [
+   {
+    "quantity": "atomic_structure",
+    "units": null
+   },
+   {
+    "quantity": "mlip_model",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "MD driver / build tool",
+   "closed_form": null
+  },
+  "codes": [
+   "LAMMPS",
+   "MACE",
+   "MatGL",
+   "CHGNet",
+   "FairChem",
+   "Kokkos"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-lattice-thermal-conductivity",
+  "produces": [
+   {
+    "quantity": "lattice_thermal_conductivity",
+    "symbol": "kappa",
+    "units": "W/m/K",
+    "gauge": "observable",
+    "indices": [
+     "temperature"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "atomic_structure",
+    "units": null
+   },
+   {
+    "quantity": "mlip_model",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "anharmonic lattice dynamics (BTE-RTA)",
+   "closed_form": null
+  },
+  "codes": [
+   "phono3py",
+   "matcalc",
+   "MACE",
+   "MatGL",
+   "FairChem"
+  ],
+  "example_instances": [
+   {
+    "material": "Si",
+    "value": 67.27445414644988,
+    "units": "W/m/K",
+    "conditions": "T=300K, MACE-OMAT-0-small",
+    "ref": "examples/Si-mace/thermal-conductivity/lattice_thermal_conductivity_results.json"
+   },
+   {
+    "material": "Si",
+    "value": 283.0220326044298,
+    "units": "W/m/K",
+    "conditions": "T=100K, MACE-OMAT-0-small",
+    "ref": "examples/Si-mace/thermal-conductivity/lattice_thermal_conductivity_results.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-magnetic-density",
+  "produces": [
+   {
+    "quantity": "site_magnetic_moment",
+    "symbol": "mu_s",
+    "units": "mu_B",
+    "gauge": "observable",
+    "indices": [
+     "site"
+    ]
+   },
+   {
+    "quantity": "total_magnetization",
+    "symbol": "M",
+    "units": "mu_B",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "spin_density",
+    "symbol": "rho_spin",
+    "units": "e/Angstrom^3",
+    "gauge": "observable",
+    "indices": [
+     "x",
+     "y",
+     "z"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "atomic_structure",
+    "units": null
+   },
+   {
+    "quantity": "dft_functional",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "spin-polarized DFT static calculation",
+   "closed_form": null
+  },
+  "codes": [
+   "VASP",
+   "pymatgen",
+   "atomate2"
+  ],
+  "example_instances": [
+   {
+    "material": "Fe (bcc)",
+    "value": 2.15,
+    "units": "mu_B",
+    "conditions": "site magnetic moment, PBE (MPStaticSet), atom 0",
+    "ref": "examples/Fe_moments.json"
+   },
+   {
+    "material": "Fe (bcc)",
+    "value": 4.3,
+    "units": "mu_B",
+    "conditions": "total magnetization, PBE (MPStaticSet), 2-atom cell Fe2",
+    "ref": "examples/Fe_moments.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-md-monitors",
+  "produces": [
+   {
+    "quantity": "md_stop_status",
+    "symbol": "status",
+    "units": null,
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "instantaneous_temperature",
+    "symbol": "T",
+    "units": "K",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "potential_energy",
+    "symbol": "E_pot",
+    "units": "eV",
+    "gauge": "observable",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "md_trajectory",
+    "units": null
+   },
+   {
+    "quantity": "target_temperature",
+    "units": "K"
+   }
+  ],
+  "operation": {
+   "kind": "MD monitor / callback controller",
+   "closed_form": null
+  },
+  "codes": [
+   "ASE",
+   "MACE",
+   "MatGL",
+   "FairChem"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-md-probability-density",
+  "produces": [
+   {
+    "quantity": "ion_probability_density",
+    "symbol": "rho_prob",
+    "units": "1/Angstrom^3",
+    "gauge": "observable",
+    "indices": [
+     "x",
+     "y",
+     "z"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "md_trajectory",
+    "units": null
+   },
+   {
+    "quantity": "species",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "spatial histogram + Gaussian smoothing of trajectory",
+   "closed_form": null
+  },
+  "codes": [
+   "ASE",
+   "pymatgen",
+   "VESTA"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-melting-point",
+  "produces": [
+   {
+    "quantity": "melting_temperature",
+    "symbol": "T_m",
+    "units": "K",
+    "gauge": "observable",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "atomic_structure",
+    "units": null
+   },
+   {
+    "quantity": "mlip_model",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "solid-liquid coexistence NVE MD",
+   "closed_form": null
+  },
+  "codes": [
+   "ASE",
+   "MACE",
+   "MatGL",
+   "FairChem"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-phase-diagram",
+  "produces": [
+   {
+    "quantity": "energy_above_hull",
+    "symbol": "E_hull",
+    "units": "eV/atom",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "formation_energy_per_atom",
+    "symbol": "Delta_Hf",
+    "units": "eV/atom",
+    "gauge": "observable",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "chemical_system",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "convex hull retrieval from Materials Project",
+   "closed_form": null
+  },
+  "codes": [
+   "mp-api",
+   "pymatgen",
+   "matplotlib"
+  ],
+  "example_instances": [
+   {
+    "material": "Li2O (mp-1960)",
+    "value": 0.0,
+    "units": "eV/atom",
+    "conditions": "energy_above_hull, GGA+U, ground-state polymorph",
+    "ref": "examples/Li-O/li_o_phase_diagram/li2o_stability.json"
+   },
+   {
+    "material": "Li2O (mp-1960)",
+    "value": -2.061597913888889,
+    "units": "eV/atom",
+    "conditions": "formation_energy_per_atom, GGA+U, ground-state polymorph",
+    "ref": "examples/Li-O/li_o_phase_diagram/li2o_stability.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-phase-field-conservative",
+  "produces": [
+   {
+    "quantity": "concentration_field",
+    "symbol": "c(r,t)",
+    "units": null,
+    "gauge": "observable",
+    "indices": [
+     "x",
+     "y"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "initial_concentration_field",
+    "units": null
+   },
+   {
+    "quantity": "mobility",
+    "units": null
+   },
+   {
+    "quantity": "gradient_energy_coefficient",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "Cahn-Hilliard PDE solver",
+   "closed_form": "dc/dt = nabla . (M nabla (delta F / delta c))"
+  },
+  "codes": [
+   "FiPy"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-phase-field-non-conservative",
+  "produces": [
+   {
+    "quantity": "order_parameter_field",
+    "symbol": "phi(r,t)",
+    "units": null,
+    "gauge": "observable",
+    "indices": [
+     "x",
+     "y"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "initial_order_parameter_field",
+    "units": null
+   },
+   {
+    "quantity": "mobility",
+    "units": null
+   },
+   {
+    "quantity": "gradient_energy_coefficient",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "Allen-Cahn PDE solver",
+   "closed_form": "dphi/dt = -M (delta F / delta phi) = M (epsilon^2 nabla^2 phi - df/dphi)"
+  },
+  "codes": [
+   "FiPy"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-phonon",
+  "produces": [
+   {
+    "quantity": "phonon_frequency",
+    "symbol": "ω",
+    "units": "cm⁻¹",
+    "gauge": "observable",
+    "indices": [
+     "branch",
+     "q_point"
+    ]
+   },
+   {
+    "quantity": "phonon_dos",
+    "symbol": "g(ω)",
+    "units": "states/THz",
+    "gauge": "observable",
+    "indices": [
+     "frequency"
+    ]
+   },
+   {
+    "quantity": "helmholtz_free_energy",
+    "symbol": "F",
+    "units": "kJ/mol",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "vibrational_entropy",
+    "symbol": "S",
+    "units": "J/mol/K",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "heat_capacity_constant_volume",
+    "symbol": "C_v",
+    "units": "J/mol/K",
+    "gauge": "observable",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   },
+   {
+    "quantity": "supercell_matrix",
+    "units": null
+   },
+   {
+    "quantity": "temperature",
+    "units": "K"
+   }
+  ],
+  "operation": {
+   "kind": "finite-displacement phonon",
+   "closed_form": null
+  },
+  "codes": [
+   "matcalc",
+   "phonopy",
+   "phono3py"
+  ],
+  "example_instances": [
+   {
+    "material": "Li BCC",
+    "value": -3.2004694160315803,
+    "units": "kJ/mol",
+    "conditions": "300 K, TensorNet-MatPES-r2SCAN-v2025.1-PES, 3×3×3 supercell",
+    "ref": "examples/Li_BCC_TensorNet/phonon_results.json"
+   },
+   {
+    "material": "Li BCC",
+    "value": 36.845728138782796,
+    "units": "J/mol/K",
+    "conditions": "entropy at 300 K, TensorNet-MatPES-r2SCAN-v2025.1-PES",
+    "ref": "examples/Li_BCC_TensorNet/phonon_results.json"
+   },
+   {
+    "material": "Li BCC",
+    "value": 23.74500189287916,
+    "units": "J/mol/K",
+    "conditions": "heat capacity at 300 K, TensorNet-MatPES-r2SCAN-v2025.1-PES",
+    "ref": "examples/Li_BCC_TensorNet/phonon_results.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-pourbaix-diagram",
+  "produces": [
+   {
+    "quantity": "pourbaix_stability_domain",
+    "symbol": "ϕ_pbx",
+    "units": "eV",
+    "gauge": "observable",
+    "indices": [
+     "pH",
+     "voltage"
+    ]
+   },
+   {
+    "quantity": "stable_phases",
+    "symbol": null,
+    "units": null,
+    "gauge": "observable",
+    "indices": [
+     "pH",
+     "voltage"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   },
+   {
+    "quantity": "mlip_total_energy",
+    "units": "eV/atom"
+   },
+   {
+    "quantity": "ph",
+    "units": null
+   },
+   {
+    "quantity": "electrode_potential",
+    "units": "V vs SHE"
+   }
+  ],
+  "operation": {
+   "kind": "grand-potential phase diagram",
+   "closed_form": "ϕ_pbx = G - μ_H·N_H - μ_O·N_O - eV·Q"
+  },
+  "codes": [
+   "pymatgen",
+   "matcalc",
+   "Materials Project API"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-qha-thermal-expansion",
+  "produces": [
+   {
+    "quantity": "volumetric_thermal_expansion_coefficient",
+    "symbol": "α_V",
+    "units": "K⁻¹",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "gibbs_free_energy",
+    "symbol": "G",
+    "units": "eV/atom",
+    "gauge": "observable",
+    "indices": [
+     "temperature"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   },
+   {
+    "quantity": "temperature",
+    "units": "K"
+   },
+   {
+    "quantity": "equation_of_state",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "quasi-harmonic approximation",
+   "closed_form": null
+  },
+  "codes": [
+   "matcalc",
+   "phonopy"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-raman-spectra",
+  "produces": [
+   {
+    "quantity": "raman_mode_frequency",
+    "symbol": "ω_ν",
+    "units": "cm⁻¹",
+    "gauge": "observable",
+    "indices": [
+     "mode"
+    ]
+   },
+   {
+    "quantity": "raman_intensity",
+    "symbol": "I_ν",
+    "units": "arb. units",
+    "gauge": "observable",
+    "indices": [
+     "mode"
+    ]
+   },
+   {
+    "quantity": "irreducible_representation",
+    "symbol": "Γ_ν",
+    "units": null,
+    "gauge": "hidden",
+    "indices": [
+     "mode"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "phonon_eigenvectors",
+    "units": null
+   },
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "group-theory selection rules on Γ-point phonons",
+   "closed_form": "I_ν ∝ |ê_i · α_ν · ê_s|²"
+  },
+  "codes": [
+   "phonopy",
+   "matcalc"
+  ],
+  "example_instances": [
+   {
+    "material": "TiO₂ rutile",
+    "value": 141.3,
+    "units": "cm⁻¹",
+    "conditions": "B1g mode, MACE-MH-1 matpes_r2scan head, 3×3×4 supercell",
+    "ref": "examples/tio2-rutile/raman_modes.json"
+   },
+   {
+    "material": "TiO₂ rutile",
+    "value": 444.1,
+    "units": "cm⁻¹",
+    "conditions": "Eg mode, MACE-MH-1 matpes_r2scan head",
+    "ref": "examples/tio2-rutile/raman_modes.json"
+   },
+   {
+    "material": "TiO₂ rutile",
+    "value": 609.8,
+    "units": "cm⁻¹",
+    "conditions": "A1g mode, MACE-MH-1 matpes_r2scan head",
+    "ref": "examples/tio2-rutile/raman_modes.json"
+   },
+   {
+    "material": "TiO₂ rutile",
+    "value": 821.2,
+    "units": "cm⁻¹",
+    "conditions": "B2g mode, MACE-MH-1 matpes_r2scan head",
+    "ref": "examples/tio2-rutile/raman_modes.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-random-structure-search",
+  "produces": [
+   {
+    "quantity": "candidate_structure",
+    "units": null,
+    "gauge": "observable",
+    "indices": [
+     "candidate"
+    ],
+    "symbol": "CIF"
+   },
+   {
+    "quantity": "total_energy_per_atom",
+    "symbol": "E/N",
+    "units": "eV/atom",
+    "gauge": "observable",
+    "indices": [
+     "candidate"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "composition",
+    "units": null
+   },
+   {
+    "quantity": "num_structures",
+    "units": null
+   },
+   {
+    "quantity": "volume_range",
+    "units": "Å³/atom"
+   }
+  ],
+  "operation": {
+   "kind": "random structure generation + MLIP relaxation",
+   "closed_form": null
+  },
+  "codes": [
+   "pyxtal",
+   "matcalc",
+   "MACE",
+   "MatGL"
+  ],
+  "example_instances": [
+   {
+    "material": "NaFeO₂ (α-layered rocksalt R-3m)",
+    "value": -5.771,
+    "units": "eV/atom",
+    "conditions": "ground-state basin, MACE-MH-1, 7 structures converged here",
+    "ref": "examples/NaFeO2_search/README.md"
+   },
+   {
+    "material": "NaFeO₂ (metastable)",
+    "value": -5.673,
+    "units": "eV/atom",
+    "conditions": "metastable basin, 98 meV/atom above ground state, ~30 structures",
+    "ref": "examples/NaFeO2_search/README.md"
+   }
+  ]
+ },
+ {
+  "name": "mat-reaction-network",
+  "produces": [
+   {
+    "quantity": "reaction_free_energy",
+    "symbol": "ΔG",
+    "units": "eV/atom",
+    "gauge": "observable",
+    "indices": [
+     "reaction_step"
+    ]
+   },
+   {
+    "quantity": "pathway_cost",
+    "symbol": "C_path",
+    "units": null,
+    "gauge": "observable",
+    "indices": [
+     "pathway"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "target_composition",
+    "units": null
+   },
+   {
+    "quantity": "precursor_compositions",
+    "units": null
+   },
+   {
+    "quantity": "temperature",
+    "units": "K"
+   }
+  ],
+  "operation": {
+   "kind": "graph-based thermodynamic pathway search",
+   "closed_form": null
+  },
+  "codes": [
+   "reaction-network",
+   "Materials Project API",
+   "pymatgen"
+  ],
+  "example_instances": [
+   {
+    "material": "LiZnPO₄",
+    "value": -0.19483286931628915,
+    "units": "eV/atom",
+    "conditions": "optimal 1-step pathway: Li2O + Zn2P2O7 → 2 LiZnPO4, T=1000 K",
+    "ref": "examples/1_predict_liznpo4/pair_a_output.json"
+   },
+   {
+    "material": "BaLiBO₃",
+    "value": -0.2661849005729058,
+    "units": "eV/atom",
+    "conditions": "optimal 1-step pathway: BaO + LiBO2 → BaLiBO3, T=1000 K",
+    "ref": "examples/2_predict_libabo3/predicted_output.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-sample-pes-by-md",
+  "produces": [
+   {
+    "quantity": "off_equilibrium_structure",
+    "symbol": "CIF",
+    "units": null,
+    "gauge": "observable",
+    "indices": [
+     "sample"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   },
+   {
+    "quantity": "temperature",
+    "units": "K"
+   },
+   {
+    "quantity": "num_md_steps",
+    "units": null
+   },
+   {
+    "quantity": "n_clusters",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "NVT-MD sampling + k-means clustering of latent features",
+   "closed_form": null
+  },
+  "codes": [
+   "MatGL",
+   "MACE",
+   "FairChem",
+   "ASE"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-solid-free-energy",
+  "produces": [
+   {
+    "quantity": "helmholtz_free_energy",
+    "symbol": "F",
+    "units": "eV/atom",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "gibbs_free_energy",
+    "symbol": "G",
+    "units": "eV/atom",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "dissipated_energy",
+    "symbol": "W_diss",
+    "units": "eV/atom",
+    "gauge": "hidden",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   },
+   {
+    "quantity": "temperature",
+    "units": "K"
+   },
+   {
+    "quantity": "pressure",
+    "units": "GPa"
+   }
+  ],
+  "operation": {
+   "kind": "Frenkel-Ladd thermodynamic integration",
+   "closed_form": null
+  },
+  "codes": [
+   "MACE",
+   "MatGL",
+   "FairChem",
+   "ASE"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-stability",
+  "produces": [
+   {
+    "quantity": "energy_above_hull",
+    "symbol": "E_hull",
+    "units": "meV/atom",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "formation_energy",
+    "symbol": "ΔH_f",
+    "units": "eV/atom",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "electrochemical_reduction_potential",
+    "symbol": "V_red",
+    "units": "V vs Li/Li+",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "electrochemical_oxidation_potential",
+    "symbol": "V_ox",
+    "units": "V vs Li/Li+",
+    "gauge": "observable",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   },
+   {
+    "quantity": "mlip_total_energy",
+    "units": "eV/atom"
+   },
+   {
+    "quantity": "chemical_system",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "convex hull construction",
+   "closed_form": null
+  },
+  "codes": [
+   "pymatgen",
+   "matcalc",
+   "Materials Project API"
+  ],
+  "example_instances": [
+   {
+    "material": "Li₃PS₄",
+    "value": 0.0,
+    "units": "meV/atom",
+    "conditions": "E_hull, R2SCAN thermo, Li-P-S hull, STABLE",
+    "ref": "examples/li3ps4_stability/stability_analysis.json"
+   },
+   {
+    "material": "Li₃PS₄",
+    "value": 0.6254337628682456,
+    "units": "V vs Li/Li+",
+    "conditions": "V_red (reductive electrochemical stability limit)",
+    "ref": "examples/li3ps4_stability/stability_analysis.json"
+   },
+   {
+    "material": "Li₃PS₄",
+    "value": 2.2313351233800263,
+    "units": "V vs Li/Li+",
+    "conditions": "V_ox (oxidative electrochemical stability limit)",
+    "ref": "examples/li3ps4_stability/stability_analysis.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-structure-novelty",
+  "produces": [],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "symmetry-aware structural matching / novelty classification",
+   "closed_form": null
+  },
+  "codes": [
+   "pymatgen StructureMatcher",
+   "Materials Project API"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-surface-adsorption",
+  "produces": [
+   {
+    "quantity": "adsorption_energy",
+    "symbol": "E_ads",
+    "units": "eV",
+    "gauge": "observable",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "bulk_crystal_structure",
+    "units": null
+   },
+   {
+    "quantity": "adsorbate_structure",
+    "units": null
+   },
+   {
+    "quantity": "miller_index",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "MLIP slab relaxation + energy difference",
+   "closed_form": "E_ads = E_{adsorbate+slab} - E_{slab} - E_{adsorbate}"
+  },
+  "codes": [
+   "matcalc AdsorptionCalc",
+   "FAIRChem",
+   "MACE",
+   "MatGL",
+   "ASE"
+  ],
+  "example_instances": [
+   {
+    "material": "CO on Cu(111) — ontop site",
+    "value": -1.12,
+    "units": "eV",
+    "conditions": "EquiformerV2-31M-S2EF-OC20-All+MD, fmax=0.05 eV/Å",
+    "ref": "examples/CO_on_Cu111/adsorption_results.json"
+   },
+   {
+    "material": "CO on Cu(111) — bridge site",
+    "value": -0.89,
+    "units": "eV",
+    "conditions": "EquiformerV2-31M-S2EF-OC20-All+MD, fmax=0.05 eV/Å",
+    "ref": "examples/CO_on_Cu111/adsorption_results.json"
+   },
+   {
+    "material": "CO on Cu(111) — hollow site",
+    "value": -0.67,
+    "units": "eV",
+    "conditions": "EquiformerV2-31M-S2EF-OC20-All+MD, fmax=0.05 eV/Å",
+    "ref": "examples/CO_on_Cu111/adsorption_results.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-surface-energy",
+  "produces": [
+   {
+    "quantity": "surface_energy",
+    "symbol": "\\gamma",
+    "units": "J/m^2",
+    "gauge": "observable",
+    "indices": [
+     "hkl"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "bulk_energy_per_atom",
+    "units": "eV/atom"
+   },
+   {
+    "quantity": "slab_total_energy",
+    "units": "eV"
+   },
+   {
+    "quantity": "surface_area",
+    "units": "Å^2"
+   }
+  ],
+  "operation": {
+   "kind": "slab-bulk energy difference / area normalization",
+   "closed_form": "\\gamma = (E_{slab} - N \\cdot E_{bulk}) / (2A)"
+  },
+  "codes": [
+   "pymatgen SlabGenerator",
+   "matcalc",
+   "MatGL",
+   "MACE",
+   "ASE"
+  ],
+  "example_instances": [
+   {
+    "material": "Cu (111)",
+    "value": 1.3,
+    "units": "J/m^2",
+    "conditions": "CHGNet-MatPES-r2SCAN, fcc Cu",
+    "ref": "examples/FCC_metals/surface_energies.json"
+   },
+   {
+    "material": "Cu (100)",
+    "value": 1.45,
+    "units": "J/m^2",
+    "conditions": "CHGNet-MatPES-r2SCAN, fcc Cu",
+    "ref": "examples/FCC_metals/surface_energies.json"
+   },
+   {
+    "material": "Cu (110)",
+    "value": 1.55,
+    "units": "J/m^2",
+    "conditions": "CHGNet-MatPES-r2SCAN, fcc Cu",
+    "ref": "examples/FCC_metals/surface_energies.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-synthesis-extraction",
+  "produces": [],
+  "consumes": [
+   {
+    "quantity": "paper_pdf",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "LLM-based NLP extraction of synthesis ontology from PDF text",
+   "closed_form": null
+  },
+  "codes": [
+   "PyMuPDF",
+   "LLM agent"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-synthesis-recommendation",
+  "produces": [],
+  "consumes": [
+   {
+    "quantity": "target_formula",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "database query and ranking of text-mined synthesis recipes",
+   "closed_form": null
+  },
+  "codes": [
+   "mp-api",
+   "pymatgen",
+   "Materials Project Synthesis Explorer"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-xrd-calculator",
+  "produces": [],
+  "consumes": [
+   {
+    "quantity": "crystal_structure",
+    "units": null
+   },
+   {
+    "quantity": "xray_wavelength",
+    "units": "Å"
+   }
+  ],
+  "operation": {
+   "kind": "kinematic XRD pattern simulation (Pseudo-Voigt broadening)",
+   "closed_form": null
+  },
+  "codes": [
+   "pymatgen XRDCalculator",
+   "matplotlib"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-xrd-digitizer",
+  "produces": [],
+  "consumes": [
+   {
+    "quantity": "xrd_pattern_image",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "VLM peak extraction + pseudo-Voigt profile reconstruction",
+   "closed_form": null
+  },
+  "codes": [
+   "digitize_plot.py"
+  ],
+  "example_instances": []
+ },
+ {
+  "name": "mat-xrd-phase-analysis",
+  "produces": [
+   {
+    "quantity": "weighted_profile_r_factor",
+    "symbol": "R_wp",
+    "units": "%",
+    "gauge": "observable",
+    "indices": []
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "xrd_pattern",
+    "units": null
+   },
+   {
+    "quantity": "candidate_cifs",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "DARA tree-search phase identification (BGMN Rietveld)",
+   "closed_form": null
+  },
+  "codes": [
+   "dara-xrd",
+   "BGMN",
+   "Ray",
+   "CODDatabase",
+   "ICSDDatabase"
+  ],
+  "example_instances": [
+   {
+    "material": "GeO2-ZnO mixture (700C 60min)",
+    "value": 12.11,
+    "units": "%",
+    "conditions": "ICSD database, Aeris-fds-Pixcel1d-Medipix3 instrument profile, Cu wavelength",
+    "ref": "examples/GeO2-ZnO/phase_analysis_results/results_summary.json"
+   }
+  ]
+ },
+ {
+  "name": "mat-xrd-refinement",
+  "produces": [
+   {
+    "quantity": "weighted_profile_r_factor",
+    "symbol": "R_wp",
+    "units": "%",
+    "gauge": "observable",
+    "indices": []
+   },
+   {
+    "quantity": "phase_weight_fraction",
+    "symbol": "w_i",
+    "units": null,
+    "gauge": "observable",
+    "indices": [
+     "phase"
+    ]
+   },
+   {
+    "quantity": "refined_lattice_parameter",
+    "symbol": "a,b,c",
+    "units": "nm",
+    "gauge": "observable",
+    "indices": [
+     "phase",
+     "axis"
+    ]
+   }
+  ],
+  "consumes": [
+   {
+    "quantity": "xrd_pattern",
+    "units": null
+   },
+   {
+    "quantity": "phase_cifs",
+    "units": null
+   }
+  ],
+  "operation": {
+   "kind": "Rietveld refinement (DARA/BGMN)",
+   "closed_form": null
+  },
+  "codes": [
+   "dara-xrd",
+   "BGMN",
+   "pymatgen"
+  ],
+  "example_instances": [
+   {
+    "material": "LiFePO4 (Rietveld)",
+    "value": 32.32,
+    "units": "%",
+    "conditions": "Aeris-fds-Pixcel1d-Medipix3, phases: LiFePO4 + Li3PO4",
+    "ref": "examples/LiFePO4/refinement_results/LiFePO4/refinement_result.json"
+   },
+   {
+    "material": "CaNi(PO3)4 + NiO (Rietveld)",
+    "value": 5.24,
+    "units": "%",
+    "conditions": "Aeris-fds-Pixcel1d-Medipix3, 800C 240min synthesis",
+    "ref": "examples/CaNi(PO3)4_800_240/refinement_result.json"
+   }
+  ]
+ }
+]
