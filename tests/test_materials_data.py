@@ -29,3 +29,11 @@ def test_all_domains_and_write(tmp_path):
     assert any(d.name == "thermal_transport" for d in map_data.DOMAINS)
     g = map_data.write_graph(tmp_path / "graph.json")
     assert g.exists()
+
+
+def test_shared_primitives_reuse_existing_nodes():
+    from omai.materials.operator import shared_primitives as sp_mod
+    from omai.thermal_transport.operator.nodes import TEMPERATURE_STATE, MEAN_SQUARED_DISPLACEMENT
+    assert sp_mod.TEMPERATURE is TEMPERATURE_STATE
+    assert sp_mod.MEAN_SQUARED_DISPLACEMENT is MEAN_SQUARED_DISPLACEMENT
+    assert sp_mod.STRUCTURE.name == "Structure"
