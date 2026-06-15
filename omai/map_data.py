@@ -180,3 +180,58 @@ def record_instance(*, domains, variable, material, value, units, source_kind,
     path = instances_dir / (_slug(f"{material}-{variable}-{source_ref}") + ".json")
     path.write_text(json.dumps(rec))
     return path
+
+
+_DOMAINS_CACHE: tuple[Domain, ...] | None = None
+
+
+def _domains() -> tuple[Domain, ...]:
+    """Return the cached tuple of all domains, building it on first call.
+
+    Built lazily (not at module top level) because omai.thermal_transport.domain
+    and omai.materials.domain both do `from omai.map_data import Domain` at import
+    time; constructing the tuple eagerly here would import those modules before
+    map_data finished initialising and cause a circular import.
+    """
+    global _DOMAINS_CACHE
+    if _DOMAINS_CACHE is None:
+        from omai.thermal_transport.domain import THERMAL_TRANSPORT
+        from omai.materials.domain import MATERIALS
+        _DOMAINS_CACHE = (THERMAL_TRANSPORT, MATERIALS)
+    return _DOMAINS_CACHE
+
+
+def __getattr__(name: str):  # noqa: N807  (module-level __getattr__)
+    # PEP 562 module-level __getattr__: `DOMAINS` is exposed lazily via _domains()
+    # for the circular-import reason documented there. Any other name is a real
+    # AttributeError.
+    if name == "DOMAINS":
+        return _domains()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def write_graph(path: Path | None = None) -> Path:
+    path = path or (_DOCS / "data" / "graph.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(build_graph_dict(_domains())))
+    return path
+
+
+def write_codes(path: Path | None = None) -> Path:
+    path = path or (_DOCS / "data" / "codes.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(build_codes(_domains())))
+    return path
+
+
+def write_instances(path: Path | None = None) -> Path:
+    path = path or (_DOCS / "data" / "instances.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(build_instances()))
+    return path
+
+
+if __name__ == "__main__":
+    print("wrote", write_graph())
+    print("wrote", write_instances())
+    print("wrote", write_codes())

@@ -124,7 +124,9 @@ def write_codes(path: Path | None = None) -> Path:
 
 
 if __name__ == "__main__":
-    g = write_graph()
-    i = write_instances()
-    c = write_codes()
-    print(f"wrote {g}\nwrote {i}\nwrote {c}")
+    print("omai.thermal_transport.site_data writes thermal-only data and is deprecated; "
+          "use `python -m omai.map_data` for the unified map.")
+    from omai import map_data
+    print("wrote", map_data.write_graph())
+    print("wrote", map_data.write_instances())
+    print("wrote", map_data.write_codes())

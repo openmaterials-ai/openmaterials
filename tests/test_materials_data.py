@@ -22,3 +22,10 @@ def test_unified_build_equals_thermal_when_materials_empty():
     assert "CellVolume" in ids               # promoted parameter
     assert any(n["type"] == "parameter" for n in g["nodes"])
     assert len(g["links"]) >= 92
+
+
+def test_all_domains_and_write(tmp_path):
+    from omai import map_data
+    assert any(d.name == "thermal_transport" for d in map_data.DOMAINS)
+    g = map_data.write_graph(tmp_path / "graph.json")
+    assert g.exists()

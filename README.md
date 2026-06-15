@@ -24,7 +24,7 @@ The database is just files in this repo: `docs/data/graph.json` (variables + for
 from the operator layer) and `docs/data/instances/` (one file per value). Rebuild the data with:
 
 ```bash
-CUDA_VISIBLE_DEVICES="" PYTHONPATH=. python -m omai.thermal_transport.site_data
+CUDA_VISIBLE_DEVICES="" PYTHONPATH=. python -m omai.map_data
 ```
 
 To append a value, add a JSON file under `docs/data/instances/` and open a pull request.
