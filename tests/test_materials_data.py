@@ -1,4 +1,4 @@
-def test_materials_package_imports_empty_registries():
+def test_materials_package_registries_are_tuples():
     from omai.materials.operator import NODES, EDGES
     assert isinstance(NODES, tuple)
     assert isinstance(EDGES, tuple)
