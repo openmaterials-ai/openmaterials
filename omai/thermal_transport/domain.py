@@ -13,9 +13,9 @@ THERMAL_TRANSPORT = Domain(
     edges=EDGES,
     symbols=SYMBOLS,
     param_promotions=(
-        ("CellVolume", r"V_{\mathrm{cell}}", _edges._V_cell),
-        ("AtomicMass", r"M", _edges._M),
-        ("AtomCount", r"N", _edges._N_atoms),
+        ("CellVolume", r"V_{\mathrm{cell}}", _edges._V_cell, "volume"),
+        ("AtomicMass", r"M", _edges._M, None),
+        ("AtomCount", r"N", _edges._N_atoms, "dimensionless"),
     ),
     representation_package=tt_rep,
 )

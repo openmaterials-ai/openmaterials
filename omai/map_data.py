@@ -24,7 +24,7 @@ class Domain:
     nodes: tuple[Space, ...]
     edges: tuple[Operator, ...]
     symbols: dict[str, str]
-    # (node_id, latex_symbol, sympy_symbol_or_indexedbase) promoted to parameter nodes
+    # (node_id, latex_symbol, sympy_symbol_or_indexedbase[, dimension_name]) promoted to parameter nodes
     param_promotions: tuple[tuple[str, str, object], ...]
     representation_package: ModuleType
 
@@ -104,7 +104,7 @@ def build_graph_dict(domains: tuple[Domain, ...]) -> dict:
         return isinstance(sym, sp.IndexedBase) and sym in formula.atoms(sp.IndexedBase)
 
     for d in domains:
-        for pid, psym, sobj in d.param_promotions:
+        for pid, psym, sobj, *rest in d.param_promotions:
             if pid in seen:
                 continue
             consumers, seen_c = [], set()
@@ -231,7 +231,52 @@ def write_instances(path: Path | None = None) -> Path:
     return path
 
 
+def build_catalog(domains: tuple[Domain, ...]) -> list[dict]:
+    g = build_graph_dict(domains)
+    space_by_name = {}
+    for d in domains:
+        for s in d.nodes:
+            space_by_name[s.name] = s
+
+    # Build a map of promoted-parameter id -> dimension name (4-tuple entries only)
+    param_dim: dict[str, str] = {}
+    for d in domains:
+        for p in d.param_promotions:
+            if len(p) >= 4 and p[3]:
+                param_dim[p[0]] = p[3]
+
+    out = []
+    for n in g["nodes"]:
+        s = space_by_name.get(n["id"])
+        # Collect all distinct field dimensions for this space
+        dims: list[str] = []
+        if s and s.fields:
+            for f in s.fields:
+                if f.dimension.name not in dims:
+                    dims.append(f.dimension.name)
+        dim = ", ".join(dims) if dims else None
+        # Promoted-parameter dimensions override/fill in the space-derived value
+        dim = param_dim.get(n["id"], dim)
+        desc = (s.description if s else "") or ""
+        out.append({
+            "id": n["id"],
+            "symbol": n["symbol"],
+            "type": n["type"],
+            "dimension": dim,
+            "description": desc,
+        })
+    return out
+
+
+def write_catalog(path: Path | None = None) -> Path:
+    path = path or (_DOCS / "data" / "catalog.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(build_catalog(_domains())))
+    return path
+
+
 if __name__ == "__main__":
     print("wrote", write_graph())
     print("wrote", write_instances())
     print("wrote", write_codes())
+    print("wrote", write_catalog())
