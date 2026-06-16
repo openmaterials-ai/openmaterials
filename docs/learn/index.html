@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>openmaterials.ai &mdash; learn a paper</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
   :root{--ink:#0b1220;--ink2:#334155;--muted:#64748b;--faint:#94a3b8;--line:#e8ecf3;
@@ -44,8 +45,6 @@
   #keyPanel .savekey:hover{background:var(--obs2);}
   #keyPanel .knote{font-size:.72rem;color:var(--faint);margin-top:10px;line-height:1.5;}
 
-  /* stub output */
-  #stub{width:min(92vw,560px);font-size:.85rem;color:var(--ink2);background:#eef2ff;border:1px solid #e0e4fb;border-radius:12px;padding:12px 16px;display:none;}
   /* progress list */
   #progressList{width:min(92vw,560px);display:flex;flex-direction:column;gap:8px;}
   .prog-row{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 16px;font-size:.84rem;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(16,24,40,.04);}
@@ -56,6 +55,60 @@
   .prog-state.done{background:#dcfce7;color:#166534;}
   .prog-state.error{background:#fee2e2;color:#991b1b;}
   .prog-row .prog-msg{font-size:.75rem;color:var(--muted);margin-top:1px;}
+
+  /* result area */
+  #result{width:min(96vw,780px);display:none;flex-direction:column;gap:20px;}
+
+  /* summary bar */
+  .summary-bar{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 20px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 10px rgba(16,24,40,.05);}
+  .summary-bar .sum-icon{font-size:1.15rem;}
+  .summary-bar .sum-text{font-size:.9rem;font-weight:600;color:var(--ink);flex:1;}
+  .sum-badge{background:#eef2ff;color:var(--obs);border-radius:7px;padding:2px 9px;font-size:.78rem;font-weight:700;}
+
+  /* coverage overlay */
+  .cov-section{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 20px;box-shadow:0 2px 10px rgba(16,24,40,.05);}
+  .cov-section .sec-head{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:12px;}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;}
+  .chip{display:inline-flex;align-items:center;gap:5px;border-radius:8px;padding:4px 10px;font-size:.8rem;font-weight:500;border:1.5px solid var(--line);background:#f8fafc;color:var(--ink2);cursor:default;}
+  .chip.has-value{border-color:var(--obs);background:#eef2ff;color:var(--obs2);font-weight:600;}
+  .chip .chip-count{background:var(--obs);color:#fff;border-radius:5px;padding:1px 6px;font-size:.7rem;font-weight:700;}
+
+  /* review list */
+  .review-section{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 20px;box-shadow:0 2px 10px rgba(16,24,40,.05);}
+  .review-section .sec-head{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:14px;}
+  .paper-group{margin-bottom:18px;}
+  .paper-group:last-child{margin-bottom:0;}
+  .paper-title{font-size:.83rem;font-weight:700;color:var(--ink);margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+  .vi-row{border:1px solid var(--line);border-radius:10px;padding:11px 14px;margin-bottom:7px;background:#fafbfd;transition:background .12s,opacity .12s;}
+  .vi-row.rejected{opacity:.45;background:#f1f5f9;}
+  .vi-row-top{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+  .vi-sym{font-size:.95rem;min-width:0;}
+  .vi-val{font-size:.9rem;font-weight:700;color:var(--ink);white-space:nowrap;}
+  .vi-mat{font-size:.8rem;color:var(--ink2);flex:1;min-width:120px;}
+  .vi-status{font-size:.72rem;font-weight:700;padding:2px 8px;border-radius:5px;white-space:nowrap;align-self:flex-start;}
+  .vi-status.mapped{background:#dcfce7;color:#166534;}
+  .vi-status.novel{background:#fef9c3;color:#854d0e;}
+  .vi-quote{font-size:.76rem;color:var(--muted);margin-top:6px;font-style:italic;line-height:1.55;}
+  .vi-controls{display:flex;gap:6px;margin-top:8px;align-items:center;}
+  .btn-accept{border:1.5px solid #16a34a;background:#dcfce7;color:#166534;border-radius:7px;padding:3px 12px;font-size:.75rem;font-weight:700;cursor:pointer;transition:.12s;}
+  .btn-accept:hover,.btn-accept.active{background:#16a34a;color:#fff;}
+  .btn-reject{border:1.5px solid #dc2626;background:#fff;color:#dc2626;border-radius:7px;padding:3px 12px;font-size:.75rem;font-weight:700;cursor:pointer;transition:.12s;}
+  .btn-reject:hover,.btn-reject.active{background:#dc2626;color:#fff;}
+
+  /* attention section */
+  .attention-section{background:#fffbeb;border:1px solid #fde68a;border-radius:14px;padding:14px 18px;display:none;}
+  .attention-section .sec-head{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400e;margin-bottom:10px;}
+  .attn-item{font-size:.79rem;color:#78350f;margin-bottom:5px;line-height:1.55;padding-left:12px;position:relative;}
+  .attn-item::before{content:'*';position:absolute;left:0;color:#d97706;}
+
+  /* export section */
+  .export-section{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 20px;box-shadow:0 2px 10px rgba(16,24,40,.05);display:flex;flex-direction:column;gap:10px;}
+  .export-section .sec-head{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);}
+  .export-btn{border:none;background:var(--obs);color:#fff;border-radius:10px;padding:10px 22px;font-size:.88rem;font-weight:700;cursor:pointer;transition:.13s;align-self:flex-start;box-shadow:0 3px 10px rgba(79,70,229,.22);}
+  .export-btn:hover{background:var(--obs2);}
+  .export-note{font-size:.76rem;color:var(--muted);line-height:1.6;}
+  .export-note a{color:var(--obs);text-decoration:none;}
+  .export-note a:hover{text-decoration:underline;}
 </style>
 </head>
 <body>
@@ -96,18 +149,33 @@
       only to <code>api.anthropic.com</code>.</div>
   </div>
 
-  <div id="stub"></div>
   <div id="progressList"></div>
+
+  <div id="result">
+    <div id="resultSummary" class="summary-bar"></div>
+    <div id="resultCoverage" class="cov-section"></div>
+    <div id="resultReview" class="review-section"></div>
+    <div id="resultAttention" class="attention-section"></div>
+    <div id="resultExport" class="export-section"></div>
+  </div>
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <script src="lib.js"></script>
 <script>
-let CATALOG=[], KNOWN=new Set(), NODE_BY_ID={};
+var CATALOG=[], KNOWN=new Set(), NODE_BY_ID={};
+var ACCEPTED=[];
+
 function err(m){var e=document.getElementById('err');e.style.display='block';e.textContent='Error: '+m;}
 window.onerror=function(m){err(m);};
 function getKey(){return localStorage.getItem('om_anthropic_key')||'';}
 function setKey(k){localStorage.setItem('om_anthropic_key',k);}
+
+function tex(latex){
+  try{return katex.renderToString(latex,{throwOnError:false});}catch(e){return latex;}
+}
+
 Promise.all([
   fetch('../data/catalog.json?v='+Date.now()).then(r=>r.json()),
   fetch('../data/graph.json?v='+Date.now()).then(r=>r.json())
@@ -227,12 +295,206 @@ document.addEventListener('DOMContentLoaded',function(){
   });
 });
 
+/* ---- renderResult: real reviewable output ---- */
 function renderResult(papers){
-  var n=papers.reduce(function(a,p){return a+p.value_instances.length;},0);
-  var s=document.getElementById('stub');
-  s.style.display='block';
-  s.textContent='done: '+n+' value-instance(s) from '+papers.length+' paper(s), touched '+
-    LearnLib.aggregateCoverage(papers).touched.size+' node(s)';
+  ACCEPTED=[];
+  var agg=LearnLib.aggregateCoverage(papers);
+  var totalInstances=papers.reduce(function(a,p){return a+p.value_instances.length;},0);
+  var totalNovel=papers.reduce(function(a,p){return a+p.novel_quantities.length;},0);
+
+  /* -- Summary bar -- */
+  var sumEl=document.getElementById('resultSummary');
+  sumEl.innerHTML='<span class="sum-icon">&#128200;</span>'
+    +'<span class="sum-text">Touches <span class="sum-badge">'+agg.touched.size+' nodes</span> '
+    +'&nbsp;<span class="sum-badge">'+totalInstances+' value-instances</span> '
+    +'&nbsp;<span class="sum-badge">'+totalNovel+' novel</span></span>';
+
+  /* -- Coverage overlay -- */
+  var covEl=document.getElementById('resultCoverage');
+  covEl.innerHTML='<div class="sec-head">Coverage overlay</div>';
+  var chipsDiv=document.createElement('div'); chipsDiv.className='chips';
+  agg.touched.forEach(function(id){
+    var cnt=agg.instanceCount[id]||0;
+    var chip=document.createElement('span');
+    chip.className='chip'+(cnt>0?' has-value':'');
+    var node=NODE_BY_ID[id];
+    var symHtml=node&&node.symbol?tex(node.symbol):escHtml(id);
+    chip.innerHTML=symHtml;
+    if(cnt>0){ chip.innerHTML+=' <span class="chip-count">'+cnt+'</span>'; }
+    chip.title=id;
+    chipsDiv.appendChild(chip);
+  });
+  covEl.appendChild(chipsDiv);
+
+  /* -- Review list -- */
+  var revEl=document.getElementById('resultReview');
+  revEl.innerHTML='<div class="sec-head">Review &mdash; accept or reject each instance</div>';
+
+  papers.forEach(function(p){
+    var grp=document.createElement('div'); grp.className='paper-group';
+    var ptitle=document.createElement('div'); ptitle.className='paper-title';
+    ptitle.textContent=(p.paper&&p.paper.title)||'Untitled';
+    grp.appendChild(ptitle);
+    var paperRef=(p.paper&&p.paper.ref)||'';
+
+    p.value_instances.forEach(function(vi,idx){
+      var rowKey='row_'+(paperRef||'p')+'_'+idx;
+      /* accepted by default (only mapped rows go in) */
+      if(vi.node_id){
+        ACCEPTED.push({
+          node_id:vi.node_id, material:vi.material, conditions:vi.conditions,
+          value:vi.value, units:vi.units, uncertainty:vi.uncertainty,
+          quote:vi.quote, paperRef:paperRef, _key:rowKey
+        });
+      }
+
+      var rowEl=document.createElement('div'); rowEl.className='vi-row'; rowEl.id=rowKey;
+
+      /* symbol */
+      var node=vi.node_id?NODE_BY_ID[vi.node_id]:null;
+      var symHtml;
+      if(vi.node_id&&node&&node.symbol){ symHtml=tex(node.symbol); }
+      else if(vi.node_id&&!node){ symHtml='<code>'+escHtml(vi.node_id)+'</code>'; }
+      else{ symHtml='<em>novel</em>'; }
+
+      /* value string */
+      var valStr=String(vi.value);
+      if(vi.uncertainty!==null&&vi.uncertainty!==undefined){
+        valStr+=' &plusmn; '+vi.uncertainty;
+      }
+      valStr+=' '+escHtml(vi.units);
+
+      /* material+conditions */
+      var matStr=escHtml(vi.material);
+      if(vi.conditions){ matStr+='<span style="color:var(--faint);"> &bull; '+escHtml(vi.conditions)+'</span>'; }
+
+      var statusCls=vi.node_id?'mapped':'novel';
+      var statusLabel=vi.node_id?'mapped':'novel';
+
+      var topDiv=document.createElement('div'); topDiv.className='vi-row-top';
+      topDiv.innerHTML='<span class="vi-sym">'+symHtml+'</span>'
+        +'<span class="vi-val">'+valStr+'</span>'
+        +'<span class="vi-mat">'+matStr+'</span>'
+        +'<span class="vi-status '+statusCls+'">'+statusLabel+'</span>';
+      rowEl.appendChild(topDiv);
+
+      var quoteDiv=document.createElement('div'); quoteDiv.className='vi-quote';
+      quoteDiv.innerHTML='&#8220;'+escHtml(vi.quote)+'&#8221;';
+      if(vi.page){ quoteDiv.innerHTML+=' <span style="color:var(--faint);">[p.'+vi.page+']</span>'; }
+      rowEl.appendChild(quoteDiv);
+
+      /* controls */
+      var ctrlDiv=document.createElement('div'); ctrlDiv.className='vi-controls';
+      var btnA=document.createElement('button'); btnA.className='btn-accept'+(vi.node_id?' active':'');
+      btnA.textContent='Accept';
+      var btnR=document.createElement('button'); btnR.className='btn-reject';
+      btnR.textContent='Reject';
+
+      if(!vi.node_id){
+        btnA.disabled=true; btnA.title='Novel quantities cannot be exported to known variables';
+        btnA.style.opacity='0.45'; btnA.style.cursor='default';
+      }
+
+      (function(localVi, localRef, localKey, localBtnA, localBtnR, localRowEl){
+        localBtnA.addEventListener('click',function(){
+          localBtnA.classList.add('active'); localBtnR.classList.remove('active');
+          localRowEl.classList.remove('rejected');
+          if(localVi.node_id&&!findAccepted(localKey)){
+            ACCEPTED.push({
+              node_id:localVi.node_id, material:localVi.material, conditions:localVi.conditions,
+              value:localVi.value, units:localVi.units, uncertainty:localVi.uncertainty,
+              quote:localVi.quote, paperRef:localRef, _key:localKey
+            });
+          }
+        });
+        localBtnR.addEventListener('click',function(){
+          localBtnR.classList.add('active'); localBtnA.classList.remove('active');
+          localRowEl.classList.add('rejected');
+          removeAccepted(localKey);
+        });
+      })(vi, paperRef, rowKey, btnA, btnR, rowEl);
+
+      ctrlDiv.appendChild(btnA); ctrlDiv.appendChild(btnR);
+      rowEl.appendChild(ctrlDiv);
+      grp.appendChild(rowEl);
+    });
+    revEl.appendChild(grp);
+  });
+
+  /* -- Needs attention -- */
+  var attnEl=document.getElementById('resultAttention');
+  attnEl.innerHTML='';
+  var attnItems=[];
+  papers.forEach(function(p){
+    (p.novel_quantities||[]).forEach(function(nq){
+      attnItems.push('Novel quantity: '+(nq.description||JSON.stringify(nq)));
+    });
+    (p.warnings||[]).forEach(function(w){
+      attnItems.push('Warning: '+w);
+    });
+  });
+  if(attnItems.length){
+    attnEl.style.display='block';
+    attnEl.innerHTML='<div class="sec-head">Needs attention</div>';
+    attnItems.forEach(function(txt){
+      var d=document.createElement('div'); d.className='attn-item'; d.textContent=txt;
+      attnEl.appendChild(d);
+    });
+  } else {
+    attnEl.style.display='none';
+  }
+
+  /* -- Export section -- */
+  var expEl=document.getElementById('resultExport');
+  expEl.innerHTML='<div class="sec-head">Export</div>';
+  var expBtn=document.createElement('button'); expBtn.className='export-btn';
+  expBtn.textContent='Export instances JSON';
+  expBtn.addEventListener('click',function(){
+    exportInstances(papers);
+  });
+  expEl.appendChild(expBtn);
+  var note=document.createElement('div'); note.className='export-note';
+  note.innerHTML='Exports accepted, mapped instances in the OpenMaterials commons format. '
+    +'Novel-quantity rows are skipped (they have no catalog node_id to export to). '
+    +'Once downloaded, open a PR adding the file under '
+    +'<a href="https://github.com/gbarbalinardo/openmaterials-ai/tree/main/docs/data/instances/" '
+    +'target="_blank" rel="noopener">docs/data/instances/</a> in the repo.';
+  expEl.appendChild(note);
+
+  /* show result area */
+  var resultEl=document.getElementById('result');
+  resultEl.style.display='flex';
+}
+
+function escHtml(s){
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function findAccepted(key){
+  for(var i=0;i<ACCEPTED.length;i++){ if(ACCEPTED[i]._key===key) return ACCEPTED[i]; }
+  return null;
+}
+function removeAccepted(key){
+  ACCEPTED=ACCEPTED.filter(function(r){return r._key!==key;});
+}
+
+function exportInstances(papers){
+  var mappedRows=ACCEPTED.filter(function(r){return r.node_id;});
+  if(!mappedRows.length){alert('No accepted mapped instances to export.');return;}
+  var payload=mappedRows.map(function(r){
+    return {node_id:r.node_id, material:r.material, conditions:r.conditions,
+            value:r.value, units:r.units, uncertainty:r.uncertainty,
+            quote:r.quote, source_ref:r.paperRef};
+  });
+  var recs=LearnLib.toInstances(payload);
+  var firstRef=(papers[0]&&papers[0].paper&&papers[0].paper.ref)||'export';
+  var fname='instances-'+firstRef+'.json';
+  var blob=new Blob([JSON.stringify(recs,null,2)],{type:'application/json'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a'); a.href=url; a.download=fname;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},1000);
 }
 </script>
 </body>
