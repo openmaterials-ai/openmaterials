@@ -1,0 +1,24 @@
+{
+  "paper": {
+    "title": "Heat transport in silicon from first-principles calculations",
+    "ref": "esfarjani-2011",
+    "url": "https://arxiv.org/abs/1107.5288"
+  },
+  "extraction": {
+    "coverage": ["ThermalConductivity[transport_model=wigner]", "Temperature"],
+    "value_instances": [
+      {
+        "node_id": "ThermalConductivity[transport_model=wigner]",
+        "material": "Si",
+        "conditions": "277 K",
+        "value": 166,
+        "units": "W/m/K",
+        "uncertainty": null,
+        "quote": "Considering the extrapolated value to be 166 W/mK, one can notice that MFPs extend well beyond 10 microns even at room temperature.",
+        "page": 8
+      }
+    ],
+    "formulas": [],
+    "novel_quantities": []
+  }
+}

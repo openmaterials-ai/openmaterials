@@ -50,3 +50,14 @@ test('aggregateCoverage unions touched nodes and counts instances per node', () 
   assert.strictEqual(agg.instanceCount['A'], 2);
   assert.strictEqual(agg.instanceCount['C'], 1);
 });
+
+test('demo fixture passes validateExtraction against the catalog', () => {
+  const fs = require('node:fs');
+  const fixture = JSON.parse(fs.readFileSync(__dirname + '/demo/esfarjani-si.json', 'utf8'));
+  const catalog = JSON.parse(fs.readFileSync(__dirname + '/../data/catalog.json', 'utf8'));
+  const known = new Set(catalog.map(function (c) { return c.id; }));
+  const v = L.validateExtraction(fixture.extraction, known);
+  assert.strictEqual(v.value_instances.length, 1);
+  assert.strictEqual(v.value_instances[0].node_id, 'ThermalConductivity[transport_model=wigner]');
+  assert.strictEqual(typeof v.value_instances[0].value, 'number');
+});
