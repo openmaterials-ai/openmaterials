@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>openmaterials.ai &mdash; learn a paper</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  :root{--ink:#0b1220;--ink2:#334155;--muted:#64748b;--faint:#94a3b8;--line:#e8ecf3;
+        --obs:#4f46e5;--obs2:#4338ca;--hidbd:#dde4ee;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;min-height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;background:linear-gradient(180deg,#fcfdff,#f4f7fc);}
+  #err{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;font:13px/1.4 monospace;padding:8px 12px;z-index:40;display:none;white-space:pre-wrap;}
+  .top{position:fixed;top:0;left:0;right:0;height:60px;display:flex;align-items:center;gap:13px;padding:0 20px;background:rgba(255,255,255,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);z-index:10;}
+  .top .mark{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#818cf8,#4338ca);box-shadow:0 3px 9px rgba(79,70,229,.45);flex-shrink:0;}
+  .top .brand{font-weight:800;letter-spacing:-.02em;white-space:nowrap;}
+  .top .brand b{color:var(--obs);}
+  .top .sub{color:var(--faint);font-size:.82rem;font-weight:500;white-space:nowrap;}
+  .top .sep{width:1px;height:22px;background:var(--line);margin:0 2px;}
+
+  .main{padding-top:100px;padding-bottom:60px;display:flex;flex-direction:column;align-items:center;gap:28px;}
+
+  /* drop zone */
+  .dropzone{width:min(92vw,560px);border:2px dashed #c7d0e4;border-radius:20px;background:#fff;padding:44px 32px 36px;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;transition:border-color .15s,background .15s;box-shadow:0 4px 24px rgba(16,24,40,.06);}
+  .dropzone.over{border-color:var(--obs);background:#f0f1ff;}
+  .dropzone .ico{font-size:2.4rem;line-height:1;}
+  .dropzone .head{font-size:1.05rem;font-weight:700;color:var(--ink);}
+  .dropzone .sub2{font-size:.83rem;color:var(--muted);}
+  .dropzone label.filebtn{display:inline-block;border:1px solid var(--obs);color:var(--obs);border-radius:10px;padding:9px 20px;font-size:.88rem;font-weight:600;cursor:pointer;transition:.13s;}
+  .dropzone label.filebtn:hover{background:var(--obs);color:#fff;}
+  #fileInput{display:none;}
+  .dropzone .or{font-size:.78rem;color:var(--faint);}
+  .demobtn{border:none;background:var(--obs);color:#fff;border-radius:11px;padding:11px 26px;font-size:.9rem;font-weight:700;cursor:pointer;transition:.13s;box-shadow:0 4px 14px rgba(79,70,229,.28);}
+  .demobtn:hover{background:var(--obs2);}
+
+  /* key panel */
+  #keyPanel{width:min(92vw,560px);background:#fff;border:1px solid var(--line);border-radius:18px;padding:24px 28px;box-shadow:0 4px 24px rgba(16,24,40,.07);}
+  #keyPanel .khead{font-size:.88rem;font-weight:700;color:var(--ink);margin-bottom:4px;}
+  #keyPanel .kdesc{font-size:.78rem;color:var(--muted);margin-bottom:14px;line-height:1.55;}
+  #keyPanel .krow{display:flex;gap:10px;align-items:center;}
+  #keyPanel input[type=text]{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 13px;font-size:.88rem;font-family:inherit;outline:none;transition:.15s;color:var(--ink);}
+  #keyPanel input[type=text]:focus{border-color:var(--obs);box-shadow:0 0 0 3px rgba(79,70,229,.13);}
+  #keyPanel .savekey{border:none;background:var(--obs);color:#fff;border-radius:10px;padding:9px 18px;font-size:.88rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:.13s;}
+  #keyPanel .savekey:hover{background:var(--obs2);}
+  #keyPanel .knote{font-size:.72rem;color:var(--faint);margin-top:10px;line-height:1.5;}
+
+  /* stub output */
+  #stub{width:min(92vw,560px);font-size:.85rem;color:var(--ink2);background:#eef2ff;border:1px solid #e0e4fb;border-radius:12px;padding:12px 16px;display:none;}
+</style>
+</head>
+<body>
+<div id="err"></div>
+
+<div class="top">
+  <span class="mark"></span>
+  <span class="brand">openmaterials<b>.ai</b></span>
+  <span class="sep"></span>
+  <span class="sub">learn a paper</span>
+</div>
+
+<div class="main">
+
+  <div class="dropzone" id="dropzone"
+    ondragover="event.preventDefault();this.classList.add('over');"
+    ondragleave="this.classList.remove('over');"
+    ondrop="this.classList.remove('over');event.preventDefault();">
+    <div class="ico">&#128196;</div>
+    <div class="head">Drop a paper (PDF) or a batch</div>
+    <div class="sub2">Drag and drop one or more PDF files here, or choose a file.</div>
+    <label class="filebtn" for="fileInput">Choose PDF&hellip;</label>
+    <input type="file" id="fileInput" accept="application/pdf" multiple>
+    <div class="or">or</div>
+    <button class="demobtn" onclick="runDemo()">Try the demo</button>
+  </div>
+
+  <div id="keyPanel">
+    <div class="khead">Anthropic API key</div>
+    <div class="kdesc">Required to analyse new papers. Your key is stored only in this browser
+      and sent directly to <code>api.anthropic.com</code> &mdash; it is never relayed through
+      openmaterials.ai servers.</div>
+    <div class="krow">
+      <input type="text" id="keyInput" placeholder="sk-ant-&hellip;" autocomplete="off" spellcheck="false">
+      <button class="savekey" onclick="saveKey()">Save key</button>
+    </div>
+    <div class="knote">Key is stored locally in your browser (<code>localStorage</code>) and sent
+      only to <code>api.anthropic.com</code>.</div>
+  </div>
+
+  <div id="stub"></div>
+
+</div>
+
+<script src="lib.js"></script>
+<script>
+let CATALOG=[], KNOWN=new Set(), NODE_BY_ID={};
+function err(m){var e=document.getElementById('err');e.style.display='block';e.textContent='Error: '+m;}
+window.onerror=function(m){err(m);};
+function getKey(){return localStorage.getItem('om_anthropic_key')||'';}
+function setKey(k){localStorage.setItem('om_anthropic_key',k);}
+Promise.all([
+  fetch('../data/catalog.json?v='+Date.now()).then(r=>r.json()),
+  fetch('../data/graph.json?v='+Date.now()).then(r=>r.json())
+]).then(function(res){
+  CATALOG=res[0]; KNOWN=new Set(CATALOG.map(c=>c.id));
+  res[1].nodes.forEach(function(n){ NODE_BY_ID[n.id]=n; });
+  var kp=document.getElementById('keyPanel'); if(kp) kp.style.display=getKey()?'none':'block';
+}).catch(function(e){err('data: '+e);});
+
+function runDemo(){
+  fetch('demo/esfarjani-si.json?v='+Date.now()).then(r=>r.json()).then(function(fx){
+    var v=LearnLib.validateExtraction(fx.extraction, KNOWN);
+    v.paper=fx.paper;
+    renderResult([v]);
+  }).catch(function(e){err('demo: '+e);});
+}
+</script>
+<script>
+function saveKey(){
+  var k=(document.getElementById('keyInput').value||'').trim();
+  if(!k){err('Please enter an API key before saving.');return;}
+  setKey(k);
+  document.getElementById('keyInput').value='';
+  var kp=document.getElementById('keyPanel');if(kp)kp.style.display='none';
+}
+
+function renderResult(papers){
+  var n=papers.reduce(function(a,p){return a+p.value_instances.length;},0);
+  var s=document.getElementById('stub');
+  s.style.display='block';
+  s.textContent='demo OK: '+n+' value-instance(s), touched '+
+    LearnLib.aggregateCoverage(papers).touched.size+' node(s)';
+}
+</script>
+</body>
+</html>
