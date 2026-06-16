@@ -46,6 +46,16 @@
 
   /* stub output */
   #stub{width:min(92vw,560px);font-size:.85rem;color:var(--ink2);background:#eef2ff;border:1px solid #e0e4fb;border-radius:12px;padding:12px 16px;display:none;}
+  /* progress list */
+  #progressList{width:min(92vw,560px);display:flex;flex-direction:column;gap:8px;}
+  .prog-row{background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px 16px;font-size:.84rem;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(16,24,40,.04);}
+  .prog-row .prog-name{flex:1;font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .prog-row .prog-state{font-size:.78rem;font-weight:600;padding:3px 9px;border-radius:6px;white-space:nowrap;}
+  .prog-state.reading{background:#fef9c3;color:#854d0e;}
+  .prog-state.extracting{background:#dbeafe;color:#1e40af;}
+  .prog-state.done{background:#dcfce7;color:#166534;}
+  .prog-state.error{background:#fee2e2;color:#991b1b;}
+  .prog-row .prog-msg{font-size:.75rem;color:var(--muted);margin-top:1px;}
 </style>
 </head>
 <body>
@@ -63,7 +73,7 @@
   <div class="dropzone" id="dropzone"
     ondragover="event.preventDefault();this.classList.add('over');"
     ondragleave="this.classList.remove('over');"
-    ondrop="this.classList.remove('over');event.preventDefault();">
+    ondrop="handleDrop(event);">
     <div class="ico">&#128196;</div>
     <div class="head">Drop a paper (PDF) or a batch</div>
     <div class="sub2">Drag and drop one or more PDF files here, or choose a file.</div>
@@ -87,6 +97,7 @@
   </div>
 
   <div id="stub"></div>
+  <div id="progressList"></div>
 
 </div>
 
@@ -123,11 +134,104 @@ function saveKey(){
   var kp=document.getElementById('keyPanel');if(kp)kp.style.display='none';
 }
 
+/* ---- Step 1: PDF text via pdf.js ---- */
+async function extractPdfText(file){
+  const pdfjs = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4/build/pdf.min.mjs');
+  pdfjs.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4/build/pdf.worker.min.mjs';
+  const buf=await file.arrayBuffer();
+  const doc=await pdfjs.getDocument({data:buf}).promise;
+  let text=''; for(let i=1;i<=doc.numPages;i++){ const pg=await doc.getPage(i);
+    const c=await pg.getTextContent(); text+='\n[p'+i+'] '+c.items.map(it=>it.str).join(' '); }
+  return {text:text, pages:doc.numPages};
+}
+
+/* ---- Step 2: LLM extraction via Anthropic browser SDK ---- */
+async function extractWithLLM(paperText){
+  const Anthropic=(await import('https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk/+esm')).default;
+  const client=new Anthropic({apiKey:getKey(), dangerouslyAllowBrowser:true});
+  const catalog=CATALOG.map(function(c){return {id:c.id,symbol:c.symbol,type:c.type,dimension:c.dimension,description:c.description};});
+  const sys='You map a materials-physics paper onto a fixed catalog of quantities. '
+    +'Return ONLY JSON: {coverage:[node id...], value_instances:[{node_id,material,conditions,value(number),units,uncertainty,quote(VERBATIM from the paper),page}], formulas:[], novel_quantities:[{description,symbol,units,why_not_in_map}]}. '
+    +'Never invent a value; every value_instance MUST have a verbatim quote from the paper text. '
+    +'Use node_id only from the catalog; if a reported quantity is not in the catalog, put it in novel_quantities. '
+    +'In Phase 1 leave formulas as an empty array.';
+  const msg=await client.messages.create({
+    model:'claude-opus-4-8', max_tokens:4096,
+    system:sys+'\n\nCATALOG:\n'+JSON.stringify(catalog),
+    messages:[{role:'user',content:'PAPER TEXT:\n'+paperText.slice(0,120000)}]
+  });
+  const txt=msg.content.map(function(b){return b.text||'';}).join('');
+  const m=txt.match(/\{[\s\S]*\}/); if(!m) throw new Error('no JSON in model reply');
+  return JSON.parse(m[0]);
+}
+
+/* ---- Step 3: slugify helper + drop/change wiring ---- */
+function slugify(s){
+  return s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
+}
+
+function makeProgressRow(name){
+  var pl=document.getElementById('progressList');
+  var row=document.createElement('div'); row.className='prog-row';
+  var nm=document.createElement('span'); nm.className='prog-name'; nm.textContent=name;
+  var st=document.createElement('span'); st.className='prog-state reading'; st.textContent='reading';
+  var mg=document.createElement('div'); mg.className='prog-msg';
+  row.appendChild(nm); row.appendChild(st); row.appendChild(mg);
+  pl.appendChild(row);
+  return {
+    setState:function(state,msg){
+      st.className='prog-state '+state; st.textContent=state;
+      if(msg) mg.textContent=msg; else mg.textContent='';
+    }
+  };
+}
+
+async function processPdfFiles(files){
+  if(!files||!files.length) return;
+  if(!getKey()){
+    var kp=document.getElementById('keyPanel'); if(kp) kp.style.display='block';
+    return;
+  }
+  document.getElementById('progressList').innerHTML='';
+  var papers=[];
+  for(var i=0;i<files.length;i++){
+    var file=files[i];
+    if(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf')) continue;
+    var row=makeProgressRow(file.name);
+    try{
+      row.setState('reading','');
+      var textResult=await extractPdfText(file);
+      row.setState('extracting',''+textResult.pages+' pages read');
+      var raw=await extractWithLLM(textResult.text);
+      var validated=LearnLib.validateExtraction(raw, KNOWN);
+      validated.paper={title:file.name, ref:slugify(file.name)};
+      papers.push(validated);
+      row.setState('done',validated.value_instances.length+' value(s) extracted');
+    }catch(e){
+      row.setState('error',String(e&&e.message||e));
+    }
+  }
+  if(papers.length) renderResult(papers);
+}
+
+function handleDrop(event){
+  event.preventDefault();
+  document.getElementById('dropzone').classList.remove('over');
+  processPdfFiles(event.dataTransfer.files);
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  document.getElementById('fileInput').addEventListener('change',function(){
+    processPdfFiles(this.files);
+    this.value='';
+  });
+});
+
 function renderResult(papers){
   var n=papers.reduce(function(a,p){return a+p.value_instances.length;},0);
   var s=document.getElementById('stub');
   s.style.display='block';
-  s.textContent='demo OK: '+n+' value-instance(s), touched '+
+  s.textContent='done: '+n+' value-instance(s) from '+papers.length+' paper(s), touched '+
     LearnLib.aggregateCoverage(papers).touched.size+' node(s)';
 }
 </script>
