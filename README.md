@@ -21,7 +21,9 @@ as instances. Browse it as an interactive [3D map](https://openmaterials.ai/map/
 For the full product picture (the free protocol and the hosted app), see [PRODUCT.md](PRODUCT.md).
 
 The database is just files in this repo: `docs/data/graph.json` (variables + formulas, generated
-from the operator layer) and `docs/data/instances/` (one file per value). Rebuild the data with:
+from the operator layer), `docs/data/catalog.json` (per-node grounding: symbol, dimension,
+description), `docs/data/codes.json` (per-code variable coverage), and `docs/data/instances/`
+(one file per value). Rebuild the generated files with:
 
 ```bash
 CUDA_VISIBLE_DEVICES="" PYTHONPATH=. python -m omai.map_data
@@ -58,7 +60,7 @@ Regenerate the interactive single-file visualization (operator layer plus the
 per-code columns):
 
 ```bash
-python -m omai.thermal_transport.visualize   # writes docs/index.html
+python -m omai.thermal_transport.visualize   # writes docs/pipeline.html
 ```
 
 ## Layout
@@ -73,11 +75,14 @@ omai/
     operator/        # the lattice-thermal-transport DAG (Spaces + Operators)
     representation/  # per-code adapters (kaldo, phono3py, phonopy,
                      #   shengbte, ase, lammps, gpumd)
-    visualize.py     # emits docs/index.html
+    visualize.py     # emits docs/pipeline.html
+  materials/         # second domain, grown from AtomisticSkills: diffusion
+                     #   subgraph, skills_catalog.json, ENCODING.md procedure
+  map_data.py        # unified multi-domain export -> docs/data/*.json
 examples/            # runnable tours; start with quickstart.py
 experiments/         # full cross-code material studies (silicon, germanium, NaCl)
 tests/               # pytest suite
-docs/                # design doc + index.html
+docs/                # design docs + the openmaterials.ai site (map, learn, deck)
 ```
 
 ## Design

@@ -13,7 +13,7 @@ Adapter discovery is automatic: any top-level submodule of
 
 Run:
     python -m omai.thermal_transport.visualize
-to write docs/index.html (single self-contained file; no build step).
+to write docs/pipeline.html (single self-contained file; no build step).
 """
 
 from __future__ import annotations

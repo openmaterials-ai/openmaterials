@@ -1,16 +1,16 @@
 # Skill: ingest an external code into the representation layer
 
 **Goal.** Given an external materials-science code (kaldo, phono3py, ShengBTE,
-LAMMPS, Quantum ESPRESSO, …), produce a Python module of `StateAdapterSpec`
-and `OperationAdapterSpec` instances that pin the code's outputs and
+LAMMPS, Quantum ESPRESSO, …), produce a Python module of `SpaceRepresentationSpec`
+and `OperatorRepresentationSpec` instances that pin the code's outputs and
 parameters to the operator DAG, so that `compare()` between this code and any
 other already-ingested code returns `EXPECTED_AGREE` on the appropriate
 Observables.
 
 **Prerequisites.**
 - The operator DAG (`omai.operator`, plus a domain instance like
-  `omai.thermal_transport.operator`) already declares the relevant States and
-  Operations. If a state the code emits has no operator counterpart, that is
+  `omai.thermal_transport.operator`) already declares the relevant Spaces and
+  Operators. If a state the code emits has no operator counterpart, that is
   out of scope for this skill — file it as a substrate-extension task.
 - At least one reference adapter for the same domain is already ingested
   (kaldo and phono3py for thermal transport). The reference adapters are
@@ -34,11 +34,11 @@ against them before each spec decision.
   `PhonopyGruneisen.get_gruneisen()`). A `git grep` in the cloned repo
   is the cheapest authoritative check.
 
-- **Leaves before intermediates.** Prioritize specs for leaf states of
+- **Leaves before intermediates.** Prioritize specs for leaf spaces of
   the operator DAG (DAG outputs — quantities downstream of *all*
   computations: κ, C_V, DOS, Grüneisen, P3). They drive the
   visualization's hide-vs-dash decision and are the cross-code
-  comparable observables. Intermediate states (DM, eigenvectors, MFD)
+  comparable observables. Intermediate spaces (DM, eigenvectors, MFD)
   are scaffolding; their adapter specs can stay implicit (dashed in the
   viewer) until a comparison call actually needs them.
 
@@ -59,16 +59,16 @@ Catalog, in note form:
   vs "full grid"), and any qualifiers ("scattering rate" vs "linewidth" vs
   "imaginary self-energy" — these differ by factors of 1, 2, or 4π).
 
-### 2. Map outputs → operator States
+### 2. Map outputs → operator Spaces
 
-For each operator State in the DAG, find the code's corresponding output (if
+For each operator Space in the DAG, find the code's corresponding output (if
 any). Record:
 
-| operator State | code's output | shape | per-mode / per-q / contracted |
+| operator Space | code's output | shape | per-mode / per-q / contracted |
 
 If the code does not expose a per-mode form of an Observable but only a
 contracted one (e.g. `BTE.cv` is volumetric J/m³K, not per-mode J/K),
-**skip writing a `StateAdapterSpec` for that state**. The skill does not
+**skip writing a `SpaceRepresentationSpec` for that state**. The skill does not
 silently invent missing data. Note the gap in the adapter module's
 docstring.
 
@@ -78,19 +78,19 @@ For each mapping:
 
 - **Unit.** Check whether the unit already exists in
   `omai/representation/units.py`. If not, add it with a clear
-  `to_canonical` factor. Watch the canonical dimensions — heat capacity
+  `to_operator` factor. Watch the canonical dimensions — heat capacity
   per mode (`J/K`) is *different* from volumetric heat capacity
   (`J/m³K`); the latter cannot share a Unit table entry with the former.
-- **State-level conventions.** Look at the State's declared
-  `conventions` field in the operator-layer node module. For each
-  declared convention, decide which value applies. If the code uses a
-  value not in the declared options, the operator layer needs an extra
-  convention value, not an ad-hoc override — handle it as a substrate
-  edit.
-- **Algorithmic conventions on producing Operations.** Each Operation
-  declares its canonical `algorithmic_conventions` (e.g.
-  `symmetry_group`, `broadening_param`, `bte_solver`). For each, decide
-  the code's value:
+- **Space-level normalizations.** Look at the normalization registry
+  (`omai/representation/normalizations.py`). For each observable the code
+  emits, decide which definitional choice applies and declare it via
+  `observable_normalizations` on the spec. If the code uses a choice not
+  in the registry, add a new named `Normalization` with its `to_operator`
+  factor — never an ad-hoc multiplier on the adapter.
+- **Schemes on producing Operators.** Each Operator declares its
+  canonical `schemes` (e.g. `symmetry_group`, `broadening_param`,
+  `bte_solver`). For each, decide the code's value and record overrides
+  via `scheme_overrides`:
   - `symmetry_group`: most codes use `spglib_auto`. A code with no
     symmetry reduction uses `C1`.
   - `broadening_param`: `stdev` (canonical), `halfwidth`, or a code-
@@ -99,28 +99,30 @@ For each mapping:
     realization (e.g. kaldo's `sc` is iterative SCF — same canonical
     `direct_inverse`, different algorithm).
 - **Discretization choices.** Diagnostic only — record on the
-  `OperationAdapterSpec.discretization_choices` dict. Examples:
+  `OperatorRepresentationSpec.discretization_choices` dict. Examples:
   `bz_summation`, `linear_solver`, `delta_cutoff_sigmas`.
 
 ### 4. Write the adapter module
 
-Create `omai/thermal_transport/represented/<code>.py` with one
-`StateAdapterSpec` per ingested state and one `OperationAdapterSpec` per
-algorithmic-convention-bearing operation. Match the existing
+Create `omai/thermal_transport/representation/<code>.py` with one
+`SpaceRepresentationSpec` per ingested space and one `OperatorRepresentationSpec` per
+scheme-bearing operator. Match the existing
 `kaldo.py` / `phono3py.py` template:
 
 - File docstring: code's role, links, output-file mapping table.
-- One block per spec, named `<CODE>_<STATE>` in upper snake case.
+- One block per spec, named `<CODE>_<SPACE>` in upper snake case.
 - Notes that cite the specific code API call or file used.
 - Notes that name the corresponding kaldo/phono3py file/quantity so a
   reader can cross-check.
 
 ### 5. Wire it in
 
-- Re-export in `omai/thermal_transport/represented/__init__.py`.
-- Note: `visualize.py` is currently hard-coded for K and P badges; adding
-  a third code requires a small refactor to that module to make it
-  generic. **Do this last and as a separate step.**
+- Re-export in `omai/thermal_transport/representation/__init__.py`.
+- `visualize.py` discovers adapters automatically (any submodule of
+  `representation/` exposing module-level spec instances is picked up);
+  regenerate `docs/pipeline.html` with
+  `python -m omai.thermal_transport.visualize` and the map data with
+  `python -m omai.map_data`.
 
 ### 6. Validate via `compare()`
 
@@ -131,7 +133,7 @@ Write at least three smoke tests in `tests/test_<code>.py`:
    `compare()` returns `EXPECTED_AGREE`.
 2. **Convention factor**: where applicable (e.g. a 2× or 4π factor
    between the new code and the reference), the spec captures it.
-3. **HiddenState contraction**: per-element compare returns
+3. **HiddenSpace contraction**: per-element compare returns
    `NOT_COMPARABLE`; sum-contraction returns `EXPECTED_AGREE` on the
    reference data.
 
@@ -164,12 +166,12 @@ These are recurring traps; check each one explicitly while writing specs.
   per-mode. Don't fake the per-mode form. Skip the spec.
 - **"Direct inverse" vs "iterative" BTE solvers.** Both can realize the
   canonical `bte_solver=direct_inverse` identity (same fixed point,
-  different algorithm). Distinguish on the `OperationAdapterSpec`
+  different algorithm). Distinguish on the `OperatorRepresentationSpec`
   via `discretization_choices`, not as a different state.
 - **Default symmetry.** Most codes apply spglib reduction by default;
   kaldo (stable) is the exception. Record explicitly — don't assume.
 - **Irreducible wedge vs full grid output.** Affects array shape; record
-  on the StateAdapterSpec note.
+  on the SpaceRepresentationSpec note.
 - **g/mol vs amu for masses, eV/Å² vs Ry/au² for force constants, nm vs
   Å for lattice vectors.** Common cross-code unit traps.
 - **Force-constant unit conventions silently differ between codes that
@@ -190,14 +192,14 @@ These are recurring traps; check each one explicitly while writing specs.
 ## Worked example: ShengBTE ingestion (2026-05)
 
 For a concrete walkthrough of this procedure on a real code, see
-`omai/thermal_transport/represented/shengbte.py` and the companion
+`omai/thermal_transport/representation/shengbte.py` and the companion
 tests in `tests/test_shengbte.py`. Notable decisions made during that
 ingestion:
 
 - **Skipped HeatCapacity** because ShengBTE exposes only `BTE.cv`
   (volumetric J/m³K), not a per-mode form. Recorded the gap in the
   adapter docstring.
-- **Added `KM_PER_S = Unit(...)`** to `units.py` with `to_canonical = 10.0`
+- **Added `KM_PER_S = Unit(...)`** to `units.py` with `to_operator = 10.0`
   (1 km/s = 10 Å·THz). This kind of one-line additions to `units.py` is
   routine — most codes drop a single new unit.
 - **`compute_force_constants_*` is upstream.** ShengBTE reads FC2/FC3
@@ -210,12 +212,12 @@ ingestion:
   scipy.linalg.solve. All three converge to the same linearized-BTE
   solution, so they share `bte_solver=direct_inverse`. The distinction
   goes on `discretization_choices.linear_solver`.
-- **broadening_param=adaptive_scaled** is a new convention value the
+- **broadening_param=adaptive_scaled** is a new scheme value the
   ShengBTE ingestion needed. (kaldo uses `halfwidth`, phono3py `stdev`;
   ShengBTE's adaptive Gaussian doesn't reduce to either.) If a new
-  convention *value* arises, add it as an override on the
-  OperationAdapterSpec — no operator-layer change required. If a new
-  convention *name* arises, that *is* a operator-layer edit.
+  scheme *value* arises, add it as a `scheme_overrides` entry on the
+  OperatorRepresentationSpec — no operator-layer change required. If a
+  new scheme *name* arises, that *is* an operator-layer edit.
 
 ## What this skill explicitly does *not* do
 
@@ -223,6 +225,6 @@ ingestion:
   describe outputs after the code has run; a separate ingestion
   function takes those outputs and wraps them as `Representation`
   instances.
-- It does not modify the operator DAG. New nodes/edges or new
-  conventions on existing nodes are substrate work, not adapter work.
-- It does not refactor `visualize.py`. That's a known follow-up.
+- It does not modify the operator DAG. New nodes/edges, new schemes, or
+  new normalizations on existing nodes are substrate work, not adapter
+  work (see `extend_dag.md`).
