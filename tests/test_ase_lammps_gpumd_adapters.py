@@ -1,9 +1,9 @@
 """Smoke tests for the three new phase-2-P1 adapter modules.
 
 P1 of phase 2 introduces three new representation adapters:
-  * `ase`    — generic ASE-calculator interface
-  * `lammps` — LAMMPS-native
-  * `gpumd`  — GPUMD-native
+  * `ase`   ; generic ASE-calculator interface
+  * `lammps`; LAMMPS-native
+  * `gpumd` ; GPUMD-native
 
 Each gets a SpaceRepresentationSpec for POTENTIAL and an OperatorRepresentationSpec
 for provide_potential. These tests verify the adapters import, name
@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from omai.representation.adapter import OperatorRepresentationSpec, SpaceRepresentationSpec
 from omai.thermal_transport.operator.edges import provide_potential
-from omai.thermal_transport.operator.nodes import POTENTIAL
+from omai.thermal_transport.operator.nodes import POTENTIAL, TEMPERATURE_STATE
 
 
 # -- ase ----------------------------------------------------------------
@@ -57,6 +57,16 @@ def test_lammps_provide_potential_spec_targets_provide_potential_edge():
     assert isinstance(LAMMPS_PROVIDE_POTENTIAL, OperatorRepresentationSpec)
     assert LAMMPS_PROVIDE_POTENTIAL.representation_name == "lammps"
     assert LAMMPS_PROVIDE_POTENTIAL.operator is provide_potential
+
+
+def test_lammps_temperature_spec_targets_temperature_state():
+    from omai.thermal_transport.representation.lammps import LAMMPS_TEMPERATURE
+
+    assert isinstance(LAMMPS_TEMPERATURE, SpaceRepresentationSpec)
+    assert LAMMPS_TEMPERATURE.representation_name == "lammps"
+    assert LAMMPS_TEMPERATURE.space is TEMPERATURE_STATE
+    assert LAMMPS_TEMPERATURE.observable_units["temperature"] == "kelvin"
+    assert "compute temp" in LAMMPS_TEMPERATURE.code_api["temperature"]
 
 
 # -- gpumd --------------------------------------------------------------
@@ -124,3 +134,13 @@ def test_existing_bte_adapter_potential_notes_cite_ase_adapter():
             f"{type(spec).__name__} for {spec.representation_name} does not cite "
             f"the `ase` adapter in its notes; got:\n{spec.notes}"
         )
+
+
+def test_lammps_build_codes_entry_includes_temperature():
+    """build_codes() scans the lammps representation module for
+    SpaceRepresentationSpec attributes; LAMMPS_TEMPERATURE should now
+    surface a "Temperature" entry in the lammps code-api table."""
+    from omai.map_data import DOMAINS, build_codes
+
+    codes = build_codes(DOMAINS)
+    assert "Temperature" in codes["lammps"]
