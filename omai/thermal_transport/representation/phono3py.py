@@ -18,6 +18,7 @@ from omai.representation.adapter import OperatorRepresentationSpec, SpaceReprese
 from omai.thermal_transport.operator.edges import (
     apply_nac_correction,
     combine_kappa_wigner,
+    compute_anharmonic_linewidth,
     compute_boundary_scattering,
     compute_dispersion,
     compute_dos,
@@ -30,7 +31,6 @@ from omai.thermal_transport.operator.edges import (
     compute_isotope_scattering,
     compute_kappa_wigner_coherences,
     compute_kappa_wigner_populations,
-    compute_linewidth,
     compute_phase_space_3phonon,
     contract_cumulative_kappa_mfp,
     contract_cumulative_kappa_omega,
@@ -49,6 +49,7 @@ from omai.thermal_transport.operator.edges import (
     sum_linewidths,
 )
 from omai.thermal_transport.operator.nodes import (
+    ANHARMONIC_LINEWIDTH,
     BARE_DYNAMICAL_MATRIX,
     BORN_CHARGES,
     BOUNDARY_LINEWIDTH,
@@ -65,7 +66,6 @@ from omai.thermal_transport.operator.nodes import (
     HEAT_CAPACITY,
     ISOTOPE_ABUNDANCES,
     ISOTOPIC_LINEWIDTH,
-    LINEWIDTH,
     MEAN_FREE_DISPLACEMENT_DIRECT,
     MEAN_FREE_DISPLACEMENT_RTA,
     MOLAR_HEAT_CAPACITY,
@@ -102,7 +102,7 @@ PHONO3PY_GROUP_VELOCITY = SpaceRepresentationSpec(
 
 
 PHONO3PY_LINEWIDTH = SpaceRepresentationSpec(
-    space=LINEWIDTH,
+    space=ANHARMONIC_LINEWIDTH,
     representation_name="phono3py",
     observable_units={"Gamma": "linear_THz"},
     # No convention overrides: canonical "imag_self_energy".
@@ -149,7 +149,7 @@ PHONO3PY_THERMAL_CONDUCTIVITY_DIRECT = SpaceRepresentationSpec(
 
 
 PHONO3PY_COMPUTE_LINEWIDTH = OperatorRepresentationSpec(
-    operator=compute_linewidth,
+    operator=compute_anharmonic_linewidth,
     representation_name="phono3py",
     parameter_units={"broadening_sigma": "linear_THz"},
     scheme_overrides={

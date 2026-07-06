@@ -8,13 +8,13 @@ from omai.operator import Space, Operator, topological_order
 from omai.thermal_transport.operator import (
     EDGES,
     NODES,
-    LINEWIDTH,
+    ANHARMONIC_LINEWIDTH,
     THERMAL_CONDUCTIVITY_DIRECT,
     THERMAL_CONDUCTIVITY_RTA,
     compute_dispersion,
     compute_force_constants_2,
+    compute_anharmonic_linewidth,
     compute_heat_capacity,
-    compute_linewidth,
     contract_kappa_direct,
     contract_kappa_rta,
 )
@@ -106,14 +106,6 @@ def test_linewidth_channels_converge_through_sum():
     assert ANHARMONIC_LINEWIDTH not in solve_bte_direct.inputs
 
 
-def test_anharmonic_linewidth_alias_is_legacy_linewidth():
-    """The Python LINEWIDTH symbol is preserved as a back-compat alias
-    for ANHARMONIC_LINEWIDTH."""
-    from omai.thermal_transport.operator import ANHARMONIC_LINEWIDTH, LINEWIDTH
-
-    assert LINEWIDTH is ANHARMONIC_LINEWIDTH
-
-
 def test_harmonic_thermo_sibling_states():
     """F, S, E are sibling Observables off (Frequency, Temperature),
     paralleling HeatCapacity."""
@@ -179,7 +171,7 @@ def test_compute_heat_capacity_inputs_are_freq_and_temperature():
 
 
 def test_compute_linewidth_inputs():
-    input_names = {s.name for s in compute_linewidth.inputs}
+    input_names = {s.name for s in compute_anharmonic_linewidth.inputs}
     assert input_names == {"Frequency", "Eigenvectors", "ForceConstants[order=3]", "Temperature"}
 
 
@@ -298,15 +290,15 @@ def test_specific_field_indices():
     from omai.thermal_transport.operator import (
         DYNAMICAL_MATRIX,
         FREQUENCY_STATE,
+        ANHARMONIC_LINEWIDTH,
         GROUP_VELOCITY,
-        LINEWIDTH,
         THERMAL_CONDUCTIVITY_DIRECT,
     )
 
     assert FREQUENCY_STATE.fields[0].indices == ("q", "nu")
     assert DYNAMICAL_MATRIX.fields[0].indices == ("i", "j", "q")
     assert GROUP_VELOCITY.fields[0].indices == ("alpha", "q", "nu")
-    assert LINEWIDTH.fields[0].indices == ("q", "nu")
+    assert ANHARMONIC_LINEWIDTH.fields[0].indices == ("q", "nu")
     assert THERMAL_CONDUCTIVITY_DIRECT.fields[0].indices == ("alpha", "beta")
 
 
@@ -419,8 +411,8 @@ def test_observable_vs_hidden_state_classification():
         FORCE_CONSTANTS_2,
         FREQUENCY_STATE,
         GROUP_VELOCITY,
+        ANHARMONIC_LINEWIDTH,
         HEAT_CAPACITY,
-        LINEWIDTH,
         MEAN_FREE_DISPLACEMENT_DIRECT,
         MEAN_FREE_DISPLACEMENT_RTA,
         POTENTIAL,
@@ -438,7 +430,7 @@ def test_observable_vs_hidden_state_classification():
         assert state.is_observable
 
     for state in (
-        EIGENVECTORS, GROUP_VELOCITY, LINEWIDTH,
+        EIGENVECTORS, GROUP_VELOCITY, ANHARMONIC_LINEWIDTH,
         MEAN_FREE_DISPLACEMENT_RTA, THERMAL_CONDUCTIVITY_RTA,
     ):
         assert isinstance(state, HiddenSpace), f"{state.name} should be HiddenSpace"
@@ -481,9 +473,9 @@ def test_topological_order_detects_cycles():
 
 
 def test_state_identity_by_name():
-    assert LINEWIDTH == LINEWIDTH
+    assert ANHARMONIC_LINEWIDTH == ANHARMONIC_LINEWIDTH
     same_name_different_metadata = Space(name="Linewidth[channel=anharmonic_3ph]")
-    assert LINEWIDTH == same_name_different_metadata
+    assert ANHARMONIC_LINEWIDTH == same_name_different_metadata
 
 
 def test_operation_identity_by_name():
@@ -593,10 +585,10 @@ def test_born_charges_and_dielectric_tensor_are_sources():
 
 
 def test_compute_linewidth_has_v3_auxiliary_formula():
-    """|V_3|² is now a first-class auxiliary equation on compute_linewidth."""
+    """|V_3|² is now a first-class auxiliary equation on compute_anharmonic_linewidth."""
     import sympy as sp
 
-    aux = compute_linewidth.auxiliary_formulas
+    aux = compute_anharmonic_linewidth.auxiliary_formulas
     assert len(aux) >= 1
     eq = aux[0]
     assert isinstance(eq, sp.Basic)

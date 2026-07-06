@@ -45,7 +45,6 @@ from omai.thermal_transport.operator.edges import (
     compute_group_velocity,
     compute_gruneisen,
     compute_isotope_scattering,
-    compute_linewidth,
     compute_phase_space_3phonon,
     contract_cumulative_kappa_mfp,
     contract_cumulative_kappa_omega,
@@ -76,14 +75,12 @@ from omai.thermal_transport.operator.nodes import (
     GRUNEISEN,
     ISOTOPE_ABUNDANCES,
     ISOTOPIC_LINEWIDTH,
-    LINEWIDTH,
     MOLAR_HEAT_CAPACITY,
     PHASE_SPACE_3PH,
     PHONON_DOS,
     TEMPERATURE_STATE,
     THERMAL_CONDUCTIVITY_DIRECT,
     THERMAL_CONDUCTIVITY_RTA,
-    TOTAL_LINEWIDTH,
     VOLUMETRIC_HEAT_CAPACITY,
 )
 
@@ -113,7 +110,7 @@ SHENGBTE_GROUP_VELOCITY = SpaceRepresentationSpec(
 
 
 SHENGBTE_LINEWIDTH = SpaceRepresentationSpec(
-    space=LINEWIDTH,
+    space=ANHARMONIC_LINEWIDTH,
     representation_name="shengbte",
     observable_units={"Gamma": "angular_THz"},
     observable_normalizations={
@@ -225,7 +222,7 @@ SHENGBTE_COMPUTE_FORCE_CONSTANTS_3 = OperatorRepresentationSpec(
 
 
 SHENGBTE_COMPUTE_LINEWIDTH = OperatorRepresentationSpec(
-    operator=compute_linewidth,
+    operator=compute_anharmonic_linewidth,
     representation_name="shengbte",
     parameter_units={"broadening_sigma": "angular_THz"},
     scheme_overrides={

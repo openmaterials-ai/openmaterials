@@ -1,30 +1,26 @@
 """Operator nodes of the lattice thermal-transport DAG.
 
-Sixteen nodes, split into ObservableSpaces (gauge-invariant,
-cross-code-comparable) and HiddenSpaces (adapter-internal scaffolding, not
-cross-code-comparable per-element). MeanFreeDisplacement and
-ThermalConductivity are parameterized by the upstream `bte_solver` choice:
-the RTA variants are HiddenSpaces (the approximation breaks gauge
-invariance), the direct-inverse / iterative variants are ObservableSpaces
-(the full LBTE solution preserves it).
+Split into ObservableSpaces (gauge-invariant, cross-code-comparable) and
+HiddenSpaces (gauge-dependent; scaffolding or terminal approximations, not
+cross-code-comparable per-element), assembled into the module-level NODES
+tuple. The DAG covers the harmonic chain (force constants → dynamical
+matrix → frequencies / eigenvectors / group velocities), per-mode
+thermodynamics and their volumetric / molar contractions, the polar (NAC)
+branch, the anharmonic / isotope / boundary scattering channels, the BTE
+solvers, the Wigner and QHGK transport models, cumulative-κ distributions,
+and an MD tier (trajectory, heat current, correlation functions) feeding
+the Green-Kubo / NEMD / HNEMD κ paths.
 
-  ObservableSpaces (11):
-    Potential, Temperature       — sources, scalar / opaque
-    ForceConstants[order=2/3]    — real-space tensors, well-defined
-    DynamicalMatrix              — Bloch sum, well-defined in standard basis
-    Frequency                    — eigenvalues, basis-invariant
-    HeatCapacity                 — per-mode c_qν(T), function of ω and T
-    VolumetricHeatCapacity       — Σ_qν c_qν / (V_cell N_q), J/(m³K)
-    MolarHeatCapacity            — N_A Σ_qν c_qν / N_q, J/(K·mol_of_cells)
-    MeanFreeDisplacement[direct] — full LBTE solution; gauge-invariant
-    ThermalConductivity[direct]  — contracted tensor; gauge-invariant
-
-  HiddenSpaces (5):
-    Eigenvectors                 — phase + degenerate-subspace rotation
-    GroupVelocity                — inherits eigenvector rotation at degenerate ω
-    Linewidth                    — BZ-summation redistribution
-    MeanFreeDisplacement[rta]    — RTA closed form; inherits Linewidth's looseness
-    ThermalConductivity[rta]     — RTA κ; inherits MFD[rta]'s looseness via 1/Γ
+Gauge policy in brief: a quantity whose per-element values depend on
+eigenvector phase / degenerate-subspace rotation, BZ-summation choice, or
+MD ensemble noise is a HiddenSpace declaring its gauge_group and — when it
+is scaffolding — the ObservableSpace contractions that capture its
+invariant content. MeanFreeDisplacement and ThermalConductivity are
+parameterized by the upstream `bte_solver` choice: the RTA variants (like
+κ_QHGK) are terminal `approximation` HiddenSpaces because the 1/Γ
+non-linearity breaks gauge invariance, while the direct-inverse /
+iterative LBTE variants and the MD κ observables are gauge-invariant
+ObservableSpaces.
 """
 
 from __future__ import annotations
@@ -293,13 +289,6 @@ ANHARMONIC_LINEWIDTH = HiddenSpace(
         "Contractions (ΣΓ, κ_LBTE) are the gauge-invariant content."
     ),
 )
-
-# Backwards-compatible alias. `LINEWIDTH` is what the codebase referenced
-# before the per-channel split; it now points to the anharmonic channel
-# (semantically: the existing compute_linewidth was always the anharmonic
-# 3-phonon piece). Use the explicit ANHARMONIC_LINEWIDTH in new code.
-LINEWIDTH = ANHARMONIC_LINEWIDTH
-
 
 ISOTOPIC_LINEWIDTH = HiddenSpace(
     name="Linewidth[channel=isotope]",

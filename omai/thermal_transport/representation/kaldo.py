@@ -33,6 +33,7 @@ from omai.representation.adapter import OperatorRepresentationSpec, SpaceReprese
 from omai.thermal_transport.operator.edges import (
     apply_nac_correction,
     combine_kappa_wigner,
+    compute_anharmonic_linewidth,
     compute_boundary_scattering,
     compute_dispersion,
     compute_dos,
@@ -46,7 +47,6 @@ from omai.thermal_transport.operator.edges import (
     compute_kappa_qhgk,
     compute_kappa_wigner_coherences,
     compute_kappa_wigner_populations,
-    compute_linewidth,
     compute_phase_space_3phonon,
     contract_cumulative_kappa_mfp,
     contract_cumulative_kappa_omega,
@@ -65,6 +65,7 @@ from omai.thermal_transport.operator.edges import (
     sum_linewidths,
 )
 from omai.thermal_transport.operator.nodes import (
+    ANHARMONIC_LINEWIDTH,
     BARE_DYNAMICAL_MATRIX,
     BORN_CHARGES,
     BOUNDARY_LINEWIDTH,
@@ -81,7 +82,6 @@ from omai.thermal_transport.operator.nodes import (
     HELMHOLTZ_FREE_ENERGY,
     ISOTOPE_ABUNDANCES,
     ISOTOPIC_LINEWIDTH,
-    LINEWIDTH,
     MEAN_FREE_DISPLACEMENT_DIRECT,
     MEAN_FREE_DISPLACEMENT_RTA,
     MOLAR_HEAT_CAPACITY,
@@ -119,7 +119,7 @@ KALDO_GROUP_VELOCITY = SpaceRepresentationSpec(
 
 
 KALDO_LINEWIDTH = SpaceRepresentationSpec(
-    space=LINEWIDTH,
+    space=ANHARMONIC_LINEWIDTH,
     representation_name="kaldo",
     observable_units={"Gamma": "angular_THz"},
     observable_normalizations={
@@ -204,7 +204,7 @@ def kaldo_compute_linewidth_spec(
         broadening_note = f"Non-standard broadening_param={broadening_param!r}."
 
     return OperatorRepresentationSpec(
-        operator=compute_linewidth,
+        operator=compute_anharmonic_linewidth,
         representation_name="kaldo",
         parameter_units={"broadening_sigma": "linear_THz"},
         scheme_overrides={

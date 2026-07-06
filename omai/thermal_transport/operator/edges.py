@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import sympy as sp
 
-from omai.operator.dimensions import FREQUENCY, LENGTH, LENGTH_PER_TIME, TEMPERATURE, VOLUME
+from omai.operator.dimensions import FREQUENCY, LENGTH, TEMPERATURE, VOLUME
 from omai.operator.operator import Operator, Parameter
 from omai.thermal_transport.operator.nodes import (
     ANHARMONIC_LINEWIDTH,
@@ -32,7 +32,6 @@ from omai.thermal_transport.operator.nodes import (
     INTERNAL_ENERGY,
     ISOTOPE_ABUNDANCES,
     ISOTOPIC_LINEWIDTH,
-    LINEWIDTH,                     # alias for ANHARMONIC_LINEWIDTH (back-compat)
     MEAN_FREE_DISPLACEMENT_DIRECT,
     MEAN_FREE_DISPLACEMENT_RTA,
     MOLAR_ENTROPY,
@@ -616,9 +615,6 @@ compute_anharmonic_linewidth = Operator(
         "summed."
     ),
 )
-
-# Backwards-compatible alias for the legacy Python name.
-compute_linewidth = compute_anharmonic_linewidth
 
 
 # Tamura isotope-disorder scattering:

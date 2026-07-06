@@ -9,7 +9,7 @@ from omai.thermal_transport.operator.edges import (
     compute_dynamical_matrix,
     compute_group_velocity,
     compute_heat_capacity,
-    compute_linewidth,
+    compute_anharmonic_linewidth,
     contract_kappa_direct,
 )
 from omai.thermal_transport.operator.gauges import U1_PHASE_ON_EIGENVECTOR
