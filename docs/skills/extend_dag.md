@@ -114,6 +114,11 @@ After choosing a pattern:
      kernel reappears in two edges — see `compute_anharmonic_linewidth` /
      `solve_bte_direct` for the |V₃|² pattern). Declare `schemes` only
      for choices a downstream comparison needs to distinguish.
+   - `omai/<domain>/operator/vocabulary.py`: register the sympy
+     base-symbol names the new spaces' formulas carry
+     (`register_space_symbols`) and any bare constants
+     (`register_formula_constants`) into `omai.operator.vocabulary`;
+     the unified-validation test fails on unregistered symbols.
    - `omai/<domain>/operator/__init__.py`: re-export.
 
 2. **Adapters.** For every code that produces the new quantity, add a

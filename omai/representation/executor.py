@@ -30,7 +30,7 @@ import sympy as sp
 
 from omai.operator.operator import Operator
 from omai.operator.space import Space
-from omai.operator.validate import _SPACE_SYMBOLS
+from omai.operator import vocabulary
 from omai.representation.adapter import SpaceRepresentationSpec
 from omai.representation.instance import Representation
 
@@ -158,11 +158,12 @@ def _expand_bose_einstein(expr: sp.Basic, hbar_sym: sp.Symbol, kB_sym: sp.Symbol
 def _space_primary_symbols(space: Space) -> frozenset[str]:
     """Return the IndexedBase / Symbol base names associated with ``space``.
 
-    Looks up the per-space symbol registry that ``omai.operator.validate``
-    uses for the AOT formula-vocabulary check. The registry is the single
-    source of truth for the field-name → sympy-symbol mapping.
+    Looks up the per-space symbol registry (`omai.operator.vocabulary`,
+    populated by each domain at import time) that ``omai.operator.validate``
+    also uses for the AOT formula-vocabulary check. The registry is the
+    single source of truth for the field-name → sympy-symbol mapping.
     """
-    return _SPACE_SYMBOLS.get(space.name, frozenset())
+    return vocabulary.SPACE_SYMBOLS.get(space.name, frozenset())
 
 
 def _find_input_indexed_atoms(

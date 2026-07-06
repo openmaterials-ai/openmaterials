@@ -23,8 +23,10 @@ sympy formula:
       - the per-space allowed-symbol set of an output space (formulas
         commonly reference the LHS quantity they produce)
       - the edge's declared `parameters`
-      - a fixed `_PERMITTED_CONSTANTS` set of bare physics symbols,
-        BZ-mesh constants, and dummy indices.
+      - the registered pool of bare constants.
+    Per-space symbol sets and bare constants live in the
+    `omai.operator.vocabulary` registry, which each domain populates at
+    import time (see e.g. `omai/thermal_transport/operator/vocabulary.py`).
     Anything else is flagged as "not derivable from inputs", catching
     typos and undeclared symbols at module-load time.
 
@@ -45,189 +47,11 @@ from __future__ import annotations
 
 import sympy as sp
 
+from omai.operator import vocabulary
 from omai.operator.operator import Operator
 from omai.operator.space import HiddenSpace, ObservableSpace, Space
 
 _VALID_KINDS = {"scaffolding", "approximation"}
-
-
-# ---------------------------------------------------------------------------
-# Symbol vocabulary for the sympy-layer free-symbol check.
-# ---------------------------------------------------------------------------
-#
-# Bare physics + math symbols that any formula may reference without having
-# to declare them in a state. Includes thermodynamic parameters (T, k_B, ℏ),
-# BZ-mesh / cell counters (N, N_q, N_A, V_cell, pi), and the dummy indices
-# used throughout the operator layer (i, j, k, α, β, ν, ν', ν'', q, q', R, R',
-# γ, δ, m). Also includes the schematic per-component q-vector symbols
-# `q^\alpha`, `q^\beta` used in the NAC formula, the displacement labels
-# `u_i(0)`, `u_j(R)`, `u_k(R')`, `\{u\}`, and the source-side placeholders
-# `V_{provided}`, `T_{provided}` used by the nullary `provide_*` edges.
-# Kept minimal: anything genuinely tied to a state goes in _STATE_SYMBOLS.
-_PERMITTED_CONSTANTS: frozenset[str] = frozenset({
-    # Physics constants and thermodynamic parameters.
-    "T",
-    "k_B",
-    r"\hbar",
-    "V_{cell}",
-    "N",
-    "N_q",
-    "N_A",
-    "pi",
-    # Dummy indices.
-    "i",
-    "j",
-    "k",
-    "m",
-    r"\alpha",
-    r"\beta",
-    r"\gamma",
-    r"\delta",
-    r"\nu",
-    r"\nu'",
-    r"\nu''",
-    r"\mathbf{q}",
-    r"\mathbf{q'}",
-    r"\mathbf{R}",
-    r"\mathbf{R'}",
-    # Per-component q-vector symbols (NAC formula).
-    r"q^\alpha",
-    r"q^\beta",
-    # Displacement labels (FC2 / FC3 derivative formulas).
-    "u_i(0)",
-    "u_j(R)",
-    "u_k(R')",
-    r"\{u\}",
-    # Source-side provided placeholders (nullary provide_* edges).
-    r"V_{\mathrm{provided}}",
-    r"T_{\mathrm{provided}}",
-    r"V_{provided}",
-    r"T_{provided}",
-    r"Z^*_{provided}",
-    r"\varepsilon_{\infty,provided}",
-    r"g_{provided}",
-    # DOS bin variable and cumulative-κ thresholds.
-    r"\omega",
-    r"\omega_c",
-    r"\Lambda_c",
-    # Generic length-scale parameter alias. Several edges (e.g.
-    # compute_boundary_scattering) declare a length-scale Parameter
-    # (boundary_length_scale) but reference it in the formula by the
-    # textbook symbol `L`. Permit `L` so the formula reads naturally.
-    "L",
-    # MD primitives (phase 2 P2). The integer timestep index `t`, the
-    # correlation lag `\tau`, the timestep size `\Delta t`, the
-    # correlation depth `n_{lag}`, and the atom count `N_{atoms}` are
-    # universal MD recurrence / averaging constants that any MD edge may
-    # reference. They're not tied to any single state.
-    "t",
-    r"\tau",
-    r"\Delta t",
-    r"n_{lag}",
-    r"N_{atoms}",
-    # MD-based κ (phase 2 P3). τ_max / τ_min are the GK integration
-    # bounds (declared as edge parameters and also free in the integrand
-    # expression); F_e is the HNEMD driving-force IndexedBase; ∇T is the
-    # imposed NEMD temperature-gradient IndexedBase.
-    r"\tau_{max}",
-    r"\tau_{min}",
-    "F_e",
-    r"\nabla T",
-})
-
-
-# Per-space allowed-symbol registry. Each entry lists the IndexedBase /
-# Symbol *base names* that may legitimately appear in a formula whose
-# inputs OR outputs include that space.
-#
-# Rationale: the operator layer's promise is "every edge carries a sympy
-# formula whose symbols are the quantities the space declares". The mapping
-# from field-name (Python convention, e.g. `omega`) to sympy IndexedBase
-# name (LaTeX convention, e.g. `\omega`) is non-trivial in places; this
-# registry encodes that mapping.
-_SPACE_SYMBOLS: dict[str, frozenset[str]] = {
-    "Potential": frozenset({r"\{u\}", r"V_{\mathrm{provided}}"}),
-    "Temperature": frozenset({"T", r"T_{\mathrm{provided}}"}),
-    "ForceConstants[order=2]": frozenset({r"\Phi^{(2)}"}),
-    "ForceConstants[order=3]": frozenset({r"\Phi^{(3)}"}),
-    "BornCharges": frozenset({r"Z^*", r"Z^*_{provided}"}),
-    "DielectricTensor": frozenset({r"\varepsilon_\infty", r"\varepsilon_{\infty,provided}"}),
-    "BareDynamicalMatrix": frozenset({r"D^{bare}", "M"}),
-    "DynamicalMatrix": frozenset({"D", r"\partial D/\partial q", "M"}),
-    "Frequency": frozenset({r"\omega"}),
-    "Eigenvectors": frozenset({"e", "m"}),
-    "GroupVelocity": frozenset({"v"}),
-    "HeatCapacity": frozenset({"c"}),
-    "VolumetricHeatCapacity": frozenset({r"C_V^{vol}"}),
-    "MolarHeatCapacity": frozenset({r"C_V^{mol}"}),
-    "HelmholtzFreeEnergy": frozenset({"f"}),
-    "Entropy": frozenset({"s"}),
-    "InternalEnergy": frozenset({"e"}),
-    "MolarHelmholtzFreeEnergy": frozenset({r"F_{mol}"}),
-    "MolarEntropy": frozenset({r"S_{mol}"}),
-    "MolarInternalEnergy": frozenset({r"E_{mol}"}),
-    # Linewidth: each per-channel state allows its channel-specific symbol;
-    # the total state allows all channel variants since sum_linewidths and
-    # downstream consumers reference them as components.
-    "Linewidth[channel=anharmonic_3ph]": frozenset({r"\Gamma", r"\Gamma^{anh}"}),
-    "Linewidth[channel=isotope]": frozenset({r"\Gamma^{iso}"}),
-    "Linewidth[channel=boundary]": frozenset({r"\Gamma^{bnd}"}),
-    "Linewidth[channel=total]": frozenset({
-        r"\Gamma",
-        r"\Gamma^{tot}",
-        r"\Gamma^{anh}",
-        r"\Gamma^{iso}",
-        r"\Gamma^{bnd}",
-    }),
-    "IsotopeAbundances": frozenset({"g", r"g_{provided}"}),
-    "PhononDOS": frozenset({"g"}),
-    "Gruneisen": frozenset({r"\gamma_G"}),
-    "PhaseSpace3Phonon": frozenset({r"P_3"}),
-    "MeanFreeDisplacement[bte_solver=rta]": frozenset({"F"}),
-    "MeanFreeDisplacement[bte_solver=direct_inverse]": frozenset({
-        "F",
-        r"\mathcal{M}",  # collision matrix used in solve_bte_direct's auxiliary formula
-    }),
-    "ThermalConductivity[bte_solver=rta]": frozenset({r"\kappa"}),
-    "ThermalConductivity[bte_solver=direct_inverse]": frozenset({r"\kappa"}),
-    "ThermalConductivity[transport_model=wigner_populations]": frozenset({
-        r"\kappa^{W,pop}",
-    }),
-    "ThermalConductivity[transport_model=wigner_coherences]": frozenset({
-        r"\kappa^{W,coh}",
-    }),
-    "ThermalConductivity[transport_model=wigner]": frozenset({
-        r"\kappa^W",
-        r"\kappa^{W,pop}",
-        r"\kappa^{W,coh}",
-    }),
-    "ThermalConductivity[transport_model=qhgk]": frozenset({r"\kappa^{QHGK}"}),
-    "CumulativeKappa[wrt=omega]": frozenset({
-        r"\kappa^{cum}_\omega",
-        r"\omega_c",
-    }),
-    "CumulativeKappa[wrt=mfp]": frozenset({
-        r"\kappa^{cum}_\Lambda",
-        r"\Lambda_c",
-    }),
-    # MD primitives (phase 2 P2). Trajectory carries r and v (the field
-    # declarations); the per-atom energy E and per-atom force F^{md} are
-    # trajectory-derived auxiliary quantities (forces come from the same
-    # Potential that drove the MD; per-atom energies are decomposable
-    # from the same potential energy surface) — listed here so the
-    # Irving-Kirkwood / Velocity-Verlet formulas can reference them.
-    "Trajectory": frozenset({"r", "v", "E", r"F^{md}"}),
-    "HeatCurrent": frozenset({"J"}),
-    "HeatCurrentACF": frozenset({"Jcorr"}),
-    "VelocityAutocorrelation": frozenset({"Cv"}),
-    "MeanSquaredDisplacement": frozenset({"M"}),
-    # MD-based κ paths (phase 2 P3). All three Pattern-A `transport_model`
-    # variants share the same κ^{MD} IndexedBase on their LHS so the
-    # formulas read uniformly.
-    "ThermalConductivity[transport_model=green_kubo]": frozenset({r"\kappa^{MD}"}),
-    "ThermalConductivity[transport_model=nemd]": frozenset({r"\kappa^{MD}"}),
-    "ThermalConductivity[transport_model=hnemd]": frozenset({r"\kappa^{MD}"}),
-}
 
 
 def _symbol_base_name(sym: sp.Basic) -> str:
@@ -248,19 +72,20 @@ def _allowed_symbols_for_edge(op: Operator) -> set[str]:
     """Allowed base-symbol names for a given Operator.
 
     Union of:
-      - _PERMITTED_CONSTANTS
-      - _SPACE_SYMBOLS[input.name] for each input space
-      - _SPACE_SYMBOLS[output.name] for each output space
+      - the registered bare constants (`vocabulary.FORMULA_CONSTANTS`)
+      - `vocabulary.SPACE_SYMBOLS[input.name]` for each input space
+      - `vocabulary.SPACE_SYMBOLS[output.name]` for each output space
       - the edge's parameter names
-    Spaces not present in _SPACE_SYMBOLS contribute nothing — they're
+    Spaces not present in the registry contribute nothing — they're
     treated as not yet registered, which means the check will flag
-    unregistered symbols. Add to _SPACE_SYMBOLS when growing the DAG.
+    unregistered symbols. Register via the domain's vocabulary module
+    when growing the DAG.
     """
-    allowed: set[str] = set(_PERMITTED_CONSTANTS)
+    allowed: set[str] = set(vocabulary.FORMULA_CONSTANTS)
     for inp in op.inputs:
-        allowed.update(_SPACE_SYMBOLS.get(inp.name, frozenset()))
+        allowed.update(vocabulary.SPACE_SYMBOLS.get(inp.name, frozenset()))
     for out in op.outputs:
-        allowed.update(_SPACE_SYMBOLS.get(out.name, frozenset()))
+        allowed.update(vocabulary.SPACE_SYMBOLS.get(out.name, frozenset()))
     for p in op.parameters:
         allowed.add(p.name)
     return allowed

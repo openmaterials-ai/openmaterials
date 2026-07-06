@@ -89,6 +89,14 @@ Arrhenius equation as a sympy `Eq` but sets
 extracted by a weighted regression over multiple temperature points, not by
 algebraic inversion of a single equation.
 
+Register every symbol the new formulas reference in
+`omai/materials/operator/vocabulary.py`: the per-node sympy base names via
+`register_space_symbols` (keyed by node name) and any bare fit constants
+(like `d` or `D_0`) via `register_formula_constants`. `validate_dag` flags
+unregistered symbols as "not derivable from inputs", and
+`tests/test_unified_validation.py` enforces a clean unified map, so a
+missing registration fails the suite.
+
 
 ## Step 4: Representation spec
 
