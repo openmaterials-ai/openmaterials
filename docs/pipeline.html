@@ -320,7 +320,7 @@
       <span><strong>35</strong> ObservableSpaces</span>
       <span><strong>11</strong> HiddenSpaces</span>
       <span><strong>47</strong> edges</span>
-      <span><strong>7</strong> adapters</span>
+      <span><strong>8</strong> adapters</span>
     </span>
   </div>
   <div class="navlinks" style="margin-top:6px; font-size:13px;">
@@ -517,6 +517,15 @@ const NODE_DATA = {
           "potential": "Phonopy(...) + ASE calculator or FORCE_SETS"
         },
         "notes": "phonopy consumes either an ASE calculator (canonically described by the `ase` adapter \u2014 ASE_POTENTIAL) wired through Phonopy.set_forces_from_calculator(), or precomputed forces in FORCE_SETS / vasprun.xml format."
+      },
+      "qe": {
+        "adapter": "qe",
+        "observable_units": {},
+        "observable_normalizations": {},
+        "code_api": {
+          "potential": "&SYSTEM input_dft + ATOMIC_SPECIES pseudopotentials"
+        },
+        "notes": "First-principles Born-Oppenheimer potential, parameterized by the pseudopotentials (UPF files in pseudo_dir), the XC functional (input_dft, else read from the UPFs), and the plane-wave cutoffs (ecutwfc/ecutrho). These four are the provenance a provide_potential instance must record for a QE-grounded run; two runs differing in any of them realize different Potentials."
       }
     },
     "cross_factors": {}
@@ -618,6 +627,17 @@ const NODE_DATA = {
           "phi": "Phonopy.force_constants"
         },
         "notes": "Phonopy.force_constants: ndarray of shape (n_satom, n_satom, 3, 3) in eV/\u00c5\u00b2. Produced by Phonopy.produce_force_constants()."
+      },
+      "qe": {
+        "adapter": "qe",
+        "observable_units": {
+          "phi": "Ry_per_bohr2"
+        },
+        "observable_normalizations": {},
+        "code_api": {
+          "phi": "q2r.x flfrc (text or .xml)"
+        },
+        "notes": "Real-space interatomic force constants from q2r.x, in Ry/bohr^2 (Rydberg atomic units; no unit string appears in the file). 1 Ry/bohr^2 = 48.587 eV/A^2 vs the eV/A^2 codes (kaldo, phonopy, phono3py). Two traps: (1) for polar solids (lrigid=T) the file is short-range only, the Gonze dipole term having been subtracted at do_q2r.f90:260 and re-added by matdyn.f90:1280, so verbatim comparison against phonopy FORCE_CONSTANTS is wrong when Z* != 0; (2) the text format stores masses in Rydberg atomic mass units (amu*911.444), the XML format in plain amu."
       },
       "shengbte": {
         "adapter": "shengbte",
@@ -750,6 +770,17 @@ const NODE_DATA = {
         },
         "notes": "Phonopy reads Born effective charges from a BORN file (first 9 numbers are \u03b5\u221e, then 9 per atom are Z*_{i,\u03b1\u03b2}); they are stored on the Phonopy instance as nac_params['born'] with shape (n_atoms_primitive, 3, 3) in units of the elementary charge."
       },
+      "qe": {
+        "adapter": "qe",
+        "observable_units": {
+          "Z_star": "dimensionless"
+        },
+        "observable_normalizations": {},
+        "code_api": {
+          "Z_star": "ph.x q=0 fildyn 'Effective Charges E-U' (epsil=.true.)"
+        },
+        "notes": "Born effective charges in units of e, from DFPT (zeu = dF/dE route, written to the q=0 dyn file and XML ZSTAR tag; the transposed zue = dP/du route appears in stdout only, and cross-checking the two is an internal EXPECTED_AGREE pair). Index order in the file is (E-field alpha, atom s, displacement beta). No acoustic sum rule is applied in the file (zasr comes later, in q2r/matdyn). This is typically the very output a phonopy BORN file is built from."
+      },
       "shengbte": {
         "adapter": "shengbte",
         "observable_units": {
@@ -769,16 +800,28 @@ const NODE_DATA = {
       "kaldo \u2192 phonopy": {
         "Z_star": 1.0
       },
+      "kaldo \u2192 qe": {
+        "Z_star": 1.0
+      },
       "kaldo \u2192 shengbte": {
         "Z_star": 1.0
       },
       "phono3py \u2192 phonopy": {
         "Z_star": 1.0
       },
+      "phono3py \u2192 qe": {
+        "Z_star": 1.0
+      },
       "phono3py \u2192 shengbte": {
         "Z_star": 1.0
       },
+      "phonopy \u2192 qe": {
+        "Z_star": 1.0
+      },
       "phonopy \u2192 shengbte": {
+        "Z_star": 1.0
+      },
+      "qe \u2192 shengbte": {
         "Z_star": 1.0
       }
     }
@@ -832,6 +875,17 @@ const NODE_DATA = {
         },
         "notes": "Phonopy stores the macroscopic \u03b5\u221e tensor read from the BORN file as nac_params['dielectric'] with shape (3, 3), dimensionless."
       },
+      "qe": {
+        "adapter": "qe",
+        "observable_units": {
+          "epsilon_infinity": "dimensionless"
+        },
+        "observable_normalizations": {},
+        "code_api": {
+          "epsilon_infinity": "ph.x q=0 fildyn 'Dielectric Tensor' (epsil=.true.)"
+        },
+        "notes": "High-frequency (electronic) dielectric tensor eps_inf from DFPT, dimensionless; insulators only (ph.x stops on metallic occupations). This is eps_inf, not the static eps_0."
+      },
       "shengbte": {
         "adapter": "shengbte",
         "observable_units": {
@@ -851,16 +905,28 @@ const NODE_DATA = {
       "kaldo \u2192 phonopy": {
         "epsilon_infinity": 1.0
       },
+      "kaldo \u2192 qe": {
+        "epsilon_infinity": 1.0
+      },
       "kaldo \u2192 shengbte": {
         "epsilon_infinity": 1.0
       },
       "phono3py \u2192 phonopy": {
         "epsilon_infinity": 1.0
       },
+      "phono3py \u2192 qe": {
+        "epsilon_infinity": 1.0
+      },
       "phono3py \u2192 shengbte": {
         "epsilon_infinity": 1.0
       },
+      "phonopy \u2192 qe": {
+        "epsilon_infinity": 1.0
+      },
       "phonopy \u2192 shengbte": {
+        "epsilon_infinity": 1.0
+      },
+      "qe \u2192 shengbte": {
         "epsilon_infinity": 1.0
       }
     }
@@ -908,6 +974,15 @@ const NODE_DATA = {
           "D_bare": "DynamicalMatrix.get_dynamical_matrix() with NAC disabled"
         },
         "notes": "Phonopy does not expose the bare DM as a distinct attribute; the analytic Bloch sum is what `DynamicalMatrix.get_dynamical_matrix()` returns when nac_params is not set. With NAC enabled the same call returns the corrected DM (i.e. our DynamicalMatrix node, not BareDynamicalMatrix)."
+      },
+      "qe": {
+        "adapter": "qe",
+        "observable_units": {},
+        "observable_normalizations": {},
+        "code_api": {
+          "D_bare": "ph.x fildyn{N} (text) / fildyn{N}.xml"
+        },
+        "notes": "ph.x dynamical-matrix files at each computed q. Contents are the RAW force-constant matrices C(q) in Ry/bohr^2: NOT mass-weighted (division by amu_ry*sqrt(m_a m_b) happens only at diagonalization, dyndia.f90:74) and with NO non-analytic q->0 term (Z* and eps_inf are stored separately in the q=0 file). Matches the BareDynamicalMatrix node modulo the mass-weighting convention, which is structural (per-element matrix transform), not a scalar unit factor; hence no per-element unit declared here."
       }
     },
     "cross_factors": {}
@@ -955,6 +1030,15 @@ const NODE_DATA = {
           "D": "Phonopy.dynamical_matrix"
         },
         "notes": "Phonopy.dynamical_matrix: DynamicalMatrix object; per-q matrices are obtained by calling .run(q)."
+      },
+      "qe": {
+        "adapter": "qe",
+        "observable_units": {},
+        "observable_normalizations": {},
+        "code_api": {
+          "D": "matdyn.x fldyn (off by default)"
+        },
+        "notes": "Interpolated dynamical matrix with the NAC/LO-TO handling applied (matdyn re-adds the Gonze dipole term and the q->0 non-analytic correction). Same write_dyn_on_file format as ph.x fildyn: un-mass-weighted C(q) in Ry/bohr^2, so the same structural mass-weighting note as BareDynamicalMatrix applies."
       }
     },
     "cross_factors": {}
@@ -1008,6 +1092,17 @@ const NODE_DATA = {
         },
         "notes": "Phonopy.get_mesh_dict()['frequencies'] in linear THz, shape (n_q, n_modes). Same convention as phono3py (which depends on phonopy for the harmonic side)."
       },
+      "qe": {
+        "adapter": "qe",
+        "observable_units": {
+          "omega": "inverse_cm"
+        },
+        "observable_normalizations": {},
+        "code_api": {
+          "omega": "matdyn.x flfrq (matdyn.freq); ph.x fildyn tail"
+        },
+        "notes": "Linear wavenumbers (nu = omega/2pi as a wavenumber), cm^-1 in matdyn.freq; ph.x prints THz and cm^-1 side by side ('freq (i) = x [THz] = y [cm-1]', both LINEAR frequency). RY_TO_THZ = 3289.842, RY_TO_CMM1 = 109737.57. A negative value encodes an imaginary mode (omega^2 < 0)."
+      },
       "shengbte": {
         "adapter": "shengbte",
         "observable_units": {
@@ -1027,17 +1122,29 @@ const NODE_DATA = {
       "kaldo \u2192 phonopy": {
         "omega": 1.0
       },
+      "kaldo \u2192 qe": {
+        "omega": 33.35640951981521
+      },
       "kaldo \u2192 shengbte": {
         "omega": 6.283185307179586
       },
       "phono3py \u2192 phonopy": {
         "omega": 1.0
       },
+      "phono3py \u2192 qe": {
+        "omega": 33.35640951981521
+      },
       "phono3py \u2192 shengbte": {
         "omega": 6.283185307179586
       },
+      "phonopy \u2192 qe": {
+        "omega": 33.35640951981521
+      },
       "phonopy \u2192 shengbte": {
         "omega": 6.283185307179586
+      },
+      "qe \u2192 shengbte": {
+        "omega": 0.1883651567308853
       }
     }
   },
@@ -1084,6 +1191,17 @@ const NODE_DATA = {
           "e": "Phonopy.get_mesh_dict()['eigenvectors']"
         },
         "notes": "Eigenvectors of D(q) for each q on the mesh. Phase + degenerate-subspace rotation freedom; per-element cross-code comparison is NOT_COMPARABLE."
+      },
+      "qe": {
+        "adapter": "qe",
+        "observable_units": {
+          "e": "dimensionless"
+        },
+        "observable_normalizations": {},
+        "code_api": {
+          "e": "matdyn.x fleig (orthonormal; off by default)"
+        },
+        "notes": "fleig holds the orthonormal eigenvectors of the mass-weighted dynamical matrix: the node's canonical content. Beware the two sibling artifacts holding DISPLACEMENT PATTERNS instead: the tail of ph.x fildyn and matdyn.x flvec (matdyn.modes, on by default) are mass-divided and renormalized, differing per component by sqrt(amu_ry*m); they are not mutually orthogonal. HiddenSpace: per-element values carry U(1) phase and degenerate-subspace rotation freedom regardless of artifact."
       }
     },
     "cross_factors": {}
@@ -1826,6 +1944,15 @@ const NODE_DATA = {
           "g": "Phonopy.run_total_dos() / .get_total_DOS()"
         },
         "notes": "Phonopy.run_total_dos() computes g(\u03c9); access the array via .get_total_DOS() which returns (frequencies, DOS)."
+      },
+      "qe": {
+        "adapter": "qe",
+        "observable_units": {},
+        "observable_normalizations": {},
+        "code_api": {
+          "g": "matdyn.x fldos (matdyn.dos), dos=.true."
+        },
+        "notes": "Phonon DOS in states/cm^-1 per unit cell against an omega axis in cm^-1, normalized so the integral is 3*nat: the same normalization as the operator-layer node (1/N_q sum of delta functions). Tetrahedron method by default; Gaussian broadening if degauss>0 (degauss itself in cm^-1). Axis-unit conversion to the canonical linear-THz axis is inverse_cm's factor; the DOS ordinate then scales inversely (states per unit frequency)."
       },
       "shengbte": {
         "adapter": "shengbte",
@@ -2882,6 +3009,15 @@ const EDGE_DATA = {
         "discretization_choices": {},
         "notes": "Phonopy loads Born charges from a BORN file via `parse_BORN(primitive, filename)`, then attaches them through `Phonopy(nac_params={'born': ..., 'dielectric': ..., 'factor': ...})`."
       },
+      "qe": {
+        "adapter": "qe",
+        "parameter_units": {},
+        "scheme_overrides": {},
+        "discretization_choices": {
+          "origin": "computed by DFPT (epsil=.true.), not provided"
+        },
+        "notes": "QE turns the provide_born_charges source edge into a computed quantity: Z* comes out of the same DFPT run as the dynamical matrix, rather than being supplied by the user."
+      },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
@@ -2923,6 +3059,15 @@ const EDGE_DATA = {
         "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Read alongside Born charges from the BORN file (first 9 numbers)."
+      },
+      "qe": {
+        "adapter": "qe",
+        "parameter_units": {},
+        "scheme_overrides": {},
+        "discretization_choices": {
+          "origin": "computed by DFPT (epsil=.true.), not provided"
+        },
+        "notes": "Same DFPT run computes eps_inf; see QE_PROVIDE_BORN_CHARGES."
       },
       "shengbte": {
         "adapter": "shengbte",
@@ -2975,6 +3120,19 @@ const EDGE_DATA = {
         },
         "discretization_choices": {},
         "notes": "Phonopy.produce_force_constants applies spglib-driven space-group reduction by default. Disable via Phonopy(symprec=0) for the C1 regime."
+      },
+      "qe": {
+        "adapter": "qe",
+        "parameter_units": {},
+        "scheme_overrides": {
+          "symmetry_group": "qe_spacegroup"
+        },
+        "discretization_choices": {
+          "method": "dfpt_linear_response",
+          "q_sampling": "regular nq1 x nq2 x nq3 grid (ldisp=.true.)",
+          "acoustic_sum_rule": "zasr/asr applied downstream in q2r/matdyn, not in ph.x"
+        },
+        "notes": "QE computes FC2 by DFPT linear response on a regular q grid (ph.x), then Fourier-transforms to real space (q2r.x): no supercell finite displacements. Symmetry reduction uses QE's internal space-group machinery (not spglib); irreducible q set and irreducible perturbations per q."
       },
       "shengbte": {
         "adapter": "shengbte",
@@ -3066,6 +3224,15 @@ const EDGE_DATA = {
         "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "DynamicalMatrix.get_dynamical_matrix(q) \u2014 Bloch sum over \u03a6\u00b2(R) with the phonopy phase convention."
+      },
+      "qe": {
+        "adapter": "qe",
+        "parameter_units": {},
+        "scheme_overrides": {},
+        "discretization_choices": {
+          "interpolation": "Fourier interpolation of flfrc (matdyn.x); exact at ph.x grid q's"
+        },
+        "notes": "At grid q's ph.x provides D(q) directly; off-grid q's come from Fourier interpolation of the real-space constants in matdyn.x."
       },
       "shengbte": {
         "adapter": "shengbte",
@@ -3165,6 +3332,15 @@ const EDGE_DATA = {
         "discretization_choices": {},
         "notes": "Polar runs: Phonopy(nac_params=...) adds the non-analytic correction via `DynamicalMatrixNAC.get_dynamical_matrix()`. The default scheme is gonze (Gonze-Lee 1997); set nac_method='wang' for the Wang Ewald alternative. The LO-TO direction is selected at the q\u21920 point by Phonopy.set_band_structure or the unit-vector argument to DynamicalMatrixNAC.run()."
       },
+      "qe": {
+        "adapter": "qe",
+        "parameter_units": {},
+        "scheme_overrides": {},
+        "discretization_choices": {
+          "gamma_treatment": "direction-dependent nonanal term at q->0 (path geometry decides the limit direction)"
+        },
+        "notes": "matdyn.x implements the canonical Gonze dipole-dipole NAC (nac_scheme=gonze_lee, matdyn.f90:1280 re-adds what do_q2r.f90:260 subtracted; e^2=2 in Rydberg units internally, cancelling in the result). At Gamma the correction is direction-dependent: the value depends on the approach path."
+      },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
@@ -3211,6 +3387,16 @@ const EDGE_DATA = {
         "scheme_overrides": {},
         "discretization_choices": {},
         "notes": "Eigenfrequencies / eigenvectors from numpy.linalg.eigh of D(q) \u2014 Phonopy.get_band_structure / .get_mesh_dict."
+      },
+      "qe": {
+        "adapter": "qe",
+        "parameter_units": {},
+        "scheme_overrides": {},
+        "discretization_choices": {
+          "mass_weighting": "applied at diagonalization only (dyndia.f90:74; amu_ry*sqrt(m_a m_b))",
+          "diagonalizer": "LAPACK Hermitian solve (cdiagh)"
+        },
+        "notes": "Diagonalization of the mass-weighted C(q); frequencies emitted as linear nu in THz and cm^-1. All stored matrices remain un-mass-weighted; the weighting exists only inside the diagonalization step."
       },
       "shengbte": {
         "adapter": "shengbte",
@@ -4136,6 +4322,16 @@ const EDGE_DATA = {
         "discretization_choices": {},
         "notes": "Phonopy.run_total_dos defaults to tetrahedron integration; Gaussian broadening is selectable via the `sigma` argument."
       },
+      "qe": {
+        "adapter": "qe",
+        "parameter_units": {},
+        "scheme_overrides": {},
+        "discretization_choices": {
+          "integration": "tetrahedron by default; Gaussian if degauss > 0 (degauss in cm^-1)",
+          "grid": "nk1 x nk2 x nk3 interpolation grid in matdyn.x"
+        },
+        "notes": "matdyn.x dos=.true.; normalization integral = 3*nat per cell."
+      },
       "shengbte": {
         "adapter": "shengbte",
         "parameter_units": {},
@@ -4674,7 +4870,7 @@ const EDGE_DATA = {
     }
   }
 };
-const ADAPTER_COLORS = {"ase": "#F59E0B", "gpumd": "#DB2777", "kaldo": "#DC2626", "lammps": "#EA580C", "phono3py": "#059669", "phonopy": "#0891B2", "shengbte": "#7C3AED"};
+const ADAPTER_COLORS = {"ase": "#F59E0B", "gpumd": "#DB2777", "kaldo": "#DC2626", "lammps": "#EA580C", "phono3py": "#059669", "phonopy": "#0891B2", "qe": "#9CA3AF", "shengbte": "#7C3AED"};
 
 function escapeHtml(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

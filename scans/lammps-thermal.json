@@ -1,0 +1,1083 @@
+{
+  "scan": {
+    "code": "lammps",
+    "slice": "thermal-md",
+    "source_root": "lammps/",
+    "version_anchor": "30 Mar 2026 (Development) [src/version.h:1-2]"
+  },
+  "entries": [
+    {
+      "name": "heat-flux-vector",
+      "quantity": "Instantaneous heat current times volume, J*V = sum_i e_i v_i - sum_i S_i . v_i (extensive; the 1/V normalization is explicitly NOT applied)",
+      "symbol": "J V",
+      "units": "energy*velocity, unit-style dependent: eV*Angstrom/ps (metal), kcal/mol*Angstrom/fs (real), epsilon*sigma/tau (lj). Divide by group volume to get a true flux (energy/area/time).",
+      "gauge": "hidden",
+      "indices": ["cartesian alpha in {x,y,z}; vector components 1-3 = total J*V, 4-6 = convective part only"],
+      "role": "both",
+      "program": "compute heat/flux",
+      "artifact": {
+        "type": "api",
+        "name": "c_ID[1..6] (global vector, length 6)",
+        "format_notes": "Accessed as c_ID[k] in variables/thermo_style custom, or routed to a file via fix ave/time or fix ave/correlate. extvector=1 (extensive)."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/compute_heat_flux.cpp", "line": 114, "what": "definition comment: J = jc + jv; jc = sum (ke_i+pe_i) v_i; jv = sum stress_i . v_i; 'normalization by volume is not included'"},
+        {"file": "lammps/src/compute_heat_flux.cpp", "line": 166, "what": "jv -= stress[i].v[i] using 6-component symmetric stress (minus sign compensates stress = -virial convention)"},
+        {"file": "lammps/src/compute_heat_flux.cpp", "line": 176, "what": "jv /= nktv2p converts stress*volume (pressure*volume units) back to energy units"},
+        {"file": "lammps/src/compute_heat_flux.cpp", "line": 187, "what": "output layout: data[6] = {Jx,Jy,Jz, Jc_x,Jc_y,Jc_z} MPI_Allreduce'd"},
+        {"file": "lammps/src/compute_heat_flux.cpp", "line": 132, "what": "9-component branch when the stress input is compute centroid/stress/atom (pressatomflag==2)"},
+        {"file": "lammps/doc/src/compute_heat_flux.rst", "line": 58, "what": "J formula (two-body case) with 1/V prefactor that the compute itself omits"},
+        {"file": "lammps/doc/src/compute_heat_flux.rst", "line": 154, "what": "'vector values will be in energy*velocity units'"}
+      ],
+      "operation": {
+        "kind": "per-atom contraction (sum over compute group)",
+        "closed_form": "J*V = sum_i (ke_i + pe_i) v_i - sum_i S_i . v_i, with S_i the per-atom stress*volume tensor (S = -virial - ke term), so -S.v = +(virial).v",
+        "notes": "Consumes three upstream per-atom computes declared by ID: ke/atom, pe/atom (or any peatomflag compute), stress/atom or centroid/stress/atom. Style checks at compute_heat_flux.cpp:49-64."
+      },
+      "maps_to": {
+        "node": "HeatCurrent",
+        "status": "existing",
+        "notes": "Overlaps LAMMPS_HEAT_CURRENT in omai/thermal_transport/representation/lammps.py. Extends it with: (1) output is J*V (extensive), not J - the volume division is user-side; (2) 6-vector layout with convective-only components 4-6; (3) the nktv2p sign/unit mechanics; (4) the centroid/stress/atom variant required for bonded/many-body contributions."
+      },
+      "conventions": [
+        "Output is J*V, not J: kappa_GK = 1/(V kB T^2) * integral <(JV)_x(0)(JV)_x(t)> dt when built from raw c_flux products (equivalently V/(kB T^2) with J = c_flux/V).",
+        "Sign chain: compute stress/atom returns S = -(virial+ke) in pressure*volume units; heat/flux applies jv -= S.v then jv /= nktv2p, netting jv = +virial.v in energy*velocity units.",
+        "Use 'compute stress/atom NULL virial' (exclude the kinetic term): the default ke-in-stress double-counts kinetic transport against the convective e_i v_i term (doc note, compute_heat_flux.rst:78-87).",
+        "For angle/dihedral/improper/constraint contributions plain stress/atom gives unphysical J; use compute centroid/stress/atom (doc warning, compute_heat_flux.rst:89-97; Surblys 2019/2021, Boone).",
+        "fix rigid contributions to y/z components via stress/atom are 'highly unphysical' (doc warning, compute_heat_flux.rst:99-104).",
+        "Unit-style dependence enters via mvv2e (ke), nktv2p (stress), and the timestep unit; in lj all factors are 1."
+      ],
+      "example_instances": ["lammps/examples/KAPPA/in.heatflux:55-61"]
+    },
+    {
+      "name": "ke-atom",
+      "quantity": "Per-atom kinetic energy ke_i = 0.5 m_i v_i^2",
+      "symbol": "ke_i",
+      "units": "energy: eV (metal), kcal/mol (real), epsilon (lj); conversion via force->mvv2e (metal 1.0364269e-4, real 48.88821291^2, lj 1.0)",
+      "gauge": "hidden",
+      "indices": ["atom i"],
+      "role": "produces",
+      "program": "compute ke/atom",
+      "artifact": {
+        "type": "api",
+        "name": "c_ID (per-atom vector)",
+        "format_notes": "Per-atom vector; dumped via dump custom c_ID or consumed by compute heat/flux / atom-style variables (e.g. per-atom temperature proxy v_temp = c_ke/1.5 in lj)."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/compute_ke_atom.cpp", "line": 79, "what": "ke[i] = 0.5*mvv2e*m*v^2 (rmass and per-type mass branches)"},
+        {"file": "lammps/src/update.cpp", "line": 192, "what": "metal-units block: boltz=8.617343e-5, mvv2e=1.0364269e-4, nktv2p=1.6021765e6"}
+      ],
+      "operation": {
+        "kind": "pointwise per-atom evaluation",
+        "closed_form": "ke_i = 0.5 * mvv2e * m_i * |v_i|^2",
+        "notes": "Atoms outside the compute group get 0.0 - group masking silently zeroes, it does not omit rows."
+      },
+      "maps_to": {
+        "node": null,
+        "status": "new",
+        "notes": "Intermediate input to HeatCurrent; candidate new node PerAtomKineticEnergy (Trajectory-tier, hidden). Do NOT map to catalog InternalEnergy - that node is per-phonon-mode hbar*omega(1/2+n), a different quantity."
+      },
+      "conventions": [
+        "mvv2e is the unit-style-dependent (mass*velocity^2 -> energy) factor; in lj it is 1.",
+        "Uses instantaneous velocities including any streaming/COM motion (no bias removal)."
+      ],
+      "example_instances": ["lammps/examples/KAPPA/in.heatflux:55", "lammps/examples/KAPPA/in.mp:49-50"]
+    },
+    {
+      "name": "pe-atom",
+      "quantity": "Per-atom potential energy: the pair/bond/angle/dihedral/improper/kspace/fix energy tally partitioned onto atoms",
+      "symbol": "pe_i",
+      "units": "energy: eV (metal), kcal/mol (real), epsilon (lj)",
+      "gauge": "hidden",
+      "indices": ["atom i"],
+      "role": "produces",
+      "program": "compute pe/atom",
+      "artifact": {
+        "type": "api",
+        "name": "c_ID (per-atom vector)",
+        "format_notes": "Per-atom vector; consumed by compute heat/flux or dumped. Optional keywords (pair, bond, angle, dihedral, improper, kspace, fix) restrict which tallies are summed."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/compute_pe_atom.cpp", "line": 131, "what": "accumulates force->pair->eatom, bond/angle/dihedral/improper eatom, kspace eatom, fix energy_atom into energy[i]"},
+        {"file": "lammps/src/compute_pe_atom.cpp", "line": 96, "what": "hard error if per-atom energy was not tallied on the needed timestep (eflag_atom guard)"}
+      ],
+      "operation": {
+        "kind": "pointwise per-atom evaluation (tally gather)",
+        "closed_form": null,
+        "notes": "The partition of many-body/bonded energies onto atoms is the force style's internal convention (typically equal split among participants); only the group sum is convention-free."
+      },
+      "maps_to": {
+        "node": null,
+        "status": "new",
+        "notes": "Intermediate input to HeatCurrent; candidate new node PerAtomPotentialEnergy (hidden). The per-atom decomposition is itself a gauge choice - different equally-valid partitions leave sums invariant."
+      },
+      "conventions": [
+        "Selective term keywords must match those passed to the companion stress compute or the heat flux mixes inconsistent decompositions (compute_heat_flux.rst:78-87).",
+        "Ghost-atom contributions reverse-communicated when newton is on; group masking zeroes after communication."
+      ],
+      "example_instances": ["lammps/examples/KAPPA/in.heatflux:56"]
+    },
+    {
+      "name": "stress-atom",
+      "quantity": "Per-atom stress*volume tensor: S_i = -(kinetic mv v + virial contribution)_i converted to pressure*volume units; the negative of the per-atom pressure tensor, un-divided by any per-atom volume",
+      "symbol": "S_i V_i",
+      "units": "pressure*volume, unit-style dependent: bar*Angstrom^3 (metal), atm*Angstrom^3 (real), epsilon i.e. dimensionless P*V (lj). Conversion factor nktv2p: metal 1.6021765e6 (eV/A^3 -> bar), real 68568.415, lj 1.",
+      "gauge": "hidden",
+      "indices": ["atom i", "Voigt-6 column order: xx, yy, zz, xy, xz, yz"],
+      "role": "produces",
+      "program": "compute stress/atom",
+      "artifact": {
+        "type": "api",
+        "name": "c_ID[1..6] (per-atom array, 6 columns)",
+        "format_notes": "Per-atom array; consumed by compute heat/flux, chunk-averaged pressure profiles, or dumped. First arg is a temperature compute ID for kinetic bias removal, or NULL."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/compute_stress_atom.cpp", "line": 328, "what": "final scaling 'nktv2p = -force->nktv2p': sign flip (stress = -pressure tensor) plus energy -> pressure*volume conversion"},
+        {"file": "lammps/src/compute_stress_atom.cpp", "line": 255, "what": "kinetic term mvv2e * m v_a v_b added when keflag (default on; 'virial' keyword turns it off)"},
+        {"file": "lammps/src/compute_stress_atom.cpp", "line": 96, "what": "'virial' keyword = pair+bond+angle+dihedral+improper+kspace+fix, NO ke term"},
+        {"file": "lammps/doc/src/compute_stress_atom.rst", "line": 193, "what": "'per-atom stress is the negative of the per-atom pressure tensor... really a stress*volume formulation... units of pressure*volume'"},
+        {"file": "lammps/doc/src/compute_stress_atom.rst", "line": 202, "what": "sum of diagonal over atoms / (d V) = -P consistency statement"},
+        {"file": "lammps/doc/src/compute_stress_atom.rst", "line": 256, "what": "column ordering xx yy zz xy xz yz (9-col centroid ordering appended: yx zx zy)"}
+      ],
+      "operation": {
+        "kind": "pointwise per-atom evaluation (virial tally gather + kinetic term)",
+        "closed_form": "S_i^{ab} = -nktv2p * [ mvv2e m_i v_i^a v_i^b (optional) + W_i^{ab} ] where W_i is the per-atom virial tally",
+        "notes": "Requires vflag_atom tallying on the invoked step (compute_stress_atom.cpp:144-145). Ghost contributions reverse-communicated."
+      },
+      "maps_to": {
+        "node": null,
+        "status": "new",
+        "notes": "Candidate new node PerAtomStress (materials-domain overlap; hidden/Trajectory-tier). This is exactly the object contracted into the virial term of the existing HeatCurrent node. Its group/volume sum grounds the candidate Pressure node (opposite sign)."
+      },
+      "conventions": [
+        "SIGN: S = -(pressure tensor); a system under compression has NEGATIVE diagonal S summed over atoms (sum_diag / (dV) = -P).",
+        "STRESS*VOLUME: values are stress times (undefined) per-atom volume; divide by e.g. compute voronoi/atom volume to obtain a stress field.",
+        "Default includes the kinetic (ideal-gas) term; pass 'virial' for the potential-only tensor required by compute heat/flux for solids.",
+        "Kinetic term can use a bias-removing temperature compute (streaming-velocity removal) via the temp-ID argument.",
+        "LJ tail corrections (pair_modify tail yes) are NOT in the per-atom stress (doc note, compute_stress_atom.rst:218-223).",
+        "Units follow the units style via nktv2p."
+      ],
+      "example_instances": ["lammps/examples/KAPPA/in.heatflux:57 (compute myStress all stress/atom NULL virial)"]
+    },
+    {
+      "name": "centroid-stress-atom",
+      "quantity": "Per-atom stress*volume tensor with centroid decomposition of bonded/angular/many-body virials - the full asymmetric 9-component tensor",
+      "symbol": "S_i (9-comp)",
+      "units": "pressure*volume (same as stress/atom, unit-style dependent)",
+      "gauge": "hidden",
+      "indices": ["atom i", "9 columns: xx, yy, zz, xy, xz, yz, yx, zx, zy"],
+      "role": "produces",
+      "program": "compute centroid/stress/atom",
+      "artifact": {
+        "type": "api",
+        "name": "c_ID[1..9] (per-atom array, 9 columns)",
+        "format_notes": "Drop-in replacement for stress/atom as the stress-ID of compute heat/flux; heat/flux detects it via pressatomflag==2 and uses the asymmetric components."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/compute_centroid_stress_atom.cpp", "line": 77, "what": "size_peratom_cols = 9; pressatomflag = 2 (distinguishes it from stress/atom's pressatomflag=1)"},
+        {"file": "lammps/src/compute_heat_flux.cpp", "line": 139, "what": "consumption: component mapping comment rijx*fijx ... rijz*fijy for the 9-component branch"},
+        {"file": "lammps/doc/src/compute_stress_atom.rst", "line": 267, "what": "restriction: centroid/stress/atom does not support many-body pair styles (EAM excepted)"}
+      ],
+      "operation": {
+        "kind": "pointwise per-atom evaluation (centroid virial decomposition)",
+        "closed_form": null,
+        "notes": "Assigns the virial of bonded/angle/dihedral/improper/constraint terms relative to the interaction centroid rather than equal per-atom splits, fixing the heat-flux decomposition for molecular systems (Surblys 2019/2021)."
+      },
+      "maps_to": {
+        "node": null,
+        "status": "new",
+        "notes": "Same candidate node as stress-atom (PerAtomStress) with a decomposition scheme value heat_flux_decomposition=centroid; the two differ per-atom (gauge) but sum to the same global virial."
+      },
+      "conventions": [
+        "9-component (asymmetric) tensor; the extra yx, zx, zy columns matter because the centroid virial is not symmetric per atom.",
+        "Recommended over stress/atom whenever angles/dihedrals/impropers/rigid constraints contribute to the heat flux."
+      ],
+      "example_instances": []
+    },
+    {
+      "name": "heat-current-acf-ave-correlate",
+      "quantity": "Time-correlation of global scalars - canonically <(JV)_a(t0) (JV)_b(t0 + k*Nevery*dt)> averaged over time origins t0",
+      "symbol": "<J(0) J(tau)>",
+      "units": "product of input units; for heat-flux inputs (energy*velocity)^2, unit-style dependent. NOT normalized by C(0).",
+      "gauge": "observable",
+      "indices": ["lag index k = 0..Nrepeat-1 (TimeDelta column = k*Nevery, in TIMESTEPS not time)", "pair index (type auto: diagonal aa only; upper/lower/full: cross pairs)"],
+      "role": "both",
+      "program": "fix ave/correlate",
+      "artifact": {
+        "type": "file",
+        "name": "user-named (e.g. profile.heatflux, J0Jt.dat) and global array f_ID[i][j]",
+        "format_notes": "Per-Nfreq section: header line 'ntimestep nrepeat', then one row per lag: 'Index TimeDelta Ncount C_pair1 C_pair2 ...'. Global array columns: 1=TimeDelta(steps), 2=Ncount, 3..=correlations - so f_JJ[3] is the first correlation pair."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/fix_ave_correlate.cpp", "line": 532, "what": "accumulate(): corr[k][pair] += cvalues[t-k](i)*cvalues[t](j) over the ring buffer - direct O(Nrepeat) sum per sample"},
+        {"file": "lammps/src/fix_ave_correlate.cpp", "line": 489, "what": "file rows: fprintf(i+1, i*nevery, count[i], prefactor*corr[i][j]/count[i])"},
+        {"file": "lammps/src/fix_ave_correlate.cpp", "line": 220, "what": "npair by type: auto=nvalues, upper/lower=n(n-1)/2, auto/upper|lower=n(n+1)/2, full=n^2"},
+        {"file": "lammps/src/fix_ave_correlate.cpp", "line": 304, "what": "size_array_cols = npair+2 (TimeDelta and Ncount prepended)"},
+        {"file": "lammps/doc/src/fix_ave_correlate.rst", "line": 36, "what": "type auto/upper/lower/auto-upper/auto-lower/full/first semantics; ave one vs running"}
+      ],
+      "operation": {
+        "kind": "time-correlation (direct windowed sum over origins)",
+        "closed_form": "C_ij(k*Nevery*dt) = prefactor * (1/Ncount_k) sum_{origins} V_i(t) V_j(t + k*Nevery*dt)",
+        "notes": "'ave one' zeroes accumulation every Nfreq (window estimate); 'ave running' never zeroes (cumulative estimate, used by the canonical GK script). Sampling every Nevery steps; max lag (Nrepeat-1)*Nevery steps."
+      },
+      "maps_to": {
+        "node": "HeatCurrentACF",
+        "status": "existing",
+        "notes": "Overlaps LAMMPS_HEAT_CURRENT_ACF in lammps.py. Extends it with the concrete artifact format (lag axis in timesteps, Ncount column, npair+2 array layout), the prefactor keyword, and ave one/running semantics. Existing spec's 'type full for the alpha-beta tensor' is right; note type auto gives only the 3 diagonal components used for isotropic kappa."
+      },
+      "conventions": [
+        "Lag axis is in TIMESTEPS (i*Nevery); multiply by dt for time - dt is unit-style dependent (default 0.005 tau lj, 1 fs real, 0.001 ps metal).",
+        "Raw product units - no normalization by C(0) and no volume/kB factors; the GK prefactor is applied downstream.",
+        "Direct-sum estimator, not FFT; numerically equivalent to Wiener-Khinchin post-processing of a dumped J(t).",
+        "Correlation values are averages over Ncount origins; with ave running the early lags accumulate more origins than a naive window count."
+      ],
+      "example_instances": ["lammps/examples/KAPPA/in.heatflux:64-66 (fix JJ all ave/correlate $s $p $d c_flux[1] c_flux[2] c_flux[3] type auto file profile.heatflux ave running)"]
+    },
+    {
+      "name": "fix-ave-time-series",
+      "quantity": "Time-averaged global scalars/vectors (generic averaging + file-writing machinery; the artifact carrier for VACF, MSD, RDF, heat-flux time series)",
+      "symbol": null,
+      "units": "inherits the units of its inputs",
+      "gauge": "observable",
+      "indices": ["input value index; (vector mode) row index"],
+      "role": "both",
+      "program": "fix ave/time",
+      "artifact": {
+        "type": "file",
+        "name": "user-named text file and global scalar/vector/array f_ID",
+        "format_notes": "mode scalar: '# TimeStep <labels>' header then 'step v1 v2 ...' every Nfreq. mode vector: '# TimeStep Number-of-rows' + '# Row <labels>' then a row block per Nfreq. Averages Nrepeat samples taken every Nevery steps."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/fix_ave_time.cpp", "line": 266, "what": "scalar-mode header '# TimeStep <values>'; vector-mode '# TimeStep Number-of-rows' + '# Row ...'"},
+        {"file": "lammps/src/fix_ave_time.cpp", "line": 674, "what": "scalar-mode data rows: ntimestep then vector_total[i]/norm"}
+      ],
+      "operation": {
+        "kind": "windowed time average (Nevery/Nrepeat/Nfreq)",
+        "closed_form": "<X> = (1/Nrepeat) sum_{m=1..Nrepeat} X(t_Nfreq - (Nrepeat-m)*Nevery)",
+        "notes": "ave one/running/window variants parallel fix ave/correlate."
+      },
+      "maps_to": {
+        "node": null,
+        "status": "unclear",
+        "notes": "Deliberately unmapped: pure averaging/IO machinery, not a physical quantity. It realizes the time-average step inside many mapped contractions (VelocityAutocorrelation and MeanSquaredDisplacement accumulation to file, NEMD dT time average)."
+      },
+      "conventions": [
+        "Nevery/Nrepeat/Nfreq triplet semantics shared across the ave-family fixes; sampled timesteps must satisfy Nfreq % Nevery == 0 constraints.",
+        "Outputs are averages, not instantaneous - mixing f_ID and c_ID of the same quantity in one analysis silently mixes smoothed and raw series."
+      ],
+      "example_instances": ["lammps/examples/DIFFUSE/in.vacf.2d:47 (fix 4 all ave/time 1 1 1 c_vacf[4])", "lammps/examples/KAPPA/in.mp:72 (fix ave all ave/time 1 1 1000 v_tdiff ave running)"]
+    },
+    {
+      "name": "green-kubo-kappa-workflow",
+      "quantity": "Green-Kubo thermal conductivity kappa_aa = (scale) * trap(C_aa), scale = Nevery*dt/(kB T^2 V) applied to raw (JV)(JV) correlations; isotropic kappa = mean of the three diagonal components",
+      "symbol": "kappa_GK",
+      "units": "native thermal-conductivity units: lj dimensionless (kB=1); metal eV/(ps Angstrom K); real kcal/(mol fs Angstrom K) - conversion to W/mK is an explicit user-side factor (doc example variable 'convert')",
+      "gauge": "observable",
+      "indices": ["diagonal Cartesian aa (11,22,33) then averaged"],
+      "role": "produces",
+      "program": "input-script pattern: variable trap(f_JJ[k])*scale + thermo output (no dedicated compute/fix)",
+      "artifact": {
+        "type": "stdout",
+        "name": "log.lammps thermo columns (v_k11 v_k22 v_k33 v_kappa) + final print",
+        "format_notes": "Running kappa printed as thermo custom columns each correlation window; correlation data itself in the fix ave/correlate file. No dedicated kappa output file exists."
+      },
+      "source_anchors": [
+        {"file": "lammps/examples/KAPPA/in.heatflux", "line": 68, "what": "variable scale equal $s*dt/$t/$t/vol (kB absent because kB=1 in lj) and k11 = trap(f_JJ[3])*scale"},
+        {"file": "lammps/src/variable.cpp", "line": 4526, "what": "trap() special function - trapezoidal-rule sum over a global vector (unit lag spacing)"},
+        {"file": "lammps/doc/src/compute_heat_flux.rst", "line": 111, "what": "GK formula kappa = V/(kB T^2) integral <Jx(0)Jx(t)> dt"},
+        {"file": "lammps/doc/src/compute_heat_flux.rst", "line": 227, "what": "real-units solid-argon example: explicit convert kcal2J^2/fs/A factor and scale = convert/kB/T^2/V*s*dt"}
+      ],
+      "operation": {
+        "kind": "time integration (trapezoidal) + prefactor",
+        "closed_form": "kappa_aa = (Nevery*dt/(kB T^2 V)) * trap_k( <(JV)_a(0)(JV)_a(k*Nevery*dt)> )",
+        "notes": "trap() assumes unit spacing, hence the Nevery*dt factor in scale. V appears once in the denominator because the correlations carry (JV)^2 = J^2 V^2 and the GK prefactor is V/(kB T^2)."
+      },
+      "maps_to": {
+        "node": "ThermalConductivity[transport_model=green_kubo]",
+        "status": "existing",
+        "notes": "Overlaps LAMMPS_THERMAL_CONDUCTIVITY_GREEN_KUBO and LAMMPS_CONTRACT_KAPPA_GREEN_KUBO in lammps.py. CORRECTION to the existing spec: the claim 'the time integral to kappa is post-processed (numpy.trapz); LAMMPS does not emit a kappa running average' is too strong - the canonical examples/KAPPA/in.heatflux computes the running kappa NATIVELY in-script via the trap() variable function and prints it in the thermo output/log. There is still no dedicated kappa file (GPUMD-hac.out-style), and the integral has no tau_min/tau_max plateau control beyond the correlation length p."
+      },
+      "conventions": [
+        "kB must be inserted explicitly in non-lj units (boltz in eV/K metal, kcal/mol/K real); the lj example omits it because kB=1.",
+        "T in the prefactor is the target/measured temperature - the example uses the set-point t, not the instantaneous temp.",
+        "Integration upper limit = correlation length p*s steps; plateau/convergence assessment is the user's job.",
+        "Production run under fix nve after NVT equilibration + velocity rescale - thermostats during production would damp the flux correlations."
+      ],
+      "example_instances": ["lammps/examples/KAPPA/in.heatflux:64-82", "lammps/examples/KAPPA/log.15May22.heatflux.g++.8 (kappa ~ 3.88 for LJ rho*=0.6 T*=1.35)"]
+    },
+    {
+      "name": "heat-flux-tally-variant",
+      "quantity": "Heat flux computed by direct pairwise tally during force evaluation (TALLY package) - avoids the per-atom stress decomposition entirely",
+      "symbol": "J V",
+      "units": "energy*velocity (as heat-flux-vector)",
+      "gauge": "hidden",
+      "indices": ["cartesian; same 6-vector layout (total + convective)"],
+      "role": "produces",
+      "program": "compute heat/flux/tally, compute heat/flux/virial/tally",
+      "artifact": {
+        "type": "api",
+        "name": "c_ID[1..6] global vector",
+        "format_notes": "Note-only entry: pairwise-additive pair styles only; callback-based tally during Pair::compute."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/TALLY/compute_heat_flux_tally.cpp", "line": 233, "what": "same jc + jv decomposition comment, computed via pair callback instead of stress/atom"},
+        {"file": "lammps/src/TALLY/compute_heat_flux_tally.cpp", "line": 205, "what": "compute_vector() with did_setup/eflag_global guards"}
+      ],
+      "operation": {
+        "kind": "per-pair contraction during force loop",
+        "closed_form": null,
+        "notes": "Alternative realization of the same HeatCurrent node; exact for two-body terms, unavailable for bonded/kspace/many-body contributions."
+      },
+      "maps_to": {
+        "node": "HeatCurrent",
+        "status": "existing",
+        "notes": "Same node as heat-flux-vector; a different decomposition scheme (per-pair tally vs per-atom stress). Cross-checks the stress-based pipeline for pairwise potentials."
+      },
+      "conventions": ["Pairwise interactions only; silently excludes bond/angle/dihedral/kspace terms present in the model."],
+      "example_instances": []
+    },
+    {
+      "name": "muller-plathe-exchanged-energy",
+      "quantity": "Cumulative kinetic energy transferred between the cold (bottom) and hot (mid-height) slabs by momentum-conserving velocity swaps - the imposed-heat numerator of Muller-Plathe NEMD kappa",
+      "symbol": "E_exchange",
+      "units": "energy (extscalar=0 output in energy units: epsilon lj, eV metal, kcal/mol real)",
+      "gauge": "observable",
+      "indices": [],
+      "role": "produces",
+      "program": "fix thermal/conductivity",
+      "artifact": {
+        "type": "api",
+        "name": "f_ID (global scalar, cumulative since fix creation)",
+        "format_notes": "Typically a thermo custom column (E_delta in the example). Reset by re-declaring the fix (in.mp does exactly this between equilibration and production)."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/fix_thermal_conductivity.cpp", "line": 316, "what": "e_exchange += force->mvv2e * eswap_all (tally of all swaps, converted to energy units)"},
+        {"file": "lammps/src/fix_thermal_conductivity.cpp", "line": 325, "what": "compute_scalar() returns e_exchange"},
+        {"file": "lammps/src/fix_thermal_conductivity.cpp", "line": 52, "what": "edim from x/y/z arg; nbin must be even and > 2"},
+        {"file": "lammps/src/fix_thermal_conductivity.cpp", "line": 238, "what": "swap loop: kinetic-energy exchange via reflection about the pair center-of-mass velocity (handles unequal masses)"},
+        {"file": "lammps/src/fix_thermal_conductivity.cpp", "line": 121, "what": "slab geometry: lo bin is bottom bin, hi bin just above half height"}
+      ],
+      "operation": {
+        "kind": "rNEMD velocity-swap driver + energy tally",
+        "closed_form": "flux = E_exchange / (2 * A * t_elapsed) (factor 2: periodic box carries the flux in both directions)",
+        "notes": "Every Nevery steps, swaps the Nswap hottest atoms of the cold slab with the coldest atoms of the hot slab; v' = 2 v_cm - v conserves momentum and kinetic energy for unequal masses."
+      },
+      "maps_to": {
+        "node": null,
+        "status": "new",
+        "notes": "Candidate new node ExchangedReservoirEnergy (or ImposedHeat): the measured numerator of ThermalConductivity[transport_model=nemd]. The existing LAMMPS_CONTRACT_KAPPA_NEMD spec consumes it as 'imposed_flux' but the map has no node for the cumulative exchanged energy itself."
+      },
+      "conventions": [
+        "Cumulative since fix (re-)creation - the example re-declares the fix to zero the tally before production.",
+        "Divide by 2 for the two periodic flux directions, by cross-section area lx*ly, and by elapsed time to get the flux (examples/KAPPA/README:87-91).",
+        "Fix must precede any fix ave/chunk in the input script or profiles are averaged after the swap (init() warning, fix_thermal_conductivity.cpp:111-119).",
+        "Kinetic-energy-only exchange: the potential-energy channel equilibrates via ordinary dynamics; imposed flux is exact by construction, the gradient is the measured quantity."
+      ],
+      "example_instances": ["lammps/examples/KAPPA/in.mp:56 (fix 3 all thermal/conductivity 10 z 20)", "lammps/examples/KAPPA/in.mp:70 (kappa = (f_3/(time-start)/(lx*ly)/2)*(lz/2)/f_ave)"]
+    },
+    {
+      "name": "fix-heat-imposed-rate",
+      "quantity": "Imposed heat addition/subtraction rate eflux applied to a group/region by momentum-conserving velocity rescale (two-reservoir NEMD driver)",
+      "symbol": "dQ/dt",
+      "units": "energy/time (argument): eV/ps metal, kcal/mol/fs real, epsilon/tau lj",
+      "gauge": "hidden",
+      "indices": [],
+      "role": "consumes",
+      "program": "fix heat",
+      "artifact": {
+        "type": "api",
+        "name": "f_ID (global scalar = most recent velocity RESCALE FACTOR, not energy)",
+        "format_notes": "The imposed energy is known analytically as eflux * elapsed_time; the fix's scalar output is the dimensionless rescale factor - a monitoring diagnostic, not the tally."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/fix_heat.cpp", "line": 194, "what": "heat = heat_input * nevery * dt * ftm2v; escale = (ke + heat - KE_cm)/(ke - KE_cm); v -> scale*v - vsub (momentum conserved)"},
+        {"file": "lammps/src/fix_heat.cpp", "line": 290, "what": "compute_scalar() returns the scale factor (average scale for atom-style eflux)"},
+        {"file": "lammps/doc/src/fix_heat.rst", "line": 16, "what": "eflux argument documented in energy/time units; can be an equal- or atom-style variable"}
+      ],
+      "operation": {
+        "kind": "NEMD reservoir driver (deterministic kinetic rescale)",
+        "closed_form": "kappa workflow: dQ = eflux * t_run; flux = dQ/(2 A t_run); kappa = flux/(dT/dz)",
+        "notes": "KE of the thermal (COM-subtracted) motion rescaled so aggregate energy changes by exactly eflux*Nevery*dt each application."
+      },
+      "maps_to": {
+        "node": null,
+        "status": "new",
+        "notes": "Consumed parameter of ThermalConductivity[transport_model=nemd] (the imposed_flux input of the existing contract_kappa_nemd edge). Same candidate node family as muller-plathe-exchanged-energy but specified rather than measured."
+      },
+      "conventions": [
+        "f_ID is a rescale factor, NOT cumulative energy - contrast fix thermal/conductivity and fix langevin tally.",
+        "Momentum conserved by subtracting vsub; KE cannot go negative (hard error).",
+        "eflux is extensive over the group; a region keyword restricts application spatially (hot/cold slabs)."
+      ],
+      "example_instances": ["lammps/examples/KAPPA/in.heat:57-58 (fix hot all heat 1 100.0 region hot / fix cold all heat 1 -100.0 region cold)"]
+    },
+    {
+      "name": "fix-ehex-imposed-rate",
+      "quantity": "Enhanced heat-exchange (eHEX/a) reservoir: imposed heat rate F with a coordinate correction that reduces the energy-conservation drift of plain HEX by ~1 order of magnitude",
+      "symbol": "F",
+      "units": "energy/time (argument), unit-style dependent",
+      "gauge": "hidden",
+      "indices": [],
+      "role": "consumes",
+      "program": "fix ehex",
+      "artifact": {
+        "type": "api",
+        "name": "(no scalar output; region-scoped velocity rescale + position correction)",
+        "format_notes": "Imposed energy known analytically as F * elapsed_time, as for fix heat."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/RIGID/fix_ehex.cpp", "line": 231, "what": "rescale(): escale = 1 + (F*dt)/Kr with Kr the reservoir's thermal kinetic energy"},
+        {"file": "lammps/src/RIGID/fix_ehex.cpp", "line": 115, "what": "'hex' keyword disables the coordinate correction, reducing eHEX to plain HEX"}
+      ],
+      "operation": {
+        "kind": "NEMD reservoir driver (rescale + integrator-consistent coordinate correction)",
+        "closed_form": null,
+        "notes": "Same kappa post-processing as fix heat; the correction targets the O(dt^3) integration error of the rescale."
+      },
+      "maps_to": {
+        "node": null,
+        "status": "new",
+        "notes": "Same candidate node family (imposed reservoir heat) as fix-heat-imposed-rate; scheme variant with better energy conservation."
+      },
+      "conventions": ["Lives in the RIGID package (supports constrained/SHAKE clusters via the 'constrain' keyword: whole-cluster rescaling by COM membership)."],
+      "example_instances": ["lammps/examples/KAPPA/in.ehex", "lammps/examples/KAPPA/README:73-83"]
+    },
+    {
+      "name": "langevin-reservoir-energy",
+      "quantity": "Cumulative energy exchanged between a Langevin thermostat and its group (tally yes) - the measured heat for two-reservoir thermostatted NEMD",
+      "symbol": "E_reservoir",
+      "units": "energy (cumulative), unit-style dependent",
+      "gauge": "observable",
+      "indices": [],
+      "role": "produces",
+      "program": "fix langevin (keyword tally yes)",
+      "artifact": {
+        "type": "api",
+        "name": "f_ID (global scalar, cumulative since fix creation)",
+        "format_notes": "Thermo custom column in the example; sign convention: energy added to atoms by the reservoir."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/fix_langevin.cpp", "line": 657, "what": "end_of_step: energy_onestep = sum flangevin . v; energy += energy_onestep*dt"},
+        {"file": "lammps/src/fix_langevin.cpp", "line": 713, "what": "compute_scalar() returns accumulated reservoir energy (with half-step correction)"},
+        {"file": "lammps/src/fix_langevin.cpp", "line": 121, "what": "tally keyword parsing (requires extra memory; changes setmask to END_OF_STEP)"},
+        {"file": "lammps/src/fix_langevin.cpp", "line": 431, "what": "gamma1 = -m/t_period/ftm2v (drag) - t_period (Tdamp) is in time units, unit-style dependent"}
+      ],
+      "operation": {
+        "kind": "stochastic reservoir + work tally",
+        "closed_form": "dQ = average of |E_hot| and |E_cold| tallies; flux = dQ/(2 A t); kappa = flux/(dT/dz)",
+        "notes": "Langevin force f = -m v/Tdamp + sqrt-term noise; the tally integrates f_langevin . v dt."
+      },
+      "maps_to": {
+        "node": null,
+        "status": "new",
+        "notes": "Same candidate node (ExchangedReservoirEnergy) as the Muller-Plathe tally - measured rather than imposed heat; numerator of ThermalConductivity[transport_model=nemd] for the thermostatted-reservoir variant."
+      },
+      "conventions": [
+        "fix langevin does NOT integrate motion - it must be paired with fix nve (KAPPA example pairs both).",
+        "In/out tallies differ slightly; the README averages |hot| and |cold| (README:49-52).",
+        "Uniform random noise by default (gjf and other variants change the discretization); seed-dependent trajectory (gauge)."
+      ],
+      "example_instances": ["lammps/examples/KAPPA/in.langevin:61-62 (fix hot all langevin ${thi} ${thi} 1.0 59804 tally yes)"]
+    },
+    {
+      "name": "temperature-profile-chunks",
+      "quantity": "Spatially binned temperature profile T(bin) along the transport axis - the gradient measurement of NEMD kappa",
+      "symbol": "T(z)",
+      "units": "temperature: K (metal/real), epsilon/kB reduced (lj). Bin coordinate in reduced (fractional) or box units per the chunk definition.",
+      "gauge": "observable",
+      "indices": ["chunk (spatial bin) index along x|y|z"],
+      "role": "produces",
+      "program": "compute chunk/atom bin/1d + fix ave/chunk (values: compute temp/chunk, or an atom-style variable like v_temp = c_ke/1.5)",
+      "artifact": {
+        "type": "file",
+        "name": "profile.* (e.g. profile.mp, profile.langevin) and global array f_ID[chunk][col]",
+        "format_notes": "Per-Nfreq section: '<timestep> <Nchunks>' then rows 'Chunk Coord1 Ncount value...'; header '# Chunk Coord1 Ncount <label>' (1d binning). Accessed in-script as f_2[chunk][3] for the temperature column."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/compute_chunk_atom.cpp", "line": 77, "what": "bin/1d style parsing (which = ArgInfo::BIN1D)"},
+        {"file": "lammps/src/fix_ave_chunk.cpp", "line": 328, "what": "output header '# Chunk Coord1 Ncount ...' for 1-coordinate chunks"},
+        {"file": "lammps/src/fix_ave_chunk.cpp", "line": 836, "what": "temp-value normalization: values *= mvv2e/((repeat*cdof + adof*count)*boltz) - per-chunk DOF convention"}
+      ],
+      "operation": {
+        "kind": "spatial binning + time average",
+        "closed_form": "T_chunk = sum_{i in chunk} m_i v_i^2 * mvv2e / (DOF_chunk * kB); the lj examples instead bin the atom variable 2*ke_i/(3 kB) = c_ke/1.5",
+        "notes": "dT/dz then read as a finite difference of two bins (in.mp: f_2[11][3]-f_2[1][3] across half the box) or a linear fit of the profile file."
+      },
+      "maps_to": {
+        "node": "Temperature",
+        "status": "existing",
+        "notes": "Grounds the existing Temperature node BEYOND the current 8-variable MD spec: LAMMPS produces T with a spatial chunk index (T(z)), which is what contract_kappa_nemd's 'imposed_gradient' is measured from. The map's Temperature is scalar; the chunked profile is Temperature[bin] - flag for the substrate whether a spatial index is a new node or an index on the existing one."
+      },
+      "conventions": [
+        "Per-chunk DOF: cdof/adof defaults matter (adof defaults to dimension per atom; COM-of-chunk not removed unless temp/chunk com yes); the KAPPA lj scripts bypass this via v_temp = c_ke/1.5 (kB=1, d=3, no COM removal).",
+        "Bins declared in reduced coordinates ('units reduced': 0.05 = 20 bins) in the canonical scripts.",
+        "fix ave/chunk must come BEFORE fix thermal/conductivity swaps in file order to average pre-swap velocities (warning in fix_thermal_conductivity.cpp:111-119)."
+      ],
+      "example_instances": ["lammps/examples/KAPPA/in.mp:54-55", "lammps/examples/KAPPA/in.langevin:91-92", "lammps/examples/KAPPA/profile.15May22.mp.g++.8"]
+    },
+    {
+      "name": "temp-region",
+      "quantity": "Instantaneous temperature of atoms currently inside a geometric region (reservoir delta-T measurement for two-reservoir NEMD)",
+      "symbol": "T_region",
+      "units": "temperature: K (metal/real), reduced (lj)",
+      "gauge": "observable",
+      "indices": [],
+      "role": "produces",
+      "program": "compute temp/region",
+      "artifact": {
+        "type": "api",
+        "name": "c_ID (global scalar) + c_ID[1..6] (KE tensor vector)",
+        "format_notes": "Thermo custom columns c_Thot / c_Tcold in the canonical scripts; dT = c_Thot - c_Tcold."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/compute_temp_region.cpp", "line": 131, "what": "dof = dimension * N_in_region - extra_dof; scalar = mvv2e * sum(m v^2) / (dof * boltz); N recounted every invocation"},
+        {"file": "lammps/examples/KAPPA/in.langevin", "line": 45, "what": "compute Thot all temp/region hot; compute Tcold all temp/region cold"}
+      ],
+      "operation": {
+        "kind": "region-masked kinetic-temperature contraction",
+        "closed_form": "T = mvv2e * sum_{i in region} m_i v_i^2 / ((d*N_region - d) kB)",
+        "notes": "Region membership is dynamic (recounted per step); no fix_dof adjustments beyond extra_dof."
+      },
+      "maps_to": {
+        "node": "Temperature",
+        "status": "existing",
+        "notes": "Region-scoped realization of the existing Temperature node; feeds the measured gradient (via slab separation) of ThermalConductivity[transport_model=nemd]."
+      },
+      "conventions": ["DOF varies with instantaneous region occupancy; small slabs give noisy T - the profile-based gradient is the lower-variance alternative."],
+      "example_instances": ["lammps/examples/KAPPA/in.langevin:45-46", "lammps/examples/KAPPA/in.heat:41-42"]
+    },
+    {
+      "name": "nemd-kappa-workflow",
+      "quantity": "NEMD thermal conductivity kappa = flux / (dT/dz): flux from the reservoir tally (measured or imposed) with the factor-2 periodic correction; gradient from the chunked T profile or region temperatures",
+      "symbol": "kappa_NEMD",
+      "units": "native: lj dimensionless; metal/real require explicit conversion to W/mK (never performed by LAMMPS)",
+      "gauge": "observable",
+      "indices": ["effectively the zz (transport-axis) component only"],
+      "role": "produces",
+      "program": "input-script pattern over {fix thermal/conductivity | fix heat | fix ehex | fix langevin tally} + T-profile; kappa assembled via equal-style variables",
+      "artifact": {
+        "type": "stdout",
+        "name": "log.lammps (thermo column / final print of v_kappa)",
+        "format_notes": "in.mp computes kappa natively in-script: kappa = (f_3/(time-start)/(lx*ly)/2)*(lz/2)/f_ave. The langevin/heat/ehex variants are assembled from log numbers per the README recipes."
+      },
+      "source_anchors": [
+        {"file": "lammps/examples/KAPPA/in.mp", "line": 70, "what": "in-script kappa variable: swap tally / elapsed time / area / 2, times (lz/2) / time-averaged dT"},
+        {"file": "lammps/examples/KAPPA/README", "line": 44, "what": "kappa = dQ * dZ/dTemp recipes for all four NEMD variants, incl. the divide-by-2 periodic-flux rule"},
+        {"file": "lammps/doc/src/Howto_kappa.rst", "line": 4, "what": "overview of the five kappa methods (langevin, heat, ehex, Muller-Plathe, Green-Kubo)"}
+      ],
+      "operation": {
+        "kind": "steady-state ratio (flux / gradient)",
+        "closed_form": "kappa = [dQ/(2 A t)] / (dT/dz); Muller-Plathe: dQ = f_ID of the swap tally; two-reservoir: dQ = reservoir energy tally or eflux*t",
+        "notes": "Gradient from finite difference of two chunk bins (dT over lz/2) or linear fit of the profile. Finite-size scaling (kappa vs 1/Lz) is out of scope of the scripts."
+      },
+      "maps_to": {
+        "node": "ThermalConductivity[transport_model=nemd]",
+        "status": "existing",
+        "notes": "Overlaps LAMMPS_THERMAL_CONDUCTIVITY_NEMD and LAMMPS_CONTRACT_KAPPA_NEMD in lammps.py. Two flags: (1) the existing spec's parameter_units {'imposed_flux': 'kcal/(mol*fs)', 'imposed_gradient': 'K/Angstrom'} hard-code REAL units - both are unit-style dependent and the canonical examples are lj; (2) besides Muller-Plathe and 'direct_two_reservoir' (nvt), LAMMPS ships three more reservoir variants (fix heat, fix ehex, fix langevin tally) that the nemd_method scheme should enumerate."
+      },
+      "conventions": [
+        "Factor 2: periodic boxes carry the imposed flux in two directions; forgetting it doubles kappa.",
+        "The gradient length is lz/2 (hot and cold slabs half a box apart), hence the (lz/2)/dT form.",
+        "The Muller-Plathe dT is larger (1.175) than the langevin/heat variants (0.57-0.77) for the same system - swap-rate choice trades signal against perturbation strength.",
+        "All five KAPPA example methods agree within ~15% (3.29-3.88) on the Evans 1986 LJ state point rho*=0.6 T*=1.35."
+      ],
+      "example_instances": ["lammps/examples/KAPPA/in.mp:65-77", "lammps/examples/KAPPA/README:44-104"]
+    },
+    {
+      "name": "dump-custom-trajectory",
+      "quantity": "Per-atom trajectory snapshots with user-selected columns - the Trajectory artifact",
+      "symbol": "r(t), v(t)",
+      "units": "coordinates in distance units (Angstrom metal/real, sigma lj) for x|y|z|xu..., dimensionless fractional for xs|xsu; velocities in velocity units (A/ps metal, A/fs real, sigma/tau lj)",
+      "gauge": "hidden",
+      "indices": ["timestep frame", "atom id", "column keyword"],
+      "role": "produces",
+      "program": "dump custom (dump ID group custom N file keywords...)",
+      "artifact": {
+        "type": "file",
+        "name": "user-named dump file (text; .gz/.bin variants exist)",
+        "format_notes": "Per-frame: 'ITEM: TIMESTEP', 'ITEM: NUMBER OF ATOMS', 'ITEM: BOX BOUNDS <flags>' (3 lines lo hi [tilt]; 'xy xz yz' prefix when triclinic), 'ITEM: ATOMS <columns>' then one row per atom. Rows NOT sorted by id unless dump_modify sort id."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/dump_custom.cpp", "line": 663, "what": "frame header writer (ITEM: TIMESTEP / NUMBER OF ATOMS / BOX BOUNDS / ATOMS <columns>)"},
+        {"file": "lammps/src/dump_custom.cpp", "line": 2655, "what": "pack_xu: unwrapped coord = x + ((image & IMGMASK)-IMGMAX)*xprd - unwrapping is exact only while image flags are intact"},
+        {"file": "lammps/src/dump_custom.cpp", "line": 1491, "what": "keyword parse: x/y/z (wrapped, unscaled), xs (wrapped, scaled), xu/yu/zu (unwrapped), xsu, ix/iy/iz (image flags)"},
+        {"file": "lammps/doc/src/dump.rst", "line": 124, "what": "xu,yu,zu = unwrapped; xsu,ysu,zsu = scaled unwrapped"}
+      ],
+      "operation": {
+        "kind": "sampling / serialization",
+        "closed_form": null,
+        "notes": "Sampling interval N in timesteps. Columns are the exact per-atom state - no averaging."
+      },
+      "maps_to": {
+        "node": "Trajectory",
+        "status": "existing",
+        "notes": "Overlaps LAMMPS_TRAJECTORY in lammps.py. CORRECTION to the existing spec: its note says wrap/unwrap 'is set via dump_modify (use xu yu zu ...)' - xu/yu/zu are dump COLUMN KEYWORDS on the dump command itself, not dump_modify options; and its code_api template 'dump custom <id> all custom ...' duplicates the style token. Extends the spec with the ITEM header grammar and the unsorted-rows default."
+      },
+      "conventions": [
+        "x y z are WRAPPED into the periodic box; MSD/diffusion post-processing needs xu yu zu, or x y z PLUS ix iy iz image flags.",
+        "Image-flag unwrapping is wrong across box-size changes (npt) - unwrapped coords from a barostatted run need care.",
+        "Default atom order is processor-order, not id-sorted (dump_modify sort id to fix).",
+        "BOX BOUNDS header carries boundary style letters (pp, ff, sm...) and tilt factors for triclinic."
+      ],
+      "example_instances": []
+    },
+    {
+      "name": "dump-atom-trajectory",
+      "quantity": "Default-format trajectory: id, type and SCALED (fractional) wrapped coordinates",
+      "symbol": "s(t)",
+      "units": "xs ys zs are dimensionless box fractions (0..1); with dump_modify scale no: distance units; optional ix iy iz image flags (integers)",
+      "gauge": "hidden",
+      "indices": ["timestep frame", "atom id"],
+      "role": "produces",
+      "program": "dump atom",
+      "artifact": {
+        "type": "file",
+        "name": "user-named dump file",
+        "format_notes": "Same ITEM header grammar as dump custom; default columns 'id type xs ys zs' (dump_atom.cpp default), '+ ix iy iz' with dump_modify image yes, 'id type x y z' with dump_modify scale no."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/dump_atom.cpp", "line": 39, "what": "scale_flag = 1, image_flag = 0 defaults"},
+        {"file": "lammps/src/dump_atom.cpp", "line": 76, "what": "default column sets: 'id type xs ys zs' / '+ image' / unscaled variants"}
+      ],
+      "operation": {"kind": "sampling / serialization", "closed_form": null, "notes": "Fixed column menu; use dump custom for velocities or per-atom compute output."},
+      "maps_to": {
+        "node": "Trajectory",
+        "status": "existing",
+        "notes": "Second realization of Trajectory; the fractional-coordinate default is the trap worth recording."
+      },
+      "conventions": [
+        "DEFAULT COORDINATES ARE FRACTIONAL (xs ys zs), not Angstroms - any consumer treating them as lengths is silently wrong by the box size.",
+        "No velocities available in this style."
+      ],
+      "example_instances": []
+    },
+    {
+      "name": "msd",
+      "quantity": "Mean-squared displacement from a stored reference configuration: 4-vector (dx^2, dy^2, dz^2, total), averaged over group atoms",
+      "symbol": "<u^2>",
+      "units": "distance^2: Angstrom^2 (metal/real), sigma^2 (lj)",
+      "gauge": "observable",
+      "indices": ["component in {xx, yy, zz, total}"],
+      "role": "produces",
+      "program": "compute msd (keywords: com yes/no, average yes/no)",
+      "artifact": {
+        "type": "api",
+        "name": "c_ID[1..4] (global vector)",
+        "format_notes": "Typically time-series'd via thermo custom, fix ave/time file, or fix vector for slope fitting."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/compute_msd.cpp", "line": 82, "what": "reference positions stored UNWRAPPED via domain->unmap at compute creation (fix STORE/ATOM)"},
+        {"file": "lammps/src/compute_msd.cpp", "line": 196, "what": "current position unwrapped from image flags: x + ((image&IMGMASK)-IMGMAX)*xprd (triclinic h-matrix branch at 219-227)"},
+        {"file": "lammps/src/compute_msd.cpp", "line": 247, "what": "MPI sum then division by group count (per-atom average)"},
+        {"file": "lammps/doc/src/compute_msd.rst", "line": 76, "what": "note: initial coords stored unwrapped using image flags; resettable via set image"}
+      ],
+      "operation": {
+        "kind": "single-origin displacement contraction",
+        "closed_form": "MSD_k(t) = (1/N) sum_i [r_unwrap,i(t) - r_ref,i]_k^2; component 4 = full |dr|^2",
+        "notes": "com yes subtracts the group center-of-mass at both reference and current time (drift removal); average yes replaces the fixed reference with a running average position - a different estimator again."
+      },
+      "maps_to": {
+        "node": "MeanSquaredDisplacement",
+        "status": "existing",
+        "notes": "Overlaps LAMMPS_MEAN_SQUARED_DISPLACEMENT and LAMMPS_COMPUTE_MSD in lammps.py (whose unwrap_pbc=true override is confirmed by source). EXTENSION the catalog should record: the catalog node is defined as <|r(t+tau)-r(t)|^2> averaged over atoms AND time origins; LAMMPS's compute is a SINGLE-time-origin estimator (reference = compute-creation step). They agree as estimators of 2dDt in the diffusive regime, but are different finite-trajectory quantities - cross-code compare() on raw curves needs matching origin conventions."
+      },
+      "conventions": [
+        "Unwrapping relies on intact image flags: 'set image' resets, box-size changes (npt), or lost atoms corrupt it.",
+        "Single fixed time origin - no sliding-window average; re-declare the compute for a new origin.",
+        "com yes is required to read self-diffusion cleanly off the slope (COM drift removal).",
+        "Group must not change atom count (hard error)."
+      ],
+      "example_instances": ["lammps/examples/DIFFUSE/in.msd.2d:48 (compute msd all msd com yes)"]
+    },
+    {
+      "name": "vacf",
+      "quantity": "Velocity autocorrelation against the stored creation-time velocities: 4-vector (vx.vx0, vy.vy0, vz.vz0, v.v0), averaged over group atoms",
+      "symbol": "<v(0).v(t)>",
+      "units": "velocity^2: (Angstrom/ps)^2 metal, (Angstrom/fs)^2 real, (sigma/tau)^2 lj",
+      "gauge": "observable",
+      "indices": ["component in {xx, yy, zz, total}"],
+      "role": "produces",
+      "program": "compute vacf",
+      "artifact": {
+        "type": "api",
+        "name": "c_ID[1..4] (global vector)",
+        "format_notes": "Time-series'd via fix ave/time (file) or fix vector (for trap() integration)."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/compute_vacf.cpp", "line": 56, "what": "reference velocities stored at compute creation (fix STORE/ATOM)"},
+        {"file": "lammps/src/compute_vacf.cpp", "line": 112, "what": "vacf sums v_i(t)*v_i(0) per component; per-atom average at 123-129"}
+      ],
+      "operation": {
+        "kind": "single-origin correlation contraction",
+        "closed_form": "C_k(t) = (1/N) sum_i v_{i,k}(t) v_{i,k}(t_create)",
+        "notes": "Not normalized by C(0). For time-origin-averaged VACF, users either re-create the compute periodically or post-process a velocity dump (or run fix ave/correlate on binned velocity components)."
+      },
+      "maps_to": {
+        "node": "VelocityAutocorrelation",
+        "status": "existing",
+        "notes": "Overlaps LAMMPS_VELOCITY_AUTOCORRELATION in lammps.py (which already notes the reset-at-creation behavior). Extension: exact component layout and the absence of C(0) normalization; the Fourier-to-DOS edge stays external (confirms LAMMPS_FOURIER_TO_DOS)."
+      },
+      "conventions": [
+        "Single time origin (creation step) - same estimator caveat as compute msd.",
+        "No arguments accepted; group defines the atom average.",
+        "Thermostats during sampling distort C(t) at times beyond Tdamp - sample under nve."
+      ],
+      "example_instances": ["lammps/examples/DIFFUSE/in.vacf.2d:46-52 (compute vacf + fix vector + variable 0.5*dt*trap(f_5) -> D in 2d)"]
+    },
+    {
+      "name": "rdf",
+      "quantity": "Radial distribution function g(r) and running coordination number, per requested type-pair, histogrammed in Nbin bins from 0 to the force cutoff (or explicit cutoff)",
+      "symbol": "g(r)",
+      "units": "g(r) dimensionless (ideal-gas-normalized); r in distance units; coordination dimensionless",
+      "gauge": "observable",
+      "indices": ["bin (r center)", "type-pair m"],
+      "role": "produces",
+      "program": "compute rdf",
+      "artifact": {
+        "type": "api",
+        "name": "c_ID (global array: Nbin rows x (1 + 2*Npairs) cols: r, then g(r), coord(r) per pair)",
+        "format_notes": "Written to file via fix ave/time mode vector; time-averaging over snapshots is the standard usage."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/compute_rdf.cpp", "line": 405, "what": "gr = hist/(vfrac * normfac * jcount): shell-volume ideal-gas normalization (4pi/3V shell fraction), 2d variant at 418-434"},
+        {"file": "lammps/src/compute_rdf.cpp", "line": 54, "what": "Nbin = arg[3]"},
+        {"file": "lammps/doc/src/compute_rdf.rst", "line": 41, "what": "bins span 0 to max force cutoff unless the cutoff keyword extends/overrides"},
+        {"file": "lammps/doc/src/compute_rdf.rst", "line": 67, "what": "default extent = pair-style force cutoff; cutoff keyword requires neighbor-list implications noted"}
+      ],
+      "operation": {
+        "kind": "pair histogram + shell normalization",
+        "closed_form": "g_m(r_b) = hist_m(b) / (Vshell_frac(b) * N_i * N_j / V ... as coded: hist/(vfrac*normfac*count))",
+        "notes": "Coordination column integrates g * shell density up to r."
+      },
+      "maps_to": {
+        "node": null,
+        "status": "new",
+        "notes": "Candidate new node RadialDistributionFunction (structure-tier observable off Trajectory, sibling of MeanSquaredDisplacement). No existing catalog node covers it."
+      },
+      "conventions": [
+        "Default r-extent is the PAIR CUTOFF, not half the box - RDFs silently truncate at rc (2.5 sigma in the KAPPA systems) unless cutoff keyword is used.",
+        "Normalization is ideal-gas at the GLOBAL density of the selected types; inhomogeneous systems (slabs) violate it.",
+        "Instantaneous unless routed through fix ave/time."
+      ],
+      "example_instances": []
+    },
+    {
+      "name": "diffusivity-workflows",
+      "quantity": "Self-diffusion coefficient D via (a) Einstein slope of MSD, or (b) Green-Kubo time integral of the VACF - both realized in-script",
+      "symbol": "D",
+      "units": "distance^2/time: Angstrom^2/ps (metal), Angstrom^2/fs (real), sigma^2/tau (lj)",
+      "gauge": "observable",
+      "indices": [],
+      "role": "produces",
+      "program": "input-script pattern: variable slope(f_ID)/(2d*Nevery*dt) on a fix vector of c_msd[4]; or variable (1/d)*trap(f_ID)*dt on a fix vector of c_vacf[4]",
+      "artifact": {
+        "type": "stdout",
+        "name": "log.lammps thermo columns (v_twopoint, v_fitslope, v_vacf)",
+        "format_notes": "DIFFUSE examples print both the two-point estimator c_msd[4]/(2d t) and the fitted slope(f)/(2d dt_sample)."
+      },
+      "source_anchors": [
+        {"file": "lammps/examples/DIFFUSE/in.msd.2d", "line": 48, "what": "compute msd com yes; v_twopoint = c_msd[4]/4/(step*dt); v_fitslope = slope(f_9)/4/(10*dt) [2d: 2d=4]"},
+        {"file": "lammps/examples/DIFFUSE/in.vacf.2d", "line": 46, "what": "compute vacf; v_vacf = 0.5*dt*trap(f_5) [2d: 1/d = 1/2 with c_vacf[4] the d-summed dot product]"},
+        {"file": "lammps/doc/src/Howto_diffusion.rst", "line": 10, "what": "MSD-slope and VACF-integral recipes with slope()/trap() variable functions"},
+        {"file": "lammps/src/variable.cpp", "line": 4526, "what": "trap and slope special functions on global vectors"}
+      ],
+      "operation": {
+        "kind": "linear fit (Einstein) or time integration (GK)",
+        "closed_form": "D = slope(MSD_total)/(2 d) = (1/d) integral <v(0).v(t)> dt",
+        "notes": "d = spatial dimensionality; the factor appears as /4 in the 2d examples."
+      },
+      "maps_to": {
+        "node": "Diffusivity",
+        "status": "existing",
+        "notes": "LAMMPS grounds the existing Diffusivity node natively in-script - a node the current lammps.py MD tier does not yet claim (its 8-variable spec stops at MSD/VACF). The single-origin caveats of msd/vacf propagate into D."
+      },
+      "conventions": [
+        "Einstein factor 2d with d the simulation dimensionality (2d examples use 4).",
+        "VACF-integral D requires the correlation to have decayed within the run; trap() spacing correction Nevery*dt applies as in the kappa workflow."
+      ],
+      "example_instances": ["lammps/examples/DIFFUSE/in.msd.2d:44-53", "lammps/examples/DIFFUSE/in.vacf.2d:44-54"]
+    },
+    {
+      "name": "ensemble-integrator-schemes",
+      "quantity": "Ensemble/thermostat/barostat declaration - a scheme (gauge) choice on the MD run, not a mapped quantity",
+      "symbol": null,
+      "units": "Tdamp/Pdamp in time units (unit-style dependent: tau lj, fs real, ps metal); target T in temperature units; target P in pressure units",
+      "gauge": "hidden",
+      "indices": [],
+      "role": "consumes",
+      "program": "fix nve | fix nvt | fix npt | fix nph | fix langevin (composed with fix nve)",
+      "artifact": {
+        "type": "api",
+        "name": "(none - modifies the trajectory itself)",
+        "format_notes": "Declared as input-script fix lines; thermostat state appears in thermo ecouple/econserve keywords."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/fix_nve.cpp", "line": 69, "what": "velocity-Verlet: half-kick v += dtf/m f, drift x += dtv v (default integrator)"},
+        {"file": "lammps/src/fix_nh.cpp", "line": 2315, "what": "FixNH::nve_x position update; nh_v_temp at 2338 = Nose-Hoover half-step velocity scaling"},
+        {"file": "lammps/src/fix_nvt.h", "line": 27, "what": "FixNVT is FixNH with tstat only; FixNPT (fix_npt.h:27) adds the barostat"},
+        {"file": "lammps/src/fix_langevin.cpp", "line": 431, "what": "gamma1 = -m/t_period/ftm2v drag + random-force pair; fix langevin does NOT integrate - requires a paired fix nve"},
+        {"file": "lammps/doc/src/fix_nh.rst", "line": 54, "what": "tchain keyword - Nose-Hoover chains (default length 3)"}
+      ],
+      "operation": {
+        "kind": "scheme declaration (trajectory gauge)",
+        "closed_form": null,
+        "notes": "One entry on purpose: the ensemble choice fixes which stationary distribution the Trajectory samples and how phase-space is propagated; every per-snapshot quantity (HeatCurrent, per-atom energies) inherits this gauge. Only the time-averaged contractions (ACFs, MSD, profiles, kappa) are the cross-code-comparable content, and even they require the SAME ensemble for compare() (e.g. GK kappa is defined on nve production; thermostatted production damps correlations)."
+      },
+      "maps_to": {
+        "node": null,
+        "status": "unclear",
+        "notes": "Deliberately unmapped - this is the 'ensemble' scheme on the run_md operator (overlaps LAMMPS_RUN_MD OperatorRepresentationSpec in lammps.py). Scheme values observed: nve (velocity-Verlet), nvt (Nose-Hoover chains, tchain=3), npt/nph (+ MTK barostat), langevin+nve (stochastic; seed-dependent), plus temp/rescale and berendsen variants not cataloged here."
+      },
+      "conventions": [
+        "fix langevin and other thermostat-only fixes do not move atoms - forgetting the paired fix nve is a classic silent-wrong-physics input.",
+        "Tdamp/Pdamp are in TIME units and thus unit-style dependent (0.5 tau lj vs 100 fs real vs 0.1 ps metal for equivalent damping).",
+        "Nose-Hoover uses chains (tchain default 3) - not the single-thermostat textbook form.",
+        "KAPPA GK script pattern: nvt equilibrate -> velocity scale -> unfix -> nve produce."
+      ],
+      "example_instances": ["lammps/examples/KAPPA/in.heatflux:43-63", "lammps/examples/KAPPA/in.langevin:59-62"]
+    },
+    {
+      "name": "pressure",
+      "quantity": "Global pressure: scalar P = (dof kB T + sum_diag virial)/(d V) * nktv2p and symmetric tensor P_ab = (sum_i m v_a v_b + virial_ab)/V * nktv2p",
+      "symbol": "P",
+      "units": "pressure: bar (metal), atm (real), epsilon/sigma^3 (lj), Pa (si)",
+      "gauge": "observable",
+      "indices": ["Voigt-6 tensor (xx,yy,zz,xy,xz,yz) for the vector output; scalar = trace/d"],
+      "role": "produces",
+      "program": "compute pressure (auto-instantiated as thermo_press for the thermo 'press' keyword)",
+      "artifact": {
+        "type": "stdout",
+        "name": "thermo columns Press / pxx..pxy in log.lammps; c_ID scalar/vector via API",
+        "format_notes": "thermo_style custom press pxx pyy pzz pxy pxz pyz; also consumed by fix npt."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/compute_pressure.cpp", "line": 253, "what": "scalar: (dof*boltz*T + virial_xx+yy+zz)/3 * inv_volume * nktv2p (2d variant divides by 2)"},
+        {"file": "lammps/src/compute_pressure.cpp", "line": 296, "what": "tensor: (ke_tensor + virial) * inv_volume * nktv2p per component"},
+        {"file": "lammps/src/compute_pressure.cpp", "line": 347, "what": "kspace virial added; pair tail correction ptail added to diagonal"},
+        {"file": "lammps/src/thermo.cpp", "line": 1972, "what": "thermo 'press' keyword reads pressure->scalar"}
+      ],
+      "operation": {
+        "kind": "global virial contraction",
+        "closed_form": "P = (N_dof kB T + sum_i sum_{j} r_ij . f_ij) / (d V) [in nktv2p pressure units]",
+        "notes": "Kinetic part comes from the associated temperature compute (bias-removable); potential part from the global virial tally, not from summing stress/atom."
+      },
+      "maps_to": {
+        "node": null,
+        "status": "new",
+        "notes": "Candidate new node Pressure (materials-domain overlap; near-term for the ELASTIC workflow, the npt barostat setpoint, and the enthalpy formula). OPPOSITE sign convention to the per-atom stress: P = -sum(S_i)/(dV)."
+      },
+      "conventions": [
+        "Positive-compression sign (physics pressure); compute stress/atom is its NEGATIVE (stress*volume).",
+        "Kinetic term uses dof*kB*T of the paired temperature compute, inheriting its DOF/bias conventions.",
+        "Includes long-range (kspace) virial and pair_modify tail corrections that the per-atom stress excludes.",
+        "nktv2p sets the unit: metal bar, real atm (68568.415), lj 1."
+      ],
+      "example_instances": ["lammps/examples/ELASTIC/in.elastic:53-64 (pxx0..pxy0 reference stresses)"]
+    },
+    {
+      "name": "elastic-constants-workflow",
+      "quantity": "Zero-temperature elastic stiffness tensor C_ij (Voigt) by central finite difference of the virial stress under +/- box strain with energy minimization",
+      "symbol": "C_ij",
+      "units": "pressure units scaled by cfac to output units: metal bar * 1.0e-4 -> GPa (init.mod); real atm * 1.01325e-4 -> GPa",
+      "gauge": "observable",
+      "indices": ["Voigt pair (i,j) in 1..6; off-diagonals symmetrized 0.5*(Cij+Cji)"],
+      "role": "produces",
+      "program": "examples/ELASTIC input-script workflow (in.elastic + init.mod + potential.mod + displace.mod); no dedicated compute",
+      "artifact": {
+        "type": "stdout",
+        "name": "log.lammps 'Elastic Constant CXYall = ... GPa' print block",
+        "format_notes": "Also derived cubic averages: bulk modulus (C11+2C12)/3, shear moduli C44 and (C11-C12)/2, Poisson ratio."
+      },
+      "source_anchors": [
+        {"file": "lammps/examples/ELASTIC/in.elastic", "line": 75, "what": "d_i = -(p_i1 - p_i0)/(delta/len0)*cfac - stress-difference over strain, note the MINUS sign from pressure-vs-stress"},
+        {"file": "lammps/examples/ELASTIC/displace.mod", "line": 26, "what": "negative then positive box deformation via change_box ... remap units box, each followed by minimize"},
+        {"file": "lammps/examples/ELASTIC/init.mod", "line": 23, "what": "cfac = 1.0e-4 (bar -> GPa, metal units); commented alternatives for other unit styles"},
+        {"file": "lammps/examples/ELASTIC/in.elastic", "line": 124, "what": "symmetrization C12all = 0.5*(C12+C21) etc."}
+      ],
+      "operation": {
+        "kind": "finite-difference derivative of stress wrt strain (T=0 statics)",
+        "closed_form": "C_ij = -dP_i/de_j ~ -(P_i(+delta) - P_i(-delta))/(2 delta) (averaged over both signs in displace.mod)",
+        "notes": "Atoms re-minimized after each deformation (relaxed-ion C_ij); up = strain magnitude, convergence checked by insensitivity to up. Uses thermo pxx..pxy (compute pressure) as the stress readout."
+      },
+      "maps_to": {
+        "node": null,
+        "status": "new",
+        "notes": "Candidate new materials-domain node ElasticConstants (stiffness tensor). Sits exactly on the announced materials overlap: consumes Potential + CellVolume, produces C_ij; the Si-SW example cross-checks against Cowley 1988 analytical values (C11=151.4, C12=76.4, C44=56.4 GPa)."
+      },
+      "conventions": [
+        "T=0 statics (minimize), relaxed-ion; NOT the finite-T stress-fluctuation method.",
+        "The minus sign in the formula converts pressure convention to stress convention.",
+        "Voigt strain dir 1..6 maps to change_box x/y/z/yz/xz/xy deltas; triclinic tilts require the box to allow tilt.",
+        "cfac/cunits are unit-style-specific and live in init.mod - porting to real/lj units means editing them."
+      ],
+      "example_instances": ["lammps/examples/ELASTIC/in.elastic:88-157"]
+    },
+    {
+      "name": "voronoi-atom-volume",
+      "quantity": "Per-atom Voronoi cell volume and face count (note-only entry for the materials overlap)",
+      "symbol": "V_i",
+      "units": "volume (distance^3): Angstrom^3 (metal/real), sigma^3 (lj); face count dimensionless",
+      "gauge": "hidden",
+      "indices": ["atom i", "column 1 = volume, column 2 = number of faces/neighbors"],
+      "role": "produces",
+      "program": "compute voronoi/atom (VORONOI package, Voro++ library)",
+      "artifact": {
+        "type": "api",
+        "name": "c_ID[1..2] per-atom array (more columns with surface/edge/occupation options)",
+        "format_notes": "occupation mode instead reports sites-per-original-cell (defect detection)."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/VORONOI/compute_voronoi_atom.cpp", "line": 502, "what": "voro[i][0] = c.volume() (Voro++ cell volume); voro[i][1] = face count above fthresh at 513-515"}
+      ],
+      "operation": {"kind": "geometric tessellation", "closed_form": null, "notes": "Sum of column 1 over all atoms = box volume (tessellation identity)."},
+      "maps_to": {
+        "node": null,
+        "status": "new",
+        "notes": "Note-only. Relevant to the map as the canonical per-atom volume for converting stress*volume (compute stress/atom) into an actual per-atom stress field, per compute_stress_atom.rst:199-200. Not proposed as a standalone node yet."
+      },
+      "conventions": ["Radical/radius-weighted variants and group restriction change the tessellation; sum-to-box-volume only holds for group all without surface options."],
+      "example_instances": []
+    },
+    {
+      "name": "cna-atom-structure",
+      "quantity": "Common-neighbor-analysis lattice-structure label per atom: 1=fcc 2=hcp 3=bcc 4=icosahedral 5=other (0=unknown outside group) (note-only)",
+      "symbol": null,
+      "units": "dimensionless categorical label",
+      "gauge": "hidden",
+      "indices": ["atom i"],
+      "role": "produces",
+      "program": "compute cna/atom <cutoff>",
+      "artifact": {
+        "type": "api",
+        "name": "c_ID per-atom vector (float-encoded category)",
+        "format_notes": "Usually dumped for visualization (OVITO-style structure coloring)."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/compute_cna_atom.cpp", "line": 38, "what": "enum {UNKNOWN, FCC, HCP, BCC, ICOS, OTHER} = output codes 0..5"},
+        {"file": "lammps/src/compute_cna_atom.cpp", "line": 51, "what": "explicit cutoff argument (distance units); must not exceed pairwise cutoff (error at 74)"},
+        {"file": "lammps/src/compute_cna_atom.cpp", "line": 306, "what": "CNA signature classification (12 x 421 -> fcc, 6x421+6x422 -> hcp, 6x444+8x666 -> bcc...)"}
+      ],
+      "operation": {"kind": "topological classification", "closed_form": null, "notes": "Cutoff choice is the whole game: between 1st/2nd neighbor shell for fcc, larger for bcc."},
+      "maps_to": {
+        "node": null,
+        "status": "unclear",
+        "notes": "Note-only, deliberately unmapped: a categorical diagnostic label, not a physical quantity; unlikely to ever be a map node. Recorded because phase identification gates which transport model applies."
+      },
+      "conventions": ["Cutoff in distance units, unit-style dependent; results meaningless for liquids (mostly 5=other)."],
+      "example_instances": []
+    },
+    {
+      "name": "thermo-temp",
+      "quantity": "Global instantaneous kinetic temperature (thermo keyword 'temp' via the auto-created thermo_temp compute)",
+      "symbol": "T",
+      "units": "temperature: K (metal/real), reduced epsilon/kB (lj, kB=1)",
+      "gauge": "observable",
+      "indices": [],
+      "role": "produces",
+      "program": "thermo_style custom temp -> compute temp",
+      "artifact": {
+        "type": "stdout",
+        "name": "log.lammps thermo column 'Temp'",
+        "format_notes": "Thermo table: header line of column names then rows every 'thermo N' steps; also YAML thermo style available."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/compute_temp.cpp", "line": 58, "what": "dof = dimension*N - extra_dof - fix_dof; tfactor = mvv2e/(dof*boltz)"},
+        {"file": "lammps/src/compute.cpp", "line": 86, "what": "extra_dof default = domain->dimension (COM momentum removal convention)"},
+        {"file": "lammps/src/compute_temp.cpp", "line": 72, "what": "compute_scalar: T = tfactor * sum m v^2"},
+        {"file": "lammps/src/thermo.cpp", "line": 1965, "what": "thermo 'temp' field reads temperature->scalar"}
+      ],
+      "operation": {
+        "kind": "kinetic contraction",
+        "closed_form": "T = mvv2e * sum_i m_i v_i^2 / ((d N - d - fix_dof) kB)",
+        "notes": "The T consumed by the GK prefactor and by thermostat setpoints."
+      },
+      "maps_to": {
+        "node": "Temperature",
+        "status": "existing",
+        "notes": "Grounds the existing Temperature node as an MD OUTPUT (the map currently treats T mainly as an input parameter of thermal_properties/kappa). DOF convention (minus d for COM) is the cross-code comparison hazard at small N."
+      },
+      "conventions": [
+        "dof = d*N - d by default (COM subtraction); fixes register additional dof removal (SHAKE etc.).",
+        "Thermostats each carry their OWN temperature compute; thermo 'temp' may differ from the thermostat's T for group/bias reasons.",
+        "kB is unit-style dependent (boltz: 8.617343e-5 eV/K metal, 0.0019872067 kcal/mol/K real, 1.0 lj)."
+      ],
+      "example_instances": ["lammps/examples/KAPPA/in.heatflux:75 (thermo_style custom step temp ...)"]
+    },
+    {
+      "name": "thermo-energies",
+      "quantity": "Global energies on stdout: pe (potential), ke = 0.5*dof*kB*T, etotal = pe+ke, enthalpy = etotal + P*V/nktv2p",
+      "symbol": "E",
+      "units": "energy - BUT normalized PER ATOM by default in lj units, extensive in real/metal (thermo_modify norm overrides either way)",
+      "gauge": "observable",
+      "indices": [],
+      "role": "produces",
+      "program": "thermo_style custom pe ke etotal enthalpy",
+      "artifact": {
+        "type": "stdout",
+        "name": "log.lammps thermo columns PotEng/KinEng/TotEng/Enthalpy",
+        "format_notes": "Column set from thermo_style; 'one' default style prints Step Temp E_pair E_mol TotEng Press."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/thermo.cpp", "line": 1987, "what": "compute_ke: 0.5 * dof * boltz * T - derived from the temperature compute, NOT an independent sum(mv^2/2)"},
+        {"file": "lammps/src/thermo.cpp", "line": 2136, "what": "compute_enthalpy: etotal + press*vol/nktv2p"},
+        {"file": "lammps/src/thermo.cpp", "line": 194, "what": "norm default: per-atom normalization ON iff unit style is lj (normvalue=1), OFF otherwise"},
+        {"file": "lammps/doc/src/thermo_style.rst", "line": 57, "what": "keyword catalog: press, etotal, enthalpy definitions"}
+      ],
+      "operation": {
+        "kind": "global contraction / stdout serialization",
+        "closed_form": "ke = (dof/2) kB T; H = E + PV (PV converted from pressure*volume to energy via 1/nktv2p)",
+        "notes": "pe comes from the auto-created thermo_pe compute summing pair+bond+...+kspace+fix energies."
+      },
+      "maps_to": {
+        "node": null,
+        "status": "new",
+        "notes": "Candidate MD-tier nodes (TotalEnergy/Enthalpy of the MD cell). Do NOT map to the catalog's InternalEnergy/Entropy/HelmholtzFreeEnergy - those are per-phonon-mode harmonic quantities with different definitions and dimensions."
+      },
+      "conventions": [
+        "LJ-NORM TRAP: with units lj, pe/ke/etotal/enthalpy print PER ATOM by default (thermo.cpp:196); real/metal print extensive totals. thermo_modify norm yes/no overrides. Cross-unit-style comparisons must undo this.",
+        "ke is dof-consistent with 'temp' (0.5*dof*kB*T), so ke != sum 0.5 m v^2 exactly (differs by the COM-dof fraction).",
+        "enthalpy uses the current thermo pressure, inheriting its kinetic-term conventions."
+      ],
+      "example_instances": ["lammps/examples/KAPPA/in.mp:59 (thermo_style custom step temp epair etotal f_3 v_tdiff)"]
+    },
+    {
+      "name": "thermo-vol",
+      "quantity": "Simulation-cell volume (thermo keyword 'vol') - the V of the GK prefactor and of pressure/flux normalizations",
+      "symbol": "V",
+      "units": "volume: Angstrom^3 (metal/real), sigma^3 (lj); in 2d, area",
+      "gauge": "observable",
+      "indices": [],
+      "role": "produces",
+      "program": "thermo_style custom vol (also the 'vol' equal-style variable keyword)",
+      "artifact": {
+        "type": "stdout",
+        "name": "log.lammps thermo column 'Volume'",
+        "format_notes": "Available in-script as the thermo keyword vol inside equal-style variables - the canonical GK script uses it directly in the scale variable."
+      },
+      "source_anchors": [
+        {"file": "lammps/src/thermo.cpp", "line": 2171, "what": "compute_vol: box volume (xprd*yprd*zprd; area in 2d)"},
+        {"file": "lammps/examples/KAPPA/in.heatflux", "line": 68, "what": "vol consumed in the GK scale variable $s*dt/$t/$t/vol"}
+      ],
+      "operation": {"kind": "box-geometry readout", "closed_form": "V = lx*ly*lz (orthogonal; triclinic uses the h-matrix determinant)", "notes": null},
+      "maps_to": {
+        "node": "CellVolume",
+        "status": "existing",
+        "notes": "Grounds the existing CellVolume parameter node from the MD side. Under npt it becomes a fluctuating observable rather than a fixed parameter - worth a note on the node."
+      },
+      "conventions": ["Time-dependent under npt/nph/box deform; GK and NEMD normalizations assume the fixed nve/nvt volume."],
+      "example_instances": ["lammps/examples/KAPPA/in.heatflux:68", "lammps/examples/KAPPA/in.mp:70 (lx*ly and lz keywords, same family)"]
+    }
+  ],
+  "open_questions": [
+    "Spatial index on Temperature: is T(chunk/bin) an indexed form of the existing Temperature node or a new ProfileTemperature node? The NEMD gradient edge needs one of the two to be declared (currently the gradient is only an operator parameter).",
+    "Reservoir-energy node: fix thermal/conductivity, fix heat, fix ehex and fix langevin tally all realize 'heat pushed through the system' (measured or imposed). Proposed single candidate node ExchangedReservoirEnergy with a scheme for imposed-vs-measured - needs a substrate decision before the NEMD edge can consume it formally.",
+    "Should HeatCurrent's node definition record the extensive J*V vs intensive J distinction as a normalization in normalizations.py? LAMMPS emits J*V; GPUMD and most papers quote J or the compacted kappa directly - this is a guaranteed cross-code factor-V trap.",
+    "compute heat/flux with stress/atom vs centroid/stress/atom give DIFFERENT J(t) for bonded/many-body systems (only the centroid one is physical for angles/dihedrals) - is that a scheme on compute_heat_current (heat_flux_decomposition) or two different edges? For pair potentials they coincide.",
+    "Single-time-origin MSD/VACF (LAMMPS) vs time-origin-averaged definitions (catalog nodes): declare as an estimator/normalization difference on the node, or treat LAMMPS output as a different (windowless) space that only converges to the node's quantity? Affects compare() tolerance policy.",
+    "The existing LAMMPS_CONTRACT_KAPPA_NEMD parameter_units hard-code real units (kcal/(mol*fs), K/Angstrom); adapters probably need per-unit-style parameter unit tables or a unit_style scheme on the LAMMPS representation as a whole.",
+    "examples/KAPPA README recipes divide the Muller-Plathe gradient over lz/2 but measure dT between bin 1 and bin 11 of 20 - the bin-center offset (half-bin shift) is ignored; is that worth recording as a discretization choice on the NEMD edge?",
+    "fix ave/correlate 'ave running' + 'overwrite' is the memory-efficient canonical GK pattern; the windowed 'ave one' estimator has different variance properties. Should correlation_window be a diagnostic discretization choice on autocorrelate_heat_current?",
+    "USER-PHONON (fix phonon) and compute smd/tlsph variants were out of scope per the existing adapter docstring; the TALLY heat-flux computes are cataloged note-only - confirm they should stay out of the representation layer.",
+    "LAMMPS 'units lj' thermo normalization (per-atom by default) applies to thermo output only, not to compute outputs (c_flux etc. stay extensive) - worth an explicit convention flag on every stdout-artifact entry if the map ever ingests log files automatically."
+  ]
+}

@@ -20,6 +20,7 @@ from omai.operator.dimensions import (
     DIMENSIONLESS,
     ENERGY,
     ENERGY_PER_LENGTH_CUBED,
+    ENERGY_PER_LENGTH_SQUARED,
     ENERGY_PER_MOLE,
     ENERGY_PER_TEMPERATURE,
     ENERGY_PER_TEMPERATURE_PER_MOLE,
@@ -56,6 +57,9 @@ KELVIN = Unit("kelvin", TEMPERATURE, 1.0, si_scale=1.0)
 # Canonical frequency unit: linear_THz. Angular_THz = 2π × linear_THz.
 LINEAR_THZ = Unit("linear_THz", FREQUENCY, 1.0, si_scale=1e12)
 ANGULAR_THZ = Unit("angular_THz", FREQUENCY, 1.0 / (2 * math.pi))
+# Linear wavenumber: 1 cm⁻¹ = c·(100 m⁻¹) = 0.0299792458 linear THz. QE's
+# matdyn.freq / matdyn.dos axis unit (ph.x prints THz and cm⁻¹ side by side).
+INVERSE_CM = Unit("inverse_cm", FREQUENCY, 0.0299792458)
 
 
 # Canonical heat-capacity unit: J/K. eV/K = e × J/K.
@@ -97,6 +101,13 @@ KJ_PER_MOL = Unit("kJ_per_mol", ENERGY_PER_MOLE, 1000.0)
 EV_PER_A3 = Unit("eV_per_A3", ENERGY_PER_LENGTH_CUBED, 1.0)
 
 
+# Canonical FC2 unit: eV/Å² (kaldo / phonopy / phono3py native). QE's dyn and
+# flfrc files store force constants in Rydberg atomic units, Ry/bohr², with no
+# unit string printed in the file; the factor is Ry[eV] / bohr[Å]² (CODATA).
+EV_PER_A2 = Unit("eV_per_A2", ENERGY_PER_LENGTH_SQUARED, 1.0)
+RY_PER_BOHR2 = Unit("Ry_per_bohr2", ENERGY_PER_LENGTH_SQUARED, 13.605693122994 / 0.529177210903**2)
+
+
 # Canonical length unit: Å (angstrom). Canonical volume unit: Å³.
 ANGSTROM = Unit("angstrom", LENGTH, 1.0, si_scale=1e-10)
 ANGSTROM_CUBED = Unit("angstrom_cubed", VOLUME, 1.0, si_scale=1e-30)
@@ -113,6 +124,7 @@ UNITS: dict[str, Unit] = {
         KELVIN,
         LINEAR_THZ,
         ANGULAR_THZ,
+        INVERSE_CM,
         J_PER_K,
         EV_PER_K,
         J_PER_M3_PER_K,
@@ -123,6 +135,8 @@ UNITS: dict[str, Unit] = {
         J_PER_MOL,
         KJ_PER_MOL,
         EV_PER_A3,
+        EV_PER_A2,
+        RY_PER_BOHR2,
         ANGSTROM,
         ANGSTROM_CUBED,
         DIMENSIONLESS_UNIT,

@@ -1,0 +1,664 @@
+{
+  "scan": {
+    "code": "quantum-espresso",
+    "slice": "phonon-dfpt",
+    "source_root": "q-e/",
+    "version_anchor": "q-e/include/qe_version.h: version_number = '7.5' (helpdoc-generated INPUT_*.txt files in PHonon/Doc were built at 7.4; source is authoritative)"
+  },
+  "entries": [
+    {
+      "name": "cell-parameters",
+      "quantity": "Bravais lattice: ibrav + celldm, or explicit lattice vectors",
+      "symbol": "a_i (at)",
+      "units": "celldm(1)=alat in bohr; CELL_PARAMETERS card in alat|bohr|angstrom per its option; internally at(:,:) stored in alat units",
+      "gauge": "observable",
+      "indices": ["lattice vector i=1..3", "cartesian component"],
+      "role": "consumes",
+      "program": "pw.x",
+      "artifact": {"type": "file", "name": "pw.x input (&SYSTEM ibrav/celldm, CELL_PARAMETERS card)", "format_notes": "celldm(1) is the lattice parameter a in BOHR. With ibrav=0, vectors come from CELL_PARAMETERS with unit option alat|bohr|angstrom ('bohr' assumed if omitted, deprecated). The same cell is propagated verbatim into every dyn file and flfrc header (celldm + optional 'Basis vectors' block in alat units)."},
+      "source_anchors": [
+        {"file": "q-e/PW/Doc/INPUT_PW.def", "line": 707, "what": "celldm doc: alat = celldm(1) is the lattice parameter a (in BOHR)"},
+        {"file": "q-e/PW/Doc/INPUT_PW.def", "line": 4061, "what": "CELL_PARAMETERS card, unit enum alat|bohr|angstrom"},
+        {"file": "q-e/PHonon/PH/io_dyn_mat_old.f90", "line": 72, "what": "dyn-file header re-emits ntyp, nat, ibrav, celldm(1:6)"}
+      ],
+      "operation": {"kind": "input", "closed_form": null, "notes": "Defines the periodic cell in which FC2 and D(q) are expressed. All downstream q-vectors are quoted in 2pi/alat units of this cell."},
+      "maps_to": {"node": "CellVolume", "status": "unclear", "notes": "QE consumes full lattice vectors; the existing catalog node is only the contracted CellVolume (omega, computed in bohr^3 via volume()). Full lattice-vector node does not exist yet."},
+      "conventions": ["alat (celldm(1)) is always bohr", "lattice vectors stored and re-emitted in units of alat", "ibrav!=0 implies QE's own conventional orientation of primitive vectors (latgen)"],
+      "example_instances": ["q-e/PHonon/examples/example02 (AlAs, ibrav=2, celldm(1)=10.50 bohr)"]
+    },
+    {
+      "name": "atomic-positions",
+      "quantity": "Atomic positions in the unit cell",
+      "symbol": "tau",
+      "units": "input card option: alat|bohr|angstrom|crystal|crystal_sg (default alat, deprecated); internally and in all phonon-chain files: cartesian in alat units",
+      "gauge": "observable",
+      "indices": ["atom index na=1..nat", "cartesian component"],
+      "role": "consumes",
+      "program": "pw.x",
+      "artifact": {"type": "file", "name": "pw.x input (ATOMIC_POSITIONS card)", "format_notes": "dyn files and flfrc re-emit tau as cartesian coordinates in alat units regardless of the input option (write '(2i5,3f18.10)': index, type, tau)."},
+      "source_anchors": [
+        {"file": "q-e/PW/Doc/INPUT_PW.def", "line": 3739, "what": "ATOMIC_POSITIONS card with unit enum"},
+        {"file": "q-e/PHonon/PH/io_dyn_mat_old.f90", "line": 81, "what": "tau written to dyn file (cartesian, alat units)"},
+        {"file": "q-e/PHonon/PH/do_q2r.f90", "line": 347, "what": "tau written to flfrc (same convention)"}
+      ],
+      "operation": {"kind": "input", "closed_form": null, "notes": "Together with the cell, fixes the crystal on which DFPT perturbations are applied."},
+      "maps_to": {"node": null, "status": "new", "notes": "No structure node in catalog.json; a CrystalStructure (or AtomicPositions) source-tier node would be needed to type this."},
+      "conventions": ["file formats always cartesian in alat units", "input card may be crystal (fractional): conversion happens at read time"],
+      "example_instances": ["alas.scf.in: Al (0,0,0), As (0.25,0.25,0.25) crystal"]
+    },
+    {
+      "name": "atomic-species-and-masses",
+      "quantity": "Atomic species labels and masses",
+      "symbol": "M_s",
+      "units": "amu (mass of C = 12) in the ATOMIC_SPECIES card",
+      "gauge": "observable",
+      "indices": ["species index nt=1..ntyp"],
+      "role": "consumes",
+      "program": "pw.x",
+      "artifact": {"type": "file", "name": "pw.x input (ATOMIC_SPECIES card)", "format_notes": "Masses are not used by the SCF itself but are stored in the data files; phonon calculations use these values unless overridden by amass in the ph.x/matdyn.x namelists. CRITICAL: when re-emitted in TEXT dyn files and text flfrc they are converted to Rydberg atomic units (amass*amu_ry, amu_ry = AMU_AU/2 = 911.444...); XML dyn/IFC files keep amu."},
+      "source_anchors": [
+        {"file": "q-e/PW/Doc/INPUT_PW.def", "line": 3694, "what": "ATOMIC_SPECIES card: Mass_X in amu, note that phonon calculations reuse stored values"},
+        {"file": "q-e/PHonon/PH/io_dyn_mat_old.f90", "line": 78, "what": "text dyn header writes amu_ry*amass(nt)"},
+        {"file": "q-e/Modules/constants.f90", "line": 57, "what": "AMU_RY = AMU_AU / 2.0_DP"}
+      ],
+      "operation": {"kind": "input", "closed_form": null, "notes": "Enters only at dynamical-matrix diagonalization (mass weighting), never in the stored FC."},
+      "maps_to": {"node": "AtomicMass", "status": "existing", "notes": "Direct match to the AtomicMass parameter node. Unit is amu at input; beware the file-format-dependent re-emission units."},
+      "conventions": ["amu at input", "Ry atomic units (x 911.444 per amu) inside text dyn/flfrc files", "amu inside XML dyn/IFC files"],
+      "example_instances": ["example02 AlAs: Al 26.98, As 74.92 amu"]
+    },
+    {
+      "name": "pseudopotentials",
+      "quantity": "Pseudopotential per species (defines the electron-ion interaction and, with the XC functional, the Born-Oppenheimer potential)",
+      "symbol": "V_ps",
+      "units": "UPF file (Rydberg atomic units internally)",
+      "gauge": "observable",
+      "indices": ["species index"],
+      "role": "consumes",
+      "program": "pw.x",
+      "artifact": {"type": "file", "name": "pseudo_dir/PseudoPot_X.UPF", "format_notes": "UPF format assumed. NC/US/PAW distinction changes which DFPT terms are active in ph.x (e.g. addusdynmat, drhodvus)."},
+      "source_anchors": [
+        {"file": "q-e/PW/Doc/INPUT_PW.def", "line": 3694, "what": "ATOMIC_SPECIES card: PseudoPot_X file, UPF format"},
+        {"file": "q-e/PW/Doc/INPUT_PW.def", "line": 394, "what": "pseudo_dir variable"}
+      ],
+      "operation": {"kind": "input", "closed_form": null, "notes": "Selects the specific realization of the BO potential together with the XC functional (input_dft)."},
+      "maps_to": {"node": "Potential", "status": "existing", "notes": "Catalog's Potential is an opaque label for the BO potential; QE parameterizes it by pseudopotential + XC functional + cutoffs. Record those as the provenance of provide_potential."},
+      "conventions": ["UPF internal units are Rydberg atomic units"],
+      "example_instances": ["Al.pz-vbc.UPF, As.pz-bhs.UPF in example02"]
+    },
+    {
+      "name": "planewave-cutoff",
+      "quantity": "Kinetic-energy cutoff for wavefunctions (and ecutrho for density)",
+      "symbol": "E_cut",
+      "units": "Ry",
+      "gauge": "observable",
+      "indices": [],
+      "role": "consumes",
+      "program": "pw.x",
+      "artifact": {"type": "file", "name": "pw.x input (&SYSTEM ecutwfc, ecutrho)", "format_notes": "ecutrho defaults to 4*ecutwfc."},
+      "source_anchors": [
+        {"file": "q-e/PW/Doc/INPUT_PW.def", "line": 854, "what": "ecutwfc: kinetic energy cutoff (Ry) for wavefunctions, REQUIRED"}
+      ],
+      "operation": {"kind": "parameter", "closed_form": null, "notes": "Basis-set discretization; controls convergence of FC2, Z*, epsilon."},
+      "maps_to": {"node": null, "status": "unclear", "notes": "Discretization choice, not a Space; belongs in OperatorRepresentationSpec.discretization_choices for the provide_* edges."},
+      "conventions": ["Ry, not eV or Hartree"],
+      "example_instances": []
+    },
+    {
+      "name": "kpoint-grid",
+      "quantity": "Electronic k-point sampling of the SCF (and of the DFPT k+q sums)",
+      "symbol": "{k}",
+      "units": "grid divisions (dimensionless) or explicit points in 2pi/alat or crystal units per K_POINTS option",
+      "gauge": "observable",
+      "indices": ["k index"],
+      "role": "consumes",
+      "program": "pw.x",
+      "artifact": {"type": "file", "name": "pw.x input (K_POINTS card)", "format_notes": "ph.x inherits the k set from the SCF; it must be compatible with each q (ph.x internally regenerates k, k+q)."},
+      "source_anchors": [
+        {"file": "q-e/PW/Doc/INPUT_PW.def", "line": 3880, "what": "K_POINTS card definition"}
+      ],
+      "operation": {"kind": "parameter", "closed_form": null, "notes": "Discretization of the BZ electron sums inside DFPT."},
+      "maps_to": {"node": null, "status": "unclear", "notes": "Discretization choice (bz_summation for the electronic problem), not a Space."},
+      "conventions": ["automatic grids are Monkhorst-Pack, optionally shifted"],
+      "example_instances": []
+    },
+    {
+      "name": "scf-total-energy",
+      "quantity": "DFT total energy of the converged SCF ground state",
+      "symbol": "E_tot",
+      "units": "Ry on stdout; Hartree in data-file-schema.xml (etot/e2)",
+      "gauge": "observable",
+      "indices": [],
+      "role": "produces",
+      "program": "pw.x",
+      "artifact": {"type": "stdout", "name": "pw.x output ('!    total energy = ... Ry') and prefix.save/data-file-schema.xml", "format_notes": "The '!' marker prefixes the converged value. XML total_energy fields are divided by e2=2, i.e. Hartree atomic units, per the QES schema."},
+      "source_anchors": [
+        {"file": "q-e/PW/src/electrons.f90", "line": 1758, "what": "9080 FORMAT total energy = F17.8 Ry"},
+        {"file": "q-e/PW/src/pw_restart_new.f90", "line": 728, "what": "qexsd_init_total_energy(..., etot/e2, ...): XML in Hartree"}
+      ],
+      "operation": {"kind": "scf", "closed_form": null, "notes": "Kohn-Sham self-consistency. Not consumed by the phonon chain directly, but its convergence level bounds FC quality."},
+      "maps_to": {"node": null, "status": "new", "notes": "No TotalEnergy node in catalog.json. Candidate new source-tier observable if EOS/QHA workflows are ever ingested."},
+      "conventions": ["stdout Ry vs XML Hartree (factor 2)", "for smearing the printed quantity is the free energy F=E-TS variant flagged in output"],
+      "example_instances": ["example02 alas.scf.out"]
+    },
+    {
+      "name": "atomic-forces",
+      "quantity": "Forces on atoms (Hellmann-Feynman + corrections) from the SCF ground state",
+      "symbol": "F_na",
+      "units": "Ry/au (Ry/bohr) on stdout; Hartree/bohr in data-file-schema.xml (force/e2)",
+      "gauge": "observable",
+      "indices": ["atom na", "cartesian alpha"],
+      "role": "produces",
+      "program": "pw.x",
+      "artifact": {"type": "stdout", "name": "'Forces acting on atoms (cartesian axes, Ry/au):' block; also XML forces", "format_notes": "atom N type M force = 3F14.8. This is the quantity finite-displacement drivers (e.g. thirdorder.py for FC3, phonopy for FC2) harvest from pw.x supercell runs."},
+      "source_anchors": [
+        {"file": "q-e/PW/src/forces.f90", "line": 345, "what": "stdout header naming the unit Ry/au"},
+        {"file": "q-e/PW/src/forces.f90", "line": 527, "what": "9035 FORMAT per-atom force line"},
+        {"file": "q-e/Modules/qexsd_init.f90", "line": 1366, "what": "forces_aux = forces/e2: XML in Hartree/bohr"}
+      ],
+      "operation": {"kind": "scf-derivative", "closed_form": "F = -dE/dtau", "notes": "First derivative of E; the finite-difference route to force constants differentiates these numerically."},
+      "maps_to": {"node": null, "status": "new", "notes": "No Forces node. Needed if the finite-displacement FC2/FC3 provenance is to be modeled explicitly (thirdorder.py consumes exactly this)."},
+      "conventions": ["'Ry/au' means Ry/bohr", "stdout Ry/bohr vs XML Hartree/bohr (factor 2)"],
+      "example_instances": []
+    },
+    {
+      "name": "stress-tensor",
+      "quantity": "Macroscopic stress tensor of the SCF ground state",
+      "symbol": "sigma",
+      "units": "Ry/bohr**3 and kbar, both printed side by side on stdout; Hartree/bohr^3 in XML (stress/e2)",
+      "gauge": "observable",
+      "indices": ["cartesian alpha", "cartesian beta"],
+      "role": "produces",
+      "program": "pw.x",
+      "artifact": {"type": "stdout", "name": "'total   stress  (Ry/bohr**3) ... (kbar)' block", "format_notes": "P = trace/3 printed in kbar via ry_kbar."},
+      "source_anchors": [
+        {"file": "q-e/PW/src/stress.f90", "line": 264, "what": "9000 format: total stress (Ry/bohr**3) (kbar)"},
+        {"file": "q-e/Modules/qexsd_init.f90", "line": 1394, "what": "stress_aux = stress/e2: XML in Hartree atomic units"}
+      ],
+      "operation": {"kind": "scf-derivative", "closed_form": "sigma = -(1/V) dE/d(strain)", "notes": "Relevant to the phonon chain as the relaxation-quality check (phonons assume zero-stress equilibrium) and to matdyn asr='all' Huang conditions (vanishing stress)."},
+      "maps_to": {"node": null, "status": "new", "notes": "No Stress node in catalog.json."},
+      "conventions": ["dual units Ry/bohr^3 and kbar in the same block", "sign: positive = compressive pressure printed as P"],
+      "example_instances": []
+    },
+    {
+      "name": "scf-charge-density",
+      "quantity": "Converged ground-state charge density rho(G): the implicit input state of DFPT",
+      "symbol": "rho",
+      "units": "Rydberg atomic units (density e/bohr^3; stored as complex rho(G) Fourier coefficients, binary)",
+      "gauge": "hidden",
+      "indices": ["G vector (spherical G-list up to ecutrho)", "spin component"],
+      "role": "produces",
+      "program": "pw.x",
+      "artifact": {"type": "file", "name": "outdir/prefix.save/charge-density.dat", "format_notes": "Binary G-space record written by write_rhog. ph.x reads it back (read_file_ph) as the linear-response reference state; ph.x and pw.x must share outdir/prefix."},
+      "source_anchors": [
+        {"file": "q-e/PW/src/io_rho_xml.f90", "line": 63, "what": "write_rhog(TRIM(dirname)//'charge-density', ...)"},
+        {"file": "q-e/PHonon/PH/phq_readin.f90", "line": 741, "what": "CALL read_file_ph: ph.x consumes the SCF state"}
+      ],
+      "operation": {"kind": "scf", "closed_form": null, "notes": "Handoff artifact pw.x -> ph.x. Its pseudo-density character (US/PAW augmentation included) makes it code-internal."},
+      "maps_to": {"node": null, "status": "new", "notes": "Electronic-structure intermediate below the thermal DAG's current floor; if modeled, a hidden ChargeDensity node feeding provide_force_constants-like DFPT edges."},
+      "conventions": ["G-space, not real-space, storage", "includes US/PAW augmentation contributions (not the bare valence density)"],
+      "example_instances": []
+    },
+    {
+      "name": "kohn-sham-wavefunctions",
+      "quantity": "Converged Kohn-Sham orbitals at each k: second implicit input of DFPT (Sternheimer solver reference)",
+      "symbol": "psi_nk",
+      "units": "Rydberg atomic units (binary plane-wave coefficients, normalized to 1 per band)",
+      "gauge": "hidden",
+      "indices": ["k index", "band n", "plane wave G"],
+      "role": "produces",
+      "program": "pw.x",
+      "artifact": {"type": "file", "name": "outdir/prefix.save/wfc*.dat", "format_notes": "One binary file per k point (write_wfc/write_collected_wfc). Arbitrary U(1)/degenerate-subspace phase per band: per-element values are not cross-code comparable."},
+      "source_anchors": [
+        {"file": "q-e/PW/src/pw_restart_new.f90", "line": 903, "what": "SUBROUTINE write_collected_wfc"},
+        {"file": "q-e/Modules/io_base.f90", "line": 25, "what": "SUBROUTINE write_wfc (binary record layout)"}
+      ],
+      "operation": {"kind": "scf", "closed_form": null, "notes": "Handoff artifact pw.x -> ph.x."},
+      "maps_to": {"node": null, "status": "new", "notes": "Hidden electronic intermediate; analogous gauge situation to the catalog's Eigenvectors node but electronic."},
+      "conventions": ["band phase gauge freedom", "ph.x recomputes wavefunctions at k+q as needed"],
+      "example_instances": []
+    },
+    {
+      "name": "ph-qgrid-parameters",
+      "quantity": "Phonon q-point grid request (ldisp mode)",
+      "symbol": "nq1 x nq2 x nq3",
+      "units": "grid divisions (dimensionless)",
+      "gauge": "observable",
+      "indices": [],
+      "role": "consumes",
+      "program": "ph.x",
+      "artifact": {"type": "file", "name": "ph.x input (&INPUTPH ldisp, nq1, nq2, nq3)", "format_notes": "ldisp=.true. runs DFPT on the irreducible wedge of a Monkhorst-Pack q-grid; single-q mode instead reads one xq line in 2pi/a0 units. lshift_q shifts the grid but is incompatible with q2r.x."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/Doc/INPUT_PH.txt", "line": 512, "what": "ldisp description"},
+        {"file": "q-e/PHonon/Doc/INPUT_PH.txt", "line": 579, "what": "nq1, nq2, nq3 description"},
+        {"file": "q-e/PHonon/Doc/INPUT_PH.txt", "line": 857, "what": "single-q input: xq in units of 2pi/a0"}
+      ],
+      "operation": {"kind": "parameter", "closed_form": null, "notes": "Determines the reciprocal-space FC2 sampling and hence the real-space FC2 supercell range after q2r (nr1,nr2,nr3 = nq1,nq2,nq3)."},
+      "maps_to": {"node": null, "status": "unclear", "notes": "Discretization choice for the provide_force_constants[order=2] edge (analog of a supercell size in finite-displacement codes)."},
+      "conventions": ["irreducible wedge only is computed; the star is reconstructed by symmetry", "epsil is auto-set for insulators when ldisp=.true. (prepare_q.f90)"],
+      "example_instances": ["example02: 4x4x4 grid, 8 irreducible q"]
+    },
+    {
+      "name": "ph-input-masses",
+      "quantity": "Atomic masses override for the dynamical matrix",
+      "symbol": "amass(i)",
+      "units": "amu",
+      "gauge": "observable",
+      "indices": ["species index"],
+      "role": "consumes",
+      "program": "ph.x",
+      "artifact": {"type": "file", "name": "ph.x input (&INPUTPH amass)", "format_notes": "Default 0.0 means: read masses from the pw.x data file (ATOMIC_SPECIES values)."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/Doc/INPUT_PH.txt", "line": 54, "what": "amass(i): atomic mass [amu] of each atomic type; if not specified, read from data file"}
+      ],
+      "operation": {"kind": "parameter", "closed_form": null, "notes": "Only affects printed frequencies/patterns; the dyn-file FC block is mass-independent."},
+      "maps_to": {"node": "AtomicMass", "status": "existing", "notes": "Same node as the pw.x masses; ph.x may override."},
+      "conventions": ["amu at input"],
+      "example_instances": []
+    },
+    {
+      "name": "qgrid-header-file-dyn0",
+      "quantity": "The q-grid bookkeeping file: grid divisions and the list of irreducible q-points",
+      "symbol": "{q_irr}",
+      "units": "q in cartesian coordinates, units 2pi/alat",
+      "gauge": "observable",
+      "indices": ["iq=1..nqs"],
+      "role": "produces",
+      "program": "ph.x",
+      "artifact": {"type": "file", "name": "fildyn0 (e.g. alas.dyn0)", "format_notes": "Line 1: nq1 nq2 nq3 (3i4). Line 2: nqs (i4). Then nqs lines x_q (3e24.15). q2r.x requires this file (or manual nr1 nr2 nr3 + file list)."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/PH/q_points.f90", "line": 118, "what": "WRITE (iudyn,'(3i4)') nq1,nq2,nq3 then nqs then x_q list"},
+        {"file": "q-e/PHonon/Doc/INPUT_Q2R.txt", "line": 44, "what": "fildyn0 contains information on the q-point grid (q2r side)"}
+      ],
+      "operation": {"kind": "io", "closed_form": null, "notes": "Pure bookkeeping between ph.x and q2r.x."},
+      "maps_to": {"node": null, "status": "unclear", "notes": "Provenance metadata for the FC2 edge, not a physical Space."},
+      "conventions": ["q in 2pi/alat cartesian, not crystal coordinates"],
+      "example_instances": ["example02 produces alas.dyn0 with 8 q-points of the 4x4x4 grid"]
+    },
+    {
+      "name": "dynamical-matrix-file",
+      "quantity": "DFPT force-constant matrix at q: C_ab^ij(q), the Bloch sum of real-space FC2. NOT mass-weighted, NOT NAC-corrected",
+      "symbol": "C(q) (QE calls it 'Dynamical Matrix in cartesian axes')",
+      "units": "Ry/bohr^2 (Rydberg atomic units; no unit string is printed in the file)",
+      "gauge": "observable",
+      "indices": ["q in star of q_irr (one block per star member)", "atom a", "atom b", "cartesian i (rows)", "cartesian j (cols)"],
+      "role": "produces",
+      "program": "ph.x",
+      "artifact": {"type": "file", "name": "fildyn{N} text (e.g. alas.dyn1..8) or fildyn{N}.xml", "format_notes": "Text: header (title; ntyp nat ibrav celldm; optional 'Basis vectors'; species with masses in Ry a.u. = amu*amu_ry; tau in alat) then one 'Dynamical  Matrix in cartesian axes' block per q in the star: q in 2pi/alat, then nat*nat blocks '(na nb)' of 3 rows x 3 (Re,Im) pairs phi(i,j,na,nb) '(3(2(f12.8,1x),2x))'. At q=0 with epsil: 'Dielectric Tensor:' (3f24.12) and 'Effective Charges E-U: Z_{alpha}{s,beta}' per atom. Tail: 'Diagonalizing the dynamical matrix', freq list, and normalized displacement patterns per mode. XML variant (always used for noncollinear/spin-orbit): GEOMETRY_INFO (MASS in amu!), DIELECTRIC_PROPERTIES (EPSILON, ZSTAR), DYNAMICAL_MAT_.{iq} (Q_POINT, PHI.na.nb), FREQUENCIES_THZ_CMM1 tail. Consumed by q2r.x (read_dyn_from_file / read_dyn_mat) and dynmat.x."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/PH/io_dyn_mat_old.f90", "line": 39, "what": "write_dyn_on_file: phi(3,3,nat,nat) complex written per q"},
+        {"file": "q-e/PHonon/PH/io_dyn_mat_old.f90", "line": 78, "what": "header masses written as amu_ry*amass (Ry atomic units)"},
+        {"file": "q-e/PHonon/PH/dynmatrix.f90", "line": 165, "what": "q2qstar_ph rotates and writes the dyn matrices of the whole star of q"},
+        {"file": "q-e/PHonon/PH/io_dyn_mat.f90", "line": 163, "what": "XML: PHI.na.nb tags (same un-mass-weighted phi)"},
+        {"file": "q-e/PHonon/PH/io_dyn_mat.f90", "line": 95, "what": "XML: MASS tag holds amass(nt) in amu (no amu_ry factor)"}
+      ],
+      "operation": {"kind": "dfpt-linear-response", "closed_form": "C_ab^ij(q) = d^2 E / (du_a^i(q)* du_b^j(q))", "notes": "Second energy derivative from DFPT self-consistent linear response; symmetrized, star-expanded. Divide by sqrt(M_a M_b) (with M in Ry a.u. = amu*amu_ry) to obtain the catalog's mass-weighted dynamical matrix whose eigenvalues are omega^2 in Ry^2."},
+      "maps_to": {"node": "BareDynamicalMatrix", "status": "existing", "notes": "Matches BareDynamicalMatrix ('analytic Bloch sum of Phi(R) before NAC') up to the mass-weighting convention: QE stores the un-mass-weighted C(q). A declared normalization (mass_weighting=none vs sqrt_mass) is required; the numerical trap is a factor amu_ry*sqrt(m_a m_b) per element."},
+      "conventions": ["NOT mass-weighted (raw force constants at q)", "NO non-analytic q->0 term included; Z*/epsilon are stored separately in the q=0 file", "one file contains ALL q of the star of the irreducible q", "text masses in Ry a.u., XML masses in amu", "q vector in 2pi/alat cartesian", "complex values as (Re, Im) pairs"],
+      "example_instances": ["example02 alas.dyn1..alas.dyn8 (4x4x4 AlAs grid)"]
+    },
+    {
+      "name": "phonon-frequencies-at-q",
+      "quantity": "Harmonic phonon frequencies at the computed q (exact DFPT, no interpolation)",
+      "symbol": "omega_q,nu",
+      "units": "THz and cm-1, printed side by side ('freq (i) = x [THz] = y [cm-1]'); both are LINEAR frequency nu = omega/2pi, not angular",
+      "gauge": "observable",
+      "indices": ["mode nu=1..3*nat"],
+      "role": "produces",
+      "program": "ph.x",
+      "artifact": {"type": "stdout", "name": "ph.x stdout and tail of each fildyn file; XML tag FREQUENCIES_THZ_CMM1", "format_notes": "Negative printed value encodes omega^2 < 0 (imaginary/unstable mode): w1 = -sqrt(|w2|)."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/PH/dyndia.f90", "line": 94, "what": "WRITE 9010: w1*RY_TO_THZ, w1*RY_TO_CMM1; lines 92-93 negative-sign convention"},
+        {"file": "q-e/Modules/constants.f90", "line": 116, "what": "RY_TO_THZ = 1/AU_PS/FPI (the 1/4pi makes it linear frequency per Ry)"},
+        {"file": "q-e/PHonon/PH/io_dyn_mat.f90", "line": 185, "what": "XML FREQUENCIES_THZ_CMM1 tail, same conversions"}
+      ],
+      "operation": {"kind": "diagonalization", "closed_form": "omega^2 = eig( C(q)_ab^ij / (amu_ry*sqrt(m_a m_b)) )", "notes": "dyndia.f90 divides by masses (amu input) and diagonalizes; w2 eigenvalues are in Ry^2 (Rydberg atomic units with hbar=1)."},
+      "maps_to": {"node": "Frequency", "status": "existing", "notes": "Direct match. Declare linear-frequency convention: 1 QE THz = 2pi rad/ps; RY_TO_THZ = 3289.842 THz/Ry, RY_TO_CMM1 = 109737.57 cm-1/Ry."},
+      "conventions": ["linear (nu), not angular (omega) frequency", "negative value = imaginary mode", "these are exact-q DFPT values; matdyn.x values at the same q may differ slightly through Fourier interpolation and ASR"],
+      "example_instances": ["example02 AlAs Gamma: TO 375.5 cm-1; LO 410.6 cm-1 appears only after NAC is applied downstream"]
+    },
+    {
+      "name": "phonon-displacement-patterns-at-q",
+      "quantity": "Normalized displacement patterns per mode (eigenvector / sqrt(mass), renormalized)",
+      "symbol": "u_q,nu = e_q,nu / sqrt(M)",
+      "units": "dimensionless (normalized complex vectors)",
+      "gauge": "hidden",
+      "indices": ["mode nu", "atom na", "cartesian"],
+      "role": "produces",
+      "program": "ph.x",
+      "artifact": {"type": "file", "name": "mode section at the tail of fildyn; XML DISPLACEMENT tags", "format_notes": "Per mode: '( 6f10.6 )' = 3 complex components per atom line. These are NOT orthonormal eigenvectors: z/sqrt(amu_ry*amass) renormalized to unit norm."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/PH/dyndia.f90", "line": 103, "what": "dyn(mu,nu) = z(mu,nu)/sqrt(amu_ry*amass); line 107-108 normalized write"}
+      ],
+      "operation": {"kind": "diagonalization", "closed_form": null, "notes": "U(1) phase per mode and U(d) freedom in degenerate subspaces; per-element values not cross-code comparable."},
+      "maps_to": {"node": "Eigenvectors", "status": "existing", "notes": "Maps to the hidden Eigenvectors node with an extra declared normalization: displacement-pattern convention (mass-divided, renormalized), distinct from orthonormal eigenvectors."},
+      "conventions": ["displacement patterns, not eigenvectors: not mutually orthogonal", "renormalized to unit norm after mass division"],
+      "example_instances": []
+    },
+    {
+      "name": "born-effective-charges-zeu",
+      "quantity": "Born effective charge tensor from the electric-field response (dF/dE route)",
+      "symbol": "Z*_{alpha,s beta} (zstareu)",
+      "units": "units of elementary charge e (dimensionless numbers)",
+      "gauge": "observable",
+      "indices": ["E-field direction alpha (row)", "atom s", "displacement direction beta (col)"],
+      "role": "produces",
+      "program": "ph.x",
+      "artifact": {"type": "file", "name": "q=0 fildyn section 'Effective Charges E-U: Z_{alpha}{s,beta}'; stdout block 'Effective charges (d Force / dE)'; XML ZSTAR tag", "format_notes": "Computed when epsil=.true. and zeu=.true. (zeu defaults to epsil). Written WITHOUT acoustic sum rule; stdout additionally prints an ASR-corrected copy (mean subtracted). Row index is the E-field direction: rows printed as Ex/Ey/Ez."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/PH/write_epsilon_and_zeu.f90", "line": 40, "what": "dyn-file write: Z_{alpha}{s,beta} per atom, 3f24.12"},
+        {"file": "q-e/PHonon/PH/summarize.f90", "line": 95, "what": "stdout: 'Effective charges (d Force / dE) ... without acoustic sum rule applied'"},
+        {"file": "q-e/PHonon/Doc/INPUT_PH.txt", "line": 471, "what": "zeu flag, default zeu=epsil"}
+      ],
+      "operation": {"kind": "dfpt-linear-response", "closed_form": "Z*_{s,alpha beta} = Omega/e * dP_alpha/du_{s beta} = dF_{s beta}/dE_alpha", "notes": "QE's default algorithm computes it from the force response to the E-field perturbation."},
+      "maps_to": {"node": "BornCharges", "status": "existing", "notes": "Direct match to the source-tier BornCharges node (units of e). Index-order convention (field first) must be declared; equals the transpose of the dP/du layout."},
+      "conventions": ["raw, no ASR in the file (zasr applied later in q2r, or by hand)", "index order: (E-field alpha, atom s, displacement beta)", "insulators only"],
+      "example_instances": ["example02 AlAs: Z*(Al) = +1.88, Z*(As) = -1.88 e (reference alas.ph.out)"]
+    },
+    {
+      "name": "born-effective-charges-zue",
+      "quantity": "Born effective charge tensor from the displacement response (dP/du route), consistency alternative to zeu",
+      "symbol": "Z*_{s alpha, beta} (zstarue)",
+      "units": "units of elementary charge e (dimensionless numbers)",
+      "gauge": "observable",
+      "indices": ["displacement direction (row of stdout Px/Py/Pz block)", "atom s", "polarization direction"],
+      "role": "produces",
+      "program": "ph.x",
+      "artifact": {"type": "stdout", "name": "'Effective charges (d P / du) in cartesian axis' block", "format_notes": "Requires zue=.true. (default .false.) plus trans and epsil. NOT written to the dyn file; the dyn file always carries the zeu tensor. Storage is transposed relative to zstareu: zstarue(ipol, na, jpol)."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/PH/summarize.f90", "line": 144, "what": "stdout write of zstarue (d P / du)"},
+        {"file": "q-e/PHonon/Doc/INPUT_PH.txt", "line": 482, "what": "zue flag: alternative algorithm; results should agree within numerical noise"},
+        {"file": "q-e/PHonon/PH/add_zstar_ue.f90", "line": 1, "what": "accumulation of zstarue from phonon density responses"}
+      ],
+      "operation": {"kind": "dfpt-linear-response", "closed_form": "Z*_{s, beta alpha} = Omega/e * dP_alpha/du_{s beta}", "notes": "Exact-DFPT equality zeu = zue^T holds analytically; the numerical difference is a convergence diagnostic."},
+      "maps_to": {"node": "BornCharges", "status": "existing", "notes": "Same node as zeu; a second producing route. Cross-checking the two is an internal EXPECTED_AGREE pair inside QE itself."},
+      "conventions": ["transposed storage vs zeu", "stdout only, never in dyn/flfrc files"],
+      "example_instances": []
+    },
+    {
+      "name": "dielectric-tensor-eps-inf",
+      "quantity": "Macroscopic high-frequency (electronic, clamped-ion) dielectric tensor",
+      "symbol": "epsilon_inf",
+      "units": "dimensionless",
+      "gauge": "observable",
+      "indices": ["cartesian alpha", "cartesian beta"],
+      "role": "produces",
+      "program": "ph.x",
+      "artifact": {"type": "file", "name": "q=0 fildyn section 'Dielectric Tensor:'; stdout 'Dielectric constant in cartesian axis'; XML EPSILON tag", "format_notes": "Computed when epsil=.true. at q=0 for insulators (auto-enabled for insulators when ldisp=.true., see prepare_q.f90). Variants lrpa (DV_xc=0) and lnoloc (DV_Hxc=0) change the flavor and are labeled in stdout."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/PH/write_epsilon_and_zeu.f90", "line": 37, "what": "dyn-file 'Dielectric Tensor:' 3f24.12"},
+        {"file": "q-e/PHonon/PH/summarize.f90", "line": 37, "what": "stdout header (plus RPA/noloc variants at lines 33-35)"},
+        {"file": "q-e/PHonon/Doc/INPUT_PH.txt", "line": 194, "what": "epsil flag description"}
+      ],
+      "operation": {"kind": "dfpt-linear-response", "closed_form": "eps_ab = delta_ab + 4pi chi_ab (self-consistent E-field response)", "notes": "Clamped-ion electronic response; the ionic (static) contribution is a separate downstream construct (dynmat.x), out of this slice."},
+      "maps_to": {"node": "DielectricTensor", "status": "existing", "notes": "Direct match to the source-tier DielectricTensor (eps_inf) node consumed by apply_nac_correction."},
+      "conventions": ["high-frequency (electronic) epsilon, not static eps_0", "insulators only; code stops if metallic occupations"],
+      "example_instances": ["example02 AlAs: 13.742 (LDA overestimates the experimental 8.16; documented in QE examples)"]
+    },
+    {
+      "name": "dvscf-response-potential",
+      "quantity": "Self-consistent potential response to each phonon perturbation (per irrep pattern)",
+      "symbol": "dV_scf/du",
+      "units": "Rydberg atomic units (binary; potential variation per unit displacement of the irrep pattern)",
+      "gauge": "hidden",
+      "indices": ["q", "irrep/pattern", "real-space FFT grid point", "spin"],
+      "role": "produces",
+      "program": "ph.x",
+      "artifact": {"type": "file", "name": "outdir/_ph0/prefix.fildvscf1 (and fildrho for the density response)", "format_notes": "Written when fildvscf /= '' ; primary consumer is electron-phonon post-processing (EPW, elphon). Basis is the irreducible-representation pattern basis, not cartesian displacements."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/Doc/INPUT_PH.txt", "line": 185, "what": "fildvscf: file for the deltavscf to be used in electron-phonon calculations"},
+        {"file": "q-e/PHonon/Doc/INPUT_PH.txt", "line": 174, "what": "fildrho: saved as outdir/_ph0/prefix.fildrho1"}
+      ],
+      "operation": {"kind": "dfpt-linear-response", "closed_form": null, "notes": "Intermediate of the Sternheimer SCF loop, persisted for reuse."},
+      "maps_to": {"node": null, "status": "new", "notes": "Electron-phonon scaffolding beyond the current thermal DAG; hidden node candidate only if e-ph transport is ever ingested."},
+      "conventions": ["pattern (irrep) basis, requires the patterns file to rotate to cartesian", "exact per-record normalization not fully traced in this scan (see open questions)"],
+      "example_instances": []
+    },
+    {
+      "name": "real-space-ifc-file",
+      "quantity": "Real-space interatomic force constants C(R) on the nr1 x nr2 x nr3 supercell grid (short-range part only for polar solids)",
+      "symbol": "C_ab^ij(R) (frc)",
+      "units": "Ry/bohr^2 (Rydberg atomic units; no unit string in the file)",
+      "gauge": "observable",
+      "indices": ["cartesian i", "cartesian j", "atom na", "atom nb", "cell vector m1,m2,m3 (m1 fastest)"],
+      "role": "produces",
+      "program": "q2r.x",
+      "artifact": {"type": "file", "name": "flfrc (e.g. alas444.fc) or flfrc.xml", "format_notes": "Text layout: ntyp nat ibrav celldm; optional at if ibrav=0; species lines (mass in Ry a.u., copied verbatim from the text dyn file); tau cartesian alat; line 'lrigid alph' (T/F + Ewald alpha); if lrigid: epsil 3x3 then per-atom zeu 3x3; nr1 nr2 nr3; then 3*3*nat*nat blocks headed 'i j na nb' with nr1*nr2*nr3 lines 'm1 m2 m3 value' (real part only; imaginary checked < 1e-12). With write_lr=.true. a second column holds the long-range IFC (needed by matdyn asr='all' + read_lr). XML variant: INTERATOMIC_FORCE_CONSTANTS with MESH_NQ1_NQ2_NQ3, alpha_ewald, IFC and optional IFC_LR tags, masses in amu. Consumed by matdyn.x (readfc / read_ifc)."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/PH/do_q2r.f90", "line": 260, "what": "rgd_blk(..., -1.d0): long-range dipole term SUBTRACTED from C(q) before the FFT when Z* present"},
+        {"file": "q-e/PHonon/PH/do_q2r.f90", "line": 338, "what": "text flfrc write block (header through IFC loops at 358-382)"},
+        {"file": "q-e/PHonon/PH/do_q2r.f90", "line": 344, "what": "masses written as read from text dyn file, i.e. still in Ry atomic units"},
+        {"file": "q-e/PHonon/PH/matdyn.f90", "line": 965, "what": "matdyn readfc: amass = amass_from_file/amu_ry (text path only)"},
+        {"file": "q-e/PHonon/PH/io_dyn_mat.f90", "line": 220, "what": "XML write_ifc: IFC / IFC_LR tags"}
+      ],
+      "operation": {"kind": "fft", "closed_form": "C(R) = (1/N_q) sum_q [C(q) - C_LR(q)] e^{-iqR}", "notes": "Inverse FFT of the q-grid force constants after subtracting the Gonze rigid-ion (dipole-dipole) long-range term for polar solids (X. Gonze et al., PRB 50, 13035 (1994) formula in rigid.f90:rgd_blk). matdyn re-adds the term analytically at arbitrary q."},
+      "maps_to": {"node": "ForceConstants[order=2]", "status": "existing", "notes": "This is QE's grounding of the FC2 leaf the thermal DAG takes as given. TWO declared conventions required: (1) unit Ry/bohr^2 (1 Ry/bohr^2 = 48.5829 eV/A^2 vs eV/A^2 codes); (2) for polar materials the array is SHORT-RANGE only; total FC2 = frc + dipole term(Z*, eps, alph). Naive comparison with e.g. phonopy FORCE_CONSTANTS is wrong whenever Z* != 0."},
+      "conventions": ["Ry/bohr^2", "short-range only when Z* present (lrigid=T)", "index nesting i,j,na,nb outermost, m1 fastest innermost", "text masses Ry a.u. / XML masses amu", "real part only stored", "alph Ewald parameter (default 1.0) written next to lrigid; older files lack it and readfc falls back"],
+      "example_instances": ["example02 alas444.fc from alas.dyn0..8"]
+    },
+    {
+      "name": "zasr-born-charge-sum-rule",
+      "quantity": "Acoustic sum rule enforcement on the Born effective charges before writing flfrc",
+      "symbol": "zasr",
+      "units": "enum: no|simple|crystal|one-dim|zero-dim",
+      "gauge": "observable",
+      "indices": [],
+      "role": "consumes",
+      "program": "q2r.x",
+      "artifact": {"type": "file", "name": "q2r.x input (&INPUT zasr)", "format_notes": "Default 'no': the raw DFPT Z* (which violate sum Z*=0 by numerical noise) pass through unchanged."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/Doc/INPUT_Q2R.txt", "line": 68, "what": "zasr enum and semantics"},
+        {"file": "q-e/PHonon/PH/do_q2r.f90", "line": 217, "what": "CALL set_zasr(zasr, ...) applied to zeu when lrigid"}
+      ],
+      "operation": {"kind": "normalization", "closed_form": "sum_s Z*_s = 0 enforced by the selected projection", "notes": "Charge-neutrality counterpart of the FC acoustic sum rule."},
+      "maps_to": {"node": null, "status": "unclear", "notes": "A normalization scheme on the BornCharges representation, not a Space; belongs in scheme_overrides of the provide_born_charges edge."},
+      "conventions": ["applied to Z* only; FC ASR is a separate matdyn-side choice (asr)"],
+      "example_instances": []
+    },
+    {
+      "name": "matdyn-asr-mode",
+      "quantity": "Acoustic sum rule enforcement on the real-space FC2 before interpolation",
+      "symbol": "asr",
+      "units": "enum: no|simple|crystal|all|one-dim|zero-dim (+ huang logical)",
+      "gauge": "observable",
+      "indices": [],
+      "role": "consumes",
+      "program": "matdyn.x",
+      "artifact": {"type": "file", "name": "matdyn.x input (&INPUT asr, huang)", "format_notes": "Default 'no'. 'crystal' = translational ASR by projection; 'all' adds rotational + 15 Huang invariance conditions (requires write_lr in q2r and read_lr in matdyn for infrared-active solids; cite npj Comput Mater 8, 236 (2022))."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/Doc/INPUT_MATDYN.txt", "line": 56, "what": "asr enum and semantics"},
+        {"file": "q-e/PHonon/PH/matdyn.f90", "line": 568, "what": "CALL set_asr(asr, nr1,nr2,nr3, frc, frc_lr, zeu, ...)"},
+        {"file": "q-e/PHonon/PH/matdyn.f90", "line": 560, "what": "warning: asr='all' with Z* requires read_lr/write_lr"}
+      ],
+      "operation": {"kind": "normalization", "closed_form": "sum_b C_ab(R) corrections such that acoustic omega(q->0) -> 0", "notes": "Applied in real space each matdyn run; the flfrc file itself remains raw unless write_frc=.true. rewrites it as flfrc.matdyn."},
+      "maps_to": {"node": null, "status": "unclear", "notes": "Scheme on the compute_dynamical_matrix edge (ASR normalization of FC2), not a Space."},
+      "conventions": ["default is NO sum rule: raw DFPT FC give small nonzero acoustic frequencies at Gamma"],
+      "example_instances": []
+    },
+    {
+      "name": "matdyn-input-masses",
+      "quantity": "Atomic mass override for interpolation (mass-approximation runs)",
+      "symbol": "amass(i)",
+      "units": "amu",
+      "gauge": "observable",
+      "indices": ["species index (of the possibly enlarged supercell type list)"],
+      "role": "consumes",
+      "program": "matdyn.x",
+      "artifact": {"type": "file", "name": "matdyn.x input (&INPUT amass)", "format_notes": "Default: use masses read from flfrc. Text flfrc masses are divided by amu_ry on read (they are stored in Ry a.u.); XML flfrc masses are used as-is (amu)."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/Doc/INPUT_MATDYN.txt", "line": 225, "what": "amass: masses of atoms in the supercell (a.m.u.)"},
+        {"file": "q-e/PHonon/PH/matdyn.f90", "line": 965, "what": "text path: amass(nt) = amass_from_file/amu_ry"},
+        {"file": "q-e/PHonon/PH/matdyn.f90", "line": 366, "what": "XML path: amass_blk used directly (amu), no division"}
+      ],
+      "operation": {"kind": "parameter", "closed_form": null, "notes": "Enters at dyndiag only; enables isotope mass-approximation dispersions from a single FC file."},
+      "maps_to": {"node": "AtomicMass", "status": "existing", "notes": "Same AtomicMass node, third override point in the chain."},
+      "conventions": ["amu at input; file storage differs by format (Ry a.u. text, amu XML)"],
+      "example_instances": []
+    },
+    {
+      "name": "matdyn-qpoint-path",
+      "quantity": "List of q-vectors (band path or explicit list) at which to interpolate",
+      "symbol": "{q}",
+      "units": "cartesian coordinates in 2pi/a units (a = lattice parameter); crystal coordinates if q_in_cryst_coord=.true.",
+      "gauge": "observable",
+      "indices": ["n=1..nq"],
+      "role": "consumes",
+      "program": "matdyn.x",
+      "artifact": {"type": "file", "name": "matdyn.x input q card (nq then q lines; band form with nptq counts if q_in_band_form)", "format_notes": "For q=0 entries the NAC direction qhat is inferred from adjacent list points: qhat = q(n)-q(n-1) or q(n)-q(n+1); to probe two limits list q=0 twice. dos=.true. replaces the list with an internal nk1 x nk2 x nk3 grid."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/Doc/INPUT_MATDYN.txt", "line": 481, "what": "q-points in cartesian 2pi/a units"},
+        {"file": "q-e/PHonon/Doc/INPUT_MATDYN.txt", "line": 494, "what": "qhat direction rule for the q=0 non-analytic limit"},
+        {"file": "q-e/PHonon/PH/matdyn.f90", "line": 645, "what": "implementation of the qhat = q(n)-q(n±1) rule"}
+      ],
+      "operation": {"kind": "parameter", "closed_form": null, "notes": "Defines the interpolation targets; also implicitly parameterizes the direction-dependent LO-TO limit at Gamma."},
+      "maps_to": {"node": null, "status": "unclear", "notes": "Discretization/evaluation-set choice, not a Space."},
+      "conventions": ["2pi/alat cartesian by default", "crystal input converted to cartesian on read", "q=0 duplicated to sample multiple LO-TO limits"],
+      "example_instances": ["example02: 161-point Gamma-X line"]
+    },
+    {
+      "name": "interpolated-phonon-frequencies",
+      "quantity": "Fourier-interpolated phonon dispersion frequencies at the requested q list",
+      "symbol": "omega_q,nu",
+      "units": "cm-1 (negative value = imaginary mode, omega^2 < 0)",
+      "gauge": "observable",
+      "indices": ["q index n", "mode nu=1..3*nat"],
+      "role": "produces",
+      "program": "matdyn.x",
+      "artifact": {"type": "file", "name": "flfrq (default matdyn.freq) + flfrq.gp + flfrq.rap", "format_notes": "flfrq: header '&plot nbnd= x, nks= y /' then per q: 'q_x q_y q_z wq' (2pi/alat cartesian + weight) and 3*nat frequencies (6f10.4) in cm-1. flfrq.gp: gnuplot-friendly, column 1 = cumulative |dq| path length in 2pi/alat units, then 3*nat cm-1 columns. flfrq.rap (XML IFC only): irrep labels per mode."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/PH/matdyn.f90", "line": 769, "what": "freq = SQRT(ABS(w2))*RY_TO_CMM1 with negative-sign rule at 770"},
+        {"file": "q-e/PHonon/PH/matdyn.f90", "line": 776, "what": "flfrq '&plot' header and per-q writes"},
+        {"file": "q-e/PHonon/PH/matdyn.f90", "line": 783, "what": "flfrq.gp path-length variant"}
+      ],
+      "operation": {"kind": "fourier-interpolation+diagonalization", "closed_form": "D(q) = (FFT of frc with WS weights) [+ rgd_blk LR term] [+ nonanal at q=0]; omega = sqrt(eig)", "notes": "frc_blk uses Wigner-Seitz weighting (wsweight) over a 2x grid; rgd_blk re-adds the dipole term with sign +1 when has_zstar (matdyn.f90:1280)."},
+      "maps_to": {"node": "Frequency", "status": "existing", "notes": "Same Frequency node as ph.x exact-q values, different producing operation (interpolation vs direct DFPT); cm-1 only in this file (no THz column)."},
+      "conventions": ["cm-1, linear wavenumber", "negative = imaginary", "LO-TO handling at q=0 depends on qhat from the path (see matdyn-qpoint-path) and on loto_disable"],
+      "example_instances": ["example02 reference alas.freq: '&plot nbnd= 6, nks= 161 /', Gamma row '-0.0000 -0.0000 0.0000 375.5172 375.5172 410.5598' (LO-TO split visible)"]
+    },
+    {
+      "name": "phonon-dos",
+      "quantity": "Phonon density of states (plus per-atom projected DOS columns)",
+      "symbol": "g(omega), g_na(omega)",
+      "units": "DOS in states/cm-1 vs omega in cm-1; normalized so integral = 3*nat",
+      "gauge": "observable",
+      "indices": ["energy bin E (cm-1)", "columns: E, total DOS, PDOS per atom"],
+      "role": "produces",
+      "program": "matdyn.x",
+      "artifact": {"type": "file", "name": "fldos (default matdyn.dos)", "format_notes": "Header '# Frequency[cm^-1] DOS PDOS'; rows '(2ES18.10,1000ES12.4)': E, sum DOS, then nat atom-projected columns. Grid nk1 x nk2 x nk3 (must be given when dos=.true.), tetrahedron integration by default (degauss=0), Gaussian broadening of width degauss (cm-1) otherwise; energy step deltaE (cm-1, default 1) or ndos."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/PH/matdyn.f90", "line": 824, "what": "header write '# Frequency[cm^-1] DOS PDOS'"},
+        {"file": "q-e/PHonon/PH/matdyn.f90", "line": 852, "what": "row write: E, SUM(DOSofE), DOSofE(1:nat)"},
+        {"file": "q-e/PHonon/Doc/INPUT_MATDYN.txt", "line": 159, "what": "fldos doc: dos in states/cm-1 vs cm-1, normalised to 3*nat"}
+      ],
+      "operation": {"kind": "bz-integration", "closed_form": "g(E) = sum_nu int_BZ delta(E - omega_nu(q)) dq (tetrahedra dos_gam, or Gaussian dos_broad)", "notes": "PDOS weight is |e_na|^2 with orthonormal eigenvectors reconstructed via zq = z*sqrt(amu_ry*amass) (matdyn.f90:698)."},
+      "maps_to": {"node": "PhononDOS", "status": "existing", "notes": "Direct match. Catalog normalization (1/N_q sum -> integral 3*nat) agrees with QE's documented normalization; axis unit is cm-1."},
+      "conventions": ["states/cm-1 (per unit cell), integral 3*nat", "tetrahedra by default, Gaussian if degauss > 0 (degauss in cm-1)", "PDOS columns appended after the total"],
+      "example_instances": ["example02 reference alas.phdos"]
+    },
+    {
+      "name": "normalized-phonon-displacements",
+      "quantity": "Per-mode normalized displacement patterns at each interpolated q",
+      "symbol": "u_q,nu",
+      "units": "dimensionless normalized complex vectors; per-mode headers repeat frequencies in THz and cm-1",
+      "gauge": "hidden",
+      "indices": ["q", "mode nu", "atom", "cartesian"],
+      "role": "produces",
+      "program": "matdyn.x",
+      "artifact": {"type": "file", "name": "flvec (default matdyn.modes)", "format_notes": "writemodes: eigenvectors divided by sqrt(mass) then renormalized: NOT orthogonal (explicitly documented). Same '(3(f10.6,1x,f10.6,3x))' complex triple format as dyn-file tails."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/PH/write_eigenvectors.f90", "line": 104, "what": "writemodes: z/znorm written (z from dyndiag is already mass-divided)"},
+        {"file": "q-e/PHonon/Doc/INPUT_MATDYN.txt", "line": 175, "what": "flvec doc: eigenvectors / sqrt(mass), normalized, not orthogonal"}
+      ],
+      "operation": {"kind": "diagonalization", "closed_form": null, "notes": "Gauge freedom identical to Eigenvectors."},
+      "maps_to": {"node": "Eigenvectors", "status": "existing", "notes": "Hidden node; displacement-pattern normalization must be declared (differs from fleig by sqrt(amu_ry*m) per component)."},
+      "conventions": ["mass-divided and renormalized (displacement patterns)", "default-on artifact (flvec='matdyn.modes')"],
+      "example_instances": ["example02 reference matdyn.modes"]
+    },
+    {
+      "name": "phonon-eigenvectors",
+      "quantity": "Per-mode orthonormal eigenvectors of the mass-weighted dynamical matrix at each interpolated q",
+      "symbol": "e_q,nu",
+      "units": "dimensionless orthonormal complex vectors; per-mode headers in THz and cm-1",
+      "gauge": "hidden",
+      "indices": ["q", "mode nu", "atom", "cartesian"],
+      "role": "produces",
+      "program": "matdyn.x",
+      "artifact": {"type": "file", "name": "fleig (default ' ', i.e. off; conventionally matdyn.eig)", "format_notes": "write_eigenvectors multiplies dyndiag's displacement output back by sqrt(amu_ry*amass): these ARE orthogonal (documented)."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/PH/write_eigenvectors.f90", "line": 41, "what": "z_ = z*sqrt(amu_ry*amass): reconstruct orthonormal eigenvectors"},
+        {"file": "q-e/PHonon/Doc/INPUT_MATDYN.txt", "line": 185, "what": "fleig doc: eigenvectors of the dynamical matrix, orthogonal"}
+      ],
+      "operation": {"kind": "diagonalization", "closed_form": null, "notes": "The flvec/fleig pair is QE's explicit realization of the displacement-vs-eigenvector convention split."},
+      "maps_to": {"node": "Eigenvectors", "status": "existing", "notes": "Hidden node, orthonormal-eigenvector normalization (the catalog's canonical choice for e)."},
+      "conventions": ["orthonormal", "off by default"],
+      "example_instances": []
+    },
+    {
+      "name": "interpolated-dynamical-matrix",
+      "quantity": "Interpolated force-constant matrix C(q) at each requested q, including the non-analytic term at q=0 when applicable",
+      "symbol": "C(q) (+NAC)",
+      "units": "Ry/bohr^2 (same write_dyn_on_file format as ph.x dyn files; not mass-weighted)",
+      "gauge": "observable",
+      "indices": ["q", "atom a", "atom b", "cartesian i", "cartesian j"],
+      "role": "produces",
+      "program": "matdyn.x",
+      "artifact": {"type": "file", "name": "fldyn (default ' ', off)", "format_notes": "One 'Dynamical  Matrix in cartesian axes' block per q; at q=0 the epsilon/Z* section is appended too. Unlike ph.x dyn files this matrix ALREADY contains the rgd_blk long-range re-addition and the nonanal q->0 term for the path direction."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/PH/matdyn.f90", "line": 687, "what": "call write_dyn_on_file(q, dyn, nat, iout_dyn) after setupmat and nonanal"},
+        {"file": "q-e/PHonon/PH/matdyn.f90", "line": 688, "what": "write_epsilon_and_zeu appended at q=0"}
+      ],
+      "operation": {"kind": "fourier-interpolation", "closed_form": "C(q) = FFT[frc] + C_LR(q) + C_NAC(qhat) (polar case)", "notes": "The NAC-inclusive counterpart of the ph.x dyn file."},
+      "maps_to": {"node": "DynamicalMatrix", "status": "existing", "notes": "Corresponds to the post-NAC DynamicalMatrix node, again modulo the mass-weighting convention (QE stores un-mass-weighted C; the node's frequency^2 form requires the amu_ry*sqrt(m m) division)."},
+      "conventions": ["not mass-weighted", "includes NAC (difference from ph.x fildyn)", "off by default"],
+      "example_instances": []
+    },
+    {
+      "name": "nac-loto-splitting",
+      "quantity": "Non-analytic q->0 correction (LO-TO splitting) applied during interpolation. NOTE-ONLY entry per scan scope",
+      "symbol": "C_NAC = 4pi e^2 (qhat.Z*_a)(qhat.Z*_b) / (Omega qhat.eps.qhat)",
+      "units": "Ry/bohr^2 (added to C(q) before mass division; e^2 = 2 in Rydberg units)",
+      "gauge": "observable",
+      "indices": ["direction qhat", "atom a", "atom b", "cartesian"],
+      "role": "consumes",
+      "program": "matdyn.x",
+      "artifact": {"type": "stdout", "name": "behavioral: modifies fldyn/flfrq/flvec outputs at q=0", "format_notes": "nonanal (rigid.f90) adds the Gonze rigid-ion G=0 term along qhat; rgd_blk handles the full G-sum long-range part at general q (added with sign +1 in setupmat, subtracted with sign -1 in q2r). Controls: loto_disable (skip at q=0), loto_2d (2D treatment, fac = 2pi e^2/Area with effective screening reff), na_ifc (finite-displacement variant, Wang PRB 85, 224303 (2012)). If Z* absent from flfrc: warning 'TO-LO splitting at q=0 will be absent'."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/PH/rigid.f90", "line": 305, "what": "nonanal: dyn += fpi*e2*zag(i)*zbg(j)/qeq/omega"},
+        {"file": "q-e/PHonon/PH/matdyn.f90", "line": 680, "what": "IF (lo_to_split) CALL nonanal(...)"},
+        {"file": "q-e/PHonon/PH/matdyn.f90", "line": 1280, "what": "setupmat: rgd_blk(..., +1.d0) re-adds the long-range term"},
+        {"file": "q-e/PHonon/PH/rigid.f90", "line": 20, "what": "reference: X. Gonze et al, PRB 50, 13035 (1994)"}
+      ],
+      "operation": {"kind": "nac-correction", "closed_form": "D(q->0, qhat) = D_analytic + 4pi e^2/(Omega) (qhat.Z*_a)(qhat.Z*_b)/(qhat.eps.qhat)", "notes": "QE's realization of the catalog's apply_nac_correction edge: BareDynamicalMatrix + BornCharges + DielectricTensor -> DynamicalMatrix. Direction qhat comes from the q-list sequence."},
+      "maps_to": {"node": "DynamicalMatrix", "status": "existing", "notes": "Grounds the apply_nac_correction edge exactly (Gonze convention; e^2=2 Ry units internally, cancels in the dimensionless result)."},
+      "conventions": ["Gonze 1994 dipole-dipole form (same family as phonopy's default NAC)", "direction-dependent at Gamma: value depends on path geometry", "split into smooth G-sum part (rgd_blk, all q) + nonanal Gamma limit"],
+      "example_instances": ["example02 AlAs Gamma: TO 375.5 / LO 410.6 cm-1"]
+    },
+    {
+      "name": "fc3-third-order-route",
+      "quantity": "Third-order (anharmonic) force constants. NOTE-ONLY entry: NOT produced by this QE phonon chain",
+      "symbol": "Phi^(3)",
+      "units": "n/a in this slice (external: thirdorder.py emits eV/A^3 ShengBTE format; D3Q emits its own anh* files in Ry atomic units)",
+      "gauge": "observable",
+      "indices": ["atom triplets", "cartesian^3"],
+      "role": "consumes",
+      "program": "pw.x",
+      "artifact": {"type": "file", "name": "external: FORCE_CONSTANTS_3RD (thirdorder.py) or mat3R/anh files (D3Q)", "format_notes": "Two external routes: (1) finite differences: thirdorder.py generates displaced supercells, pw.x supplies atomic-forces (Ry/au) for each, thirdorder.py assembles FC3; (2) DFPT: the D3Q code (superseding the old QE D3 code, per PHonon user guide) computes the third derivative directly from ph.x-adjacent linear response. Neither artifact is written by pw.x/ph.x/q2r.x/matdyn.x in this repo tree."},
+      "source_anchors": [
+        {"file": "q-e/PHonon/Doc/user_guide.tex", "line": 119, "what": "old D3 code 'superseded by the D3Q code, available on https://sourceforge.net/projects/d3q/'"},
+        {"file": "q-e/PW/src/forces.f90", "line": 345, "what": "the pw.x forces that the finite-difference FC3 route consumes"}
+      ],
+      "operation": {"kind": "external", "closed_form": null, "notes": "In the openmaterials map QE's role for FC3 is indirect: provider of forces (finite-difference route) or host of the D3Q extension (not vendored here)."},
+      "maps_to": {"node": "ForceConstants[order=3]", "status": "existing", "notes": "The FC3 node stays grounded by phono3py/ShengBTE adapters; QE grounds only its inputs. Beware the known phono3py-vs-ShengBTE eV/A^3 0.1 factor documented in ingest_code.md before chaining QE-forces -> thirdorder.py -> ShengBTE."},
+      "conventions": ["not produced in-tree", "unit conventions belong to the external tool, not QE"],
+      "example_instances": []
+    }
+  ],
+  "open_questions": [
+    "fildvscf record normalization: the potential response is stored in the irreducible-representation pattern basis; the exact per-unit-displacement scaling (bohr vs pattern norm) was not traced to the write site in this scan. EPW's reader (not in scope) is the authoritative decoder.",
+    "flfrq wq column: matdyn.f90:778 always writes a 4th value wq(n) after the q vector; in band-path mode (dos=.false.) wq is allocated but its initialization path was not fully traced (older reference outputs, e.g. example02 alas.freq, show only 3 values, so the column was added later). Harmless for parsing frequencies but the weight semantics off the DOS grid are unverified.",
+    "PhononDOS normalization was verified from INPUT_MATDYN.txt (states/cm-1, integral = 3*nat) and the tetrahedron weight structure, but not validated numerically against a reference integral in this scan.",
+    "Which QE ASR flavor ('simple' vs 'crystal') corresponds to phonopy's default FC symmetrization needs a numerical cross-check before declaring EXPECTED_AGREE on near-Gamma acoustic frequencies.",
+    "The XML dyn format is auto-selected for noncollinear/spin-orbit runs (fildyn gains .xml); whether ldisp text runs can also be forced to XML (control_ph xmldyn) and whether both are ever written simultaneously was not chased.",
+    "matdyn can also run q2r internally when fildyn is given in its namelist (matdyn.f90:347-354, do_q2r call); the catalog treats q2r.x as the canonical producer and this shortcut as an alias.",
+    "Stress-tensor sign convention (tension-positive vs compression-positive) for the printed sigma was not verified against a strained reference; only the unit duality (Ry/bohr^3, kbar) was anchored."
+  ]
+}
