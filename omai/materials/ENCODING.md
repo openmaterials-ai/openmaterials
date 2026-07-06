@@ -152,9 +152,10 @@ Add the LaTeX symbol for each new operator-graph node to the `SYMBOLS` dict in
 the LaTeX symbol used in graph visualizations and the site deck.
 
 Example: after adding `DIFFUSIVITY_STATE` and `ACTIVATION_ENERGY`, the dict
-received `"Diffusivity": r"D"` and `"ActivationEnergy": r"E_a"`.
-`STRUCTURE` already appears there (re-exported from shared_primitives) and was
-added when the materials domain was bootstrapped.
+received `"Diffusivity": r"D"` and `"ActivationEnergy": r"E_a"`. Add a node's
+symbol only once the node actually enters the graph (i.e. an edge in `EDGES`
+produces or consumes it); `STRUCTURE` is defined in `shared_primitives` but
+stays out of `SYMBOLS` until the first skill wires an edge to it.
 
 
 ## Step 7: Regenerate and test

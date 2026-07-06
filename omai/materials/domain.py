@@ -8,7 +8,6 @@ from omai.materials.operator import EDGES, NODES
 SYMBOLS: dict[str, str] = {
     "Diffusivity": r"D",
     "ActivationEnergy": r"E_a",
-    "Structure": r"\mathcal{S}",
 }
 
 MATERIALS = Domain(
