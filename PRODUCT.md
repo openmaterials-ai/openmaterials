@@ -70,16 +70,23 @@ typed physical quantities. An edge produces one node from a list of input
 nodes, carrying the symbolic formula that relates them (parameter inputs are
 marked as inputs rather than derived through a formula).
 
-Identity is structural, not nominal. A derived node's id is the hash of its
-operation and its unordered input node ids; a leaf node's id is the hash of its
-intrinsic type, units, gauge class, and index signature. Names and symbols are
-not part of identity, so your `kappa` and my `k_L` are the same node when they
-have the same structure, and a formula written `c v^2 tau` or `tau v^2 c` is one
-edge because both store the same operation graph. Genuinely different
-decompositions stay separate graphs and are reconciled where they meet, at a
-shared observable. The consequence is that two people who contribute the same
-physics converge automatically, while a real difference in decomposition
-surfaces as a parallel route rather than a false merge.
+Identity is structural plus one curated semantic tag. A node's id is the hash
+of its quantity tag, its field signatures (dimension and index kinds per
+field), its gauge class, and its labels; an edge's id is the hash of its output
+and input node ids, its formula fingerprint, and its schemes. The quantity tag
+exists because physics is full of same-typed distinct quantities (entropy and
+heat capacity share dimension, indices, and gauge); tags, index kinds, labels,
+and gauge groups live in small controlled registries that are part of the
+protocol. Names and symbols are not part of identity, so your `kappa` and my
+`k_L` are the same node when you both map to the registered quantity, and a
+formula written `c v^2 tau` or `tau v^2 c` is one edge because both normalize
+to the same fingerprint. Genuinely different decompositions stay separate
+graphs and are reconciled where they meet, at a shared observable; production
+routes are never part of a node's identity, so adding an alternative
+derivation of an existing quantity never re-mints the node. The consequence is
+that two people who contribute the same physics converge through the shared
+registries, while a real difference in decomposition surfaces as a parallel
+route rather than a false merge.
 
 Three properties propagate, rather than being hand-stamped on every node:
 
