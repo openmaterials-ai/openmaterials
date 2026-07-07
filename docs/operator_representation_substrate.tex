@@ -260,8 +260,10 @@ runtime that operates on actual code outputs. Machinery in
 \texttt{OperatorRepresentationSpec} types, \texttt{Unit} and unit conversions,
 the \texttt{Representation} runtime data class, \texttt{compare()} with
 its five-status verdicts); domain instances in
-\texttt{omai.thermal\_transport.represented} (one file per code:
-\texttt{kaldo.py}, \texttt{phono3py.py}).
+\texttt{omai.thermal\_transport.representation} (one file per code:
+\texttt{kaldo.py}, \texttt{phono3py.py}, \texttt{phonopy.py},
+\texttt{shengbte.py}, \texttt{qe.py}, \texttt{ase.py}, \texttt{lammps.py},
+\texttt{gpumd.py}).
 
 \paragraph{External codes.} kaldo, phono3py, ShengBTE: do the actual
 physics computation in their own native code, output arrays in their
@@ -913,8 +915,6 @@ $\kappa$ map alongside the LBTE / Wigner / QHGK variants.
         eigenvector freedom at degenerate $\omega$;
   \item \texttt{HeatCapacity} (\textbf{O}): $c(\mathbf{q},\nu, T) = (\hbar\omega)^2 /
         (4 k_B T^2 \sinh^2(\hbar\omega / 2 k_B T))$;
-  \item \texttt{Linewidth} (\textbf{H}): per-mode $\Gamma(\mathbf{q},\nu, T)$,
-        BZ-summation redistribution;
   \item \texttt{MeanFreeDisplacement[bte\_solver=rta]} (\textbf{H}): RTA
         $F = v/(2\Gamma)$, inherits Linewidth's looseness;
   \item \texttt{MeanFreeDisplacement[bte\_solver=direct\_inverse]} (\textbf{O}): full
@@ -994,7 +994,7 @@ $\kappa$ map alongside the LBTE / Wigner / QHGK variants.
         \texttt{gv\_method} $\in$ \{\texttt{hellmann\_feynman} (canonical),
         \texttt{finite\_difference}\} captures the two estimators codes use;
   \item \texttt{compute\_heat\_capacity}: closed form above;
-  \item \texttt{compute\_linewidth}: triple BZ sum (Fermi's golden rule);
+  \item \texttt{compute\_anharmonic\_linewidth}: triple BZ sum (Fermi's golden rule);
         scheme \texttt{broadening\_param} $\in$ \{stdev,
         halfwidth, adaptive\_scaled\}, plus an auxiliary equation
         \texttt{auxiliary\_formulas[0]} that spells out the Maradudin--Fein
@@ -1040,10 +1040,10 @@ $\kappa$ map alongside the LBTE / Wigner / QHGK variants.
         \texttt{compute\_internal\_energy} and their
         \texttt{contract\_molar\_*} counterparts --- harmonic-oscillator
         closed forms with $x = \hbar\omega/(k_B T)$;
-  \item \texttt{compute\_anharmonic\_linewidth} (rename of legacy
-        \texttt{compute\_linewidth}), \texttt{compute\_isotope\_scattering}
-        (Tamura), \texttt{compute\_boundary\_scattering} (Casimir), and
-        \texttt{sum\_linewidths} (Matthiessen);
+  \item \texttt{compute\_isotope\_scattering} (Tamura),
+        \texttt{compute\_boundary\_scattering} (Casimir), and
+        \texttt{sum\_linewidths} (Matthiessen) --- the sibling channels
+        joining \texttt{compute\_anharmonic\_linewidth} above;
   \item \texttt{compute\_kappa\_wigner\_populations},
         \texttt{compute\_kappa\_wigner\_coherences} (Lorentzian
         band-overlap), \texttt{combine\_kappa\_wigner},
@@ -1176,7 +1176,7 @@ Linewidth split, the Wigner/QHGK transport variants, the cumulative-$\kappa$
 distributions, the MD-primitive tier (Trajectory, HeatCurrent, HeatCurrentACF,
 VelocityAutocorrelation, MeanSquaredDisplacement), and the three MD-based
 $\kappa$ Pattern-A terminals (Green-Kubo, NEMD, HNEMD) --- is included; see
-\texttt{docs/index.html} for the interactive view). The
+\texttt{docs/pipeline.html} for the interactive view). The
 two darker top boxes (\texttt{Potential}, \texttt{Temperature}) are source nodes;
 the dashed edges from \texttt{Potential} represent the stubbed Phase-1 upstream.
 \texttt{MeanFreeDisplacement} and $\kappa$ split into two parameterized variants by
@@ -1194,8 +1194,8 @@ sense.}
 
 \subsection{Representation functors (codes)}
 
-Each adapter is a representation functor over the operator DAG. Seven adapters
-are now ingested, in two tiers. The four BTE / harmonic codes that consume
+Each adapter is a representation functor over the operator DAG. Eight adapters
+are now ingested, in three tiers. The four BTE / harmonic codes that consume
 force constants:
 
 \begin{itemize}[leftmargin=2em]
@@ -1235,7 +1235,8 @@ $\kappa$ paths:
         source, so a cross-code $\kappa$ comparison rests on one declared force
         field rather than an implicit shared assumption.
   \item \textbf{LAMMPS} (C++/Python). Classical molecular dynamics. Native
-        \texttt{pair\_style} Potential, plus the MD-primitive tier
+        \texttt{pair\_style} Potential, \texttt{Temperature} (global,
+        region, and chunked-profile variants), plus the MD-primitive tier
         (\texttt{Trajectory}, \texttt{HeatCurrent}, \texttt{HeatCurrentACF},
         \texttt{VelocityAutocorrelation}, \texttt{MeanSquaredDisplacement} via
         \texttt{compute heat/flux}, \texttt{compute vacf}, \texttt{compute msd},
@@ -1248,6 +1249,25 @@ $\kappa$ paths:
         HNEMD (\texttt{compute\_hnemd}) $\kappa$ paths --- HNEMD being GPUMD's
         signature method; direct NEMD is recorded as not-exposed (routes
         through LAMMPS).
+\end{itemize}
+
+\noindent and one source-tier addition grounding the upstream the BTE codes
+consume as given:
+
+\begin{itemize}[leftmargin=2em]
+  \item \textbf{Quantum ESPRESSO} (Fortran/MPI). First-principles DFT and
+        DFPT. Grounds the source tier: \texttt{ForceConstants[order=2]}
+        (\texttt{q2r.x} real-space constants in Ry/bohr$^2$),
+        \texttt{BornCharges} and \texttt{DielectricTensor} (\texttt{ph.x}
+        linear response, turning the \texttt{provide\_*} sources into
+        computed quantities), \texttt{BareDynamicalMatrix} /
+        \texttt{DynamicalMatrix} (raw un-mass-weighted $C(\mathbf{q})$
+        files; mass weighting applied only at diagonalization),
+        \texttt{Frequency} (linear cm$^{-1}$ / THz), \texttt{Eigenvectors},
+        and \texttt{PhononDOS} via \texttt{matdyn.x}. The adapter records
+        the DFPT method (versus finite displacements), QE's internal
+        space-group machinery, and the Gonze NAC scheme; derived from the
+        anchored scan catalog \texttt{scans/qe-phonon.json}.
 \end{itemize}
 
 Each adapter spec declares per-space units, normalization overrides, and notes
@@ -1398,13 +1418,17 @@ plus one per domain:
       \item \texttt{representation/kaldo.py},
             \texttt{representation/phono3py.py},
             \texttt{representation/phonopy.py},
-            \texttt{representation/shengbte.py}: per-code adapter specs
+            \texttt{representation/shengbte.py},
+            \texttt{representation/qe.py},
+            \texttt{representation/ase.py},
+            \texttt{representation/lammps.py},
+            \texttt{representation/gpumd.py}: per-code adapter specs
             (one file per code), declaring units, normalizations, schemes,
             and discretization choices. Every operator in scope for a code
             now carries an \texttt{OperatorRepresentationSpec}; trivial source /
             contraction ops carry no schemes but exist to mark coverage
             in the visualization.
-      \item \texttt{visualize.py}: emits \texttt{docs/index.html}, an interactive
+      \item \texttt{visualize.py}: emits \texttt{docs/pipeline.html}, an interactive
             single-file visualization (per-pipeline SVG DAGs with row-aligned
             states, click-to-details panels, MathJax-rendered formulas) that
             reflects the current state and discriminates three edge classes:
