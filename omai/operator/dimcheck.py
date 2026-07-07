@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import sympy as sp
 
-from omai.operator.dimensions import DIMENSIONLESS, ENERGY, Dimension
+from omai.operator.dimensions import DIMENSIONLESS, ENERGY, FREQUENCY_SQUARED, Dimension
 
 __all__ = [
     "SYMBOL_DIMENSIONS",
@@ -64,9 +64,12 @@ KNOWN_VIOLATIONS: list[str] = [
 
 
 # Spaces whose symbol ``D`` / ``D^{bare}`` (the dynamical matrix) collides
-# with the materials-domain diffusivity ``D``. Edges touching them get an
-# explicit per-edge unknown override so the collision never becomes a false
-# violation; see the thermal dimensions_registry docstring.
+# with the materials-domain diffusivity ``D``. The global registry can hold
+# only one dimension per base name, and materials owns ``D`` = diffusivity,
+# so edges touching the dynamical-matrix spaces get a per-edge override that
+# binds ``D`` / ``D^{bare}`` to their true dimension, frequency squared (the
+# mass-weighted Hessian, whose eigenvalues are omega^2). See the thermal
+# dimensions_registry docstring.
 _DM_SPACE_NAMES = frozenset({"DynamicalMatrix", "BareDynamicalMatrix"})
 _DM_OVERRIDE_SYMBOLS = ("D", r"D^{bare}")
 
@@ -289,8 +292,9 @@ def _edge_local_mapping(op) -> dict:
     map to None, i.e. treated as unknown) plus two symbol overrides:
 
       * dynamical matrix: on any edge touching a DynamicalMatrix /
-        BareDynamicalMatrix space, ``D`` / ``D^{bare}`` is forced unknown so
-        it never resolves to the materials-domain diffusivity ``D``;
+        BareDynamicalMatrix space, ``D`` / ``D^{bare}`` is bound to
+        FREQUENCY_SQUARED (its true dimension) rather than resolving to the
+        globally-registered materials-domain diffusivity ``D``;
       * internal energy: on any edge touching InternalEnergy /
         MolarInternalEnergy, the field symbol ``e`` is bound to ENERGY (it
         is left globally unregistered because it also names the eigenvector,
@@ -301,7 +305,7 @@ def _edge_local_mapping(op) -> dict:
         local[p.name] = None if p.dimension.is_opaque else p.dimension
     if any(s.name in _DM_SPACE_NAMES for s in (op.inputs + op.outputs)):
         for sym in _DM_OVERRIDE_SYMBOLS:
-            local[sym] = None
+            local[sym] = FREQUENCY_SQUARED
     if any(s.name in _INTERNAL_ENERGY_SPACE_NAMES for s in (op.inputs + op.outputs)):
         local[_INTERNAL_ENERGY_OVERRIDE_SYMBOL] = ENERGY
     return local

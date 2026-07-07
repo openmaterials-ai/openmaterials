@@ -23,20 +23,18 @@ wrongly flagged. The intentionally-skipped symbols and why:
   * ``g``          - both the phonon DOS and the isotope mass-variance
                      factor. Ambiguous.
   * ``D``, ``D^{bare}`` - the dynamical matrix. Its field dimension is
-                     declared FREQUENCY, but the dispersion equation
-                     ``Sum(D e) = omega^2 e`` needs D to carry frequency
-                     *squared*. Rather than encode a known modeling
-                     looseness here (which would show up as a spurious
-                     violation, or force a bogus registration), D is left
-                     unknown for now and its edges evaluate to SKIPPED.
-                     This is a recorded finding to resolve in kernel P2,
-                     when dimensions enter node identity: either the field
-                     dimension becomes frequency^2 or the formula grows an
-                     explicit mass/normalization factor. The materials
-                     domain registers ``D`` as diffusivity (a different
-                     physical D); the two never collide because Task 3
-                     supplies a per-edge ``local`` override that blanks
-                     ``D``/``D^{bare}`` on the thermal DM-touching edges.
+                     frequency *squared* (the mass-weighted Hessian, whose
+                     eigenvalues are omega^2: the dispersion equation reads
+                     ``Sum(D e) = omega^2 e``), so the DynamicalMatrix /
+                     BareDynamicalMatrix fields declare FREQUENCY_SQUARED.
+                     The base name ``D`` is NOT registered globally here
+                     because the materials domain registers ``D`` as
+                     diffusivity (a different physical D) and the global
+                     registry holds one dimension per base name. The two
+                     never collide because dimcheck supplies a per-edge
+                     ``local`` override binding ``D``/``D^{bare}`` to
+                     FREQUENCY_SQUARED on the thermal DM-touching edges,
+                     while materials edges keep the global diffusivity ``D``.
   * ``Jcorr``, ``Cv`` - the heat-current ACF and velocity-ACF kinds are
                      declared OPAQUE on their spaces; opaque never enters
                      algebra.

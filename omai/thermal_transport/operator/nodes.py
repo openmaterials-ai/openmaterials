@@ -36,6 +36,7 @@ from omai.operator.dimensions import (
     ENERGY_PER_TEMPERATURE_PER_VOLUME,
     ENERGY_TIMES_LENGTH_PER_TIME,
     FREQUENCY,
+    FREQUENCY_SQUARED,
     LENGTH,
     LENGTH_PER_TIME,
     LENGTH_SQUARED,
@@ -104,7 +105,7 @@ DIELECTRIC_TENSOR = ObservableSpace(
 
 BARE_DYNAMICAL_MATRIX = ObservableSpace(
     name="BareDynamicalMatrix",
-    fields=(Field("D_bare", FREQUENCY, indices=("i", "j", "q")),),
+    fields=(Field("D_bare", FREQUENCY_SQUARED, indices=("i", "j", "q")),),
     description=(
         "Analytic Bloch sum of Φ²(R) — the dynamical matrix before any "
         "non-analytic correction is applied. Always produced by "
@@ -118,7 +119,7 @@ BARE_DYNAMICAL_MATRIX = ObservableSpace(
 
 DYNAMICAL_MATRIX = ObservableSpace(
     name="DynamicalMatrix",
-    fields=(Field("D", FREQUENCY, indices=("i", "j", "q")),),
+    fields=(Field("D", FREQUENCY_SQUARED, indices=("i", "j", "q")),),
     description=(
         "D(q) such that D e_qν = ω²_qν e_qν. Produced from BareDynamicalMatrix "
         "by either identity_dm (non-polar) or apply_nac_correction (polar). "

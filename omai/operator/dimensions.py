@@ -89,6 +89,10 @@ TIME = Dimension("time", (0, 0, 1, 0, 0, 0, 0))
 
 DIMENSIONLESS = Dimension("dimensionless", (0, 0, 0, 0, 0, 0, 0))
 FREQUENCY = Dimension("frequency", (0, 0, -1, 0, 0, 0, 0))
+# Frequency squared: the mass-weighted Hessian / dynamical-matrix eigenvalues
+# are omega^2 (the dispersion equation reads D e = omega^2 e), so the
+# DynamicalMatrix field carries this dimension, not FREQUENCY.
+FREQUENCY_SQUARED = Dimension("frequency_squared", (0, 0, -2, 0, 0, 0, 0))
 ENERGY = Dimension("energy", (1, 2, -2, 0, 0, 0, 0))
 LENGTH = Dimension("length", (0, 1, 0, 0, 0, 0, 0))
 TEMPERATURE = Dimension("temperature", (0, 0, 0, 1, 0, 0, 0))
@@ -127,6 +131,7 @@ DIMENSIONS: dict[str, Dimension] = {
         TIME,
         DIMENSIONLESS,
         FREQUENCY,
+        FREQUENCY_SQUARED,
         ENERGY,
         LENGTH,
         TEMPERATURE,

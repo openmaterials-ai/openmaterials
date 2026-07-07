@@ -948,7 +948,7 @@ const NODE_DATA = {
     "fields": [
       {
         "name": "D_bare",
-        "dimension": "frequency",
+        "dimension": "frequency_squared",
         "indices": [
           "i",
           "j",
@@ -1004,7 +1004,7 @@ const NODE_DATA = {
     "fields": [
       {
         "name": "D",
-        "dimension": "frequency",
+        "dimension": "frequency_squared",
         "indices": [
           "i",
           "j",
@@ -1497,7 +1497,7 @@ const NODE_DATA = {
       }
     ],
     "labels": {},
-    "description": "Per-mode entropy s_q\u03bd(T) = (1/T)\u00b7\u210f\u03c9\u00b7n_BE(\u03c9,T) - k_B ln(1 - exp(-\u210f\u03c9/k_B T)). Equivalently -\u2202f/\u2202T.",
+    "description": "Per-mode entropy s_q\u03bd(T) = (1/T)\u00b7\u210f\u03c9\u00b7n_BE(\u210f\u03c9/(k_B T)) - k_B ln(1 - exp(-\u210f\u03c9/k_B T)). Equivalently -\u2202f/\u2202T.",
     "specs": {},
     "cross_factors": {}
   },
@@ -1515,7 +1515,7 @@ const NODE_DATA = {
       }
     ],
     "labels": {},
-    "description": "Per-mode internal energy e_q\u03bd(T) = \u210f\u03c9(1/2 + n_BE(\u03c9/T)). Sums the zero-point energy and the thermal occupation.",
+    "description": "Per-mode internal energy e_q\u03bd(T) = \u210f\u03c9(1/2 + n_BE(\u210f\u03c9/(k_B T))). Sums the zero-point energy and the thermal occupation.",
     "specs": {},
     "cross_factors": {}
   },
@@ -3546,9 +3546,9 @@ const EDGE_DATA = {
     ],
     "parameters": [],
     "schemes": {},
-    "formula_latex": "{s}_{\\mathbf{q},\\nu} = - k_{B} \\log{\\left(1 - e^{- \\frac{\\bar{\\h} {\\omega}_{\\mathbf{q},\\nu}}{T k_{B}}} \\right)} + \\frac{\\bar{\\h} n_{BE}{\\left(\\frac{{\\omega}_{\\mathbf{q},\\nu}}{T} \\right)} {\\omega}_{\\mathbf{q},\\nu}}{T}",
+    "formula_latex": "{s}_{\\mathbf{q},\\nu} = - k_{B} \\log{\\left(1 - e^{- \\frac{\\bar{\\h} {\\omega}_{\\mathbf{q},\\nu}}{T k_{B}}} \\right)} + \\frac{\\bar{\\h} n_{BE}{\\left(\\frac{\\bar{\\h} {\\omega}_{\\mathbf{q},\\nu}}{T k_{B}} \\right)} {\\omega}_{\\mathbf{q},\\nu}}{T}",
     "auxiliary_latex": [],
-    "description": "Per-mode entropy at temperature T. Equivalent to -\u2202f/\u2202T; the explicit form uses n_BE(\u03c9,T) and the log of the partition factor.",
+    "description": "Per-mode entropy at temperature T. Equivalent to -\u2202f/\u2202T; the explicit form uses n_BE(\u210f\u03c9/(k_B T)) and the log of the partition factor.",
     "specs": {
       "phonopy": {
         "adapter": "phonopy",
@@ -3570,7 +3570,7 @@ const EDGE_DATA = {
     ],
     "parameters": [],
     "schemes": {},
-    "formula_latex": "{e}_{\\mathbf{q},\\nu} = \\bar{\\h} \\left(n_{BE}{\\left(\\frac{{\\omega}_{\\mathbf{q},\\nu}}{T} \\right)} + \\frac{1}{2}\\right) {\\omega}_{\\mathbf{q},\\nu}",
+    "formula_latex": "{e}_{\\mathbf{q},\\nu} = \\bar{\\h} \\left(n_{BE}{\\left(\\frac{\\bar{\\h} {\\omega}_{\\mathbf{q},\\nu}}{T k_{B}} \\right)} + \\frac{1}{2}\\right) {\\omega}_{\\mathbf{q},\\nu}",
     "auxiliary_latex": [],
     "description": "Per-mode internal energy at temperature T, \u210f\u03c9(1/2 + n_BE).",
     "specs": {
@@ -3604,11 +3604,11 @@ const EDGE_DATA = {
       "broadening_param": "stdev",
       "symmetry_group": "C1"
     },
-    "formula_latex": "{\\Gamma}_{\\mathbf{q},\\nu} = \\frac{\\pi \\sum_{\\substack{1 \\leq \\mathbf{q'} \\leq N_{q}\\\\1 \\leq \\nu' \\leq 3 N\\\\1 \\leq \\nu'' \\leq 3 N}} \\left(\\left(- 2 n_{BE}{\\left(\\frac{{\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''}}{T} \\right)} + 2 n_{BE}{\\left(\\frac{{\\omega}_{\\mathbf{q'},\\nu'}}{T} \\right)}\\right) \\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} + {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)} + \\left(n_{BE}{\\left(\\frac{{\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''}}{T} \\right)} + n_{BE}{\\left(\\frac{{\\omega}_{\\mathbf{q'},\\nu'}}{T} \\right)} + 1\\right) \\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} - {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)}\\right) \\operatorname{|V}^{2}_{3|}{\\left(\\mathbf{q},\\nu,\\mathbf{q'},\\nu',- \\mathbf{q'} + \\mathbf{q},\\nu'' \\right)}}{N \\bar{\\h}^{2}}",
+    "formula_latex": "{\\Gamma}_{\\mathbf{q},\\nu} = \\frac{\\pi \\sum_{\\substack{1 \\leq \\mathbf{q'} \\leq N_{q}\\\\1 \\leq \\nu' \\leq 3 N\\\\1 \\leq \\nu'' \\leq 3 N}} \\left(\\left(- 2 n_{BE}{\\left(\\frac{\\bar{\\h} {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''}}{T k_{B}} \\right)} + 2 n_{BE}{\\left(\\frac{\\bar{\\h} {\\omega}_{\\mathbf{q'},\\nu'}}{T k_{B}} \\right)}\\right) \\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} + {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)} + \\left(n_{BE}{\\left(\\frac{\\bar{\\h} {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''}}{T k_{B}} \\right)} + n_{BE}{\\left(\\frac{\\bar{\\h} {\\omega}_{\\mathbf{q'},\\nu'}}{T k_{B}} \\right)} + 1\\right) \\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} - {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)}\\right) \\operatorname{|V}^{2}_{3|}{\\left(\\mathbf{q},\\nu,\\mathbf{q'},\\nu',- \\mathbf{q'} + \\mathbf{q},\\nu'' \\right)}}{N \\bar{\\h}^{2}}",
     "auxiliary_latex": [
       "\\operatorname{|V}^{2}_{3|}{\\left(\\mathbf{q},\\nu,\\mathbf{q'},\\nu',- \\mathbf{q'} + \\mathbf{q},\\nu'' \\right)} = \\frac{\\left|{\\sum_{\\substack{1 \\leq i \\leq 3 N\\\\1 \\leq j \\leq 3 N\\\\1 \\leq k \\leq 3 N\\\\1 \\leq \\mathbf{R} \\leq N_{q}\\\\1 \\leq \\mathbf{R'} \\leq N_{q}}} \\frac{{\\Phi^{(3)}}_{i,j,k,\\mathbf{R},\\mathbf{R'}} {e}_{i,\\mathbf{q},\\nu} {e}_{j,\\mathbf{q'},\\nu'} {e}_{k,- \\mathbf{q'} + \\mathbf{q},\\nu''}}{\\sqrt{{m}_{i} {m}_{j} {m}_{k}}}}\\right|^{2}}{8 {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} {\\omega}_{\\mathbf{q'},\\nu'} {\\omega}_{\\mathbf{q},\\nu}}"
     ],
-    "description": "Anharmonic 3-phonon linewidth: imaginary self-energy from Fermi's golden rule. The kernel |V\u2083|\u00b2 is the Maradudin-Fein matrix element (auxiliary_formulas[0]): a triple sum of \u03a6\u00b3 contracted with eigenvectors and mass factors, scaled by 1/(8 \u03c9 \u03c9' \u03c9''). The same kernel appears in the LBTE collision matrix \u039e (see solve_bte_direct.auxiliary_formulas[0]). Energy delta is replaced by a Gaussian of canonical width \u03c3 = stdev. n_BE(\u03c9/T) = (e^{\u210f\u03c9/k_B T} - 1)^{-1}. q'' is fixed by crystal momentum conservation: q'' = q - q' (mod a reciprocal lattice vector). Under crystal symmetry G \u2282 O(3), the BZ sum \u03a3_{q'} can be restricted to the irreducible wedge BZ/G with multiplicity weights |G\u00b7q'|; symmetry_group=G asserts this reduction. symmetry_group=C1 means the full ordered grid is summed.",
+    "description": "Anharmonic 3-phonon linewidth: imaginary self-energy from Fermi's golden rule. The kernel |V\u2083|\u00b2 is the Maradudin-Fein matrix element (auxiliary_formulas[0]): a triple sum of \u03a6\u00b3 contracted with eigenvectors and mass factors, scaled by 1/(8 \u03c9 \u03c9' \u03c9''). The same kernel appears in the LBTE collision matrix \u039e (see solve_bte_direct.auxiliary_formulas[0]). Energy delta is replaced by a Gaussian of canonical width \u03c3 = stdev. n_BE(x) = (e^{x} - 1)^{-1} with x = \u210f\u03c9/(k_B T). q'' is fixed by crystal momentum conservation: q'' = q - q' (mod a reciprocal lattice vector). Under crystal symmetry G \u2282 O(3), the BZ sum \u03a3_{q'} can be restricted to the irreducible wedge BZ/G with multiplicity weights |G\u00b7q'|; symmetry_group=G asserts this reduction. symmetry_group=C1 means the full ordered grid is summed.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",
@@ -3879,7 +3879,7 @@ const EDGE_DATA = {
     },
     "formula_latex": "\\sum_{\\substack{1 \\leq \\mathbf{q'} \\leq N_{q}\\\\1 \\leq \\nu' \\leq 3 N}} {F}_{\\alpha,\\mathbf{q'},\\nu'} {\\mathcal{M}}_{\\mathbf{q},\\nu,\\mathbf{q'},\\nu'} = {c}_{\\mathbf{q},\\nu} {v}_{\\alpha,\\mathbf{q},\\nu}",
     "auxiliary_latex": [
-      "{\\mathcal{M}}_{\\mathbf{q},\\nu,\\mathbf{q'},\\nu'} = \\frac{2 \\delta_{\\mathbf{q'} \\mathbf{q}} \\delta_{\\nu \\nu'} {\\Gamma}_{\\mathbf{q},\\nu}}{\\bar{\\h}} - \\frac{\\pi \\sum_{\\nu''=1}^{3 N} \\left(4 \\left(- n_{BE}{\\left(\\frac{{\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''}}{T} \\right)} + n_{BE}{\\left(\\frac{{\\omega}_{\\mathbf{q'},\\nu'}}{T} \\right)}\\right) \\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} + {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)} \\operatorname{|V}^{2}_{3|}{\\left(\\mathbf{q},\\nu,\\mathbf{q'},\\nu',- \\mathbf{q'} + \\mathbf{q},\\nu'' \\right)} + 2 \\left(n_{BE}{\\left(\\frac{{\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''}}{T} \\right)} + n_{BE}{\\left(\\frac{{\\omega}_{\\mathbf{q'},\\nu'}}{T} \\right)} + 1\\right) \\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} - {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)} \\operatorname{|V}^{2}_{3|}{\\left(\\mathbf{q},\\nu,\\mathbf{q'},\\nu',- \\mathbf{q'} + \\mathbf{q},\\nu'' \\right)}\\right)}{N \\bar{\\h}^{2}}"
+      "{\\mathcal{M}}_{\\mathbf{q},\\nu,\\mathbf{q'},\\nu'} = \\frac{2 \\delta_{\\mathbf{q'} \\mathbf{q}} \\delta_{\\nu \\nu'} {\\Gamma}_{\\mathbf{q},\\nu}}{\\bar{\\h}} - \\frac{\\pi \\sum_{\\nu''=1}^{3 N} \\left(4 \\left(- n_{BE}{\\left(\\frac{\\bar{\\h} {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''}}{T k_{B}} \\right)} + n_{BE}{\\left(\\frac{\\bar{\\h} {\\omega}_{\\mathbf{q'},\\nu'}}{T k_{B}} \\right)}\\right) \\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} + {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)} \\operatorname{|V}^{2}_{3|}{\\left(\\mathbf{q},\\nu,\\mathbf{q'},\\nu',- \\mathbf{q'} + \\mathbf{q},\\nu'' \\right)} + 2 \\left(n_{BE}{\\left(\\frac{\\bar{\\h} {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''}}{T k_{B}} \\right)} + n_{BE}{\\left(\\frac{\\bar{\\h} {\\omega}_{\\mathbf{q'},\\nu'}}{T k_{B}} \\right)} + 1\\right) \\delta{\\left(- {\\omega}_{- \\mathbf{q'} + \\mathbf{q},\\nu''} - {\\omega}_{\\mathbf{q'},\\nu'} + {\\omega}_{\\mathbf{q},\\nu} \\right)} \\operatorname{|V}^{2}_{3|}{\\left(\\mathbf{q},\\nu,\\mathbf{q'},\\nu',- \\mathbf{q'} + \\mathbf{q},\\nu'' \\right)}\\right)}{N \\bar{\\h}^{2}}"
     ],
     "description": "Full linearized BTE: solve M\u00b7F = c\u00b7v for F, where M is the linearized three-phonon collision matrix. M has a diagonal (RTA) part 2\u0393/\u210f and off-diagonal scattering-in terms \u039e built from the same |V\u2083|\u00b2 as compute_linewidth (see auxiliary_formulas[0] for the explicit definition). Off-diagonals capture inter-mode redistribution that RTA drops; \u03ba obtained from this F is gauge-invariant. Under crystal symmetry G the matrix M block-diagonalizes on the irreducible q-set BZ/G, so the linear system can be solved on the reduced space and unfolded by G; symmetry_group=G asserts this. symmetry_group=C1 means M is inverted on the full grid. At finite q-grid, the BZ-summation strategy (full vs irreducible) leaks into \u03ba; convergence study in supercell+q-mesh is the resolution.",
     "specs": {
@@ -4055,9 +4055,9 @@ const EDGE_DATA = {
     "schemes": {
       "transport_model": "wigner_coherences"
     },
-    "formula_latex": "{\\kappa^{W,coh}}_{\\alpha,\\beta} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N\\\\1 \\leq \\nu' \\leq 3 N}} \\frac{\\left({\\Gamma^{anh}}_{\\mathbf{q},\\nu'} + {\\Gamma^{anh}}_{\\mathbf{q},\\nu}\\right) \\left({\\omega}_{\\mathbf{q},\\nu'} + {\\omega}_{\\mathbf{q},\\nu}\\right) \\left(\\frac{{c}_{\\mathbf{q},\\nu'}}{2} + \\frac{{c}_{\\mathbf{q},\\nu}}{2}\\right) {v}_{\\alpha,\\mathbf{q},\\nu} {v}_{\\beta,\\mathbf{q},\\nu'}}{2 \\left(\\left({\\Gamma^{anh}}_{\\mathbf{q},\\nu'} + {\\Gamma^{anh}}_{\\mathbf{q},\\nu}\\right)^{2} + \\left(- {\\omega}_{\\mathbf{q},\\nu'} + {\\omega}_{\\mathbf{q},\\nu}\\right)^{2}\\right)}}{N_{q} V_{cell}}",
+    "formula_latex": "{\\kappa^{W,coh}}_{\\alpha,\\beta} = \\frac{\\sum_{\\substack{1 \\leq \\mathbf{q} \\leq N_{q}\\\\1 \\leq \\nu \\leq 3 N\\\\1 \\leq \\nu' \\leq 3 N}} \\frac{\\left(\\frac{{c}_{\\mathbf{q},\\nu}}{{\\omega}_{\\mathbf{q},\\nu}} + \\frac{{c}_{\\mathbf{q},\\nu'}}{{\\omega}_{\\mathbf{q},\\nu'}}\\right) \\left({\\Gamma^{anh}}_{\\mathbf{q},\\nu'} + {\\Gamma^{anh}}_{\\mathbf{q},\\nu}\\right) \\left(\\frac{{\\omega}_{\\mathbf{q},\\nu'}}{2} + \\frac{{\\omega}_{\\mathbf{q},\\nu}}{2}\\right) {v}_{\\alpha,\\mathbf{q},\\nu} {v}_{\\beta,\\mathbf{q},\\nu'}}{\\left({\\Gamma^{anh}}_{\\mathbf{q},\\nu'} + {\\Gamma^{anh}}_{\\mathbf{q},\\nu}\\right)^{2} + \\left(- {\\omega}_{\\mathbf{q},\\nu'} + {\\omega}_{\\mathbf{q},\\nu}\\right)^{2}}}{N_{q} V_{cell}}",
     "auxiliary_latex": [],
-    "description": "Coherences (wave-like) component of the Wigner \u03ba. Lorentzian-weighted band-overlap at fixed q; dominant when mode spacings approach \u0393.",
+    "description": "Coherences (wave-like) component of the Wigner \u03ba. Lorentzian-weighted band-overlap at fixed q; dominant when mode spacings approach \u0393. The mode-pair specific-heat weighting is the frequency-weighted Simoncelli form (\u03c9+\u03c9')/2\u00b7(c/\u03c9 + c'/\u03c9') transcribed from the vendored phono3py Wigner (SMM19) solver phono3py/phono3py/conductivity/ms_smm19/kappa_solvers.py:122-126 (prefactor 0.25\u00b7(\u210f\u03c9_s+\u210f\u03c9_s')\u00b7(C_s/\u210f\u03c9_s + C_s'/\u210f\u03c9_s')), cross-checked against kaldo's off-diagonal C_{ss'}/(4 \u03c9_s \u03c9_s') QHGK kernel (kaldo/kaldo/conductivity.py:44-45, observables/harmonic_with_q_temp.py:77-81). This is the Simoncelli, Marzari, Mauri, Nat. Phys. 15, 809 (2019) coherence conductivity \u03ba_C.",
     "specs": {
       "kaldo": {
         "adapter": "kaldo",

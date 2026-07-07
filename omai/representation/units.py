@@ -26,6 +26,7 @@ from omai.operator.dimensions import (
     ENERGY_PER_TEMPERATURE_PER_MOLE,
     ENERGY_PER_TEMPERATURE_PER_VOLUME,
     FREQUENCY,
+    FREQUENCY_SQUARED,
     LENGTH,
     LENGTH_TIMES_FREQUENCY,
     TEMPERATURE,
@@ -60,6 +61,13 @@ ANGULAR_THZ = Unit("angular_THz", FREQUENCY, 1.0 / (2 * math.pi))
 # Linear wavenumber: 1 cm⁻¹ = c·(100 m⁻¹) = 0.0299792458 linear THz. QE's
 # matdyn.freq / matdyn.dos axis unit (ph.x prints THz and cm⁻¹ side by side).
 INVERSE_CM = Unit("inverse_cm", FREQUENCY, 0.0299792458)
+
+
+# Canonical frequency-squared unit: linear_THz². The dynamical-matrix
+# eigenvalues are omega², so the canonical SI scale is (1e12)² = 1e24 s⁻²,
+# keeping dimension_si_scale(frequency_squared) consistent with the square of
+# the frequency scale (the executor's monomial bridge relies on this).
+LINEAR_THZ_SQUARED = Unit("linear_THz_squared", FREQUENCY_SQUARED, 1.0, si_scale=1e24)
 
 
 # Canonical heat-capacity unit: J/K. eV/K = e × J/K.
@@ -125,6 +133,7 @@ UNITS: dict[str, Unit] = {
         LINEAR_THZ,
         ANGULAR_THZ,
         INVERSE_CM,
+        LINEAR_THZ_SQUARED,
         J_PER_K,
         EV_PER_K,
         J_PER_M3_PER_K,
