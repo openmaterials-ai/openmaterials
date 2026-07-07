@@ -1,4 +1,4 @@
-"""Quantum ESPRESSO adapter smoke tests (per docs/skills/ingest_code.md).
+"""Quantum ESPRESSO adapter smoke tests (per docs/openmaterials.pdf Appendix A).
 
 QE grounds the source tier of the thermal-transport DAG: it produces the
 FC2 / Born-charge / dielectric leaves the other codes consume. The specs
@@ -43,7 +43,7 @@ def test_qe_frequency_cm1_to_kaldo_linear_thz():
 
 def test_qe_frequency_agrees_with_shengbte():
     """QE cm-1 (linear) vs ShengBTE rad/ps (angular): the compound factor
-    is c * 2*pi. Compounding-unit trap from ingest_code.md."""
+    is c * 2*pi. Compounding-unit trap from docs/openmaterials.pdf Appendix A."""
     nu_thz = np.array([2.0, 4.0])
     mq = represent(QE_FREQUENCY, "omega", nu_thz / _CM1_TO_LINEAR_THZ)
     ms = represent(SHENGBTE_FREQUENCY, "omega", nu_thz * 2 * math.pi)

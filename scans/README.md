@@ -1,7 +1,7 @@
 # Code-scan catalogs
 
-Read-only scans of external codes, in the schema described in
-`docs/superpowers/specs/2026-07-06-map-kernel-design.md` (an extension of
+Read-only scans of external codes, in the catalog schema described in
+`docs/openmaterials.pdf` Part IV (an extension of
 `omai/materials/skills_catalog.json` with source anchors and maps_to
 fields). A catalog is the reviewed input for encoding a code onto the map;
 it never mutates the map by itself.

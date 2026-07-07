@@ -1173,7 +1173,7 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
     </span>
   </div>
   <div class="navlinks" style="margin-top:6px; font-size:13px;">
-    <a href="vision.pdf" style="color:#D4850A; text-decoration:none;">Vision: Git for Science (PDF)</a>
+    <a href="openmaterials.pdf" style="color:#D4850A; text-decoration:none;">The openmaterials document (PDF)</a>
     &nbsp;&middot;&nbsp;
     <a href="slides/" style="color:#D4850A; text-decoration:none;">Slides</a>
   </div>
@@ -1273,9 +1273,8 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
       <p style="margin:0">
         Anti-pattern: type parameter on an intermediate state. Forces every
         downstream consumer to be parameterised too. See
-        <code>docs/skills/extend_dag.md</code> for the full skill and
-        <code>docs/operator_representation_substrate.tex</code> § "DAG
-        extension rules" for the canonical statement.
+        <code>docs/openmaterials.pdf</code> Appendix B for the full skill and
+        Part III § "DAG extension rules" for the canonical statement.
       </p>
     </div>
   </details>

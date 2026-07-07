@@ -5,9 +5,9 @@ physics quantity exists symbolically, with a provenance recording how the
 claim was derived. Edges (`Operator`s) carry the sympy formula; spaces do not.
 
 When extending the DAG with a new quantity or variant, follow the rules in
-`docs/skills/extend_dag.md` (the operational checklist) and
-`docs/operator_representation_substrate.tex` § "DAG extension rules" (the
-canonical statement). In brief:
+`docs/openmaterials.pdf` Appendix B "Extending the DAG" (the operational
+checklist) and Part III § "DAG extension rules" (the canonical statement). In
+brief:
 
   * Pattern A — labels on the space: only when the label changes the
     gauge type AND the space is terminal-ish.

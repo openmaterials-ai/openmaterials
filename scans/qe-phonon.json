@@ -647,7 +647,7 @@
         {"file": "q-e/PW/src/forces.f90", "line": 345, "what": "the pw.x forces that the finite-difference FC3 route consumes"}
       ],
       "operation": {"kind": "external", "closed_form": null, "notes": "In the openmaterials map QE's role for FC3 is indirect: provider of forces (finite-difference route) or host of the D3Q extension (not vendored here)."},
-      "maps_to": {"node": "ForceConstants[order=3]", "status": "existing", "notes": "The FC3 node stays grounded by phono3py/ShengBTE adapters; QE grounds only its inputs. Beware the known phono3py-vs-ShengBTE eV/A^3 0.1 factor documented in ingest_code.md before chaining QE-forces -> thirdorder.py -> ShengBTE."},
+      "maps_to": {"node": "ForceConstants[order=3]", "status": "existing", "notes": "The FC3 node stays grounded by phono3py/ShengBTE adapters; QE grounds only its inputs. Beware the known phono3py-vs-ShengBTE eV/A^3 0.1 factor documented in docs/openmaterials.pdf Appendix A before chaining QE-forces -> thirdorder.py -> ShengBTE."},
       "conventions": ["not produced in-tree", "unit conventions belong to the external tool, not QE"],
       "example_instances": []
     }
