@@ -1,0 +1,1196 @@
+{
+ "0f08fcb37791dc7cc3e0e0ee5c611abbefc5075867719b275fcaa77ada4f1ac2": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2 Th^-1 N^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "molar_entropy"
+  },
+  "meta": {
+   "description": "Entropy per mole of primitive unit cells at temperature T, S_mol = (N_A / N_q) \u03a3_q\u03bd s_q\u03bd(T). Phonopy emits this as thermal_properties['entropy'] in J/(K\u00b7mol).",
+   "name": "MolarEntropy",
+   "symbol": "S_{\\mathrm{m}}",
+   "tier": "Thermodynamics"
+  },
+  "uid": "0f08fcb37791dc7cc3e0e0ee5c611abbefc5075867719b275fcaa77ada4f1ac2"
+ },
+ "12cde23e9a333fdd03313c4cdbd82d51033f9bb3bd505466a8db5360faf166b4": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "L^1 T^-1",
+     "indices": [
+      "atom",
+      "cartesian",
+      "timestep"
+     ]
+    },
+    {
+     "dimension": "L^1",
+     "indices": [
+      "atom",
+      "cartesian",
+      "timestep"
+     ]
+    }
+   ],
+   "gauge": "hidden/scaffolding/md_ensemble_noise",
+   "labels": {},
+   "quantity": "trajectory"
+  },
+  "meta": {
+   "description": "Per-atom positions r(t) and velocities v(t) sampled at each MD timestep. Gauge-dependent: the realised trajectory depends on the integrator (Velocity-Verlet vs. leapfrog), the ensemble (NVE/NVT/NPT), the thermostat (Berendsen / Langevin / Nose-Hoover / CSVR / none), and the initial conditions. Cross-code comparability lives entirely in the time-averaged contractions below \u2014 HeatCurrentACF, VelocityAutocorrelation, and MeanSquaredDisplacement are the gauge-invariant content.",
+   "name": "Trajectory",
+   "symbol": "\\mathbf{r}(t)",
+   "tier": "Molecular dynamics"
+  },
+  "uid": "12cde23e9a333fdd03313c4cdbd82d51033f9bb3bd505466a8db5360faf166b4"
+ },
+ "12fb1ed0f109f6dd198199dde8ed169edc25c04ee12813e0612a96675784830c": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1",
+     "indices": []
+    }
+   ],
+   "gauge": "parameter",
+   "labels": {},
+   "quantity": "atomic_mass"
+  },
+  "meta": {
+   "description": "",
+   "name": "AtomicMass",
+   "symbol": "M",
+   "tier": "Sources"
+  },
+  "uid": "12fb1ed0f109f6dd198199dde8ed169edc25c04ee12813e0612a96675784830c"
+ },
+ "21ba7756f45c808d3d91ed059c34c532f04845781d549b4c16573d9462bb2902": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "1",
+     "indices": [
+      "atom",
+      "qpoint",
+      "branch"
+     ]
+    }
+   ],
+   "gauge": "hidden/scaffolding/u1_phase_and_ud_degenerate_subspace",
+   "labels": {},
+   "quantity": "eigenvectors"
+  },
+  "meta": {
+   "description": "Per-mode eigenvectors of the dynamical matrix. U(1) phase freedom per mode plus U(d) rotation within each degenerate subspace; per-element values are not directly comparable across adapters. Contracted gauge-invariants live in Frequency (eigenvalues) and \u03ba_LBTE.",
+   "name": "Eigenvectors",
+   "symbol": "e",
+   "tier": "Harmonic"
+  },
+  "uid": "21ba7756f45c808d3d91ed059c34c532f04845781d549b4c16573d9462bb2902"
+ },
+ "220926f4974baec5c511f5acae2c9c4e09a8276d41c1314391b91dec537ef2fb": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2 N^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "molar_internal_energy"
+  },
+  "meta": {
+   "description": "Internal energy per mole of primitive unit cells at temperature T, E_mol = (N_A / N_q) \u03a3_q\u03bd e_q\u03bd(T). Phonopy emits this as thermal_properties['internal_energy'] in kJ/mol.",
+   "name": "MolarInternalEnergy",
+   "symbol": "E_{\\mathrm{m}}",
+   "tier": "Thermodynamics"
+  },
+  "uid": "220926f4974baec5c511f5acae2c9c4e09a8276d41c1314391b91dec537ef2fb"
+ },
+ "25dc9f7af8aec52efb6be16b7b7c76f8334b03056f8838c3ff432fdad8482fb6": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-1",
+     "indices": [
+      "cartesian",
+      "cartesian"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "transport_model": "green_kubo"
+   },
+   "quantity": "thermal_conductivity"
+  },
+  "meta": {
+   "description": "Classical Green-Kubo \u03ba: time-integrated heat-flux autocorrelation. \u03ba_\u03b1\u03b2 = V/(k_B T\u00b2) \u222b\u2080^\u221e \u27e8J_\u03b1(0) J_\u03b2(\u03c4)\u27e9 d\u03c4. The ObservableSpace produced from the HeatCurrentACF gauge-invariant contraction of the MD Trajectory. Free of the perturbation a NEMD setup introduces; the equilibrium-MD reference value for \u03ba.",
+   "name": "ThermalConductivity[transport_model=green_kubo]",
+   "symbol": "\\kappa_{\\mathrm{gk}}",
+   "tier": "Molecular dynamics"
+  },
+  "uid": "25dc9f7af8aec52efb6be16b7b7c76f8334b03056f8838c3ff432fdad8482fb6"
+ },
+ "28ebe96bc049a92e4318fd5242778f30e5647531d0a2b39c5891546329c8bca0": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "L^2",
+     "indices": [
+      "lag"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "mean_squared_displacement"
+  },
+  "meta": {
+   "description": "\u27e8|r(t+\u03c4) \u2212 r(t)|\u00b2\u27e9 averaged over atoms and time origins. PBC-unwrapped trajectories are required for the linear regime M(\u03c4) = 2\u00b7d\u00b7D\u00b7\u03c4 to be meaningful (D = self-diffusion). Gauge-invariant; orthogonal to \u03ba but a free addition that lets the framework cover diffusion observables.",
+   "name": "MeanSquaredDisplacement",
+   "symbol": "\\langle u^{2}\\rangle",
+   "tier": "Molecular dynamics"
+  },
+  "uid": "28ebe96bc049a92e4318fd5242778f30e5647531d0a2b39c5891546329c8bca0"
+ },
+ "29e324b97f31cdb7d3cd8ef6aec5668fff111fd7ee96bd19dd0426b8728c1d47": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^-1 T^-2 Th^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "volumetric_heat_capacity"
+  },
+  "meta": {
+   "description": "Total heat capacity per unit volume at temperature T, C_V/V = (1/V_cell N_q) \u03a3_q\u03bd c_q\u03bd(T). Scalar in (q, \u03bd); a function of T only. ShengBTE emits this directly as BTE.cv; codes that emit per-mode HeatCapacity reach it via the contraction edge.",
+   "name": "VolumetricHeatCapacity",
+   "symbol": "C_{V}",
+   "tier": "Thermodynamics"
+  },
+  "uid": "29e324b97f31cdb7d3cd8ef6aec5668fff111fd7ee96bd19dd0426b8728c1d47"
+ },
+ "343adfdb0717f7f81ae52cc5fca8279ff84a9715ba19b5630d405453682b12f9": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2 Th^-1",
+     "indices": [
+      "qpoint",
+      "branch"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "heat_capacity"
+  },
+  "meta": {
+   "description": "",
+   "name": "HeatCapacity",
+   "symbol": "c",
+   "tier": "Thermodynamics"
+  },
+  "uid": "343adfdb0717f7f81ae52cc5fca8279ff84a9715ba19b5630d405453682b12f9"
+ },
+ "35e6000d8a0f2e4572e667befbd4cd5a8c6005fa8f6ef08791b6879c77baba64": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-1",
+     "indices": [
+      "cartesian",
+      "cartesian"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "transport_model": "wigner"
+   },
+   "quantity": "thermal_conductivity"
+  },
+  "meta": {
+   "description": "Unified Wigner \u03ba = \u03ba_populations + \u03ba_coherences. The full expression interpolates between LBTE (when mode spacings \u226b \u0393, coherences \u2192 0) and a glass-like wave-transport regime (spacings \u2272 \u0393). Gauge-invariant ObservableSpace.",
+   "name": "ThermalConductivity[transport_model=wigner]",
+   "symbol": "\\kappa",
+   "tier": "Transport"
+  },
+  "uid": "35e6000d8a0f2e4572e667befbd4cd5a8c6005fa8f6ef08791b6879c77baba64"
+ },
+ "37eb727e4cf5e46c3ca04ff4bea4fe9dbb3f7f3c3fad8a1681c7e9d04bafd34f": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "L^2 T^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "diffusivity"
+  },
+  "meta": {
+   "description": "Self-diffusion coefficient D from the Einstein relation MSD(t) = 2 d D t in the linear regime. Produced from MeanSquaredDisplacement; per temperature.",
+   "name": "Diffusivity",
+   "symbol": "D",
+   "tier": "Diffusion"
+  },
+  "uid": "37eb727e4cf5e46c3ca04ff4bea4fe9dbb3f7f3c3fad8a1681c7e9d04bafd34f"
+ },
+ "38b082d42f5136a903752e5425c65c112c90bc564693ddb929ef3f175d9d96d8": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2",
+     "indices": [
+      "qpoint",
+      "branch"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "helmholtz_free_energy"
+  },
+  "meta": {
+   "description": "Per-mode Helmholtz free energy f_q\u03bd(T) = (\u210f\u03c9/2) + k_B T ln(1 - exp(-\u210f\u03c9/k_B T)). The 1/2 is the zero-point part; the log term carries the temperature dependence.",
+   "name": "HelmholtzFreeEnergy",
+   "symbol": "F",
+   "tier": "Thermodynamics"
+  },
+  "uid": "38b082d42f5136a903752e5425c65c112c90bc564693ddb929ef3f175d9d96d8"
+ },
+ "3f837e061bf37d1ad104455abad3b9bd3d8bb16048a656977c2488fd3c4bd521": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-1",
+     "indices": [
+      "cartesian",
+      "cartesian"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "transport_model": "wigner_populations"
+   },
+   "quantity": "thermal_conductivity"
+  },
+  "meta": {
+   "description": "Particle-like (populations) channel of the Wigner \u03ba decomposition (Simoncelli et al., Nat. Phys. 2019). Numerically close to \u03ba_LBTE; isolates the diagonal-in-band part of the heat-flux correlation.",
+   "name": "ThermalConductivity[transport_model=wigner_populations]",
+   "symbol": "\\kappa_{\\mathrm{pop}}",
+   "tier": "Transport"
+  },
+  "uid": "3f837e061bf37d1ad104455abad3b9bd3d8bb16048a656977c2488fd3c4bd521"
+ },
+ "419335bd5f3a1949576e608e4147d8f18bef980a69a9c6b99199f812c806b7be": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2 N^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "molar_helmholtz_free_energy"
+  },
+  "meta": {
+   "description": "Helmholtz free energy per mole of primitive unit cells at temperature T, F_mol = (N_A / N_q) \u03a3_q\u03bd f_q\u03bd(T). Phonopy emits this as part of its thermal_properties output (kJ/mol).",
+   "name": "MolarHelmholtzFreeEnergy",
+   "symbol": "F_{\\mathrm{m}}",
+   "tier": "Thermodynamics"
+  },
+  "uid": "419335bd5f3a1949576e608e4147d8f18bef980a69a9c6b99199f812c806b7be"
+ },
+ "41a47eada8fee04f0c84f46e2f4e73d50b3a51967fab666636c047cb2ddce0be": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "1",
+     "indices": [
+      "qpoint",
+      "branch"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "phase_space3_phonon"
+  },
+  "meta": {
+   "description": "Three-phonon phase space P3_q\u03bd = (1/N) \u03a3_q'\u03bd'\u03bd'' [\u03b4(\u03c9\u2212\u03c9'\u2212\u03c9'') + 2 \u03b4(\u03c9+\u03c9'\u2212\u03c9'')] available for scattering channels involving mode (q, \u03bd). Doesn't include |V\u2083|\u00b2 \u2014 purely the kinematic volume.",
+   "name": "PhaseSpace3Phonon",
+   "symbol": "P_{3}",
+   "tier": "Scattering"
+  },
+  "uid": "41a47eada8fee04f0c84f46e2f4e73d50b3a51967fab666636c047cb2ddce0be"
+ },
+ "438f0314dee5f9e98d88e4a7ba4425ef0edd207605338b318340da27bf28b2a4": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "1",
+     "indices": [
+      "atom",
+      "cartesian",
+      "cartesian"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "born_charges"
+  },
+  "meta": {
+   "description": "Per-atom Born effective-charge tensor Z*_{i,\u03b1\u03b2}, in units of the elementary charge e. Source-tier ObservableSpace: read from a BORN file or DFT linear-response output. Together with the macroscopic DielectricTensor \u03b5\u221e it parameterises the non-analytic correction (LO-TO splitting) for polar materials.",
+   "name": "BornCharges",
+   "symbol": "Z^{*}",
+   "tier": "Sources"
+  },
+  "uid": "438f0314dee5f9e98d88e4a7ba4425ef0edd207605338b318340da27bf28b2a4"
+ },
+ "4e9c9eb989aa721167806f40b353dbb75aedba068a1a486eeef178f77432108d": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2",
+     "indices": [
+      "qpoint",
+      "branch"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "internal_energy"
+  },
+  "meta": {
+   "description": "Per-mode internal energy e_q\u03bd(T) = \u210f\u03c9(1/2 + n_BE(\u210f\u03c9/(k_B T))). Sums the zero-point energy and the thermal occupation.",
+   "name": "InternalEnergy",
+   "symbol": "E",
+   "tier": "Thermodynamics"
+  },
+  "uid": "4e9c9eb989aa721167806f40b353dbb75aedba068a1a486eeef178f77432108d"
+ },
+ "4fa2d8e16bde42f794f150f5d149e5d645d63f7ddaac59cef79bd41771b13c17": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2 Th^-1 N^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "molar_heat_capacity"
+  },
+  "meta": {
+   "description": "Heat capacity per mole of primitive unit cells at temperature T, C_V_mol = (N_A / N_q) \u03a3_q\u03bd c_q\u03bd(T). Phonopy emits this as part of its harmonic thermal_properties output (J/K/mol). Codes that emit per-mode HeatCapacity reach it via the contraction edge.",
+   "name": "MolarHeatCapacity",
+   "symbol": "C_{\\mathrm{m}}",
+   "tier": "Thermodynamics"
+  },
+  "uid": "4fa2d8e16bde42f794f150f5d149e5d645d63f7ddaac59cef79bd41771b13c17"
+ },
+ "50c33a1edd60bff6fb74124af1a8847a4c8a2c58d39554b4661e6a2cddb62f30": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "T^-1",
+     "indices": [
+      "qpoint",
+      "branch"
+     ]
+    }
+   ],
+   "gauge": "hidden/scaffolding/bz_summation_permutation",
+   "labels": {
+    "channel": "total"
+   },
+   "quantity": "linewidth"
+  },
+  "meta": {
+   "description": "Sum of all enabled scattering channels (anharmonic + isotope + boundary + ...). The BTE solver consumes this \u2014 Matthiessen's rule applies under the linearized BTE. Channels a given run does not model contribute zero.",
+   "name": "Linewidth[channel=total]",
+   "symbol": "\\Gamma",
+   "tier": "Scattering"
+  },
+  "uid": "50c33a1edd60bff6fb74124af1a8847a4c8a2c58d39554b4661e6a2cddb62f30"
+ },
+ "55eaa32f15db94d55448456fb26f1c3ecaafcc9a3da2947f1615258c492542ef": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-1",
+     "indices": [
+      "cartesian",
+      "cartesian",
+      "omega_bin"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "wrt": "omega"
+   },
+   "quantity": "cumulative_kappa"
+  },
+  "meta": {
+   "description": "Cumulative thermal conductivity vs frequency: \u03ba_cum(\u03c9_c) = (1/(V N_q)) \u03a3_{\u03c9_q\u03bd \u2264 \u03c9_c} c_q\u03bd v^\u03b1_q\u03bd F^\u03b2_q\u03bd. The distribution of \u03ba over the phonon-frequency axis; saturates at \u03ba_LBTE for \u03c9_c \u2192 \u221e.",
+   "name": "CumulativeKappa[wrt=omega]",
+   "symbol": "\\kappa^{\\mathrm{cum}}_{\\omega}",
+   "tier": "Transport"
+  },
+  "uid": "55eaa32f15db94d55448456fb26f1c3ecaafcc9a3da2947f1615258c492542ef"
+ },
+ "5aa485c8eea2f4a2a9966f39589ad15e802327513f72c2366dc15605879b86ae": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2 Th^-1",
+     "indices": [
+      "qpoint",
+      "branch"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "entropy"
+  },
+  "meta": {
+   "description": "Per-mode entropy s_q\u03bd(T) = (1/T)\u00b7\u210f\u03c9\u00b7n_BE(\u210f\u03c9/(k_B T)) - k_B ln(1 - exp(-\u210f\u03c9/k_B T)). Equivalently -\u2202f/\u2202T.",
+   "name": "Entropy",
+   "symbol": "S",
+   "tier": "Thermodynamics"
+  },
+  "uid": "5aa485c8eea2f4a2a9966f39589ad15e802327513f72c2366dc15605879b86ae"
+ },
+ "5d35f8f6975629291c51d432d3b137fb5bd92165706d37dbab71366a4714b71d": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "activation_energy"
+  },
+  "meta": {
+   "description": "Arrhenius activation energy E_a from D(T) = D0 exp(-E_a/k_B T), obtained by a weighted fit over diffusivities at several temperatures.",
+   "name": "ActivationEnergy",
+   "symbol": "E_a",
+   "tier": "Diffusion"
+  },
+  "uid": "5d35f8f6975629291c51d432d3b137fb5bd92165706d37dbab71366a4714b71d"
+ },
+ "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "Th^1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "temperature"
+  },
+  "meta": {
+   "description": "",
+   "name": "Temperature",
+   "symbol": "T",
+   "tier": "Sources"
+  },
+  "uid": "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0"
+ },
+ "6cbd3322c5b6eb0105f9ca22d9ddc88334206ec9c115a31e6fb87409cc374c45": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "T^-1",
+     "indices": [
+      "qpoint",
+      "branch"
+     ]
+    }
+   ],
+   "gauge": "hidden/scaffolding/bz_summation_permutation",
+   "labels": {
+    "channel": "isotope"
+   },
+   "quantity": "linewidth"
+  },
+  "meta": {
+   "description": "Per-mode isotopic scattering rate from the Tamura model: \u0393_iso(q\u03bd) = (\u03c0/2) \u03c9\u00b2 \u03a3_i g_i |e_iq\u03bd|\u00b2 \u03b4(\u03c9 - \u03c9'). Per-element is gauge-dependent (depends on eigenvector basis at degenerate \u03c9); the BZ-summed total is the cross-code observable.",
+   "name": "Linewidth[channel=isotope]",
+   "symbol": "\\Gamma_{\\mathrm{iso}}",
+   "tier": "Scattering"
+  },
+  "uid": "6cbd3322c5b6eb0105f9ca22d9ddc88334206ec9c115a31e6fb87409cc374c45"
+ },
+ "73372380af126dde147e403f69339b87ee2f938a896dd5b56e9100c055dc8f93": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^-1 T^-2",
+     "indices": [
+      "atom",
+      "atom",
+      "atom",
+      "lattice_vector",
+      "lattice_vector"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "order": "3"
+   },
+   "quantity": "force_constants"
+  },
+  "meta": {
+   "description": "",
+   "name": "ForceConstants[order=3]",
+   "symbol": "\\Phi^{(3)}",
+   "tier": "Sources"
+  },
+  "uid": "73372380af126dde147e403f69339b87ee2f938a896dd5b56e9100c055dc8f93"
+ },
+ "78d005a949ff56a526a1911f0b24e766daecad0a7f5ce9c1cc15222f2ed73551": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 T^-2",
+     "indices": [
+      "atom",
+      "atom",
+      "lattice_vector"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "order": "2"
+   },
+   "quantity": "force_constants"
+  },
+  "meta": {
+   "description": "",
+   "name": "ForceConstants[order=2]",
+   "symbol": "\\Phi^{(2)}",
+   "tier": "Sources"
+  },
+  "uid": "78d005a949ff56a526a1911f0b24e766daecad0a7f5ce9c1cc15222f2ed73551"
+ },
+ "7f8d407ef3f36290c7f8e385cddb4a06a3c1bf34563f1df35ded2bb532e69fa4": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-1",
+     "indices": [
+      "cartesian",
+      "cartesian"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "transport_model": "wigner_coherences"
+   },
+   "quantity": "thermal_conductivity"
+  },
+  "meta": {
+   "description": "Wave-like (coherences) channel of the Wigner \u03ba decomposition. Couples bands at the same q through a Lorentzian-weighted mode-overlap term; dominates \u03ba in glasses and complex crystals where mode spacings approach \u0393.",
+   "name": "ThermalConductivity[transport_model=wigner_coherences]",
+   "symbol": "\\kappa_{\\mathrm{coh}}",
+   "tier": "Transport"
+  },
+  "uid": "7f8d407ef3f36290c7f8e385cddb4a06a3c1bf34563f1df35ded2bb532e69fa4"
+ },
+ "80a4273845e09207860e06db18d1f1ee5670a9b9c8b1020a99928c872878f901": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "opaque:opaque",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "potential"
+  },
+  "meta": {
+   "description": "Born-Oppenheimer potential of the material; in Phase 1 an opaque label.",
+   "name": "Potential",
+   "symbol": "V",
+   "tier": "Sources"
+  },
+  "uid": "80a4273845e09207860e06db18d1f1ee5670a9b9c8b1020a99928c872878f901"
+ },
+ "81288248a2b40f0abfe78b058ffa4025a0312324e8af26b801017b9a0971961e": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "T^-1",
+     "indices": [
+      "qpoint",
+      "branch"
+     ]
+    }
+   ],
+   "gauge": "hidden/scaffolding/bz_summation_permutation",
+   "labels": {
+    "channel": "boundary"
+   },
+   "quantity": "linewidth"
+  },
+  "meta": {
+   "description": "Per-mode boundary scattering rate from the Casimir / Matthiessen form: \u0393_boundary(q\u03bd) = |v_q\u03bd| / L where L is the boundary length scale (operator parameter). Gauge-dependent inherits GroupVelocity's basis dependence at degenerate \u03c9.",
+   "name": "Linewidth[channel=boundary]",
+   "symbol": "\\Gamma_{\\mathrm{bnd}}",
+   "tier": "Scattering"
+  },
+  "uid": "81288248a2b40f0abfe78b058ffa4025a0312324e8af26b801017b9a0971961e"
+ },
+ "8932e3cbadef74a82802b43fd1d25328cb40e6136c90df3b6a4a998e77f9567b": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-1",
+     "indices": [
+      "cartesian",
+      "cartesian"
+     ]
+    }
+   ],
+   "gauge": "hidden/approximation/bz_summation_permutation_via_lorentzian",
+   "labels": {
+    "transport_model": "qhgk"
+   },
+   "quantity": "thermal_conductivity"
+  },
+  "meta": {
+   "description": "Quasi-harmonic Green-Kubo \u03ba: time-integrated heat-flux autocorrelation with Lorentzian mode broadening of width \u0393. The Lorentzian-coupled mode overlap inherits Linewidth's gauge-dependence on the off-diagonal pairings, so per-element \u03ba_QHGK is treated as a HiddenSpace until a definitive analysis of its gauge structure says otherwise. Used primarily for amorphous systems where the BTE picture breaks down.",
+   "name": "ThermalConductivity[transport_model=qhgk]",
+   "symbol": "\\kappa_{\\mathrm{qhgk}}",
+   "tier": "Transport"
+  },
+  "uid": "8932e3cbadef74a82802b43fd1d25328cb40e6136c90df3b6a4a998e77f9567b"
+ },
+ "9b0af04f9828cfb02e19d5e41ab2c61fbe4759f049258b85c650baf22e43ebf1": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "T^-1",
+     "indices": [
+      "omega_bin"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "phonon_dos"
+  },
+  "meta": {
+   "description": "Density of states g(\u03c9) = (1/N_q) \u03a3_q\u03bd \u03b4(\u03c9 \u2212 \u03c9_q\u03bd). A 1-D array binned in \u03c9. Gauge-invariant: \u03c9_q\u03bd are basis-independent and the sum over (q, \u03bd) is uniformly weighted.",
+   "name": "PhononDOS",
+   "symbol": "g(\\omega)",
+   "tier": "Harmonic"
+  },
+  "uid": "9b0af04f9828cfb02e19d5e41ab2c61fbe4759f049258b85c650baf22e43ebf1"
+ },
+ "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-1",
+     "indices": [
+      "cartesian",
+      "cartesian"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "bte_solver": "direct_inverse"
+   },
+   "quantity": "thermal_conductivity"
+  },
+  "meta": {
+   "description": "Lattice thermal conductivity from the direct/iterative LBTE solver. Gauge-invariant: the collision matrix's off-diagonals preserve invariance under per-mode \u0393 redistribution.",
+   "name": "ThermalConductivity[bte_solver=direct_inverse]",
+   "symbol": "\\kappa^{\\mathrm{dinv}}",
+   "tier": "Transport"
+  },
+  "uid": "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9"
+ },
+ "a62ac1eae1e972a0b265a14f8a2af5610deb61eb0c883b7668ac4a64313b3b75": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "1",
+     "indices": [
+      "qpoint",
+      "branch"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "gruneisen"
+  },
+  "meta": {
+   "description": "Mode Gr\u00fcneisen parameter \u03b3_q\u03bd = \u2212(V/\u03c9_q\u03bd) \u2202\u03c9_q\u03bd/\u2202V. Quantifies anharmonicity-driven volume dependence; computed from FC2 and FC3 via the standard Maradudin-Fein expression. Dimensionless.",
+   "name": "Gruneisen",
+   "symbol": "\\gamma",
+   "tier": "Scattering"
+  },
+  "uid": "a62ac1eae1e972a0b265a14f8a2af5610deb61eb0c883b7668ac4a64313b3b75"
+ },
+ "a84077d8f12cf490f370b5cd0b98a47e3e31b7ec75fc8763699763f8b2313db4": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "1",
+     "indices": [
+      "cartesian",
+      "cartesian"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "dielectric_tensor"
+  },
+  "meta": {
+   "description": "Macroscopic (electronic) dielectric tensor \u03b5\u221e at infinite frequency, dimensionless. Source-tier ObservableSpace. Enters the non-analytic correction to D(q) at q\u21920.",
+   "name": "DielectricTensor",
+   "symbol": "\\varepsilon_{\\infty}",
+   "tier": "Sources"
+  },
+  "uid": "a84077d8f12cf490f370b5cd0b98a47e3e31b7ec75fc8763699763f8b2313db4"
+ },
+ "a883ea19a62fcb80dc79d8c347fc583bef6a56d8764aef89455da764b4732031": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "T^-2",
+     "indices": [
+      "atom",
+      "atom",
+      "qpoint"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "dynamical_matrix"
+  },
+  "meta": {
+   "description": "D(q) such that D e_q\u03bd = \u03c9\u00b2_q\u03bd e_q\u03bd. Produced from BareDynamicalMatrix by either identity_dm (non-polar) or apply_nac_correction (polar). Entries are dimensionally frequency\u00b2 (mass-weighted Hessian); codes typically store the matrix with eigenvalues that are \u03c9\u00b2, not \u03c9.",
+   "name": "DynamicalMatrix",
+   "symbol": "D",
+   "tier": "Harmonic"
+  },
+  "uid": "a883ea19a62fcb80dc79d8c347fc583bef6a56d8764aef89455da764b4732031"
+ },
+ "aab7019fbc014398b74ece01428527aa95e89da6f6d51efc0323b0acf59248c6": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^3 T^-3",
+     "indices": [
+      "cartesian",
+      "timestep"
+     ]
+    }
+   ],
+   "gauge": "hidden/scaffolding/md_ensemble_noise",
+   "labels": {},
+   "quantity": "heat_current"
+  },
+  "meta": {
+   "description": "Instantaneous heat-current vector J(t) computed from a Trajectory via the Irving-Kirkwood (or Hardy, or virial) decomposition. Per-element J_\u03b1(t) is a stochastic MD snapshot \u2014 gauge-dependent. The cross-code observable is the time-correlation HeatCurrentACF, which is what enters Green-Kubo \u03ba.",
+   "name": "HeatCurrent",
+   "symbol": "\\mathbf{J}",
+   "tier": "Molecular dynamics"
+  },
+  "uid": "aab7019fbc014398b74ece01428527aa95e89da6f6d51efc0323b0acf59248c6"
+ },
+ "ad1373f31b9dbb8bd24ea16e1f90f1d92a39d309f2dc22583fad4fd82eca6f59": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "L^1",
+     "indices": [
+      "cartesian",
+      "qpoint",
+      "branch"
+     ]
+    }
+   ],
+   "gauge": "hidden/approximation/bz_summation_permutation_via_1_over_gamma",
+   "labels": {
+    "bte_solver": "rta"
+   },
+   "quantity": "mean_free_displacement"
+  },
+  "meta": {
+   "description": "F = v / (2\u0393) under the relaxation-time approximation. The 1/\u0393 non-linearity is the gauge-breaking step. Approximation HiddenSpace: terminal; there is no downstream operator that contracts it into a gauge-invariant ObservableSpace. The LBTE branch (MFD[direct_inverse]) is the gauge-invariant analogue.",
+   "name": "MeanFreeDisplacement[bte_solver=rta]",
+   "symbol": "\\lambda_{\\mathrm{rta}}",
+   "tier": "Transport"
+  },
+  "uid": "ad1373f31b9dbb8bd24ea16e1f90f1d92a39d309f2dc22583fad4fd82eca6f59"
+ },
+ "b24a26725f5641ffb16720514a7fdb23bf03304ce0d51c9f39501d1c8c009b6c": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "L^1",
+     "indices": [
+      "cartesian",
+      "qpoint",
+      "branch"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "bte_solver": "direct_inverse"
+   },
+   "quantity": "mean_free_displacement"
+  },
+  "meta": {
+   "description": "F obtained from the full linearized BTE (direct inversion or iterative solution). Gauge-invariant by construction.",
+   "name": "MeanFreeDisplacement[bte_solver=direct_inverse]",
+   "symbol": "\\lambda_{\\mathrm{dinv}}",
+   "tier": "Transport"
+  },
+  "uid": "b24a26725f5641ffb16720514a7fdb23bf03304ce0d51c9f39501d1c8c009b6c"
+ },
+ "b6a79d756cf45fc64a3a07feb9e46c7372f398b3ee54806bf1c9903d8a42039f": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-1",
+     "indices": [
+      "cartesian",
+      "cartesian",
+      "mfp_bin"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "wrt": "mfp"
+   },
+   "quantity": "cumulative_kappa"
+  },
+  "meta": {
+   "description": "Cumulative thermal conductivity vs mean free path: \u03ba_cum(\u039b_c) = (1/(V N_q)) \u03a3_{|F_q\u03bd| \u2264 \u039b_c} c_q\u03bd v^\u03b1_q\u03bd F^\u03b2_q\u03bd. Heavily used for nanoscale design \u2014 the \u039b at which \u03ba_cum is 50% of \u03ba_total is the median mean free path.",
+   "name": "CumulativeKappa[wrt=mfp]",
+   "symbol": "\\kappa^{\\mathrm{cum}}_{\\lambda}",
+   "tier": "Transport"
+  },
+  "uid": "b6a79d756cf45fc64a3a07feb9e46c7372f398b3ee54806bf1c9903d8a42039f"
+ },
+ "cd81fd8a1d62a1484f3057647d23aa780500de44175ae4e686e189a3ca5b36b2": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "L^3",
+     "indices": []
+    }
+   ],
+   "gauge": "parameter",
+   "labels": {},
+   "quantity": "cell_volume"
+  },
+  "meta": {
+   "description": "",
+   "name": "CellVolume",
+   "symbol": "V_{\\mathrm{cell}}",
+   "tier": "Sources"
+  },
+  "uid": "cd81fd8a1d62a1484f3057647d23aa780500de44175ae4e686e189a3ca5b36b2"
+ },
+ "d1934e166dbd0c91125936f9b2ccc0100af0ba44ed439003aae76b47b6d26fc6": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "L^1 T^-1",
+     "indices": [
+      "cartesian",
+      "qpoint",
+      "branch"
+     ]
+    }
+   ],
+   "gauge": "hidden/scaffolding/ud_degenerate_subspace_on_eigenvectors",
+   "labels": {},
+   "quantity": "group_velocity"
+  },
+  "meta": {
+   "description": "Per-mode group velocity. Per-mode v is invariant under U(1) phase, but inherits the U(d) rotation freedom at degenerate \u03c9. Contracted gauge-invariants live in \u03ba (\u03a3 c v\u00b2 \u03c4 over the BZ).",
+   "name": "GroupVelocity",
+   "symbol": "v",
+   "tier": "Harmonic"
+  },
+  "uid": "d1934e166dbd0c91125936f9b2ccc0100af0ba44ed439003aae76b47b6d26fc6"
+ },
+ "d3e529fd2e7fa0a009440c21bd64949d6326c04eaa109fbed4cafac798608118": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-1",
+     "indices": [
+      "cartesian",
+      "cartesian"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "transport_model": "nemd"
+   },
+   "quantity": "thermal_conductivity"
+  },
+  "meta": {
+   "description": "Non-equilibrium MD \u03ba: steady-state response to an imposed temperature gradient or imposed heat flux. \u03ba = \u2212\u27e8J\u27e9 / (\u2202T/\u2202z) for direct two-reservoir; for M\u00fcller-Plathe (imposed flux), the swap-rate-derived flux divides by the measured gradient. Finite-size scaling (\u03ba vs 1/L_z) is a separate post-processing step left out of this space's definition. Gauge-invariant once the steady state has converged.",
+   "name": "ThermalConductivity[transport_model=nemd]",
+   "symbol": "\\kappa_{\\mathrm{nemd}}",
+   "tier": "Molecular dynamics"
+  },
+  "uid": "d3e529fd2e7fa0a009440c21bd64949d6326c04eaa109fbed4cafac798608118"
+ },
+ "d79d88d53266c147ea8d806cdbd30df309199469351ee13bcc9040a98745ebc4": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-1",
+     "indices": [
+      "cartesian",
+      "cartesian"
+     ]
+    }
+   ],
+   "gauge": "hidden/approximation/bz_summation_permutation_via_1_over_gamma",
+   "labels": {
+    "bte_solver": "rta"
+   },
+   "quantity": "thermal_conductivity"
+  },
+  "meta": {
+   "description": "Lattice thermal conductivity from the RTA. The 1/\u0393 weighting is non-linear in \u0393, so RTA \u03ba inherits Linewidth's gauge-dependence (unlike the LBTE solution, which preserves gauge-invariance via off-diagonal collision terms). Terminal approximation HiddenSpace.",
+   "name": "ThermalConductivity[bte_solver=rta]",
+   "symbol": "\\kappa^{\\mathrm{rta}}",
+   "tier": "Transport"
+  },
+  "uid": "d79d88d53266c147ea8d806cdbd30df309199469351ee13bcc9040a98745ebc4"
+ },
+ "d8f44a4cce5e3dfea1ec9329189d49ac70e33d69cab222e2679f7791a30613ac": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "opaque:opaque",
+     "indices": [
+      "cartesian",
+      "cartesian",
+      "lag"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "heat_current_acf"
+  },
+  "meta": {
+   "description": "Time-correlation tensor \u27e8J_\u03b1(0) J_\u03b2(\u03c4)\u27e9 of the MD heat current. Computed by averaging J(t)\u00b7J(t+\u03c4) over the production trajectory and ensemble repeats; gauge-invariant in the \u03c4\u2192\u221e limit. The Green-Kubo \u03ba integrand: \u03ba_\u03b1\u03b2 \u221d \u222b\u2080^\u221e Jcorr_\u03b1\u03b2(\u03c4) d\u03c4 \u2014 added in P3 as contract_kappa_green_kubo.",
+   "name": "HeatCurrentACF",
+   "symbol": "\\langle JJ\\rangle",
+   "tier": "Molecular dynamics"
+  },
+  "uid": "d8f44a4cce5e3dfea1ec9329189d49ac70e33d69cab222e2679f7791a30613ac"
+ },
+ "e62e58716111fdc1dff24d18e75c70904cbb07ce6e0025e24fcdac8c4ed0a53d": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "T^-2",
+     "indices": [
+      "atom",
+      "atom",
+      "qpoint"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "bare_dynamical_matrix"
+  },
+  "meta": {
+   "description": "Analytic Bloch sum of \u03a6\u00b2(R) \u2014 the dynamical matrix before any non-analytic correction is applied. Always produced by compute_dynamical_matrix(FC2). For non-polar materials the downstream DynamicalMatrix is identical to this (via identity_dm); for polar materials apply_nac_correction adds the q\u21920 non-analytic term involving BornCharges and DielectricTensor.",
+   "name": "BareDynamicalMatrix",
+   "symbol": "D^{0}",
+   "tier": "Harmonic"
+  },
+  "uid": "e62e58716111fdc1dff24d18e75c70904cbb07ce6e0025e24fcdac8c4ed0a53d"
+ },
+ "e7157a52da5eb7d2ae79e57692acc30d7e63a3a0d1c731b14da4d6ab8fd5eb88": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-1",
+     "indices": [
+      "cartesian",
+      "cartesian"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "transport_model": "hnemd"
+   },
+   "quantity": "thermal_conductivity"
+  },
+  "meta": {
+   "description": "Homogeneous-NEMD \u03ba (Evans 1982, Fan et al. 2019): a uniform driving force F_e is applied to every atom, biasing the heat current; \u03ba_\u03b1\u03b2 = \u27e8J_\u03b1\u27e9 / (T \u00b7 V \u00b7 F_e^\u03b2) in the linear-response limit (small F_e). Free of the boundary-thermostat artefacts of direct NEMD; GPUMD's signature thermal-transport method. Gauge-invariant in the small-F_e limit.",
+   "name": "ThermalConductivity[transport_model=hnemd]",
+   "symbol": "\\kappa_{\\mathrm{hnemd}}",
+   "tier": "Molecular dynamics"
+  },
+  "uid": "e7157a52da5eb7d2ae79e57692acc30d7e63a3a0d1c731b14da4d6ab8fd5eb88"
+ },
+ "f1261195ad64911510ec9839d2e373c5cbda670f65a8a0c4437e37ff0a7838df": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "1",
+     "indices": []
+    }
+   ],
+   "gauge": "parameter",
+   "labels": {},
+   "quantity": "atom_count"
+  },
+  "meta": {
+   "description": "",
+   "name": "AtomCount",
+   "symbol": "N",
+   "tier": "Sources"
+  },
+  "uid": "f1261195ad64911510ec9839d2e373c5cbda670f65a8a0c4437e37ff0a7838df"
+ },
+ "f52d161ad0be284c121c6fd10fe403c922aaa59646746c12719622004da5fa3a": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "T^-1",
+     "indices": [
+      "qpoint",
+      "branch"
+     ]
+    }
+   ],
+   "gauge": "hidden/scaffolding/bz_summation_permutation",
+   "labels": {
+    "channel": "anharmonic_3ph"
+   },
+   "quantity": "linewidth"
+  },
+  "meta": {
+   "description": "Per-mode three-phonon anharmonic linewidth from Fermi's golden rule (the channel the existing compute_linewidth produces). Per-element values depend on BZ-summation choice (a permutation gauge: weights redistribute between modes but conserve the total). Contractions (\u03a3\u0393, \u03ba_LBTE) are the gauge-invariant content.",
+   "name": "Linewidth[channel=anharmonic_3ph]",
+   "symbol": "\\Gamma_{\\mathrm{3ph}}",
+   "tier": "Scattering"
+  },
+  "uid": "f52d161ad0be284c121c6fd10fe403c922aaa59646746c12719622004da5fa3a"
+ },
+ "f8b092359048e5130d56697ca9504bb4740b875aca685a8f760316bfb5e9a661": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "opaque:opaque",
+     "indices": [
+      "lag"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "velocity_autocorrelation"
+  },
+  "meta": {
+   "description": "Velocity autocorrelation function \u27e8v(0)\u00b7v(\u03c4)\u27e9 averaged over atoms and time origins. Gauge-invariant (a time-correlation of ensemble-averaged quantities). The Fourier transform gives the phonon density of states via the Wiener-Khinchin theorem \u2014 see the `fourier_to_dos` edge, which makes this a Pattern-C alternative-producer of PhononDOS alongside compute_dos.",
+   "name": "VelocityAutocorrelation",
+   "symbol": "\\langle v(0)v(t)\\rangle",
+   "tier": "Molecular dynamics"
+  },
+  "uid": "f8b092359048e5130d56697ca9504bb4740b875aca685a8f760316bfb5e9a661"
+ },
+ "f8e4253dc1f218daff8e76af5b433dc230bf952f910ba163f87c6fa331aa033d": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "1",
+     "indices": [
+      "atom"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "isotope_abundances"
+  },
+  "meta": {
+   "description": "Per-atom isotopic mass-variance factor g_i = \u03a3_x f_{ix} (1 - m_{ix}/m\u0304_i)\u00b2 where x runs over isotopes of atomic species i, f_{ix} is the abundance fraction, m_{ix} is the isotope mass, and m\u0304_i is the abundance-weighted average mass. Dimensionless. Source-tier ObservableSpace: either natural-abundance defaults or user-provided per-species values.",
+   "name": "IsotopeAbundances",
+   "symbol": "g_{\\mathrm{iso}}",
+   "tier": "Sources"
+  },
+  "uid": "f8e4253dc1f218daff8e76af5b433dc230bf952f910ba163f87c6fa331aa033d"
+ },
+ "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "T^-1",
+     "indices": [
+      "qpoint",
+      "branch"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "frequency"
+  },
+  "meta": {
+   "description": "",
+   "name": "Frequency",
+   "symbol": "\\omega",
+   "tier": "Harmonic"
+  },
+  "uid": "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8"
+ }
+}
