@@ -86,6 +86,7 @@ def build_graph_dict(domains: tuple[Domain, ...]) -> dict:
                 "kind": "symbolic",
                 "symbol": symbols.get(s.name, s.name),
                 "formula": target_formula.get(s.name),
+                "tier": s.tier,
             })
 
     links: list[dict] = []
@@ -121,14 +122,23 @@ def build_graph_dict(domains: tuple[Domain, ...]) -> dict:
                 continue
             seen.add(pid)
             nodes.append({"id": pid, "type": "parameter", "layer": 0,
-                          "kind": "symbolic", "symbol": psym, "formula": None})
+                          "kind": "symbolic", "symbol": psym, "formula": None,
+                          "tier": "Sources"})
             for c in consumers:
                 param_key = (pid, c, "provide_" + pid)
                 if param_key not in seen_links:
                     seen_links.add(param_key)
                     links.append({"source": pid, "target": c, "op": "provide_" + pid, "kind": "param"})
 
-    return {"nodes": nodes, "links": links}
+    tiers, seen_tiers = [], set()
+    for d in domains:
+        for name, desc in d.tiers:
+            if name in seen_tiers:
+                continue
+            seen_tiers.add(name)
+            tiers.append({"name": name, "order": len(tiers), "description": desc})
+
+    return {"nodes": nodes, "links": links, "tiers": tiers}
 
 
 def build_codes(domains: tuple[Domain, ...]) -> dict:

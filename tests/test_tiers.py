@@ -51,3 +51,31 @@ def test_materials_domain_declares_diffusion_tier():
     assert "Diffusion" in names
     used = {n.tier for n in MATERIALS.nodes}
     assert used <= set(names)
+
+
+def test_graph_dict_exports_tier_per_node_and_manifest():
+    from omai.map_data import DOMAINS, build_graph_dict
+    g = build_graph_dict(DOMAINS)
+    # manifest present and ordered
+    assert "tiers" in g and g["tiers"], "graph.tiers missing"
+    orders = [t["order"] for t in g["tiers"]]
+    assert orders == sorted(orders), "tiers not in ascending order"
+    names = [t["name"] for t in g["tiers"]]
+    assert names[:6] == ["Sources", "Harmonic", "Thermodynamics",
+                         "Scattering", "Transport", "Molecular dynamics"]
+    assert "Diffusion" in names
+    # every non-parameter node has a tier that is in the manifest
+    manifest = set(names)
+    for n in g["nodes"]:
+        assert "tier" in n
+        if n["type"] != "parameter":
+            assert n["tier"] in manifest, f"{n['id']} tier {n['tier']!r} not in manifest"
+
+
+def test_parameter_nodes_tier_is_sources():
+    from omai.map_data import DOMAINS, build_graph_dict
+    g = build_graph_dict(DOMAINS)
+    params = [n for n in g["nodes"] if n["type"] == "parameter"]
+    assert params, "expected promoted-parameter nodes"
+    for n in params:
+        assert n["tier"] == "Sources"
