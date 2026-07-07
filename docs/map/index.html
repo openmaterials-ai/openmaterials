@@ -102,6 +102,33 @@
   #tip .op{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:#a5b4fc;font-weight:800;margin-bottom:5px;}
   #tip .fx{overflow-x:auto;} #tip .fx .katex{color:#fff;}
   #tip .fx code{font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;font-size:.78rem;color:#e2e8f0;white-space:pre-wrap;}
+  /* offline banner */
+  #banner{position:fixed;top:60px;left:0;right:0;background:#fef3c7;color:#8a5a09;font:13px/1.4 'Inter',sans-serif;font-weight:600;padding:8px 14px;z-index:15;display:none;border-bottom:1px solid #f4dfa0;}
+  /* guided tour caption */
+  #tour{position:fixed;left:50%;bottom:78px;transform:translateX(-50%);width:min(90vw,620px);background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 48px rgba(16,24,40,.22);padding:18px 22px;z-index:19;display:none;}
+  #tour .step{font-size:.62rem;text-transform:uppercase;letter-spacing:.09em;color:#a3aec0;font-weight:800;}
+  #tour .tname{font-size:1.5rem;font-weight:800;letter-spacing:-.01em;color:#312e81;margin:.15em 0 .35em;}
+  #tour .tdesc{color:#475569;font-size:.96rem;line-height:1.5;}
+  #tour .nav{display:flex;align-items:center;gap:10px;margin-top:15px;}
+  #tour .nav .dots{display:flex;gap:6px;flex:1;}
+  #tour .nav .dot{width:8px;height:8px;border-radius:50%;background:#dbe3f2;}
+  #tour .nav .dot.on{background:var(--obs);}
+  #tour .nav button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 13px;font-size:.82rem;font-weight:600;cursor:pointer;color:var(--ink2);transition:.12s;font-family:inherit;}
+  #tour .nav button:hover{background:#f1f4fb;}
+  #tour .nav button.primary{background:var(--obs);color:#fff;border-color:var(--obs);}
+  #tour .nav button.primary:hover{background:var(--obs2);}
+  #tour .hint{font-size:.7rem;color:#a3aec0;margin-top:9px;}
+  /* static fallback outline (dagre missing) */
+  #fallback{position:fixed;top:100px;left:0;right:0;bottom:0;overflow:auto;padding:20px 26px 60px;display:none;}
+  #fallback .ft{font-size:1.15rem;font-weight:800;color:#312e81;margin:22px 0 4px;}
+  #fallback .fd{color:#6b7796;font-size:.88rem;margin-bottom:12px;}
+  #fallback .fn{border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin:8px 0;background:#fff;}
+  #fallback .fn .fs{font-weight:700;color:#0b1220;}
+  #fallback .fn .fs code{font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;}
+  #fallback .fn .fk{font-size:.66rem;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:middle;}
+  #fallback .fn .fk.observable{background:#eef2ff;color:#4338ca;} #fallback .fn .fk.hidden{background:#f1f5f9;color:#64748b;} #fallback .fn .fk.parameter{background:#f1f5f9;color:#64748b;}
+  #fallback .fn .fe{color:#475569;font-size:.83rem;margin-top:6px;}
+  #fallback .fn .fe .arw{color:#a3aec0;}
 </style>
 </head>
 <body>
@@ -113,9 +140,11 @@
   <span class="search"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input id="q" placeholder="Find a quantity"></span>
   <span class="controls">
     <button class="btn" id="depthBtn" onclick="cycleDepth()">Expand</button>
+    <button class="btn" id="tourBtn" onclick="startTour()">Tour</button>
     <button class="btn" onclick="fitAll()">Fit</button>
   </span>
 </div>
+<div id="banner"></div>
 <div id="cy"><svg id="svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
   <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c3cdde"></path></marker>
   <marker id="arrowhot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4f46e5"></path></marker></defs>
@@ -136,6 +165,8 @@
 <div class="codes" id="codes"><span class="lab2">codes</span></div>
 <div class="panel" id="panel"></div>
 <div id="tip"></div>
+<div id="tour"></div>
+<div id="fallback"></div>
 
 <script>window.onerror=function(m){var e=document.getElementById('err');e.style.display='block';e.textContent='Error: '+m;};</script>
 <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
@@ -150,7 +181,9 @@
 //    - layout    : dagre for vertical spacing, tier-band x-override for columns
 //    - render    : bands, nodes (encoding + value rings), value pills
 //    - interaction: pan/zoom, depth levels, provenance panel, code rails, search
-//  KaTeX and dagre degrade: no code path throws when either is undefined.
+//    - presentation: guided tour, big-screen fit
+//    - fallback  : static readable outline when dagre is missing
+//  KaTeX and dagre both degrade: no code path throws when either is undefined.
 // ============================================================================
 
 // ---- shared ----------------------------------------------------------------
@@ -167,6 +200,7 @@ let nodeById={}, parents={}, children={}, byVar={}, symHtml={}, pos={},
 let priorDepth='overview';  // level to restore when leaving 'focused'
 
 function err(m){ const e=document.getElementById('err'); e.style.display='block'; e.textContent='Error: '+m; }
+function banner(m){ const b=document.getElementById('banner'); b.style.display='block'; b.textContent=m; }
 function setVB(){ svg.setAttribute('viewBox', VB.x+' '+VB.y+' '+VB.w+' '+VB.h); }
 // Render LaTeX with KaTeX; on any failure fall back to the raw string.
 function tex(latex,display){
@@ -208,7 +242,7 @@ function build([graph, insts, codes]){
   graph.nodes.forEach(n=>{ measure.innerHTML=symHtml[n.id]||''; n._w=Math.max(56, measure.offsetWidth+30); n._h=Math.max(44, measure.offsetHeight+20); });
 
   if(HAS_DAGRE) layoutAndRender(graph, bandOf);
-  else err('dagre failed to load (no internet on this browser?)');
+  else renderFallback(graph, bandOf);
 
   renderCodeBar();
 }
@@ -404,7 +438,7 @@ function selectEdge(key, op){
 }
 
 // click routing
-svg.addEventListener('click', e=>{ if(moved)return;
+svg.addEventListener('click', e=>{ if(moved)return; if(tourActive)return;
   const nd=e.target.closest('.node'); if(nd){ selectNode(nodeById[nd.dataset.id]); return; }
   const ed=e.target.closest('.edge'); if(ed){ selectEdge(ed.dataset.edge, ed.dataset.op); return; }
   clearSel();
@@ -448,8 +482,76 @@ document.getElementById('q').addEventListener('input', function(){
   if(hits.length) fitTo(hits);
 });
 
-// Escape returns from focus/panel to the prior level.
-window.addEventListener('keydown', e=>{ if(e.key==='Escape'){ if(panelEl.style.display==='block'||depth==='focused'){ clearSel(); } } });
+// ---- presentation: guided tour ---------------------------------------------
+// Steps through tiers in manifest order, flying to each band's nodes with a
+// caption. Advance click / ArrowRight; back ArrowLeft; exit Escape (to expanded).
+let tourActive=false, tourStep=0, tierNodes={};
+function buildTierNodeIndex(){ tierNodes={}; Object.keys(nodeById).forEach(id=>{ const n=nodeById[id]; const key=(n.tier in tierIndex)?n.tier:'Other'; (tierNodes[key]=tierNodes[key]||[]).push(id); }); }
+function startTour(){ if(!tierList.length) return; if(!Object.keys(tierNodes).length) buildTierNodeIndex();
+  tourActive=true; tourStep=0; depth='expanded'; applyDepth(); panelEl.style.display='none'; showTourStep(); }
+function showTourStep(){
+  const t=tierList[tourStep]; if(!t){ endTour(); return; }
+  const ids=tierNodes[t.name]||[]; if(ids.length) fitTo(ids);
+  const el=document.getElementById('tour');
+  const dots=tierList.map((_,i)=> '<span class="dot'+(i===tourStep?' on':'')+'"></span>').join('');
+  const last=tourStep===tierList.length-1;
+  el.innerHTML='<div class="step">Tier '+(tourStep+1)+' of '+tierList.length+'</div>'+
+    '<div class="tname">'+esc(t.name)+'</div>'+
+    '<div class="tdesc">'+esc(t.description||'')+'</div>'+
+    '<div class="nav"><div class="dots">'+dots+'</div>'+
+    '<button onclick="tourBack()"'+(tourStep===0?' disabled style="opacity:.4"':'')+'>Back</button>'+
+    '<button class="primary" onclick="tourNext()">'+(last?'Finish':'Next')+'</button>'+
+    '<button onclick="endTour()">Exit</button></div>'+
+    '<div class="hint">Click / Right arrow to advance, Left arrow to go back, Esc to exit.</div>';
+  el.style.display='block';
+  // highlight the current tier's nodes
+  clearDim();
+  vp.querySelectorAll('.node').forEach(e=> e.classList.toggle('dim', !(ids.indexOf(e.dataset.id)>=0)));
+  vp.querySelectorAll('.edge').forEach(e=>{ const ab=e.dataset.edge.split('>>'); e.classList.toggle('dim', !(ids.indexOf(ab[0])>=0 && ids.indexOf(ab[1])>=0)); });
+  vp.querySelectorAll('.att').forEach(e=> e.classList.toggle('dim', !(ids.indexOf(e.dataset.id)>=0)));
+}
+function tourNext(){ if(!tourActive) return; if(tourStep>=tierList.length-1){ endTour(); return; } tourStep++; showTourStep(); }
+function tourBack(){ if(!tourActive||tourStep<=0) return; tourStep--; showTourStep(); }
+function endTour(){ tourActive=false; document.getElementById('tour').style.display='none'; depth='expanded'; applyDepth(); fitAll(); }
+
+// keyboard: tour navigation, else Escape returns from focus/panel.
+window.addEventListener('keydown', e=>{
+  if(tourActive){
+    if(e.key==='ArrowRight'){ e.preventDefault(); tourNext(); }
+    else if(e.key==='ArrowLeft'){ e.preventDefault(); tourBack(); }
+    else if(e.key==='Escape'){ e.preventDefault(); endTour(); }
+    return;
+  }
+  if(e.key==='Escape'){ if(panelEl.style.display==='block'||depth==='focused'){ clearSel(); } }
+});
+// during a tour, a plain click on the canvas advances (controls handled separately)
+document.addEventListener('click', e=>{ if(!tourActive) return; if(e.target.closest('#tour')||e.target.closest('.top')||e.target.closest('.codes')) return; tourNext(); }, true);
+
+// ---- fallback: static readable outline (dagre missing) ---------------------
+// Each tier heading + its nodes listed (symbol-or-name) with outgoing edges
+// named by op, so the page communicates structure without a layout engine.
+function renderFallback(graph, bandOf){
+  banner('Interactive layout unavailable offline: showing a static outline of the physics tiers.');
+  document.getElementById('cy').style.display='none';
+  const fb=document.getElementById('fallback'); fb.style.display='block';
+  const byBand={};
+  graph.nodes.forEach(n=>{ const b=bandOf(n); (byBand[b]=byBand[b]||[]).push(n); });
+  let s='';
+  tierList.forEach((t,i)=>{
+    const list=byBand[i]||[];
+    s+='<div class="ft">'+esc(t.name)+'</div><div class="fd">'+esc(t.description||'')+'</div>';
+    list.forEach(n=>{
+      const outs=(children[n.id]||[]);
+      s+='<div class="fn"><span class="fs">'+(symHtml[n.id]||'')+' '+esc(n.id)+'</span><span class="fk '+n.type+'">'+esc(n.type)+'</span>';
+      if(outs.length){
+        const edg=outs.map(t2=>{ const e=edgeList.find(x=> x.source===n.id && x.target===t2); return '<span class="arw">&rarr;</span> '+esc(t2)+(e&&e.op?(' ('+esc(opName(e.op))+')'):''); });
+        s+='<div class="fe">'+edg.join('<br>')+'</div>';
+      }
+      s+='</div>';
+    });
+  });
+  fb.innerHTML=s;
+}
 </script>
 </body>
 </html>
