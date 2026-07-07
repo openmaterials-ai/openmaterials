@@ -48,13 +48,6 @@ __all__ = [
 # wrote deliberately, not a typo; they are surfaced here for resolution in
 # kernel P2 (when dimensions enter node identity), not silently swallowed.
 KNOWN_VIOLATIONS: list[str] = [
-    # Wigner coherences: the summand carries (c_qv + c_qv')/2 like the
-    # populations form "for uniformity", but the exact Simoncelli coherence
-    # conductivity uses the specific heat divided by frequency (C_s/omega_s),
-    # so the encoded form is short one power of time (RHS T^-4 vs kappa's
-    # T^-3). The dimensionally-clean sibling compute_kappa[qhgk] has the same
-    # Lorentzian but no extra (omega+omega')/2 factor. Resolve in P2.
-    "compute_kappa[transport_model=wigner_coherences]: lhs M^1 L^1 T^-3 Th^-1 != rhs M^1 L^1 T^-4 Th^-1",
     # Gruneisen: the formula's own comment says "(Maradudin-Fein, schematic):
     # not fully expanded". The eigenvector contraction, position factor r_k,
     # and mass normalization that make gamma dimensionless are omitted, so the

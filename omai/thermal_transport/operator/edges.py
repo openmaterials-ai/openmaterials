@@ -809,14 +809,24 @@ _KAPPA_WIGNER_POP_FORMULA = sp.Eq(
            (_q, 1, _N_q), (_nu, 1, _N_modes)) / (_V_cell * _N_q),
 )
 
-# κ_W^coh = (1/(V N_q)) Σ_qνν' (c_qν + c_qν')/2
-#                              · (ω_qν + ω_qν')/2 · v^α_qν,qν' v^β_qν',qν
+# κ_W^coh = (1/(V N_q)) Σ_qνν' (ω_qν + ω_qν')/2 · (c_qν/ω_qν + c_qν'/ω_qν')
+#                              · v^α_qν,qν' v^β_qν',qν
 #                              · Γ_qν + Γ_qν' / [(ω_qν - ω_qν')² + (Γ_qν + Γ_qν')²]
+#
+# The mode-pair specific-heat weighting is the frequency-weighted Simoncelli
+# form (ω+ω')/2 · (c/ω + c'/ω'), transcribed from the vendored phono3py SMM19
+# solver phono3py/phono3py/conductivity/ms_smm19/kappa_solvers.py:122-126
+# (prefactor = 0.25·(ℏω_s+ℏω_s')·(C_s/ℏω_s + C_s'/ℏω_s')), cross-checked
+# against kaldo's off-diagonal C_{ss'}/(4 ω_s ω_s') QHGK kernel
+# (kaldo/kaldo/conductivity.py:44-45, observables/harmonic_with_q_temp.py:77-81).
+# This carries one fewer power of frequency than the earlier (c+c')/2·(ω+ω')/2
+# encoding, restoring κ_C to the thermal-conductivity dimension. The Lorentzian
+# is kept in the (Γ+Γ')/[(Δω)²+(Γ+Γ')²] convention shared with the QHGK sibling.
 _KAPPA_WIGNER_COH_FORMULA = sp.Eq(
     sp.IndexedBase(r"\kappa^{W,coh}")[_alpha, _beta],
     sp.Sum(
-        (_c[_q, _nu] + _c[_q, _nu_p]) / 2
-        * (_omega[_q, _nu] + _omega[_q, _nu_p]) / 2
+        (_omega[_q, _nu] + _omega[_q, _nu_p]) / 2
+        * (_c[_q, _nu] / _omega[_q, _nu] + _c[_q, _nu_p] / _omega[_q, _nu_p])
         * _v_alpha_qν * _v_beta_qνp
         * (_GAMMA_anh[_q, _nu] + _GAMMA_anh[_q, _nu_p])
         / ((_omega[_q, _nu] - _omega[_q, _nu_p]) ** 2
@@ -854,7 +864,16 @@ compute_kappa_wigner_coherences = Operator(
     description=(
         "Coherences (wave-like) component of the Wigner κ. Lorentzian-"
         "weighted band-overlap at fixed q; dominant when mode spacings "
-        "approach Γ."
+        "approach Γ. The mode-pair specific-heat weighting is the "
+        "frequency-weighted Simoncelli form (ω+ω')/2·(c/ω + c'/ω') "
+        "transcribed from the vendored phono3py Wigner (SMM19) solver "
+        "phono3py/phono3py/conductivity/ms_smm19/kappa_solvers.py:122-126 "
+        "(prefactor 0.25·(ℏω_s+ℏω_s')·(C_s/ℏω_s + C_s'/ℏω_s')), "
+        "cross-checked against kaldo's off-diagonal C_{ss'}/(4 ω_s ω_s') "
+        "QHGK kernel (kaldo/kaldo/conductivity.py:44-45, "
+        "observables/harmonic_with_q_temp.py:77-81). This is the "
+        "Simoncelli, Marzari, Mauri, Nat. Phys. 15, 809 (2019) coherence "
+        "conductivity κ_C."
     ),
 )
 
