@@ -74,7 +74,7 @@ omai/
   thermal_transport/
     operator/        # the lattice-thermal-transport DAG (Spaces + Operators)
     representation/  # per-code adapters (kaldo, phono3py, phonopy,
-                     #   shengbte, ase, lammps, gpumd)
+                     #   shengbte, qe, ase, lammps, gpumd)
     visualize.py     # emits docs/pipeline.html
   materials/         # second domain, grown from AtomisticSkills: diffusion
                      #   subgraph, skills_catalog.json, ENCODING.md procedure

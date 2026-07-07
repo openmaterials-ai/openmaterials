@@ -218,9 +218,9 @@ the reviewers decide what enters the commons.
 ## Status and build order
 
 Today's map is v1, the genesis version: 48 typed quantities plus 3 promoted
-parameters, the symbolic formula on every relational edge, 8 representations
-mapped (kaldo 32 variables, phono3py 31, ShengBTE 20, phonopy 17, GPUMD 8,
-LAMMPS 8, ASE 1, and the mat-diffusion-analysis skill 2), and real instances
+parameters, the symbolic formula on every relational edge, 9 representations
+mapped (kaldo 32 variables, phono3py 31, ShengBTE 20, phonopy 17, QE 9,
+LAMMPS 9, GPUMD 8, ASE 1, and the mat-diffusion-analysis skill 2), and real instances
 computed through the framework: cross-code silicon thermal conductivity
 (Tersoff potential, 8x8x8 mesh, 300 K: kaldo 19.46 RTA and 26.91 direct,
 phono3py 16.74 RTA and 24.30 direct, in W/m K) plus an LGPS activation energy
