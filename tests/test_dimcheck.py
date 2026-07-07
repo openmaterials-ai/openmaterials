@@ -20,7 +20,9 @@ from omai.operator.dimensions import (
 )
 from omai.operator.dimcheck import (
     DimensionalViolation,
+    KNOWN_VIOLATIONS,
     dimension_of,
+    dimensional_report,
 )
 
 
@@ -80,3 +82,17 @@ def test_local_none_override_shadows_global():
     D = sp.Symbol("D")
     assert dimension_of(D) is not None  # global registration present
     assert dimension_of(D, local={"D": None}) is None
+
+
+def test_unified_dag_dimensional_report_no_new_violations():
+    from omai.map_data import DOMAINS
+    from omai.operator.dimcheck import dimensional_report
+    nodes, edges, seen = [], [], set()
+    for d in DOMAINS:
+        for s in d.nodes:
+            if s.name not in seen:
+                seen.add(s.name); nodes.append(s)
+        edges.extend(d.edges)
+    report = dimensional_report(tuple(nodes), tuple(edges))
+    assert report["violation"] == KNOWN_VIOLATIONS
+    assert len(report["ok"]) >= 8

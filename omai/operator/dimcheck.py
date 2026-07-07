@@ -35,7 +35,55 @@ __all__ = [
     "register_symbol_dimensions",
     "dimension_of",
     "DimensionalViolation",
+    "dimensional_report",
+    "KNOWN_VIOLATIONS",
 ]
+
+
+# Edges whose closed-form Eq is a true-but-known modeling looseness, pinned
+# so the suite catches *new* dimensional regressions without failing on the
+# already-understood ones. Each entry MUST carry an inline comment naming
+# the looseness. Empty would mean every checkable edge is dimensionally
+# clean. Every entry below is a schematic-encoding looseness the map author
+# wrote deliberately, not a typo; they are surfaced here for resolution in
+# kernel P2 (when dimensions enter node identity), not silently swallowed.
+KNOWN_VIOLATIONS: list[str] = [
+    # n_{BE}(omega/T): the Bose-Einstein occupation is written with the
+    # schematic argument omega/T instead of the dimensionless hbar*omega/(k_B*T).
+    # The hbar and k_B are absorbed (the sibling closed forms compute_heat_capacity
+    # and compute_free_energy spell out the full hbar*omega/(k_B*T) and pass).
+    # Same schematic in all three edges that call n_{BE}.
+    "compute_entropy: n_{BE} of dimensionful argument (T^-1 Th^-1)",
+    "compute_internal_energy: n_{BE} of dimensionful argument (T^-1 Th^-1)",
+    "compute_linewidth[channel=anharmonic_3ph]: n_{BE} of dimensionful argument (T^-1 Th^-1)",
+    # Wigner coherences: the summand carries (c_qv + c_qv')/2 like the
+    # populations form "for uniformity", but the exact Simoncelli coherence
+    # conductivity uses the specific heat divided by frequency (C_s/omega_s),
+    # so the encoded form is short one power of time (RHS T^-4 vs kappa's
+    # T^-3). The dimensionally-clean sibling compute_kappa[qhgk] has the same
+    # Lorentzian but no extra (omega+omega')/2 factor. Resolve in P2.
+    "compute_kappa[transport_model=wigner_coherences]: lhs M^1 L^1 T^-3 Th^-1 != rhs M^1 L^1 T^-4 Th^-1",
+    # Gruneisen: the formula's own comment says "(Maradudin-Fein, schematic):
+    # not fully expanded". The eigenvector contraction, position factor r_k,
+    # and mass normalization that make gamma dimensionless are omitted, so the
+    # bare Phi3/omega^2 leaves a residual M L^-1.
+    "compute_gruneisen: lhs 1 != rhs M^1 L^-1",
+    # Three-phonon phase space: the continuum delta-sum over frequency
+    # differences carries 1/frequency (T) per the delta's dimension, while
+    # P3 is declared a dimensionless scattering-availability measure. At
+    # finite q-mesh the delta becomes a normalized (dimensionless) weight
+    # (see delta_broadening); the stray time is an artifact of the delta
+    # notation, shared with compute_dos's g delta-sum.
+    "compute_phase_space_3phonon: lhs 1 != rhs T^1",
+]
+
+
+# Spaces whose symbol ``D`` / ``D^{bare}`` (the dynamical matrix) collides
+# with the materials-domain diffusivity ``D``. Edges touching them get an
+# explicit per-edge unknown override so the collision never becomes a false
+# violation; see the thermal dimensions_registry docstring.
+_DM_SPACE_NAMES = frozenset({"DynamicalMatrix", "BareDynamicalMatrix"})
+_DM_OVERRIDE_SYMBOLS = ("D", r"D^{bare}")
 
 
 # Live registry: symbol base name -> Dimension. Domains populate it via
@@ -236,3 +284,68 @@ def dimension_of(expr, local=None) -> Dimension | None:
 
     # Anything else: unknown (skip).
     return None
+
+
+def _edge_local_mapping(op) -> dict:
+    """Per-edge {base name -> Dimension | None} mapping for `dimension_of`.
+
+    Built from the edge's declared parameters (opaque parameter dimensions
+    map to None, i.e. treated as unknown) plus the dynamical-matrix override:
+    on any edge touching a DynamicalMatrix / BareDynamicalMatrix space, the
+    symbol ``D`` / ``D^{bare}`` is forced unknown so it never resolves to the
+    materials-domain diffusivity ``D``.
+    """
+    local: dict = {}
+    for p in op.parameters:
+        local[p.name] = None if p.dimension.is_opaque else p.dimension
+    if any(s.name in _DM_SPACE_NAMES for s in (op.inputs + op.outputs)):
+        for sym in _DM_OVERRIDE_SYMBOLS:
+            local[sym] = None
+    return local
+
+
+def dimensional_report(nodes, edges) -> dict:
+    """Classify every closed-form Eq edge as ok / violation / skipped.
+
+    Returns ``{"ok": [...], "violation": [...], "skipped": [...]}`` of edge
+    names. An edge whose formula is a sympy Eq is evaluated on both sides
+    with `dimension_of` (using a per-edge `local` mapping from its
+    parameters plus the DM override); it is:
+
+      * ok        - both sides known and equal;
+      * violation - both sides known and different, OR a DimensionalViolation
+                    is proven while evaluating either side (the violation
+                    entry carries a ``"name: lhs <dim> != rhs <dim>"`` or
+                    reason suffix);
+      * skipped   - either side unknown, or the formula is not a sympy Eq.
+
+    `nodes` is accepted for interface symmetry with the other DAG walkers
+    (and to keep the signature stable as the gate grows); the classification
+    reads only the edges.
+    """
+    ok: list[str] = []
+    violation: list[str] = []
+    skipped: list[str] = []
+
+    for op in edges:
+        formula = op.formula
+        if not isinstance(formula, sp.Eq):
+            skipped.append(op.name)
+            continue
+        local = _edge_local_mapping(op)
+        try:
+            lhs_dim = dimension_of(formula.lhs, local)
+            rhs_dim = dimension_of(formula.rhs, local)
+        except DimensionalViolation as exc:
+            violation.append(f"{op.name}: {exc}")
+            continue
+        if lhs_dim is None or rhs_dim is None:
+            skipped.append(op.name)
+        elif lhs_dim == rhs_dim:
+            ok.append(op.name)
+        else:
+            violation.append(
+                f"{op.name}: lhs {lhs_dim.canonical()} != rhs {rhs_dim.canonical()}"
+            )
+
+    return {"ok": ok, "violation": violation, "skipped": skipped}
