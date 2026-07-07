@@ -192,3 +192,90 @@ def test_node_id_ignores_names_and_tier():
     # same quantity tag, same field signature (dimension+index kinds), same
     # gauge/labels -> same id even though field name, description, tier differ.
     assert node_id(a) == node_id(b)
+
+
+# --------------------------------------------------------------------------
+# Task 3: uids exported into graph.json (build_graph_dict).
+# --------------------------------------------------------------------------
+
+_HEX = set("0123456789abcdef")
+
+
+def _is_hex64(s) -> bool:
+    return isinstance(s, str) and len(s) == 64 and all(c in _HEX for c in s)
+
+
+def test_every_graph_node_has_a_unique_hex_uid():
+    from omai.map_data import build_graph_dict, DOMAINS
+    g = build_graph_dict(DOMAINS)
+    uids = [n["uid"] for n in g["nodes"]]
+    for n in g["nodes"]:
+        assert _is_hex64(n["uid"]), f"{n['id']}: bad uid {n.get('uid')!r}"
+    assert len(set(uids)) == len(uids), "duplicate node uid"
+
+
+def test_graph_counts_unchanged_with_uids():
+    from omai.map_data import build_graph_dict, DOMAINS
+    g = build_graph_dict(DOMAINS)
+    assert len(g["nodes"]) == 51
+    assert len(g["links"]) == 131
+
+
+def test_node_uids_stable_across_two_builds():
+    from omai.map_data import build_graph_dict, DOMAINS
+    g1 = build_graph_dict(DOMAINS)
+    g2 = build_graph_dict(DOMAINS)
+    m1 = {n["id"]: n["uid"] for n in g1["nodes"]}
+    m2 = {n["id"]: n["uid"] for n in g2["nodes"]}
+    assert m1 == m2
+
+
+def test_node_uids_match_identity_functions():
+    from omai.map_data import build_graph_dict, DOMAINS
+    from omai.operator.identity import node_id, parameter_node_id
+    g = build_graph_dict(DOMAINS)
+    by_name = {}
+    for d in DOMAINS:
+        for s in d.nodes:
+            by_name.setdefault(s.name, s)
+    param_dim = {}
+    for d in DOMAINS:
+        for p in d.param_promotions:
+            param_dim[p[0]] = p[3] if len(p) >= 4 else None
+    for n in g["nodes"]:
+        if n["type"] == "parameter":
+            assert n["uid"] == parameter_node_id(n["id"], param_dim.get(n["id"]))
+        else:
+            assert n["uid"] == node_id(by_name[n["id"]])
+
+
+def test_links_sharing_an_operator_share_a_uid():
+    """A multi-input edge emits one link per input-output pair; those links
+    share the operator's edge uid (the uid identifies the OPERATOR)."""
+    from omai.map_data import build_graph_dict, DOMAINS
+    g = build_graph_dict(DOMAINS)
+    by_op: dict[str, set] = {}
+    for lk in g["links"]:
+        if lk.get("kind") == "param":
+            continue
+        by_op.setdefault(lk["op"], set()).add(lk["uid"])
+    for op, uids in by_op.items():
+        assert len(uids) == 1, f"{op}: links disagree on uid {uids}"
+        (u,) = uids
+        assert _is_hex64(u), f"{op}: bad edge uid {u!r}"
+    # at least one operator really does span multiple links (multi-input edge)
+    counts = {}
+    for lk in g["links"]:
+        if lk.get("kind") == "param":
+            continue
+        counts[lk["op"]] = counts.get(lk["op"], 0) + 1
+    assert any(c > 1 for c in counts.values()), "expected a multi-link operator"
+
+
+def test_param_links_have_none_uid():
+    from omai.map_data import build_graph_dict, DOMAINS
+    g = build_graph_dict(DOMAINS)
+    param_links = [lk for lk in g["links"] if lk.get("kind") == "param"]
+    assert param_links, "expected promoted-parameter links"
+    for lk in param_links:
+        assert lk["uid"] is None

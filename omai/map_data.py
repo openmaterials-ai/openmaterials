@@ -11,6 +11,7 @@ from types import ModuleType
 
 import sympy as sp
 
+from omai.operator.identity import edge_id, node_id, parameter_node_id
 from omai.operator.operator import Operator
 from omai.operator.space import ObservableSpace, Space
 
@@ -87,18 +88,25 @@ def build_graph_dict(domains: tuple[Domain, ...]) -> dict:
                 "symbol": symbols.get(s.name, s.name),
                 "formula": target_formula.get(s.name),
                 "tier": s.tier,
+                "uid": node_id(s),
             })
 
+    # Content-addressed edge uid per operator name, per domain. Several links
+    # can share an operator (a multi-input edge emits one link per input-output
+    # pair); those links carry the same uid because the uid identifies the
+    # OPERATOR, not the individual arrow.
     links: list[dict] = []
     seen_links: set[tuple] = set()
     for d in domains:
+        edge_uid = {op.name: edge_id(op, node_id) for op in d.edges}
         for op in d.edges:
             for i in op.inputs:
                 for o in op.outputs:
                     key = (i.name, o.name, op.name)
                     if key not in seen_links:
                         seen_links.add(key)
-                        links.append({"source": i.name, "target": o.name, "op": op.name})
+                        links.append({"source": i.name, "target": o.name,
+                                      "op": op.name, "uid": edge_uid[op.name]})
 
     def _uses(formula, sym):
         if formula is None:
@@ -121,14 +129,18 @@ def build_graph_dict(domains: tuple[Domain, ...]) -> dict:
             if not consumers:
                 continue
             seen.add(pid)
+            dim_name = rest[0] if rest else None
             nodes.append({"id": pid, "type": "parameter", "layer": 0,
                           "kind": "symbolic", "symbol": psym, "formula": None,
-                          "tier": "Sources"})
+                          "tier": "Sources", "uid": parameter_node_id(pid, dim_name)})
             for c in consumers:
                 param_key = (pid, c, "provide_" + pid)
                 if param_key not in seen_links:
                     seen_links.add(param_key)
-                    links.append({"source": pid, "target": c, "op": "provide_" + pid, "kind": "param"})
+                    # Parameter links are presentation artifacts of promotion,
+                    # not operators, so they carry no edge uid.
+                    links.append({"source": pid, "target": c, "op": "provide_" + pid,
+                                  "kind": "param", "uid": None})
 
     tiers, seen_tiers = [], set()
     for d in domains:
