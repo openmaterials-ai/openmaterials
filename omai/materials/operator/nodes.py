@@ -12,6 +12,7 @@ DIFFUSIVITY_STATE = ObservableSpace(
         "MSD(t) = 2 d D t in the linear regime. Produced from "
         "MeanSquaredDisplacement; per temperature."
     ),
+    tier="Diffusion",
 )
 
 ACTIVATION_ENERGY = ObservableSpace(
@@ -21,6 +22,7 @@ ACTIVATION_ENERGY = ObservableSpace(
         "Arrhenius activation energy E_a from D(T) = D0 exp(-E_a/k_B T), "
         "obtained by a weighted fit over diffusivities at several temperatures."
     ),
+    tier="Diffusion",
 )
 
 NODES: tuple[Space, ...] = (DIFFUSIVITY_STATE, ACTIVATION_ENERGY)

@@ -16,5 +16,8 @@ MATERIALS = Domain(
     edges=EDGES,
     symbols=SYMBOLS,
     param_promotions=(),
+    tiers=(
+        ("Diffusion", "Mass transport from MD: self-diffusivity via the Einstein relation and the Arrhenius activation energy."),
+    ),
     representation_package=mat_rep,
 )

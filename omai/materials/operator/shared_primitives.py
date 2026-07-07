@@ -23,6 +23,7 @@ STRUCTURE = ObservableSpace(
         "Atomic structure (cell + species + positions); in Phase 1 an opaque "
         "label, the shared source node most materials skills consume."
     ),
+    tier="Sources",
 )
 
 SHARED_PRIMITIVES = (STRUCTURE, TEMPERATURE, TRAJECTORY, MEAN_SQUARED_DISPLACEMENT, POTENTIAL)

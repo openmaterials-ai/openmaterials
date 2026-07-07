@@ -55,23 +55,27 @@ POTENTIAL = ObservableSpace(
     name="Potential",
     fields=(Field("potential", OPAQUE, indices=()),),
     description="Born-Oppenheimer potential of the material; in Phase 1 an opaque label.",
+    tier="Sources",
 )
 
 TEMPERATURE_STATE = ObservableSpace(
     name="Temperature",
     fields=(Field("temperature", TEMPERATURE, indices=()),),
+    tier="Sources",
 )
 
 FORCE_CONSTANTS_2 = ObservableSpace(
     name="ForceConstants[order=2]",
     fields=(Field("phi", ENERGY_PER_LENGTH_SQUARED, indices=("i", "j", "R")),),
     labels={"order": 2},
+    tier="Sources",
 )
 
 FORCE_CONSTANTS_3 = ObservableSpace(
     name="ForceConstants[order=3]",
     fields=(Field("phi", ENERGY_PER_LENGTH_CUBED, indices=("i", "j", "k", "R", "R'")),),
     labels={"order": 3},
+    tier="Sources",
 )
 
 BORN_CHARGES = ObservableSpace(
@@ -84,6 +88,7 @@ BORN_CHARGES = ObservableSpace(
         "DielectricTensor ε∞ it parameterises the non-analytic correction "
         "(LO-TO splitting) for polar materials."
     ),
+    tier="Sources",
 )
 
 DIELECTRIC_TENSOR = ObservableSpace(
@@ -94,6 +99,7 @@ DIELECTRIC_TENSOR = ObservableSpace(
         "frequency, dimensionless. Source-tier ObservableSpace. Enters the "
         "non-analytic correction to D(q) at q→0."
     ),
+    tier="Sources",
 )
 
 BARE_DYNAMICAL_MATRIX = ObservableSpace(
@@ -107,6 +113,7 @@ BARE_DYNAMICAL_MATRIX = ObservableSpace(
         "for polar materials apply_nac_correction adds the q→0 non-analytic "
         "term involving BornCharges and DielectricTensor."
     ),
+    tier="Harmonic",
 )
 
 DYNAMICAL_MATRIX = ObservableSpace(
@@ -118,16 +125,19 @@ DYNAMICAL_MATRIX = ObservableSpace(
         "Entries are dimensionally frequency² (mass-weighted Hessian); codes "
         "typically store the matrix with eigenvalues that are ω², not ω."
     ),
+    tier="Harmonic",
 )
 
 FREQUENCY_STATE = ObservableSpace(
     name="Frequency",
     fields=(Field("omega", FREQUENCY, indices=("q", "nu")),),
+    tier="Harmonic",
 )
 
 HEAT_CAPACITY = ObservableSpace(
     name="HeatCapacity",
     fields=(Field("c", ENERGY_PER_TEMPERATURE, indices=("q", "nu")),),
+    tier="Thermodynamics",
 )
 
 VOLUMETRIC_HEAT_CAPACITY = ObservableSpace(
@@ -139,6 +149,7 @@ VOLUMETRIC_HEAT_CAPACITY = ObservableSpace(
         "of T only. ShengBTE emits this directly as BTE.cv; codes that "
         "emit per-mode HeatCapacity reach it via the contraction edge."
     ),
+    tier="Thermodynamics",
 )
 
 MOLAR_HEAT_CAPACITY = ObservableSpace(
@@ -150,6 +161,7 @@ MOLAR_HEAT_CAPACITY = ObservableSpace(
         "of its harmonic thermal_properties output (J/K/mol). Codes that "
         "emit per-mode HeatCapacity reach it via the contraction edge."
     ),
+    tier="Thermodynamics",
 )
 
 
@@ -167,6 +179,7 @@ HELMHOLTZ_FREE_ENERGY = ObservableSpace(
         "k_B T ln(1 - exp(-ℏω/k_B T)). The 1/2 is the zero-point part; "
         "the log term carries the temperature dependence."
     ),
+    tier="Thermodynamics",
 )
 
 ENTROPY = ObservableSpace(
@@ -176,6 +189,7 @@ ENTROPY = ObservableSpace(
         "Per-mode entropy s_qν(T) = (1/T)·ℏω·n_BE(ω,T) - "
         "k_B ln(1 - exp(-ℏω/k_B T)). Equivalently -∂f/∂T."
     ),
+    tier="Thermodynamics",
 )
 
 INTERNAL_ENERGY = ObservableSpace(
@@ -185,6 +199,7 @@ INTERNAL_ENERGY = ObservableSpace(
         "Per-mode internal energy e_qν(T) = ℏω(1/2 + n_BE(ω/T)). "
         "Sums the zero-point energy and the thermal occupation."
     ),
+    tier="Thermodynamics",
 )
 
 
@@ -199,6 +214,7 @@ MOLAR_HELMHOLTZ_FREE_ENERGY = ObservableSpace(
         "temperature T, F_mol = (N_A / N_q) Σ_qν f_qν(T). Phonopy emits "
         "this as part of its thermal_properties output (kJ/mol)."
     ),
+    tier="Thermodynamics",
 )
 
 MOLAR_ENTROPY = ObservableSpace(
@@ -209,6 +225,7 @@ MOLAR_ENTROPY = ObservableSpace(
         "S_mol = (N_A / N_q) Σ_qν s_qν(T). Phonopy emits this as "
         "thermal_properties['entropy'] in J/(K·mol)."
     ),
+    tier="Thermodynamics",
 )
 
 MOLAR_INTERNAL_ENERGY = ObservableSpace(
@@ -219,6 +236,7 @@ MOLAR_INTERNAL_ENERGY = ObservableSpace(
         "E_mol = (N_A / N_q) Σ_qν e_qν(T). Phonopy emits this as "
         "thermal_properties['internal_energy'] in kJ/mol."
     ),
+    tier="Thermodynamics",
 )
 
 THERMAL_CONDUCTIVITY_DIRECT = ObservableSpace(
@@ -230,6 +248,7 @@ THERMAL_CONDUCTIVITY_DIRECT = ObservableSpace(
         "Gauge-invariant: the collision matrix's off-diagonals preserve "
         "invariance under per-mode Γ redistribution."
     ),
+    tier="Transport",
 )
 
 MEAN_FREE_DISPLACEMENT_DIRECT = ObservableSpace(
@@ -240,6 +259,7 @@ MEAN_FREE_DISPLACEMENT_DIRECT = ObservableSpace(
         "F obtained from the full linearized BTE (direct inversion or "
         "iterative solution). Gauge-invariant by construction."
     ),
+    tier="Transport",
 )
 
 
@@ -259,6 +279,7 @@ EIGENVECTORS = HiddenSpace(
         "per-element values are not directly comparable across adapters. "
         "Contracted gauge-invariants live in Frequency (eigenvalues) and κ_LBTE."
     ),
+    tier="Harmonic",
 )
 
 GROUP_VELOCITY = HiddenSpace(
@@ -272,6 +293,7 @@ GROUP_VELOCITY = HiddenSpace(
         "but inherits the U(d) rotation freedom at degenerate ω. Contracted "
         "gauge-invariants live in κ (Σ c v² τ over the BZ)."
     ),
+    tier="Harmonic",
 )
 
 ANHARMONIC_LINEWIDTH = HiddenSpace(
@@ -288,6 +310,7 @@ ANHARMONIC_LINEWIDTH = HiddenSpace(
         "gauge: weights redistribute between modes but conserve the total). "
         "Contractions (ΣΓ, κ_LBTE) are the gauge-invariant content."
     ),
+    tier="Scattering",
 )
 
 ISOTOPIC_LINEWIDTH = HiddenSpace(
@@ -303,6 +326,7 @@ ISOTOPIC_LINEWIDTH = HiddenSpace(
         "is gauge-dependent (depends on eigenvector basis at degenerate ω); "
         "the BZ-summed total is the cross-code observable."
     ),
+    tier="Scattering",
 )
 
 
@@ -319,6 +343,7 @@ BOUNDARY_LINEWIDTH = HiddenSpace(
         "scale (operator parameter). Gauge-dependent inherits "
         "GroupVelocity's basis dependence at degenerate ω."
     ),
+    tier="Scattering",
 )
 
 
@@ -335,6 +360,7 @@ TOTAL_LINEWIDTH = HiddenSpace(
         "rule applies under the linearized BTE. Channels a given run does "
         "not model contribute zero."
     ),
+    tier="Scattering",
 )
 
 
@@ -349,6 +375,7 @@ ISOTOPE_ABUNDANCES = ObservableSpace(
         "Source-tier ObservableSpace: either natural-abundance defaults or "
         "user-provided per-species values."
     ),
+    tier="Sources",
 )
 
 PHONON_DOS = ObservableSpace(
@@ -359,6 +386,7 @@ PHONON_DOS = ObservableSpace(
         "binned in ω. Gauge-invariant: ω_qν are basis-independent and the "
         "sum over (q, ν) is uniformly weighted."
     ),
+    tier="Harmonic",
 )
 
 GRUNEISEN = ObservableSpace(
@@ -369,6 +397,7 @@ GRUNEISEN = ObservableSpace(
         "anharmonicity-driven volume dependence; computed from FC2 and FC3 "
         "via the standard Maradudin-Fein expression. Dimensionless."
     ),
+    tier="Scattering",
 )
 
 PHASE_SPACE_3PH = ObservableSpace(
@@ -379,6 +408,7 @@ PHASE_SPACE_3PH = ObservableSpace(
         "2 δ(ω+ω'−ω'')] available for scattering channels involving mode "
         "(q, ν). Doesn't include |V₃|² — purely the kinematic volume."
     ),
+    tier="Scattering",
 )
 
 MEAN_FREE_DISPLACEMENT_RTA = HiddenSpace(
@@ -395,6 +425,7 @@ MEAN_FREE_DISPLACEMENT_RTA = HiddenSpace(
         "a gauge-invariant ObservableSpace. The LBTE branch (MFD[direct_inverse]) "
         "is the gauge-invariant analogue."
     ),
+    tier="Transport",
 )
 
 THERMAL_CONDUCTIVITY_RTA = HiddenSpace(
@@ -410,6 +441,7 @@ THERMAL_CONDUCTIVITY_RTA = HiddenSpace(
         "(unlike the LBTE solution, which preserves gauge-invariance via "
         "off-diagonal collision terms). Terminal approximation HiddenSpace."
     ),
+    tier="Transport",
 )
 
 
@@ -430,6 +462,7 @@ THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS = ObservableSpace(
         "κ_LBTE; isolates the diagonal-in-band part of the heat-flux "
         "correlation."
     ),
+    tier="Transport",
 )
 
 THERMAL_CONDUCTIVITY_WIGNER_COHERENCES = ObservableSpace(
@@ -442,6 +475,7 @@ THERMAL_CONDUCTIVITY_WIGNER_COHERENCES = ObservableSpace(
         "mode-overlap term; dominates κ in glasses and complex crystals "
         "where mode spacings approach Γ."
     ),
+    tier="Transport",
 )
 
 THERMAL_CONDUCTIVITY_WIGNER = ObservableSpace(
@@ -454,6 +488,7 @@ THERMAL_CONDUCTIVITY_WIGNER = ObservableSpace(
         "coherences → 0) and a glass-like wave-transport regime "
         "(spacings ≲ Γ). Gauge-invariant ObservableSpace."
     ),
+    tier="Transport",
 )
 
 CUMULATIVE_KAPPA_OMEGA = ObservableSpace(
@@ -466,6 +501,7 @@ CUMULATIVE_KAPPA_OMEGA = ObservableSpace(
         "of κ over the phonon-frequency axis; saturates at κ_LBTE for "
         "ω_c → ∞."
     ),
+    tier="Transport",
 )
 
 
@@ -479,6 +515,7 @@ CUMULATIVE_KAPPA_MFP = ObservableSpace(
         "for nanoscale design — the Λ at which κ_cum is 50% of κ_total "
         "is the median mean free path."
     ),
+    tier="Transport",
 )
 
 
@@ -498,6 +535,7 @@ THERMAL_CONDUCTIVITY_QHGK = HiddenSpace(
         "of its gauge structure says otherwise. Used primarily for "
         "amorphous systems where the BTE picture breaks down."
     ),
+    tier="Transport",
 )
 
 
@@ -529,6 +567,7 @@ TRAJECTORY = HiddenSpace(
         "below — HeatCurrentACF, VelocityAutocorrelation, and "
         "MeanSquaredDisplacement are the gauge-invariant content."
     ),
+    tier="Molecular dynamics",
 )
 
 HEAT_CURRENT = HiddenSpace(
@@ -544,6 +583,7 @@ HEAT_CURRENT = HiddenSpace(
         "The cross-code observable is the time-correlation HeatCurrentACF, "
         "which is what enters Green-Kubo κ."
     ),
+    tier="Molecular dynamics",
 )
 
 HEAT_CURRENT_ACF = ObservableSpace(
@@ -556,6 +596,7 @@ HEAT_CURRENT_ACF = ObservableSpace(
         "The Green-Kubo κ integrand: κ_αβ ∝ ∫₀^∞ Jcorr_αβ(τ) dτ — "
         "added in P3 as contract_kappa_green_kubo."
     ),
+    tier="Molecular dynamics",
 )
 
 VELOCITY_AUTOCORRELATION = ObservableSpace(
@@ -569,6 +610,7 @@ VELOCITY_AUTOCORRELATION = ObservableSpace(
         "the `fourier_to_dos` edge, which makes this a Pattern-C "
         "alternative-producer of PhononDOS alongside compute_dos."
     ),
+    tier="Molecular dynamics",
 )
 
 MEAN_SQUARED_DISPLACEMENT = ObservableSpace(
@@ -581,6 +623,7 @@ MEAN_SQUARED_DISPLACEMENT = ObservableSpace(
         "Gauge-invariant; orthogonal to κ but a free addition that lets "
         "the framework cover diffusion observables."
     ),
+    tier="Molecular dynamics",
 )
 
 
@@ -600,6 +643,7 @@ THERMAL_CONDUCTIVITY_GREEN_KUBO = ObservableSpace(
         "the MD Trajectory. Free of the perturbation a NEMD setup "
         "introduces; the equilibrium-MD reference value for κ."
     ),
+    tier="Molecular dynamics",
 )
 
 
@@ -616,6 +660,7 @@ THERMAL_CONDUCTIVITY_NEMD = ObservableSpace(
         "step left out of this space's definition. Gauge-invariant once "
         "the steady state has converged."
     ),
+    tier="Molecular dynamics",
 )
 
 
@@ -631,6 +676,7 @@ THERMAL_CONDUCTIVITY_HNEMD = ObservableSpace(
         "direct NEMD; GPUMD's signature thermal-transport method. "
         "Gauge-invariant in the small-F_e limit."
     ),
+    tier="Molecular dynamics",
 )
 
 

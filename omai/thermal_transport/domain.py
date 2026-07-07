@@ -17,5 +17,13 @@ THERMAL_TRANSPORT = Domain(
         ("AtomicMass", r"M", _edges._M, None),
         ("AtomCount", r"N", _edges._N_atoms, "dimensionless"),
     ),
+    tiers=(
+        ("Sources", "Inputs a calculation is given: the potential, temperature, force constants, and polar-response tensors."),
+        ("Harmonic", "The harmonic phonon picture: dynamical matrix, frequencies, eigenvectors, group velocities, density of states."),
+        ("Thermodynamics", "Equilibrium thermodynamics of the phonon gas: heat capacity, entropy, free energy, and their molar forms."),
+        ("Scattering", "Phonon lifetimes: anharmonic, isotope, and boundary linewidth channels, phase space, and Gruneisen anharmonicity."),
+        ("Transport", "Thermal conductivity from the Boltzmann transport equation, the Wigner and QHGK models, and cumulative-kappa distributions."),
+        ("Molecular dynamics", "Direct MD: trajectories, heat current, correlation functions, and the Green-Kubo / NEMD / HNEMD conductivities."),
+    ),
     representation_package=tt_rep,
 )
