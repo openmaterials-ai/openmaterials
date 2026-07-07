@@ -17,6 +17,7 @@ This module re-exports both for convenience.
 """
 
 from omai.thermal_transport.operator import vocabulary as _vocabulary  # registers formula symbols
+from omai.thermal_transport.operator import dimensions_registry as _dimensions_registry  # registers symbol dimensions
 from omai.thermal_transport.operator.edges import (
     EDGES,
     apply_nac_correction,
