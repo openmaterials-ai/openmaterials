@@ -27,6 +27,9 @@ class Domain:
     # (node_id, latex_symbol, sympy_symbol_or_indexedbase[, dimension_name]) promoted to parameter nodes
     param_promotions: tuple[tuple[str, str, object], ...]
     representation_package: ModuleType
+    # Ordered (tier_name, one_line_description) in domain order; drives the
+    # map's band order. Default empty for domains that declare no tiers.
+    tiers: tuple[tuple[str, str], ...] = ()
 
 
 def _layers(domains: tuple[Domain, ...]) -> dict[str, int]:

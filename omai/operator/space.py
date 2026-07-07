@@ -55,6 +55,11 @@ class Space:
     fields: tuple[Field, ...] = ()
     labels: dict[str, int | str] = dc_field(default_factory=dict)
     description: str = ""
+    tier: str = ""
+    """Authored physics-stage grouping for the map's layered layout
+    (e.g. 'Sources', 'Harmonic', 'Transport'). Empty means untiered; the
+    map places untiered nodes in a trailing 'Other' band. Not part of
+    identity: __hash__/__eq__ remain name-based."""
 
     def __hash__(self) -> int:
         return hash(self.name)
