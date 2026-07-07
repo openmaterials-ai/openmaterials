@@ -173,6 +173,10 @@ def build_codes(domains: tuple[Domain, ...]) -> dict:
 
 def build_instances(instances_dir: Path | None = None) -> list[dict]:
     instances_dir = instances_dir or (_DOCS / "data" / "instances")
+    # Name -> content-addressed uid over the unified map (spaces + promoted
+    # parameters). Each instance is pinned to the uid of the node its variable
+    # names, so a value can follow the element through supersede chains.
+    name_to_uid = {n["id"]: n["uid"] for n in build_graph_dict(_domains())["nodes"]}
     out = []
     for f in sorted(instances_dir.glob("*.json")):
         rec = json.loads(f.read_text())
@@ -181,6 +185,9 @@ def build_instances(instances_dir: Path | None = None) -> list[dict]:
                 raise ValueError(f"{f.name}: missing '{key}'")
         if rec["source"].get("kind") not in ("simulation", "measurement"):
             raise ValueError(f"{f.name}: source.kind must be simulation|measurement")
+        if rec["variable"] not in name_to_uid:
+            raise ValueError(f"{f.name}: unknown variable {rec['variable']!r}")
+        rec["node_uid"] = name_to_uid[rec["variable"]]
         out.append(rec)
     return out
 

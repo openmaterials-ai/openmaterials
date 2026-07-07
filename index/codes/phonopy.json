@@ -1,0 +1,108 @@
+{
+ "representation": "phonopy",
+ "map_version": "e6e8044e92039696417b53b220b0f3f10559a286b0eaabbe7ea4167ff510f6cd",
+ "covers": [
+  {
+   "node": "BareDynamicalMatrix",
+   "uid": "e62e58716111fdc1dff24d18e75c70904cbb07ce6e0025e24fcdac8c4ed0a53d",
+   "api": "DynamicalMatrix.get_dynamical_matrix() with NAC disabled",
+   "unit": null
+  },
+  {
+   "node": "BornCharges",
+   "uid": "438f0314dee5f9e98d88e4a7ba4425ef0edd207605338b318340da27bf28b2a4",
+   "api": "Phonopy.nac_params['born']",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "DielectricTensor",
+   "uid": "a84077d8f12cf490f370b5cd0b98a47e3e31b7ec75fc8763699763f8b2313db4",
+   "api": "Phonopy.nac_params['dielectric']",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "DynamicalMatrix",
+   "uid": "a883ea19a62fcb80dc79d8c347fc583bef6a56d8764aef89455da764b4732031",
+   "api": "Phonopy.dynamical_matrix",
+   "unit": null
+  },
+  {
+   "node": "Eigenvectors",
+   "uid": "21ba7756f45c808d3d91ed059c34c532f04845781d549b4c16573d9462bb2902",
+   "api": "Phonopy.get_mesh_dict()['eigenvectors']",
+   "unit": null
+  },
+  {
+   "node": "ForceConstants[order=2]",
+   "uid": "78d005a949ff56a526a1911f0b24e766daecad0a7f5ce9c1cc15222f2ed73551",
+   "api": "Phonopy.force_constants",
+   "unit": null
+  },
+  {
+   "node": "Frequency",
+   "uid": "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8",
+   "api": "Phonopy.get_mesh_dict()['frequencies']",
+   "unit": "linear_THz"
+  },
+  {
+   "node": "GroupVelocity",
+   "uid": "d1934e166dbd0c91125936f9b2ccc0100af0ba44ed439003aae76b47b6d26fc6",
+   "api": "Phonopy.get_mesh_dict()['group_velocities']",
+   "unit": "angstrom_linear_THz"
+  },
+  {
+   "node": "Gruneisen",
+   "uid": "a62ac1eae1e972a0b265a14f8a2af5610deb61eb0c883b7668ac4a64313b3b75",
+   "api": "PhonopyGruneisen.get_gruneisen()",
+   "unit": null
+  },
+  {
+   "node": "MolarEntropy",
+   "uid": "0f08fcb37791dc7cc3e0e0ee5c611abbefc5075867719b275fcaa77ada4f1ac2",
+   "api": "get_thermal_properties_dict()['entropy']",
+   "unit": "J_per_K_per_mol"
+  },
+  {
+   "node": "MolarHeatCapacity",
+   "uid": "4fa2d8e16bde42f794f150f5d149e5d645d63f7ddaac59cef79bd41771b13c17",
+   "api": "get_thermal_properties_dict()['heat_capacity']",
+   "unit": "J_per_K_per_mol"
+  },
+  {
+   "node": "MolarHelmholtzFreeEnergy",
+   "uid": "419335bd5f3a1949576e608e4147d8f18bef980a69a9c6b99199f812c806b7be",
+   "api": "get_thermal_properties_dict()['free_energy']",
+   "unit": "kJ_per_mol"
+  },
+  {
+   "node": "MolarInternalEnergy",
+   "uid": "220926f4974baec5c511f5acae2c9c4e09a8276d41c1314391b91dec537ef2fb",
+   "api": "get_thermal_properties_dict()['internal_energy']",
+   "unit": "kJ_per_mol"
+  },
+  {
+   "node": "PhononDOS",
+   "uid": "9b0af04f9828cfb02e19d5e41ab2c61fbe4759f049258b85c650baf22e43ebf1",
+   "api": "Phonopy.run_total_dos() / .get_total_DOS()",
+   "unit": null
+  },
+  {
+   "node": "Potential",
+   "uid": "80a4273845e09207860e06db18d1f1ee5670a9b9c8b1020a99928c872878f901",
+   "api": "Phonopy(...) + ASE calculator or FORCE_SETS",
+   "unit": null
+  },
+  {
+   "node": "Temperature",
+   "uid": "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0",
+   "api": "Phonopy.run_thermal_properties(temperatures=...)",
+   "unit": null
+  },
+  {
+   "node": "VolumetricHeatCapacity",
+   "uid": "29e324b97f31cdb7d3cd8ef6aec5668fff111fd7ee96bd19dd0426b8728c1d47",
+   "api": "get_thermal_properties_dict()['heat_capacity'] / (V_cell * N_A)",
+   "unit": null
+  }
+ ]
+}

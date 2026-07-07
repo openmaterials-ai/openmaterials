@@ -46,12 +46,16 @@ def test_instances_bundle_valid():
     from omai import map_data
 
     insts = build_instances()
-    ids = {n["id"] for n in map_data.build_graph_dict(map_data.DOMAINS)["nodes"]}
+    nodes = map_data.build_graph_dict(map_data.DOMAINS)["nodes"]
+    ids = {n["id"] for n in nodes}
+    name_to_uid = {n["id"]: n["uid"] for n in nodes}
     required = {"variable", "material", "conditions", "value", "units", "source"}
     for it in insts:
         assert required <= set(it), it
         assert it["variable"] in ids, f"instance points at unknown variable {it['variable']}"
         assert it["source"]["kind"] in ("simulation", "measurement")
+        # Each instance is pinned to the live node uid of its variable (P3).
+        assert it["node_uid"] == name_to_uid[it["variable"]]
 
 
 def test_record_instance_roundtrip(tmp_path):

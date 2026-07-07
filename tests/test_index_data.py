@@ -1,0 +1,113 @@
+"""Tests for the index registry generator and instance uid pinning (kernel P3).
+
+The first `index/codes/` entries pin each of the nine existing representations
+to the frozen genesis version: one file per representation, each covered node
+carrying its live node uid, the whole file stamped with the map version read
+from `map/GENESIS`. Instances gain a `node_uid` at bundle time, resolved from
+the live identity of the variable they name (additive; existing keys untouched).
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+from omai.index_data import write_index
+from omai.map_data import DOMAINS, build_codes, build_graph_dict, build_instances
+
+_HEX = set("0123456789abcdef")
+
+
+def _is_hex64(s) -> bool:
+    return isinstance(s, str) and len(s) == 64 and all(c in _HEX for c in s)
+
+
+def _name_to_uid() -> dict[str, str]:
+    return {n["id"]: n["uid"] for n in build_graph_dict(DOMAINS)["nodes"]}
+
+
+def _genesis_hash() -> str:
+    return (Path(__file__).resolve().parents[1] / "map" / "GENESIS").read_text().strip()
+
+
+# --------------------------------------------------------------------------
+# Instance uid pinning.
+# --------------------------------------------------------------------------
+
+def test_every_instance_carries_a_node_uid_matching_its_variable():
+    name_to_uid = _name_to_uid()
+    insts = build_instances()
+    assert insts, "expected instances on disk"
+    for it in insts:
+        assert _is_hex64(it.get("node_uid")), \
+            f"instance for {it['variable']} lacks a 64-hex node_uid"
+        assert it["node_uid"] == name_to_uid[it["variable"]], \
+            f"instance node_uid does not match live identity of {it['variable']}"
+
+
+def test_instance_node_uid_is_additive_existing_keys_survive():
+    insts = build_instances()
+    for it in insts:
+        for key in ("variable", "material", "conditions", "value", "units",
+                    "source"):
+            assert key in it, f"instance lost key {key}"
+
+
+# --------------------------------------------------------------------------
+# write_index: nine files, uid + map_version correct, qe and lammps cover 9.
+# --------------------------------------------------------------------------
+
+def test_write_index_emits_one_file_per_representation(tmp_path):
+    write_index(tmp_path)
+    codes_dir = tmp_path / "codes"
+    files = sorted(p.name for p in codes_dir.glob("*.json"))
+    reps = sorted(build_codes(DOMAINS).keys())
+    assert files == [f"{r}.json" for r in reps]
+    assert len(files) == 9
+
+
+def test_each_index_entry_uid_matches_live_node_id(tmp_path):
+    write_index(tmp_path)
+    name_to_uid = _name_to_uid()
+    for path in (tmp_path / "codes").glob("*.json"):
+        doc = json.loads(path.read_text())
+        for entry in doc["covers"]:
+            assert entry["uid"] == name_to_uid[entry["node"]], \
+                f"{path.name}: {entry['node']} uid mismatch"
+            assert _is_hex64(entry["uid"])
+
+
+def test_index_map_version_equals_genesis(tmp_path):
+    write_index(tmp_path)
+    genesis = _genesis_hash()
+    for path in (tmp_path / "codes").glob("*.json"):
+        doc = json.loads(path.read_text())
+        assert doc["map_version"] == genesis, f"{path.name}: wrong map_version"
+
+
+def test_qe_and_lammps_cover_nine(tmp_path):
+    write_index(tmp_path)
+    for rep in ("qe", "lammps"):
+        doc = json.loads((tmp_path / "codes" / f"{rep}.json").read_text())
+        assert doc["representation"] == rep
+        assert len(doc["covers"]) == 9, f"{rep} should cover 9 nodes"
+
+
+def test_index_covers_sorted_by_node(tmp_path):
+    write_index(tmp_path)
+    for path in (tmp_path / "codes").glob("*.json"):
+        doc = json.loads(path.read_text())
+        nodes = [e["node"] for e in doc["covers"]]
+        assert nodes == sorted(nodes), f"{path.name}: covers not sorted by node"
+
+
+def test_index_entries_carry_api_and_unit(tmp_path):
+    write_index(tmp_path)
+    for path in (tmp_path / "codes").glob("*.json"):
+        doc = json.loads(path.read_text())
+        for entry in doc["covers"]:
+            assert "api" in entry and "unit" in entry
+
+
+def test_write_index_writes_readme(tmp_path):
+    write_index(tmp_path)
+    assert (tmp_path / "README.md").exists()

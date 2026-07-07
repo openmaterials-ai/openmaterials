@@ -1,0 +1,60 @@
+{
+ "representation": "qe",
+ "map_version": "e6e8044e92039696417b53b220b0f3f10559a286b0eaabbe7ea4167ff510f6cd",
+ "covers": [
+  {
+   "node": "BareDynamicalMatrix",
+   "uid": "e62e58716111fdc1dff24d18e75c70904cbb07ce6e0025e24fcdac8c4ed0a53d",
+   "api": "ph.x fildyn{N} (text) / fildyn{N}.xml",
+   "unit": null
+  },
+  {
+   "node": "BornCharges",
+   "uid": "438f0314dee5f9e98d88e4a7ba4425ef0edd207605338b318340da27bf28b2a4",
+   "api": "ph.x q=0 fildyn 'Effective Charges E-U' (epsil=.true.)",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "DielectricTensor",
+   "uid": "a84077d8f12cf490f370b5cd0b98a47e3e31b7ec75fc8763699763f8b2313db4",
+   "api": "ph.x q=0 fildyn 'Dielectric Tensor' (epsil=.true.)",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "DynamicalMatrix",
+   "uid": "a883ea19a62fcb80dc79d8c347fc583bef6a56d8764aef89455da764b4732031",
+   "api": "matdyn.x fldyn (off by default)",
+   "unit": null
+  },
+  {
+   "node": "Eigenvectors",
+   "uid": "21ba7756f45c808d3d91ed059c34c532f04845781d549b4c16573d9462bb2902",
+   "api": "matdyn.x fleig (orthonormal; off by default)",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "ForceConstants[order=2]",
+   "uid": "78d005a949ff56a526a1911f0b24e766daecad0a7f5ce9c1cc15222f2ed73551",
+   "api": "q2r.x flfrc (text or .xml)",
+   "unit": "Ry_per_bohr2"
+  },
+  {
+   "node": "Frequency",
+   "uid": "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8",
+   "api": "matdyn.x flfrq (matdyn.freq); ph.x fildyn tail",
+   "unit": "inverse_cm"
+  },
+  {
+   "node": "PhononDOS",
+   "uid": "9b0af04f9828cfb02e19d5e41ab2c61fbe4759f049258b85c650baf22e43ebf1",
+   "api": "matdyn.x fldos (matdyn.dos), dos=.true.",
+   "unit": null
+  },
+  {
+   "node": "Potential",
+   "uid": "80a4273845e09207860e06db18d1f1ee5670a9b9c8b1020a99928c872878f901",
+   "api": "&SYSTEM input_dft + ATOMIC_SPECIES pseudopotentials",
+   "unit": null
+  }
+ ]
+}

@@ -163,10 +163,11 @@ implemented; each becomes its own spec, plan, and build cycle.
 reason, author) and advances the version hash. `read()` returns the
 materialized current map. `read(hash)` returns the map at a given version.
 `diff(hashA, hashB)` returns the change records between two versions. Identity
-is by content: a derived node id = hash(operation, unordered input node ids); a
-leaf node id = hash(type, units, gauge, index signature); an edge id =
-hash(output node, operation, input node list); the version hash = hash(previous
-version hash + change record).
+is by content: a node id = hash(quantity tag, field signatures (dimension +
+index kinds per field), gauge class, labels); an edge id = hash(output ids,
+input ids, formula fingerprint, schemes); the version hash = hash(previous
+version hash + change record), unchanged (quantity tags, index kinds, labels,
+and gauge groups live in controlled registries).
 
 **Structure contribution (from a source).** A code or a theory paper proposes
 new nodes and edges. Inputs to any new edge must resolve to nodes that already

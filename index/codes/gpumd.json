@@ -1,0 +1,54 @@
+{
+ "representation": "gpumd",
+ "map_version": "e6e8044e92039696417b53b220b0f3f10559a286b0eaabbe7ea4167ff510f6cd",
+ "covers": [
+  {
+   "node": "HeatCurrent",
+   "uid": "aab7019fbc014398b74ece01428527aa95e89da6f6d51efc0323b0acf59248c6",
+   "api": "run.in: compute_hac <step1> <step2> <Nc>  (writes hac.out \u2014 J(t) implicit)",
+   "unit": null
+  },
+  {
+   "node": "HeatCurrentACF",
+   "uid": "d8f44a4cce5e3dfea1ec9329189d49ac70e33d69cab222e2679f7791a30613ac",
+   "api": "run.in: compute_hac <Ns> <Nc> <out_steps>  \u2192  hac.out",
+   "unit": null
+  },
+  {
+   "node": "MeanSquaredDisplacement",
+   "uid": "28ebe96bc049a92e4318fd5242778f30e5647531d0a2b39c5891546329c8bca0",
+   "api": "run.in: compute_msd <Nc> <output_interval>  \u2192  msd.out",
+   "unit": null
+  },
+  {
+   "node": "Potential",
+   "uid": "80a4273845e09207860e06db18d1f1ee5670a9b9c8b1020a99928c872878f901",
+   "api": "nep.txt (default) | EAM/Tersoff/SW potential file referenced from run.in",
+   "unit": null
+  },
+  {
+   "node": "ThermalConductivity[transport_model=green_kubo]",
+   "uid": "25dc9f7af8aec52efb6be16b7b7c76f8334b03056f8838c3ff432fdad8482fb6",
+   "api": "hac.out  (columns kappa_xx, kappa_yy, kappa_zz vs t)",
+   "unit": null
+  },
+  {
+   "node": "ThermalConductivity[transport_model=hnemd]",
+   "uid": "e7157a52da5eb7d2ae79e57692acc30d7e63a3a0d1c731b14da4d6ab8fd5eb88",
+   "api": "kappa.out  (columns kappa_xx, kappa_xy, ..., kappa_zz vs t)",
+   "unit": null
+  },
+  {
+   "node": "Trajectory",
+   "uid": "12cde23e9a333fdd03313c4cdbd82d51033f9bb3bd505466a8db5360faf166b4",
+   "api": "run.in: dump_position <interval>",
+   "unit": null
+  },
+  {
+   "node": "VelocityAutocorrelation",
+   "uid": "f8b092359048e5130d56697ca9504bb4740b875aca685a8f760316bfb5e9a661",
+   "api": "run.in: compute_dos <Nc> <Nw> <max_omega>  \u2192  mvac.out + dos.out",
+   "unit": null
+  }
+ ]
+}

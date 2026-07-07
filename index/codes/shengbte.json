@@ -1,0 +1,126 @@
+{
+ "representation": "shengbte",
+ "map_version": "e6e8044e92039696417b53b220b0f3f10559a286b0eaabbe7ea4167ff510f6cd",
+ "covers": [
+  {
+   "node": "BornCharges",
+   "uid": "438f0314dee5f9e98d88e4a7ba4425ef0edd207605338b318340da27bf28b2a4",
+   "api": "CONTROL &crystal: born(3,3,natoms)",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "CumulativeKappa[wrt=mfp]",
+   "uid": "b6a79d756cf45fc64a3a07feb9e46c7372f398b3ee54806bf1c9903d8a42039f",
+   "api": "BTE.cumulative_kappa_tensor",
+   "unit": "W_per_m_per_K"
+  },
+  {
+   "node": "CumulativeKappa[wrt=omega]",
+   "uid": "55eaa32f15db94d55448456fb26f1c3ecaafcc9a3da2947f1615258c492542ef",
+   "api": "BTE.cumulative_kappaVsOmega_tensor",
+   "unit": "W_per_m_per_K"
+  },
+  {
+   "node": "DielectricTensor",
+   "uid": "a84077d8f12cf490f370b5cd0b98a47e3e31b7ec75fc8763699763f8b2313db4",
+   "api": "CONTROL &crystal: epsilon(3,3)",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "ForceConstants[order=2]",
+   "uid": "78d005a949ff56a526a1911f0b24e766daecad0a7f5ce9c1cc15222f2ed73551",
+   "api": "FORCE_CONSTANTS_2ND",
+   "unit": null
+  },
+  {
+   "node": "ForceConstants[order=3]",
+   "uid": "73372380af126dde147e403f69339b87ee2f938a896dd5b56e9100c055dc8f93",
+   "api": "FORCE_CONSTANTS_3RD",
+   "unit": "eV_per_A3"
+  },
+  {
+   "node": "Frequency",
+   "uid": "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8",
+   "api": "BTE.omega",
+   "unit": "angular_THz"
+  },
+  {
+   "node": "GroupVelocity",
+   "uid": "d1934e166dbd0c91125936f9b2ccc0100af0ba44ed439003aae76b47b6d26fc6",
+   "api": "BTE.v",
+   "unit": "km_per_s"
+  },
+  {
+   "node": "Gruneisen",
+   "uid": "a62ac1eae1e972a0b265a14f8a2af5610deb61eb0c883b7668ac4a64313b3b75",
+   "api": "BTE.gruneisen",
+   "unit": null
+  },
+  {
+   "node": "IsotopeAbundances",
+   "uid": "f8e4253dc1f218daff8e76af5b433dc230bf952f910ba163f87c6fa331aa033d",
+   "api": "CONTROL &flags: isotopes=.TRUE. (natural-abundance defaults)",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "Linewidth[channel=anharmonic_3ph]",
+   "uid": "f52d161ad0be284c121c6fd10fe403c922aaa59646746c12719622004da5fa3a",
+   "api": "BTE.w_anharmonic",
+   "unit": "angular_THz"
+  },
+  {
+   "node": "Linewidth[channel=boundary]",
+   "uid": "81288248a2b40f0abfe78b058ffa4025a0312324e8af26b801017b9a0971961e",
+   "api": "BTE.w_boundary",
+   "unit": "angular_THz"
+  },
+  {
+   "node": "Linewidth[channel=isotope]",
+   "uid": "6cbd3322c5b6eb0105f9ca22d9ddc88334206ec9c115a31e6fb87409cc374c45",
+   "api": "BTE.w_isotopic",
+   "unit": "angular_THz"
+  },
+  {
+   "node": "MolarHeatCapacity",
+   "uid": "4fa2d8e16bde42f794f150f5d149e5d645d63f7ddaac59cef79bd41771b13c17",
+   "api": "BTE.cv * V_cell * N_A",
+   "unit": null
+  },
+  {
+   "node": "PhaseSpace3Phonon",
+   "uid": "41a47eada8fee04f0c84f46e2f4e73d50b3a51967fab666636c047cb2ddce0be",
+   "api": "BTE.P3",
+   "unit": null
+  },
+  {
+   "node": "PhononDOS",
+   "uid": "9b0af04f9828cfb02e19d5e41ab2c61fbe4759f049258b85c650baf22e43ebf1",
+   "api": "BTE.dos",
+   "unit": null
+  },
+  {
+   "node": "Temperature",
+   "uid": "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0",
+   "api": "CONTROL &parameters T=",
+   "unit": null
+  },
+  {
+   "node": "ThermalConductivity[bte_solver=direct_inverse]",
+   "uid": "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9",
+   "api": "BTE.KappaTensorVsT_CONV",
+   "unit": "W_per_m_per_K"
+  },
+  {
+   "node": "ThermalConductivity[bte_solver=rta]",
+   "uid": "d79d88d53266c147ea8d806cdbd30df309199469351ee13bcc9040a98745ebc4",
+   "api": "BTE.KappaTensorVsT_RTA",
+   "unit": "W_per_m_per_K"
+  },
+  {
+   "node": "VolumetricHeatCapacity",
+   "uid": "29e324b97f31cdb7d3cd8ef6aec5668fff111fd7ee96bd19dd0426b8728c1d47",
+   "api": "BTE.cv",
+   "unit": "J_per_m3_per_K"
+  }
+ ]
+}
