@@ -245,12 +245,17 @@ shape is already here.
 \section{Where we are, and what is next}
 
 Today the framework is real and small. It has an operator layer and a
-representation layer, seven ingested codes (kaldo, phono3py, phonopy, ShengBTE,
-ASE, LAMMPS, and GPUMD), and a validation engine that executes the graph, composes
+representation layer, nine ingested representations (kaldo, phono3py, phonopy,
+ShengBTE, Quantum ESPRESSO, ASE, LAMMPS, GPUMD, and one AtomisticSkills
+workflow), and a validation engine that executes the graph, composes
 edges symbolically, and cross-checks redundant routes. Units reconcile
-automatically from the typed dimensions. The worked domain is lattice thermal
-transport, a graph of 46 quantities and 47 operators, and the whole is held
-together by a suite of 609 passing tests.
+automatically from the typed dimensions, and a dimensional gate checks every
+closed-form edge mechanically. The worked domains are lattice thermal
+transport (46 quantities, 47 operators) and a first materials-diffusion
+subgraph; the unified map of 51 quantities and 49 operators is
+content-addressed and frozen at a genesis version in the log-first store
+(Part~\ref{part:kernel}), and the whole is held together by a suite of 817
+passing tests.
 
 What is next is mostly upward and outward. The upstream from the
 Born-Oppenheimer potential, the force constants from which everything descends, is
