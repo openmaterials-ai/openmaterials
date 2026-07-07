@@ -194,10 +194,13 @@ _HC_FORMULA = sp.Eq(
 
 
 # Per-mode harmonic thermodynamics. _x = ℏω / (k_B T) is the standard
-# dimensionless variable; the canonical forms below are then:
+# dimensionless variable, and n_BE takes exactly this dimensionless
+# argument (matching the sibling free-energy / heat-capacity forms, which
+# already spell out ℏω/(k_B T) inside their log / sinh). The canonical
+# forms below are then:
 #   f_qν(T) = (ℏω/2) + k_B T ln(1 - e^{-x})
-#   s_qν(T) = (ℏω/T) · n_BE(ω,T) − k_B ln(1 - e^{-x})
-#   e_qν(T) = ℏω · (1/2 + n_BE(ω,T))
+#   s_qν(T) = (ℏω/T) · n_BE(x) − k_B ln(1 - e^{-x})
+#   e_qν(T) = ℏω · (1/2 + n_BE(x))
 _f_mode = sp.IndexedBase("f")
 _s_mode = sp.IndexedBase("s")
 _e_mode = sp.IndexedBase("e")
@@ -212,13 +215,13 @@ _FREE_ENERGY_FORMULA = sp.Eq(
 
 _ENTROPY_FORMULA = sp.Eq(
     _s_mode[_q, _nu],
-    _hbar * _omega[_q, _nu] / _T * _n_BE(_omega[_q, _nu] / _T)
+    _hbar * _omega[_q, _nu] / _T * _n_BE(_x_hw)
     - _kB * sp.log(1 - sp.exp(-_x_hw)),
 )
 
 _INTERNAL_ENERGY_FORMULA = sp.Eq(
     _e_mode[_q, _nu],
-    _hbar * _omega[_q, _nu] * (sp.Rational(1, 2) + _n_BE(_omega[_q, _nu] / _T)),
+    _hbar * _omega[_q, _nu] * (sp.Rational(1, 2) + _n_BE(_x_hw)),
 )
 
 
@@ -250,8 +253,10 @@ _MOLAR_INTERNAL_ENERGY_FORMULA = sp.Eq(
 _om = _omega[_q, _nu]
 _om_p = _omega[_qp, _nu_p]
 _om_pp = _omega[_q - _qp, _nu_pp]
-_n_p = _n_BE(_om_p / _T)
-_n_pp = _n_BE(_om_pp / _T)
+# n_BE takes the dimensionless ℏω/(k_B T), same convention as the harmonic
+# thermodynamics forms above.
+_n_p = _n_BE(_hbar * _om_p / (_kB * _T))
+_n_pp = _n_BE(_hbar * _om_pp / (_kB * _T))
 _V3 = _V3sq(_q, _nu, _qp, _nu_p, _q - _qp, _nu_pp)
 _combination = (1 + _n_p + _n_pp) * _delta(_om - _om_p - _om_pp)
 _absorption = 2 * (_n_p - _n_pp) * _delta(_om + _om_p - _om_pp)
@@ -318,8 +323,9 @@ _BTE_RTA_FORMULA = sp.Eq(
 _om_p = _omega[_qp, _nu_p]
 _om_pp_decay = _omega[_q - _qp, _nu_pp]
 _om_pp_absorption = _omega[_q - _qp, _nu_pp]  # same q'' index under our sign convention
-_n_p_ratio = _n_BE(_om_p / _T)
-_n_pp_ratio = _n_BE(_om_pp_decay / _T)
+# n_BE takes the dimensionless ℏω/(k_B T), same convention as compute_linewidth.
+_n_p_ratio = _n_BE(_hbar * _om_p / (_kB * _T))
+_n_pp_ratio = _n_BE(_hbar * _om_pp_decay / (_kB * _T))
 _V3_decay = _V3sq(_q, _nu, _qp, _nu_p, _q - _qp, _nu_pp)
 _V3_absorption = _V3sq(_q, _nu, _qp, _nu_p, _q - _qp, _nu_pp)
 _om = _omega[_q, _nu]
@@ -569,7 +575,8 @@ compute_entropy = Operator(
     is_executable_in_sympy_override=True,
     description=(
         "Per-mode entropy at temperature T. Equivalent to -∂f/∂T; the "
-        "explicit form uses n_BE(ω,T) and the log of the partition factor."
+        "explicit form uses n_BE(ℏω/(k_B T)) and the log of the partition "
+        "factor."
     ),
 )
 
@@ -579,7 +586,7 @@ compute_internal_energy = Operator(
     inputs=(FREQUENCY_STATE, TEMPERATURE_STATE),
     outputs=(INTERNAL_ENERGY,),
     formula=_INTERNAL_ENERGY_FORMULA,
-    # Closed-form per-mode internal energy: ℏω(1/2 + n_BE(ω/T)).
+    # Closed-form per-mode internal energy: ℏω(1/2 + n_BE(ℏω/(k_B T))).
     # Same n_BE caveat as entropy.
     is_executable_in_sympy_override=True,
     description=(
@@ -606,7 +613,7 @@ compute_anharmonic_linewidth = Operator(
         "1/(8 ω ω' ω''). The same kernel appears in the LBTE collision "
         "matrix Ξ (see solve_bte_direct.auxiliary_formulas[0]). Energy "
         "delta is replaced by a Gaussian of canonical width σ = stdev. "
-        "n_BE(ω/T) = (e^{ℏω/k_B T} - 1)^{-1}. q'' is fixed by crystal "
+        "n_BE(x) = (e^{x} - 1)^{-1} with x = ℏω/(k_B T). q'' is fixed by crystal "
         "momentum conservation: q'' = q - q' (mod a reciprocal lattice "
         "vector). Under crystal symmetry G ⊂ O(3), the BZ sum Σ_{q'} "
         "can be restricted to the irreducible wedge BZ/G with "

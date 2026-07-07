@@ -28,7 +28,7 @@ from __future__ import annotations
 
 import sympy as sp
 
-from omai.operator.dimensions import DIMENSIONLESS, Dimension
+from omai.operator.dimensions import DIMENSIONLESS, ENERGY, Dimension
 
 __all__ = [
     "SYMBOL_DIMENSIONS",
@@ -48,14 +48,6 @@ __all__ = [
 # wrote deliberately, not a typo; they are surfaced here for resolution in
 # kernel P2 (when dimensions enter node identity), not silently swallowed.
 KNOWN_VIOLATIONS: list[str] = [
-    # n_{BE}(omega/T): the Bose-Einstein occupation is written with the
-    # schematic argument omega/T instead of the dimensionless hbar*omega/(k_B*T).
-    # The hbar and k_B are absorbed (the sibling closed forms compute_heat_capacity
-    # and compute_free_energy spell out the full hbar*omega/(k_B*T) and pass).
-    # Same schematic in all three edges that call n_{BE}.
-    "compute_entropy: n_{BE} of dimensionful argument (T^-1 Th^-1)",
-    "compute_internal_energy: n_{BE} of dimensionful argument (T^-1 Th^-1)",
-    "compute_linewidth[channel=anharmonic_3ph]: n_{BE} of dimensionful argument (T^-1 Th^-1)",
     # Wigner coherences: the summand carries (c_qv + c_qv')/2 like the
     # populations form "for uniformity", but the exact Simoncelli coherence
     # conductivity uses the specific heat divided by frequency (C_s/omega_s),
@@ -84,6 +76,17 @@ KNOWN_VIOLATIONS: list[str] = [
 # violation; see the thermal dimensions_registry docstring.
 _DM_SPACE_NAMES = frozenset({"DynamicalMatrix", "BareDynamicalMatrix"})
 _DM_OVERRIDE_SYMBOLS = ("D", r"D^{bare}")
+
+# The internal-energy per-mode field uses IndexedBase ``e``, which globally
+# collides with the phonon eigenvector ``e`` (so ``e`` is left unregistered).
+# On edges that touch the InternalEnergy space (or its molar contraction),
+# ``e`` unambiguously means the internal-energy field, since eigenvectors
+# never enter those formulas; a per-edge override binds it to ENERGY there,
+# symmetric to the ``D`` override above.
+_INTERNAL_ENERGY_SPACE_NAMES = frozenset(
+    {"InternalEnergy", "MolarInternalEnergy"}
+)
+_INTERNAL_ENERGY_OVERRIDE_SYMBOL = "e"
 
 
 # Live registry: symbol base name -> Dimension. Domains populate it via
@@ -290,10 +293,15 @@ def _edge_local_mapping(op) -> dict:
     """Per-edge {base name -> Dimension | None} mapping for `dimension_of`.
 
     Built from the edge's declared parameters (opaque parameter dimensions
-    map to None, i.e. treated as unknown) plus the dynamical-matrix override:
-    on any edge touching a DynamicalMatrix / BareDynamicalMatrix space, the
-    symbol ``D`` / ``D^{bare}`` is forced unknown so it never resolves to the
-    materials-domain diffusivity ``D``.
+    map to None, i.e. treated as unknown) plus two symbol overrides:
+
+      * dynamical matrix: on any edge touching a DynamicalMatrix /
+        BareDynamicalMatrix space, ``D`` / ``D^{bare}`` is forced unknown so
+        it never resolves to the materials-domain diffusivity ``D``;
+      * internal energy: on any edge touching InternalEnergy /
+        MolarInternalEnergy, the field symbol ``e`` is bound to ENERGY (it
+        is left globally unregistered because it also names the eigenvector,
+        but eigenvectors never enter the internal-energy formulas).
     """
     local: dict = {}
     for p in op.parameters:
@@ -301,6 +309,8 @@ def _edge_local_mapping(op) -> dict:
     if any(s.name in _DM_SPACE_NAMES for s in (op.inputs + op.outputs)):
         for sym in _DM_OVERRIDE_SYMBOLS:
             local[sym] = None
+    if any(s.name in _INTERNAL_ENERGY_SPACE_NAMES for s in (op.inputs + op.outputs)):
+        local[_INTERNAL_ENERGY_OVERRIDE_SYMBOL] = ENERGY
     return local
 
 

@@ -186,7 +186,7 @@ ENTROPY = ObservableSpace(
     name="Entropy",
     fields=(Field("s", ENERGY_PER_TEMPERATURE, indices=("q", "nu")),),
     description=(
-        "Per-mode entropy s_qν(T) = (1/T)·ℏω·n_BE(ω,T) - "
+        "Per-mode entropy s_qν(T) = (1/T)·ℏω·n_BE(ℏω/(k_B T)) - "
         "k_B ln(1 - exp(-ℏω/k_B T)). Equivalently -∂f/∂T."
     ),
     tier="Thermodynamics",
@@ -196,7 +196,7 @@ INTERNAL_ENERGY = ObservableSpace(
     name="InternalEnergy",
     fields=(Field("e", ENERGY, indices=("q", "nu")),),
     description=(
-        "Per-mode internal energy e_qν(T) = ℏω(1/2 + n_BE(ω/T)). "
+        "Per-mode internal energy e_qν(T) = ℏω(1/2 + n_BE(ℏω/(k_B T))). "
         "Sums the zero-point energy and the thermal occupation."
     ),
     tier="Thermodynamics",

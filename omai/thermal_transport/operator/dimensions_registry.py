@@ -15,7 +15,11 @@ wrongly flagged. The intentionally-skipped symbols and why:
                      field symbol (length^2); registering either is wrong
                      for the other. Left unknown.
   * ``e``          - both the phonon eigenvector (dimensionless) and the
-                     per-mode internal-energy field (energy). Ambiguous.
+                     per-mode internal-energy field (energy). Ambiguous
+                     globally, so left unregistered; edges touching the
+                     InternalEnergy / MolarInternalEnergy spaces resolve it
+                     to ENERGY via a per-edge ``local`` override in dimcheck
+                     (eigenvectors never enter those formulas).
   * ``g``          - both the phonon DOS and the isotope mass-variance
                      factor. Ambiguous.
   * ``D``, ``D^{bare}`` - the dynamical matrix. Its field dimension is

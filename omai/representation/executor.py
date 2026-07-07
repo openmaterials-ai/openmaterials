@@ -127,24 +127,25 @@ def operator_form_spec(space: Space) -> SpaceRepresentationSpec:
 # ---------------------------------------------------------------------------
 
 
-def _expand_bose_einstein(expr: sp.Basic, hbar_sym: sp.Symbol, kB_sym: sp.Symbol,
-                          T_sym: sp.Symbol) -> sp.Basic:
+def _expand_bose_einstein(expr: sp.Basic) -> sp.Basic:
     """Substitute every ``n_BE(x)`` application in ``expr`` with the explicit
-    Bose-Einstein occupation ``1 / (exp(ℏ · x / k_B) - 1)``.
+    Bose-Einstein occupation ``1 / (exp(x) - 1)``.
 
-    The formulas in this codebase use ``n_BE(ω/T)`` as a shorthand for
-    ``1 / (exp(ℏω/k_BT) - 1)``: the function argument is ω/T, not the
-    canonical ℏω/k_BT, so the substitution absorbs ℏ/k_B into the
-    exponential. After substitution the resulting expression depends
-    only on standard sympy operations and is lambdifiable to numpy.
+    The formulas in this codebase pass n_BE the dimensionless argument
+    ``x = ℏω/(k_B T)`` directly (matching the sibling free-energy /
+    heat-capacity forms), so the substitution just plugs x into the
+    occupation with no extra ℏ/k_B factor; the ℏ and k_B inside x are bound
+    to their physics-constant values by the normal constant substitution
+    afterwards. After substitution the resulting expression depends only on
+    standard sympy operations and is lambdifiable to numpy.
     """
     n_BE = sp.Function("n_{BE}")
     # Find all applications of n_BE; replace with the explicit form.
     for n_app in list(expr.atoms(sp.Function)):
         if isinstance(n_app, n_BE):
             x = n_app.args[0]
-            # x here is (ω / T); plug into the Bose-Einstein formula.
-            replacement = 1 / (sp.exp(hbar_sym * x / kB_sym) - 1)
+            # x is already the dimensionless ℏω/(k_B T).
+            replacement = 1 / (sp.exp(x) - 1)
             expr = expr.subs(n_app, replacement)
     return expr
 
@@ -342,50 +343,22 @@ def apply_edge(
             physics_subs[atom] = float(supplied[name])
 
     # Identify n_BE applications (sympy Function `n_{BE}`) and expand them
-    # *before* the indexed-symbol substitutions, since the expansion uses
-    # ℏ / k_B explicitly. The substitution happens against the *raw* ω/T
-    # arguments.
-    hbar_sym = None
-    kB_sym = None
-    T_sym = None
-    for atom in rhs.atoms(sp.Symbol):
-        if isinstance(atom, sp.Indexed):
-            continue
-        name = str(atom.name)
-        if name == r"\hbar":
-            hbar_sym = atom
-        elif name == "k_B":
-            kB_sym = atom
-        elif name == "T":
-            T_sym = atom
-    # Some formulas use n_BE but don't carry an explicit `T` in their
-    # *outermost* free symbols (sympy may detect `T` only inside the
-    # function's argument); pull it out of the n_BE arguments as well.
-    if T_sym is None:
-        n_BE = sp.Function("n_{BE}")
-        for n_app in rhs.atoms(sp.Function):
-            if isinstance(n_app, n_BE):
-                for s in n_app.args[0].atoms(sp.Symbol):
-                    if str(s.name) == "T":
-                        T_sym = s
-                        break
-            if T_sym is not None:
-                break
-
-    # If the formula uses n_BE we *must* have ℏ and k_B available so the
-    # explicit expansion is well-formed.
+    # *before* the indexed-symbol substitutions. The argument is already the
+    # dimensionless ℏω/(k_B T), so the expansion just plugs it into
+    # 1/(exp(x) - 1); the ℏ and k_B inside x are bound to their values by the
+    # physics-constant substitution above (they are in _PHYSICS_CONSTANTS).
     n_BE = sp.Function("n_{BE}")
     uses_n_BE = any(
         isinstance(f, n_BE) for f in rhs.atoms(sp.Function)
     )
     if uses_n_BE:
-        if hbar_sym is None:
-            hbar_sym = sp.Symbol(r"\hbar", positive=True)
-            physics_subs[hbar_sym] = _HBAR_LINEAR_THZ_FACTOR
-        if kB_sym is None:
-            kB_sym = sp.Symbol("k_B", positive=True)
-            physics_subs[kB_sym] = _KB
-        rhs = _expand_bose_einstein(rhs, hbar_sym, kB_sym, T_sym)
+        # Defensive: guarantee ℏ and k_B (which live inside the n_BE
+        # argument) are bound, even if the earlier constant loop missed them.
+        for name, value in ((r"\hbar", _HBAR_LINEAR_THZ_FACTOR), ("k_B", _KB)):
+            sym = sp.Symbol(name, positive=True)
+            if sym not in physics_subs:
+                physics_subs[sym] = value
+        rhs = _expand_bose_einstein(rhs)
 
     # 6. For each input, find its formula symbol and bind to a dummy.
     #    Inputs that are scalars (Temperature, dimensionless) bind to a
