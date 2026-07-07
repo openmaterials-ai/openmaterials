@@ -271,7 +271,7 @@ MEAN_FREE_DISPLACEMENT_DIRECT = ObservableSpace(
 EIGENVECTORS = HiddenSpace(
     name="Eigenvectors",
     fields=(Field("e", DIMENSIONLESS, indices=("i", "q", "nu")),),
-    gauge_group="U(1)_per_mode × U(d)_per_degenerate_subspace",
+    gauge_group="u1_phase_and_ud_degenerate_subspace",
     kind="scaffolding",
     gauge_invariant_contractions=("Frequency", "ThermalConductivity[bte_solver=direct_inverse]"),
     description=(
@@ -286,7 +286,7 @@ EIGENVECTORS = HiddenSpace(
 GROUP_VELOCITY = HiddenSpace(
     name="GroupVelocity",
     fields=(Field("v", LENGTH_TIMES_FREQUENCY, indices=("alpha", "q", "nu")),),
-    gauge_group="U(d)_per_degenerate_subspace_on_eigenvectors",
+    gauge_group="ud_degenerate_subspace_on_eigenvectors",
     kind="scaffolding",
     gauge_invariant_contractions=("ThermalConductivity[bte_solver=direct_inverse]",),
     description=(
@@ -416,9 +416,9 @@ MEAN_FREE_DISPLACEMENT_RTA = HiddenSpace(
     name="MeanFreeDisplacement[bte_solver=rta]",
     fields=(Field("F", LENGTH, indices=("alpha", "q", "nu")),),
     labels={"bte_solver": "rta"},
-    gauge_group="bz_summation_permutation_via_1_over_Gamma",
+    gauge_group="bz_summation_permutation_via_1_over_gamma",
     kind="approximation",
-    gauge_invariant_contractions=(),  # terminal — no ObservableSpace downstream
+    gauge_invariant_contractions=(),  # terminal, no ObservableSpace downstream
     description=(
         "F = v / (2Γ) under the relaxation-time approximation. The 1/Γ "
         "non-linearity is the gauge-breaking step. Approximation HiddenSpace: "
@@ -433,7 +433,7 @@ THERMAL_CONDUCTIVITY_RTA = HiddenSpace(
     name="ThermalConductivity[bte_solver=rta]",
     fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
     labels={"bte_solver": "rta"},
-    gauge_group="bz_summation_permutation_via_1_over_Gamma",
+    gauge_group="bz_summation_permutation_via_1_over_gamma",
     kind="approximation",
     gauge_invariant_contractions=(),
     description=(
