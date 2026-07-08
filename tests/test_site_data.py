@@ -1,11 +1,19 @@
 import pytest
 
-from omai.thermal_transport.site_data import (
-    build_codes,
-    build_graph_dict,
-    build_instances,
-    record_instance,
-)
+from omai.map_data import DOMAINS, build_codes as _build_codes, build_graph_dict as _build_graph_dict, build_instances, record_instance as _record_instance
+from omai.thermal_transport.domain import THERMAL_TRANSPORT
+
+
+def build_codes():
+    return _build_codes((THERMAL_TRANSPORT,))
+
+
+def build_graph_dict():
+    return _build_graph_dict((THERMAL_TRANSPORT,))
+
+
+def record_instance(**kw):
+    return _record_instance(domains=DOMAINS, **kw)
 
 
 def test_build_codes_maps_real_variables():

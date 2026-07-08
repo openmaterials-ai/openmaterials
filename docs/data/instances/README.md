@@ -24,5 +24,5 @@ To append one, add a JSON file (one record per file) and open a pull request:
 The build bundles every `*.json` here into `../instances.json`, which the map reads:
 
 ```bash
-CUDA_VISIBLE_DEVICES="" PYTHONPATH=. python -m omai.thermal_transport.site_data
+CUDA_VISIBLE_DEVICES="" PYTHONPATH=. python -m omai.map_data
 ```
