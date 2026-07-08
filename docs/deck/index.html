@@ -15,14 +15,20 @@
 <link rel="stylesheet" href="../assets/vendor/reveal/reveal.css">
 <link rel="stylesheet" href="../assets/vendor/reveal/theme-white.css">
 <link rel="stylesheet" href="../assets/vendor/inter/inter.css">
+<link rel="stylesheet" href="../assets/vendor/source-serif-4/source-serif-4.css">
+<link rel="stylesheet" href="../assets/vendor/jetbrains-mono/jetbrains-mono.css">
 <style>
-  /* light scientific theme, consistent with the site tokens */
-  :root{--ink:#0f172a;--ink2:#334155;--muted:#64748b;--line:#e6eaf2;
-        --accent:#4f46e5;--accent2:#4338ca;--green:#0f9d6b;--gold:#d98a14;--soft:#eef2ff;}
+  /* editorial scientific theme: warm paper, serif display headings, ink text,
+     indigo reserved for emphasis. Consistent with the site tokens. */
+  :root{--ink:#16181d;--ink2:#3d4149;--muted:#6b7078;--line:#e8e6e1;
+        --accent:#4f46e5;--accent2:#4338ca;--green:#0f9d6b;--gold:#d98a14;--soft:#eef2ff;--paper:#fbfaf8;
+        --font-serif:'Source Serif 4',Georgia,'Times New Roman',serif;
+        --font-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;}
+  .reveal-viewport{background:var(--paper);}
   .reveal{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:28px;color:var(--ink);}
   .reveal .slides section{color:var(--ink);}
-  .reveal h1,.reveal h2,.reveal h3,.reveal h4{text-transform:none;font-weight:800;letter-spacing:-.02em;}
-  .reveal h1{font-size:2.0em;color:var(--accent2);}
+  .reveal h1,.reveal h2,.reveal h3,.reveal h4{font-family:var(--font-serif);text-transform:none;font-weight:700;letter-spacing:-.015em;}
+  .reveal h1{font-size:2.0em;color:var(--ink);}
   .reveal h2{color:var(--ink);font-size:1.35em;margin-bottom:.4em;}
   .reveal p{margin:.45em 0;}
   .reveal .sub{color:var(--muted);font-weight:500;}
@@ -31,23 +37,22 @@
   .reveal .big{font-size:1.2em;color:var(--ink);}
   .reveal ul{display:inline-block;text-align:left;font-size:.82em;color:var(--ink2);}
   .reveal ul li{margin:.3em 0;}
-  .reveal .pill{display:inline-block;background:var(--soft);color:var(--accent2);border:1px solid #dfe4fb;border-radius:999px;padding:3px 11px;font-size:.5em;margin:3px;}
-  .reveal .nums{display:inline-block;text-align:left;font-size:.66em;color:var(--ink2);background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:14px 20px;margin:10px 0;}
+  .reveal .pill{display:inline-block;background:var(--soft);color:var(--accent2);border:1px solid #dfe4fb;border-radius:999px;padding:3px 11px;font-size:.5em;margin:3px;font-family:var(--font-mono);font-feature-settings:"zero" 1;}
+  .reveal .nums{display:inline-block;text-align:left;font-size:.66em;color:var(--ink2);background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 20px;margin:10px 0;font-family:var(--font-mono);font-feature-settings:"zero" 1;}
   .reveal .nums b{color:var(--ink);} .reveal .g{color:var(--green);} .reveal .y{color:var(--gold);}
-  .reveal .formula{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 18px;display:inline-block;margin-top:6px;}
+  .reveal .formula{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 18px;display:inline-block;margin-top:6px;}
   .reveal .cols{display:flex;gap:18px;text-align:left;font-size:.62em;margin-top:14px;}
-  .reveal .cols .col{flex:1;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:13px 15px;}
+  .reveal .cols .col{flex:1;background:#fff;border:1px solid var(--line);border-radius:12px;padding:13px 15px;}
   .reveal .cols h4{color:var(--accent);margin:0 0 .4em;font-size:1.05em;}
   .reveal a{color:var(--accent2);}
   .reveal .foot{color:var(--muted);font-size:.5em;margin-top:14px;}
   @media print {
     @page { size: 960px 700px; margin: 0; }
-    html, body, .reveal, .reveal .slides, .reveal .backgrounds, .reveal .slides>section { background:#ffffff !important; }
-    .reveal, .reveal .lede, .reveal .big, .reveal code, .reveal .nums, .reveal ul, .reveal .cols .col { color:#0f172a !important; }
-    .reveal .slides h2, .reveal .slides h3 { color:#0f172a !important; }
+    html, body, .reveal, .reveal .slides, .reveal .backgrounds, .reveal .slides>section, .reveal-viewport { background:#fbfaf8 !important; }
+    .reveal, .reveal .lede, .reveal .big, .reveal code, .reveal .nums, .reveal ul, .reveal .cols .col { color:#16181d !important; }
+    .reveal .slides h1, .reveal .slides h2, .reveal .slides h3 { color:#16181d !important; }
     .reveal .slides h4 { color:#4f46e5 !important; }
-    .reveal .slides h1 { color:#4338ca !important; }
-    .reveal .sub { color:#64748b !important; } .reveal .pill { color:#4338ca !important; }
+    .reveal .sub { color:#6b7078 !important; } .reveal .pill { color:#4338ca !important; }
   }
 </style>
 </head>
@@ -61,14 +66,14 @@
   </section>
 
   <section>
-    <h2>The same physics, a dozen codes — and they don't agree</h2>
-    <p class="lede">Lattice thermal conductivity of one crystal, computed by kaldo, phono3py, ShengBTE, LAMMPS — each with its own inputs, units, gauge, and conventions.</p>
+    <h2>The same physics, a dozen codes, and they don't agree</h2>
+    <p class="lede">Lattice thermal conductivity of one crystal, computed by kaldo, phono3py, ShengBTE, LAMMPS, each with its own inputs, units, gauge, and conventions.</p>
     <p class="lede">Comparing two of them is expert, manual work. Most published computational results never reproduce.</p>
   </section>
 
   <section>
     <h2>The physics is buried in the code</h2>
-    <p class="lede">Units, broadening, Brillouin-zone sums, array layouts, gauge choices — the meaning lives in scripts and tribal knowledge, not in any shared, checkable form.</p>
+    <p class="lede">Units, broadening, Brillouin-zone sums, array layouts, gauge choices: the meaning lives in scripts and tribal knowledge, not in any shared, checkable form.</p>
     <p class="lede">So reconciliation and reproducibility stay artisanal.</p>
   </section>
 
@@ -81,14 +86,14 @@
   <section>
     <h2>Reconciliation becomes mechanical</h2>
     <ul>
-      <li>Gauge-invariant <em>observables</em> must agree across codes; gauge-dependent intermediates need not — a typed distinction.</li>
+      <li>Gauge-invariant <em>observables</em> must agree across codes; gauge-dependent intermediates need not, a typed distinction.</li>
       <li>Units reconcile automatically from declared dimensions.</li>
       <li>Cross-code comparison is a structural operation on the graph, not a feat of translation.</li>
     </ul>
   </section>
 
   <section>
-    <h2>It already runs — not a proposal for vaporware</h2>
+    <h2>It already runs, not a proposal for vaporware</h2>
     <p class="lede">A working operator + representation framework, with:</p>
     <p>
       <span class="pill">9 representations mapped</span>
@@ -100,11 +105,11 @@
   <section>
     <h2>Real cross-code result</h2>
     <div class="nums">
-      Silicon, Tersoff potential, 8×8×8 mesh, 300 K — computed through the framework:<br>
+      Silicon, Tersoff potential, 8×8×8 mesh, 300 K, computed through the framework:<br>
       RTA &nbsp;&nbsp;&nbsp; <span class="g">kaldo 19.46</span> · <span class="g">phono3py 16.74</span><br>
       direct &nbsp; <span class="g">kaldo 26.91</span> · <span class="g">phono3py 24.30</span> &nbsp; W/m·K
     </div>
-    <p class="lede" style="font-size:.85em">The ~15% gap is real — and the substrate <em>localizes</em> it: the broadening convention on the scattering rates (Gaussian vs tetrahedron). Reproducibility you can audit, not argue about.</p>
+    <p class="lede" style="font-size:.85em">The ~15% gap is real, and the substrate <em>localizes</em> it: the broadening convention on the scattering rates (Gaussian vs tetrahedron). Reproducibility you can audit, not argue about.</p>
   </section>
 
   <section>
@@ -115,15 +120,15 @@
 
   <section>
     <h2>And the same substrate is what scientific AI will need</h2>
-    <p class="lede">Agents that act on typed physics instead of text; an invalid step becomes a <em>type error</em>, not a silent wrong number; redundant routes are a built-in verifier. The horizon — and lattice transport is the proving ground.</p>
+    <p class="lede">Agents that act on typed physics instead of text; an invalid step becomes a <em>type error</em>, not a silent wrong number; redundant routes are a built-in verifier. The horizon, and lattice transport is the proving ground.</p>
   </section>
 
   <section>
     <h2>Where it goes</h2>
     <ul>
-      <li>More codes and domains — every adapter added makes the whole graph more cross-validated.</li>
-      <li>Symbolic composition of error — approximation and discretization, propagated across the graph.</li>
-      <li>Ingesting whole papers, not just codes — published results as objects you can re-run and check.</li>
+      <li>More codes and domains: every adapter added makes the whole graph more cross-validated.</li>
+      <li>Symbolic composition of error: approximation and discretization, propagated across the graph.</li>
+      <li>Ingesting whole papers, not just codes: published results as objects you can re-run and check.</li>
     </ul>
   </section>
 
