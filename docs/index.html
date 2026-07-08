@@ -3,49 +3,253 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>openmaterials.ai — a database for physics</title>
+<title>openmaterials: a versioned map of physics</title>
+<meta name="description" content="A versioned map of physics: typed quantities as nodes, executable formulas as edges, every element content-addressed, every change logged.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="openmaterials">
+<meta property="og:title" content="openmaterials: a versioned map of physics">
+<meta property="og:description" content="Typed quantities as nodes, executable formulas as edges, every element content-addressed, every change logged.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="openmaterials: a versioned map of physics">
+<meta name="twitter:description" content="Typed quantities as nodes, executable formulas as edges, every element content-addressed, every change logged.">
+<link rel="stylesheet" href="assets/site.css">
 <style>
-  :root{--abstr:#38bdf8;--num:#fbbf24;}
-  *{box-sizing:border-box;} body{margin:0;background:#05060d;color:#e5e7eb;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;line-height:1.6;}
-  .wrap{max-width:880px;margin:0 auto;padding:80px 24px 60px;}
-  .brand{color:#fff;font-weight:800;font-size:1.1rem;letter-spacing:.3px;}
-  h1{font-size:2.6rem;line-height:1.1;margin:.4em 0 .2em;background:linear-gradient(90deg,#38bdf8,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent;}
-  .lede{font-size:1.2rem;color:#cbd5e1;max-width:62ch;}
-  .cta{display:inline-flex;gap:10px;align-items:center;margin-top:26px;text-decoration:none;font-weight:700;color:#05060d;background:linear-gradient(90deg,#38bdf8,#7dd3fc);padding:13px 22px;border-radius:12px;}
-  .cta:hover{filter:brightness(1.05);}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;margin-top:54px;}
-  .card{border:1px solid #1e293b;border-radius:14px;padding:18px;background:#0a0e1a;}
-  .card h3{margin:.1em 0 .3em;color:#7dd3fc;font-size:1.02rem;}
-  .card p{margin:0;color:#94a3b8;font-size:.92rem;}
-  code{background:#111827;border:1px solid #1e293b;border-radius:7px;padding:2px 7px;color:#fbbf24;font-size:.86rem;}
-  .foot{margin-top:54px;color:#64748b;font-size:.9rem;}
-  a{color:#7dd3fc;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 clamp(16px,4vw,32px);}
+
+  /* hero */
+  .hero{padding:clamp(56px,9vw,104px) 0 clamp(40px,6vw,64px);}
+  .hero .eyebrow{display:inline-flex;align-items:center;gap:9px;font-size:.82rem;font-weight:600;color:var(--muted);letter-spacing:.01em;margin-bottom:22px;}
+  .hero .eyebrow svg{width:20px;height:20px;}
+  .hero h1{font-size:clamp(2.3rem,6vw,3.7rem);font-weight:800;letter-spacing:-.03em;line-height:1.04;margin:0 0 .3em;color:var(--ink);}
+  .hero .lede{font-size:clamp(1.05rem,2.2vw,1.28rem);color:var(--ink-2);max-width:62ch;line-height:1.55;margin:0;}
+  .hero .lede b{color:var(--ink);font-weight:600;}
+  .hero .cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:32px;}
+  .hero .om-btn{padding:12px 22px;font-size:.98rem;border-radius:var(--r-2);}
+
+  /* stats band */
+  .stats{border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:linear-gradient(180deg,#ffffff,#fbfcfe);}
+  .stats .wrap{display:grid;grid-template-columns:repeat(5,1fr);gap:0;padding-top:0;padding-bottom:0;}
+  .stat{padding:28px 20px;border-left:1px solid var(--line);}
+  .stat:first-child{border-left:none;}
+  .stat .num{font-size:clamp(1.7rem,3.4vw,2.4rem);font-weight:800;letter-spacing:-.02em;color:var(--accent);line-height:1;font-variant-numeric:tabular-nums;}
+  .stat .lbl{margin-top:8px;font-size:.8rem;color:var(--muted);font-weight:500;}
+  .stat .num.ver{font-family:var(--font-mono);font-size:clamp(1rem,2vw,1.28rem);color:var(--ink-2);}
+  @media (max-width:820px){
+    .stats .wrap{grid-template-columns:repeat(2,1fr);}
+    .stat{border-top:1px solid var(--line);}
+    .stat:nth-child(-n+2){border-top:none;}
+    .stat:nth-child(odd){border-left:none;}
+    .stat.ver-stat{grid-column:1 / -1;}
+  }
+
+  section.block{padding:clamp(48px,7vw,80px) 0;}
+  .section-head{margin-bottom:34px;}
+  .section-head h2{font-size:clamp(1.5rem,3vw,2rem);color:var(--ink);margin:0 0 .3em;}
+  .section-head p{color:var(--muted);font-size:1.02rem;max-width:60ch;margin:0;}
+
+  /* three cards */
+  .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  .card{border:1px solid var(--line);border-radius:var(--r-3);padding:26px 24px;background:var(--surface);box-shadow:var(--shadow-1);transition:box-shadow var(--t),border-color var(--t);}
+  .card:hover{box-shadow:var(--shadow-2);border-color:#dbe3f2;}
+  .card .kicker{display:inline-flex;align-items:center;gap:8px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:14px;}
+  .card .dot{width:9px;height:9px;border-radius:3px;display:inline-block;}
+  .card h3{font-size:1.18rem;color:var(--ink);margin:0 0 .4em;}
+  .card p{color:var(--ink-2);font-size:.94rem;line-height:1.6;margin:0;}
+  .card .tm{margin-top:14px;font-family:var(--font-mono);font-size:.74rem;color:var(--muted);word-break:break-all;}
+  .card .tm .k{color:var(--faint);}
+  @media (max-width:880px){.cards{grid-template-columns:1fr;}}
+
+  /* see it row */
+  .seeit{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .preview{display:block;border:1px solid var(--line);border-radius:var(--r-2);padding:22px 22px;background:var(--surface);transition:border-color var(--t),background var(--t);}
+  .preview:hover{border-color:var(--accent);background:var(--accent-soft);text-decoration:none;}
+  .preview .pt{font-weight:700;color:var(--ink);font-size:1.05rem;display:flex;align-items:center;gap:8px;}
+  .preview .pt .arw{color:var(--accent);transition:transform var(--t);}
+  .preview:hover .pt .arw{transform:translateX(3px);}
+  .preview .pd{color:var(--muted);font-size:.9rem;margin-top:7px;line-height:1.5;}
+  @media (max-width:880px){.seeit{grid-template-columns:1fr;}}
+
+  /* contribute */
+  .contribute{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-3);padding:clamp(26px,4vw,40px);box-shadow:var(--shadow-1);}
+  .contribute .two{display:grid;grid-template-columns:1fr 1.15fr;gap:36px;align-items:start;}
+  .contribute h2{font-size:clamp(1.4rem,2.6vw,1.8rem);margin:0 0 .4em;}
+  .contribute p{color:var(--ink-2);line-height:1.65;margin:0 0 1em;}
+  .contribute .step{display:flex;gap:12px;align-items:baseline;margin:0 0 12px;font-size:.96rem;color:var(--ink-2);}
+  .contribute .step .n{flex:none;width:22px;height:22px;border-radius:7px;background:var(--accent-soft);color:var(--accent-2);font-weight:700;font-size:.78rem;display:inline-flex;align-items:center;justify-content:center;font-family:var(--font-mono);}
+  .contribute code.inline{background:var(--accent-soft);color:var(--accent-2);border-radius:6px;padding:1px 7px;font-size:.86em;}
+  pre.code{margin:0;background:#0f172a;color:#e2e8f0;border-radius:var(--r-2);padding:18px 20px;overflow-x:auto;font-family:var(--font-mono);font-size:.82rem;line-height:1.6;}
+  pre.code .k{color:#818cf8;} pre.code .s{color:#6ee7b7;} pre.code .n{color:#fbbf24;} pre.code .c{color:#64748b;}
+  @media (max-width:820px){.contribute .two{grid-template-columns:1fr;gap:24px;}}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="brand">openmaterials.ai</div>
-  <h1>A database for physics.</h1>
-  <p class="lede">The schema is the physics itself: a graph of typed quantities and the
-  formulas that relate them. Append your simulations and measured values from papers; the
-  database derives, reconciles, and keeps everyone's results honest. Clone it, fork it, host
-  it. Storing science the way git stores code.</p>
-  <a class="cta" href="map/">Explore the map &rarr;</a>
+<div data-site-header></div>
 
-  <div class="grid">
-    <div class="card"><h3>Variables and formulas</h3><p>Every node is a typed physical quantity; every edge is its symbolic equation. The order of operations is the map.</p></div>
-    <div class="card"><h3>Simulations and experiments</h3><p>Values from codes and from papers attach to the same variables as projections, and reconcile at the observables.</p></div>
-    <div class="card"><h3>Open and forkable</h3><p>The whole database is files in a repo. <code>git clone</code> to run locally; open a pull request to append.</p></div>
-    <div class="card"><h3><a href="learn/">Learn a paper</a></h3><p>Drop a paper, see it on the map. Extract variables and results and place them on the knowledge graph.</p></div>
-  </div>
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div class="eyebrow">
+        <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><g stroke="#fff" stroke-width="3.4" stroke-linecap="round" fill="none" opacity=".92"><line x1="19" y1="20" x2="41" y2="32"/><line x1="41" y1="32" x2="19" y2="45"/></g><g fill="#fff"><circle cx="19" cy="20" r="6.2"/><circle cx="41" cy="32" r="6.2"/><circle cx="19" cy="45" r="6.2"/></g></svg>
+        openmaterials
+      </div>
+      <h1>A versioned map of physics.</h1>
+      <p class="lede">Typed quantities as <b>nodes</b>, executable formulas as <b>edges</b>,
+        every element <b>content-addressed</b>, every change <b>logged</b>. Simulations and
+        measurements attach as values and reconcile at the observables.</p>
+      <div class="cta-row">
+        <a class="om-btn om-btn-primary" href="map/">Explore the map</a>
+        <a class="om-btn" href="openmaterials.pdf">Read the document (PDF)</a>
+      </div>
+    </div>
+  </section>
 
-  <p class="foot">
-    <a href="map/">3D map</a> &middot;
-    <a href="learn/">Learn a paper</a> &middot;
-    <a href="pipeline.html">pipeline view</a> &middot;
-    <a href="openmaterials.pdf">the openmaterials document</a> &middot;
-    <a href="https://github.com/gbarbalinardo/openmaterials">source</a>
-  </p>
-</div>
+  <section class="stats" aria-label="Live store statistics">
+    <div class="wrap">
+      <div class="stat"><div class="num" id="s-nodes">&middot;</div><div class="lbl">typed quantities</div></div>
+      <div class="stat"><div class="num" id="s-ops">&middot;</div><div class="lbl">operators (edges)</div></div>
+      <div class="stat"><div class="num" id="s-codes">&middot;</div><div class="lbl">code representations</div></div>
+      <div class="stat"><div class="num" id="s-values">&middot;</div><div class="lbl">recorded values</div></div>
+      <div class="stat ver-stat"><div class="num ver" id="s-version">&middot;</div><div class="lbl">store version</div></div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>How the map is built</h2>
+        <p>Three layers, one graph. Structure comes first, evidence attaches to it, and a
+          content-addressed protocol keeps every step honest.</p>
+      </div>
+      <div class="cards">
+        <div class="card">
+          <div class="kicker"><span class="dot" style="background:var(--observable)"></span>Structure</div>
+          <h3>Codes and theory add the graph</h3>
+          <p>Each physical quantity is a typed node; each symbolic formula is an edge that
+            produces one quantity from others. Codes declare how their outputs map onto the
+            shared layer, units and conventions included.</p>
+        </div>
+        <div class="card">
+          <div class="kicker"><span class="dot" style="background:var(--simulation)"></span>Evidence</div>
+          <h3>Runs and measurements attach values</h3>
+          <p>Simulation outputs and experimental measurements attach to the same nodes as
+            values. Where several land on one observable, they reconcile there, so agreement
+            and disagreement are both visible and auditable.</p>
+        </div>
+        <div class="card">
+          <div class="kicker"><span class="dot" style="background:var(--measurement)"></span>Protocol</div>
+          <h3>Content-addressed, log-first, gated</h3>
+          <p>Every node, edge, and value is content-addressed by a hash. Changes append to a
+            log behind validation gates, so the whole store has an identity and a lineage you
+            can check.</p>
+          <div class="tm"><span class="k">genesis</span> <span id="c-genesis">e6e8044e9203</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" style="padding-top:0;">
+    <div class="wrap">
+      <div class="section-head">
+        <h2>See it</h2>
+        <p>Three views on the same store, each fully in the browser.</p>
+      </div>
+      <div class="seeit">
+        <a class="preview" href="map/">
+          <div class="pt">The map <span class="arw">&rarr;</span></div>
+          <div class="pd">The whole graph in tiers: pan, zoom, open any quantity for its
+            formula, provenance, and attached values.</div>
+        </a>
+        <a class="preview" href="pipeline.html">
+          <div class="pt">The pipeline <span class="arw">&rarr;</span></div>
+          <div class="pd">The thermal-transport DAG side by side across codes, showing where each
+            adapter covers the shared operator layer.</div>
+        </a>
+        <a class="preview" href="learn/">
+          <div class="pt">Learn a paper <span class="arw">&rarr;</span></div>
+          <div class="pd">Drop a PDF and map its reported quantities onto the graph, each value
+            backed by a verbatim quote. Bring your own key.</div>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" style="padding-top:0;">
+    <div class="wrap">
+      <div class="contribute">
+        <div class="two">
+          <div>
+            <h2>Contribute a value</h2>
+            <p>A recorded value is a small JSON file that names a quantity, a material, the
+              number with its units, and where it came from.</p>
+            <div class="step"><span class="n">1</span><span>Write the instance file (the shape on the right).</span></div>
+            <div class="step"><span class="n">2</span><span>Add it under <code class="inline">docs/data/instances/</code> and open a pull request.</span></div>
+            <div class="step"><span class="n">3</span><span>The gates validate it against the graph; on merge, the store version advances.</span></div>
+            <p style="margin-top:18px;margin-bottom:0;font-size:.92rem;color:var(--muted);">
+              The <a href="openmaterials.pdf">document appendices</a> cover ingesting a new code
+              and extending the DAG (when to add a node versus a parameter).</p>
+          </div>
+          <div>
+<pre class="code"><span class="c">// docs/data/instances/si-thermalconductivity-kaldo.json</span>
+{
+  <span class="k">"variable"</span>: <span class="s">"ThermalConductivity"</span>,
+  <span class="k">"material"</span>: <span class="s">"Si"</span>,
+  <span class="k">"conditions"</span>: { <span class="k">"temperature_K"</span>: <span class="n">300</span>, <span class="k">"solver"</span>: <span class="s">"rta"</span> },
+  <span class="k">"value"</span>: <span class="n">19.46</span>,
+  <span class="k">"units"</span>: <span class="s">"W/m/K"</span>,
+  <span class="k">"uncertainty"</span>: <span class="k">null</span>,
+  <span class="k">"source"</span>: {
+    <span class="k">"kind"</span>: <span class="s">"simulation"</span>,
+    <span class="k">"ref"</span>: <span class="s">"kaldo-si-tersoff-888"</span>,
+    <span class="k">"detail"</span>: <span class="s">"RTA, 8x8x8 mesh, Tersoff potential"</span>
+  }
+}</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div data-site-footer></div>
+
+<script src="assets/site.js"></script>
+<script>
+/* Live stats: every number read at load from the real store files; never
+   hardcoded. If a fetch fails the placeholder text stays and the page still
+   reads correctly. */
+(function () {
+  function setNum(id, v) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = (typeof v === 'number') ? v.toLocaleString('en-US') : v;
+  }
+  Promise.allSettled([
+    fetch('data/graph.json').then(function (r) { return r.json(); }),
+    fetch('data/codes.json').then(function (r) { return r.json(); }),
+    fetch('data/instances.json').then(function (r) { return r.json(); }),
+    fetch('data/version.json').then(function (r) { return r.json(); })
+  ]).then(function (res) {
+    var graph = res[0].status === 'fulfilled' ? res[0].value : null;
+    var codes = res[1].status === 'fulfilled' ? res[1].value : null;
+    var insts = res[2].status === 'fulfilled' ? res[2].value : null;
+    var ver = res[3].status === 'fulfilled' ? res[3].value : null;
+
+    if (graph && Array.isArray(graph.nodes)) setNum('s-nodes', graph.nodes.length);
+    if (graph && Array.isArray(graph.links)) {
+      var ops = {};
+      graph.links.forEach(function (l) { if (l && l.op) ops[l.op] = 1; });
+      setNum('s-ops', Object.keys(ops).length);
+    }
+    if (codes) setNum('s-codes', Object.keys(codes).length);
+    if (insts && Array.isArray(insts)) setNum('s-values', insts.length);
+    if (ver && ver.version) setNum('s-version', ('' + ver.version).slice(0, 12));
+    if (ver && ver.genesis) {
+      var g = document.getElementById('c-genesis');
+      if (g) { g.textContent = ('' + ver.genesis).slice(0, 12); g.title = 'genesis ' + ver.genesis; }
+    }
+  });
+})();
+</script>
 </body>
 </html>
