@@ -30,22 +30,17 @@
   .dropzone .ico{font-size:2.4rem;line-height:1;}
   .dropzone .head{font-family:var(--font-serif);font-size:1.3rem;font-weight:700;color:var(--ink);letter-spacing:-.01em;}
   .dropzone .sub2{font-size:.9rem;color:var(--muted);}
-  .dropzone label.filebtn{display:inline-block;border:1px solid var(--obs);color:var(--obs);border-radius:10px;padding:9px 20px;font-size:.88rem;font-weight:600;cursor:pointer;transition:.13s;}
-  .dropzone label.filebtn:hover{background:var(--obs);color:#fff;}
+  /* the file button + demo button are shared .om-btn / .om-btn-primary (markup) */
   #fileInput{display:none;}
   .dropzone .or{font-size:.78rem;color:var(--faint);}
-  .demobtn{border:none;background:var(--obs);color:#fff;border-radius:10px;padding:11px 26px;font-size:.9rem;font-weight:600;cursor:pointer;transition:.13s;}
-  .demobtn:hover{background:var(--obs2);}
 
-  /* key panel (hairline) */
+  /* key panel (hairline). Its input is the shared .om-input, kept in mono for
+     the API key; the Save button is .om-btn-primary. */
   #keyPanel{width:min(92vw,560px);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-3);padding:24px 28px;}
   #keyPanel .khead{font-family:var(--font-serif);font-size:1.15rem;font-weight:700;color:var(--ink);margin-bottom:6px;letter-spacing:-.01em;}
   #keyPanel .kdesc{font-size:.82rem;color:var(--muted);margin-bottom:14px;line-height:1.55;}
   #keyPanel .krow{display:flex;gap:10px;align-items:center;}
-  #keyPanel input[type=text]{flex:1;border:1px solid var(--line);border-radius:10px;padding:9px 13px;font-size:.88rem;font-family:var(--font-mono);font-feature-settings:"zero" 1;outline:none;transition:.15s;color:var(--ink);}
-  #keyPanel input[type=text]:focus{border-color:var(--obs);box-shadow:0 0 0 3px rgba(79,70,229,.13);}
-  #keyPanel .savekey{border:none;background:var(--obs);color:#fff;border-radius:10px;padding:9px 18px;font-size:.88rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:.13s;}
-  #keyPanel .savekey:hover{background:var(--obs2);}
+  #keyPanel .krow .om-input{flex:1;font-family:var(--font-mono);font-feature-settings:"zero" 1;}
   #keyPanel .knote{font-size:.72rem;color:var(--faint);margin-top:10px;line-height:1.5;}
 
   /* progress list */
@@ -107,8 +102,9 @@
   /* export section (hairline) */
   .export-section{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-3);padding:16px 20px;display:flex;flex-direction:column;gap:10px;}
   .export-section .sec-head{font-family:'Inter',sans-serif;font-size:.66rem;font-weight:600;text-transform:uppercase;letter-spacing:.14em;color:var(--muted);}
-  .export-btn{border:none;background:var(--obs);color:#fff;border-radius:10px;padding:10px 22px;font-size:.88rem;font-weight:600;cursor:pointer;transition:.13s;align-self:flex-start;}
-  .export-btn:hover{background:var(--obs2);}
+  /* the export button is the shared .om-btn-primary; only its self-alignment
+     in the export column is page-specific. */
+  .export-section .om-btn{align-self:flex-start;}
   .export-note{font-size:.76rem;color:var(--muted);line-height:1.6;}
   .export-note a{color:var(--obs);text-decoration:none;}
   .export-note a:hover{text-decoration:underline;}
@@ -128,10 +124,10 @@
     <div class="ico">&#128196;</div>
     <div class="head">Drop a paper (PDF) or a batch</div>
     <div class="sub2">Drag and drop one or more PDF files here, or choose a file.</div>
-    <label class="filebtn" for="fileInput">Choose PDF&hellip;</label>
+    <label class="om-btn" for="fileInput">Choose PDF&hellip;</label>
     <input type="file" id="fileInput" accept="application/pdf" multiple>
     <div class="or">or</div>
-    <button class="demobtn" onclick="runDemo()">Try the demo</button>
+    <button class="om-btn om-btn-primary" onclick="runDemo()">Try the demo</button>
   </div>
 
   <div id="keyPanel">
@@ -140,8 +136,8 @@
       and sent directly to <code>api.anthropic.com</code>, never relayed through
       openmaterials.ai servers.</div>
     <div class="krow">
-      <input type="text" id="keyInput" placeholder="sk-ant-&hellip;" autocomplete="off" spellcheck="false">
-      <button class="savekey" onclick="saveKey()">Save key</button>
+      <input type="text" class="om-input" id="keyInput" placeholder="sk-ant-&hellip;" autocomplete="off" spellcheck="false">
+      <button class="om-btn om-btn-primary" onclick="saveKey()">Save key</button>
     </div>
     <div class="knote">Key is stored locally in your browser (<code>localStorage</code>) and sent
       only to <code>api.anthropic.com</code>.</div>
@@ -448,7 +444,7 @@ function renderResult(papers){
   /* -- Export section -- */
   var expEl=document.getElementById('resultExport');
   expEl.innerHTML='<div class="sec-head">Export</div>';
-  var expBtn=document.createElement('button'); expBtn.className='export-btn';
+  var expBtn=document.createElement('button'); expBtn.className='om-btn om-btn-primary';
   expBtn.textContent='Export instances JSON';
   expBtn.addEventListener('click',function(){
     exportInstances(papers);
