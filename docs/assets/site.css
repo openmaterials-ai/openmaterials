@@ -1,0 +1,122 @@
+/* ============================================================================
+   openmaterials design system: light-first scientific identity.
+   Tokens + shared chrome (header/footer) + primitives. No build step.
+   The semantic colors of the map are load-bearing and must not drift in hue:
+   observable indigo #4f46e5, simulation green #0f9d6b, measurement amber
+   #d98a14. Everything else is a restrained neutral scale.
+   ============================================================================ */
+@import url('./vendor/inter/inter.css');
+
+:root{
+  /* surfaces */
+  --bg:#fbfcfe; --surface:#ffffff;
+  --ink:#0f172a; --ink-2:#334155; --muted:#64748b; --faint:#94a3b8;
+  --line:#e6eaf2;
+  /* accent (the map's observable indigo, for semantic continuity) */
+  --accent:#4f46e5; --accent-2:#4338ca; --accent-soft:#eef2ff;
+  --link:#4338ca;
+  /* semantic (established by the map; do not change hue) */
+  --observable:#4f46e5; --simulation:#0f9d6b; --measurement:#d98a14;
+  /* type */
+  --font-sans:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --font-mono:ui-monospace,'SFMono-Regular',SFMono,Menlo,Consolas,'Liberation Mono',monospace;
+  /* shape */
+  --r-1:8px; --r-2:12px; --r-3:16px;
+  --shadow-1:0 1px 2px rgba(15,23,42,.06);
+  --shadow-2:0 8px 30px rgba(15,23,42,.08);
+  /* motion */
+  --t:150ms ease;
+}
+
+*{box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  margin:0;
+  font-family:var(--font-sans);
+  font-size:16px; line-height:1.6;
+  color:var(--ink); background:var(--bg);
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+a{color:var(--link);text-decoration:none;}
+a:hover{text-decoration:underline;}
+code,kbd,samp{font-family:var(--font-mono);}
+h1,h2,h3,h4{letter-spacing:-.02em;line-height:1.15;margin:0 0 .4em;}
+h1{font-weight:800;} h2,h3,h4{font-weight:700;}
+
+/* focus-visible: a consistent, legible ring across the whole site */
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px;}
+a:focus-visible{outline-offset:3px;}
+
+/* ---- shared header -------------------------------------------------------- */
+.om-header{
+  position:sticky;top:0;z-index:40;
+  height:56px;display:flex;align-items:center;gap:18px;
+  padding:0 clamp(16px,4vw,32px);
+  background:rgba(255,255,255,.82);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+}
+.om-brand{display:inline-flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em;color:var(--ink);white-space:nowrap;}
+.om-brand:hover{text-decoration:none;}
+.om-brand .om-mark{width:24px;height:24px;flex:none;display:block;}
+.om-brand b{color:var(--accent);font-weight:800;}
+.om-nav{margin-left:auto;display:flex;align-items:center;gap:clamp(10px,2.5vw,22px);}
+.om-nav a{
+  color:var(--ink-2);font-size:.92rem;font-weight:600;white-space:nowrap;
+  padding:6px 2px;border-bottom:2px solid transparent;transition:color var(--t),border-color var(--t);
+}
+.om-nav a:hover{color:var(--accent);text-decoration:none;}
+.om-nav a.active{color:var(--accent);border-bottom-color:var(--accent);}
+.om-nav .om-ext::after{content:"\2197";font-size:.7em;vertical-align:super;opacity:.55;margin-left:1px;}
+
+/* ---- shared footer -------------------------------------------------------- */
+.om-footer{
+  border-top:1px solid var(--line);
+  background:var(--surface);
+  padding:40px clamp(16px,4vw,32px) 34px;
+  color:var(--muted);font-size:.9rem;
+}
+.om-footer-cols{
+  max-width:1080px;margin:0 auto;
+  display:grid;grid-template-columns:1.4fr 1fr 1.1fr;gap:32px 40px;
+}
+.om-footer h4{
+  font-size:.68rem;text-transform:uppercase;letter-spacing:.09em;
+  color:var(--faint);font-weight:700;margin:0 0 12px;
+}
+.om-footer .om-desc{color:var(--ink-2);max-width:34ch;line-height:1.6;}
+.om-footer ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;}
+.om-footer ul a{color:var(--ink-2);font-weight:500;}
+.om-footer ul a:hover{color:var(--accent);}
+.om-trust{display:flex;flex-direction:column;gap:6px;font-family:var(--font-mono);font-size:.78rem;color:var(--muted);}
+.om-trust .om-trust-row{display:flex;gap:8px;align-items:baseline;}
+.om-trust .om-trust-k{color:var(--faint);text-transform:uppercase;letter-spacing:.05em;font-size:.62rem;font-weight:700;min-width:56px;}
+.om-trust .om-trust-v{color:var(--ink-2);word-break:break-all;}
+.om-smallprint{
+  max-width:1080px;margin:28px auto 0;padding-top:20px;border-top:1px solid var(--line);
+  color:var(--faint);font-size:.82rem;
+}
+
+@media (max-width:720px){
+  .om-footer-cols{grid-template-columns:1fr;gap:28px;}
+  .om-nav{gap:14px;}
+  .om-nav .om-hide-sm{display:none;}
+}
+
+/* ---- primitives reused across pages --------------------------------------- */
+.om-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  border:1px solid var(--line);background:var(--surface);
+  border-radius:var(--r-2);padding:9px 16px;
+  font:600 .9rem/1 var(--font-sans);color:var(--ink-2);cursor:pointer;
+  transition:background var(--t),border-color var(--t),color var(--t);
+}
+.om-btn:hover{background:#f1f4fb;border-color:#d6deea;text-decoration:none;}
+.om-btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:var(--shadow-1);}
+.om-btn-primary:hover{background:var(--accent-2);border-color:var(--accent-2);color:#fff;}
+
+/* the reusable DAG mark, used as brand and favicon fallback */
+.om-mark-svg{border-radius:7px;}
+
+@media (prefers-reduced-motion: reduce){
+  *{transition-duration:.001ms !important;animation-duration:.001ms !important;animation-iteration-count:1 !important;}
+}
