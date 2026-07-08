@@ -83,6 +83,9 @@ def test_kbar_to_GPa_conversion():
 # --------------------------------------------------------------------------
 
 def test_ground_state_quantity_tags_registered():
-    for tag in ("total_energy", "force", "stress"):
+    # The Forces node name derives the tag "forces" (quantity_tag_for("Forces")
+    # -> "forces"), so the registered tag is the plural to match node identity;
+    # total_energy and stress derive directly.
+    for tag in ("total_energy", "forces", "stress"):
         assert tag in QUANTITY_TAGS
         assert QUANTITY_TAGS[tag], f"{tag} needs a real one-line description"

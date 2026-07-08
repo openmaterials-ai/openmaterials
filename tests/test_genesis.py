@@ -47,11 +47,20 @@ def test_genesis_date_is_the_frozen_constant():
     assert GENESIS_AUTHOR == "genesis"
 
 
-def test_run_genesis_yields_51_nodes_and_49_edges(tmp_path):
+def test_run_genesis_materializes_every_live_domain_node_and_edge(tmp_path):
+    """run_genesis is now a historical migration TOOL, not a genesis-era
+    snapshot: it replays the live DOMAINS. The store it builds must hold one
+    node/edge per deduped live element (55 nodes + 52 edges once the DFT
+    ground-state domain joined thermal + materials; 51 + 49 at genesis). The
+    frozen-prefix invariant lives in test_committed_genesis_is_the_frozen_prefix;
+    the Python-vs-committed-store drift alarm lives in test_sync.py."""
+    # Counts derive from the live domain set, so the next domain does not
+    # re-break this test.
+    ops = [op for op, _payload, _reason in genesis_records()]
     run_genesis(tmp_path)
     m = Store(tmp_path).read()
-    assert len(m["nodes"]) == 51
-    assert len(m["edges"]) == 49
+    assert len(m["nodes"]) == ops.count("add_node")
+    assert len(m["edges"]) == ops.count("add_edge")
 
 
 def test_genesis_uid_sets_equal_live_identity(tmp_path):
@@ -88,8 +97,14 @@ def test_genesis_hash_is_head_and_64_hex(tmp_path):
 def test_genesis_records_deterministic_order_and_count():
     recs = genesis_records()
     ops = [op for op, _payload, _reason in recs]
-    assert ops.count("add_node") == 51
-    assert ops.count("add_edge") == 49
+    # Counts derive from the live domain set (51 + 49 at genesis; 55 + 52 with
+    # the DFT ground-state domain), so the next domain does not re-break this
+    # test; the invariant is one add_node per deduped live node, one add_edge
+    # per deduped live edge, nodes emitted before edges.
+    node_uids, edge_uids = _live_uid_sets()
+    assert ops.count("add_node") == len(node_uids)
+    assert ops.count("add_edge") == len(edge_uids)
+    assert ops == sorted(ops, key=lambda o: 0 if o == "add_node" else 1)
     # Deterministic: two calls produce identical structure.
     recs2 = genesis_records()
     assert [(op, p["uid"]) for op, p, _ in recs] == \

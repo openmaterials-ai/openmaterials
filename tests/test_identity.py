@@ -215,10 +215,20 @@ def test_every_graph_node_has_a_unique_hex_uid():
 
 
 def test_graph_counts_unchanged_with_uids():
+    # Decorating the graph with uids must not add or drop nodes/links. Counts
+    # derive from the live domain set (51 nodes / 131 links at genesis, 55 /
+    # 137 with the DFT ground-state domain), so the next domain does not
+    # re-break this test: non-parameter nodes must equal the deduped live
+    # spaces, links must be unique per (source, target, op), and every node
+    # must carry a uid.
     from omai.map_data import build_graph_dict, DOMAINS
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 51
-    assert len(g["links"]) == 131
+    space_names = {s.name for d in DOMAINS for s in d.nodes}
+    param_nodes = [n for n in g["nodes"] if n["type"] == "parameter"]
+    assert len(g["nodes"]) == len(space_names) + len(param_nodes)
+    triples = {(l["source"], l["target"], l["op"]) for l in g["links"]}
+    assert len(g["links"]) == len(triples)
+    assert all(n["uid"] for n in g["nodes"])
 
 
 def test_node_uids_stable_across_two_builds():
