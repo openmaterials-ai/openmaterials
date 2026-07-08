@@ -71,6 +71,29 @@
   },
   "uid": "12fb1ed0f109f6dd198199dde8ed169edc25c04ee12813e0612a96675784830c"
  },
+ "183e66d4e443326d2c346a0327cdb125026bd8f6a91a9bb97b61265fcade7e85": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^-1 T^-2",
+     "indices": [
+      "cartesian",
+      "cartesian"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "stress"
+  },
+  "meta": {
+   "description": "Cell-averaged macroscopic (Cauchy) stress tensor sigma_{alpha,beta} = -(1/V_cell) dE_tot/d(strain). Same physical dimension as an energy density (M L^-1 T^-2), typed ENERGY_PER_LENGTH_CUBED. QE prints it in Ry/bohr^3 and kbar side by side; a positive value is compressive (pressure convention) rather than tensile.",
+   "name": "Stress",
+   "symbol": "\\sigma",
+   "tier": "Ground state"
+  },
+  "uid": "183e66d4e443326d2c346a0327cdb125026bd8f6a91a9bb97b61265fcade7e85"
+ },
  "21ba7756f45c808d3d91ed059c34c532f04845781d549b4c16573d9462bb2902": {
   "identity": {
    "fields": [
@@ -718,6 +741,29 @@
   },
   "uid": "9b0af04f9828cfb02e19d5e41ab2c61fbe4759f049258b85c650baf22e43ebf1"
  },
+ "9c5a2fdedab6b668ccf5f2043fb4c29a982bcde5063fd6ac8633ee2c7858ecbf": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-2",
+     "indices": [
+      "atom",
+      "cartesian"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "forces"
+  },
+  "meta": {
+   "description": "Per-atom Cartesian force F_{i,alpha} on the nuclei in the ground state, the Hellmann-Feynman derivative -dE_tot/dR of the total energy with respect to atomic positions (plus Pulay / core corrections in a pseudopotential code). Vanishes at a relaxed equilibrium; the finite-displacement route to force constants differentiates these.",
+   "name": "Forces",
+   "symbol": "F^{at}",
+   "tier": "Ground state"
+  },
+  "uid": "9c5a2fdedab6b668ccf5f2043fb4c29a982bcde5063fd6ac8633ee2c7858ecbf"
+ },
  "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9": {
   "identity": {
    "fields": [
@@ -934,6 +980,26 @@
   },
   "uid": "cd81fd8a1d62a1484f3057647d23aa780500de44175ae4e686e189a3ca5b36b2"
  },
+ "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "total_energy"
+  },
+  "meta": {
+   "description": "DFT total energy E_tot of the converged Kohn-Sham self-consistent ground state, for a Structure under a chosen Potential. Extensive: one scalar per simulation cell, the conditions carrying the cell. The pw.x '!' stdout line and the XML total_energy element are the QE artifacts.",
+   "name": "TotalEnergy",
+   "symbol": "E_{tot}",
+   "tier": "Ground state"
+  },
+  "uid": "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e"
+ },
  "d1934e166dbd0c91125936f9b2ccc0100af0ba44ed439003aae76b47b6d26fc6": {
   "identity": {
    "fields": [
@@ -1031,6 +1097,26 @@
    "tier": "Molecular dynamics"
   },
   "uid": "d8f44a4cce5e3dfea1ec9329189d49ac70e33d69cab222e2679f7791a30613ac"
+ },
+ "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "opaque:opaque",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "structure"
+  },
+  "meta": {
+   "description": "Atomic structure (cell + species + positions); in Phase 1 an opaque label, the shared source node most materials skills consume.",
+   "name": "Structure",
+   "symbol": "\\mathcal{S}",
+   "tier": "Sources"
+  },
+  "uid": "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
  },
  "e62e58716111fdc1dff24d18e75c70904cbb07ce6e0025e24fcdac8c4ed0a53d": {
   "identity": {

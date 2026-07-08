@@ -232,3 +232,52 @@ def test_qe_solve_ground_state_declares_the_scf_discretizations():
     for key in ("ecutwfc", "k_mesh", "smearing", "conv_thr",
                 "pseudopotentials"):
         assert key in QE_SOLVE_GROUND_STATE.discretization_choices, key
+
+
+# --------------------------------------------------------------------------
+# Task 4: the contribution landed in the committed store through the gates.
+# --------------------------------------------------------------------------
+
+def test_committed_store_contains_the_dft_contribution():
+    from pathlib import Path
+
+    from omai.operator.identity import edge_id
+    from omai.store import Store
+    from omai.dft_ground_state.operator import EDGES, NODES
+
+    m = Store(Path(__file__).resolve().parents[1] / "map").read()
+    for s in NODES:
+        assert node_id(s) in m["nodes"], f"store missing node {s.name}"
+    for op in EDGES:
+        assert edge_id(op, node_id) in m["edges"], f"store missing edge {op.name}"
+
+
+def test_dft_contribution_is_records_102_to_108_after_the_symbol_edit():
+    """The frozen log positions of the first two post-genesis contributions:
+    record 101 stays the BareDynamicalMatrix symbol edit_meta, and this
+    domain's seven adds are records 102-108 (4 nodes then 3 edges, in NODES /
+    EDGES order), authored through sync --apply. Positions are history and
+    never move; the log may grow past 108 with later contributions."""
+    import json
+    from pathlib import Path
+
+    from omai.operator.identity import edge_id
+    from omai.thermal_transport.operator.nodes import BARE_DYNAMICAL_MATRIX
+    from omai.dft_ground_state.operator import EDGES, NODES
+
+    lines = (Path(__file__).resolve().parents[1] / "map" / "log.jsonl") \
+        .read_text().splitlines()
+    assert len(lines) >= 108, "the dft contribution has not landed"
+
+    rec_101 = json.loads(lines[100])
+    assert rec_101["op"] == "edit_meta"
+    assert rec_101["payload"]["uid"] == node_id(BARE_DYNAMICAL_MATRIX)
+
+    domain_uids = [node_id(s) for s in NODES] + \
+        [edge_id(op, node_id) for op in EDGES]
+    recs = [json.loads(line) for line in lines[101:108]]
+    assert [r["payload"]["uid"] for r in recs] == domain_uids
+    assert [r["op"] for r in recs] == ["add_node"] * 4 + ["add_edge"] * 3
+    for r in recs:
+        assert r["author"] == "gbarbalinardo"
+        assert r["date"] == "2026-07-08"

@@ -312,6 +312,28 @@
   },
   "uid": "5030641f5cd4aa1843e286c35d529ad7956c48a51603b1ae35121f4950cf1985"
  },
+ "59ae54527b2e735e5408e66eadb81c9f1fa29720ea39207564e388a44cd1b04c": {
+  "identity": {
+   "formula": "Equality(Indexed(IndexedBase(Symbol('F^{at}')), Symbol('i', integer=True), Symbol('\\\\alpha', integer=True)), Mul(Integer(-1), Derivative(Symbol('E_{tot}'), Tuple(Indexed(IndexedBase(Symbol('R^{at}')), Symbol('i', integer=True), Symbol('\\\\alpha', integer=True)), Integer(1)))))",
+   "inputs": [
+    "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "9c5a2fdedab6b668ccf5f2043fb4c29a982bcde5063fd6ac8633ee2c7858ecbf",
+   "outputs": [
+    "9c5a2fdedab6b668ccf5f2043fb4c29a982bcde5063fd6ac8633ee2c7858ecbf"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Hellmann-Feynman forces F^{at}_{i,alpha} = -dE_tot/dR^{at}_{i,alpha}: the derivative of the ground-state total energy with respect to atomic positions. In a pseudopotential plane-wave code the bare Hellmann-Feynman term carries Pulay / non-local corrections; QE reports the corrected total. Implicit (derivative of the SCF functional), so not sympy-executable.",
+   "formula_latex": "{F^{at}}_{i,\\alpha} = - \\frac{d}{d {R^{at}}_{i,\\alpha}} E_{tot}",
+   "formula_srepr": "Equality(Indexed(IndexedBase(Symbol('F^{at}')), Symbol('i', integer=True), Symbol('\\\\alpha', integer=True)), Mul(Integer(-1), Derivative(Symbol('E_{tot}'), Tuple(Indexed(IndexedBase(Symbol('R^{at}')), Symbol('i', integer=True), Symbol('\\\\alpha', integer=True)), Integer(1)))))",
+   "name": "compute_forces_hf",
+   "schemes": {}
+  },
+  "uid": "59ae54527b2e735e5408e66eadb81c9f1fa29720ea39207564e388a44cd1b04c"
+ },
  "64badcbbde76ff0975a351c9de13aa12ca735ce7d3e986723d5cf19b7f1125a1": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('\\\\varepsilon_\\\\infty')), Symbol('\\\\gamma', integer=True), Symbol('\\\\delta', integer=True)), Symbol('\\\\varepsilon_{\\\\infty,provided}'))",
@@ -537,6 +559,28 @@
    "schemes": {}
   },
   "uid": "7e819af4e68ff4465eb8461e12d5d81bd6dbcb395280896a38e5cf4244642737"
+ },
+ "88f8474bfda3d73e220f1db0ddfb8f00546007f1172ec663f4d4406568b3c5f2": {
+  "identity": {
+   "formula": "Equality(Indexed(IndexedBase(Symbol('\\\\sigma')), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True)), Mul(Integer(-1), Pow(Symbol('V_{cell}', positive=True), Integer(-1)), Derivative(Symbol('E_{tot}'), Tuple(Indexed(IndexedBase(Symbol('\\\\varepsilon^{str}')), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True)), Integer(1)))))",
+   "inputs": [
+    "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "183e66d4e443326d2c346a0327cdb125026bd8f6a91a9bb97b61265fcade7e85",
+   "outputs": [
+    "183e66d4e443326d2c346a0327cdb125026bd8f6a91a9bb97b61265fcade7e85"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Cell stress sigma_{alpha,beta} = -(1/V_cell) dE_tot/d(strain)_{alpha,beta}: the derivative of the ground-state total energy with respect to a homogeneous strain, normalized by the cell volume. QE prints it in Ry/bohr^3 and kbar; a positive value is compressive (pressure convention). Implicit, so not sympy-executable.",
+   "formula_latex": "{\\sigma}_{\\alpha,\\beta} = - \\frac{\\frac{d}{d {\\varepsilon^{str}}_{\\alpha,\\beta}} E_{tot}}{V_{cell}}",
+   "formula_srepr": "Equality(Indexed(IndexedBase(Symbol('\\\\sigma')), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True)), Mul(Integer(-1), Pow(Symbol('V_{cell}', positive=True), Integer(-1)), Derivative(Symbol('E_{tot}'), Tuple(Indexed(IndexedBase(Symbol('\\\\varepsilon^{str}')), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True)), Integer(1)))))",
+   "name": "compute_stress_cell",
+   "schemes": {}
+  },
+  "uid": "88f8474bfda3d73e220f1db0ddfb8f00546007f1172ec663f4d4406568b3c5f2"
  },
  "895d9e39c50870b6929c98b38c37b813f0688f3ade6b09e72c1bf1fad683ab7c": {
   "identity": {
@@ -1140,6 +1184,32 @@
    "schemes": {}
   },
   "uid": "e88e11c5770a9dc9c33df7139ddf40f072f3e415f20e15d860c3490104c3c34a"
+ },
+ "f2e7f20060fc7a467fa60d0dcede02095054636adf260b0f78f1206350524738": {
+  "identity": {
+   "formula": "Equality(Symbol('E_{tot}'), Function('E_{KS}')(Symbol('\\\\mathcal{S}'), Symbol('V')))",
+   "inputs": [
+    "80a4273845e09207860e06db18d1f1ee5670a9b9c8b1020a99928c872878f901",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+   "outputs": [
+    "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e"
+   ],
+   "schemes": {
+    "method": "kohn_sham_scf"
+   }
+  },
+  "meta": {
+   "description": "Kohn-Sham self-consistent minimization: E_tot = E_KS[S, V], the converged SCF total energy of the Structure S under the Potential V. Implicit (an external SCF solve), so not sympy-executable. The Potential is the existing source node; for a DFT run its provenance is the pseudopotential + XC functional + plane-wave cutoffs, exactly as the QE representation records.",
+   "formula_latex": "E_{tot} = E_{KS}{\\left(\\mathcal{S},V \\right)}",
+   "formula_srepr": "Equality(Symbol('E_{tot}'), Function('E_{KS}')(Symbol('\\\\mathcal{S}'), Symbol('V')))",
+   "name": "solve_ground_state",
+   "schemes": {
+    "method": "kohn_sham_scf"
+   }
+  },
+  "uid": "f2e7f20060fc7a467fa60d0dcede02095054636adf260b0f78f1206350524738"
  },
  "fd0c5bbfc433db7ed55562ae46c06b3880389135fa84225a10c0687269251352": {
   "identity": {
