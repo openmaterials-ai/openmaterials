@@ -25,6 +25,7 @@ from omai.operator.dimensions import (
     ENERGY_PER_TEMPERATURE,
     ENERGY_PER_TEMPERATURE_PER_MOLE,
     ENERGY_PER_TEMPERATURE_PER_VOLUME,
+    FORCE,
     FREQUENCY,
     FREQUENCY_SQUARED,
     LENGTH,
@@ -116,6 +117,33 @@ EV_PER_A2 = Unit("eV_per_A2", ENERGY_PER_LENGTH_SQUARED, 1.0)
 RY_PER_BOHR2 = Unit("Ry_per_bohr2", ENERGY_PER_LENGTH_SQUARED, 13.605693122994 / 0.529177210903**2)
 
 
+# Energy units for the DFT ground state. JOULE stays the canonical ENERGY unit
+# (to_operator 1.0); eV and Ry are the forms QE and most electronic-structure
+# codes emit. 1 eV = 1.602176634e-19 J (exact, CODATA e). 1 Ry =
+# 13.605693122994 eV (CODATA Rydberg energy), so its to_operator to Joules is
+# 13.605693122994 * 1.602176634e-19.
+EV = Unit("ev", ENERGY, _E)
+RY = Unit("ry", ENERGY, 13.605693122994 * _E)
+
+
+# Force units. Canonical: eV/Å (to_operator 1.0); its absolute SI scale is
+# 1 eV/Å = 1.602176634e-19 J / 1e-10 m = 1.602176634e-9 N. QE prints forces in
+# Ry/bohr ("Ry/au"), whose factor to eV/Å is Ry[eV] / bohr[Å] =
+# 13.605693122994 / 0.529177210903 = 25.71104309541616.
+EV_PER_A = Unit("eV_per_A", FORCE, 1.0, si_scale=1.602176634e-9)
+RY_PER_BOHR = Unit("Ry_per_bohr", FORCE, 13.605693122994 / 0.529177210903)
+
+
+# Pressure / stress units, sharing the ENERGY_PER_LENGTH_CUBED dimension with
+# the FC3 canonical eV/Å³ (EV_PER_A3, to_operator 1.0). Derivation:
+# 1 eV/Å³ = 1.602176634e-19 J / 1e-30 m³ = 1.602176634e11 Pa, so
+# 1 Pa = 1 / 1.602176634e11 eV/Å³. Then 1 kbar = 1e8 Pa =
+# 1e8 / 1.602176634e11 = 6.241509074460763e-4 eV/Å³, and 1 GPa = 1e9 Pa =
+# 6.241509074460763e-3 eV/Å³ (so kbar -> GPa is exactly 0.1).
+KBAR = Unit("kbar", ENERGY_PER_LENGTH_CUBED, 6.241509074460763e-4)
+GPA = Unit("GPa", ENERGY_PER_LENGTH_CUBED, 6.241509074460763e-3)
+
+
 # Canonical length unit: Å (angstrom). Canonical volume unit: Å³.
 ANGSTROM = Unit("angstrom", LENGTH, 1.0, si_scale=1e-10)
 ANGSTROM_CUBED = Unit("angstrom_cubed", VOLUME, 1.0, si_scale=1e-30)
@@ -146,6 +174,12 @@ UNITS: dict[str, Unit] = {
         EV_PER_A3,
         EV_PER_A2,
         RY_PER_BOHR2,
+        EV,
+        RY,
+        EV_PER_A,
+        RY_PER_BOHR,
+        KBAR,
+        GPA,
         ANGSTROM,
         ANGSTROM_CUBED,
         DIMENSIONLESS_UNIT,

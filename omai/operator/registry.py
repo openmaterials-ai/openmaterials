@@ -73,6 +73,9 @@ def index_kind_signature(indices: tuple[str, ...]) -> tuple[str, ...]:
 QUANTITY_TAGS: dict[str, str] = {
     "potential": "Born-Oppenheimer potential of the material (opaque in Phase 1).",
     "structure": "Atomic structure: cell, species, and positions (opaque in Phase 1).",
+    "total_energy": "DFT total energy of the converged Kohn-Sham ground state, per simulation cell.",
+    "force": "Per-atom Hellmann-Feynman force on the nuclei in the ground state.",
+    "stress": "Cell-averaged macroscopic stress tensor of the ground state (pressure convention).",
     "temperature": "Thermodynamic temperature at which the calculation is evaluated.",
     "force_constants": "Real-space interatomic force constants (harmonic or higher order).",
     "born_charges": "Per-atom Born effective-charge tensors driving the LO-TO splitting.",

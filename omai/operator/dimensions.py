@@ -107,6 +107,11 @@ ENERGY_PER_MOLE = Dimension("energy_per_mole", (1, 2, -2, 0, -1, 0, 0))
 LENGTH_TIMES_FREQUENCY = Dimension("length_times_frequency", (0, 1, -1, 0, 0, 0, 0))
 ENERGY_PER_LENGTH_SQUARED = Dimension("energy_per_length_squared", (1, 0, -2, 0, 0, 0, 0))
 ENERGY_PER_LENGTH_CUBED = Dimension("energy_per_length_cubed", (1, -1, -2, 0, 0, 0, 0))
+# Force: M L T^-2. F = -dE/dx is an energy per unit length (ENERGY / LENGTH).
+# Genuinely new; the ground-state Forces node carries it. Stress needs no new
+# Dimension: a pressure M L^-1 T^-2 has the exact exponents of
+# ENERGY_PER_LENGTH_CUBED (energy density), which Stress reuses.
+FORCE = Dimension("force", (1, 1, -2, 0, 0, 0, 0))
 THERMAL_CONDUCTIVITY = Dimension("thermal_conductivity", (1, 1, -3, -1, 0, 0, 0))
 # MD-primitive dimensions (phase 2 P2). length_per_time and
 # length_times_frequency are both velocity, so they share exponents and
@@ -142,6 +147,7 @@ DIMENSIONS: dict[str, Dimension] = {
         LENGTH_TIMES_FREQUENCY,
         ENERGY_PER_LENGTH_SQUARED,
         ENERGY_PER_LENGTH_CUBED,
+        FORCE,
         THERMAL_CONDUCTIVITY,
         LENGTH_PER_TIME,
         LENGTH_SQUARED,
