@@ -1,0 +1,24 @@
+{
+ "representation": "mat-elasticity",
+ "map_version": "3e87f5c723d351c17227ad0e1920facda0b07a79e9b085b9a8423327de30b889",
+ "covers": [
+  {
+   "node": "BulkModulus",
+   "uid": "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced",
+   "api": "matcalc ElasticityCalc bulk_modulus_vrh (B_VRH), GPa",
+   "unit": "GPa"
+  },
+  {
+   "node": "ElasticConstants",
+   "uid": "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e",
+   "api": "matcalc ElasticityCalc elastic_tensor (Voigt 6x6), GPa",
+   "unit": "GPa"
+  },
+  {
+   "node": "ShearModulus",
+   "uid": "1ab85488c90143e38b94e27f93ab96571f381e7b09d507fa7a38216ffd34c5ec",
+   "api": "matcalc ElasticityCalc shear_modulus_vrh (G_VRH), GPa",
+   "unit": "GPa"
+  }
+ ]
+}

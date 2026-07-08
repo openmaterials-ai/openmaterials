@@ -1,7 +1,13 @@
 {
  "representation": "lammps",
- "map_version": "950910596b2c0416ca43be2173bd385a5bf97ee2f84b021e43da2ba1fc00f37e",
+ "map_version": "3e87f5c723d351c17227ad0e1920facda0b07a79e9b085b9a8423327de30b889",
  "covers": [
+  {
+   "node": "ElasticConstants",
+   "uid": "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e",
+   "api": "examples/ELASTIC log 'Elastic Constant CXYall = ... GPa' block (in.elastic)",
+   "unit": "GPa"
+  },
   {
    "node": "HeatCurrent",
    "uid": "aab7019fbc014398b74ece01428527aa95e89da6f6d51efc0323b0acf59248c6",
@@ -25,6 +31,12 @@
    "uid": "80a4273845e09207860e06db18d1f1ee5670a9b9c8b1020a99928c872878f901",
    "api": "LAMMPS input script: pair_style <name> + pair_coeff <args>",
    "unit": null
+  },
+  {
+   "node": "Pressure",
+   "uid": "4ca6efdb874d146a6cca564c7a8a0504ee8868ae5890d4c33abddc147423d6f1",
+   "api": "thermo 'Press' / compute pressure scalar (auto-created thermo_press)",
+   "unit": "GPa"
   },
   {
    "node": "Temperature",

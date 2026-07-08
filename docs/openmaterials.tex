@@ -245,18 +245,20 @@ shape is already here.
 \section{Where we are, and what is next}
 
 Today the framework is real and small. It has an operator layer and a
-representation layer, nine ingested representations (kaldo, phono3py, phonopy,
-ShengBTE, Quantum ESPRESSO, ASE, LAMMPS, GPUMD, and one AtomisticSkills
-workflow), and a validation engine that executes the graph, composes
+representation layer, ten ingested representations (kaldo, phono3py, phonopy,
+ShengBTE, Quantum ESPRESSO, ASE, LAMMPS, GPUMD, and two AtomisticSkills
+workflows), and a validation engine that executes the graph, composes
 edges symbolically, and cross-checks redundant routes. Units reconcile
 automatically from the typed dimensions, and a dimensional gate checks every
 closed-form edge mechanically. The worked domains are lattice thermal
 transport (46 quantities, 47 operators), the Quantum ESPRESSO DFT ground
-state (4 quantities, 3 operators, the first contribution to land through the
-protocol gates), and a first materials-diffusion subgraph; the unified map of
-55 quantities and 53 operators is content-addressed in the log-first store
+state (4 quantities, 4 operators, the first contribution to land through the
+protocol gates), the mechanics domain (4 quantities, 4 operators: the elastic
+tensor, its Voigt moduli, and the pressure, landed through the same gates),
+and a first materials-diffusion subgraph; the unified map of
+59 quantities and 57 operators is content-addressed in the log-first store
 (Part~\ref{part:kernel}), grown past its frozen genesis version through the
-contribution gates, and the whole is held together by a suite of 875
+contribution gates, and the whole is held together by a suite of 898
 passing tests.
 
 What is next is mostly upward and outward. The upstream from the
@@ -347,8 +349,8 @@ and its result is a value on a node.
 
 \section{The map}
 
-The map is a curated reference graph. Today it holds 55 nodes (52 observable
-and hidden quantities plus 3 promoted parameters) and 137 edges. Nodes are
+The map is a curated reference graph. Today it holds 59 nodes (56 observable
+and hidden quantities plus 3 promoted parameters) and 144 edges. Nodes are
 typed physical quantities. An edge produces one node from a list of input
 nodes, carrying the symbolic formula that relates them (parameter inputs are
 marked as inputs rather than derived through a formula).
@@ -514,10 +516,12 @@ the reviewers decide what enters the commons.
 
 \section{Status and build order}
 
-Today's map is v1, the genesis version: 48 typed quantities plus 3 promoted
-parameters, the symbolic formula on every relational edge, 9 representations
-mapped (kaldo 32 variables, phono3py 31, ShengBTE 20, phonopy 17, QE 9,
-LAMMPS 9, GPUMD 8, ASE 1, and the mat-diffusion-analysis skill 2), and real instances
+Today's map is seventeen change records past v1, its frozen genesis version:
+56 typed quantities plus 3 promoted
+parameters, the symbolic formula on every relational edge, 10 representations
+mapped (kaldo 32 variables, phono3py 31, ShengBTE 20, phonopy 17, QE 13,
+LAMMPS 11, GPUMD 8, the mat-elasticity skill 3, the mat-diffusion-analysis
+skill 2, and ASE 1), and real instances
 computed through the framework: cross-code silicon thermal conductivity
 (Tersoff potential, 8x8x8 mesh, 300 K: kaldo 19.46 RTA and 26.91 direct,
 phono3py 16.74 RTA and 24.30 direct, in W/m K) plus an LGPS activation energy
@@ -2108,7 +2112,7 @@ The kernel was built before bulk growth from code scans, and deliberately so.
 Identity hashes include a node's dimension, gauge class, and index signature. Had
 those changed representation later, for instance flat dimension tags becoming
 composable exponent vectors, every hash in the map would re-mint on day one of
-the protocol. The map is small enough today (55 nodes, 52 deduplicated edges) to
+the protocol. The map is small enough today (59 nodes, 57 deduplicated edges) to
 verify the genesis migration by hand; after a Quantum ESPRESSO scan it would not
 be.
 
@@ -2354,7 +2358,12 @@ proposing nothing on a pristine repository). The store has since had its first
 two live uses of the protocol: record 101, an \texttt{edit\_meta} unifying the
 BareDynamicalMatrix display symbol, and records 102-108, the DFT ground-state
 domain (Structure, TotalEnergy, Forces, Stress and their three producing
-operators), proposed by the sync tool and admitted through all six gates. Both
+operators), proposed by the sync tool and admitted through all six gates.
+Record 109 (the finite-displacement route from Forces to the force constants,
+the first post-genesis Pattern~C producer) and records 110-117 (the mechanics
+domain: the elastic tensor, its Voigt moduli, and the pressure, whose first
+apply attempt the connectivity gate correctly rejected until the elastic edge
+took the stress route) followed through the same gates. All
 landed as ordinary change records on top of the untouched genesis prefix, which
 is exactly the accumulation the kernel was built to support.
 
@@ -2486,7 +2495,8 @@ trusted). What remains, in order:
         ground-state quantities (ChargeDensity, Wavefunctions, dvscf) and the
         \texttt{mat-*} bulk encode. The finite-displacement Forces $\to$
         force-constants route landed 2026-07-08 as record 109, the map's
-        first post-genesis Pattern C producer.
+        first post-genesis Pattern C producer; the mechanics domain followed
+        the same day as records 110-117.
 \end{itemize}
 
 % =====================================================================
@@ -2498,34 +2508,43 @@ trusted). What remains, in order:
 \label{sec:status-live}
 
 The map is at store head version
-\texttt{950910596b2ce9c9169a9a396a05e12539ef9d99094111506ad6f8ec6b19685c}
-(2026-07-08, 109 records), nine change records past the frozen genesis hash
+\texttt{3e87f5c723d351c17227ad0e1920facda0b07a79e9b085b9a8423327de30b889}
+(2026-07-08, 117 records), seventeen change records past the frozen genesis hash
 \texttt{e6e8044e92039696417b53b220b0f3f10559a286b0eaabbe7ea4167ff510f6cd}
 (2026-07-07, the untouched 100-record prefix). The live numbers:
 
 \begin{itemize}[leftmargin=2em, itemsep=0.25em]
-  \item \textbf{Structure.} 55 nodes (52 observable and hidden quantities plus 3
-        promoted parameters), 139 rendered links, 53 deduplicated operators. The
+  \item \textbf{Structure.} 59 nodes (56 observable and hidden quantities plus 3
+        promoted parameters), 144 rendered links, 57 deduplicated operators,
+        rendered in nine physics tiers (Sources, Harmonic, Thermodynamics,
+        Scattering, Transport, Molecular dynamics, Ground state, Mechanics,
+        Diffusion; the Mechanics tier is the newest, between Ground state and
+        Diffusion). The
         rendered-link count exceeds the operator count because the site graph
         draws one link per (input $\to$ output) pair while an operator with
         several inputs is a single edge in the store.
-  \item \textbf{Representations.} 9 codes mapped, with per-code variable coverage:
+  \item \textbf{Representations.} 10 codes mapped, with per-code variable coverage:
         kaldo 32, phono3py 31, ShengBTE 20, phonopy 17, Quantum ESPRESSO 13,
-        LAMMPS 9, GPUMD 8, mat-diffusion-analysis 2, ASE 1.
-  \item \textbf{Instances.} 11 recorded values, 9 simulation and 2 measurement.
-        The two newest are the first Quantum ESPRESSO values from the Si
+        LAMMPS 11, GPUMD 8, mat-elasticity 3, mat-diffusion-analysis 2, ASE 1.
+  \item \textbf{Instances.} 13 recorded values, 11 simulation and 2 measurement.
+        The two newest are the first mechanics values, the Cu Voigt-Reuss-Hill
+        bulk (145.85 GPa) and shear (51.45 GPa) moduli from the AtomisticSkills
+        mat-elasticity example; before them came the first Quantum ESPRESSO
+        values from the Si
         cross-check (the SCF total energy and the $\Gamma$ optical frequency).
         The two measurements are the Glassbrenner--Slack 1964 steady-state
         thermal conductivities of bulk single-crystal silicon
         ($156\,\mathrm{W/(m\,K)}$) and germanium ($60.2\,\mathrm{W/(m\,K)}$) at
         $300\,\mathrm{K}$ and natural isotopic abundance.
-  \item \textbf{Dimensional gate.} Of the 53 edges, 21 are ok, 2 are
+  \item \textbf{Dimensional gate.} Of the 57 edges, 25 are ok, 2 are
         documented-schematic violations (\texttt{compute\_gruneisen} and
         \texttt{compute\_phase\_space\_3phonon}, kept schematic by choice), and 30
         are skipped (not closed-form \texttt{Eq} edges the gate can check). The
         two ground-state derivatives (\texttt{compute\_forces\_hf} and
-        \texttt{compute\_stress\_cell}) are proven ok.
-  \item \textbf{Tests.} The suite is 875 passing.
+        \texttt{compute\_stress\_cell}) and all four mechanics edges (the
+        elastic tensor as $-\partial\sigma/\partial\varepsilon$, the pressure
+        trace, and both Voigt moduli) are proven ok.
+  \item \textbf{Tests.} The suite is 898 passing.
 \end{itemize}
 
 \begin{center}
@@ -2538,8 +2557,9 @@ phono3py                & 31 \\
 ShengBTE                & 20 \\
 phonopy                 & 17 \\
 Quantum ESPRESSO        & 13 \\
-LAMMPS                  & 9 \\
+LAMMPS                  & 11 \\
 GPUMD                   & 8 \\
+mat-elasticity          & 3 \\
 mat-diffusion-analysis  & 2 \\
 ASE                     & 1 \\
 \bottomrule
@@ -2570,7 +2590,10 @@ order from here:
   \item \textbf{The parsers}, the eventual automated on-ramp (code, paper, run),
         each its own spec, plan, and build cycle.
   \item \textbf{Further domains and the \texttt{mat-*} bulk encode}, growing the
-        map through the same gates.
+        map through the same gates. Mechanics: landed 2026-07-08 as records
+        110-117 (the elastic tensor, its Voigt moduli, and the pressure, via
+        LAMMPS ELASTIC and mat-elasticity, with the two Cu moduli as its first
+        instances).
   \item \textbf{The app}, once the protocol and a rich mother map exist.
 \end{enumerate}
 

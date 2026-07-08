@@ -313,11 +313,13 @@ def test_dft_contribution_is_records_102_to_108_after_the_symbol_edit():
 # Task 5: evidence: the first QE instances from the Si cross-check.
 # --------------------------------------------------------------------------
 
-def test_instances_bundle_11_records_all_uid_pinned():
+def test_instances_bundle_13_records_all_uid_pinned():
+    # 9 at genesis, 11 with the QE Si cross-check pair, 13 with the two
+    # mat-elasticity Cu moduli recorded by the mechanics domain.
     from omai.map_data import build_instances
 
     insts = build_instances()
-    assert len(insts) == 11
+    assert len(insts) == 13
     for it in insts:
         assert it.get("node_uid"), f"instance for {it['variable']} lacks node_uid"
 
