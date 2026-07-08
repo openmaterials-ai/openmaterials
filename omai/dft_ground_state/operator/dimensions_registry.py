@@ -25,6 +25,7 @@ from omai.operator.dimensions import (
 register_symbol_dimensions({
     "E_{tot}": ENERGY,
     r"F^{at}": FORCE,
+    "F_j(R)": FORCE,
     r"R^{at}": LENGTH,
     r"\sigma": ENERGY_PER_LENGTH_CUBED,
     # A homogeneous strain is dimensionless (dL / L).

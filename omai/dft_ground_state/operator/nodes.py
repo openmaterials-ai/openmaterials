@@ -25,14 +25,15 @@ Deferred v1 candidates (from the QE scan's seven new-node set), each with why:
   * dvscf (the self-consistent potential response): EPW territory, with the
     normalization left open in the scan; defer until the EPW chain lands.
 
-Future edges recorded here as deferred follow-ups (not wired in v1, since v1
-keeps these quantities as DAG leaves):
+Follow-up edges beyond the v1 leaves:
 
-  * Forces -> ForceConstants[order=2] by finite differences: a Pattern C
-    alternative producer of FC2 alongside the DFPT route the thermal domain
-    already has. Wire it when the finite-displacement provenance is modeled.
+  * Forces -> ForceConstants[order=2] by finite displacements: built
+    2026-07-08 as compute_fc2_finite_displacement, a Pattern C alternative
+    producer of FC2 alongside the direct potential-derivative route. This
+    knits the ground-state tier into the thermal-transport chain.
   * Stress -> equation-of-state (fit E(V) / sigma(V) across strained cells):
-    a new observable downstream of Stress; defer until an EOS workflow arrives.
+    still deferred; a new observable downstream of Stress, waiting for an
+    EOS workflow to ground it.
 """
 from __future__ import annotations
 

@@ -54,11 +54,14 @@ def test_dft_nodes_are_structure_total_energy_forces_stress():
         "Structure", "TotalEnergy", "Forces", "Stress"]
 
 
-def test_dft_edges_are_the_three_ground_state_operators():
+def test_dft_edges_are_the_ground_state_operators():
+    # Derived from the live EDGES tuple order; extend this list when the
+    # domain grows (the store pins history separately below).
     from omai.dft_ground_state.operator import EDGES
 
     assert [op.name for op in EDGES] == [
-        "solve_ground_state", "compute_forces_hf", "compute_stress_cell"]
+        "solve_ground_state", "compute_forces_hf", "compute_stress_cell",
+        "compute_fc2_finite_displacement"]
 
 
 def test_structure_is_imported_from_shared_primitives():
@@ -273,14 +276,27 @@ def test_dft_contribution_is_records_102_to_108_after_the_symbol_edit():
     assert rec_101["op"] == "edit_meta"
     assert rec_101["payload"]["uid"] == node_id(BARE_DYNAMICAL_MATRIX)
 
+    # The v1 contribution is history: exactly the four nodes plus the FIRST
+    # three edges (the domain later grew, e.g. record 109 below).
+    v1_edges = [op for op in EDGES if op.name in (
+        "solve_ground_state", "compute_forces_hf", "compute_stress_cell")]
     domain_uids = [node_id(s) for s in NODES] + \
-        [edge_id(op, node_id) for op in EDGES]
+        [edge_id(op, node_id) for op in v1_edges]
     recs = [json.loads(line) for line in lines[101:108]]
     assert [r["payload"]["uid"] for r in recs] == domain_uids
     assert [r["op"] for r in recs] == ["add_node"] * 4 + ["add_edge"] * 3
     for r in recs:
         assert r["author"] == "gbarbalinardo"
         assert r["date"] == "2026-07-08"
+
+    # Record 109: the finite-displacement FC2 route (Pattern C producer),
+    # the third post-genesis contribution.
+    assert len(lines) >= 109
+    fd_edge = next(op for op in EDGES
+                   if op.name == "compute_fc2_finite_displacement")
+    rec_109 = json.loads(lines[108])
+    assert rec_109["op"] == "add_edge"
+    assert rec_109["payload"]["uid"] == edge_id(fd_edge, node_id)
 
 
 # --------------------------------------------------------------------------

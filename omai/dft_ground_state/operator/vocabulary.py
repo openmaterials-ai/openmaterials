@@ -17,8 +17,9 @@ from omai.operator.vocabulary import register_space_symbols
 register_space_symbols({
     # The converged SCF total energy the ground-state solve produces.
     "TotalEnergy": {"E_{tot}"},
-    # Per-atom force field.
-    "Forces": {r"F^{at}"},
+    # Per-atom force field; F_j(R) is the displaced-configuration force
+    # label the finite-displacement FC2 formula differentiates.
+    "Forces": {r"F^{at}", "F_j(R)"},
     # Cell stress and the homogeneous strain it differentiates against.
     "Stress": {r"\sigma", r"\varepsilon^{str}"},
     # Structure carries its label \mathcal{S} and the atomic positions R^{at}

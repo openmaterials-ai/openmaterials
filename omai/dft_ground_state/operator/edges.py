@@ -1,8 +1,11 @@
 r"""Operators (edges) of the DFT ground-state domain.
 
-Three edges, all implicit (is_executable_in_sympy_override=False): the
-Kohn-Sham SCF solve and the two response derivatives (Hellmann-Feynman forces,
-cell stress) that a DFT engine reports alongside the energy.
+Four edges, all implicit (is_executable_in_sympy_override=False): the
+Kohn-Sham SCF solve, the two response derivatives (Hellmann-Feynman forces,
+cell stress) a DFT engine reports alongside the energy, and the
+finite-displacement route from Forces to the second-order force constants
+(Pattern C alternative producer, knitting the ground-state tier into the
+thermal-transport chain).
 
 Symbol choices are deliberately distinct from the thermal domain's globals to
 avoid collisions in the shared dimension / vocabulary registries: E_{tot} and
@@ -22,7 +25,7 @@ from omai.dft_ground_state.operator.nodes import (
     STRUCTURE,
     TOTAL_ENERGY,
 )
-from omai.thermal_transport.operator.nodes import POTENTIAL
+from omai.thermal_transport.operator.nodes import FORCE_CONSTANTS_2, POTENTIAL
 
 
 # ---------------------------------------------------------------------------
@@ -39,6 +42,13 @@ _sigma = sp.IndexedBase(r"\sigma")
 _eps_str = sp.IndexedBase(r"\varepsilon^{str}")
 _V_cell = sp.Symbol("V_{cell}", positive=True)
 _i, _alpha, _beta = sp.symbols(r"i \alpha \beta", integer=True)
+_j = sp.Symbol("j", integer=True)
+_R = sp.Symbol(r"\mathbf{R}")
+_Phi2 = sp.IndexedBase(r"\Phi^{(2)}")
+# Displacement / displaced-force labels, matching the thermal FC2 formula's
+# schematic convention (u_i(0) is a registered global constant there).
+_F_jR = sp.Symbol("F_j(R)")
+_u_i0 = sp.Symbol("u_i(0)")
 
 
 # ---------------------------------------------------------------------------
@@ -96,4 +106,31 @@ compute_stress_cell = Operator(
     ),
 )
 
-EDGES: tuple[Operator, ...] = (solve_ground_state, compute_forces_hf, compute_stress_cell)
+compute_fc2_finite_displacement = Operator(
+    name="compute_fc2_finite_displacement",
+    inputs=(FORCES, STRUCTURE),
+    outputs=(FORCE_CONSTANTS_2,),
+    schemes={"fc_method": "finite_displacement"},
+    formula=sp.Eq(_Phi2[_i, _j, _R], -sp.Derivative(_F_jR, _u_i0)),
+    is_executable_in_sympy_override=False,
+    description=(
+        "Second-order force constants from finite displacements of the "
+        "forces: Phi2_{ij}(R) = -dF_j(R)/du_i(0), evaluated by displacing "
+        "atom i and reading the force response on atom j (the "
+        "phonopy-consuming-pw.x-forces workflow the Si cross-check "
+        "exercised). The Forces input stands for the family of displaced-"
+        "configuration force evaluations, the same family-of-values "
+        "convention fit_arrhenius uses for D(T). Pattern C: an alternative "
+        "producer of ForceConstants[order=2] alongside "
+        "compute_force_constants[order=2] (the direct potential-derivative "
+        "route); downstream consumers are unaware which route fired. "
+        "Implicit (a finite-difference estimator), so not sympy-executable."
+    ),
+)
+
+EDGES: tuple[Operator, ...] = (
+    solve_ground_state,
+    compute_forces_hf,
+    compute_stress_cell,
+    compute_fc2_finite_displacement,
+)

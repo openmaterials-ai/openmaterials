@@ -679,6 +679,32 @@
   },
   "uid": "8bd0005f31f01cd5d358f7cc58b21f7c7bb12abda8f11140d1b18c2b9b2e1e70"
  },
+ "8c4e324d9fb31b0cde5f98b83effdc03f0fe77d04b9caf332ceecff6fc16ece1": {
+  "identity": {
+   "formula": "Equality(Indexed(IndexedBase(Symbol('\\\\Phi^{(2)}')), Symbol('i', integer=True), Symbol('j', integer=True), Symbol('\\\\mathbf{R}')), Mul(Integer(-1), Derivative(Symbol('F_j(R)'), Tuple(Symbol('u_i(0)'), Integer(1)))))",
+   "inputs": [
+    "9c5a2fdedab6b668ccf5f2043fb4c29a982bcde5063fd6ac8633ee2c7858ecbf",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "78d005a949ff56a526a1911f0b24e766daecad0a7f5ce9c1cc15222f2ed73551",
+   "outputs": [
+    "78d005a949ff56a526a1911f0b24e766daecad0a7f5ce9c1cc15222f2ed73551"
+   ],
+   "schemes": {
+    "fc_method": "finite_displacement"
+   }
+  },
+  "meta": {
+   "description": "Second-order force constants from finite displacements of the forces: Phi2_{ij}(R) = -dF_j(R)/du_i(0), evaluated by displacing atom i and reading the force response on atom j (the phonopy-consuming-pw.x-forces workflow the Si cross-check exercised). The Forces input stands for the family of displaced-configuration force evaluations, the same family-of-values convention fit_arrhenius uses for D(T). Pattern C: an alternative producer of ForceConstants[order=2] alongside compute_force_constants[order=2] (the direct potential-derivative route); downstream consumers are unaware which route fired. Implicit (a finite-difference estimator), so not sympy-executable.",
+   "formula_latex": "{\\Phi^{(2)}}_{i,j,\\mathbf{R}} = - \\frac{d}{d u_{i(0)}} F_{j(R)}",
+   "formula_srepr": "Equality(Indexed(IndexedBase(Symbol('\\\\Phi^{(2)}')), Symbol('i', integer=True), Symbol('j', integer=True), Symbol('\\\\mathbf{R}')), Mul(Integer(-1), Derivative(Symbol('F_j(R)'), Tuple(Symbol('u_i(0)'), Integer(1)))))",
+   "name": "compute_fc2_finite_displacement",
+   "schemes": {
+    "fc_method": "finite_displacement"
+   }
+  },
+  "uid": "8c4e324d9fb31b0cde5f98b83effdc03f0fe77d04b9caf332ceecff6fc16ece1"
+ },
  "8e585d905e8a35061ccdc51d553ffce2940699c2159a975c75aeff9abba876f4": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('Z^*')), Symbol('i', integer=True), Symbol('\\\\gamma', integer=True), Symbol('\\\\alpha', integer=True)), Symbol('Z^*_{provided}'))",
