@@ -235,18 +235,21 @@
           <div>
             <div class="codepanel">
               <div class="tab"><span class="dot"></span><span class="fn">instance.json</span></div>
-<pre class="code"><span class="c">// docs/data/instances/si-thermalconductivity-kaldo.json</span>
+<pre class="code"><span class="c">// docs/data/instances/si-thermalconductivity-bte-solver-rta-kaldo.json</span>
+<span class="c">// a real committed instance, verbatim. The variable names a node on the map;</span>
+<span class="c">// the material is not part of the map's structure: it enters here, on the value,</span>
+<span class="c">// as the point where the quantity was evaluated. Conditions carry the rest.</span>
 {
-  <span class="k">"variable"</span>: <span class="s">"ThermalConductivity"</span>,
+  <span class="k">"variable"</span>: <span class="s">"ThermalConductivity[bte_solver=rta]"</span>,
   <span class="k">"material"</span>: <span class="s">"Si"</span>,
-  <span class="k">"conditions"</span>: { <span class="k">"temperature_K"</span>: <span class="n">300</span>, <span class="k">"solver"</span>: <span class="s">"rta"</span> },
+  <span class="k">"conditions"</span>: { <span class="k">"T"</span>: <span class="n">300</span>, <span class="k">"mesh"</span>: <span class="s">"8x8x8"</span>, <span class="k">"potential"</span>: <span class="s">"Si.tersoff"</span> },
   <span class="k">"value"</span>: <span class="n">19.46</span>,
-  <span class="k">"units"</span>: <span class="s">"W/m/K"</span>,
+  <span class="k">"units"</span>: <span class="s">"W/(m K)"</span>,
   <span class="k">"uncertainty"</span>: <span class="k">null</span>,
   <span class="k">"source"</span>: {
     <span class="k">"kind"</span>: <span class="s">"simulation"</span>,
-    <span class="k">"ref"</span>: <span class="s">"kaldo-si-tersoff-888"</span>,
-    <span class="k">"detail"</span>: <span class="s">"RTA, 8x8x8 mesh, Tersoff potential"</span>
+    <span class="k">"ref"</span>: <span class="s">"kaldo"</span>,
+    <span class="k">"detail"</span>: <span class="s">"RTA; Tersoff; 8x8x8 mesh (cross-code meaningful, absolute under-converged)"</span>
   }
 }</pre>
             </div>
