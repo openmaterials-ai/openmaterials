@@ -64,7 +64,7 @@ _PIPELINES = [
     {
         "id": "phonopy",
         "label": "phonopy",
-        "color": "#0891B2",            # cyan-teal — adjacent to phono3py
+        "color": "#0891B2",            # cyan-teal, adjacent to phono3py
         "adapters": ["phonopy"],
         "is_operator": False,
     },
@@ -79,21 +79,21 @@ _PIPELINES = [
     {
         "id": "ase",
         "label": "ase",
-        "color": "#F59E0B",            # amber — protocol-level Potential anchor
+        "color": "#F59E0B",            # amber, protocol-level Potential anchor
         "adapters": ["ase"],
         "is_operator": False,
     },
     {
         "id": "lammps",
         "label": "lammps",
-        "color": "#EA580C",            # orange — adjacent to ase (LAMMPS-via-ASE shares the row)
+        "color": "#EA580C",            # orange, adjacent to ase (LAMMPS-via-ASE shares the row)
         "adapters": ["lammps"],
         "is_operator": False,
     },
     {
         "id": "gpumd",
         "label": "gpumd",
-        "color": "#DB2777",            # pink/magenta — standalone CUDA-MD code
+        "color": "#DB2777",            # pink/magenta, standalone CUDA-MD code
         "adapters": ["gpumd"],
         "is_operator": False,
     },
@@ -105,7 +105,7 @@ _PIPELINES = [
 # ---------------------------------------------------------------------------
 
 
-SYMBOLIC_COL_WIDTH = 620              # primary lane — extra-wide
+SYMBOLIC_COL_WIDTH = 620              # primary lane, extra-wide
 MAT_COL_WIDTH = 720                   # plenty of room for long API names + arrow spread
 COLUMN_GAP = 44
 LEFT_PAD = 36
@@ -272,7 +272,7 @@ def _compute_layout(layers: dict[str, int]) -> dict:
 
     # Leaves: states that no operation consumes as input (i.e. final
     # outputs of the workflow). For these, we hide the node entirely in
-    # any column that has no adapter spec — the code genuinely doesn't
+    # any column that has no adapter spec, the code genuinely doesn't
     # produce this output. Intermediate states stay dashed when unspecced.
     used_as_input: set[str] = set()
     for op in EDGES:
@@ -320,7 +320,7 @@ def _pipeline_label(pipeline: dict, state: Space,
         if spec.code_api:
             return next(iter(spec.code_api.values()))
         return adapter
-    return ""   # not represented — empty
+    return ""   # not represented, empty
 
 
 def _pipeline_secondary_label(pipeline: dict, state: Space,
@@ -370,7 +370,7 @@ def _node_id(state: Space) -> str:
 
 
 def _is_input_state(state: Space, layers: dict[str, int]) -> bool:
-    """An 'input' state is a layer-0 source (Potential, Temperature) —
+    """An 'input' state is a layer-0 source (Potential, Temperature) ,
     the DAG's external inputs."""
     return layers.get(state.name, 0) == 0
 
@@ -378,7 +378,7 @@ def _is_input_state(state: Space, layers: dict[str, int]) -> bool:
 def _node_attach_points(state: Space, c: int, layout: dict) -> tuple[float, float, float, float]:
     """Return (top_x, top_y, bot_x, bot_y) for arrows attaching to the
     state's node in column c. Same vertical span for circles and
-    squares — they share the same radius/half-side."""
+    squares, they share the same radius/half-side."""
     cl = layout["column_left"][c]
     y = layout["state_y"][state.name]
     p = _PIPELINES[c]
@@ -395,7 +395,7 @@ def _pipeline_op_covered(pipeline: dict, op_name: str,
                          op_specs: dict[str, dict[str, OperatorRepresentationSpec]]) -> bool:
     """Whether any adapter in this pipeline declares an OperatorRepresentationSpec
     for `op_name`. The operator (no-adapter) column always counts as covered
-    — the operator layer is the source of the operation declaration."""
+   , the operator layer is the source of the operation declaration."""
     if not pipeline["adapters"]:
         return True
     return any(op_name in op_specs.get(a, {}) for a in pipeline["adapters"])
@@ -499,9 +499,9 @@ def _build_svg(
 
     # ---------- edges ----------
     # Two visual classes:
-    #   * Active edge — both endpoints represented via an adapter spec
+    #   * Active edge, both endpoints represented via an adapter spec
     #     in this pipeline. Solid, full opacity.
-    #   * Implicit edge — at least one endpoint lives inside the code but
+    #   * Implicit edge, at least one endpoint lives inside the code but
     #     is not exposed as an adapter spec (e.g., Temperature parameter
     #     in kaldo, kaldo's internal DynamicalMatrix). The dependency
     #     is real; the SpaceRepresentationSpec just hasn't been written yet.
@@ -514,7 +514,7 @@ def _build_svg(
             for inp in op.inputs:
                 for out in op.outputs:
                     # Skip the edge if either endpoint is a DAG leaf
-                    # that this pipeline does not cover — the leaf node
+                    # that this pipeline does not cover, the leaf node
                     # itself is hidden in that column, so an arrow into
                     # nothing makes no sense.
                     if (out.name in leaf_states
@@ -547,7 +547,7 @@ def _build_svg(
                         )
                     elif states_active and not op_covered:
                         # Data flow is declared (both states covered) but
-                        # the operation lacks an adapter spec — algorithmic
+                        # the operation lacks an adapter spec, algorithmic
                         # conventions on this edge aren't recorded yet.
                         parts.append(
                             f'<path d="{d}" stroke="{p["color"]}" stroke-width="1.5" '
@@ -574,7 +574,7 @@ def _build_svg(
             covered = _pipeline_covers(p, state.name, state_specs)
             # Leaf-hiding rule: if this state is a final output (DAG leaf)
             # and the pipeline has no adapter spec for it, the code
-            # genuinely doesn't produce it — skip the node entirely.
+            # genuinely doesn't produce it, skip the node entirely.
             # Intermediate states (non-leaves) still render as dashed
             # when unspecced, since the code uses them internally.
             if state.name in leaf_states and not covered:
@@ -714,7 +714,7 @@ def _build_svg(
                     )
                     label_text_x = label_x + tag_w + 6
 
-                label_text = primary if primary else "—"
+                label_text = primary if primary else "·"  # middle dot (no em dash anywhere)
                 label_dy = -3 if secondary else 4.5
                 font_family = (
                     "ui-monospace, 'SF Mono', Monaco, Consolas, monospace"
@@ -862,23 +862,26 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
 <meta property="og:description" content="The thermal-transport DAG across codes, side by side over the shared operator layer.">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="assets/vendor/inter/inter.css">
+<link rel="stylesheet" href="assets/vendor/source-serif-4/source-serif-4.css">
+<link rel="stylesheet" href="assets/vendor/jetbrains-mono/jetbrains-mono.css">
 <link rel="stylesheet" href="assets/vendor/katex/dist/katex.min.css">
 <style>
   :root {{
-    --bg: #fbfcfe;
+    --bg: #fbfaf8;
     --surface: #FFFFFF;
-    --border: #e6eaf2;
+    --border: #e8e6e1;
     --border-strong: #cbd5e1;
-    --text: #0f172a;
-    --text-secondary: #334155;
-    --text-muted: #64748b;
+    --text: #16181d;
+    --text-secondary: #3d4149;
+    --text-muted: #6b7078;
     --accent: #4f46e5;
     --accent-soft: #eef2ff;
     --observable: #4f46e5;
     --hidden: #94A3B8;
-    --code-bg: #f1f4fb;
-    --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
-    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
+    --code-bg: #f1efe9;
+    --font-serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --shadow-sm: 0 1px 0 rgba(22,24,29,.04);
   }}
   * {{ box-sizing: border-box; }}
   html, body {{ margin: 0; padding: 0; }}
@@ -899,19 +902,17 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
     background: rgba(255,255,255,.85); backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
   }}
-  .om-header .om-brand {{ display: inline-flex; align-items: center; gap: 9px; font-weight: 800; letter-spacing: -.02em; color: var(--text); text-decoration: none; }}
-  .om-header .om-brand b {{ color: var(--accent); }}
-  .om-header .om-brand .mark {{ width: 23px; height: 23px; display: block; border-radius: 7px; }}
-  .om-header nav {{ margin-left: auto; display: flex; align-items: center; gap: 16px; }}
-  .om-header nav a {{ color: var(--text-secondary); font-size: .86rem; font-weight: 600; text-decoration: none; padding: 5px 2px; border-bottom: 2px solid transparent; }}
-  .om-header nav a:hover {{ color: var(--accent); }}
-  .om-header nav a.active {{ color: var(--accent); border-bottom-color: var(--accent); }}
-  .om-header nav a.ext::after {{ content: "\\2197"; font-size: .7em; vertical-align: super; opacity: .55; }}
+  .om-header .om-brand {{ display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-serif); font-weight: 700; font-size: 1.06rem; letter-spacing: -.01em; color: var(--text); text-decoration: none; }}
+  .om-header .om-brand .om-dot {{ width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; margin-bottom: .28em; }}
+  .om-header nav {{ margin-left: auto; display: flex; align-items: center; gap: 20px; }}
+  .om-header nav a {{ font-family: 'Inter', sans-serif; color: var(--text-secondary); font-size: .86rem; font-weight: 500; text-decoration: none; padding: 6px 0; border-bottom: 2px solid transparent; }}
+  .om-header nav a:hover {{ color: var(--text); }}
+  .om-header nav a.active {{ color: var(--text); border-bottom-color: var(--accent); }}
   @media (max-width: 720px) {{ .om-header nav {{ display: none; }} }}
   header.pagehead {{
-    background: var(--surface);
+    background: var(--bg);
     border-bottom: 1px solid var(--border);
-    padding: 1rem 1.5rem 0.75rem;
+    padding: 1.1rem 1.5rem 0.85rem;
   }}
   .legend {{
     display: flex;
@@ -929,9 +930,10 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
     gap: 0.75rem;
   }}
   .legend-group .label {{
+    font-family: 'Inter', sans-serif;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.14em;
     font-weight: 600;
     font-size: 0.66rem;
     white-space: nowrap;
@@ -954,11 +956,12 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
   }}
   .extension-rules > summary {{
     cursor: pointer;
+    font-family: 'Inter', sans-serif;
     font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
-    letter-spacing: 0.06em;
-    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    font-size: 0.68rem;
     padding: 0.05rem 0;
   }}
   .extension-rules[open] > summary {{
@@ -980,12 +983,16 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
   }}
   h1 {{
     margin: 0;
-    font-size: 1.05rem;
-    font-weight: 600;
+    font-family: var(--font-serif);
+    font-size: 1.35rem;
+    font-weight: 700;
     letter-spacing: -0.01em;
+    color: var(--text);
   }}
   .stats {{
     color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-feature-settings: "zero" 1;
     font-size: 0.8rem;
     font-variant-numeric: tabular-nums;
   }}
@@ -1070,8 +1077,11 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
   }}
   #details h2 {{
     margin: 0 0 0.4rem;
-    font-size: 1rem;
-    font-weight: 600;
+    font-family: var(--font-serif);
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    color: var(--text);
   }}
   #details h2 .kind {{
     display: inline-block;
@@ -1099,9 +1109,10 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
   }}
   #details .section h3 {{
     margin: 0 0 0.45rem;
-    font-size: 0.68rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.66rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.14em;
     color: var(--text-muted);
     font-weight: 600;
   }}
@@ -1200,15 +1211,14 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
 
 <div class="om-header">
   <a class="om-brand" href="index.html" aria-label="openmaterials home">
-    <svg class="mark" width="23" height="23" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><g stroke="#fff" stroke-width="3.4" stroke-linecap="round" fill="none" opacity=".92"><line x1="19" y1="20" x2="41" y2="32"/><line x1="41" y1="32" x2="19" y2="45"/></g><g fill="#fff"><circle cx="19" cy="20" r="6.2"/><circle cx="41" cy="32" r="6.2"/><circle cx="19" cy="45" r="6.2"/></g></svg>
-    <span>openmaterials<b>.ai</b></span>
+    <span>openmaterials</span><span class="om-dot" aria-hidden="true"></span>
   </a>
   <nav aria-label="Primary">
     <a href="map/">Map</a>
     <a href="pipeline.html" class="active" aria-current="page">Pipeline</a>
     <a href="learn/">Learn</a>
     <a href="openmaterials.pdf">Document</a>
-    <a href="https://github.com/gbarbalinardo/openmaterials" class="ext" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/gbarbalinardo/openmaterials" target="_blank" rel="noopener">Source</a>
   </nav>
 </div>
 
@@ -1253,7 +1263,7 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
       </span>
       <span class="legend-item">
         <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5" fill="#FFFFFF" stroke="#DC2626" stroke-width="1.2" stroke-dasharray="3 2" opacity="0.7"/></svg>
-        Intermediate (no spec — needed by downstream, not exposed)
+        Intermediate (no spec: needed by downstream, not exposed)
       </span>
       <span class="legend-item" style="opacity:0.7">
         <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="3" fill="#9CA3AF" opacity="0.4"/></svg>
@@ -1294,7 +1304,7 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
     </div>
   </div>
   <details class="extension-rules">
-    <summary>DAG extension rules — when to add a node vs. a parameter</summary>
+    <summary>DAG extension rules: when to add a node vs. a parameter</summary>
     <div class="extension-rules-body">
       <p style="margin:0 0 0.6em 0">
         Edges carry the sympy formula; states are typed places. Different
@@ -1302,19 +1312,19 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
         different states. When adding a new variant, pick exactly one pattern:
       </p>
       <ol style="margin:0 0 0.6em 1.2em; padding:0;">
-        <li><strong>Pattern A — label on the space.</strong> Only
+        <li><strong>Pattern A, label on the space.</strong> Only
             when the variant changes the gauge type (ObservableSpace vs
             HiddenSpace) AND the labelled space is terminal-ish.
             Example: <code>ThermalConductivity[bte_solver=rta|direct_inverse]</code>,
             <code>[transport_model=lbte|wigner|qhgk]</code>.</li>
-        <li><strong>Pattern B — sibling states, converging edge.</strong>
+        <li><strong>Pattern B, sibling states, converging edge.</strong>
             Variants with different input chains that combine before a
             downstream consumer uses them. Example:
             <code>AnharmonicLinewidth</code> /
             <code>IsotopicLinewidth</code> /
             <code>BoundaryLinewidth</code> →
             <code>sum_linewidths</code> → <code>TotalLinewidth</code>.</li>
-        <li><strong>Pattern C — shared output, alternative producing
+        <li><strong>Pattern C, shared output, alternative producing
             edges.</strong> Same output type and gauge classification,
             different production formulas. A small upstream intermediate
             keeps it acyclic. Example:
@@ -1455,7 +1465,7 @@ function renderEdge(name) {{
   if (adapters.length) html += `<div class="coverage-row">${{adapters.map(adapterChip).join('')}}</div>`;
   html += `<div class="section"><h3>Inputs</h3>${{d.inputs.length ?
             '<ul>' + d.inputs.map(s => `<li><code>${{escapeHtml(s)}}</code></li>`).join('') + '</ul>' :
-            '<div class="empty">(no inputs — nullary source)</div>'}}</div>`;
+            '<div class="empty">(no inputs: nullary source)</div>'}}</div>`;
   html += `<div class="section"><h3>Outputs</h3><ul>` +
           d.outputs.map(s => `<li><code>${{escapeHtml(s)}}</code></li>`).join('') + `</ul></div>`;
   if (d.parameters.length) {{

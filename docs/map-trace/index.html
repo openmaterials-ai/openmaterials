@@ -14,9 +14,15 @@
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../assets/vendor/katex/dist/katex.min.css">
 <link rel="stylesheet" href="../assets/vendor/inter/inter.css">
+<link rel="stylesheet" href="../assets/vendor/source-serif-4/source-serif-4.css">
+<link rel="stylesheet" href="../assets/vendor/jetbrains-mono/jetbrains-mono.css">
 <style>
+  /* trace keeps its dark lab canvas; only the type voice is elevated:
+     serif for the brand + panel titles, JetBrains Mono for ids. */
   :root{
     --bg:#080b13; --bg2:#0d1220; --grid:#121a2c;
+    --font-serif:'Source Serif 4',Georgia,'Times New Roman',serif;
+    --font-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
     --rest:#243049;        /* node at rest */
     --restink:#3c4a66;     /* label at rest */
     --up:#f5a524;          /* upstream / how it's built (anharmonic-warm) */
@@ -32,8 +38,8 @@
   #err{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;font:13px/1.4 monospace;padding:8px 12px;z-index:40;display:none;white-space:pre-wrap;}
   .top{position:fixed;top:0;left:0;right:0;height:58px;display:flex;align-items:center;gap:14px;padding:0 20px;
     background:rgba(8,11,19,.72);backdrop-filter:blur(14px);border-bottom:1px solid #161e30;z-index:10;}
-  .top .brand{display:inline-flex;align-items:center;gap:9px;font-weight:800;letter-spacing:-.02em;color:#fff;text-decoration:none;} .top .brand b{color:var(--down);}
-  .top .mark{width:20px;height:20px;flex:none;display:block;border-radius:6px;box-shadow:0 0 16px rgba(124,147,255,.4);}
+  .top .brand{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-serif);font-weight:700;font-size:1.06rem;letter-spacing:-.01em;color:#fff;text-decoration:none;}
+  .top .brand .om-dot{width:6px;height:6px;border-radius:50%;background:var(--down);flex:none;display:inline-block;margin-bottom:.28em;box-shadow:0 0 10px rgba(124,147,255,.55);}
   .top .sub{color:var(--faint);font-size:.8rem;font-weight:500;}
   .top .search{margin-left:12px;flex:1;max-width:320px;position:relative;display:flex;align-items:center;}
   .top .search .ic{position:absolute;left:11px;color:#46536e;pointer-events:none;}
@@ -85,8 +91,8 @@
   .panel .sym{font-size:1.7rem;color:#fff;}
   .panel .badge{display:inline-block;font-size:.56rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#06121f;border-radius:999px;padding:3px 9px;margin-left:10px;vertical-align:middle;}
   .panel .badge.observable{background:var(--dest);} .panel .badge.hidden{background:#5b6b86;color:#fff;} .panel .badge.parameter{background:#8694ad;}
-  .panel .name{color:var(--muted);font-size:.78rem;margin:.5em 0 .2em;word-break:break-word;}
-  .lab{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:#6b7a96;margin:18px 0 8px;font-weight:800;display:flex;align-items:center;gap:8px;}
+  .panel .name{font-family:var(--font-mono);font-feature-settings:"zero" 1;color:var(--muted);font-size:.74rem;margin:.5em 0 .2em;word-break:break-word;}
+  .lab{font-family:'Inter',sans-serif;font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;color:#8694ad;margin:18px 0 8px;font-weight:600;display:flex;align-items:center;gap:8px;}
   .lab .dot{width:8px;height:8px;border-radius:50%;}
   .lab .dot.u{background:var(--up);} .lab .dot.d{background:var(--down);}
   .step{display:flex;gap:10px;padding:9px 0;border-top:1px solid #18223a;}
@@ -118,8 +124,7 @@
 <div id="err"></div>
 <div class="top">
   <a class="brand" href="../index.html" aria-label="openmaterials home">
-    <svg class="mark" width="20" height="20" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><g stroke="#fff" stroke-width="3.4" stroke-linecap="round" fill="none" opacity=".92"><line x1="19" y1="20" x2="41" y2="32"/><line x1="41" y1="32" x2="19" y2="45"/></g><g fill="#fff"><circle cx="19" cy="20" r="6.2"/><circle cx="41" cy="32" r="6.2"/><circle cx="19" cy="45" r="6.2"/></g></svg>
-    <span>openmaterials<b>.ai</b></span>
+    <span>openmaterials</span><span class="om-dot" aria-hidden="true"></span>
   </a>
   <span class="sub">derivation tracer</span>
   <span class="search"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input id="q" placeholder="Find a quantity…" aria-label="Find a quantity to trace"></span>
@@ -230,9 +235,9 @@ function derivationPanel(id, anc, desc){
   h+='<div><span class="sym">'+tex(node.symbol)+'</span><span class="badge '+node.type+'">'+node.type+'</span></div><div class="name">'+esc(node.id)+'</div>';
   h+='<div class="summary">'+(anc.size?('Built from <b>'+anc.size+'</b> upstream quantit'+(anc.size>1?'ies':'y')):'A <b>source</b> quantity')+'. '+(desc.size?('Flows into <b>'+desc.size+'</b> downstream'+(dests.length?(', reaching '+dests.map(d=>tex(nodeById[d].symbol)).join(' ')):'')):'A terminal observable')+'.</div>';
   h+='<div class="lab"><span class="dot u"></span>how it is built</div>';
-  h+= up.length? up.map((e,i)=>stepHtml(e[0],e[1],i+1,'up')).join('') : '<div class="empty">nothing upstream — this is a source.</div>';
+  h+= up.length? up.map((e,i)=>stepHtml(e[0],e[1],i+1,'up')).join('') : '<div class="empty">nothing upstream: this is a source.</div>';
   h+='<div class="lab"><span class="dot d"></span>where it flows</div>';
-  h+= dn.length? dn.map((e,i)=>stepHtml(e[0],e[1],i+1,'down')).join('') : '<div class="empty">nothing downstream — this is a terminal observable.</div>';
+  h+= dn.length? dn.map((e,i)=>stepHtml(e[0],e[1],i+1,'down')).join('') : '<div class="empty">nothing downstream: this is a terminal observable.</div>';
   const p=document.getElementById('panel'); p.innerHTML=h; p.style.display='block';
 }
 

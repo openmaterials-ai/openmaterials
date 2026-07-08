@@ -130,7 +130,7 @@ GPUMD_TRAJECTORY = SpaceRepresentationSpec(
 GPUMD_HEAT_CURRENT = SpaceRepresentationSpec(
     space=HEAT_CURRENT,
     representation_name="gpumd",
-    code_api={"J": "run.in: compute_hac <step1> <step2> <Nc>  (writes hac.out — J(t) implicit)"},
+    code_api={"J": "run.in: compute_hac <step1> <step2> <Nc>  (writes hac.out, J(t) implicit)"},
     notes=(
         "GPUMD computes the heat current on every MD step internally via "
         "the virial decomposition. The instantaneous J(t) is not "

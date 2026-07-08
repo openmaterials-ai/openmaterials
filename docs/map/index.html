@@ -14,31 +14,38 @@
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../assets/vendor/katex/dist/katex.min.css">
 <link rel="stylesheet" href="../assets/vendor/inter/inter.css">
+<link rel="stylesheet" href="../assets/vendor/source-serif-4/source-serif-4.css">
+<link rel="stylesheet" href="../assets/vendor/jetbrains-mono/jetbrains-mono.css">
 <style>
+  /* The map keeps its cooler canvas (dotted grid + band tints are tuned to it);
+     only the type voice is elevated: serif for tier/panel headings, JetBrains
+     Mono for ids/uids, the overline treatment for panel section labels. */
   :root{--ink:#0f172a;--ink2:#334155;--muted:#64748b;--faint:#94a3b8;--line:#e6eaf2;
         --obs:#4f46e5;--obs2:#4338ca;--hidbd:#dde4ee;--gold:#d98a14;--green:#0f9d6b;
         --band:#eef2fb;--bandln:#dbe3f2;--bandtx:#3730a3;
-        --surface:#ffffff;--accent-soft:#eef2ff;--font-mono:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+        --surface:#ffffff;--accent-soft:#eef2ff;
+        --font-serif:'Source Serif 4',Georgia,'Times New Roman',serif;
+        --font-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
         --r-1:8px;--r-2:12px;--r-3:16px;--shadow-1:0 1px 2px rgba(15,23,42,.06);--shadow-2:0 8px 30px rgba(15,23,42,.08);}
   *{box-sizing:border-box;}
   html,body{margin:0;height:100%;overflow:hidden;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;}
   #err{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;font:13px/1.4 monospace;padding:8px 12px;z-index:60;display:none;white-space:pre-wrap;}
   .top{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;gap:13px;padding:0 clamp(14px,3vw,22px);background:rgba(255,255,255,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);z-index:20;}
-  .top .brand{display:inline-flex;align-items:center;gap:9px;font-weight:800;letter-spacing:-.02em;white-space:nowrap;color:var(--ink);text-decoration:none;} .top .brand b{color:var(--obs);}
-  .top .brand .mark{width:23px;height:23px;flex:none;display:block;border-radius:7px;}
+  .top .brand{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-serif);font-weight:700;font-size:1.06rem;letter-spacing:-.01em;white-space:nowrap;color:var(--ink);text-decoration:none;}
+  .top .brand .om-dot{width:6px;height:6px;border-radius:50%;background:var(--obs);flex:none;display:inline-block;margin-bottom:.28em;}
   .top .sub{color:var(--faint);font-size:.82rem;font-weight:500;white-space:nowrap;}
   .top .search{margin-left:16px;flex:1;max-width:320px;position:relative;display:flex;align-items:center;}
   .top .search .ic{position:absolute;left:11px;color:#9aa6b8;pointer-events:none;}
-  .top .search input{width:100%;border:1px solid var(--line);border-radius:var(--r-2);padding:9px 12px 9px 34px;font-size:.9rem;font-family:inherit;color:var(--ink);outline:none;background:#f6f8fc;transition:border-color .15s,background .15s,box-shadow .15s;}
+  .top .search input{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px 9px 34px;font-size:.9rem;font-family:'Inter',sans-serif;color:var(--ink);outline:none;background:#f6f8fc;transition:border-color .15s,background .15s,box-shadow .15s;}
   .top .search input:focus{border-color:var(--obs);background:#fff;box-shadow:0 0 0 3px rgba(79,70,229,.13);}
   .top .nav{display:flex;align-items:center;gap:16px;margin-left:6px;}
-  .top .nav a{color:var(--ink2);font-size:.86rem;font-weight:600;white-space:nowrap;text-decoration:none;padding:5px 2px;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
-  .top .nav a:hover{color:var(--obs);}
-  .top .nav a.active{color:var(--obs);border-bottom-color:var(--obs);}
+  .top .nav a{font-family:'Inter',sans-serif;color:var(--ink2);font-size:.86rem;font-weight:500;white-space:nowrap;text-decoration:none;padding:6px 0;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+  .top .nav a:hover{color:var(--ink);}
+  .top .nav a.active{color:var(--ink);border-bottom-color:var(--obs);}
   .top .nav .ext::after{content:"\2197";font-size:.7em;vertical-align:super;opacity:.55;margin-left:1px;}
   .top .controls{margin-left:auto;display:flex;gap:9px;align-items:center;}
-  .top .btn{border:1px solid var(--line);background:#fff;border-radius:var(--r-2);padding:9px 15px;font-size:.85rem;font-weight:600;cursor:pointer;color:var(--ink2);transition:background .15s,border-color .15s,color .15s;white-space:nowrap;}
-  .top .btn:hover{background:#f1f4fb;border-color:#d6deea;}
+  .top .btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 15px;font:600 .85rem/1 'Inter',sans-serif;cursor:pointer;color:var(--ink2);transition:background .15s,border-color .15s,color .15s;white-space:nowrap;}
+  .top .btn:hover{background:#f1f4fb;border-color:#d6deea;color:var(--ink);}
   #cy{position:fixed;top:60px;left:0;right:0;bottom:0;
       background:radial-gradient(circle at 1px 1px,#e6ebf4 1px,transparent 0) -1px -1px/26px 26px,
                  linear-gradient(180deg,#fcfdff,#f4f7fc);}
@@ -46,8 +53,8 @@
   /* tier bands */
   .band rect{fill:var(--band);opacity:.55;}
   .band .bl{stroke:var(--bandln);stroke-width:1;stroke-dasharray:2 5;opacity:.9;}
-  .band .h{font-weight:800;fill:var(--bandtx);letter-spacing:-.01em;}
-  .band .sh{fill:#6b7796;font-weight:500;}
+  .band .h{font-family:var(--font-serif);font-weight:600;fill:var(--bandtx);letter-spacing:-.005em;}
+  .band .sh{fill:#6b7796;font-weight:500;}   /* descriptions stay Inter */
   .band .ord{fill:#a9b3ca;font-weight:800;}
   /* edges */
   .edge{fill:none;stroke:#c4cfe0;stroke-width:1.5;stroke-linecap:round;transition:opacity .15s,stroke .15s;}
@@ -80,6 +87,7 @@
   /* legend */
   .legend{position:fixed;left:18px;bottom:16px;z-index:8;display:flex;gap:12px;align-items:center;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:12px;padding:9px 14px;font-size:.78rem;color:var(--muted);box-shadow:0 4px 18px rgba(16,24,40,.06);}
   .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend .legend-title{font-family:var(--font-serif);font-weight:700;font-size:.92rem;color:var(--ink);letter-spacing:-.005em;}
   .legend .g{color:var(--ink2);font-weight:700;text-transform:uppercase;font-size:.66rem;letter-spacing:.06em;}
   .legend .sep{width:1px;height:16px;background:var(--line);}
   .sw{width:12px;height:12px;border-radius:4px;display:inline-block;}
@@ -98,10 +106,12 @@
   .panel .badge{display:inline-block;font-size:.58rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;border-radius:999px;padding:3px 9px;margin-left:10px;vertical-align:middle;}
   .panel .badge.observable{background:var(--obs);} .panel .badge.hidden{background:#94a3b8;} .panel .badge.parameter{background:#64748b;}
   .panel .tiertag{display:inline-block;font-size:.62rem;font-weight:700;color:#6b7796;background:#eef2fb;border:1px solid #dbe3f2;border-radius:999px;padding:3px 9px;margin-left:8px;vertical-align:middle;}
-  .panel .name{color:#64748b;font-size:.82rem;margin:.55em 0 .1em;word-break:break-word;}
-  .panel .uid{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.66rem;color:#a3aec0;margin-left:8px;vertical-align:middle;}
+  .panel .name{font-family:var(--font-mono);font-feature-settings:"zero" 1;color:#64748b;font-size:.78rem;margin:.55em 0 .1em;word-break:break-word;}
+  .panel .name .tiertag{font-family:var(--font-sans,'Inter',sans-serif);}   /* the tier pill stays UI type */
+  .panel .uid{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.66rem;color:#a3aec0;margin-left:8px;vertical-align:middle;}
   .legend .ver{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.7rem;color:#a3aec0;}
-  .lab{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:#a3aec0;margin:17px 0 7px;font-weight:700;}
+  /* panel section labels adopt the site overline treatment */
+  .lab{font-family:'Inter',sans-serif;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:17px 0 7px;font-weight:600;}
   .formula{background:linear-gradient(180deg,#fafbff,#f3f6fc);border:1px solid var(--line);border-radius:12px;padding:13px 12px;overflow-x:auto;}
   .formula code{font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;font-size:.82rem;color:#334155;white-space:pre-wrap;word-break:break-word;}
   .fop{font-size:.72rem;font-weight:700;color:#64748b;margin:10px 0 4px;font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;}
@@ -185,8 +195,7 @@
 <div id="err"></div>
 <div class="top">
   <a class="brand" href="../index.html" aria-label="openmaterials home">
-    <svg class="mark" width="23" height="23" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><g stroke="#fff" stroke-width="3.4" stroke-linecap="round" fill="none" opacity=".92"><line x1="19" y1="20" x2="41" y2="32"/><line x1="41" y1="32" x2="19" y2="45"/></g><g fill="#fff"><circle cx="19" cy="20" r="6.2"/><circle cx="41" cy="32" r="6.2"/><circle cx="19" cy="45" r="6.2"/></g></svg>
-    <span>openmaterials<b>.ai</b></span>
+    <span>openmaterials</span><span class="om-dot" aria-hidden="true"></span>
   </a>
   <span class="search"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input id="q" placeholder="Find a quantity" aria-label="Find a quantity on the map"></span>
   <nav class="nav" aria-label="Primary">
@@ -194,7 +203,7 @@
     <a href="../pipeline.html">Pipeline</a>
     <a href="../learn/">Learn</a>
     <a href="../openmaterials.pdf">Document</a>
-    <a href="https://github.com/gbarbalinardo/openmaterials" class="ext" target="_blank" rel="noopener">GitHub</a>
+    <a href="https://github.com/gbarbalinardo/openmaterials" target="_blank" rel="noopener">Source</a>
   </nav>
   <span class="controls">
     <button class="btn" id="depthBtn" onclick="cycleDepth()" aria-label="Toggle overview and expanded depth">Expand</button>
@@ -211,6 +220,8 @@
 </svg></div>
 <div id="measure"></div>
 <div class="legend">
+  <span class="legend-title">Map</span>
+  <span class="sep"></span>
   <span class="g">layer</span>
   <span><i class="sw" style="background:var(--obs)"></i>observable</span>
   <span><i class="sw" style="background:#fff;border:1.5px solid #cbd5e1"></i>hidden</span>
