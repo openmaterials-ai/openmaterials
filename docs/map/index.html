@@ -13,20 +13,24 @@
 <meta property="og:description" content="The whole graph in tiers: pan, zoom, and open any quantity for its formula, provenance, and attached values.">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../assets/vendor/katex/dist/katex.min.css">
-<link rel="stylesheet" href="../assets/vendor/inter/inter.css">
-<link rel="stylesheet" href="../assets/vendor/source-serif-4/source-serif-4.css">
-<link rel="stylesheet" href="../assets/vendor/jetbrains-mono/jetbrains-mono.css">
+<link rel="stylesheet" href="../assets/site.css">
 <style>
-  /* The map keeps its cooler canvas (dotted grid + band tints are tuned to it);
-     only the type voice is elevated: serif for tier/panel headings, JetBrains
-     Mono for ids/uids, the overline treatment for panel section labels. */
-  :root{--ink:#0f172a;--ink2:#334155;--muted:#64748b;--faint:#94a3b8;--line:#e6eaf2;
+  /* The map consumes the shared component library (site.css): buttons, the
+     search input, the code-rail chips, the floating panel, its section labels,
+     and the provenance kv rows are all .om-* classes now. This block keeps only
+     the map's page-specific layout (the warm-paper canvas, tier bands, the SVG
+     edge/node encoding, the tour, the fallback). The semantic node colors are
+     load-bearing and unchanged; the canvas is warmed to the site's paper. */
+  :root{--ink:#16181d;--ink2:#3d4149;--muted:#6b7078;--faint:#9aa0a8;--line:#e8e6e1;
         --obs:#4f46e5;--obs2:#4338ca;--hidbd:#dde4ee;--gold:#d98a14;--green:#0f9d6b;
-        --band:#eef2fb;--bandln:#dbe3f2;--bandtx:#3730a3;
+        --band:#f4f2ee;--bandln:#e3ded5;--bandtx:#16181d;
         --surface:#ffffff;--accent-soft:#eef2ff;
         --font-serif:'Source Serif 4',Georgia,'Times New Roman',serif;
+        --font-sans:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
         --font-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
-        --r-1:8px;--r-2:12px;--r-3:16px;--shadow-1:0 1px 2px rgba(15,23,42,.06);--shadow-2:0 8px 30px rgba(15,23,42,.08);}
+        /* the map's own layout radii (larger than the prose scale) */
+        --r-1:8px;--r-2:12px;--r-3:16px;
+        --shadow-1:0 1px 2px rgba(22,24,29,.06);--shadow-2:0 8px 30px rgba(22,24,29,.08);}
   *{box-sizing:border-box;}
   html,body{margin:0;height:100%;overflow:hidden;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;}
   #err{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;font:13px/1.4 monospace;padding:8px 12px;z-index:60;display:none;white-space:pre-wrap;}
@@ -34,31 +38,31 @@
   .top .brand{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-serif);font-weight:700;font-size:1.06rem;letter-spacing:-.01em;white-space:nowrap;color:var(--ink);text-decoration:none;}
   .top .brand .om-dot{width:6px;height:6px;border-radius:50%;background:var(--obs);flex:none;display:inline-block;margin-bottom:.28em;}
   .top .sub{color:var(--faint);font-size:.82rem;font-weight:500;white-space:nowrap;}
-  .top .search{margin-left:16px;flex:1;max-width:320px;position:relative;display:flex;align-items:center;}
-  .top .search .ic{position:absolute;left:11px;color:#9aa6b8;pointer-events:none;}
-  .top .search input{width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 12px 9px 34px;font-size:.9rem;font-family:'Inter',sans-serif;color:var(--ink);outline:none;background:#f6f8fc;transition:border-color .15s,background .15s,box-shadow .15s;}
-  .top .search input:focus{border-color:var(--obs);background:#fff;box-shadow:0 0 0 3px rgba(79,70,229,.13);}
+  /* search + controls sizing is page-specific; the field itself is .om-input,
+     the buttons are .om-btn .om-btn-sm (see markup) */
+  .top .om-search{margin-left:16px;flex:1;max-width:320px;}
   .top .nav{display:flex;align-items:center;gap:16px;margin-left:6px;}
   .top .nav a{font-family:'Inter',sans-serif;color:var(--ink2);font-size:.86rem;font-weight:500;white-space:nowrap;text-decoration:none;padding:6px 0;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
   .top .nav a:hover{color:var(--ink);}
   .top .nav a.active{color:var(--ink);border-bottom-color:var(--obs);}
   .top .nav .ext::after{content:"\2197";font-size:.7em;vertical-align:super;opacity:.55;margin-left:1px;}
   .top .controls{margin-left:auto;display:flex;gap:9px;align-items:center;}
-  .top .btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 15px;font:600 .85rem/1 'Inter',sans-serif;cursor:pointer;color:var(--ink2);transition:background .15s,border-color .15s,color .15s;white-space:nowrap;}
-  .top .btn:hover{background:#f1f4fb;border-color:#d6deea;color:var(--ink);}
+  /* warm-paper canvas: same dotted grid pitch (26px) and the same rhythm as
+     before; only the temperature changes (cool blue-white -> warm paper). */
   #cy{position:fixed;top:60px;left:0;right:0;bottom:0;
-      background:radial-gradient(circle at 1px 1px,#e6ebf4 1px,transparent 0) -1px -1px/26px 26px,
-                 linear-gradient(180deg,#fcfdff,#f4f7fc);}
+      background:radial-gradient(circle at 1px 1px,#e6e3dd 1px,transparent 0) -1px -1px/26px 26px,
+                 linear-gradient(180deg,#fdfcfa,#f6f4f0);}
   svg{width:100%;height:100%;display:block;cursor:grab;} svg.drag{cursor:grabbing;}
-  /* tier bands */
+  /* tier bands (warm paper: fill and rule warmed, headings ink, descriptions
+     muted; the band opacity/rhythm are unchanged) */
   .band rect{fill:var(--band);opacity:.55;}
   .band .bl{stroke:var(--bandln);stroke-width:1;stroke-dasharray:2 5;opacity:.9;}
   .band .h{font-family:var(--font-serif);font-weight:600;fill:var(--bandtx);letter-spacing:-.005em;}
-  .band .sh{fill:#6b7796;font-weight:500;}   /* descriptions stay Inter */
-  .band .ord{fill:#a9b3ca;font-weight:800;}
-  /* edges */
-  .edge{fill:none;stroke:#c4cfe0;stroke-width:1.5;stroke-linecap:round;transition:opacity .15s,stroke .15s;}
-  .edge.param{stroke:#cbd4e2;stroke-width:1;stroke-dasharray:3 3;opacity:.42;}
+  .band .sh{fill:var(--muted);font-weight:500;}   /* descriptions stay Inter */
+  .band .ord{fill:var(--faint);font-weight:800;}
+  /* edges: warm-gray so they sit on the paper canvas (semantic hot stays indigo) */
+  .edge{fill:none;stroke:#d6d2cb;stroke-width:1.5;stroke-linecap:round;transition:opacity .15s,stroke .15s;}
+  .edge.param{stroke:#ddd9d1;stroke-width:1;stroke-dasharray:3 3;opacity:.42;}
   .edge.hot{stroke:var(--obs);stroke-width:2.4;}
   /* value pills */
   .att-link{stroke:var(--gold);stroke-width:1.2;stroke-dasharray:2 3;fill:none;opacity:.75;stroke-linecap:round;}
@@ -91,28 +95,22 @@
   .legend .g{color:var(--ink2);font-weight:700;text-transform:uppercase;font-size:.66rem;letter-spacing:.06em;}
   .legend .sep{width:1px;height:16px;background:var(--line);}
   .sw{width:12px;height:12px;border-radius:4px;display:inline-block;}
-  /* code rail */
-  .codes{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);max-width:min(74vw,880px);display:flex;align-items:center;gap:7px;padding:8px 12px;background:rgba(255,255,255,.93);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 26px rgba(16,24,40,.12);z-index:9;overflow-x:auto;}
-  .codes .lab2{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;font-weight:800;flex:none;}
-  .codes .code{font-size:.82rem;font-weight:600;color:#334155;background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 12px;cursor:pointer;white-space:nowrap;transition:.12s;flex:none;}
-  .codes .code:hover{border-color:var(--obs);color:var(--obs);}
-  .codes .code.on{background:var(--obs);color:#fff;border-color:var(--obs);}
-  .codes .code .n{opacity:.55;font-weight:500;margin-left:5px;}
-  .codes .code.on .n{opacity:.85;}
-  /* provenance panel */
-  .panel{position:fixed;top:72px;right:18px;width:360px;max-height:calc(100vh - 92px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-3);box-shadow:0 16px 44px rgba(15,23,42,.14);padding:20px;z-index:18;display:none;}
-  .panel .x{float:right;cursor:pointer;color:#cbd5e1;font-size:1.3rem;line-height:1;transition:.12s;} .panel .x:hover{color:#64748b;}
-  .panel .sym{font-size:1.8rem;color:#312e81;}
-  .panel .badge{display:inline-block;font-size:.58rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;border-radius:999px;padding:3px 9px;margin-left:10px;vertical-align:middle;}
-  .panel .badge.observable{background:var(--obs);} .panel .badge.hidden{background:#94a3b8;} .panel .badge.parameter{background:#64748b;}
-  .panel .tiertag{display:inline-block;font-size:.62rem;font-weight:700;color:#6b7796;background:#eef2fb;border:1px solid #dbe3f2;border-radius:999px;padding:3px 9px;margin-left:8px;vertical-align:middle;}
-  .panel .name{font-family:var(--font-mono);font-feature-settings:"zero" 1;color:#64748b;font-size:.78rem;margin:.55em 0 .1em;word-break:break-word;}
-  .panel .name .tiertag{font-family:var(--font-sans,'Inter',sans-serif);}   /* the tier pill stays UI type */
-  .panel .uid{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.66rem;color:#a3aec0;margin-left:8px;vertical-align:middle;}
+  /* code rail: the container placement is page-specific; the pills are .om-chip */
+  .codes{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);max-width:min(74vw,880px);display:flex;align-items:center;gap:7px;padding:8px 12px;background:rgba(255,255,255,.93);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 26px rgba(22,24,29,.10);z-index:9;overflow-x:auto;}
+  .codes .lab2{font-size:.6rem;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);font-weight:800;flex:none;}
+  /* provenance panel: the floating surface is the shared .om-panel; only its
+     placement + content styles live here (page-specific). */
+  .om-panel{position:fixed;top:72px;right:18px;width:360px;max-height:calc(100vh - 92px);overflow:auto;z-index:18;display:none;}
+  .om-panel .x{float:right;cursor:pointer;color:#cbd5e1;font-size:1.3rem;line-height:1;transition:.12s;} .om-panel .x:hover{color:#64748b;}
+  .om-panel .sym{font-size:1.8rem;color:#312e81;}
+  .om-panel .badge{display:inline-block;font-size:.58rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;border-radius:999px;padding:3px 9px;margin-left:10px;vertical-align:middle;}
+  .om-panel .badge.observable{background:var(--obs);} .om-panel .badge.hidden{background:#94a3b8;} .om-panel .badge.parameter{background:#64748b;}
+  .om-panel .tiertag{display:inline-block;font-size:.62rem;font-weight:700;color:var(--muted);background:var(--band);border:1px solid var(--bandln);border-radius:999px;padding:3px 9px;margin-left:8px;vertical-align:middle;}
+  .om-panel .name{font-family:var(--font-mono);font-feature-settings:"zero" 1;color:#64748b;font-size:.78rem;margin:.55em 0 .1em;word-break:break-word;}
+  .om-panel .name .tiertag{font-family:var(--font-sans,'Inter',sans-serif);}   /* the tier pill stays UI type */
+  .om-panel .uid{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.66rem;color:#a3aec0;margin-left:8px;vertical-align:middle;}
   .legend .ver{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.7rem;color:#a3aec0;}
-  /* panel section labels adopt the site overline treatment */
-  .lab{font-family:'Inter',sans-serif;font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:17px 0 7px;font-weight:600;}
-  .formula{background:linear-gradient(180deg,#fafbff,#f3f6fc);border:1px solid var(--line);border-radius:12px;padding:13px 12px;overflow-x:auto;}
+  .formula{background:linear-gradient(180deg,#fbfaf8,#f5f3ef);border:1px solid var(--line);border-radius:12px;padding:13px 12px;overflow-x:auto;}
   .formula code{font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;font-size:.82rem;color:#334155;white-space:pre-wrap;word-break:break-word;}
   .fop{font-size:.72rem;font-weight:700;color:#64748b;margin:10px 0 4px;font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;}
   .fop:first-of-type{margin-top:2px;}
@@ -126,9 +124,10 @@
   .exp .row{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;font-size:.85rem;border-top:1px solid var(--line);}
   .exp .row .src{color:#475569;} .exp .row b{color:#0b1220;white-space:nowrap;}
   .recon{font-size:.79rem;color:#475569;background:#eef2ff;border:1px solid #e0e4fb;border-radius:11px;padding:9px 11px;}
-  .mapby .row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:.82rem;border-top:1px solid var(--line);}
-  .mapby .row:first-child{border-top:none;}
-  .mapby .c{font-weight:700;color:#312e81;} .mapby .d{color:#64748b;font-size:.76rem;text-align:right;max-width:190px;word-break:break-word;}
+  /* the "mapped by code" provenance list is the shared .om-kv; the code name
+     (key) keeps its indigo accent, page-specific. */
+  .om-panel .mapby .om-kv-k{font-weight:700;color:#312e81;}
+  .om-panel .mapby .om-kv-v{font-size:.76rem;max-width:190px;}
   .muted{color:#94a3b8;}
   /* edge formula tip */
   #tip{position:fixed;z-index:30;pointer-events:none;background:rgba(15,23,42,.96);color:#fff;border-radius:10px;padding:9px 11px;max-width:420px;box-shadow:0 10px 30px rgba(16,24,40,.34);display:none;}
@@ -167,12 +166,12 @@
     .top{gap:9px;padding:0 12px;}
     .top .sub{display:none;}
     .top .nav{display:none;}          /* nav collapses on small screens; brand still links home */
-    .top .search{margin-left:10px;max-width:none;}
-    .top .btn{padding:8px 11px;font-size:.8rem;}
+    .top .om-search{margin-left:10px;max-width:none;}
+    .top .om-btn{padding:8px 11px;font-size:.8rem;}
     /* the side panel becomes a scrollable bottom sheet */
-    .panel{top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;
+    .om-panel{top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;
       max-height:55vh;border-radius:var(--r-3) var(--r-3) 0 0;
-      box-shadow:0 -12px 36px rgba(15,23,42,.20);border-bottom:none;padding:18px 18px 22px;}
+      box-shadow:0 -12px 36px rgba(22,24,29,.20);border-bottom:none;padding:18px 18px 22px;}
     /* code rail: keep it a single horizontally scrollable strip above the sheet */
     .codes{left:8px;right:8px;transform:none;max-width:none;bottom:12px;}
     .legend{display:none;}            /* the legend crowds small screens; encoding is shown in-panel */
@@ -197,7 +196,7 @@
   <a class="brand" href="../index.html" aria-label="openmaterials home">
     <span>openmaterials</span><span class="om-dot" aria-hidden="true"></span>
   </a>
-  <span class="search"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input id="q" placeholder="Find a quantity" aria-label="Find a quantity on the map"></span>
+  <span class="om-search"><svg class="om-search-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input class="om-input" id="q" placeholder="Find a quantity" aria-label="Find a quantity on the map"></span>
   <nav class="nav" aria-label="Primary">
     <a href="../map/" class="active" aria-current="page">Map</a>
     <a href="../pipeline.html">Pipeline</a>
@@ -206,14 +205,14 @@
     <a href="https://github.com/gbarbalinardo/openmaterials" target="_blank" rel="noopener">Source</a>
   </nav>
   <span class="controls">
-    <button class="btn" id="depthBtn" onclick="cycleDepth()" aria-label="Toggle overview and expanded depth">Expand</button>
-    <button class="btn" id="tourBtn" onclick="startTour()" aria-label="Start the guided tour">Tour</button>
-    <button class="btn" onclick="fitAll()" aria-label="Fit the whole graph in view">Fit</button>
+    <button class="om-btn om-btn-sm" id="depthBtn" onclick="cycleDepth()" aria-label="Toggle overview and expanded depth">Expand</button>
+    <button class="om-btn om-btn-sm" id="tourBtn" onclick="startTour()" aria-label="Start the guided tour">Tour</button>
+    <button class="om-btn om-btn-sm" onclick="fitAll()" aria-label="Fit the whole graph in view">Fit</button>
   </span>
 </div>
 <div id="banner"></div>
 <div id="cy"><svg id="svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
-  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c3cdde"></path></marker>
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#cfcabf"></path></marker>
   <marker id="arrowhot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4f46e5"></path></marker></defs>
   <g id="bands"></g>
   <g id="vp"></g>
@@ -234,7 +233,7 @@
   <span id="mapver" style="display:none"><span class="g">map</span>&nbsp;<span class="ver" id="mapverhash"></span></span>
 </div>
 <div class="codes" id="codes"><span class="lab2">codes</span></div>
-<div class="panel" id="panel"></div>
+<div class="om-panel" id="panel"></div>
 <div id="tip"></div>
 <div id="tour"></div>
 <div id="fallback"></div>
@@ -454,7 +453,7 @@ function syncDepthBtn(){ const b=document.getElementById('depthBtn'); b.textCont
 function cycleDepth(){
   if(depth==='focused'){ depth=priorDepth; panelEl.style.display='none'; }
   else { depth = (depth==='overview') ? 'expanded' : 'overview'; }
-  activeCode=null; document.querySelectorAll('.codes .code.on').forEach(e=>e.classList.remove('on'));
+  activeCode=null; document.querySelectorAll('.codes .om-chip.on').forEach(e=>e.classList.remove('on'));
   applyDepth();
 }
 
@@ -470,7 +469,7 @@ function focusNode(id){
 }
 function clearSel(){
   depth=priorDepth; panelEl.style.display='none';
-  activeCode=null; document.querySelectorAll('.codes .code.on').forEach(e=>e.classList.remove('on'));
+  activeCode=null; document.querySelectorAll('.codes .om-chip.on').forEach(e=>e.classList.remove('on'));
   applyDepth();
 }
 window.navTo=function(id){ const n=nodeById[id]; if(n) selectNode(n); };
@@ -481,11 +480,11 @@ function expHtml(id){
   const num=list.filter(i=> i.source && i.source.kind==='simulation'),
         lab=list.filter(i=> i.source && i.source.kind==='measurement');
   const blk=(t,c,a)=> a.length?('<div class="exp '+c+'"><div class="h">'+t+'</div>'+a.map(i=>'<div class="row"><span class="src">'+esc((i.source&&i.source.ref)||'')+((i.source&&i.source.detail)?(' · '+esc(i.source.detail)):'')+'</span><b>'+esc(i.value)+(i.uncertainty!=null?(' ± '+esc(i.uncertainty)):'')+' '+esc(i.units||'')+'</b></div>').join('')+'</div>'):'';
-  return '<div class="lab">values attached here</div>'+blk('Simulation','num',num)+blk('Measurement','lab',lab)+'<div class="recon">'+list.length+' value'+(list.length>1?'s':'')+' on one variable, reconciled at this observable.</div>';
+  return '<div class="om-panel-label">values attached here</div>'+blk('Simulation','num',num)+blk('Measurement','lab',lab)+'<div class="recon">'+list.length+' value'+(list.length>1?'s':'')+' on one variable, reconciled at this observable.</div>';
 }
 function mappedByHtml(id){
-  const rows=Object.keys(codesData).filter(c=> codesData[c] && codesData[c][id]).sort().map(c=>{ const m=codesData[c][id]; return '<div class="row"><span class="c">'+esc(c)+'</span><span class="d">'+esc((m.api||''))+(m.unit?(' · '+esc(m.unit)):'')+'</span></div>'; });
-  return rows.length? ('<div class="lab">mapped by '+rows.length+' code'+(rows.length>1?'s':'')+'</div><div class="mapby">'+rows.join('')+'</div>') : '';
+  const rows=Object.keys(codesData).filter(c=> codesData[c] && codesData[c][id]).sort().map(c=>{ const m=codesData[c][id]; return '<div class="om-kv-row"><span class="om-kv-k">'+esc(c)+'</span><span class="om-kv-v">'+esc((m.api||''))+(m.unit?(' · '+esc(m.unit)):'')+'</span></div>'; });
+  return rows.length? ('<div class="om-panel-label">mapped by '+rows.length+' code'+(rows.length>1?'s':'')+'</div><div class="mapby om-kv">'+rows.join('')+'</div>') : '';
 }
 function selectNode(node){
   if(!node) return;
@@ -495,14 +494,14 @@ function selectNode(node){
   h+='<div><span class="sym">'+tex(node.symbol)+'</span><span class="badge '+node.type+'">'+esc(node.type)+'</span></div>';
   h+='<div class="name">'+esc(node.id)+'<span class="tiertag">'+esc(node.tier||'Other')+'</span>'+(node.uid?('<span class="uid" title="'+attr(node.uid)+'">'+esc((''+node.uid).slice(0,12))+'</span>'):'')+'</div>';
   const fl=(node.formulas&&node.formulas.length)?node.formulas:(node.formula?[{op:'',latex:node.formula}]:[]);
-  if(!fl.length){ h+='<div class="lab">formula on the producing edge</div><div class="formula"><span class="muted">source (provided value)</span></div>'; }
-  else if(fl.length===1){ h+='<div class="lab">formula on the producing edge</div><div class="formula">'+tex(fl[0].latex,true)+'</div>'; }
+  if(!fl.length){ h+='<div class="om-panel-label">formula on the producing edge</div><div class="formula"><span class="muted">source (provided value)</span></div>'; }
+  else if(fl.length===1){ h+='<div class="om-panel-label">formula on the producing edge</div><div class="formula">'+tex(fl[0].latex,true)+'</div>'; }
   else{
-    h+='<div class="lab">'+fl.length+' producing edges (alternative routes)</div>';
+    h+='<div class="om-panel-label">'+fl.length+' producing edges (alternative routes)</div>';
     fl.forEach(f=>{ h+='<div class="fop">'+esc(f.op)+'</div><div class="formula">'+tex(f.latex,true)+'</div>'; });
   }
-  if(outs.length){ h+='<div class="lab">produces &rarr;</div><div class="chips">'+outs.map(chip).join('')+'</div>'; }
-  if(ins.length){ h+='<div class="lab">&larr; from</div><div class="chips">'+ins.map(chip).join('')+'</div>'; }
+  if(outs.length){ h+='<div class="om-panel-label">produces &rarr;</div><div class="chips">'+outs.map(chip).join('')+'</div>'; }
+  if(ins.length){ h+='<div class="om-panel-label">&larr; from</div><div class="chips">'+ins.map(chip).join('')+'</div>'; }
   h+=expHtml(id);
   h+=mappedByHtml(id);
   panelEl.innerHTML=h; panelEl.style.display='block';
@@ -516,9 +515,9 @@ function selectEdge(key, op){
   vp.querySelectorAll('.edge').forEach(el=>{ const on=el.dataset.edge===key; el.classList.toggle('dim', !on); el.classList.toggle('hot', on); });
   vp.querySelectorAll('.att').forEach(el=> el.classList.add('dim'));
   syncDepthBtn();
-  let h='<span class="x" onclick="clearSel()">×</span><div class="lab">operator</div><div class="name" style="font-weight:700;color:#312e81;font-size:.95rem">'+esc(opName(op))+'</div>';
+  let h='<span class="x" onclick="clearSel()">×</span><div class="om-panel-label">operator</div><div class="name" style="font-weight:700;color:#312e81;font-size:.95rem">'+esc(opName(op))+'</div>';
   h+='<div class="sym" style="margin-top:8px">'+tex(sn.symbol)+' <span style="color:#a3aec0">&rarr;</span> '+tex(tn.symbol)+'</div>';
-  h+='<div class="lab">computes</div><div class="formula">'+(tn.formula?tex(tn.formula,true):'<span class="muted">source (provided value)</span>')+'</div>';
+  h+='<div class="om-panel-label">computes</div><div class="formula">'+(tn.formula?tex(tn.formula,true):'<span class="muted">source (provided value)</span>')+'</div>';
   panelEl.innerHTML=h; panelEl.style.display='block';
 }
 
@@ -544,10 +543,10 @@ svg.addEventListener('mousemove', e=>{ const ed=e.target.closest('.edge'); if(!e
 svg.addEventListener('mouseleave', ()=>{ tip.style.display='none'; });
 
 // ---- interaction: code rails -----------------------------------------------
-function renderCodeBar(){ const el=document.getElementById('codes'); Object.keys(codesData).sort().forEach(code=>{ const c=document.createElement('span'); c.className='code'; c.dataset.code=code; c.innerHTML=esc(code)+'<span class="n">'+Object.keys(codesData[code]||{}).length+'</span>'; c.onclick=()=>toggleCode(code); el.appendChild(c); }); }
+function renderCodeBar(){ const el=document.getElementById('codes'); Object.keys(codesData).sort().forEach(code=>{ const c=document.createElement('span'); c.className='om-chip'; c.dataset.code=code; c.innerHTML=esc(code)+'<span class="n">'+Object.keys(codesData[code]||{}).length+'</span>'; c.onclick=()=>toggleCode(code); el.appendChild(c); }); }
 function toggleCode(code){
-  if(activeCode===code){ activeCode=null; document.querySelectorAll('.codes .code').forEach(e=>e.classList.remove('on')); depth=priorDepth; applyDepth(); return; }
-  activeCode=code; document.querySelectorAll('.codes .code').forEach(e=> e.classList.toggle('on', e.dataset.code===code));
+  if(activeCode===code){ activeCode=null; document.querySelectorAll('.codes .om-chip').forEach(e=>e.classList.remove('on')); depth=priorDepth; applyDepth(); return; }
+  activeCode=code; document.querySelectorAll('.codes .om-chip').forEach(e=> e.classList.toggle('on', e.dataset.code===code));
   const set=new Set(Object.keys(codesData[code]||{}));
   priorDepth = (depth==='focused'?priorDepth:depth); depth='focused'; clearDim(); panelEl.style.display='none'; syncDepthBtn();
   vp.querySelectorAll('.node').forEach(el=> el.classList.toggle('dim', !set.has(el.dataset.id)));
