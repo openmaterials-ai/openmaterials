@@ -1,0 +1,19 @@
+&CONTROL
+  calculation = "scf"
+  prefix      = "si_sc001"
+  outdir      = "./out001"
+  pseudo_dir  = "./"
+  tprnfor     = .true.
+  tstress     = .false.
+/
+&SYSTEM
+  ibrav       = 0
+  nat         = 16
+  ntyp        = 1
+  ecutwfc     = 50.0
+  occupations = "fixed"
+/
+&ELECTRONS
+  conv_thr    = 1.0d-10
+  mixing_beta = 0.7
+/

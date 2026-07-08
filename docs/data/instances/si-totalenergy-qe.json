@@ -1,0 +1,1 @@
+{"variable": "TotalEnergy", "material": "Si", "conditions": {"pseudo": "Si_ONCV_PBE-1.2 (SG15)", "ecutwfc": "50 Ry", "k_mesh": "8x8x8 shifted", "code": "pw.x 7.5"}, "value": -15.76602463, "units": "Ry", "uncertainty": null, "source": {"kind": "simulation", "ref": "qe", "detail": "SCF total energy from the Si cross-check run (experiments/qe_si_crosscheck)"}}

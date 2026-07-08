@@ -1,0 +1,33 @@
+### Wed Jul  8 12:03:53 AM UTC 2026 : pw.x SCF
+CMD: mpirun -np 4 /home/giuseppe/miniconda3/envs/qe/bin/pw.x -in si.scf.in > si.scf.out
+pw.x exit code: 1
+### Wed Jul  8 12:08:35 AM UTC 2026 : pw.x SCF (rerun with OMP_NUM_THREADS=1, OPENBLAS_NUM_THREADS=1)
+CMD: mpirun -np 4 pw.x -in si.scf.in > si.scf.out
+pw.x exit code: 127
+### Wed Jul  8 12:09:23 AM UTC 2026 : pw.x SCF (env mpirun 5.0.10, OMP=1, np=4)
+CMD: $QEBIN/mpirun -np 4 $QEBIN/pw.x -in si.scf.in > si.scf.out
+pw.x exit code: 0
+### Wed Jul  8 12:10:09 AM UTC 2026 : ph.x DFPT 2x2x2 q-grid (env mpirun, OMP=1, np=4)
+CMD: $QEBIN/mpirun -np 4 $QEBIN/ph.x -in si.ph.in > si.ph.out
+### Wed Jul  8 12:12:29 AM UTC 2026 : FD displacement SCF supercell-001 (16 atoms, 4x4x4 k)
+CMD (in fd/): mpirun -np 4 pw.x -in si.sc001.scf.in > si.sc001.scf.out
+FD-SCF exit: 1
+ph.x exit code: 0
+### Wed Jul  8 12:19:59 AM UTC 2026 : q2r.x
+CMD: q2r.x -in si.q2r.in > si.q2r.out
+q2r exit: 0
+### Wed Jul  8 12:20:01 AM UTC 2026 : matdyn.x
+CMD: matdyn.x -in si.matdyn.in > si.matdyn.out
+matdyn exit: 0
+### Wed Jul  8 12:25:51 AM UTC 2026 : phonopy FORCE_SETS
+CMD (fd/): phonopy --qe -f si.sc001.scf.out
+### Wed Jul  8 12:26:27 AM UTC 2026 : phonopy FD frequencies at Gamma/X/L
+CMD (fd/): python phonopy_freqs.py
+### Wed Jul  8 12:31:51 AM UTC 2026 : FD displacement SCF rerun (canonical card order) -> exit 0, E=-126.12813996 Ry, 11 iters
+CMD (fd/): mpirun -np 4 pw.x -in si.sc001.scf.in > si.sc001.scf.out   [first attempt failed: card-order/columns; rerun OK]
+### Wed Jul  8 12:31:51 AM UTC 2026 : phonopy FD frequencies, CORRECTED unit factor
+NOTE: phonopy default factor is VaspToTHz=15.633 (eV/A^2); QE FC are Ry/bohr^2 so PwscfToTHz=108.97077 MUST be used.
+      With 15.633 the Gamma optical came out 73.6 cm^-1 (factor sqrt(108.97/15.633)=2.64 low -> freq 6.97x low); with 108.97 it is 513.23 cm^-1.
+CMD (scratch/): python final_compare.py   [check A and check B delta tables]
+### Wed Jul  8 12:31:51 AM UTC 2026 : RESULTS.md written. Check A max|d|=0.0135 cm^-1 (<0.1 PASS). Check B max|d|=2.094 cm^-1 (L-TA; FD route thr 2.0).
+### NOTHING COMMITTED. scratch/ is gitignored.

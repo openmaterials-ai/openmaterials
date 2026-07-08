@@ -281,3 +281,41 @@ def test_dft_contribution_is_records_102_to_108_after_the_symbol_edit():
     for r in recs:
         assert r["author"] == "gbarbalinardo"
         assert r["date"] == "2026-07-08"
+
+
+# --------------------------------------------------------------------------
+# Task 5: evidence: the first QE instances from the Si cross-check.
+# --------------------------------------------------------------------------
+
+def test_instances_bundle_11_records_all_uid_pinned():
+    from omai.map_data import build_instances
+
+    insts = build_instances()
+    assert len(insts) == 11
+    for it in insts:
+        assert it.get("node_uid"), f"instance for {it['variable']} lacks node_uid"
+
+
+def test_qe_si_instances_exist_and_pin_the_live_node_uids():
+    from omai.map_data import build_instances
+    from omai.dft_ground_state.operator.nodes import TOTAL_ENERGY
+    from omai.thermal_transport.operator.nodes import FREQUENCY_STATE
+
+    insts = build_instances()
+    qe_si = [it for it in insts
+             if it["material"] == "Si" and it["source"]["ref"] == "qe"]
+    by_var = {it["variable"]: it for it in qe_si}
+    assert set(by_var) == {"TotalEnergy", "Frequency"}
+
+    e = by_var["TotalEnergy"]
+    assert e["value"] == -15.76602463
+    assert e["units"] == "Ry"
+    assert e["source"]["kind"] == "simulation"
+    assert e["conditions"]["ecutwfc"] == "50 Ry"
+    assert e["node_uid"] == node_id(TOTAL_ENERGY)
+
+    f = by_var["Frequency"]
+    assert f["value"] == 15.398
+    assert f["source"]["kind"] == "simulation"
+    assert f["conditions"]["q"] == "Gamma"
+    assert f["node_uid"] == node_id(FREQUENCY_STATE)

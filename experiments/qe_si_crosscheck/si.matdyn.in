@@ -1,0 +1,10 @@
+&INPUT
+  flfrc = "si.fc"
+  asr   = "simple"
+  flfrq = "si.freq"
+  q_in_cryst_coord = .false.
+/
+3
+0.0 0.0 0.0
+1.0 0.0 0.0
+0.5 0.5 0.5
