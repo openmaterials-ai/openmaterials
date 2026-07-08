@@ -2533,10 +2533,13 @@ the frozen genesis, the source index) is built (Part~\ref{part:kernel}). The
 order from here:
 
 \begin{enumerate}[leftmargin=2em, itemsep=0.2em]
-  \item \textbf{P4}: run the validation gates on every push, and build the sync
-        tool that proposes change records from the operator layer for review.
+  \item \textbf{P4 (built)}: the six contribution gates run behind
+        \texttt{Store.propose}, and \texttt{python -m omai.sync} proposes
+        change records from the operator layer for review
+        (Part~\ref{part:kernel}).
   \item \textbf{P5}: wire the site to render from the store's materialized view
-        (\texttt{docs/data/graph.json} gains its \texttt{id} field).
+        (\texttt{docs/data/graph.json} already carries the \texttt{uid} field;
+        the map page displays it).
   \item \textbf{The Quantum ESPRESSO DFT ground-state domain}, the first
         contribution pushed through the store and the worked example of a full
         index entry.
