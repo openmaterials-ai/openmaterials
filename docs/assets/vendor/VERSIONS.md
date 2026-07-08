@@ -17,6 +17,8 @@ Google Fonts at build time.
 | @stablelib/base64 (SDK dep) | 1.0.1 | `anthropic/stablelib-base64.mjs` | `cdn.jsdelivr.net/npm/@stablelib/base64@1.0.1/+esm` |
 | fast-sha256 (SDK dep) | 1.3.0 | `anthropic/fast-sha256.mjs` | `cdn.jsdelivr.net/npm/fast-sha256@1.3.0/+esm` |
 | Inter | v20 (Google Fonts) | `inter/inter.css`, `inter/inter-{400,500,600,700,800}-{latin,latin-ext}.woff2` (10) | Google Fonts `css2?family=Inter:wght@400;500;600;700;800` |
+| Source Serif 4 | v14 (Google Fonts) | `source-serif-4/source-serif-4.css`, `source-serif-4-{600,700}-latin.woff2`, `source-serif-4-400italic-latin.woff2` (3) | Google Fonts `css2?family=Source+Serif+4` (static per-weight latin instances) |
+| JetBrains Mono | v24 (Google Fonts) | `jetbrains-mono/jetbrains-mono.css`, `jetbrains-mono-{400,500}-latin.woff2` (2) | Google Fonts `css2?family=JetBrains+Mono:wght@400;500` (static per-weight latin instances) |
 
 ## Modifications made for self-containment
 
@@ -39,5 +41,14 @@ Google Fonts at build time.
   weights). The `@font-face` rules keep their original `unicode-range`
   descriptors, so non-latin ranges simply fall back to the system stack; all
   site copy and physics symbols are covered by latin/latin-ext.
+- **Source Serif 4 / JetBrains Mono**: the `latin` subset only (the css2
+  `U+0000-00FF ...` range that covers all site copy). Each weight is a **static
+  per-weight instance** (fetched via a legacy user-agent so Google serves a
+  distinct baked-weight woff2 rather than a shared variable slice); this keeps
+  the exact weights the brief specifies without shipping the full variable font.
+  Source Serif 4 is display-only (headings/wordmark); JetBrains Mono is the data
+  voice (hashes, ids, code, stat numerals). JetBrains Mono ships a dotted zero
+  by default, so the `font-feature-settings:"zero" 1` on the mono token is a
+  no-op passthrough rather than a functional glyph toggle.
 
-Total committed vendored size: ~3.5 MB.
+Total committed vendored size: ~3.6 MB (the three new font files add ~104 KB).

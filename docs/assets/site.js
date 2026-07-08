@@ -36,13 +36,14 @@
     '<g fill="#fff"><circle cx="19" cy="20" r="6.2"/><circle cx="41" cy="32" r="6.2"/>' +
     '<circle cx="19" cy="45" r="6.2"/></g></svg>';
 
-  // Nav items: [label, href, matchPrefix, isExternal]
+  // Nav items: [label, href, matchPrefix, isExternal]. The GitHub item is an
+  // icon-less text link "Source".
   var NAV = [
     ['Map', site('map/'), 'map/', false],
     ['Pipeline', site('pipeline.html'), 'pipeline.html', false],
     ['Learn', site('learn/'), 'learn/', false],
     ['Document', site('openmaterials.pdf'), 'openmaterials.pdf', false],
-    ['GitHub', REPO, null, true]
+    ['Source', REPO, null, true]
   ];
 
   // Which page are we on, relative to the site root (e.g. "map/", "index.html").
@@ -62,43 +63,69 @@
     var links = NAV.map(function (n) {
       var label = n[0], href = n[1], prefix = n[2], ext = n[3];
       var cls = 'om-nav-link';
-      if (ext) cls += ' om-ext';
       var active = '';
       if (prefix && rel.indexOf(prefix) === 0) active = ' active';
       var attrs = ext ? ' target="_blank" rel="noopener"' : '';
       var aria = active ? ' aria-current="page"' : '';
       return '<a class="' + cls + active + '" href="' + href + '"' + attrs + aria + '>' + label + '</a>';
     }).join('');
+    // Wordmark in Source Serif 4 with a 6px indigo brand node after it; no ".ai".
     return (
       '<header class="om-header">' +
       '<a class="om-brand" href="' + site('index.html') + '" aria-label="openmaterials home">' +
-      MARK + '<span>openmaterials<b>.ai</b></span></a>' +
+      '<span>openmaterials</span><span class="om-dot" aria-hidden="true"></span></a>' +
       '<nav class="om-nav" aria-label="Primary">' + links + '</nav>' +
       '</header>'
     );
   }
 
   function buildFooter() {
+    var year = new Date().getFullYear();
     return (
       '<footer class="om-footer">' +
       '<div class="om-footer-cols">' +
-      '<div><h4>openmaterials</h4>' +
+      '<div><h4>About</h4>' +
       '<p class="om-desc">A versioned map of physics: typed quantities as nodes, executable formulas as edges, every element content-addressed.</p></div>' +
       '<div><h4>Explore</h4><ul>' +
       '<li><a href="' + site('map/') + '">The map</a></li>' +
       '<li><a href="' + site('openmaterials.pdf') + '">The document (PDF)</a></li>' +
       '<li><a href="' + site('map-lab/') + '">Labs</a></li>' +
-      '<li><a href="' + REPO + '" target="_blank" rel="noopener">GitHub</a></li>' +
+      '<li><a href="' + REPO + '" target="_blank" rel="noopener">Source</a></li>' +
       '</ul></div>' +
       '<div><h4>Trust mark</h4>' +
       '<div class="om-trust" id="om-trust">' +
-      '<div class="om-trust-row"><span class="om-trust-k">genesis</span><span class="om-trust-v" id="om-genesis">e6e8044e9203</span></div>' +
-      '<div class="om-trust-row"><span class="om-trust-k">version</span><span class="om-trust-v" id="om-version">loading…</span></div>' +
+      '<div class="om-trust-row"><span class="om-trust-k">genesis</span><span class="om-trust-v" id="om-genesis" role="button" tabindex="0" title="click to copy">e6e8044e9203</span></div>' +
+      '<div class="om-trust-row"><span class="om-trust-k">version</span><span class="om-trust-v" id="om-version" role="button" tabindex="0" title="click to copy">loading…</span></div>' +
       '</div></div>' +
       '</div>' +
-      '<div class="om-smallprint">openmaterials: a versioned map of physics.</div>' +
+      '<div class="om-smallprint">openmaterials, a versioned map of physics. <span class="om-ver">' + year + '</span></div>' +
       '</footer>'
     );
+  }
+
+  // Copy a trust-mark hash to the clipboard on click, with a brief confirm tint.
+  function wireCopy(el) {
+    if (!el) return;
+    function doCopy() {
+      var full = el.dataset.full || el.textContent;
+      var done = function () {
+        el.classList.add('copied');
+        setTimeout(function () { el.classList.remove('copied'); }, 1100);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(full).then(done, function () {});
+      } else {
+        try {
+          var ta = document.createElement('textarea');
+          ta.value = full; document.body.appendChild(ta); ta.select();
+          document.execCommand('copy'); document.body.removeChild(ta); done();
+        } catch (e) { /* clipboard unavailable */ }
+      }
+    }
+    el.addEventListener('click', doCopy);
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); doCopy(); }
+    });
   }
 
   function mount() {
@@ -113,25 +140,28 @@
 
   // Trust mark: read genesis + version from data/version.json at runtime.
   function loadTrust() {
+    var gEl = document.getElementById('om-genesis');
+    var vEl = document.getElementById('om-version');
+    if (gEl) { gEl.dataset.full = gEl.textContent; wireCopy(gEl); }
+    if (vEl) wireCopy(vEl);
     fetch(site('data/version.json'))
       .then(function (r) { return r.json(); })
       .then(function (v) {
         if (!v) return;
-        var gEl = document.getElementById('om-genesis');
-        var vEl = document.getElementById('om-version');
         if (gEl && v.genesis) {
           gEl.textContent = ('' + v.genesis).slice(0, 12);
-          gEl.title = 'genesis ' + v.genesis;
+          gEl.dataset.full = '' + v.genesis;
+          gEl.title = 'genesis ' + v.genesis + ' (click to copy)';
         }
         if (vEl && v.version) {
           vEl.textContent = ('' + v.version).slice(0, 12);
-          vEl.title = 'store head ' + v.version;
+          vEl.dataset.full = '' + v.version;
+          vEl.title = 'store head ' + v.version + ' (click to copy)';
         } else if (vEl) {
           vEl.textContent = 'unversioned';
         }
       })
       .catch(function () {
-        var vEl = document.getElementById('om-version');
         if (vEl) vEl.textContent = 'unversioned';
       });
   }
