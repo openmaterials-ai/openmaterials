@@ -152,6 +152,7 @@
           gEl.dataset.full = '' + v.genesis;
           gEl.title = 'genesis ' + v.genesis + ' (click to copy)';
         }
+        if (v.version) bustDocumentLinks('' + v.version);
         if (vEl && v.version) {
           vEl.textContent = ('' + v.version).slice(0, 12);
           vEl.dataset.full = '' + v.version;
@@ -173,4 +174,15 @@
 
   // expose for pages (e.g. the map) that build a compact header variant.
   window.OMChrome = { site: site, asset: asset, mark: MARK, repo: REPO, nav: NAV };
+
+  // The PDF sits behind a long edge cache; stamping the live version onto
+  // Document links makes every new map version fetch a fresh copy.
+  function bustDocumentLinks(v) {
+    if (!v) return;
+    var links = document.querySelectorAll('a[href$="openmaterials.pdf"]');
+    for (var i = 0; i < links.length; i++) {
+      links[i].href = links[i].href + '?v=' + v.slice(0, 12);
+    }
+  }
+
 })();
