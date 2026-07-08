@@ -27,8 +27,8 @@
 
 \title{\textbf{openmaterials.ai}\\[0.3em]
        \large\normalfont Git for science: a versioned map of physics}
-\author{G. Barbalinardo\\\small University of California, Davis
-        \and D. Donadio\\\small University of California, Davis}
+\author{Giuseppe Barbalinardo\\\small University of California, Davis
+        \and Davide Donadio\\\small University of California, Davis}
 \date{\today}
 
 \begin{document}
@@ -472,25 +472,35 @@ new nodes and edges. Inputs to any new edge must resolve to nodes that already
 exist or are introduced by the same source in the same contribution, processed
 in dependency order. Reviewed before it lands in the canonical map.
 
-\paragraph{Value record (an instance).} Sketched:
+\paragraph{Value record (an instance).} The implemented schema, shown as a real
+committed instance, verbatim
+(\texttt{docs/data/instances/si-thermalconductivity-bte-solver-rta-kaldo.json}):
 
 \begin{verbatim}
 {
-  "confirms": "<node id>",
-  "value": 0.0, "units": "<units>",
-  "material": "<material>", "conditions": "<T, mesh, potential, ...>",
+  "variable": "ThermalConductivity[bte_solver=rta]",
+  "material": "Si",
+  "conditions": {"T": 300, "mesh": "8x8x8", "potential": "Si.tersoff"},
+  "value": 19.46,
+  "units": "W/(m K)",
+  "uncertainty": null,
   "source": {
-    "kind": "<simulation | measurement>",
-    "representation": "<code or experiment-type id>",
-    "ref": "<run id or citation>"
-  },
-  "description": "<human-readable note>"
+    "kind": "simulation",
+    "ref": "kaldo",
+    "detail": "RTA; Tersoff; 8x8x8 mesh (cross-code meaningful,
+               absolute under-converged)"
+  }
 }
 \end{verbatim}
 
-\texttt{confirms} always points at a node, because a value belongs to a quantity. A
-value record never introduces structure; that is a separate, reviewed
-contribution.
+\texttt{variable} always names a node, because a value belongs to a quantity;
+at bundle time each record is additionally pinned to that node's content uid
+(\texttt{node\_uid}). The material is deliberately NOT part of the map's
+structure: the map's nodes are quantities of physics in general, and the
+material enters only here, on the value, as the point where the quantity was
+evaluated (with \texttt{conditions} carrying the rest of the evaluation
+point). A value record never introduces structure; that is a separate,
+reviewed contribution through the gates.
 
 \paragraph{Parser contract.} Input: one artifact (a codebase, a paper, a run). Output:
 proposed structure and value records. Every proposal must pass validation below

@@ -9,7 +9,10 @@ description = "A symbolic substrate for computational materials science"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "G. Barbalinardo", email = "barbalinardo@ucdavis.edu" }]
+authors = [
+  { name = "Giuseppe Barbalinardo", email = "barbalinardo@ucdavis.edu" },
+  { name = "Davide Donadio" },
+]
 dependencies = [
     "pydantic>=2.5",
     "numpy>=1.26",
