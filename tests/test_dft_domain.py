@@ -35,9 +35,12 @@ def _all_nodes_edges():
 # The domain descriptor and its wiring into DOMAINS.
 # --------------------------------------------------------------------------
 
-def test_dft_domain_in_domains_between_thermal_and_materials():
+def test_dft_domain_in_domains_after_thermal():
+    # The mechanics domain now sits between dft and materials in DOMAINS order
+    # (thermal, dft, mechanics, materials); dft still follows thermal directly.
     names = [d.name for d in DOMAINS]
-    assert names == ["thermal_transport", "dft_ground_state", "materials"]
+    assert names[:2] == ["thermal_transport", "dft_ground_state"]
+    assert "dft_ground_state" in names
 
 
 def test_dft_domain_declares_ground_state_tier():
@@ -93,9 +96,12 @@ def test_hellmann_feynman_and_stress_are_dimensionally_ok():
     ), report["violation"]
 
 
-def test_no_node_uid_collisions_at_55_nodes():
+def test_no_node_uid_collisions():
+    # The graph grows as domains land (55 with dft, 59 with mechanics); the
+    # invariant this test pins is that node uids stay collision-free, not a
+    # fixed count. The DFT domain adds four nodes over the thermal baseline.
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 55
+    assert len(g["nodes"]) >= 55
     uids = [n["uid"] for n in g["nodes"]]
     assert len(set(uids)) == len(uids), "node uid collision"
 
@@ -104,13 +110,17 @@ def test_no_node_uid_collisions_at_55_nodes():
 # The unified graph: tier order and node placement.
 # --------------------------------------------------------------------------
 
-def test_ground_state_tier_ordered_after_md_before_diffusion():
+def test_ground_state_tier_ordered_after_md_before_mechanics():
+    # The Ground state tier follows Molecular dynamics; the mechanics domain
+    # now renders its Mechanics tier immediately after Ground state (Diffusion
+    # follows Mechanics). This pins Ground state's position relative to its
+    # neighbours as the tier list grows.
     g = build_graph_dict(DOMAINS)
     tier_names = [t["name"] for t in g["tiers"]]
     assert "Ground state" in tier_names
     i = tier_names.index("Ground state")
     assert tier_names[i - 1] == "Molecular dynamics"
-    assert tier_names[i + 1] == "Diffusion"
+    assert tier_names[i + 1] == "Mechanics"
 
 
 def test_ground_state_nodes_carry_the_tier_and_structure_in_sources():

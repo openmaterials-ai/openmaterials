@@ -237,8 +237,9 @@ def _domains() -> tuple[Domain, ...]:
     if _DOMAINS_CACHE is None:
         from omai.thermal_transport.domain import THERMAL_TRANSPORT
         from omai.dft_ground_state.domain import DFT_GROUND_STATE
+        from omai.mechanics.domain import MECHANICS
         from omai.materials.domain import MATERIALS
-        _DOMAINS_CACHE = (THERMAL_TRANSPORT, DFT_GROUND_STATE, MATERIALS)
+        _DOMAINS_CACHE = (THERMAL_TRANSPORT, DFT_GROUND_STATE, MECHANICS, MATERIALS)
     return _DOMAINS_CACHE
 
 

@@ -34,6 +34,10 @@ INDEX_KINDS: dict[str, str] = {
     "k": "atom",
     "alpha": "cartesian",
     "beta": "cartesian",
+    # gamma, delta: the third and fourth Cartesian legs of the rank-4 elastic
+    # stiffness tensor C_{alpha,beta,gamma,delta}. Same kind as alpha/beta.
+    "gamma": "cartesian",
+    "delta": "cartesian",
     "q": "qpoint",
     "nu": "branch",
     "R": "lattice_vector",
@@ -76,6 +80,10 @@ QUANTITY_TAGS: dict[str, str] = {
     "total_energy": "DFT total energy of the converged Kohn-Sham ground state, per simulation cell.",
     "forces": "Per-atom Hellmann-Feynman forces on the nuclei in the ground state.",
     "stress": "Cell-averaged macroscopic stress tensor of the ground state (pressure convention).",
+    "elastic_constants": "Rank-4 Cartesian elastic stiffness tensor C_{alpha,beta,gamma,delta}, the second strain derivative of the energy density (Voigt 6x6 is a representation packing).",
+    "bulk_modulus": "Isotropic bulk modulus K, the Voigt average resistance to uniform (hydrostatic) compression from the elastic tensor.",
+    "shear_modulus": "Isotropic shear modulus G, the Voigt average resistance to shape-changing (shear) deformation from the elastic tensor.",
+    "pressure": "Mechanical pressure P = trace(stress)/3, positive under compression (the stress pressure convention).",
     "temperature": "Thermodynamic temperature at which the calculation is evaluated.",
     "force_constants": "Real-space interatomic force constants (harmonic or higher order).",
     "born_charges": "Per-atom Born effective-charge tensors driving the LO-TO splitting.",
