@@ -69,8 +69,20 @@ def node_identity(space) -> dict:
     }
 
 
+def node_uid_from_identity(identity: dict) -> str:
+    """The node uid for an already-built identity dict.
+
+    This is the single node-hashing implementation reused wherever a uid must
+    be recomputed from a stored / proposed identity dict (the P4 gates), so
+    hashing is never duplicated: ``node_id(space) ==
+    node_uid_from_identity(node_identity(space))`` by construction, and a
+    payload's stored ``identity`` is exactly what ``node_identity`` returns.
+    """
+    return _sha256(canonical_json({"node": identity}))
+
+
 def node_id(space) -> str:
-    return _sha256(canonical_json({"node": node_identity(space)}))
+    return node_uid_from_identity(node_identity(space))
 
 
 def parameter_node_id(pid: str, dimension_name: str | None) -> str:
@@ -123,8 +135,20 @@ def edge_identity(op, node_id_of) -> dict:
     }
 
 
+def edge_uid_from_identity(identity: dict) -> str:
+    """The edge uid for an already-built identity dict.
+
+    The single edge-hashing implementation, reused by the P4 gates to recompute
+    a uid from a stored / proposed edge identity dict: ``edge_id(op, node_id_of)
+    == edge_uid_from_identity(edge_identity(op, node_id_of))`` by construction,
+    and a payload's stored ``identity`` is exactly what ``edge_identity``
+    returns.
+    """
+    return _sha256(canonical_json({"edge": identity}))
+
+
 def edge_id(op, node_id_of) -> str:
-    return _sha256(canonical_json({"edge": edge_identity(op, node_id_of)}))
+    return edge_uid_from_identity(edge_identity(op, node_id_of))
 
 
 def version_hash(prev_hex: str, record: dict) -> str:

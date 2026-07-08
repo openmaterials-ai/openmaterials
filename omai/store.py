@@ -31,13 +31,26 @@ from pathlib import Path
 
 from omai.operator.identity import canonical_json, version_hash
 
-__all__ = ["CHANGE_OPS", "GENESIS_PREV", "Store", "make_record"]
+__all__ = ["CHANGE_OPS", "GENESIS_PREV", "GateError", "Store", "make_record"]
 
 CHANGE_OPS = ("add_node", "add_edge", "edit_meta", "deprecate", "supersede",
               "equate")
 
 # The prev of the genesis record: 64 hex zeros.
 GENESIS_PREV = "0" * 64
+
+
+class GateError(Exception):
+    """Raised by :meth:`Store.propose` when a contribution fails the gates.
+
+    Carries the full problem list (each prefixed by the failing gate name in
+    brackets) on ``.problems`` so callers can report every issue at once rather
+    than the first.
+    """
+
+    def __init__(self, problems: list[str]):
+        self.problems = list(problems)
+        super().__init__("; ".join(problems))
 
 
 def make_record(*, seq, op, payload, author, date, reason, prev) -> dict:
@@ -184,6 +197,45 @@ class Store:
             fh.write(canonical_json(record) + "\n")
         self._materialize(recs + [record])
         return record["version"]
+
+    def propose(self, records, author, date, reason_prefix) -> str:
+        """Validate a contribution against the gates, then push it atomically.
+
+        ``records`` is an ordered contribution ``[{"op": ..., "payload": ...},
+        ...]``. Runs ``validate_contribution`` against ``self.read()``; a
+        non-empty problem list raises :class:`GateError` carrying the problems
+        and nothing is written. Otherwise every non-no-op record is pushed in
+        order (each with reason ``f"{reason_prefix}: {op} {uid[:12]}"``), and the
+        final version hash is returned. Exact-convergence no-op adds (a uid
+        already present with an identical identity dict) are dropped, so a
+        re-proposal of an already-landed contribution pushes nothing and returns
+        the current head unchanged.
+
+        Atomicity: the contribution is validated in full before the first push.
+        Because push appends serially, the only partial-write risk is a crash
+        part-way through the loop, which ``verify()`` would surface (a dangling
+        reference or a stale ``current/``); this deliberately does not build a
+        transaction layer.
+        """
+        # Local import to avoid a module-load cycle (gates imports identity /
+        # registry / dimcheck, not store, but keep store import-light).
+        from omai.gates import no_op_indices, validate_contribution
+
+        current = self.read()
+        problems = validate_contribution(records, current)
+        if problems:
+            raise GateError(problems)
+
+        no_ops = no_op_indices(records, current)
+        head = self.head
+        for i, rec in enumerate(records):
+            if i in no_ops:
+                continue
+            op = rec["op"]
+            payload = rec["payload"]
+            reason = f"{reason_prefix}: {op} {str(payload.get('uid', ''))[:12]}"
+            head = self.push(op, payload, author, date, reason)
+        return head
 
     def _materialize(self, records: list[dict]) -> None:
         nodes, edges = self._replay(records, problems=None)
