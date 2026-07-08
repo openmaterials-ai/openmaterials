@@ -2321,7 +2321,15 @@ and \texttt{verify()}. \texttt{verify()} recomputes every link in the chain,
 checks the chain and the dense \texttt{seq}, replays the full log, and compares the
 materialized view structurally against the replay, so a stale or truncated
 \texttt{current/} file is caught rather than trusted, as is any dangling
-reference.
+reference. Contributions enter through the gated \texttt{Store.propose}, which
+validates an ordered contribution against the six gates (registry, identity,
+reachability, connectivity, gauge, and dimensional) before any record lands,
+pushes all of them or none, and treats an exact re-proposal as a no-op that
+leaves the head unchanged. The \texttt{python -m omai.sync} tool diffs the
+Python operator layer against the materialized view and proposes change records
+for review, applying additions and metadata edits behind a flag while always
+routing a re-mint (an identity-content change) through an explicit supersede
+record rather than an automatic rewrite.
 
 \section{Genesis}
 \label{sec:kernel-genesis}
@@ -2446,16 +2454,15 @@ supersede chains. The scope came from the P1 dimensional gate:
 \label{sec:kernel-remaining}
 
 The dimension algebra and gate (P1), the identity module and index-kind registry
-(P2), and the store, genesis migration, and \texttt{verify()} (P3) are built. What
-remains, in order:
+(P2), the store, genesis migration, and \texttt{verify()} (P3), and the
+contribution gates and sync tool (P4) are built. P4 added the six gates
+(registry, identity, reachability, connectivity, gauge, and dimensional) that a
+contribution passes through \texttt{Store.propose} before any record lands, and
+the \texttt{python -m omai.sync} tool that diffs the Python operator layer
+against \texttt{map/current} and proposes change records (dry by default, a
+gated apply for additions and metadata edits, re-mints always routed through an
+explicit supersede). What remains, in order:
 \begin{itemize}[leftmargin=2em, itemsep=0.2em]
-  \item \textbf{P4: gates on push and the sync tool.} Wire the six validation
-        gates (dimensional agreement, reachability, connectivity, gauge
-        discipline, vocabulary, and identity-collision) to run on every push, and
-        build the sync script that diffs the operator layer against
-        \texttt{map/current} and proposes change records for review, so the Python
-        modules stay the authoring surface for existing domains until the
-        scan-encode pipeline pushes contributions directly.
   \item \textbf{P5: site wiring.} \texttt{docs/data/graph.json} gains its
         \texttt{id} field so the interactive map and \texttt{docs/pipeline.html}
         render from the store's materialized view.

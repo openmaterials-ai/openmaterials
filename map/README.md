@@ -13,6 +13,11 @@ A payload carries everything needed to rebuild the map without importing any
 Python module: the full identity dict that was hashed, and for edges the
 formula as a sympy srepr string plus display latex.
 
+Contributions enter through the gated `Store.propose` (which validates an
+ordered contribution against the six gates before any record lands) or through
+`python -m omai.sync` (which diffs the Python operator layer against
+`current/` and proposes change records for review).
+
 The `version` field chains the log: `version = sha256(prev + canonical(record
 without version))`, where `prev` is the previous record's version and the
 genesis record's prev is 64 zeros. This makes the history tamper-evident and
