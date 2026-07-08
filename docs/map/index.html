@@ -87,6 +87,8 @@
   .lab{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:#a3aec0;margin:17px 0 7px;font-weight:700;}
   .formula{background:linear-gradient(180deg,#fafbff,#f3f6fc);border:1px solid var(--line);border-radius:12px;padding:13px 12px;overflow-x:auto;}
   .formula code{font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;font-size:.82rem;color:#334155;white-space:pre-wrap;word-break:break-word;}
+  .fop{font-size:.72rem;font-weight:700;color:#64748b;margin:10px 0 4px;font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;}
+  .fop:first-of-type{margin-top:2px;}
   .chips{display:flex;flex-wrap:wrap;gap:7px;}
   .chip{font-size:1.15rem;border:1px solid var(--line);background:#fff;border-radius:10px;padding:4px 11px;color:#312e81;cursor:pointer;transition:.12s;box-shadow:0 1px 2px rgba(16,24,40,.05);}
   .chip:hover{border-color:var(--obs);box-shadow:0 2px 9px rgba(79,70,229,.16);}
@@ -419,7 +421,13 @@ function selectNode(node){
   let h='<span class="x" onclick="clearSel()">×</span>';
   h+='<div><span class="sym">'+tex(node.symbol)+'</span><span class="badge '+node.type+'">'+esc(node.type)+'</span></div>';
   h+='<div class="name">'+esc(node.id)+'<span class="tiertag">'+esc(node.tier||'Other')+'</span></div>';
-  h+='<div class="lab">formula on the producing edge</div><div class="formula">'+(node.formula?tex(node.formula,true):'<span class="muted">source (provided value)</span>')+'</div>';
+  const fl=(node.formulas&&node.formulas.length)?node.formulas:(node.formula?[{op:'',latex:node.formula}]:[]);
+  if(!fl.length){ h+='<div class="lab">formula on the producing edge</div><div class="formula"><span class="muted">source (provided value)</span></div>'; }
+  else if(fl.length===1){ h+='<div class="lab">formula on the producing edge</div><div class="formula">'+tex(fl[0].latex,true)+'</div>'; }
+  else{
+    h+='<div class="lab">'+fl.length+' producing edges (alternative routes)</div>';
+    fl.forEach(f=>{ h+='<div class="fop">'+esc(f.op)+'</div><div class="formula">'+tex(f.latex,true)+'</div>'; });
+  }
   if(outs.length){ h+='<div class="lab">produces &rarr;</div><div class="chips">'+outs.map(chip).join('')+'</div>'; }
   if(ins.length){ h+='<div class="lab">&larr; from</div><div class="chips">'+ins.map(chip).join('')+'</div>'; }
   h+=expHtml(id);

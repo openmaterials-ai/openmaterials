@@ -18,7 +18,7 @@ SYMBOLS = {
     "ForceConstants[order=2]": r"\Phi^{(2)}",
     "ForceConstants[order=3]": r"\Phi^{(3)}",
     "HeatCurrent": r"\mathbf{J}",
-    "BareDynamicalMatrix": r"D^{0}",
+    "BareDynamicalMatrix": r"D^{bare}",
     "MeanSquaredDisplacement": r"\langle u^{2}\rangle",
     "VelocityAutocorrelation": r"\langle v(0)v(t)\rangle",
     "DynamicalMatrix": r"D",

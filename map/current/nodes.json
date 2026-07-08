@@ -1051,7 +1051,7 @@
   "meta": {
    "description": "Analytic Bloch sum of \u03a6\u00b2(R) \u2014 the dynamical matrix before any non-analytic correction is applied. Always produced by compute_dynamical_matrix(FC2). For non-polar materials the downstream DynamicalMatrix is identical to this (via identity_dm); for polar materials apply_nac_correction adds the q\u21920 non-analytic term involving BornCharges and DielectricTensor.",
    "name": "BareDynamicalMatrix",
-   "symbol": "D^{0}",
+   "symbol": "D^{bare}",
    "tier": "Harmonic"
   },
   "uid": "e62e58716111fdc1dff24d18e75c70904cbb07ce6e0025e24fcdac8c4ed0a53d"

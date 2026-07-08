@@ -63,7 +63,11 @@ def build_graph_dict(domains: tuple[Domain, ...]) -> dict:
     for d in domains:
         symbols.update(d.symbols)
 
+    # All producing formulas per node (Pattern C nodes have several producers;
+    # the site must show every branch, labeled by its operator). "formula"
+    # stays the first producer's latex for back-compat consumers.
     target_formula: dict[str, str] = {}
+    target_formulas: dict[str, list[dict]] = {}
     for d in domains:
         for op in d.edges:
             try:
@@ -71,8 +75,11 @@ def build_graph_dict(domains: tuple[Domain, ...]) -> dict:
             except Exception:
                 latex = None
             for o in op.outputs:
-                if latex and o.name not in target_formula:
-                    target_formula[o.name] = latex
+                if latex:
+                    if o.name not in target_formula:
+                        target_formula[o.name] = latex
+                    target_formulas.setdefault(o.name, []).append(
+                        {"op": op.name, "latex": latex})
 
     nodes, seen = [], set()
     for d in domains:
@@ -87,6 +94,7 @@ def build_graph_dict(domains: tuple[Domain, ...]) -> dict:
                 "kind": "symbolic",
                 "symbol": symbols.get(s.name, s.name),
                 "formula": target_formula.get(s.name),
+                "formulas": target_formulas.get(s.name, []),
                 "tier": s.tier,
                 "uid": node_id(s),
             })
