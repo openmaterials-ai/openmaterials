@@ -3,12 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>openmaterials.ai &mdash; learn a paper</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<title>openmaterials: learn a paper</title>
+<meta name="description" content="Drop a PDF and map its reported quantities onto the openmaterials graph, each value backed by a verbatim quote.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="openmaterials">
+<meta property="og:title" content="openmaterials: learn a paper">
+<meta property="og:description" content="Drop a paper, map its reported quantities onto the graph, each value backed by a verbatim quote.">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../assets/vendor/katex/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/site.css">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-  :root{--ink:#0b1220;--ink2:#334155;--muted:#64748b;--faint:#94a3b8;--line:#e8ecf3;
+  :root{--ink2:#334155;--faint:#94a3b8;
         --obs:#4f46e5;--obs2:#4338ca;--hidbd:#dde4ee;}
+  /* keep the page background even though site.css sets body bg */
+  html,body{background:linear-gradient(180deg,#fcfdff,#f4f7fc);}
   *{box-sizing:border-box;}
   html,body{margin:0;min-height:100%;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;background:linear-gradient(180deg,#fcfdff,#f4f7fc);}
   #err{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;font:13px/1.4 monospace;padding:8px 12px;z-index:40;display:none;white-space:pre-wrap;}
@@ -19,7 +29,7 @@
   .top .sub{color:var(--faint);font-size:.82rem;font-weight:500;white-space:nowrap;}
   .top .sep{width:1px;height:22px;background:var(--line);margin:0 2px;}
 
-  .main{padding-top:100px;padding-bottom:60px;display:flex;flex-direction:column;align-items:center;gap:28px;}
+  .main{padding-top:44px;padding-bottom:60px;display:flex;flex-direction:column;align-items:center;gap:28px;}
 
   /* drop zone */
   .dropzone{width:min(92vw,560px);border:2px dashed #c7d0e4;border-radius:20px;background:#fff;padding:44px 32px 36px;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;transition:border-color .15s,background .15s;box-shadow:0 4px 24px rgba(16,24,40,.06);}
@@ -114,12 +124,7 @@
 <body>
 <div id="err"></div>
 
-<div class="top">
-  <span class="mark"></span>
-  <span class="brand">openmaterials<b>.ai</b></span>
-  <span class="sep"></span>
-  <span class="sub">learn a paper</span>
-</div>
+<div data-site-header></div>
 
 <div class="main">
 
@@ -139,7 +144,7 @@
   <div id="keyPanel">
     <div class="khead">Anthropic API key</div>
     <div class="kdesc">Required to analyse new papers. Your key is stored only in this browser
-      and sent directly to <code>api.anthropic.com</code> &mdash; it is never relayed through
+      and sent directly to <code>api.anthropic.com</code>, never relayed through
       openmaterials.ai servers.</div>
     <div class="krow">
       <input type="text" id="keyInput" placeholder="sk-ant-&hellip;" autocomplete="off" spellcheck="false">
@@ -161,7 +166,10 @@
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<div data-site-footer></div>
+
+<script src="../assets/site.js"></script>
+<script src="../assets/vendor/katex/dist/katex.min.js"></script>
 <script src="lib.js"></script>
 <script>
 var CATALOG=[], KNOWN=new Set(), NODE_BY_ID={};
@@ -204,8 +212,8 @@ function saveKey(){
 
 /* ---- Step 1: PDF text via pdf.js ---- */
 async function extractPdfText(file){
-  const pdfjs = await import('https://cdn.jsdelivr.net/npm/pdfjs-dist@4/build/pdf.min.mjs');
-  pdfjs.GlobalWorkerOptions.workerSrc='https://cdn.jsdelivr.net/npm/pdfjs-dist@4/build/pdf.worker.min.mjs';
+  const pdfjs = await import('../assets/vendor/pdfjs/pdf.min.mjs');
+  pdfjs.GlobalWorkerOptions.workerSrc='../assets/vendor/pdfjs/pdf.worker.min.mjs';
   const buf=await file.arrayBuffer();
   const doc=await pdfjs.getDocument({data:buf}).promise;
   let text=''; for(let i=1;i<=doc.numPages;i++){ const pg=await doc.getPage(i);
@@ -215,7 +223,7 @@ async function extractPdfText(file){
 
 /* ---- Step 2: LLM extraction via Anthropic browser SDK ---- */
 async function extractWithLLM(paperText){
-  const Anthropic=(await import('https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk/+esm')).default;
+  const Anthropic=(await import('../assets/vendor/anthropic/sdk.mjs')).default;
   const client=new Anthropic({apiKey:getKey(), dangerouslyAllowBrowser:true});
   const catalog=CATALOG.map(function(c){return {id:c.id,symbol:c.symbol,type:c.type,dimension:c.dimension,description:c.description};});
   const sys='You map a materials-physics paper onto a fixed catalog of quantities. '
@@ -328,7 +336,7 @@ function renderResult(papers){
 
   /* -- Review list -- */
   var revEl=document.getElementById('resultReview');
-  revEl.innerHTML='<div class="sec-head">Review &mdash; accept or reject each instance</div>';
+  revEl.innerHTML='<div class="sec-head">Review: accept or reject each instance</div>';
 
   papers.forEach(function(p){
     var grp=document.createElement('div'); grp.className='paper-group';

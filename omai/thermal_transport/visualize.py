@@ -460,7 +460,7 @@ def _build_svg(
     sym_cw = column_width[0]
     parts.append(
         f'<rect x="{sym_cl - 4}" y="{TOP_PAD - 36}" width="{sym_cw + 8}" '
-        f'height="{height - TOP_PAD + 30}" fill="#EFF6FF" opacity="0.45" rx="6" />'
+        f'height="{height - TOP_PAD + 30}" fill="#eef2ff" opacity="0.45" rx="6" />'
     )
 
     # ---------- column header dots + labels ----------
@@ -599,8 +599,8 @@ def _build_svg(
                 r = SYM_NODE_RADIUS
                 is_obs = isinstance(state, ObservableSpace)
                 if is_obs:
-                    c_fill = "#3B82F6"
-                    c_stroke = "#1D4ED8"
+                    c_fill = "#4f46e5"
+                    c_stroke = "#4338ca"
                     c_sw = 2
                     c_dash = ""
                 else:
@@ -851,25 +851,39 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>omai · thermal-transport DAG</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>openmaterials: thermal-transport pipeline</title>
+<meta name="description" content="The thermal-transport DAG side by side across codes, showing where each adapter covers the shared operator layer.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="openmaterials">
+<meta property="og:title" content="openmaterials: thermal-transport pipeline">
+<meta property="og:description" content="The thermal-transport DAG across codes, side by side over the shared operator layer.">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="assets/vendor/inter/inter.css">
+<link rel="stylesheet" href="assets/vendor/katex/dist/katex.min.css">
 <style>
   :root {{
-    --bg: #F9FAFB;
+    --bg: #fbfcfe;
     --surface: #FFFFFF;
-    --border: #E5E7EB;
-    --border-strong: #D1D5DB;
-    --text: #111827;
-    --text-secondary: #4B5563;
-    --text-muted: #9CA3AF;
-    --observable: #3B82F6;
+    --border: #e6eaf2;
+    --border-strong: #cbd5e1;
+    --text: #0f172a;
+    --text-secondary: #334155;
+    --text-muted: #64748b;
+    --accent: #4f46e5;
+    --accent-soft: #eef2ff;
+    --observable: #4f46e5;
     --hidden: #94A3B8;
-    --code-bg: #F3F4F6;
-    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+    --code-bg: #f1f4fb;
+    --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.06);
   }}
   * {{ box-sizing: border-box; }}
   html, body {{ margin: 0; padding: 0; }}
   body {{
-    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI",
                  system-ui, sans-serif;
     font-size: 14px;
     line-height: 1.5;
@@ -877,7 +891,24 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
     background: var(--bg);
     -webkit-font-smoothing: antialiased;
   }}
-  header {{
+  a {{ color: #4338ca; }}
+  .om-header {{
+    position: sticky; top: 0; z-index: 40;
+    height: 56px; display: flex; align-items: center; gap: 18px;
+    padding: 0 1.5rem;
+    background: rgba(255,255,255,.85); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }}
+  .om-header .om-brand {{ display: inline-flex; align-items: center; gap: 9px; font-weight: 800; letter-spacing: -.02em; color: var(--text); text-decoration: none; }}
+  .om-header .om-brand b {{ color: var(--accent); }}
+  .om-header .om-brand .mark {{ width: 23px; height: 23px; display: block; border-radius: 7px; }}
+  .om-header nav {{ margin-left: auto; display: flex; align-items: center; gap: 16px; }}
+  .om-header nav a {{ color: var(--text-secondary); font-size: .86rem; font-weight: 600; text-decoration: none; padding: 5px 2px; border-bottom: 2px solid transparent; }}
+  .om-header nav a:hover {{ color: var(--accent); }}
+  .om-header nav a.active {{ color: var(--accent); border-bottom-color: var(--accent); }}
+  .om-header nav a.ext::after {{ content: "\\2197"; font-size: .7em; vertical-align: super; opacity: .55; }}
+  @media (max-width: 720px) {{ .om-header nav {{ display: none; }} }}
+  header.pagehead {{
     background: var(--surface);
     border-bottom: 1px solid var(--border);
     padding: 1rem 1.5rem 0.75rem;
@@ -1151,20 +1182,28 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
     #details-rail {{ position: static; max-height: none; }}
   }}
 </style>
-<script>
-  window.MathJax = {{
-    tex: {{ inlineMath: [['$', '$']], displayMath: [['$$', '$$']] }},
-    svg: {{ fontCache: 'global' }}
-  }};
-</script>
-<script id="MathJax-script" async
-        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+<script defer src="assets/vendor/katex/dist/katex.min.js"></script>
+<script defer src="assets/vendor/katex/dist/contrib/auto-render.min.js"></script>
 </head>
 <body>
 
-<header>
+<div class="om-header">
+  <a class="om-brand" href="index.html" aria-label="openmaterials home">
+    <svg class="mark" width="23" height="23" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><g stroke="#fff" stroke-width="3.4" stroke-linecap="round" fill="none" opacity=".92"><line x1="19" y1="20" x2="41" y2="32"/><line x1="41" y1="32" x2="19" y2="45"/></g><g fill="#fff"><circle cx="19" cy="20" r="6.2"/><circle cx="41" cy="32" r="6.2"/><circle cx="19" cy="45" r="6.2"/></g></svg>
+    <span>openmaterials<b>.ai</b></span>
+  </a>
+  <nav aria-label="Primary">
+    <a href="map/">Map</a>
+    <a href="pipeline.html" class="active" aria-current="page">Pipeline</a>
+    <a href="learn/">Learn</a>
+    <a href="openmaterials.pdf">Document</a>
+    <a href="https://github.com/gbarbalinardo/openmaterials" class="ext" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+</div>
+
+<header class="pagehead">
   <div class="title-row">
-    <h1>omai · thermal-transport DAG</h1>
+    <h1>Thermal-transport pipeline</h1>
     <span class="stats">
       <span><strong>{n_observables}</strong> ObservableSpaces</span>
       <span><strong>{n_hidden}</strong> HiddenSpaces</span>
@@ -1173,15 +1212,17 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
     </span>
   </div>
   <div class="navlinks" style="margin-top:6px; font-size:13px;">
-    <a href="openmaterials.pdf" style="color:#D4850A; text-decoration:none;">The openmaterials document (PDF)</a>
+    <a href="openmaterials.pdf" style="color:#4338ca; text-decoration:none;">The openmaterials document (PDF)</a>
     &nbsp;&middot;&nbsp;
-    <a href="slides/" style="color:#D4850A; text-decoration:none;">Slides</a>
+    <a href="deck/" style="color:#4338ca; text-decoration:none;">Deck</a>
+    &nbsp;&middot;&nbsp;
+    <a href="slides/" style="color:#4338ca; text-decoration:none;">Slides</a>
   </div>
   <div class="legend">
     <div class="legend-group">
       <span class="label">Operator</span>
       <span class="legend-item">
-        <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2"/></svg>
+        <svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="#4f46e5" stroke="#4338ca" stroke-width="2"/></svg>
         ObservableSpace
       </span>
       <span class="legend-item">
@@ -1189,7 +1230,7 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
         HiddenSpace
       </span>
       <span class="legend-item">
-        <svg width="16" height="16" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" fill="#3B82F6" stroke="#1D4ED8" stroke-width="2"/></svg>
+        <svg width="16" height="16" viewBox="0 0 16 16"><rect x="2" y="2" width="12" height="12" rx="2" fill="#4f46e5" stroke="#4338ca" stroke-width="2"/></svg>
         Input (external source)
       </span>
     </div>
@@ -1475,8 +1516,26 @@ function showDetails(html) {{
       showDetails(renderNode(panel.dataset.state, 'operator'));
     }});
   }}
-  if (window.MathJax && MathJax.typesetPromise) {{
-    MathJax.typesetPromise([panel]);
+  typesetMath(panel);
+}}
+
+// Render LaTeX in a container with vendored KaTeX auto-render. Formulas are
+// emitted with $$...$$ (display) and $...$ (inline) delimiters. Degrades
+// silently if KaTeX has not loaded yet: retries on the next frame.
+function typesetMath(el) {{
+  if (window.renderMathInElement) {{
+    try {{
+      window.renderMathInElement(el, {{
+        delimiters: [
+          {{ left: '$$', right: '$$', display: true }},
+          {{ left: '$', right: '$', display: false }}
+        ],
+        throwOnError: false
+      }});
+    }} catch (e) {{ /* leave raw TeX in place */ }}
+  }} else {{
+    // auto-render script may still be loading (defer); retry shortly.
+    setTimeout(function () {{ if (window.renderMathInElement) typesetMath(el); }}, 60);
   }}
 }}
 

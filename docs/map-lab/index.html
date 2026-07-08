@@ -3,60 +3,100 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>openmaterials.ai &mdash; map lab</title>
+<title>openmaterials: labs</title>
+<meta name="description" content="Experimental views of the openmaterials graph: alternative layouts and prototypes.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="openmaterials">
+<meta property="og:title" content="openmaterials: labs">
+<meta property="og:description" content="Experimental views of the graph: alternative layouts and prototypes.">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../assets/site.css">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-  *{box-sizing:border-box;margin:0;padding:0;}
-  html,body{height:100%;overflow:hidden;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#05070e;color:#e6ecf7;}
-  .bar{height:52px;display:flex;align-items:center;gap:6px;padding:0 16px;background:rgba(8,11,19,.9);border-bottom:1px solid #161e30;position:relative;z-index:2;}
-  .bar .mark{width:18px;height:18px;border-radius:5px;background:linear-gradient(135deg,#7c93ff,#38e0b0);box-shadow:0 0 14px rgba(124,147,255,.5);}
-  .bar .brand{font-weight:800;letter-spacing:-.02em;margin-right:14px;}
-  .bar .brand b{color:#7c93ff;}
-  .tabs{display:flex;gap:4px;}
-  .tab{border:1px solid transparent;background:none;color:#8694ad;font:600 .86rem 'Inter';padding:7px 14px;border-radius:9px;cursor:pointer;transition:.15s;display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;}
-  .tab small{font-weight:500;font-size:.64rem;color:#5b6b86;letter-spacing:.02em;}
-  .tab:hover{color:#e6ecf7;background:#0e1626;}
-  .tab.on{color:#fff;background:#141d31;border-color:#27324d;}
-  .tab.on small{color:#9fb0d6;}
-  .stage{position:absolute;top:52px;left:0;right:0;bottom:0;}
-  iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#05070e;display:none;}
-  iframe.on{display:block;}
-  .loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#46536e;font-size:.9rem;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 clamp(16px,4vw,32px);}
+  .lead{padding:clamp(40px,7vw,72px) 0 8px;}
+  .lead h1{font-size:clamp(2rem,5vw,2.9rem);margin:0 0 .3em;color:var(--ink);}
+  .lead p{color:var(--ink-2);font-size:1.1rem;max-width:60ch;margin:0;line-height:1.6;}
+  .lead .note{display:inline-flex;align-items:center;gap:7px;margin-top:18px;font-size:.82rem;color:var(--muted);background:#fff7ed;border:1px solid #fed7aa;border-radius:999px;padding:5px 13px;}
+  .lead .note b{color:#b45309;font-weight:700;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px;padding:34px 0 72px;}
+  .lab{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:var(--r-3);padding:24px;background:var(--surface);box-shadow:var(--shadow-1);transition:box-shadow var(--t),border-color var(--t),transform var(--t);text-decoration:none;color:inherit;}
+  .lab:hover{box-shadow:var(--shadow-2);border-color:#dbe3f2;transform:translateY(-2px);text-decoration:none;}
+  .lab .tag{display:inline-flex;align-items:center;gap:7px;font-size:.64rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:14px;}
+  .lab .tag .exp{color:#b45309;background:#fff7ed;border:1px solid #fed7aa;border-radius:999px;padding:2px 8px;}
+  .lab h3{font-size:1.2rem;color:var(--ink);margin:0 0 .35em;display:flex;align-items:center;gap:8px;}
+  .lab h3 .arw{color:var(--accent);transition:transform var(--t);}
+  .lab:hover h3 .arw{transform:translateX(3px);}
+  .lab p{color:var(--ink-2);font-size:.93rem;line-height:1.55;margin:0;flex:1;}
+  .lab .swatch{margin-top:16px;height:6px;border-radius:999px;}
 </style>
 </head>
 <body>
-<div class="bar">
-  <span class="mark"></span><span class="brand">openmaterials<b>.ai</b> &nbsp;map lab</span>
-  <div class="tabs" id="tabs"></div>
-</div>
-<div class="stage" id="stage"><div class="loading" id="loading">pick a view</div></div>
-<script>
-  var VIEWS=[
-    {key:'tracer', label:'Tracer', sub:'follow a derivation', src:'../map-trace/'},
-    {key:'orbit', label:'Orbit', sub:'observable as the sun', src:'orbit.html'},
-    {key:'strata', label:'Strata', sub:'the assembly line', src:'strata.html'},
-    {key:'constellation', label:'Constellation', sub:'cross-code star map', src:'constellation.html'},
-    {key:'rivers', label:'Rivers', sub:'two tributaries to kappa', src:'rivers.html'}
-  ];
-  var tabs=document.getElementById('tabs'), stage=document.getElementById('stage'), loading=document.getElementById('loading');
-  var frames={};
-  function show(key){
-    document.querySelectorAll('.tab').forEach(function(t){ t.classList.toggle('on', t.dataset.key===key); });
-    if(loading) loading.style.display='none';
-    if(!frames[key]){
-      var v=VIEWS.find(function(x){return x.key===key;});
-      var f=document.createElement('iframe'); f.src=v.src; f.dataset.key=key; stage.appendChild(f); frames[key]=f;
-    }
-    Object.keys(frames).forEach(function(k){ frames[k].classList.toggle('on', k===key); });
-    location.hash=key;
-  }
-  VIEWS.forEach(function(v){
-    var b=document.createElement('button'); b.className='tab'; b.dataset.key=v.key;
-    b.innerHTML=v.label+'<small>'+v.sub+'</small>'; b.onclick=function(){ show(v.key); };
-    tabs.appendChild(b);
-  });
-  var start=(location.hash||'').replace('#','');
-  show(VIEWS.some(function(v){return v.key===start;})?start:'tracer');
-</script>
+<div data-site-header></div>
+
+<main>
+  <section class="lead">
+    <div class="wrap">
+      <h1>Labs</h1>
+      <p>Experimental views of the same graph: alternative layouts and interaction
+        metaphors, kept here while they find their shape. The primary, supported view
+        is <a href="../map/">the map</a>.</p>
+      <div class="note"><b>Experimental</b> &middot; these prototypes may change or disappear</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <div class="grid">
+
+        <a class="lab" href="../map-trace/">
+          <div class="tag"><span class="exp">experimental</span></div>
+          <h3>Tracer <span class="arw">&rarr;</span></h3>
+          <p>Click any quantity to light up how it is built (upstream) and where it flows
+            (downstream); shift-click two nodes for the path between them.</p>
+          <div class="swatch" style="background:linear-gradient(90deg,#f5a524,#7c93ff);"></div>
+        </a>
+
+        <a class="lab" href="orbit.html">
+          <div class="tag"><span class="exp">experimental</span></div>
+          <h3>Orbit <span class="arw">&rarr;</span></h3>
+          <p>An observable at the center like a sun, with the quantities it depends on set in
+            orbit around it.</p>
+          <div class="swatch" style="background:linear-gradient(90deg,#4f46e5,#818cf8);"></div>
+        </a>
+
+        <a class="lab" href="strata.html">
+          <div class="tag"><span class="exp">experimental</span></div>
+          <h3>Strata <span class="arw">&rarr;</span></h3>
+          <p>The graph as an assembly line: quantities stacked in layers from raw inputs at
+            the bottom up to the observables.</p>
+          <div class="swatch" style="background:linear-gradient(90deg,#0f9d6b,#4f46e5);"></div>
+        </a>
+
+        <a class="lab" href="constellation.html">
+          <div class="tag"><span class="exp">experimental</span></div>
+          <h3>Constellation <span class="arw">&rarr;</span></h3>
+          <p>A cross-code star map: each code lights up the quantities it covers, so shared
+            and unique coverage stand out.</p>
+          <div class="swatch" style="background:linear-gradient(90deg,#4338ca,#38e0b0);"></div>
+        </a>
+
+        <a class="lab" href="rivers.html">
+          <div class="tag"><span class="exp">experimental</span></div>
+          <h3>Rivers <span class="arw">&rarr;</span></h3>
+          <p>The two tributaries into thermal conductivity, drawn as flows that converge on the
+            observable.</p>
+          <div class="swatch" style="background:linear-gradient(90deg,#7c93ff,#d98a14);"></div>
+        </a>
+
+      </div>
+    </div>
+  </section>
+</main>
+
+<div data-site-footer></div>
+
+<script src="../assets/site.js"></script>
 </body>
 </html>

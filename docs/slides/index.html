@@ -3,12 +3,22 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Git for Science</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css">
+  <title>openmaterials: git for science</title>
+  <meta name="description" content="Git for science: a substrate for reproducible, compounding scientific knowledge.">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="openmaterials">
+  <meta property="og:title" content="openmaterials: git for science">
+  <meta property="og:description" content="A substrate for reproducible, compounding scientific knowledge.">
+  <meta name="twitter:card" content="summary">
+  <link rel="stylesheet" href="../assets/vendor/reveal/reveal.css">
+  <link rel="stylesheet" href="../assets/vendor/reveal/theme-white.css">
+  <link rel="stylesheet" href="../assets/vendor/inter/inter.css">
   <style>
-    :root { --abstr: #2C5F8A; --num: #D4850A; }
-    .reveal h1, .reveal h2, .reveal h3 { color: var(--abstr); text-transform: none; }
+    :root { --abstr: #4338ca; --num: #0f9d6b; }
+    .reveal { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .reveal h1, .reveal h2, .reveal h3 { color: var(--abstr); text-transform: none; font-family: 'Inter', sans-serif; letter-spacing: -.02em; }
     .reveal { font-size: 30px; }
     .reveal em, .reveal .num { color: var(--num); font-style: normal; }
     .reveal .creed li { margin: 0.35em 0; }
@@ -111,12 +121,13 @@
     </section>
 
   </div></div>
-  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/math/math.js"></script>
+  <script src="../assets/vendor/reveal/reveal.js"></script>
+  <script src="../assets/vendor/reveal/math.js"></script>
   <script>
     Reveal.initialize({
       hash: true,
       transition: 'fade',
+      katex: { local: '../assets/vendor/katex' },
       plugins: [ RevealMath.KaTeX ]
     });
   </script>

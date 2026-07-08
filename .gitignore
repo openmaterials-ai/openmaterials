@@ -24,6 +24,10 @@ dist/
 .venv/
 venv/
 
+# vendored site assets are committed on purpose; keep them out of the generic
+# build/ and dist/ ignores above (KaTeX ships in a canonical dist/ layout).
+!docs/assets/vendor/**
+
 # generated planning/spec docs + visual-companion scratch
 docs/superpowers/
 .superpowers/

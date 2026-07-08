@@ -8,7 +8,7 @@ Google Fonts at build time.
 
 | Asset | Version | Files | Source |
 | --- | --- | --- | --- |
-| KaTeX | 0.16.9 | `katex/katex.min.js`, `katex/katex.min.css`, `katex/auto-render.min.js`, `katex/fonts/*.woff2` (20) | `cdn.jsdelivr.net/npm/katex@0.16.9/dist/` |
+| KaTeX | 0.16.9 | `katex/dist/katex.min.js`, `katex/dist/katex.min.css`, `katex/dist/contrib/auto-render.min.js`, `katex/dist/fonts/*.woff2` (20) | `cdn.jsdelivr.net/npm/katex@0.16.9/dist/` |
 | dagre | 0.8.5 | `dagre.min.js` | `cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js` |
 | reveal.js | 5.1.0 | `reveal/reveal.js`, `reveal/reveal.css`, `reveal/theme-white.css`, `reveal/math.js` | `cdn.jsdelivr.net/npm/reveal.js@5.1.0/` |
 | pdf.js (pdfjs-dist) | 4.10.38 | `pdfjs/pdf.min.mjs`, `pdfjs/pdf.worker.min.mjs` | `cdn.jsdelivr.net/npm/pdfjs-dist@4/build/` |
@@ -23,7 +23,10 @@ Google Fonts at build time.
 - **KaTeX CSS**: the `@font-face` `src` lists were trimmed to the `.woff2`
   format only (the `.woff` and `.ttf` fallbacks were dropped, and those files
   are not vendored). Every current browser supports woff2. 20 woff2 faces are
-  vendored under `katex/fonts/`.
+  vendored under `katex/dist/fonts/`. The files keep the canonical npm `dist/`
+  layout (`dist/katex.min.js`, `dist/katex.min.css`, `dist/contrib/auto-render.min.js`,
+  `dist/fonts/`) so the reveal.js math plugin resolves them from a single
+  `katex: { local: '.../vendor/katex' }` config.
 - **Anthropic SDK**: the jsDelivr `+esm` bundles re-import their dependencies
   from `/npm/...` at runtime, which would defeat standalone. The import
   specifiers were rewritten to local relative paths:

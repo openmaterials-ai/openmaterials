@@ -3,40 +3,51 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>openmaterials.ai — collaboration proposal</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/black.css">
+<title>openmaterials: collaboration proposal</title>
+<meta name="description" content="openmaterials: a typed substrate for reproducible computational materials science.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="openmaterials">
+<meta property="og:title" content="openmaterials: collaboration proposal">
+<meta property="og:description" content="A typed substrate for reproducible computational materials science.">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../assets/vendor/reveal/reveal.css">
+<link rel="stylesheet" href="../assets/vendor/reveal/theme-white.css">
+<link rel="stylesheet" href="../assets/vendor/inter/inter.css">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-  :root{--accent:#818cf8;--accent2:#a78bfa;--green:#34d399;--gold:#fbbf24;}
-  .reveal{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:28px;}
+  /* light scientific theme, consistent with the site tokens */
+  :root{--ink:#0f172a;--ink2:#334155;--muted:#64748b;--line:#e6eaf2;
+        --accent:#4f46e5;--accent2:#4338ca;--green:#0f9d6b;--gold:#d98a14;--soft:#eef2ff;}
+  .reveal{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:28px;color:var(--ink);}
+  .reveal .slides section{color:var(--ink);}
   .reveal h1,.reveal h2,.reveal h3,.reveal h4{text-transform:none;font-weight:800;letter-spacing:-.02em;}
-  .reveal h1{font-size:2.0em;background:linear-gradient(90deg,#818cf8,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent;}
-  .reveal h2{color:#fff;font-size:1.35em;margin-bottom:.4em;}
+  .reveal h1{font-size:2.0em;color:var(--accent2);}
+  .reveal h2{color:var(--ink);font-size:1.35em;margin-bottom:.4em;}
   .reveal p{margin:.45em 0;}
-  .reveal .sub{color:#94a3b8;font-weight:500;}
-  .reveal .lede{color:#cbd5e1;}
-  .reveal em{color:var(--accent);font-style:normal;}
-  .reveal .big{font-size:1.2em;color:#fff;}
-  .reveal ul{display:inline-block;text-align:left;font-size:.82em;color:#cbd5e1;}
+  .reveal .sub{color:var(--muted);font-weight:500;}
+  .reveal .lede{color:var(--ink2);}
+  .reveal em{color:var(--accent);font-style:normal;font-weight:600;}
+  .reveal .big{font-size:1.2em;color:var(--ink);}
+  .reveal ul{display:inline-block;text-align:left;font-size:.82em;color:var(--ink2);}
   .reveal ul li{margin:.3em 0;}
-  .reveal .pill{display:inline-block;background:rgba(129,140,248,.14);color:#c7d2fe;border:1px solid rgba(129,140,248,.35);border-radius:999px;padding:3px 11px;font-size:.5em;margin:3px;}
-  .reveal .nums{display:inline-block;text-align:left;font-size:.66em;color:#cbd5e1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:14px 20px;margin:10px 0;}
-  .reveal .nums b{color:#fff;} .reveal .g{color:var(--green);} .reveal .y{color:var(--gold);}
-  .reveal .formula{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px 18px;display:inline-block;margin-top:6px;}
+  .reveal .pill{display:inline-block;background:var(--soft);color:var(--accent2);border:1px solid #dfe4fb;border-radius:999px;padding:3px 11px;font-size:.5em;margin:3px;}
+  .reveal .nums{display:inline-block;text-align:left;font-size:.66em;color:var(--ink2);background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:14px 20px;margin:10px 0;}
+  .reveal .nums b{color:var(--ink);} .reveal .g{color:var(--green);} .reveal .y{color:var(--gold);}
+  .reveal .formula{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:12px 18px;display:inline-block;margin-top:6px;}
   .reveal .cols{display:flex;gap:18px;text-align:left;font-size:.62em;margin-top:14px;}
-  .reveal .cols .col{flex:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:13px 15px;}
+  .reveal .cols .col{flex:1;background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:13px 15px;}
   .reveal .cols h4{color:var(--accent);margin:0 0 .4em;font-size:1.05em;}
-  .reveal a{color:var(--accent);}
-  .reveal .foot{color:#475569;font-size:.5em;margin-top:14px;}
+  .reveal a{color:var(--accent2);}
+  .reveal .foot{color:var(--muted);font-size:.5em;margin-top:14px;}
   @media print {
     @page { size: 960px 700px; margin: 0; }
-    html, body, .reveal, .reveal .slides, .reveal .backgrounds, .reveal .slides>section { background:#0b0e1a !important; }
-    .reveal, .reveal .lede, .reveal .big, .reveal code, .reveal .nums, .reveal ul, .reveal .cols .col { color:#e5e7eb !important; }
-    .reveal .slides h2, .reveal .slides h3 { color:#ffffff !important; }
-    .reveal .slides h4 { color:#a5b4fc !important; }
-    .reveal .slides h1 { background:none !important; -webkit-text-fill-color:#a5b4fc !important; color:#a5b4fc !important; }
-    .reveal .sub { color:#94a3b8 !important; } .reveal .pill { color:#c7d2fe !important; }
+    html, body, .reveal, .reveal .slides, .reveal .backgrounds, .reveal .slides>section { background:#ffffff !important; }
+    .reveal, .reveal .lede, .reveal .big, .reveal code, .reveal .nums, .reveal ul, .reveal .cols .col { color:#0f172a !important; }
+    .reveal .slides h2, .reveal .slides h3 { color:#0f172a !important; }
+    .reveal .slides h4 { color:#4f46e5 !important; }
+    .reveal .slides h1 { color:#4338ca !important; }
+    .reveal .sub { color:#64748b !important; } .reveal .pill { color:#4338ca !important; }
   }
 </style>
 </head>
@@ -122,10 +133,10 @@
   </section>
 
 </div></div>
-<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/plugin/math/math.js"></script>
+<script src="../assets/vendor/reveal/reveal.js"></script>
+<script src="../assets/vendor/reveal/math.js"></script>
 <script>
-  Reveal.initialize({ hash:true, transition:'fade', controls:true, progress:true, plugins:[ RevealMath.KaTeX ] });
+  Reveal.initialize({ hash:true, transition:'fade', controls:true, progress:true, katex:{ local:'../assets/vendor/katex' }, plugins:[ RevealMath.KaTeX ] });
 </script>
 </body>
 </html>
