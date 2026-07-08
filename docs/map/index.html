@@ -3,26 +3,41 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>openmaterials.ai, map of physics</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<title>openmaterials: the map of physics</title>
+<meta name="description" content="The whole openmaterials graph in tiers: typed quantities, executable formulas, and attached values, all in the browser.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="openmaterials">
+<meta property="og:title" content="openmaterials: the map of physics">
+<meta property="og:description" content="The whole graph in tiers: pan, zoom, and open any quantity for its formula, provenance, and attached values.">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/vendor/inter/inter.css">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-  :root{--ink:#0b1220;--ink2:#334155;--muted:#64748b;--faint:#94a3b8;--line:#e8ecf3;
+  :root{--ink:#0f172a;--ink2:#334155;--muted:#64748b;--faint:#94a3b8;--line:#e6eaf2;
         --obs:#4f46e5;--obs2:#4338ca;--hidbd:#dde4ee;--gold:#d98a14;--green:#0f9d6b;
-        --band:#eef2fb;--bandln:#dbe3f2;--bandtx:#3730a3;}
+        --band:#eef2fb;--bandln:#dbe3f2;--bandtx:#3730a3;
+        --surface:#ffffff;--accent-soft:#eef2ff;--font-mono:ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+        --r-1:8px;--r-2:12px;--r-3:16px;--shadow-1:0 1px 2px rgba(15,23,42,.06);--shadow-2:0 8px 30px rgba(15,23,42,.08);}
   *{box-sizing:border-box;}
   html,body{margin:0;height:100%;overflow:hidden;font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;}
   #err{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;font:13px/1.4 monospace;padding:8px 12px;z-index:60;display:none;white-space:pre-wrap;}
-  .top{position:fixed;top:0;left:0;right:0;height:60px;display:flex;align-items:center;gap:13px;padding:0 20px;background:rgba(255,255,255,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);z-index:20;}
-  .top .mark{width:22px;height:22px;border-radius:7px;background:linear-gradient(135deg,#818cf8,#4338ca);box-shadow:0 3px 9px rgba(79,70,229,.45);flex:none;}
-  .top .brand{font-weight:800;letter-spacing:-.02em;white-space:nowrap;} .top .brand b{color:var(--obs);}
+  .top{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;gap:13px;padding:0 clamp(14px,3vw,22px);background:rgba(255,255,255,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);z-index:20;}
+  .top .brand{display:inline-flex;align-items:center;gap:9px;font-weight:800;letter-spacing:-.02em;white-space:nowrap;color:var(--ink);text-decoration:none;} .top .brand b{color:var(--obs);}
+  .top .brand .mark{width:23px;height:23px;flex:none;display:block;border-radius:7px;}
   .top .sub{color:var(--faint);font-size:.82rem;font-weight:500;white-space:nowrap;}
-  .top .search{margin-left:16px;flex:1;max-width:340px;position:relative;display:flex;align-items:center;}
+  .top .search{margin-left:16px;flex:1;max-width:320px;position:relative;display:flex;align-items:center;}
   .top .search .ic{position:absolute;left:11px;color:#9aa6b8;pointer-events:none;}
-  .top .search input{width:100%;border:1px solid var(--line);border-radius:11px;padding:9px 12px 9px 34px;font-size:.9rem;font-family:inherit;outline:none;background:#f6f8fc;transition:.15s;}
+  .top .search input{width:100%;border:1px solid var(--line);border-radius:var(--r-2);padding:9px 12px 9px 34px;font-size:.9rem;font-family:inherit;color:var(--ink);outline:none;background:#f6f8fc;transition:border-color .15s,background .15s,box-shadow .15s;}
   .top .search input:focus{border-color:var(--obs);background:#fff;box-shadow:0 0 0 3px rgba(79,70,229,.13);}
+  .top .nav{display:flex;align-items:center;gap:16px;margin-left:6px;}
+  .top .nav a{color:var(--ink2);font-size:.86rem;font-weight:600;white-space:nowrap;text-decoration:none;padding:5px 2px;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+  .top .nav a:hover{color:var(--obs);}
+  .top .nav a.active{color:var(--obs);border-bottom-color:var(--obs);}
+  .top .nav .ext::after{content:"\2197";font-size:.7em;vertical-align:super;opacity:.55;margin-left:1px;}
   .top .controls{margin-left:auto;display:flex;gap:9px;align-items:center;}
-  .top .btn{border:1px solid var(--line);background:#fff;border-radius:11px;padding:9px 16px;font-size:.85rem;font-weight:600;cursor:pointer;color:var(--ink2);transition:.15s;white-space:nowrap;}
+  .top .btn{border:1px solid var(--line);background:#fff;border-radius:var(--r-2);padding:9px 15px;font-size:.85rem;font-weight:600;cursor:pointer;color:var(--ink2);transition:background .15s,border-color .15s,color .15s;white-space:nowrap;}
   .top .btn:hover{background:#f1f4fb;border-color:#d6deea;}
   #cy{position:fixed;top:60px;left:0;right:0;bottom:0;
       background:radial-gradient(circle at 1px 1px,#e6ebf4 1px,transparent 0) -1px -1px/26px 26px,
@@ -77,7 +92,7 @@
   .codes .code .n{opacity:.55;font-weight:500;margin-left:5px;}
   .codes .code.on .n{opacity:.85;}
   /* provenance panel */
-  .panel{position:fixed;top:76px;right:18px;width:360px;max-height:calc(100vh - 96px);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 64px rgba(16,24,40,.18);padding:20px;z-index:18;display:none;}
+  .panel{position:fixed;top:72px;right:18px;width:360px;max-height:calc(100vh - 92px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:var(--r-3);box-shadow:0 16px 44px rgba(15,23,42,.14);padding:20px;z-index:18;display:none;}
   .panel .x{float:right;cursor:pointer;color:#cbd5e1;font-size:1.3rem;line-height:1;transition:.12s;} .panel .x:hover{color:#64748b;}
   .panel .sym{font-size:1.8rem;color:#312e81;}
   .panel .badge{display:inline-block;font-size:.58rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;border-radius:999px;padding:3px 9px;margin-left:10px;vertical-align:middle;}
@@ -137,19 +152,54 @@
   #fallback .fn .fk.observable{background:#eef2ff;color:#4338ca;} #fallback .fn .fk.hidden{background:#f1f5f9;color:#64748b;} #fallback .fn .fk.parameter{background:#f1f5f9;color:#64748b;}
   #fallback .fn .fe{color:#475569;font-size:.83rem;margin-top:6px;}
   #fallback .fn .fe .arw{color:#a3aec0;}
+  /* ---- mobile: bottom-sheet panel, horizontal code rail, tighter chrome ---- */
+  @media (max-width:768px){
+    .top{gap:9px;padding:0 12px;}
+    .top .sub{display:none;}
+    .top .nav{display:none;}          /* nav collapses on small screens; brand still links home */
+    .top .search{margin-left:10px;max-width:none;}
+    .top .btn{padding:8px 11px;font-size:.8rem;}
+    /* the side panel becomes a scrollable bottom sheet */
+    .panel{top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;
+      max-height:55vh;border-radius:var(--r-3) var(--r-3) 0 0;
+      box-shadow:0 -12px 36px rgba(15,23,42,.20);border-bottom:none;padding:18px 18px 22px;}
+    /* code rail: keep it a single horizontally scrollable strip above the sheet */
+    .codes{left:8px;right:8px;transform:none;max-width:none;bottom:12px;}
+    .legend{display:none;}            /* the legend crowds small screens; encoding is shown in-panel */
+    /* tour caption fits the viewport */
+    #tour{width:calc(100vw - 24px);bottom:70px;padding:15px 17px;}
+    #tour .tname{font-size:1.25rem;}
+    /* tier band headings shrink so columns stay legible when zoomed out */
+    .band .h{letter-spacing:0;}
+  }
+  /* focus-visible ring consistent with the rest of the site */
+  a:focus-visible,button:focus-visible,input:focus-visible,.node:focus-visible{outline:2px solid var(--obs);outline-offset:2px;}
+  @media (prefers-reduced-motion: reduce){
+    *{transition-duration:.001ms !important;}
+    /* the tour flight uses viewBox writes, not CSS animation; the panel/tip
+       transitions are the only motion, and they are disabled above. */
+  }
 </style>
 </head>
 <body>
 <div id="err"></div>
 <div class="top">
-  <span class="mark"></span>
-  <span class="brand">openmaterials<b>.ai</b></span>
-  <span class="sub">the unified layer of physics</span>
-  <span class="search"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input id="q" placeholder="Find a quantity"></span>
+  <a class="brand" href="../index.html" aria-label="openmaterials home">
+    <svg class="mark" width="23" height="23" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><g stroke="#fff" stroke-width="3.4" stroke-linecap="round" fill="none" opacity=".92"><line x1="19" y1="20" x2="41" y2="32"/><line x1="41" y1="32" x2="19" y2="45"/></g><g fill="#fff"><circle cx="19" cy="20" r="6.2"/><circle cx="41" cy="32" r="6.2"/><circle cx="19" cy="45" r="6.2"/></g></svg>
+    <span>openmaterials<b>.ai</b></span>
+  </a>
+  <span class="search"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input id="q" placeholder="Find a quantity" aria-label="Find a quantity on the map"></span>
+  <nav class="nav" aria-label="Primary">
+    <a href="../map/" class="active" aria-current="page">Map</a>
+    <a href="../pipeline.html">Pipeline</a>
+    <a href="../learn/">Learn</a>
+    <a href="../openmaterials.pdf">Document</a>
+    <a href="https://github.com/gbarbalinardo/openmaterials" class="ext" target="_blank" rel="noopener">GitHub</a>
+  </nav>
   <span class="controls">
-    <button class="btn" id="depthBtn" onclick="cycleDepth()">Expand</button>
-    <button class="btn" id="tourBtn" onclick="startTour()">Tour</button>
-    <button class="btn" onclick="fitAll()">Fit</button>
+    <button class="btn" id="depthBtn" onclick="cycleDepth()" aria-label="Toggle overview and expanded depth">Expand</button>
+    <button class="btn" id="tourBtn" onclick="startTour()" aria-label="Start the guided tour">Tour</button>
+    <button class="btn" onclick="fitAll()" aria-label="Fit the whole graph in view">Fit</button>
   </span>
 </div>
 <div id="banner"></div>
@@ -179,8 +229,8 @@
 <div id="fallback"></div>
 
 <script>window.onerror=function(m){var e=document.getElementById('err');e.style.display='block';e.textContent='Error: '+m;};</script>
-<script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="../assets/vendor/dagre.min.js"></script>
+<script src="../assets/vendor/katex/katex.min.js"></script>
 <script>
 "use strict";
 // ============================================================================

@@ -3,10 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>openmaterials.ai — derivation tracer</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<title>openmaterials: derivation tracer</title>
+<meta name="description" content="Trace how any quantity is built and where it flows through the openmaterials graph.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="openmaterials">
+<meta property="og:title" content="openmaterials: derivation tracer">
+<meta property="og:description" content="Click any quantity to light up how it is built and where it flows.">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../assets/vendor/katex/katex.min.css">
+<link rel="stylesheet" href="../assets/vendor/inter/inter.css">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
   :root{
     --bg:#080b13; --bg2:#0d1220; --grid:#121a2c;
     --rest:#243049;        /* node at rest */
@@ -24,8 +32,8 @@
   #err{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;font:13px/1.4 monospace;padding:8px 12px;z-index:40;display:none;white-space:pre-wrap;}
   .top{position:fixed;top:0;left:0;right:0;height:58px;display:flex;align-items:center;gap:14px;padding:0 20px;
     background:rgba(8,11,19,.72);backdrop-filter:blur(14px);border-bottom:1px solid #161e30;z-index:10;}
-  .top .mark{width:20px;height:20px;border-radius:6px;background:linear-gradient(135deg,#7c93ff,#38e0b0);box-shadow:0 0 16px rgba(124,147,255,.5);}
-  .top .brand{font-weight:800;letter-spacing:-.02em;color:#fff;} .top .brand b{color:var(--down);}
+  .top .brand{display:inline-flex;align-items:center;gap:9px;font-weight:800;letter-spacing:-.02em;color:#fff;text-decoration:none;} .top .brand b{color:var(--down);}
+  .top .mark{width:20px;height:20px;flex:none;display:block;border-radius:6px;box-shadow:0 0 16px rgba(124,147,255,.4);}
   .top .sub{color:var(--faint);font-size:.8rem;font-weight:500;}
   .top .search{margin-left:12px;flex:1;max-width:320px;position:relative;display:flex;align-items:center;}
   .top .search .ic{position:absolute;left:11px;color:#46536e;pointer-events:none;}
@@ -34,8 +42,14 @@
   .top .search input:focus{border-color:var(--down);box-shadow:0 0 0 3px rgba(124,147,255,.16);}
   .top .hint{margin-left:auto;color:var(--muted);font-size:.78rem;display:flex;gap:14px;align-items:center;}
   .top .hint kbd{background:#0e1626;border:1px solid #1c2740;border-radius:6px;padding:2px 7px;font:600 .72rem 'Inter';color:#b9c4da;}
-  .top .btn{border:1px solid #1c2740;background:#0e1626;border-radius:10px;padding:7px 13px;font-size:.82rem;font-weight:600;cursor:pointer;color:#b9c4da;transition:.15s;}
-  .top .btn:hover{border-color:var(--down);color:#fff;}
+  .top .btn{border:1px solid #1c2740;background:#0e1626;border-radius:10px;padding:7px 13px;font-size:.82rem;font-weight:600;cursor:pointer;color:#b9c4da;transition:.15s;text-decoration:none;display:inline-flex;align-items:center;}
+  .top .btn:hover{border-color:var(--down);color:#fff;text-decoration:none;}
+  a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--down);outline-offset:2px;}
+  @media (max-width:768px){
+    .top{gap:9px;padding:0 12px;} .top .sub{display:none;} .top .hint span{display:none;}
+    .top .search{margin-left:8px;} .panel{top:auto;left:0;right:0;bottom:0;width:auto;max-height:55vh;border-radius:16px 16px 0 0;}
+  }
+  @media (prefers-reduced-motion: reduce){ *{transition-duration:.001ms !important;} .edge.flow{animation:none !important;} }
   #cy{position:fixed;top:58px;left:0;right:0;bottom:0;
       background:radial-gradient(circle at 1px 1px,var(--grid) 1px,transparent 0) -1px -1px/30px 30px,
                  radial-gradient(1200px 700px at 70% 8%, #101a30 0%, transparent 60%),
@@ -103,11 +117,13 @@
 <body>
 <div id="err"></div>
 <div class="top">
-  <span class="mark"></span>
-  <span class="brand">openmaterials<b>.ai</b></span>
+  <a class="brand" href="../index.html" aria-label="openmaterials home">
+    <svg class="mark" width="20" height="20" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="15" fill="#4f46e5"/><g stroke="#fff" stroke-width="3.4" stroke-linecap="round" fill="none" opacity=".92"><line x1="19" y1="20" x2="41" y2="32"/><line x1="41" y1="32" x2="19" y2="45"/></g><g fill="#fff"><circle cx="19" cy="20" r="6.2"/><circle cx="41" cy="32" r="6.2"/><circle cx="19" cy="45" r="6.2"/></g></svg>
+    <span>openmaterials<b>.ai</b></span>
+  </a>
   <span class="sub">derivation tracer</span>
-  <span class="search"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input id="q" placeholder="Find a quantity…"></span>
-  <span class="hint"><span><kbd>click</kbd> trace lineage</span><span><kbd>shift</kbd>+click path A→B</span><button class="btn" onclick="resetAll()">Reset</button></span>
+  <span class="search"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input id="q" placeholder="Find a quantity…" aria-label="Find a quantity to trace"></span>
+  <span class="hint"><span><kbd>click</kbd> trace lineage</span><span><kbd>shift</kbd>+click path A&rarr;B</span><a class="btn" href="../map/">Map</a><button class="btn" onclick="resetAll()">Reset</button></span>
 </div>
 <div id="cy"><svg id="svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
   <defs>
@@ -127,8 +143,8 @@
 <div class="panel" id="panel"></div>
 
 <script>window.onerror=function(m){var e=document.getElementById('err');e.style.display='block';e.textContent='Error: '+m;};</script>
-<script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="../assets/vendor/dagre.min.js"></script>
+<script src="../assets/vendor/katex/katex.min.js"></script>
 <script>
 const svg=document.getElementById('svg'), vp=document.getElementById('vp'), measure=document.getElementById('measure');
 let VB={x:0,y:0,w:1000,h:1000}, GW=1000, GH=1000;
