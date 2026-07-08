@@ -38,11 +38,17 @@ from omai.thermal_transport import representation as representation_pkg
 from omai.thermal_transport.operator import EDGES, NODES
 
 
+# Per-code lane colors, retoned to the site's editorial family: one shared
+# lightness/saturation discipline (muted, warm-leaning), so the codes stay
+# distinguishable but sit on the warm-paper canvas as one publication. Every
+# value clears AA-large (>= 3:1) both as colored text on white/paper and as
+# white text on a solid chip. See _ADAPTER_COLORS for qe and any adapter that
+# has no lane column of its own.
 _PIPELINES = [
     {
         "id": "operator",
         "label": "Operator",
-        "color": "#1F2937",
+        "color": "#16181d",            # ink: the primary operator lane
         "adapters": [],
         "is_operator": True,
     },
@@ -50,28 +56,28 @@ _PIPELINES = [
     {
         "id": "kaldo",
         "label": "kaldo",
-        "color": "#DC2626",
+        "color": "#b4462d",            # warm terracotta
         "adapters": ["kaldo"],
         "is_operator": False,
     },
     {
         "id": "phono3py",
         "label": "phono3py",
-        "color": "#059669",            # emerald
+        "color": "#1f7a5c",            # muted green
         "adapters": ["phono3py"],
         "is_operator": False,
     },
     {
         "id": "phonopy",
         "label": "phonopy",
-        "color": "#0891B2",            # cyan-teal, adjacent to phono3py
+        "color": "#16748f",            # teal, adjacent to phono3py
         "adapters": ["phonopy"],
         "is_operator": False,
     },
     {
         "id": "shengbte",
         "label": "shengbte",
-        "color": "#7C3AED",
+        "color": "#6d4fc4",            # muted violet
         "adapters": ["shengbte"],
         "is_operator": False,
     },
@@ -79,25 +85,34 @@ _PIPELINES = [
     {
         "id": "ase",
         "label": "ase",
-        "color": "#F59E0B",            # amber, protocol-level Potential anchor
+        "color": "#a8770f",            # ochre, protocol-level Potential anchor
         "adapters": ["ase"],
         "is_operator": False,
     },
     {
         "id": "lammps",
         "label": "lammps",
-        "color": "#EA580C",            # orange, adjacent to ase (LAMMPS-via-ASE shares the row)
+        "color": "#c05a1e",            # burnt orange, adjacent to ase
         "adapters": ["lammps"],
         "is_operator": False,
     },
     {
         "id": "gpumd",
         "label": "gpumd",
-        "color": "#DB2777",            # pink/magenta, standalone CUDA-MD code
+        "color": "#a83a68",            # muted magenta, standalone CUDA-MD code
         "adapters": ["gpumd"],
         "is_operator": False,
     },
 ]
+
+
+# Adapters that have representation specs but no lane column of their own still
+# appear in the details panel (coverage chips, adapter sections). Give them a
+# color from the same editorial family so nothing falls back to gray.
+_ADAPTER_COLORS = {
+    "qe": "#3b5bd9",                   # indigo, the DFT ground-state code
+    "mat-diffusion-analysis": "#557a2e",  # olive (materials-domain, if discovered)
+}
 
 
 # ---------------------------------------------------------------------------
@@ -861,27 +876,25 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
 <meta property="og:title" content="openmaterials: thermal-transport pipeline">
 <meta property="og:description" content="The thermal-transport DAG across codes, side by side over the shared operator layer.">
 <meta name="twitter:card" content="summary">
-<link rel="stylesheet" href="assets/vendor/inter/inter.css">
-<link rel="stylesheet" href="assets/vendor/source-serif-4/source-serif-4.css">
-<link rel="stylesheet" href="assets/vendor/jetbrains-mono/jetbrains-mono.css">
 <link rel="stylesheet" href="assets/vendor/katex/dist/katex.min.css">
+<link rel="stylesheet" href="assets/site.css">
 <style>
+  /* The pipeline consumes the shared library (site.css): fonts + tokens, the
+     .om-header / .om-nav chrome, .om-btn, selection, scrollbar, focus-visible,
+     and reduced-motion are defined once there. This block keeps only the
+     page-specific layout (the diagram surface, the details rail + tables, the
+     legend, the stage/extension chrome). Local aliases below map the page's
+     token names onto the shared tokens so the existing rules keep working. */
   :root {{
-    --bg: #fbfaf8;
-    --surface: #FFFFFF;
-    --border: #e8e6e1;
+    --border: var(--line);
     --border-strong: #cbd5e1;
-    --text: #16181d;
-    --text-secondary: #3d4149;
-    --text-muted: #6b7078;
-    --accent: #4f46e5;
-    --accent-soft: #eef2ff;
-    --observable: #4f46e5;
+    --text: var(--ink);
+    --text-secondary: var(--ink-2);
+    --text-muted: var(--muted);
+    --observable: var(--accent);
     --hidden: #94A3B8;
     --code-bg: #f1efe9;
-    --font-serif: 'Source Serif 4', Georgia, 'Times New Roman', serif;
-    --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
-    --shadow-sm: 0 1px 0 rgba(22,24,29,.04);
+    --shadow-sm: var(--shadow-head);
   }}
   * {{ box-sizing: border-box; }}
   html, body {{ margin: 0; padding: 0; }}
@@ -895,20 +908,7 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
     -webkit-font-smoothing: antialiased;
   }}
   a {{ color: #4338ca; }}
-  .om-header {{
-    position: sticky; top: 0; z-index: 40;
-    height: 56px; display: flex; align-items: center; gap: 18px;
-    padding: 0 1.5rem;
-    background: rgba(255,255,255,.85); backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-  }}
-  .om-header .om-brand {{ display: inline-flex; align-items: center; gap: 7px; font-family: var(--font-serif); font-weight: 700; font-size: 1.06rem; letter-spacing: -.01em; color: var(--text); text-decoration: none; }}
-  .om-header .om-brand .om-dot {{ width: 6px; height: 6px; border-radius: 50%; background: var(--accent); display: inline-block; margin-bottom: .28em; }}
-  .om-header nav {{ margin-left: auto; display: flex; align-items: center; gap: 20px; }}
-  .om-header nav a {{ font-family: 'Inter', sans-serif; color: var(--text-secondary); font-size: .86rem; font-weight: 500; text-decoration: none; padding: 6px 0; border-bottom: 2px solid transparent; }}
-  .om-header nav a:hover {{ color: var(--text); }}
-  .om-header nav a.active {{ color: var(--text); border-bottom-color: var(--accent); }}
-  @media (max-width: 720px) {{ .om-header nav {{ display: none; }} }}
+  /* .om-header / .om-brand / .om-nav come from site.css (single definition). */
   header.pagehead {{
     background: var(--bg);
     border-bottom: 1px solid var(--border);
@@ -1193,16 +1193,10 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
     #details-rail {{ position: static; max-height: none; }}
   }}
   @media (max-width: 640px) {{
-    .om-header nav {{ display: none; }}
     header.pagehead {{ padding: 0.85rem 1rem 0.6rem; }}
     .stats {{ font-size: 0.72rem; }}
   }}
-  a:focus-visible, button:focus-visible, .node-row:focus-visible {{
-    outline: 2px solid var(--accent); outline-offset: 2px;
-  }}
-  @media (prefers-reduced-motion: reduce) {{
-    * {{ transition-duration: 0.001ms !important; }}
-  }}
+  /* focus-visible, selection, scrollbar, and reduced-motion come from site.css */
 </style>
 <script defer src="assets/vendor/katex/dist/katex.min.js"></script>
 <script defer src="assets/vendor/katex/dist/contrib/auto-render.min.js"></script>
@@ -1213,7 +1207,7 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
   <a class="om-brand" href="index.html" aria-label="openmaterials home">
     <span>openmaterials</span><span class="om-dot" aria-hidden="true"></span>
   </a>
-  <nav aria-label="Primary">
+  <nav class="om-nav" aria-label="Primary">
     <a href="map/">Map</a>
     <a href="pipeline.html" class="active" aria-current="page">Pipeline</a>
     <a href="learn/">Learn</a>
@@ -1600,7 +1594,8 @@ document.addEventListener('DOMContentLoaded', () => {{
 def render_html(output_path: Path | str) -> Path:
     state_specs, op_specs = _collect_specs()
     adapter_order = sorted(set(state_specs.keys()) | set(op_specs.keys()))
-    # Adapter colors mirror the per-pipeline palette where possible.
+    # Adapter colors mirror the per-pipeline palette where possible; adapters
+    # with no lane column fall back to the editorial _ADAPTER_COLORS, then gray.
     colors: dict[str, str] = {}
     for a in adapter_order:
         for p in _PIPELINES:
@@ -1608,7 +1603,7 @@ def render_html(output_path: Path | str) -> Path:
                 colors[a] = p["color"]
                 break
         else:
-            colors[a] = "#9CA3AF"
+            colors[a] = _ADAPTER_COLORS.get(a, "#9CA3AF")
 
     layers = _compute_layers()
     layout = _compute_layout(layers)
