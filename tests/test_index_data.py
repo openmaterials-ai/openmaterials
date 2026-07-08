@@ -66,7 +66,10 @@ def test_write_index_emits_one_file_per_representation(tmp_path):
     files = sorted(p.name for p in codes_dir.glob("*.json"))
     reps = sorted(build_codes(DOMAINS).keys())
     assert files == [f"{r}.json" for r in reps]
-    assert len(files) == 9
+    # One file per representation; the count grows as domains add codes /
+    # skills (the mechanics domain added the mat-elasticity skill, 10th rep).
+    assert len(files) == len(reps)
+    assert len(files) == 10
 
 
 def test_each_index_entry_uid_matches_live_node_id(tmp_path):
@@ -94,7 +97,8 @@ def test_qe_and_lammps_coverage_counts(tmp_path):
     # Counts derive from the live domain set, so the next domain does not
     # re-break this test: each representation's covers must equal its live
     # build_codes entry (qe grew from 9 to 13 when the DFT ground-state domain
-    # added Structure / TotalEnergy / Forces / Stress; lammps stays 9).
+    # added Structure / TotalEnergy / Forces / Stress; lammps grew from 9 to 11
+    # when the mechanics domain added the ELASTIC and pressure specs).
     write_index(tmp_path)
     codes = build_codes(DOMAINS)
     for rep in ("qe", "lammps"):
@@ -103,7 +107,7 @@ def test_qe_and_lammps_coverage_counts(tmp_path):
         assert len(doc["covers"]) == len(codes[rep]), \
             f"{rep} covers {len(doc['covers'])}, live build_codes says {len(codes[rep])}"
     assert len(codes["qe"]) == 13
-    assert len(codes["lammps"]) == 9
+    assert len(codes["lammps"]) == 11
 
 
 def test_index_covers_sorted_by_node(tmp_path):
