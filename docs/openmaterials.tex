@@ -251,10 +251,12 @@ workflow), and a validation engine that executes the graph, composes
 edges symbolically, and cross-checks redundant routes. Units reconcile
 automatically from the typed dimensions, and a dimensional gate checks every
 closed-form edge mechanically. The worked domains are lattice thermal
-transport (46 quantities, 47 operators) and a first materials-diffusion
-subgraph; the unified map of 51 quantities and 49 operators is
-content-addressed and frozen at a genesis version in the log-first store
-(Part~\ref{part:kernel}), and the whole is held together by a suite of 817
+transport (46 quantities, 47 operators), the Quantum ESPRESSO DFT ground
+state (4 quantities, 3 operators, the first contribution to land through the
+protocol gates), and a first materials-diffusion subgraph; the unified map of
+55 quantities and 52 operators is content-addressed in the log-first store
+(Part~\ref{part:kernel}), grown past its frozen genesis version through the
+contribution gates, and the whole is held together by a suite of 875
 passing tests.
 
 What is next is mostly upward and outward. The upstream from the
@@ -345,8 +347,8 @@ and its result is a value on a node.
 
 \section{The map}
 
-The map is a curated reference graph. Today it holds 51 nodes (48 observable
-and hidden quantities plus 3 promoted parameters) and 131 edges. Nodes are
+The map is a curated reference graph. Today it holds 55 nodes (52 observable
+and hidden quantities plus 3 promoted parameters) and 137 edges. Nodes are
 typed physical quantities. An edge produces one node from a list of input
 nodes, carrying the symbolic formula that relates them (parameter inputs are
 marked as inputs rather than derived through a formula).
@@ -2106,7 +2108,7 @@ The kernel was built before bulk growth from code scans, and deliberately so.
 Identity hashes include a node's dimension, gauge class, and index signature. Had
 those changed representation later, for instance flat dimension tags becoming
 composable exponent vectors, every hash in the map would re-mint on day one of
-the protocol. The map is small enough today (51 nodes, 49 deduplicated edges) to
+the protocol. The map is small enough today (55 nodes, 52 deduplicated edges) to
 verify the genesis migration by hand; after a Quantum ESPRESSO scan it would not
 be.
 
@@ -2138,8 +2140,8 @@ right-hand side wherever every symbol's dimension is known, drawn from the
 per-space fields and the edge parameters. This is the mechanical form of
 Part~\ref{part:product}'s first validation rule (``dimensional agreement on every
 edge''), and it is the cheapest strong filter for everything the parsers will
-later propose. On the current unified map the gate classifies the 49 edges as
-\textbf{19 ok}, \textbf{2 documented-schematic violations}, and \textbf{28
+later propose. On the current unified map the gate classifies the 52 edges as
+\textbf{21 ok}, \textbf{2 documented-schematic violations}, and \textbf{29
 skipped} (edges whose formula is not a closed-form \texttt{Eq} the gate can
 check, such as implicit solves and procedural fits). The two violations are
 \texttt{compute\_gruneisen} and \texttt{compute\_phase\_space\_3phonon}, kept
@@ -2344,11 +2346,17 @@ The frozen genesis version hash, held in \texttt{map/GENESIS}, is
 \texttt{e6e8044e92039696417b53b220b0f3f10559a286b0eaabbe7ea4167ff510f6cd}
 \end{quote}
 produced by the deterministic migration on the genesis date \textbf{2026-07-07},
-covering \textbf{51 nodes, 49 edges, 100 records}. A repository-state test asserts
-that the committed artifact still matches a fresh \texttt{run\_genesis}: it is the
-drift alarm between the Python authoring layer and the frozen store, and the
-acceptance test replays the log and asserts the materialized view equals the graph
-the Python layer generates.
+covering \textbf{51 nodes, 49 edges, 100 records}. Genesis is the frozen prefix,
+not the head: a repository-state test replays the first 100 committed records and
+asserts they reproduce the \texttt{GENESIS} hash exactly, while the
+Python-vs-store drift alarm is the sync-clean check (\texttt{python -m omai.sync}
+proposing nothing on a pristine repository). The store has since had its first
+two live uses of the protocol: record 101, an \texttt{edit\_meta} unifying the
+BareDynamicalMatrix display symbol, and records 102-108, the DFT ground-state
+domain (Structure, TotalEnergy, Forces, Stress and their three producing
+operators), proposed by the sync tool and admitted through all six gates. Both
+landed as ordinary change records on top of the untouched genesis prefix, which
+is exactly the accumulation the kernel was built to support.
 
 \paragraph{Instance uid pinning.} Instances are additive JSON that attach a value
 to a node. Each instance pins to an exact element by node uid, so the genesis
@@ -2461,17 +2469,23 @@ contribution passes through \texttt{Store.propose} before any record lands, and
 the \texttt{python -m omai.sync} tool that diffs the Python operator layer
 against \texttt{map/current} and proposes change records (dry by default, a
 gated apply for additions and metadata edits, re-mints always routed through an
-explicit supersede). What remains, in order:
+explicit supersede). P5 is done in its minimal honest form: the map page shows
+each node's content-hash prefix on the provenance panel and the store head
+version it renders from (a \texttt{docs/data/version.json} stamp written next to
+the graph data), and the index pins every coverage file to the head at
+generation time. The Quantum ESPRESSO DFT ground-state domain landed through the
+gates as records 102-108: the first contribution pushed through the store, the
+worked example the kernel was built for, validated by the Si cross-check per the
+\texttt{ingest\_code} discipline of Appendix~\ref{app:ingest} (verify the fresh
+code against a trusted one on the same material before any single-code result is
+trusted). What remains, in order:
 \begin{itemize}[leftmargin=2em, itemsep=0.2em]
-  \item \textbf{P5: site wiring.} \texttt{docs/data/graph.json} gains its
-        \texttt{id} field so the interactive map and \texttt{docs/pipeline.html}
-        render from the store's materialized view.
-  \item \textbf{The Quantum ESPRESSO DFT ground-state domain}, the first
-        contribution pushed through the store, becomes the worked example of a
-        full index entry (structure, values, and coverage pinned to element
-        hashes at a map version). It follows the \texttt{ingest\_code} discipline
-        of Appendix~\ref{app:ingest}: verify the fresh code against a trusted one
-        on the same material before any single-code result is trusted.
+  \item \textbf{The parsers}, the automated on-ramp (code, paper, run), each its
+        own spec, plan, and build cycle.
+  \item \textbf{Further domains through the same gates}: the deferred
+        ground-state quantities (ChargeDensity, Wavefunctions, dvscf), the
+        finite-difference Forces $\to$ force-constants route, and the
+        \texttt{mat-*} bulk encode.
 \end{itemize}
 
 % =====================================================================
@@ -2482,29 +2496,35 @@ explicit supersede). What remains, in order:
 \section{Where the map is today}
 \label{sec:status-live}
 
-The map is at its genesis version, frozen at hash
+The map is at store head version
+\texttt{b498ec02daa41c7fc8a885fd5231a8343d07e449a1f42b67aa6ff0794c4c0d64}
+(2026-07-08, 108 records), eight change records past the frozen genesis hash
 \texttt{e6e8044e92039696417b53b220b0f3f10559a286b0eaabbe7ea4167ff510f6cd}
-(2026-07-07). The live numbers:
+(2026-07-07, the untouched 100-record prefix). The live numbers:
 
 \begin{itemize}[leftmargin=2em, itemsep=0.25em]
-  \item \textbf{Structure.} 51 nodes (48 observable and hidden quantities plus 3
-        promoted parameters), 131 rendered links, 49 deduplicated operators. The
+  \item \textbf{Structure.} 55 nodes (52 observable and hidden quantities plus 3
+        promoted parameters), 137 rendered links, 52 deduplicated operators. The
         rendered-link count exceeds the operator count because the site graph
         draws one link per (input $\to$ output) pair while an operator with
         several inputs is a single edge in the store.
   \item \textbf{Representations.} 9 codes mapped, with per-code variable coverage:
-        kaldo 32, phono3py 31, ShengBTE 20, phonopy 17, Quantum ESPRESSO 9,
+        kaldo 32, phono3py 31, ShengBTE 20, phonopy 17, Quantum ESPRESSO 13,
         LAMMPS 9, GPUMD 8, mat-diffusion-analysis 2, ASE 1.
-  \item \textbf{Instances.} 9 recorded values, 7 simulation and 2 measurement.
+  \item \textbf{Instances.} 11 recorded values, 9 simulation and 2 measurement.
+        The two newest are the first Quantum ESPRESSO values from the Si
+        cross-check (the SCF total energy and the $\Gamma$ optical frequency).
         The two measurements are the Glassbrenner--Slack 1964 steady-state
         thermal conductivities of bulk single-crystal silicon
         ($156\,\mathrm{W/(m\,K)}$) and germanium ($60.2\,\mathrm{W/(m\,K)}$) at
         $300\,\mathrm{K}$ and natural isotopic abundance.
-  \item \textbf{Dimensional gate.} Of the 49 edges, 19 are ok, 2 are
+  \item \textbf{Dimensional gate.} Of the 52 edges, 21 are ok, 2 are
         documented-schematic violations (\texttt{compute\_gruneisen} and
-        \texttt{compute\_phase\_space\_3phonon}, kept schematic by choice), and 28
-        are skipped (not closed-form \texttt{Eq} edges the gate can check).
-  \item \textbf{Tests.} The suite is 817 passing.
+        \texttt{compute\_phase\_space\_3phonon}, kept schematic by choice), and 29
+        are skipped (not closed-form \texttt{Eq} edges the gate can check). The
+        two ground-state derivatives (\texttt{compute\_forces\_hf} and
+        \texttt{compute\_stress\_cell}) are proven ok.
+  \item \textbf{Tests.} The suite is 875 passing.
 \end{itemize}
 
 \begin{center}
@@ -2516,7 +2536,7 @@ kaldo                   & 32 \\
 phono3py                & 31 \\
 ShengBTE                & 20 \\
 phonopy                 & 17 \\
-Quantum ESPRESSO        & 9 \\
+Quantum ESPRESSO        & 13 \\
 LAMMPS                  & 9 \\
 GPUMD                   & 8 \\
 mat-diffusion-analysis  & 2 \\
@@ -2537,14 +2557,19 @@ order from here:
         \texttt{Store.propose}, and \texttt{python -m omai.sync} proposes
         change records from the operator layer for review
         (Part~\ref{part:kernel}).
-  \item \textbf{P5}: wire the site to render from the store's materialized view
-        (\texttt{docs/data/graph.json} already carries the \texttt{uid} field;
-        the map page displays it).
-  \item \textbf{The Quantum ESPRESSO DFT ground-state domain}, the first
-        contribution pushed through the store and the worked example of a full
-        index entry.
+  \item \textbf{P5 (built)}: the site renders from the store's materialized
+        view and shows its provenance: each node's uid prefix on the map panel
+        and the store head version on the legend, stamped by
+        \texttt{docs/data/version.json}; the index pins coverage to the head at
+        generation time.
+  \item \textbf{The Quantum ESPRESSO DFT ground-state domain (done)}: the first
+        contribution through the gates (records 102-108), validated by the Si
+        cross-check (\texttt{experiments/qe\_si\_crosscheck}), with the first QE
+        instances attached to the map.
   \item \textbf{The parsers}, the eventual automated on-ramp (code, paper, run),
         each its own spec, plan, and build cycle.
+  \item \textbf{Further domains and the \texttt{mat-*} bulk encode}, growing the
+        map through the same gates.
   \item \textbf{The app}, once the protocol and a rich mother map exist.
 \end{enumerate}
 

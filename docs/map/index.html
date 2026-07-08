@@ -84,6 +84,8 @@
   .panel .badge.observable{background:var(--obs);} .panel .badge.hidden{background:#94a3b8;} .panel .badge.parameter{background:#64748b;}
   .panel .tiertag{display:inline-block;font-size:.62rem;font-weight:700;color:#6b7796;background:#eef2fb;border:1px solid #dbe3f2;border-radius:999px;padding:3px 9px;margin-left:8px;vertical-align:middle;}
   .panel .name{color:#64748b;font-size:.82rem;margin:.55em 0 .1em;word-break:break-word;}
+  .panel .uid{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.66rem;color:#a3aec0;margin-left:8px;vertical-align:middle;}
+  .legend .ver{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.7rem;color:#a3aec0;}
   .lab{font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;color:#a3aec0;margin:17px 0 7px;font-weight:700;}
   .formula{background:linear-gradient(180deg,#fafbff,#f3f6fc);border:1px solid var(--line);border-radius:12px;padding:13px 12px;overflow-x:auto;}
   .formula code{font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;font-size:.82rem;color:#334155;white-space:pre-wrap;word-break:break-word;}
@@ -167,6 +169,8 @@
   <span class="g">values</span>
   <span><i class="sw" style="background:#e9f9f1;border:1.5px solid var(--green)"></i>simulation</span>
   <span><i class="sw" style="background:#fdf2e3;border:1.5px solid var(--gold)"></i>measurement</span>
+  <span class="sep" id="versep" style="display:none"></span>
+  <span id="mapver" style="display:none"><span class="g">map</span>&nbsp;<span class="ver" id="mapverhash"></span></span>
 </div>
 <div class="codes" id="codes"><span class="lab2">codes</span></div>
 <div class="panel" id="panel"></div>
@@ -221,11 +225,19 @@ function attr(s){ return (''+s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').rep
 Promise.all([
   fetch('../data/graph.json?v='+Date.now()).then(r=>r.json()),
   fetch('../data/instances.json?v='+Date.now()).then(r=>r.json()).catch(()=>[]),
-  fetch('../data/codes.json?v='+Date.now()).then(r=>r.json()).catch(()=>({}))
+  fetch('../data/codes.json?v='+Date.now()).then(r=>r.json()).catch(()=>({})),
+  fetch('../data/version.json?v='+Date.now()).then(r=>r.json()).catch(()=>null)
 ]).then(build).catch(e=> err('data: '+e));
 
-function build([graph, insts, codes]){
+function build([graph, insts, codes, version]){
   codesData = codes || {};
+  if(version && version.version){
+    const vh=document.getElementById('mapverhash');
+    vh.textContent=(''+version.version).slice(0,12);
+    vh.title='store head '+version.version+(version.genesis?('\ngenesis '+version.genesis):'');
+    document.getElementById('mapver').style.display='';
+    document.getElementById('versep').style.display='';
+  }
   (insts||[]).forEach(it=>{ (byVar[it.variable]=byVar[it.variable]||[]).push(it); });
   graph.nodes.forEach(n=>{ nodeById[n.id]=n; symHtml[n.id]=tex(n.symbol); });
 
@@ -420,7 +432,7 @@ function selectNode(node){
   const ins=parents[id]||[], outs=children[id]||[];
   let h='<span class="x" onclick="clearSel()">×</span>';
   h+='<div><span class="sym">'+tex(node.symbol)+'</span><span class="badge '+node.type+'">'+esc(node.type)+'</span></div>';
-  h+='<div class="name">'+esc(node.id)+'<span class="tiertag">'+esc(node.tier||'Other')+'</span></div>';
+  h+='<div class="name">'+esc(node.id)+'<span class="tiertag">'+esc(node.tier||'Other')+'</span>'+(node.uid?('<span class="uid" title="'+attr(node.uid)+'">'+esc((''+node.uid).slice(0,12))+'</span>'):'')+'</div>';
   const fl=(node.formulas&&node.formulas.length)?node.formulas:(node.formula?[{op:'',latex:node.formula}]:[]);
   if(!fl.length){ h+='<div class="lab">formula on the producing edge</div><div class="formula"><span class="muted">source (provided value)</span></div>'; }
   else if(fl.length===1){ h+='<div class="lab">formula on the producing edge</div><div class="formula">'+tex(fl[0].latex,true)+'</div>'; }

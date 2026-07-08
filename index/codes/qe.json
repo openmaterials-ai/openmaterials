@@ -1,6 +1,6 @@
 {
  "representation": "qe",
- "map_version": "e6e8044e92039696417b53b220b0f3f10559a286b0eaabbe7ea4167ff510f6cd",
+ "map_version": "b498ec02daa41c7fc8a885fd5231a8343d07e449a1f42b67aa6ff0794c4c0d64",
  "covers": [
   {
    "node": "BareDynamicalMatrix",
@@ -39,6 +39,12 @@
    "unit": "Ry_per_bohr2"
   },
   {
+   "node": "Forces",
+   "uid": "9c5a2fdedab6b668ccf5f2043fb4c29a982bcde5063fd6ac8633ee2c7858ecbf",
+   "api": "pw.x stdout 'Forces acting on atoms (cartesian axes, Ry/au):' block (tprnfor=.true.)",
+   "unit": "Ry_per_bohr"
+  },
+  {
    "node": "Frequency",
    "uid": "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8",
    "api": "matdyn.x flfrq (matdyn.freq); ph.x fildyn tail",
@@ -55,6 +61,24 @@
    "uid": "80a4273845e09207860e06db18d1f1ee5670a9b9c8b1020a99928c872878f901",
    "api": "&SYSTEM input_dft + ATOMIC_SPECIES pseudopotentials",
    "unit": null
+  },
+  {
+   "node": "Stress",
+   "uid": "183e66d4e443326d2c346a0327cdb125026bd8f6a91a9bb97b61265fcade7e85",
+   "api": "pw.x stdout 'total   stress  (Ry/bohr**3) ... (kbar)  P=' block (tstress=.true.)",
+   "unit": "kbar"
+  },
+  {
+   "node": "Structure",
+   "uid": "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239",
+   "api": "pw.x input cards CELL_PARAMETERS / ATOMIC_POSITIONS / ATOMIC_SPECIES",
+   "unit": null
+  },
+  {
+   "node": "TotalEnergy",
+   "uid": "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+   "api": "pw.x stdout '!    total energy = ... Ry'; XML total_energy element",
+   "unit": "ry"
   }
  ]
 }

@@ -7,8 +7,8 @@ hash at a specific map version.
 - `codes/`: one file per code representation, present now. Each
   `codes/<rep>.json` is `{representation, map_version, covers}`, where `covers`
   lists the nodes the code maps, each carrying the node uid, the code's API
-  name, and its declared unit, sorted by node, and `map_version` is the frozen
-  genesis hash from `map/GENESIS`.
+  name, and its declared unit, sorted by node, and `map_version` is the store
+  head at generation time (the version the coverage was computed against).
 - `papers/` and `experiments/` arrive with their first entries later.
 
 Files here are generated, never hand-edited: run `python -m omai.index_data`.

@@ -316,8 +316,25 @@ def write_catalog(path: Path | None = None) -> Path:
     return path
 
 
+def write_version(path: Path | None = None) -> Path:
+    """Write the P5 provenance stamp the site reads: the store head the data
+    was generated against, next to the frozen genesis hash."""
+    from omai.store import Store
+
+    path = path or (_DOCS / "data" / "version.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    store_root = Path(__file__).resolve().parents[1] / "map"
+    payload = {
+        "version": Store(store_root).head,
+        "genesis": (store_root / "GENESIS").read_text().strip(),
+    }
+    path.write_text(json.dumps(payload))
+    return path
+
+
 if __name__ == "__main__":
     print("wrote", write_graph())
     print("wrote", write_instances())
     print("wrote", write_codes())
     print("wrote", write_catalog())
+    print("wrote", write_version())

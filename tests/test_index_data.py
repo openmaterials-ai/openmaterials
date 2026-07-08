@@ -1,10 +1,13 @@
 """Tests for the index registry generator and instance uid pinning (kernel P3).
 
-The first `index/codes/` entries pin each of the nine existing representations
-to the frozen genesis version: one file per representation, each covered node
+The `index/codes/` entries pin each representation's coverage to the store
+HEAD at generation time: one file per representation, each covered node
 carrying its live node uid, the whole file stamped with the map version read
-from `map/GENESIS`. Instances gain a `node_uid` at bundle time, resolved from
-the live identity of the variable they name (additive; existing keys untouched).
+from the committed store's head (decision: head-at-generation; the map_version
+field is the version the coverage was computed against, which advances past
+the frozen genesis as contributions land). Instances gain a `node_uid` at
+bundle time, resolved from the live identity of the variable they name
+(additive; existing keys untouched).
 """
 from __future__ import annotations
 
@@ -25,8 +28,9 @@ def _name_to_uid() -> dict[str, str]:
     return {n["id"]: n["uid"] for n in build_graph_dict(DOMAINS)["nodes"]}
 
 
-def _genesis_hash() -> str:
-    return (Path(__file__).resolve().parents[1] / "map" / "GENESIS").read_text().strip()
+def _store_head() -> str:
+    from omai.store import Store
+    return Store(Path(__file__).resolve().parents[1] / "map").head
 
 
 # --------------------------------------------------------------------------
@@ -76,12 +80,14 @@ def test_each_index_entry_uid_matches_live_node_id(tmp_path):
             assert _is_hex64(entry["uid"])
 
 
-def test_index_map_version_equals_genesis(tmp_path):
+def test_index_map_version_equals_the_store_head(tmp_path):
+    # Head-at-generation, not the frozen GENESIS: the index pins the version
+    # its coverage was computed against, which advances as contributions land.
     write_index(tmp_path)
-    genesis = _genesis_hash()
+    head = _store_head()
     for path in (tmp_path / "codes").glob("*.json"):
         doc = json.loads(path.read_text())
-        assert doc["map_version"] == genesis, f"{path.name}: wrong map_version"
+        assert doc["map_version"] == head, f"{path.name}: wrong map_version"
 
 
 def test_qe_and_lammps_coverage_counts(tmp_path):
