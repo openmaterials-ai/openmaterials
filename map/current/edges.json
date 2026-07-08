@@ -189,6 +189,31 @@
   },
   "uid": "325b66602b582ded28ce13760e5718257c3624d5eccfec041949157ce6a0dbc2"
  },
+ "3466399c40c467b80ca4b9b3a83c9c5b0d73df41ed0295e3a4d6685683972909": {
+  "identity": {
+   "formula": "Equality(Symbol('G'), Add(Mul(Integer(-1), Rational(1, 30), Sum(Indexed(IndexedBase(Symbol('C')), Symbol('\\\\alpha', integer=True), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True), Symbol('\\\\beta', integer=True)), Tuple(Symbol('\\\\alpha', integer=True), Integer(1), Integer(3)), Tuple(Symbol('\\\\beta', integer=True), Integer(1), Integer(3)))), Mul(Rational(1, 10), Sum(Indexed(IndexedBase(Symbol('C')), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True)), Tuple(Symbol('\\\\alpha', integer=True), Integer(1), Integer(3)), Tuple(Symbol('\\\\beta', integer=True), Integer(1), Integer(3))))))",
+   "inputs": [
+    "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e"
+   ],
+   "output": "1ab85488c90143e38b94e27f93ab96571f381e7b09d507fa7a38216ffd34c5ec",
+   "outputs": [
+    "1ab85488c90143e38b94e27f93ab96571f381e7b09d507fa7a38216ffd34c5ec"
+   ],
+   "schemes": {
+    "average": "voigt"
+   }
+  },
+  "meta": {
+   "description": "Voigt shear modulus G_V = (3 sum_{a,b} C_{a,b,a,b} - sum_{a,b} C_{a,a,b,b})/30 (equivalently ((C11 + C22 + C33) - (C12 + C13 + C23) + 3(C44 + C55 + C66))/15 in Voigt 6x6 notation). The reduced (3*S2 - S1)/30 form is the textbook G_V = (A - B + 3C)/15 after the sum-of-diagonals A = sum_a C_{aaaa} terms cancel (see the module comment for the derivation). Voigt average; Reuss / Hill are later scheme variants. Closed-form; energy density in and out.",
+   "formula_latex": "G = - \\frac{\\sum_{\\substack{1 \\leq \\alpha \\leq 3\\\\1 \\leq \\beta \\leq 3}} {C}_{\\alpha,\\alpha,\\beta,\\beta}}{30} + \\frac{\\sum_{\\substack{1 \\leq \\alpha \\leq 3\\\\1 \\leq \\beta \\leq 3}} {C}_{\\alpha,\\beta,\\alpha,\\beta}}{10}",
+   "formula_srepr": "Equality(Symbol('G'), Add(Mul(Integer(-1), Rational(1, 30), Sum(Indexed(IndexedBase(Symbol('C')), Symbol('\\\\alpha', integer=True), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True), Symbol('\\\\beta', integer=True)), Tuple(Symbol('\\\\alpha', integer=True), Integer(1), Integer(3)), Tuple(Symbol('\\\\beta', integer=True), Integer(1), Integer(3)))), Mul(Rational(1, 10), Sum(Indexed(IndexedBase(Symbol('C')), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True)), Tuple(Symbol('\\\\alpha', integer=True), Integer(1), Integer(3)), Tuple(Symbol('\\\\beta', integer=True), Integer(1), Integer(3))))))",
+   "name": "contract_shear_modulus",
+   "schemes": {
+    "average": "voigt"
+   }
+  },
+  "uid": "3466399c40c467b80ca4b9b3a83c9c5b0d73df41ed0295e3a4d6685683972909"
+ },
  "3662d6183de400b2337d314499e31dd473b7b2ea3994290f21046e36bdcedfdb": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('c')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Mul(Rational(1, 4), Pow(Symbol('T', positive=True), Integer(-2)), Pow(Symbol('\\\\hbar', positive=True), Integer(2)), Pow(Symbol('k_B', positive=True), Integer(-1)), Pow(sinh(Mul(Rational(1, 2), Pow(Symbol('T', positive=True), Integer(-1)), Symbol('\\\\hbar', positive=True), Pow(Symbol('k_B', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('\\\\omega')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)))), Integer(-2)), Pow(Indexed(IndexedBase(Symbol('\\\\omega')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Integer(2))))",
@@ -265,6 +290,32 @@
   },
   "uid": "3cf7b8aa48dca910c062ce17738ede9cb609bacd7bd685bae23ac698897e38c3"
  },
+ "3e995930ac921247acde0b3724b91c698f5c8e93c991635155d50a9c8039fe85": {
+  "identity": {
+   "formula": "Equality(Indexed(IndexedBase(Symbol('C')), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True), Symbol('\\\\gamma', integer=True), Symbol('\\\\delta', integer=True)), Mul(Integer(-1), Derivative(Indexed(IndexedBase(Symbol('\\\\sigma')), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True)), Tuple(Indexed(IndexedBase(Symbol('\\\\varepsilon^{str}')), Symbol('\\\\gamma', integer=True), Symbol('\\\\delta', integer=True)), Integer(1)))))",
+   "inputs": [
+    "183e66d4e443326d2c346a0327cdb125026bd8f6a91a9bb97b61265fcade7e85",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e",
+   "outputs": [
+    "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e"
+   ],
+   "schemes": {
+    "strain_method": "finite_strain"
+   }
+  },
+  "meta": {
+   "description": "Elastic stiffness tensor C_{alpha,beta,gamma,delta} = -d(sigma_{alpha,beta})/d(strain)_{gamma,delta}: the stress-strain definition the LAMMPS ELASTIC workflow and mat-elasticity actually compute (stress differences under imposed strains of the structure; LAMMPS ELASTIC's own script uses -delta(pressure tensor)/delta(strain), consistent with this minus). The minus is the sign correction for the store's stress convention: sigma here is pressure-convention (positive diagonal = compressive, the negative of the tension-positive Cauchy stress), so C = d(sigma_tension)/d(strain) = -d(sigma)/d(strain) = +(1/V_cell) d^2 E_tot/d(strain)^2, keeping C11 positive for stable crystals (see the sign derivation comment above). The energy second-derivative route (from TotalEnergy) is a natural future Pattern C alternative producer of this node. Implicit (a finite-difference fit), so not sympy-executable; dimensionally stress / dimensionless strain = ENERGY_PER_LENGTH_CUBED, which the gate proves.",
+   "formula_latex": "{C}_{\\alpha,\\beta,\\gamma,\\delta} = - \\frac{\\partial}{\\partial {\\varepsilon^{str}}_{\\gamma,\\delta}} {\\sigma}_{\\alpha,\\beta}",
+   "formula_srepr": "Equality(Indexed(IndexedBase(Symbol('C')), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True), Symbol('\\\\gamma', integer=True), Symbol('\\\\delta', integer=True)), Mul(Integer(-1), Derivative(Indexed(IndexedBase(Symbol('\\\\sigma')), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True)), Tuple(Indexed(IndexedBase(Symbol('\\\\varepsilon^{str}')), Symbol('\\\\gamma', integer=True), Symbol('\\\\delta', integer=True)), Integer(1)))))",
+   "name": "compute_elastic_constants",
+   "schemes": {
+    "strain_method": "finite_strain"
+   }
+  },
+  "uid": "3e995930ac921247acde0b3724b91c698f5c8e93c991635155d50a9c8039fe85"
+ },
  "40d04377570142198d0a7f3d505de3b8fa6fdcf0418622be679aceec11b13264": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('s')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Add(Mul(Integer(-1), Symbol('k_B', positive=True), log(Add(Integer(1), Mul(Integer(-1), exp(Mul(Integer(-1), Pow(Symbol('T', positive=True), Integer(-1)), Symbol('\\\\hbar', positive=True), Pow(Symbol('k_B', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('\\\\omega')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)))))))), Mul(Pow(Symbol('T', positive=True), Integer(-1)), Symbol('\\\\hbar', positive=True), Function('n_{BE}')(Mul(Pow(Symbol('T', positive=True), Integer(-1)), Symbol('\\\\hbar', positive=True), Pow(Symbol('k_B', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('\\\\omega')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)))), Indexed(IndexedBase(Symbol('\\\\omega')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)))))",
@@ -333,6 +384,31 @@
    "schemes": {}
   },
   "uid": "59ae54527b2e735e5408e66eadb81c9f1fa29720ea39207564e388a44cd1b04c"
+ },
+ "646fa795ffeed1fc8935994dd17159062c596fc0952ebb2a3159b3a1a74946fa": {
+  "identity": {
+   "formula": "Equality(Symbol('K'), Mul(Rational(1, 9), Sum(Indexed(IndexedBase(Symbol('C')), Symbol('\\\\alpha', integer=True), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True), Symbol('\\\\beta', integer=True)), Tuple(Symbol('\\\\alpha', integer=True), Integer(1), Integer(3)), Tuple(Symbol('\\\\beta', integer=True), Integer(1), Integer(3)))))",
+   "inputs": [
+    "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e"
+   ],
+   "output": "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced",
+   "outputs": [
+    "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced"
+   ],
+   "schemes": {
+    "average": "voigt"
+   }
+  },
+  "meta": {
+   "description": "Voigt bulk modulus K_V = (1/9) sum_{a,b} C_{a,a,b,b} (equivalently (C11 + C22 + C33 + 2(C12 + C13 + C23))/9 in Voigt 6x6 notation). The Voigt average assumes uniform strain; the Reuss (uniform stress) and Hill (their mean) averages arrive later as scheme overrides on the representations, not as separate edges. Closed-form; energy density in, energy density out.",
+   "formula_latex": "K = \\frac{\\sum_{\\substack{1 \\leq \\alpha \\leq 3\\\\1 \\leq \\beta \\leq 3}} {C}_{\\alpha,\\alpha,\\beta,\\beta}}{9}",
+   "formula_srepr": "Equality(Symbol('K'), Mul(Rational(1, 9), Sum(Indexed(IndexedBase(Symbol('C')), Symbol('\\\\alpha', integer=True), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True), Symbol('\\\\beta', integer=True)), Tuple(Symbol('\\\\alpha', integer=True), Integer(1), Integer(3)), Tuple(Symbol('\\\\beta', integer=True), Integer(1), Integer(3)))))",
+   "name": "contract_bulk_modulus",
+   "schemes": {
+    "average": "voigt"
+   }
+  },
+  "uid": "646fa795ffeed1fc8935994dd17159062c596fc0952ebb2a3159b3a1a74946fa"
  },
  "64badcbbde76ff0975a351c9de13aa12ca735ce7d3e986723d5cf19b7f1125a1": {
   "identity": {
@@ -818,6 +894,27 @@
    "schemes": {}
   },
   "uid": "9d4ded802829a8b2fe5544556eeb81534fe39e3ceae5efac0065e7ddcf3da152"
+ },
+ "acbf580bd577b7499bc6806f2882511b90aaab32cabdb290a0de452d251e7514": {
+  "identity": {
+   "formula": "Equality(Symbol('P'), Mul(Rational(1, 3), Sum(Indexed(IndexedBase(Symbol('\\\\sigma')), Symbol('\\\\alpha', integer=True), Symbol('\\\\alpha', integer=True)), Tuple(Symbol('\\\\alpha', integer=True), Integer(1), Integer(3)))))",
+   "inputs": [
+    "183e66d4e443326d2c346a0327cdb125026bd8f6a91a9bb97b61265fcade7e85"
+   ],
+   "output": "4ca6efdb874d146a6cca564c7a8a0504ee8868ae5890d4c33abddc147423d6f1",
+   "outputs": [
+    "4ca6efdb874d146a6cca564c7a8a0504ee8868ae5890d4c33abddc147423d6f1"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Mechanical pressure P = trace(sigma)/3 = (1/3) sum_a sigma_{a,a}. With the store's verified stress sign convention (positive diagonal = compressive, the pressure convention established from the QE source at the Stress node's edge, record 105), the trace is already the compressive pressure, so P = +trace/3 is the mechanical pressure (NOT -trace/3: that minus would apply to the tension-positive continuum-mechanics Cauchy convention, which is not the one the store records). Closed-form contraction of the stress; both sides carry the energy-density dimension.",
+   "formula_latex": "P = \\frac{\\sum_{\\alpha=1}^{3} {\\sigma}_{\\alpha,\\alpha}}{3}",
+   "formula_srepr": "Equality(Symbol('P'), Mul(Rational(1, 3), Sum(Indexed(IndexedBase(Symbol('\\\\sigma')), Symbol('\\\\alpha', integer=True), Symbol('\\\\alpha', integer=True)), Tuple(Symbol('\\\\alpha', integer=True), Integer(1), Integer(3)))))",
+   "name": "contract_pressure",
+   "schemes": {}
+  },
+  "uid": "acbf580bd577b7499bc6806f2882511b90aaab32cabdb290a0de452d251e7514"
  },
  "b15ffc57501399eb9f1a0081d34ec1e16b579134c884d6dcf0b05434924e02eb": {
   "identity": {

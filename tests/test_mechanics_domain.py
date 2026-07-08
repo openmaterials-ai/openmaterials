@@ -97,8 +97,8 @@ def test_unified_validate_dag_is_clean():
 
 def test_all_four_mechanics_edges_are_dimensionally_ok():
     """The dimensional gate proves each new edge (energy per volume on every
-    side): the elastic tensor as a second strain derivative of the energy
-    over the cell volume, the pressure as a stress trace, and both Voigt
+    side): the elastic tensor as a stress derivative against the
+    dimensionless strain, the pressure as a stress trace, and both Voigt
     moduli as contractions of the stiffness tensor."""
     nodes, edges = _all_nodes_edges()
     report = dimensional_report(nodes, edges)
@@ -163,6 +163,32 @@ def test_new_nodes_validate_against_the_registries():
     reg_gauge = [p for p in problems
                  if p.startswith("[registry]") or p.startswith("[gauge]")]
     assert reg_gauge == [], reg_gauge
+
+
+def test_elastic_constants_edge_is_the_stress_route_with_the_sign_correction():
+    """compute_elastic_constants consumes (Stress, Structure) and encodes
+    C = -d(sigma)/d(strain). The store's Stress is pressure-convention
+    (sigma = -(1/V) dE/deps, positive = compressive, verified at record 105),
+    the NEGATIVE of the tension-positive Cauchy stress the textbook elastic
+    tensor is defined against; the minus restores C = +(1/V) d2E/deps2, so
+    C11 comes out positive for stable crystals. Sharing the Stress vertex
+    with contract_pressure also makes the contribution one weakly connected
+    component through the P4 connectivity gate."""
+    import sympy as sp
+
+    from omai.mechanics.operator.edges import compute_elastic_constants as op
+
+    assert [s.name for s in op.inputs] == ["Stress", "Structure"]
+    assert [o.name for o in op.outputs] == ["ElasticConstants"]
+    rhs = op.formula.rhs
+    # Exactly -Derivative(sigma[a,b], eps[g,d]): a Mul of -1 and the Derivative.
+    assert isinstance(rhs, sp.Mul), rhs
+    assert sp.Integer(-1) in rhs.args, rhs
+    derivs = list(rhs.atoms(sp.Derivative))
+    assert len(derivs) == 1
+    d = derivs[0]
+    assert str(d.expr.base) == r"\sigma"
+    assert [str(v[0].base) for v in d.variable_count] == [r"\varepsilon^{str}"]
 
 
 def test_the_shear_reduction_uses_the_full_sum_form():

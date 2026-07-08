@@ -1,4 +1,29 @@
 {
+ "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^-1 T^-2",
+     "indices": [
+      "cartesian",
+      "cartesian",
+      "cartesian",
+      "cartesian"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "elastic_constants"
+  },
+  "meta": {
+   "description": "Rank-4 Cartesian elastic stiffness tensor C_{alpha,beta,gamma,delta} = +(1/V_cell) d^2 E/d(strain)^2, the second strain derivative of the energy density; against the store's pressure-convention stress (positive = compressive) this is C = -d(sigma_{alpha,beta})/d(strain_{gamma,delta}), the minus keeping C11 positive for stable crystals. Same physical dimension as a pressure (M L^-1 T^-2), typed ENERGY_PER_LENGTH_CUBED, conventionally quoted in GPa. The Voigt 6x6 matrix C_ij that LAMMPS and mat-* codes print is a representation-layer packing of this tensor (the symmetric pair indices alpha,beta and gamma,delta collapse to Voigt legs 1..6), not a different quantity.",
+   "name": "ElasticConstants",
+   "symbol": "C",
+   "tier": "Mechanics"
+  },
+  "uid": "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e"
+ },
  "0f08fcb37791dc7cc3e0e0ee5c611abbefc5075867719b275fcaa77ada4f1ac2": {
   "identity": {
    "fields": [
@@ -93,6 +118,26 @@
    "tier": "Ground state"
   },
   "uid": "183e66d4e443326d2c346a0327cdb125026bd8f6a91a9bb97b61265fcade7e85"
+ },
+ "1ab85488c90143e38b94e27f93ab96571f381e7b09d507fa7a38216ffd34c5ec": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^-1 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "shear_modulus"
+  },
+  "meta": {
+   "description": "Isotropic shear modulus G: the material's resistance to a shape-changing (shear) deformation at fixed volume. Contracted from the elastic tensor by the Voigt average G_V = (3 C_{abab} - C_{aabb})/30 (equivalently ((C11 + C22 + C33) - (C12 + C13 + C23) + 3(C44 + C55 + C66))/15 in Voigt notation). Scalar, in GPa; Reuss and Hill are scheme variants.",
+   "name": "ShearModulus",
+   "symbol": "G",
+   "tier": "Mechanics"
+  },
+  "uid": "1ab85488c90143e38b94e27f93ab96571f381e7b09d507fa7a38216ffd34c5ec"
  },
  "21ba7756f45c808d3d91ed059c34c532f04845781d549b4c16573d9462bb2902": {
   "identity": {
@@ -387,6 +432,26 @@
    "tier": "Sources"
   },
   "uid": "438f0314dee5f9e98d88e4a7ba4425ef0edd207605338b318340da27bf28b2a4"
+ },
+ "4ca6efdb874d146a6cca564c7a8a0504ee8868ae5890d4c33abddc147423d6f1": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^-1 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "pressure"
+  },
+  "meta": {
+   "description": "Mechanical pressure P = trace(sigma)/3, the isotropic (hydrostatic) part of the stress tensor. With the store's verified stress sign convention (positive diagonal = compressive, the pressure convention), P is positive under compression. Scalar, sharing the energy-density dimension of the stress it contracts.",
+   "name": "Pressure",
+   "symbol": "P",
+   "tier": "Mechanics"
+  },
+  "uid": "4ca6efdb874d146a6cca564c7a8a0504ee8868ae5890d4c33abddc147423d6f1"
  },
  "4e9c9eb989aa721167806f40b353dbb75aedba068a1a486eeef178f77432108d": {
   "identity": {
@@ -959,6 +1024,26 @@
    "tier": "Transport"
   },
   "uid": "b6a79d756cf45fc64a3a07feb9e46c7372f398b3ee54806bf1c9903d8a42039f"
+ },
+ "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^-1 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "bulk_modulus"
+  },
+  "meta": {
+   "description": "Isotropic bulk modulus K: the material's resistance to a uniform (hydrostatic) volume change, K = -V dP/dV. Contracted from the elastic tensor by the Voigt average K_V = C_{aabb}/9 (equivalently (C11 + C22 + C33 + 2(C12 + C13 + C23))/9 in Voigt notation). Scalar, in GPa; the Reuss and Hill averages are scheme variants of the same node.",
+   "name": "BulkModulus",
+   "symbol": "K",
+   "tier": "Mechanics"
+  },
+  "uid": "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced"
  },
  "cd81fd8a1d62a1484f3057647d23aa780500de44175ae4e686e189a3ca5b36b2": {
   "identity": {

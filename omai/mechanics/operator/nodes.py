@@ -38,13 +38,16 @@ ELASTIC_CONSTANTS = ObservableSpace(
     tier="Mechanics",
     description=(
         "Rank-4 Cartesian elastic stiffness tensor C_{alpha,beta,gamma,delta} "
-        "= d(sigma_{alpha,beta})/d(strain_{gamma,delta}), the second strain "
-        "derivative of the energy density. Same physical dimension as a "
-        "pressure (M L^-1 T^-2), typed ENERGY_PER_LENGTH_CUBED, conventionally "
-        "quoted in GPa. The Voigt 6x6 matrix C_ij that LAMMPS and mat-* codes "
-        "print is a representation-layer packing of this tensor (the "
-        "symmetric pair indices alpha,beta and gamma,delta collapse to Voigt "
-        "legs 1..6), not a different quantity."
+        "= +(1/V_cell) d^2 E/d(strain)^2, the second strain derivative of the "
+        "energy density; against the store's pressure-convention stress "
+        "(positive = compressive) this is C = -d(sigma_{alpha,beta})/"
+        "d(strain_{gamma,delta}), the minus keeping C11 positive for stable "
+        "crystals. Same physical dimension as a pressure (M L^-1 T^-2), typed "
+        "ENERGY_PER_LENGTH_CUBED, conventionally quoted in GPa. The Voigt 6x6 "
+        "matrix C_ij that LAMMPS and mat-* codes print is a "
+        "representation-layer packing of this tensor (the symmetric pair "
+        "indices alpha,beta and gamma,delta collapse to Voigt legs 1..6), not "
+        "a different quantity."
     ),
 )
 

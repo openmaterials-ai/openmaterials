@@ -12,7 +12,7 @@ catalog `scans/lammps-thermal.json` (LAMMPS 30 Mar 2026):
   operator            LAMMPS realization                                program
   ------------------  -----------------------------------------------  --------------------
   compute_elastic_    examples/ELASTIC finite-strain stress fitting    in.elastic + init.mod
-  constants           (+/- box strain, re-minimize, d(sigma)/d(strain))  + displace.mod
+  constants           (+/- box strain, re-minimize, -d(sigma)/d(strain))  + displace.mod
 
 Convention traps this module pins down:
 
@@ -20,8 +20,10 @@ Convention traps this module pins down:
     units, via cfac = 1.0e-4 bar -> GPa in init.mod). The map node is the full
     rank-4 tensor; the Voigt packing is recorded here as the code's layout.
   * The elastic workflow's stress-difference formula carries a MINUS sign
-    (in.elastic:75, d_i = -(p_i1 - p_i0)/(strain)*cfac) precisely to convert
-    LAMMPS's pressure convention to the stress convention.
+    (in.elastic:75, d_i = -(p_i1 - p_i0)/(strain)*cfac): LAMMPS's pressure
+    tensor is positive-compression, exactly the store's stress convention, so
+    this is the SAME minus the operator formula C = -d(sigma)/d(strain)
+    carries (it restores positive C11 for stable crystals).
   * compute pressure returns the POSITIVE-compression (physics) pressure
     P = trace/3, the exact NEGATIVE of the per-atom stress*volume the heat-flux
     pipeline uses. This is the same sign the store's Stress node records, so
@@ -119,12 +121,13 @@ LAMMPS_COMPUTE_ELASTIC_CONSTANTS = OperatorRepresentationSpec(
     notes=(
         "The examples/ELASTIC input-script workflow (in.elastic + init.mod + "
         "potential.mod + displace.mod), not a dedicated compute. It realizes "
-        "compute_elastic_constants as a finite-difference derivative of the "
-        "virial stress with respect to a homogeneous strain at T=0: the minus "
-        "sign in the d_i formula converts LAMMPS's pressure convention to the "
-        "stress convention (lammps/examples/ELASTIC/in.elastic:75). The "
-        "strain magnitude and the up/down averaging are discretization choices "
-        "of the estimator; they change how accurately d(sigma)/d(strain) is "
-        "resolved, not what the elastic tensor is."
+        "compute_elastic_constants literally: a finite-difference estimate of "
+        "the operator formula C = -d(sigma)/d(strain) at T=0, the script's "
+        "own d_i = -(p_i1 - p_i0)/strain carrying exactly the operator's "
+        "minus (lammps/examples/ELASTIC/in.elastic:75), since LAMMPS's "
+        "pressure tensor has the same positive-compression sign as the "
+        "store's stress. The strain magnitude and the up/down averaging are "
+        "discretization choices of the estimator; they change how accurately "
+        "-d(sigma)/d(strain) is resolved, not what the elastic tensor is."
     ),
 )

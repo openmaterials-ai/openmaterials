@@ -4,20 +4,19 @@ Four edges. The producing edge is the finite-strain elastic-tensor calculation;
 the other three are closed-form contractions of the tensor (and of the stress)
 into isotropic scalars:
 
-  compute_elastic_constants : (TotalEnergy, Structure) -> ElasticConstants
-  contract_pressure         : (Stress,)                -> Pressure
-  contract_bulk_modulus     : (ElasticConstants,)      -> BulkModulus
-  contract_shear_modulus    : (ElasticConstants,)      -> ShearModulus
+  compute_elastic_constants : (Stress, Structure) -> ElasticConstants
+  contract_pressure         : (Stress,)           -> Pressure
+  contract_bulk_modulus     : (ElasticConstants,) -> BulkModulus
+  contract_shear_modulus    : (ElasticConstants,) -> ShearModulus
 
-Symbols. The strain IndexedBase \varepsilon^{str}, the total energy E_{tot}, and
-the stress \sigma are the SAME base names the dft ground-state domain registered
-(reused so the elastic tensor differentiates the same energy against the same
-strain, and the pressure contracts the same stress). The mechanics fields C, K,
+Symbols. The stress IndexedBase \sigma and the strain \varepsilon^{str} are the
+SAME base names the dft ground-state domain registered (reused so the elastic
+tensor differentiates the same stress against the same strain the store already
+carries, and the pressure contracts the same stress). The mechanics fields C, K,
 G, P are new bare names; none of them collides with an existing global symbol
 (verified: no other edge formula references C / K / G / P), and each is bound to
 ENERGY_PER_LENGTH_CUBED in the domain's dimensions registry so the dimensional
-gate proves all four edges. V_{cell} is the existing global cell-volume symbol
-(VOLUME).
+gate proves all four edges.
 """
 from __future__ import annotations
 
@@ -30,7 +29,7 @@ from omai.mechanics.operator.nodes import (
     PRESSURE,
     SHEAR_MODULUS,
 )
-from omai.dft_ground_state.operator.nodes import STRESS, STRUCTURE, TOTAL_ENERGY
+from omai.dft_ground_state.operator.nodes import STRESS, STRUCTURE
 
 
 # ---------------------------------------------------------------------------
@@ -41,10 +40,8 @@ _C = sp.IndexedBase("C")
 _K = sp.Symbol("K")
 _G = sp.Symbol("G")
 _P = sp.Symbol("P")
-_E_tot = sp.Symbol("E_{tot}")          # reused: the dft ground-state total energy
 _sigma = sp.IndexedBase(r"\sigma")     # reused: the dft ground-state cell stress
 _eps_str = sp.IndexedBase(r"\varepsilon^{str}")  # reused: the dft homogeneous strain
-_V_cell = sp.Symbol("V_{cell}", positive=True)   # existing global cell volume (VOLUME)
 _a, _b, _g, _d = sp.symbols(r"\alpha \beta \gamma \delta", integer=True)
 
 
@@ -52,26 +49,46 @@ _a, _b, _g, _d = sp.symbols(r"\alpha \beta \gamma \delta", integer=True)
 # Operators.
 # ---------------------------------------------------------------------------
 
+# Sign derivation (why the formula is MINUS d(sigma)/d(strain)):
+#   The store's Stress is the pressure convention, verified from the QE source
+#   at record 105's edge: sigma_store = -(1/V) dE/d(eps), positive diagonal =
+#   compressive. The textbook elastic tensor is defined against the
+#   TENSION-positive Cauchy stress sigma_tension = +(1/V) dE/d(eps) =
+#   -sigma_store, so
+#       C = d(sigma_tension)/d(eps) = -d(sigma_store)/d(eps)
+#         = +(1/V) d^2 E / d(eps)^2,
+#   and the minus restores positive C11 for stable crystals (a bare
+#   +d(sigma_store)/d(eps) would flip the sign of every stiffness). LAMMPS's
+#   ELASTIC workflow carries exactly this minus in its own script
+#   (in.elastic:75, d_i = -(p_i1 - p_i0)/strain), since its pressure tensor
+#   has the same positive-compression sign as the store's sigma.
 compute_elastic_constants = Operator(
     name="compute_elastic_constants",
-    inputs=(TOTAL_ENERGY, STRUCTURE),
+    inputs=(STRESS, STRUCTURE),
     outputs=(ELASTIC_CONSTANTS,),
     schemes={"strain_method": "finite_strain"},
     formula=sp.Eq(
         _C[_a, _b, _g, _d],
-        (1 / _V_cell) * sp.Derivative(_E_tot, _eps_str[_a, _b], _eps_str[_g, _d]),
+        -sp.Derivative(_sigma[_a, _b], _eps_str[_g, _d]),
     ),
     is_executable_in_sympy_override=False,
     description=(
-        "Elastic stiffness tensor C_{alpha,beta,gamma,delta} = (1/V_cell) "
-        "d^2 E_tot / d(strain)_{alpha,beta} d(strain)_{gamma,delta}: the "
-        "second derivative of the ground-state total energy with respect to a "
-        "homogeneous strain, per cell volume. Realized in practice as the "
-        "finite-strain stress-fitting workflow (deform the cell, re-minimize, "
-        "read the stress, fit d(sigma)/d(strain)); implicit, so not "
-        "sympy-executable. The energy and strain are the same E_{tot} and "
-        "varepsilon^{str} the dft ground-state domain uses. Dimensionally "
-        "energy / volume = ENERGY_PER_LENGTH_CUBED, which the gate proves."
+        "Elastic stiffness tensor C_{alpha,beta,gamma,delta} = "
+        "-d(sigma_{alpha,beta})/d(strain)_{gamma,delta}: the stress-strain "
+        "definition the LAMMPS ELASTIC workflow and mat-elasticity actually "
+        "compute (stress differences under imposed strains of the structure; "
+        "LAMMPS ELASTIC's own script uses -delta(pressure tensor)/"
+        "delta(strain), consistent with this minus). The minus is the sign "
+        "correction for the store's stress convention: sigma here is "
+        "pressure-convention (positive diagonal = compressive, the negative "
+        "of the tension-positive Cauchy stress), so C = d(sigma_tension)/"
+        "d(strain) = -d(sigma)/d(strain) = +(1/V_cell) d^2 E_tot/d(strain)^2, "
+        "keeping C11 positive for stable crystals (see the sign derivation "
+        "comment above). The energy second-derivative route (from "
+        "TotalEnergy) is a natural future Pattern C alternative producer of "
+        "this node. Implicit (a finite-difference fit), so not "
+        "sympy-executable; dimensionally stress / dimensionless strain = "
+        "ENERGY_PER_LENGTH_CUBED, which the gate proves."
     ),
 )
 
