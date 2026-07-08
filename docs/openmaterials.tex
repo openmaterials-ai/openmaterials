@@ -25,10 +25,10 @@
 \newcommand{\numr}[1]{\textcolor{numcol}{#1}}
 \newcommand{\creed}[1]{\item \textbf{#1}}
 
-\title{\textbf{openmaterials}\\[0.3em]
+\title{\textbf{openmaterials.ai}\\[0.3em]
        \large\normalfont Git for science: a versioned map of physics}
-\author{G. Barbalinardo \\
-        \small University of California, Davis}
+\author{G. Barbalinardo\\\small University of California, Davis
+        \and D. Donadio\\\small University of California, Davis}
 \date{\today}
 
 \begin{document}
@@ -1687,7 +1687,7 @@ Linewidth split, the Wigner/QHGK transport variants, the cumulative-$\kappa$
 distributions, the MD-primitive tier (Trajectory, HeatCurrent, HeatCurrentACF,
 VelocityAutocorrelation, MeanSquaredDisplacement), and the three MD-based
 $\kappa$ Pattern-A terminals (Green-Kubo, NEMD, HNEMD) --- is included; see
-\texttt{docs/pipeline.html} for the interactive view). The
+the interactive map at \texttt{docs/map/} for the live view). The
 two darker top boxes (\texttt{Potential}, \texttt{Temperature}) are source nodes;
 the dashed edges from \texttt{Potential} represent the stubbed Phase-1 upstream.
 \texttt{MeanFreeDisplacement} and $\kappa$ split into two parameterized variants by
@@ -1946,15 +1946,12 @@ plus one per domain:
             and discretization choices. Every operator in scope for a code
             now carries an \texttt{OperatorRepresentationSpec}; trivial source /
             contraction ops carry no schemes but exist to mark coverage
-            in the visualization.
-      \item \texttt{visualize.py}: emits \texttt{docs/pipeline.html}, an interactive
-            single-file visualization (per-pipeline SVG DAGs with row-aligned
-            states, click-to-details panels, MathJax-rendered formulas) that
-            reflects the current state and discriminates three edge classes:
-            full coverage (states + op spec), states covered / op-spec missing,
-            and implicit (at least one state lacks a spec). Leaf states a code
-            does not expose are hidden; intermediate states without a spec
-            stay dashed.
+            on the map. Coverage renders on the site map (\texttt{docs/map/},
+            generated data in \texttt{docs/data/}); the standalone per-code
+            pipeline page was retired 2026-07-08 as redundant with the map's
+            code rails. Per-operator scheme and discretization detail lives in
+            the representation modules and this document; surfacing it in the
+            map's edge panel is an open enhancement.
     \end{itemize}
 \end{itemize}
 
@@ -2745,11 +2742,10 @@ Create \texttt{omai/thermal\_transport/representation/<code>.py} with one
 
 \begin{itemize}[leftmargin=2em]
   \item Re-export in \texttt{omai/thermal\_transport/representation/\_\_init\_\_.py}.
-  \item \texttt{visualize.py} discovers adapters automatically (any submodule of
+  \item Coverage is discovered automatically (any submodule of
         \texttt{representation/} exposing module-level spec instances is picked
-        up); regenerate \texttt{docs/pipeline.html} with
-        \texttt{python -m omai.thermal\_transport.visualize} and the map data with
-        \texttt{python -m omai.map\_data}.
+        up by \texttt{omai.map\_data.build\_codes}); regenerate the map data
+        with \texttt{python -m omai.map\_data}.
 \end{itemize}
 
 \subsubsection*{6. Validate via \texttt{compare()}}
@@ -3005,11 +3001,10 @@ After choosing a pattern:
         asserting the node and edge identities, the inputs/outputs, and any new
         schemes. If the new edge has a non-trivial formula, assert that
         \texttt{formula.free\_symbols} contains the expected ingredients.
-  \item \textbf{Visualization + map data.} \texttt{docs/pipeline.html} regenerates
-        from \texttt{python -m omai.thermal\_transport.visualize}, and the unified
-        map data (\texttt{docs/data/*.json}) from \texttt{python -m omai.map\_data}.
-        No code changes are needed unless you are adding a new pattern that the
-        renderer cannot lay out automatically.
+  \item \textbf{Map data.} The unified map data (\texttt{docs/data/*.json})
+        regenerates from \texttt{python -m omai.map\_data}; the site map
+        (\texttt{docs/map/}) renders it directly. No code changes are needed
+        unless you are adding a new pattern the map cannot lay out.
   \item \textbf{Architecture reference.} Update the node / edge counts in
         Part~\ref{part:architecture}, ``The operator DAG'', and mention the new
         convention name (if any) in the relevant edge bullet.
@@ -3219,10 +3214,10 @@ PYTHONPATH=. python -m omai.map_data
 python -m pytest tests/test_materials_data.py
 \end{verbatim}
 
-\texttt{python -m omai.map\_data} rewrites \texttt{docs/data/graph.json},
-\texttt{docs/data/instances.json}, and \texttt{docs/data/codes.json}. Commit the
-updated HTML alongside any content changes (see the
-\texttt{feedback\_regenerate\_dag\_html.md} memory note for the visualize script).
+\texttt{python -m omai.map\_data} rewrites the generated data files
+(\texttt{graph.json}, \texttt{instances.json}, \texttt{codes.json},
+\texttt{catalog.json}, \texttt{version.json}). Commit the regenerated files
+alongside any content change; the site map renders them directly.
 
 The test suite checks that all domain imports succeed, that the new nodes and edges
 appear in the unified graph, that the representation spec is discoverable via

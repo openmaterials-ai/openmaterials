@@ -40,7 +40,6 @@
   // icon-less text link "Source".
   var NAV = [
     ['Map', site('map/'), 'map/', false],
-    ['Pipeline', site('pipeline.html'), 'pipeline.html', false],
     ['Learn', site('learn/'), 'learn/', false],
     ['Document', site('openmaterials.pdf'), 'openmaterials.pdf', false],
     ['Source', REPO, null, true]
@@ -73,7 +72,7 @@
     return (
       '<header class="om-header">' +
       '<a class="om-brand" href="' + site('index.html') + '" aria-label="openmaterials home">' +
-      '<span>openmaterials</span><span class="om-dot" aria-hidden="true"></span></a>' +
+      '<span>openmaterials.ai</span><span class="om-dot" aria-hidden="true"></span></a>' +
       '<nav class="om-nav" aria-label="Primary">' + links + '</nav>' +
       '</header>'
     );
@@ -98,7 +97,7 @@
       '<div class="om-trust-row"><span class="om-trust-k">version</span><span class="om-trust-v" id="om-version" role="button" tabindex="0" title="click to copy">loading…</span></div>' +
       '</div></div>' +
       '</div>' +
-      '<div class="om-smallprint">openmaterials, a versioned map of physics. <span class="om-ver">' + year + '</span></div>' +
+      '<div class="om-smallprint">openmaterials.ai, a versioned map of physics. <span class="om-ver">' + year + '</span></div>' +
       '</footer>'
     );
   }

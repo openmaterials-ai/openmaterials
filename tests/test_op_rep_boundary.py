@@ -26,7 +26,7 @@ Four families of checks (each parametrized over discovered specs):
       verify ``to_operator`` raises ``KeyError`` whose message names both
       the spec's ``representation_name`` and the field name.
 
-Discovery mirrors ``omai.thermal_transport.visualize._collect_specs``: walk
+Discovery mirrors ``omai.map_data.build_codes``: walk
 the adapter sub-package, import each module, and collect every
 ``SpaceRepresentationSpec`` instance via attribute introspection.
 """
@@ -69,7 +69,7 @@ def _dimension_has_registered_unit(dimension) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Spec discovery (mirrors omai.thermal_transport.visualize._collect_specs)
+# Spec discovery (mirrors omai.map_data.build_codes)
 # ---------------------------------------------------------------------------
 
 

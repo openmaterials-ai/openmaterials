@@ -50,15 +50,6 @@ frequency array, and cross-checks two inputs at a gauge-invariant observable.
 pytest
 ```
 
-## Rebuild the visuals
-
-Regenerate the interactive single-file visualization (operator layer plus the
-per-code columns):
-
-```bash
-python -m omai.thermal_transport.visualize   # writes docs/pipeline.html
-```
-
 ## Layout
 
 ```
@@ -74,7 +65,6 @@ omai/
     operator/        # the lattice-thermal-transport DAG (Spaces + Operators)
     representation/  # per-code adapters (kaldo, phono3py, phonopy,
                      #   shengbte, qe, ase, lammps, gpumd)
-    visualize.py     # emits docs/pipeline.html
   materials/         # second domain, grown from AtomisticSkills: diffusion
                      #   subgraph, skills_catalog.json
   map_data.py        # unified multi-domain export -> docs/data/*.json
