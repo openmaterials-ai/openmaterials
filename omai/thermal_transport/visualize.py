@@ -1181,6 +1181,17 @@ _HTML_TEMPLATE = """<!DOCTYPE html>
     body.details-collapsed .layout {{ grid-template-columns: 1fr; }}
     #details-rail {{ position: static; max-height: none; }}
   }}
+  @media (max-width: 640px) {{
+    .om-header nav {{ display: none; }}
+    header.pagehead {{ padding: 0.85rem 1rem 0.6rem; }}
+    .stats {{ font-size: 0.72rem; }}
+  }}
+  a:focus-visible, button:focus-visible, .node-row:focus-visible {{
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }}
+  @media (prefers-reduced-motion: reduce) {{
+    * {{ transition-duration: 0.001ms !important; }}
+  }}
 </style>
 <script defer src="assets/vendor/katex/dist/katex.min.js"></script>
 <script defer src="assets/vendor/katex/dist/contrib/auto-render.min.js"></script>
