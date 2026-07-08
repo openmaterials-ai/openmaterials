@@ -148,3 +148,87 @@ def test_new_nodes_validate_against_the_registries():
     reg_gauge = [p for p in problems
                  if p.startswith("[registry]") or p.startswith("[gauge]")]
     assert reg_gauge == [], reg_gauge
+
+
+# --------------------------------------------------------------------------
+# Task 3: the QE representation (pw.x energy, forces, stress, structure).
+# --------------------------------------------------------------------------
+
+def test_build_codes_qe_covers_13_including_the_ground_state():
+    from omai.map_data import build_codes
+
+    qe = build_codes(DOMAINS)["qe"]
+    assert len(qe) == 13
+    for name in ("Structure", "TotalEnergy", "Forces", "Stress"):
+        assert name in qe, f"qe coverage missing {name}"
+
+
+def test_dft_representation_package_discovery_finds_the_specs():
+    """Discovery mirrors build_codes / the boundary suite: walk the package's
+    modules and collect spec instances by introspection. Four space specs plus
+    one operator spec, all representation_name 'qe'."""
+    import importlib
+    import pkgutil
+
+    import omai.dft_ground_state.representation as pkg
+    from omai.representation.adapter import (
+        OperatorRepresentationSpec,
+        SpaceRepresentationSpec,
+    )
+
+    space_specs, op_specs = [], []
+    for info in sorted(pkgutil.iter_modules(pkg.__path__)):
+        mod = importlib.import_module(
+            f"omai.dft_ground_state.representation.{info.name}")
+        for attr in sorted(dir(mod)):
+            if attr.startswith("_"):
+                continue
+            obj = getattr(mod, attr)
+            if isinstance(obj, SpaceRepresentationSpec):
+                space_specs.append((attr, obj))
+            elif isinstance(obj, OperatorRepresentationSpec):
+                op_specs.append((attr, obj))
+    assert len(space_specs) == 4, [a for a, _ in space_specs]
+    assert len(op_specs) == 1, [a for a, _ in op_specs]
+    assert {s.space.name for _, s in space_specs} == {
+        "Structure", "TotalEnergy", "Forces", "Stress"}
+    assert op_specs[0][1].operator.name == "solve_ground_state"
+    for _, s in space_specs:
+        assert s.representation_name == "qe"
+    assert op_specs[0][1].representation_name == "qe"
+
+
+def test_qe_ground_state_units_are_the_declared_ones():
+    from omai.dft_ground_state.representation.qe import (
+        QE_FORCES,
+        QE_STRESS,
+        QE_STRUCTURE,
+        QE_TOTAL_ENERGY,
+    )
+
+    assert QE_TOTAL_ENERGY.observable_units == {"E_tot": "ry"}
+    assert QE_FORCES.observable_units == {"F": "Ry_per_bohr"}
+    assert QE_STRESS.observable_units == {"sigma": "kbar"}
+    # Structure is opaque: an artifact (input cards), never a numeric unit.
+    assert QE_STRUCTURE.observable_units == {}
+
+
+def test_qe_stress_notes_record_the_verified_sign_convention_with_anchors():
+    """The stress sign convention comes from READING the vendored q-e source,
+    never assumed: the notes must state the convention (positive diagonal =
+    compressive, the pressure convention) and carry file:line anchors into
+    PW/src/stress.f90 and the cell-force code that fixes the sign."""
+    from omai.dft_ground_state.representation.qe import QE_STRESS
+
+    notes = QE_STRESS.notes
+    assert "compressive" in notes
+    assert "stress.f90" in notes
+    assert "cell_base.f90" in notes
+
+
+def test_qe_solve_ground_state_declares_the_scf_discretizations():
+    from omai.dft_ground_state.representation.qe import QE_SOLVE_GROUND_STATE
+
+    for key in ("ecutwfc", "k_mesh", "smearing", "conv_thr",
+                "pseudopotentials"):
+        assert key in QE_SOLVE_GROUND_STATE.discretization_choices, key

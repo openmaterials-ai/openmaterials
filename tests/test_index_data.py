@@ -84,12 +84,20 @@ def test_index_map_version_equals_genesis(tmp_path):
         assert doc["map_version"] == genesis, f"{path.name}: wrong map_version"
 
 
-def test_qe_and_lammps_cover_nine(tmp_path):
+def test_qe_and_lammps_coverage_counts(tmp_path):
+    # Counts derive from the live domain set, so the next domain does not
+    # re-break this test: each representation's covers must equal its live
+    # build_codes entry (qe grew from 9 to 13 when the DFT ground-state domain
+    # added Structure / TotalEnergy / Forces / Stress; lammps stays 9).
     write_index(tmp_path)
+    codes = build_codes(DOMAINS)
     for rep in ("qe", "lammps"):
         doc = json.loads((tmp_path / "codes" / f"{rep}.json").read_text())
         assert doc["representation"] == rep
-        assert len(doc["covers"]) == 9, f"{rep} should cover 9 nodes"
+        assert len(doc["covers"]) == len(codes[rep]), \
+            f"{rep} covers {len(doc['covers'])}, live build_codes says {len(codes[rep])}"
+    assert len(codes["qe"]) == 13
+    assert len(codes["lammps"]) == 9
 
 
 def test_index_covers_sorted_by_node(tmp_path):
