@@ -4,13 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>openmaterials.ai: the map of physics</title>
-<meta name="description" content="The whole openmaterials graph in tiers: typed quantities, executable formulas, and attached values, all in the browser.">
+<meta name="description" content="The whole openmaterials graph in tiers: typed quantities and executable formulas, all in the browser.">
 <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="openmaterials.ai">
 <meta property="og:title" content="openmaterials.ai: the map of physics">
-<meta property="og:description" content="The whole graph in tiers: pan, zoom, and open any quantity for its formula, provenance, and attached values.">
+<meta property="og:description" content="The whole graph in tiers: pan, zoom, and open any quantity for its formula, provenance, and evidence.">
 <meta name="twitter:card" content="summary">
 <link rel="stylesheet" href="../assets/vendor/katex/dist/katex.min.css">
 <link rel="stylesheet" href="../assets/site.css">
@@ -65,18 +65,13 @@
   .edge.param{stroke:#ddd9d1;stroke-width:1;stroke-dasharray:3 3;opacity:.42;}
   .edge.hot{stroke:var(--obs);stroke-width:2.4;}
   /* value pills */
-  .att-link{stroke:var(--gold);stroke-width:1.2;stroke-dasharray:2 3;fill:none;opacity:.75;stroke-linecap:round;}
-  .att text{font-weight:700;} .att .pill{stroke-width:1.5;filter:drop-shadow(0 1px 3px rgba(16,24,40,.12));}
   /* nodes */
   .node rect{stroke-width:1.6;filter:drop-shadow(0 2px 6px rgba(16,24,40,.10));transition:filter .12s;}
   .node.obs rect{fill:var(--obs);stroke:var(--obs2);}
   .node.hid rect{fill:#eef1f6;stroke:#c4cddd;}
   .node.param rect{fill:#eef2f7;stroke:#94a3b8;stroke-dasharray:4 3;}
-  .node.hasval rect{stroke:var(--gold);stroke-width:2.4;}
   .node.sel rect{stroke:#0b1220;stroke-width:3;filter:drop-shadow(0 6px 16px rgba(16,24,40,.26));}
   .node{cursor:pointer;}
-  .badge-count{fill:var(--gold);}
-  .badge-count text{fill:#fff;font-weight:800;font-size:11px;}
   /* Node symbols live in an HTML overlay synced to the SVG viewBox
      (foreignObject positions unreliably under viewBox transforms in
      WebKit, which detached every label from its card in Safari). */
@@ -91,7 +86,6 @@
   .node.dim{opacity:.45;transition:opacity .18s;}
   .edge.dim{opacity:.08;transition:opacity .18s;}
   .dim{opacity:.09;transition:opacity .18s;}
-  .dim.att{opacity:.05;}
   #measure{position:absolute;left:-9999px;top:-9999px;font-size:22px;visibility:hidden;}
   #measure code{font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;font-size:14px;}
   /* legend */
@@ -229,10 +223,6 @@
   <span><i class="sw" style="background:var(--obs)"></i>observable</span>
   <span><i class="sw" style="background:#fff;border:1.5px solid #cbd5e1"></i>hidden</span>
   <span><i class="sw" style="background:#eef2f7;border:1.5px dashed #94a3b8"></i>parameter</span>
-  <span class="sep"></span>
-  <span class="g">values</span>
-  <span><i class="sw" style="background:#e9f9f1;border:1.5px solid var(--green)"></i>simulation</span>
-  <span><i class="sw" style="background:#fdf2e3;border:1.5px solid var(--gold)"></i>measurement</span>
   <span class="sep" id="versep" style="display:none"></span>
   <span id="mapver" style="display:none"><span class="g">map</span>&nbsp;<span class="ver" id="mapverhash"></span></span>
 </div>
@@ -411,27 +401,11 @@ function renderGraph(graph){
   });
   graph.nodes.forEach(n=>{ const p=pos[n.id]; if(!p) return;
     const x=p.x-p.w/2, y=p.y-p.h/2;
-    const vals=byVar[n.id]||[];
-    const cls=(n.type==='observable'?'obs':(n.type==='parameter'?'param':'hid'))+(vals.length?' hasval':'');
+    const cls=(n.type==='observable'?'obs':(n.type==='parameter'?'param':'hid'));
     s+='<g class="node '+cls+'" data-id="'+attr(n.id)+'" data-type="'+n.type+'">';
     s+='<rect x="'+x+'" y="'+y+'" width="'+p.w+'" height="'+p.h+'" rx="13"></rect>';
     lhtml+='<div class="nlab '+(n.type==='observable'?'obs':(n.type==='parameter'?'param':'hid'))+'" data-id="'+attr(n.id)+'" style="left:'+x+'px;top:'+y+'px;width:'+p.w+'px;height:'+p.h+'px">'+(symHtml[n.id]||'')+'</div>';
-    if(vals.length){ const bx=x+p.w-6, by=y+6;
-      s+='<g class="badge-count"><circle cx="'+bx+'" cy="'+by+'" r="10"></circle><text x="'+bx+'" y="'+(by+4)+'" text-anchor="middle">'+vals.length+'</text></g>'; }
     s+='</g>';
-  });
-  graph.nodes.forEach(n=>{ const list=byVar[n.id]||[]; if(!list.length) return; const p=pos[n.id];
-    const bx=p.x+p.w/2, cx=bx+22;
-    s+='<path class="att-link" d="M'+bx+' '+p.y+' L'+(cx-4)+' '+p.y+'"></path>';
-    list.forEach((it,k)=>{ const yy=p.y-((list.length-1)*13)+k*26; const meas=it.source&&it.source.kind==='measurement';
-      const col=meas?'#d98a14':'#0f9d6b', bg=meas?'#fdf2e3':'#e9f9f1';
-      const mat=(''+(it.material||'')).trim();
-      const val=(''+it.value)+(it.uncertainty!=null?(' ± '+it.uncertainty):'');
-      const w=Math.max(52,(mat.length+val.length+2)*7.4+22);
-      s+='<g class="att" data-id="'+attr(n.id)+'"><rect class="pill" x="'+cx+'" y="'+(yy-12)+'" rx="7" width="'+w+'" height="24" fill="'+bg+'" stroke="'+col+'"></rect>'+
-         '<text x="'+(cx+w/2)+'" y="'+(yy+4)+'" text-anchor="middle" font-size="11.5">'+
-         '<tspan fill="#6b7078">'+esc(mat)+'</tspan><tspan fill="'+col+'" dx="4">'+esc(val)+'</tspan></text></g>';
-    });
   });
   vp.innerHTML=s;
   const inner=document.getElementById('labelsInner');
@@ -474,7 +448,7 @@ window.addEventListener('mousemove', e=>{ if(!dragging)return; const m=svg.getSc
 svg.addEventListener('wheel', e=>{ e.preventDefault(); const m=svg.getScreenCTM(); if(!m)return; const pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY; const u=pt.matrixTransform(m.inverse()); const f=e.deltaY>0?1.12:0.893; VB.x=u.x-(u.x-VB.x)*f; VB.y=u.y-(u.y-VB.y)*f; VB.w*=f; VB.h*=f; setVB(); }, {passive:false});
 
 // ---- interaction: depth levels ---------------------------------------------
-// overview: hidden-type nodes (+their edges) dimmed so observables + values
+// overview: hidden-type nodes (+their edges) dimmed so observables
 //           read first. expanded: full DAG at strength. focused: node select
 //           dims all but a node's closed neighborhood.
 function clearDim(){ vp.querySelectorAll('.dim').forEach(el=>el.classList.remove('dim')); vp.querySelectorAll('.hot').forEach(el=>el.classList.remove('hot')); vp.querySelectorAll('.sel').forEach(el=>el.classList.remove('sel')); }
@@ -501,7 +475,6 @@ function focusNode(id){
   clearDim();
   vp.querySelectorAll('.node').forEach(el=>{ el.classList.toggle('dim', !keep.has(el.dataset.id)); el.classList.toggle('sel', el.dataset.id===id); });
   vp.querySelectorAll('.edge').forEach(el=>{ const ab=el.dataset.edge.split('>>'); const inc=(ab[0]===id||ab[1]===id); el.classList.toggle('dim', !inc); el.classList.toggle('hot', inc); });
-  vp.querySelectorAll('.att').forEach(el=> el.classList.toggle('dim', !keep.has(el.dataset.id)));
   syncDepthBtn();
 }
 function clearSel(){
@@ -568,7 +541,6 @@ function selectEdge(key, op){
   clearDim();
   vp.querySelectorAll('.node').forEach(el=> el.classList.toggle('dim', !(el.dataset.id===s||el.dataset.id===t)));
   vp.querySelectorAll('.edge').forEach(el=>{ const on=el.dataset.edge===key; el.classList.toggle('dim', !on); el.classList.toggle('hot', on); });
-  vp.querySelectorAll('.att').forEach(el=> el.classList.add('dim'));
   syncDepthBtn();
   let h='<span class="x" onclick="clearSel()">×</span><div class="om-panel-label">operator</div><div class="name" style="font-weight:700;color:#312e81;font-size:.95rem">'+esc(opName(op))+'</div>';
   h+='<div class="sym" style="margin-top:8px">'+tex(sn.symbol)+' <span style="color:#a3aec0">&rarr;</span> '+tex(tn.symbol)+'</div>';
@@ -606,7 +578,6 @@ function toggleCode(code){
   priorDepth = (depth==='focused'?priorDepth:depth); depth='focused'; clearDim(); panelEl.style.display='none'; syncDepthBtn();
   vp.querySelectorAll('.node').forEach(el=> el.classList.toggle('dim', !set.has(el.dataset.id)));
   vp.querySelectorAll('.edge').forEach(el=>{ const ab=el.dataset.edge.split('>>'); el.classList.toggle('dim', !(set.has(ab[0])&&set.has(ab[1]))); });
-  vp.querySelectorAll('.att').forEach(el=> el.classList.add('dim'));
   if(set.size) fitTo([...set]);
 }
 
@@ -617,7 +588,6 @@ document.getElementById('q').addEventListener('input', function(){
   const set=new Set(hits); priorDepth=(depth==='focused'?priorDepth:depth); depth='focused'; clearDim(); panelEl.style.display='none'; syncDepthBtn();
   vp.querySelectorAll('.node').forEach(el=> el.classList.toggle('dim', !set.has(el.dataset.id)));
   vp.querySelectorAll('.edge').forEach(el=> el.classList.add('dim'));
-  vp.querySelectorAll('.att').forEach(el=> el.classList.toggle('dim', !set.has(el.dataset.id)));
   if(hits.length) fitTo(hits);
 });
 
@@ -647,7 +617,6 @@ function showTourStep(){
   clearDim();
   vp.querySelectorAll('.node').forEach(e=> e.classList.toggle('dim', !(ids.indexOf(e.dataset.id)>=0)));
   vp.querySelectorAll('.edge').forEach(e=>{ const ab=e.dataset.edge.split('>>'); e.classList.toggle('dim', !(ids.indexOf(ab[0])>=0 && ids.indexOf(ab[1])>=0)); });
-  vp.querySelectorAll('.att').forEach(e=> e.classList.toggle('dim', !(ids.indexOf(e.dataset.id)>=0)));
 }
 function tourNext(){ if(!tourActive) return; if(tourStep>=tierList.length-1){ endTour(); return; } tourStep++; showTourStep(); }
 function tourBack(){ if(!tourActive||tourStep<=0) return; tourStep--; showTourStep(); }
