@@ -77,8 +77,14 @@
   .node{cursor:pointer;}
   .badge-count{fill:var(--gold);}
   .badge-count text{fill:#fff;font-weight:800;font-size:11px;}
-  .nl{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1;}
-  .node.obs .nl{color:#fff;} .node.hid .nl{color:#1e293b;} .node.param .nl{color:#334155;}
+  /* Node symbols live in an HTML overlay synced to the SVG viewBox
+     (foreignObject positions unreliably under viewBox transforms in
+     WebKit, which detached every label from its card in Safari). */
+  #labels{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+  #labelsInner{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;}
+  .nlab{position:absolute;display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1;pointer-events:none;}
+  .nlab.obs{color:#fff;} .nlab.hid{color:#1e293b;} .nlab.param{color:#334155;}
+  .nlab.dim{opacity:.45;transition:opacity .18s;}
   .nl code{font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;font-size:14px;}
   /* dimming keeps node cards legible (they still read as boxes, just quiet);
      edges and value pills fade harder since they are not the point in overview. */
@@ -119,11 +125,10 @@
   .chip:hover{border-color:var(--obs);box-shadow:0 2px 9px rgba(79,70,229,.16);}
   .chip code{font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;font-size:.86rem;}
   .exp{border:1px solid var(--line);border-radius:13px;overflow:hidden;margin-bottom:9px;}
-  .exp .h{font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;padding:7px 12px;font-weight:800;}
-  .exp.num .h{background:#e9f9f1;color:#0f7a55;} .exp.lab .h{background:#fdf2e3;color:#a9690f;}
-  .exp .row{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;font-size:.85rem;border-top:1px solid var(--line);}
-  .exp .row .src{color:#475569;} .exp .row b{color:#0b1220;white-space:nowrap;}
-  .recon{font-size:.79rem;color:#475569;background:#eef2ff;border:1px solid #e0e4fb;border-radius:11px;padding:9px 11px;}
+  .exp .mat-h{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.78rem;font-weight:600;padding:7px 12px;background:#f6f4f0;color:var(--ink-2);}
+  .exp .row{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;font-size:.83rem;border-top:1px solid var(--line);}
+  .exp .row .src{color:#6b7078;line-height:1.45;} .exp .row b{white-space:nowrap;}
+  .recon{font-size:.79rem;color:#475569;background:var(--accent-soft);border:1px solid #e0e4fb;border-radius:11px;padding:9px 11px;}
   /* the "mapped by code" provenance list is the shared .om-kv; the code name
      (key) keeps its indigo accent, page-specific. */
   .om-panel .mapby .om-kv-k{font-weight:700;color:#312e81;}
@@ -215,7 +220,7 @@
   <marker id="arrowhot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4f46e5"></path></marker></defs>
   <g id="bands"></g>
   <g id="vp"></g>
-</svg></div>
+</svg><div id="labels" aria-hidden="true"><div id="labelsInner"></div></div></div>
 <div id="measure"></div>
 <div class="legend">
   <span class="legend-title">Map</span>
@@ -270,7 +275,19 @@ let priorDepth='overview';  // level to restore when leaving 'focused'
 
 function err(m){ const e=document.getElementById('err'); e.style.display='block'; e.textContent='Error: '+m; }
 function banner(m){ const b=document.getElementById('banner'); b.style.display='block'; b.textContent=m; }
-function setVB(){ svg.setAttribute('viewBox', VB.x+' '+VB.y+' '+VB.w+' '+VB.h); }
+function setVB(){ svg.setAttribute('viewBox', VB.x+' '+VB.y+' '+VB.w+' '+VB.h); syncLabels(); }
+// Mirror the viewBox transform onto the HTML label layer
+// (preserveAspectRatio="xMidYMid meet" semantics, computed by hand).
+function syncLabels(){
+  const inner=document.getElementById('labelsInner'); if(!inner) return;
+  const r=svg.getBoundingClientRect(); if(!r.width||!r.height||!VB.w||!VB.h) return;
+  const sc=Math.min(r.width/VB.w, r.height/VB.h);
+  const tx=(r.width-VB.w*sc)/2 - VB.x*sc;
+  const ty=(r.height-VB.h*sc)/2 - VB.y*sc;
+  inner.style.transform='translate('+tx+'px,'+ty+'px) scale('+sc+')';
+}
+window.addEventListener('resize', syncLabels);
+let labelById={};
 // Render LaTeX with KaTeX; on any failure fall back to the raw string.
 function tex(latex,display){
   if(latex==null) return '';
@@ -388,7 +405,7 @@ function wrapText(str, x, y, maxW, size, cls, maxLines){
 }
 
 function renderGraph(graph){
-  let s='';
+  let s='', lhtml='';
   edgeList.forEach(e=>{ const a=pos[e.source], b=pos[e.target]; if(!a||!b) return;
     s+='<path class="edge'+(e.kind==='param'?' param':'')+'" data-edge="'+attr(e.source+'>>'+e.target)+'" data-op="'+attr(e.op||'')+'" d="'+edgePath(a,b)+'" marker-end="url(#arrow)"></path>';
   });
@@ -398,7 +415,7 @@ function renderGraph(graph){
     const cls=(n.type==='observable'?'obs':(n.type==='parameter'?'param':'hid'))+(vals.length?' hasval':'');
     s+='<g class="node '+cls+'" data-id="'+attr(n.id)+'" data-type="'+n.type+'">';
     s+='<rect x="'+x+'" y="'+y+'" width="'+p.w+'" height="'+p.h+'" rx="13"></rect>';
-    s+='<foreignObject x="'+x+'" y="'+y+'" width="'+p.w+'" height="'+p.h+'"><div xmlns="http://www.w3.org/1999/xhtml" class="nl">'+(symHtml[n.id]||'')+'</div></foreignObject>';
+    lhtml+='<div class="nlab '+(n.type==='observable'?'obs':(n.type==='parameter'?'param':'hid'))+'" data-id="'+attr(n.id)+'" style="left:'+x+'px;top:'+y+'px;width:'+p.w+'px;height:'+p.h+'px">'+(symHtml[n.id]||'')+'</div>';
     if(vals.length){ const bx=x+p.w-6, by=y+6;
       s+='<g class="badge-count"><circle cx="'+bx+'" cy="'+by+'" r="10"></circle><text x="'+bx+'" y="'+(by+4)+'" text-anchor="middle">'+vals.length+'</text></g>'; }
     s+='</g>';
@@ -408,12 +425,33 @@ function renderGraph(graph){
     s+='<path class="att-link" d="M'+bx+' '+p.y+' L'+(cx-4)+' '+p.y+'"></path>';
     list.forEach((it,k)=>{ const yy=p.y-((list.length-1)*13)+k*26; const meas=it.source&&it.source.kind==='measurement';
       const col=meas?'#d98a14':'#0f9d6b', bg=meas?'#fdf2e3':'#e9f9f1';
+      const mat=(''+(it.material||'')).trim();
       const val=(''+it.value)+(it.uncertainty!=null?(' ± '+it.uncertainty):'');
-      const w=Math.max(46,val.length*8.2+18);
-      s+='<g class="att" data-id="'+attr(n.id)+'"><rect class="pill" x="'+cx+'" y="'+(yy-12)+'" rx="7" width="'+w+'" height="24" fill="'+bg+'" stroke="'+col+'"></rect><text x="'+(cx+w/2)+'" y="'+(yy+4)+'" text-anchor="middle" font-size="12" fill="'+col+'">'+esc(val)+'</text></g>';
+      const w=Math.max(52,(mat.length+val.length+2)*7.4+22);
+      s+='<g class="att" data-id="'+attr(n.id)+'"><rect class="pill" x="'+cx+'" y="'+(yy-12)+'" rx="7" width="'+w+'" height="24" fill="'+bg+'" stroke="'+col+'"></rect>'+
+         '<text x="'+(cx+w/2)+'" y="'+(yy+4)+'" text-anchor="middle" font-size="11.5">'+
+         '<tspan fill="#6b7078">'+esc(mat)+'</tspan><tspan fill="'+col+'" dx="4">'+esc(val)+'</tspan></text></g>';
     });
   });
   vp.innerHTML=s;
+  const inner=document.getElementById('labelsInner');
+  inner.innerHTML=lhtml;
+  labelById={};
+  inner.querySelectorAll('.nlab').forEach(l=>{ labelById[l.dataset.id]=l; });
+  // Mirror the nodes' dim state onto their labels so card and symbol fade
+  // together, without touching any of the state-toggling call sites.
+  if(!window.__labelMirror){
+    window.__labelMirror=new MutationObserver(muts=>{
+      muts.forEach(m=>{
+        const el=m.target;
+        if(!el.classList||!el.classList.contains('node')||!el.dataset.id) return;
+        const lab=labelById[el.dataset.id];
+        if(lab) lab.classList.toggle('dim', el.classList.contains('dim'));
+      });
+    });
+    window.__labelMirror.observe(vp,{attributes:true,subtree:true,attributeFilter:['class']});
+  }
+  syncLabels();
 }
 function edgePath(a,b){
   const x0=a.x+a.w/2, y0=a.y, x1=b.x-b.w/2, y1=b.y;
@@ -476,10 +514,28 @@ function chip(id){ return '<span class="chip" onclick="navTo(\''+attr(id).replac
 
 function expHtml(id){
   const list=byVar[id]||[]; if(!list.length) return '';
-  const num=list.filter(i=> i.source && i.source.kind==='simulation'),
-        lab=list.filter(i=> i.source && i.source.kind==='measurement');
-  const blk=(t,c,a)=> a.length?('<div class="exp '+c+'"><div class="h">'+t+'</div>'+a.map(i=>'<div class="row"><span class="src">'+esc((i.source&&i.source.ref)||'')+((i.source&&i.source.detail)?(' · '+esc(i.source.detail)):'')+'</span><b>'+esc(i.value)+(i.uncertainty!=null?(' ± '+esc(i.uncertainty)):'')+' '+esc(i.units||'')+'</b></div>').join('')+'</div>'):'';
-  return '<div class="om-panel-label">values attached here</div>'+blk('Simulation','num',num)+blk('Measurement','lab',lab)+'<div class="recon">'+list.length+' value'+(list.length>1?'s':'')+' on one variable, reconciled at this observable.</div>';
+  // The node is material-free structure; each value belongs to a
+  // configuration (material + conditions). Group by material and show each
+  // row as configuration -> value, colored by kind (green simulation,
+  // amber measurement).
+  const byMat={};
+  list.forEach(it=>{ const m=(''+(it.material||'?')).trim(); (byMat[m]=byMat[m]||[]).push(it); });
+  const mats=Object.keys(byMat).sort();
+  let h='<div class="om-panel-label">values attached here</div>';
+  mats.forEach(m=>{
+    h+='<div class="exp"><div class="mat-h">'+esc(m)+'</div>';
+    byMat[m].forEach(it=>{
+      const meas=it.source&&it.source.kind==='measurement';
+      const col=meas?'#d98a14':'#0f9d6b';
+      const conf=Object.entries(it.conditions||{}).map(([k,v])=>esc(k)+' '+esc(v)).join(' · ');
+      const src=(it.source&&it.source.ref)?esc(it.source.ref):'';
+      h+='<div class="row"><span class="src">'+(conf?conf+'<br>':'')+src+'</span>'+
+         '<b style="color:'+col+'">'+esc(it.value)+(it.uncertainty!=null?(' ± '+esc(it.uncertainty)):'')+' '+esc(it.units||'')+'</b></div>';
+    });
+    h+='</div>';
+  });
+  h+='<div class="recon">'+list.length+' value'+(list.length>1?'s':'')+' across '+mats.length+' material'+(mats.length>1?'s':'')+'; comparisons are per material, at matching conditions.</div>';
+  return h;
 }
 function mappedByHtml(id){
   const rows=Object.keys(codesData).filter(c=> codesData[c] && codesData[c][id]).sort().map(c=>{ const m=codesData[c][id]; return '<div class="om-kv-row"><span class="om-kv-k">'+esc(c)+'</span><span class="om-kv-v">'+esc((m.api||''))+(m.unit?(' · '+esc(m.unit)):'')+'</span></div>'; });

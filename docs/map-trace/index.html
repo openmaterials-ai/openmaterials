@@ -80,15 +80,19 @@
      outline; lit upstream amber, lit downstream indigo, selected ink. */
   .node{cursor:pointer;}
   .node rect{fill:#eef1f6;stroke:#c4cddd;stroke-width:1.3;filter:drop-shadow(0 1px 3px rgba(22,24,29,.06));transition:stroke .2s,fill .2s,filter .2s;}
-  .node .nl{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;color:#334155;transition:color .2s;}
-  .node.dest rect{fill:#eef2ff;stroke:var(--obs);} .node.dest .nl{color:var(--obs2);}
-  .node.dim rect{opacity:.4;} .node.dim .nl{opacity:.4;}
+  /* Symbols live in an HTML overlay synced to the viewBox (foreignObject
+     mis-positions under viewBox transforms in WebKit). */
+  #labels{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+  #labelsInner{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;}
+  .nlab{position:absolute;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;color:#334155;transition:color .2s;pointer-events:none;}
+  .node.dest rect{fill:#eef2ff;stroke:var(--obs);} .nlab.dest{color:var(--obs2);}
+  .node.dim rect{opacity:.4;} .nlab.dim{opacity:.4;}
   .node.up rect{fill:#fdf2e3;stroke:var(--up);stroke-width:2;filter:drop-shadow(0 2px 8px rgba(217,138,20,.22));}
-  .node.up .nl{color:#a9690f;}
+  .nlab.up{color:#a9690f;}
   .node.down rect{fill:var(--down);stroke:var(--obs2);stroke-width:2;filter:drop-shadow(0 2px 8px rgba(79,70,229,.28));}
-  .node.down .nl{color:#fff;}
+  .nlab.down{color:#fff;}
   .node.sel rect{fill:#fff;stroke:#0b1220;stroke-width:2.6;filter:drop-shadow(0 6px 16px rgba(22,24,29,.24));}
-  .node.sel .nl{color:#0b1220;}
+  .nlab.sel{color:#0b1220;}
   #measure{position:absolute;left:-9999px;top:-9999px;font-size:18px;visibility:hidden;}
 
   /* derivation panel: the shared .om-panel floating surface; placement +
@@ -151,7 +155,7 @@
     <marker id="arrD" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#4f46e5"></path></marker>
   </defs>
   <g id="vp"></g>
-</svg></div>
+</svg><div id="labels" aria-hidden="true"><div id="labelsInner"></div></div></div>
 <div id="measure"></div>
 <div class="rest-hint" id="resthint"><div class="big">Trace a derivation</div>Click any quantity to light up how it is built and where it flows.</div>
 <div class="legend">
@@ -169,7 +173,15 @@
 const svg=document.getElementById('svg'), vp=document.getElementById('vp'), measure=document.getElementById('measure');
 let VB={x:0,y:0,w:1000,h:1000}, GW=1000, GH=1000;
 let nodeById={}, parents={}, children={}, pos={}, symHtml={}, opByEdge={}, byVar={};
-function setVB(){ svg.setAttribute('viewBox', VB.x+' '+VB.y+' '+VB.w+' '+VB.h); }
+function setVB(){ svg.setAttribute('viewBox', VB.x+' '+VB.y+' '+VB.w+' '+VB.h); syncLabels(); }
+function syncLabels(){
+  const inner=document.getElementById('labelsInner'); if(!inner) return;
+  const r=svg.getBoundingClientRect(); if(!r.width||!r.height||!VB.w||!VB.h) return;
+  const sc=Math.min(r.width/VB.w, r.height/VB.h);
+  inner.style.transform='translate('+((r.width-VB.w*sc)/2-VB.x*sc)+'px,'+((r.height-VB.h*sc)/2-VB.y*sc)+'px) scale('+sc+')';
+}
+window.addEventListener('resize', syncLabels);
+let labelById={};
 function tex(latex,display){ try{ return katex.renderToString(latex,{throwOnError:false,displayMode:!!display}); }catch(e){ return '<code>'+latex+'</code>'; } }
 function smooth(pts){ if(!pts||pts.length<2) return ''; if(pts.length===2) return 'M'+pts[0].x+' '+pts[0].y+' L'+pts[1].x+' '+pts[1].y; let d='M'+pts[0].x+' '+pts[0].y; for(let i=1;i<pts.length-1;i++){ const mx=(pts[i].x+pts[i+1].x)/2, my=(pts[i].y+pts[i+1].y)/2; d+=' Q'+pts[i].x+' '+pts[i].y+' '+mx+' '+my; } d+=' L'+pts[pts.length-1].x+' '+pts[pts.length-1].y; return d; }
 function err(m){ var e=document.getElementById('err'); e.style.display='block'; e.textContent='Error: '+m; }
@@ -194,11 +206,29 @@ function build([graph, insts]){
   dagre.layout(g);
   GW=g.graph().width; GH=g.graph().height;
 
-  let s='';
+  let s='', lhtml='';
   edges.forEach(e=>{ const ed=g.edge({v:e.source,w:e.target}); if(!ed)return; s+='<path class="edge" data-edge="'+e.source+'>>'+e.target+'" d="'+smooth(ed.points)+'"></path>'; });
   graph.nodes.forEach(n=>{ const p=g.node(n.id); pos[n.id]={x:p.x,y:p.y,w:p.width,h:p.height}; const x=p.x-p.width/2, y=p.y-p.height/2; const dest=(n.type==='observable' && (children[n.id]||[]).length===0)?' dest':'';
-    s+='<g class="node'+dest+'" data-id="'+esc(n.id)+'"><rect x="'+x+'" y="'+y+'" width="'+p.width+'" height="'+p.height+'" rx="11"></rect><foreignObject x="'+x+'" y="'+y+'" width="'+p.width+'" height="'+p.height+'"><div xmlns="http://www.w3.org/1999/xhtml" class="nl">'+symHtml[n.id]+'</div></foreignObject></g>'; });
+    s+='<g class="node'+dest+'" data-id="'+esc(n.id)+'"><rect x="'+x+'" y="'+y+'" width="'+p.width+'" height="'+p.height+'" rx="11"></rect></g>';
+    lhtml+='<div class="nlab'+dest+'" data-id="'+esc(n.id)+'" style="left:'+x+'px;top:'+y+'px;width:'+p.width+'px;height:'+p.height+'px">'+symHtml[n.id]+'</div>'; });
   vp.innerHTML=s;
+  const inner=document.getElementById('labelsInner');
+  inner.innerHTML=lhtml;
+  labelById={};
+  inner.querySelectorAll('.nlab').forEach(l=>{ labelById[l.dataset.id]=l; });
+  if(!window.__labelMirror){
+    const MIRROR=['dim','up','down','sel'];
+    window.__labelMirror=new MutationObserver(muts=>{
+      muts.forEach(m=>{
+        const el=m.target;
+        if(!el.classList||!el.classList.contains('node')||!el.dataset.id) return;
+        const lab=labelById[el.dataset.id]; if(!lab) return;
+        MIRROR.forEach(c=> lab.classList.toggle(c, el.classList.contains(c)));
+      });
+    });
+    window.__labelMirror.observe(vp,{attributes:true,subtree:true,attributeFilter:['class']});
+  }
+  syncLabels();
   fitAll();
 }
 function fitAll(){ VB={x:0,y:0,w:GW,h:GH}; setVB(); }

@@ -82,11 +82,11 @@
   .contribute code.inline{font-family:var(--font-mono);font-feature-settings:"zero" 1;background:#f1efe9;color:var(--ink);border-radius:6px;padding:1px 6px;font-size:.86em;}
 
   /* the one dark surface on the page: a terminal-style code panel */
-  .codepanel{background:var(--code-bg);border-radius:var(--r-3);overflow:hidden;}
+  .codepanel{background:var(--code-bg);border-radius:var(--r-3);overflow:hidden;min-width:0;}
   .codepanel .tab{display:flex;align-items:center;gap:8px;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,.08);}
   .codepanel .tab .dot{width:9px;height:9px;border-radius:50%;background:#3a3d44;}
   .codepanel .tab .fn{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.72rem;color:#9aa2b2;letter-spacing:.02em;margin-left:4px;}
-  pre.code{margin:0;color:var(--code-ink);padding:16px 18px;white-space:pre-wrap;overflow-wrap:anywhere;font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.8rem;line-height:1.6;}
+  pre.code{margin:0;color:var(--code-ink);padding:16px 18px;overflow-x:auto;font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.78rem;line-height:1.6;}
   pre.code .k{color:#a5b4fc;} pre.code .s{color:#6ee7b7;} pre.code .n{color:#fbbf24;} pre.code .c{color:#8b93a3;}
   @media (max-width:820px){.contribute .two{grid-template-columns:1fr;gap:24px;}}
 </style>
@@ -235,12 +235,16 @@
           <div>
             <div class="codepanel">
               <div class="tab"><span class="dot"></span><span class="fn">instance.json</span></div>
-<pre class="code"><span class="c">// si-thermalconductivity-bte-solver-rta-kaldo.json, a real committed instance</span>
-<span class="c">// The material is not map structure: it enters here, on the value.</span>
+<pre class="code"><span class="c">// si-thermalconductivity-bte-solver-rta-kaldo.json (committed, verbatim)</span>
+<span class="c">// material + conditions = the configuration of this one evaluation</span>
 {
   <span class="k">"variable"</span>: <span class="s">"ThermalConductivity[bte_solver=rta]"</span>,
   <span class="k">"material"</span>: <span class="s">"Si"</span>,
-  <span class="k">"conditions"</span>: { <span class="k">"T"</span>: <span class="n">300</span>, <span class="k">"mesh"</span>: <span class="s">"8x8x8"</span>, <span class="k">"potential"</span>: <span class="s">"Si.tersoff"</span> },
+  <span class="k">"conditions"</span>: {
+    <span class="k">"T"</span>: <span class="n">300</span>,
+    <span class="k">"mesh"</span>: <span class="s">"8x8x8"</span>,
+    <span class="k">"potential"</span>: <span class="s">"Si.tersoff"</span>
+  },
   <span class="k">"value"</span>: <span class="n">19.46</span>,
   <span class="k">"units"</span>: <span class="s">"W/(m K)"</span>,
   <span class="k">"uncertainty"</span>: <span class="k">null</span>,
