@@ -200,7 +200,7 @@ const PROXY_URL='https://openmaterials-learn.giuseppe-barbalinardo.workers.dev';
 async function extractWithLLM(paperText){
   const catalog=CATALOG.map(function(c){return {id:c.id,symbol:c.symbol,type:c.type,dimension:c.dimension,description:c.description};});
   const sys='You map a materials-physics paper onto a fixed catalog of quantities. '
-    +'Return ONLY JSON: {coverage:[node id...], value_instances:[{node_id,material,conditions,value(number),units,uncertainty,quote(VERBATIM from the paper),page}], formulas:[], novel_quantities:[{description,symbol,units,why_not_in_map}]}. '
+    +'Return ONLY JSON: {coverage:[node id...], value_instances:[{node_id,material,conditions,value(number),units,uncertainty,quote(VERBATIM from the paper),page,kind("measurement" if obtained experimentally, "simulation" if computed)}], formulas:[], novel_quantities:[{description,symbol,units,why_not_in_map}]}. '
     +'Never invent a value; every value_instance MUST have a verbatim quote from the paper text. '
     +'Use node_id only from the catalog; if a reported quantity is not in the catalog, put it in novel_quantities. '
     +'In Phase 1 leave formulas as an empty array.';
