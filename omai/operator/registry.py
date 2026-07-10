@@ -47,6 +47,13 @@ INDEX_KINDS: dict[str, str] = {
     "omega": "omega_bin",
     "omega_bin": "omega_bin",
     "mfp_bin": "mfp_bin",
+    # CALPHAD (thermochemistry) axes. `c` is the species/component axis of the
+    # chemical potentials (one MU per non-vacancy component); `p` is the phase
+    # axis of the equilibrium assemblage (one NP per stable phase). New kinds:
+    # neither the atom, cartesian, qpoint, nor branch axes carry the
+    # component / phase semantics of a Gibbs-minimization output.
+    "c": "component",
+    "p": "phase",
 }
 
 
@@ -128,6 +135,12 @@ QUANTITY_TAGS: dict[str, str] = {
     "cell_volume": "Volume of the primitive unit cell (promoted parameter).",
     "atomic_mass": "Per-atom masses (promoted parameter).",
     "atom_count": "Number of atoms in the cell (promoted parameter).",
+    "assessed_database": "The CALPHAD TDB: the frozen human-assessed Gibbs-energy model set (lattice stabilities plus excess parameters); the thermochemistry input artifact, the CALPHAD analog of Potential.",
+    "molar_gibbs_energy": "Assessed molar Gibbs energy of a phase or equilibrium assemblage, per mole of atoms at constant pressure, SER reference (distinct from the phonon-side per-cell Helmholtz molar node).",
+    "molar_enthalpy": "Assessed molar enthalpy H_m = G - T dG/dT, per mole of atoms at constant pressure, SER reference.",
+    "chemical_potential": "Equilibrium partial molar Gibbs energy per component: the common-tangent hyperplane of the Gibbs minimization.",
+    "phase_fraction": "Equilibrium molar amount (fraction) of each stable phase in the assemblage (the lever rule), dimensionless.",
+    "transition_temperature": "Computed phase-transition temperature (liquidus / solidus / solvus / invariant point), an equilibrium output distinct from the input Temperature.",
 }
 
 

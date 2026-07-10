@@ -43,7 +43,7 @@ def test_stability_domain_in_domains_between_mechanics_and_materials():
     names = [d.name for d in DOMAINS]
     assert names == [
         "thermal_transport", "dft_ground_state", "mechanics", "stability",
-        "materials"]
+        "thermochemistry", "materials"]
 
 
 def test_stability_domain_declares_stability_tier():
@@ -234,13 +234,15 @@ def test_new_nodes_validate_against_the_registries():
 # The unified graph: tier order and node placement.
 # --------------------------------------------------------------------------
 
-def test_stability_tier_ordered_after_mechanics_before_diffusion():
+def test_stability_tier_ordered_after_mechanics_before_thermochemistry():
     g = build_graph_dict(DOMAINS)
     tier_names = [t["name"] for t in g["tiers"]]
     assert "Stability" in tier_names
     i = tier_names.index("Stability")
     assert tier_names[i - 1] == "Mechanics"
-    assert tier_names[i + 1] == "Diffusion"
+    # The Thermochemistry tier (pycalphad scan) now renders between Stability
+    # and the materials domain's Diffusion tier.
+    assert tier_names[i + 1] == "Thermochemistry"
 
 
 def test_stability_nodes_carry_the_tier():
