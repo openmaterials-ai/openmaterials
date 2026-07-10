@@ -1,0 +1,36 @@
+{
+ "representation": "matgl",
+ "map_version": "d623176ffc5b43942d01dbfc06af80550f0032906807d4c18d65c859eb5e7ecf",
+ "covers": [
+  {
+   "node": "Forces",
+   "uid": "9c5a2fdedab6b668ccf5f2043fb4c29a982bcde5063fd6ac8633ee2c7858ecbf",
+   "api": "atoms.get_forces() with a matgl PESCalculator (eV/A, shape (n_atoms, 3), base.py:636)",
+   "unit": "eV_per_A"
+  },
+  {
+   "node": "MagneticMoment",
+   "uid": "1423a9b16e18881e4388fee44f536891a6295aaa6e0fc3775bbbe89ee480847a",
+   "api": "results['magmoms'] from a CHGNet PESCalculator under Potential.calc_magmom (matgl/ext/ase.py:280-281), mu_B per site",
+   "unit": "mu_B"
+  },
+  {
+   "node": "Potential",
+   "uid": "80a4273845e09207860e06db18d1f1ee5670a9b9c8b1020a99928c872878f901",
+   "api": "src/utils/mlips/matgl/matgl_wrapper.py create_calculator() -> matgl.ext.ase.PESCalculator(potential=model, stress_unit='eV/A3') (matgl_wrapper.py:123-130)",
+   "unit": null
+  },
+  {
+   "node": "Stress",
+   "uid": "183e66d4e443326d2c346a0327cdb125026bd8f6a91a9bb97b61265fcade7e85",
+   "api": "atoms.get_stress() with a matgl PESCalculator built stress_unit='eV/A3' (eV/A^3, ASE Voigt 6-vector, base.py:642; matgl_wrapper.py:128-130)",
+   "unit": "eV_per_A3"
+  },
+  {
+   "node": "TotalEnergy",
+   "uid": "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+   "api": "atoms.get_potential_energy() with a matgl PESCalculator (eV per cell, base.py:635)",
+   "unit": "ev"
+  }
+ ]
+}
