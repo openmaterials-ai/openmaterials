@@ -24,6 +24,26 @@
   },
   "uid": "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e"
  },
+ "022d18213f7d63713ef4fddb484e1ae6d898873ce20377176013f620225637d8": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^-1 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "youngs_modulus"
+  },
+  "meta": {
+   "description": "Isotropic Young's modulus E_Y: the material's uniaxial stiffness, the stress-to-strain ratio of a bar pulled along one axis with free lateral faces. Fully determined by the bulk and shear moduli through the isotropic identity E_Y = 9KG/(3K + G), an executable contraction (not a new measurement). Scalar, energy-density dimension, conventionally quoted in GPa; note pymatgen's ElasticTensor.y_mod emits SI Pa (a 1e9 trap recorded on the representation).",
+   "name": "YoungsModulus",
+   "symbol": "E_Y",
+   "tier": "Mechanics"
+  },
+  "uid": "022d18213f7d63713ef4fddb484e1ae6d898873ce20377176013f620225637d8"
+ },
  "0f08fcb37791dc7cc3e0e0ee5c611abbefc5075867719b275fcaa77ada4f1ac2": {
   "identity": {
    "fields": [
@@ -1251,6 +1271,26 @@
    "tier": "Molecular dynamics"
   },
   "uid": "e7157a52da5eb7d2ae79e57692acc30d7e63a3a0d1c731b14da4d6ab8fd5eb88"
+ },
+ "e95ba3f5810f8554656c148dae26520cf3258cace0b951dd75e69ee8c552c132": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "poisson_ratio"
+  },
+  "meta": {
+   "description": "Isotropic Poisson ratio nu: the negative transverse-to-axial strain ratio under uniaxial stress. Fully determined by the bulk and shear moduli through the isotropic identity nu = (3K - 2G)/(2(3K + G)), an executable contraction. Dimensionless scalar (all-zero exponents), bounded (-1, 1/2) for stable isotropic media; about 0.34 for Cu.",
+   "name": "PoissonRatio",
+   "symbol": "\\nu",
+   "tier": "Mechanics"
+  },
+  "uid": "e95ba3f5810f8554656c148dae26520cf3258cace0b951dd75e69ee8c552c132"
  },
  "f1261195ad64911510ec9839d2e373c5cbda670f65a8a0c4437e37ff0a7838df": {
   "identity": {

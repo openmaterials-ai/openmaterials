@@ -91,6 +91,28 @@
   },
   "uid": "1038d2249c062baff931bbc06138496d90157bb4365334cae8c5092866e9b6a4"
  },
+ "1374919bed5b2ab25f700faf12ff8dc32b6fa3296fe92dd12092e3b9edd39e54": {
+  "identity": {
+   "formula": "Equality(Symbol('nu'), Mul(Add(Mul(Integer(-1), Integer(2), Symbol('G')), Mul(Integer(3), Symbol('K'))), Pow(Add(Mul(Integer(2), Symbol('G')), Mul(Integer(6), Symbol('K'))), Integer(-1))))",
+   "inputs": [
+    "1ab85488c90143e38b94e27f93ab96571f381e7b09d507fa7a38216ffd34c5ec",
+    "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced"
+   ],
+   "output": "e95ba3f5810f8554656c148dae26520cf3258cace0b951dd75e69ee8c552c132",
+   "outputs": [
+    "e95ba3f5810f8554656c148dae26520cf3258cace0b951dd75e69ee8c552c132"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Isotropic Poisson ratio nu = (3K - 2G)/(2(3K + G)) (equivalently (3K - 2G)/(6K + 2G), the form mat-elasticity's script prints): the second two-constant identity of isotropic linear elasticity, dimensionless because the K/G ratios cancel exactly, which the dimensional gate proves. Closed-form and sympy-executable; for the committed Cu instance (K = 145.85, G = 51.45 GPa, VRH) it evaluates to nu = 0.342, matching the mat-elasticity example. pymatgen's equivalent is ElasticTensor.homogeneous_poisson (elastic.py:403).",
+   "formula_latex": "\\nu = \\frac{- 2 G + 3 K}{2 G + 6 K}",
+   "formula_srepr": "Equality(Symbol('nu'), Mul(Add(Mul(Integer(-1), Integer(2), Symbol('G')), Mul(Integer(3), Symbol('K'))), Pow(Add(Mul(Integer(2), Symbol('G')), Mul(Integer(6), Symbol('K'))), Integer(-1))))",
+   "name": "contract_poisson_ratio",
+   "schemes": {}
+  },
+  "uid": "1374919bed5b2ab25f700faf12ff8dc32b6fa3296fe92dd12092e3b9edd39e54"
+ },
  "1ab7a3aee9b25b786739afcd517b909e4fdf091c768ab4ecbea007e53633be92": {
   "identity": {
    "formula": "Equality(Sum(Mul(Indexed(IndexedBase(Symbol('D')), Symbol('i', integer=True), Symbol('j', integer=True), Symbol('\\\\mathbf{q}')), Indexed(IndexedBase(Symbol('e')), Symbol('j', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True))), Tuple(Symbol('j', integer=True), Integer(1), Mul(Integer(3), Symbol('N', positive=True, integer=True)))), Mul(Pow(Indexed(IndexedBase(Symbol('\\\\omega')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Integer(2)), Indexed(IndexedBase(Symbol('e')), Symbol('i', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True))))",
@@ -112,6 +134,28 @@
    "schemes": {}
   },
   "uid": "1ab7a3aee9b25b786739afcd517b909e4fdf091c768ab4ecbea007e53633be92"
+ },
+ "1b6ab3dbb0648151cd191a9a98d25d103e1a8461958a2f04c14dfa4627c248cf": {
+  "identity": {
+   "formula": "Equality(Symbol('E_Y'), Mul(Integer(9), Symbol('G'), Symbol('K'), Pow(Add(Symbol('G'), Mul(Integer(3), Symbol('K'))), Integer(-1))))",
+   "inputs": [
+    "1ab85488c90143e38b94e27f93ab96571f381e7b09d507fa7a38216ffd34c5ec",
+    "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced"
+   ],
+   "output": "022d18213f7d63713ef4fddb484e1ae6d898873ce20377176013f620225637d8",
+   "outputs": [
+    "022d18213f7d63713ef4fddb484e1ae6d898873ce20377176013f620225637d8"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Isotropic Young's modulus E_Y = 9KG/(3K + G): the standard two-constant identity of isotropic linear elasticity, valid for whichever average (Voigt, Reuss, or Hill) produced the K and G it consumes; the averaging provenance rides on the inputs, not on this identity. Closed-form and sympy-executable; for the committed Cu instance (K = 145.85, G = 51.45 GPa, VRH) it evaluates to E_Y = 138.11 GPa, matching the mat-elasticity example verbatim. pymatgen's ElasticTensor.y_mod encodes the same identity but returns SI Pa (elastic.py:199-204, factor 9.0e9), a 1e9 trap against the GPa convention recorded on the representations.",
+   "formula_latex": "E_{Y} = \\frac{9 G K}{G + 3 K}",
+   "formula_srepr": "Equality(Symbol('E_Y'), Mul(Integer(9), Symbol('G'), Symbol('K'), Pow(Add(Symbol('G'), Mul(Integer(3), Symbol('K'))), Integer(-1))))",
+   "name": "contract_youngs_modulus",
+   "schemes": {}
+  },
+  "uid": "1b6ab3dbb0648151cd191a9a98d25d103e1a8461958a2f04c14dfa4627c248cf"
  },
  "239c7dd3370e7b7e4456f1ade35c5d81edba69efda786d25e8e1e74f6fa297d9": {
   "identity": {
