@@ -156,6 +156,47 @@ def test_unmatched_store_element_with_no_pair_deprecates():
     assert all(r["old_uid"] != ghost_uid for r in proposal["re_mint"])
 
 
+def test_a_superseded_store_edge_is_skipped_not_re_surfaced():
+    """A store edge already carrying ``superseded_by`` is a retired identity whose
+    successor landed; compute_sync skips it (neither re_mint nor deprecate), so a
+    completed supersede converges back to in-sync. This is the map's first-supersede
+    convergence property: without the skip the retired old edge would forever
+    re-surface. Modeled on the real 2026-07-10 reaction-energy supersede."""
+    current = _pristine_current()
+    mutated = copy.deepcopy(current)
+    old_uid = "e" * 64
+    new_uid = "f" * 64
+    # A retired edge (python-absent, marked superseded) plus its live successor.
+    mutated["edges"][old_uid] = {
+        "uid": old_uid,
+        "identity": {"output": "z" * 64, "outputs": ["z" * 64], "inputs": [],
+                     "formula": "old", "schemes": {}},
+        "meta": {"name": "retired_edge"},
+        "superseded_by": [new_uid],
+    }
+    proposal = compute_sync(mutated)
+    # The superseded old uid appears in NO bucket.
+    assert all(r["payload"]["uid"] != old_uid for r in proposal["deprecate"])
+    assert all(r["old_uid"] != old_uid for r in proposal["re_mint"])
+
+
+def test_the_committed_reaction_energy_supersede_is_in_sync():
+    """On the real committed store the reaction-energy supersede (v1 fd5d0e69
+    superseded_by v2) leaves the map in sync: the retired v1 edge is skipped and
+    the live v2 edge matches the Python layer."""
+    current = _pristine_current()
+    OLD_V1 = ("fd5d0e69fde548b23498f3ef5908ae15c2b32e7140cbdd9f0773175fa0"
+              "cc82e8")
+    # The v1 edge is present, retired, and superseded_by the live v2.
+    assert OLD_V1 in current["edges"]
+    assert current["edges"][OLD_V1].get("superseded_by")
+    proposal = compute_sync(current)
+    # No proposals: the retired v1 is skipped, the v2 matches Python.
+    assert proposal["add"] == []
+    assert proposal["deprecate"] == []
+    assert proposal["re_mint"] == []
+
+
 # --------------------------------------------------------------------------
 # (e) The CLI dry run on the pristine repo prints "in sync" and exits 0.
 # --------------------------------------------------------------------------

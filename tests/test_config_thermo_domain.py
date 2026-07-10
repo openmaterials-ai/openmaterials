@@ -202,16 +202,20 @@ def test_config_thermo_edges_wiring_and_schemes():
 
 
 def test_config_thermo_edges_are_implicit_and_skipped():
-    """All three new edges carry opaque solver functions (Nernst-Einstein
-    conversion, cluster-expansion prediction, stoichiometric combination), so
-    the dimensional gate classifies them SKIPPED, boundary-auto-parametrized
-    exactly like the thermochemistry and stability edges; none is a violation
-    and the two pinned schematic violations stay the only ones."""
+    """The Nernst-Einstein and cluster-expansion edges carry opaque solver
+    functions, so the dimensional gate classifies them SKIPPED. The reaction-
+    energy edge, opaque when this scan landed, was later reformulated to the
+    closed-form stoichiometric sum (2026-07-10 physics-review supersede) and is
+    now PROVEN (ok), not skipped. None is a violation; the two pinned schematic
+    violations stay the only ones."""
     nodes, edges = _all_nodes_edges()
     report = dimensional_report(nodes, edges)
     for name in ("compute_ionic_conductivity",
-                 "compute_configurational_energy", "compute_reaction_energy"):
+                 "compute_configurational_energy"):
         assert name in report["skipped"], (name, report)
+    # The reaction-energy edge is now closed-form and PROVEN.
+    assert "compute_reaction_energy" in report["ok"], report
+    assert "compute_reaction_energy" not in report["skipped"], report
     assert report["violation"] == [] or all(
         "compute_gruneisen" in v or "compute_phase_space_3phonon" in v
         for v in report["violation"]
@@ -225,10 +229,14 @@ def test_config_thermo_edges_are_not_sympy_executable():
     )
     from omai.stability.operator.edges import compute_reaction_energy
 
-    for op in (compute_ionic_conductivity, compute_configurational_energy,
-               compute_reaction_energy):
+    # The Nernst-Einstein and cluster-expansion edges stay opaque-implicit.
+    for op in (compute_ionic_conductivity, compute_configurational_energy):
         assert op.is_executable_in_sympy_override is False
         assert not op.is_executable_in_sympy
+    # The reaction-energy edge was superseded to a closed-form sum (2026-07-10),
+    # so it is now sympy-executable (override None, heuristic True).
+    assert compute_reaction_energy.is_executable_in_sympy_override is None
+    assert compute_reaction_energy.is_executable_in_sympy
 
 
 def test_unified_validate_dag_is_clean():
@@ -402,7 +410,6 @@ def test_config_thermo_is_records_148_to_153_two_contributions():
         CONFIGURATIONAL_ENERGY,
         ELECTRICAL_CONDUCTIVITY_IONIC,
     )
-    from omai.stability.operator.edges import compute_reaction_energy
     from omai.stability.operator.nodes import REACTION_ENERGY
 
     lines = (Path(__file__).resolve().parents[1] / "map" / "log.jsonl") \
@@ -414,9 +421,15 @@ def test_config_thermo_is_records_148_to_153_two_contributions():
         edge_id(compute_ionic_conductivity, node_id),
         edge_id(compute_configurational_energy, node_id),
     ]
+    # Record 153 is the ORIGINAL v1 reaction-energy edge. Its uid is frozen
+    # history: the 2026-07-10 physics-review supersede later reformulated the
+    # edge (records 193-194), which changed the LIVE edge_id, but record 153
+    # itself never moves and still carries the opaque-v1 uid.
+    OLD_V1_REACTION_EDGE_UID = ("fd5d0e69fde548b23498f3ef5908ae15c2b32e7140cbdd"
+                                "9f0773175fa0cc82e8")
     b_uids = [
         node_id(REACTION_ENERGY),
-        edge_id(compute_reaction_energy, node_id),
+        OLD_V1_REACTION_EDGE_UID,
     ]
     recs_a = [json.loads(line) for line in lines[147:151]]
     recs_b = [json.loads(line) for line in lines[151:153]]

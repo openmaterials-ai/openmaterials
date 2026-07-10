@@ -381,6 +381,31 @@
   },
   "uid": "2dfd344c598d659dbc5e4c8def4cefcb69b1a0bd215a9202f981618b18611b89"
  },
+ "2f0b118bbe3ef2e43e0d70c9b5d5316cc28dc4d0019ad8e7d0fc463cc6938a9c": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\Delta E_{rxn}'), Sum(Mul(Indexed(IndexedBase(Symbol('\\\\Delta H_f')), Symbol('i')), Indexed(IndexedBase(Symbol('c_{rxn}')), Symbol('i'))), Tuple(Symbol('i'), Integer(1), Symbol('N_{rxn}', positive=True))))",
+   "inputs": [
+    "a385b7ca981904ab5d82176557d453cea4995164adfa22a6ca195e1dfcd815d5"
+   ],
+   "output": "a5736aa4760c27562f9e189829763a891b6fed83fe4a030a7e306b8d909d825c",
+   "outputs": [
+    "a5736aa4760c27562f9e189829763a891b6fed83fe4a030a7e306b8d909d825c"
+   ],
+   "schemes": {
+    "method": "stoichiometric_combination"
+   }
+  },
+  "meta": {
+   "description": "Reaction energy Delta E_rxn = sum_i c_rxn_i H_f_i: the CLOSED-FORM stoichiometric combination of the per-species formation energies of a balanced reaction, the signed coefficient c_rxn_i positive for products and negative for reactants, so the single sum is exactly sum_p c_p H_f(p) - sum_r c_r H_f(r) (rxn_network's ComputedReaction.energy over a reduced-composition entry set, total eV; energy_per_atom = energy/num_atoms). SUPERSEDES the v1 opaque edge (whole-map physics review 2026-07-10, recommendation B1): the v1 formula was an opaque applied function E^{rxn}[Delta H_f]; this v2 spells out the real sum, so it is sympy-executable and the dimensional gate PROVES it (the dimensionless coefficient c_rxn_i times the ENERGY formation energy H_f_i is ENERGY, matching Delta E_rxn). The relation between the nodes is now executable WITHOUT merging the energy tags (the review's answer to 'combine the energy formulas': combine the RELATION, keep the tags). \\Delta H_f is the registered FormationEnergy symbol as an IndexedBase (the per-species formation energies the reaction consumes, the same family-of-values convention compute_surface_energy uses); c_{rxn} is the signed stoichiometric coefficient and N_{rxn} the species count, both scheme data surfaced by this closed form. The method scheme still records the stoichiometric_combination, and WHICH entries plus the MP energy provenance ride in the conditions. NOT built from the finite-T SISSO Gibbs dGf(T) cousin (a naive equate is forbidden). Closed-form and sympy-executable.",
+   "formula_latex": "\\Delta E_{rxn} = \\sum_{i=1}^{N_{rxn}} {\\Delta H_{f}}_{i} {c_{rxn}}_{i}",
+   "formula_srepr": "Equality(Symbol('\\\\Delta E_{rxn}'), Sum(Mul(Indexed(IndexedBase(Symbol('\\\\Delta H_f')), Symbol('i')), Indexed(IndexedBase(Symbol('c_{rxn}')), Symbol('i'))), Tuple(Symbol('i'), Integer(1), Symbol('N_{rxn}', positive=True))))",
+   "name": "compute_reaction_energy",
+   "schemes": {
+    "method": "stoichiometric_combination"
+   }
+  },
+  "uid": "2f0b118bbe3ef2e43e0d70c9b5d5316cc28dc4d0019ad8e7d0fc463cc6938a9c"
+ },
  "325b66602b582ded28ce13760e5718257c3624d5eccfec041949157ce6a0dbc2": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('g')), Symbol('\\\\omega')), Mul(Pow(pi, Integer(-1)), Integral(Mul(cos(Mul(Symbol('\\\\omega'), Symbol('\\\\tau', positive=True))), Indexed(IndexedBase(Symbol('Cv')), Symbol('\\\\tau', positive=True))), Tuple(Symbol('\\\\tau', positive=True), Integer(0), oo))))",
@@ -2314,6 +2339,9 @@
     "method": "stoichiometric_combination"
    }
   },
+  "superseded_by": [
+   "2f0b118bbe3ef2e43e0d70c9b5d5316cc28dc4d0019ad8e7d0fc463cc6938a9c"
+  ],
   "uid": "fd5d0e69fde548b23498f3ef5908ae15c2b32e7140cbdd9f0773175fa0cc82e8"
  },
  "fe7f863a4325b44bf1f15e1b1f2521d7ec03c5c3bd0efa796998b12b6975f1e3": {

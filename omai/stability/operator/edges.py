@@ -76,9 +76,21 @@ _E_ads = sp.Symbol(r"E_{ads}")
 _E_adslab = sp.Function(r"E^{adslab}")
 _E_slab_ads = sp.Function(r"E^{slab}_{ads}")
 _E_adsorbate = sp.Function(r"E^{adsorbate}")
-# Reaction energy: the stoichiometric combination of formation energies.
+# Reaction energy: the CLOSED-FORM stoichiometric combination of formation
+# energies (2026-07-10 supersede, whole-map physics review B1). The v1 edge used
+# an opaque applied function E^{rxn}[Delta H_f]; the v2 edge below spells out the
+# real sum dE_rxn = Sum_i c_rxn[i] Hf[i] over the reaction species, so it is
+# sympy-executable and the dimensional gate PROVES it (dimensionless coefficient
+# times ENERGY = ENERGY). \Delta H_f is reused as an IndexedBase (its base name is
+# the registered FormationEnergy symbol, ENERGY): the per-species formation
+# energies the balanced reaction consumes. c_{rxn} is the SIGNED stoichiometric
+# coefficient (positive for products, negative for reactants), so the single sum
+# is exactly Sum_p c_p Hf(p) - Sum_r c_r Hf(r); N_{rxn} is the species count.
 _dE_rxn = sp.Symbol(r"\Delta E_{rxn}")
-_E_rxn = sp.Function(r"E^{rxn}")
+_Hf_indexed = sp.IndexedBase(r"\Delta H_f")
+_c_rxn = sp.IndexedBase(r"c_{rxn}")
+_i_rxn = sp.Symbol("i")
+_N_rxn = sp.Symbol(r"N_{rxn}", positive=True)
 # Grain-boundary energy: the CSL slab / bulk selectors and boundary area,
 # the same slab-difference bookkeeping as the surface energy.
 _gamma_GB = sp.Symbol(r"\gamma_{GB}")
@@ -225,24 +237,34 @@ compute_reaction_energy = Operator(
     inputs=(FORMATION_ENERGY,),
     outputs=(REACTION_ENERGY,),
     schemes={"method": "stoichiometric_combination"},
-    formula=sp.Eq(_dE_rxn, _E_rxn(_dH_f)),
-    is_executable_in_sympy_override=False,
+    formula=sp.Eq(
+        _dE_rxn,
+        sp.Sum(_c_rxn[_i_rxn] * _Hf_indexed[_i_rxn], (_i_rxn, 1, _N_rxn)),
+    ),
     description=(
-        "Reaction energy Delta E_rxn = E^{rxn}[Delta H_f]: the stoichiometric "
-        "combination sum_p c_p H_f(p) - sum_r c_r H_f(r) of the per-atom "
-        "formation energies of the products and reactants of a balanced "
-        "reaction, weighted by the balancing coefficients (rxn_network's "
-        "ComputedReaction.energy over a reduced-composition entry set, total "
-        "eV; energy_per_atom = energy/num_atoms). E^{rxn} is the opaque "
-        "stoichiometric-combination function over the FormationEnergy family "
-        "(all reactant and product entries); the method scheme records the "
+        "Reaction energy Delta E_rxn = sum_i c_rxn_i H_f_i: the CLOSED-FORM "
+        "stoichiometric combination of the per-species formation energies of a "
+        "balanced reaction, the signed coefficient c_rxn_i positive for products "
+        "and negative for reactants, so the single sum is exactly "
+        "sum_p c_p H_f(p) - sum_r c_r H_f(r) (rxn_network's ComputedReaction.energy "
+        "over a reduced-composition entry set, total eV; energy_per_atom = "
+        "energy/num_atoms). SUPERSEDES the v1 opaque edge (whole-map physics review "
+        "2026-07-10, recommendation B1): the v1 formula was an opaque applied "
+        "function E^{rxn}[Delta H_f]; this v2 spells out the real sum, so it is "
+        "sympy-executable and the dimensional gate PROVES it (the dimensionless "
+        "coefficient c_rxn_i times the ENERGY formation energy H_f_i is ENERGY, "
+        "matching Delta E_rxn). The relation between the nodes is now executable "
+        "WITHOUT merging the energy tags (the review's answer to 'combine the "
+        "energy formulas': combine the RELATION, keep the tags). \\Delta H_f is "
+        "the registered FormationEnergy symbol as an IndexedBase (the per-species "
+        "formation energies the reaction consumes, the same family-of-values "
+        "convention compute_surface_energy uses); c_{rxn} is the signed "
+        "stoichiometric coefficient and N_{rxn} the species count, both scheme "
+        "data surfaced by this closed form. The method scheme still records the "
         "stoichiometric_combination, and WHICH entries plus the MP energy "
-        "provenance ride in the conditions. The FormationEnergy input stands "
-        "for the family of per-entry formation energies the balanced reaction "
-        "consumes, the same family-of-values convention compute_surface_energy "
-        "uses. NOT built from the finite-T SISSO Gibbs dGf(T) cousin (a naive "
-        "equate to that descriptor is forbidden). Implicit (a balanced-reaction "
-        "combination over an entry set), so not sympy-executable."
+        "provenance ride in the conditions. NOT built from the finite-T SISSO "
+        "Gibbs dGf(T) cousin (a naive equate is forbidden). Closed-form and "
+        "sympy-executable."
     ),
 )
 

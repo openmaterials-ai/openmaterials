@@ -44,6 +44,13 @@ register_symbol_dimensions({
     # Reaction energy: plain ENERGY (the per-reaction-atom vs total-eV
     # normalization belongs to the quantity, not the dimension).
     r"\Delta E_{rxn}": ENERGY,
+    # Closed-form stoichiometric-sum symbols (2026-07-10 supersede, review B1):
+    # the signed stoichiometric coefficient (dimensionless) and the species count
+    # (dimensionless). With these bound, the dimensional gate PROVES the v2 edge:
+    # c_{rxn}_i (dimensionless) times \Delta H_f_i (ENERGY) summed is ENERGY,
+    # matching \Delta E_{rxn}.
+    r"c_{rxn}": DIMENSIONLESS,
+    r"N_{rxn}": DIMENSIONLESS,
     # Grain-boundary energy: ENERGY_PER_LENGTH_SQUARED (M T^-2), the same
     # dimension as the surface energy it is a sibling of, kept apart by tag.
     r"\gamma_{GB}": ENERGY_PER_LENGTH_SQUARED,

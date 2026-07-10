@@ -176,11 +176,54 @@ def test_stability_and_magnetism_edges_are_implicit_and_skipped_not_violating():
 
 def test_stability_edges_are_not_sympy_executable():
     from omai.stability.operator import EDGES
+    from omai.stability.operator.edges import compute_reaction_energy
     from omai.dft_ground_state.operator.edges import compute_magnetic_moments
 
-    for op in tuple(EDGES) + (compute_magnetic_moments,):
+    # Every stability edge is opaque-implicit EXCEPT compute_reaction_energy,
+    # which the 2026-07-10 physics-review supersede reformulated from the opaque
+    # E^{rxn}[Delta H_f] to the closed-form stoichiometric sum, so it is now
+    # sympy-executable (override None, the closed-form heuristic holds).
+    opaque = [op for op in tuple(EDGES) + (compute_magnetic_moments,)
+              if op is not compute_reaction_energy]
+    for op in opaque:
         assert op.is_executable_in_sympy_override is False
         assert not op.is_executable_in_sympy
+    assert compute_reaction_energy.is_executable_in_sympy_override is None
+    assert compute_reaction_energy.is_executable_in_sympy
+
+
+def test_reaction_energy_is_the_closed_form_v2_supersede():
+    """The whole-map physics review (B1) superseded the opaque v1 reaction-energy
+    edge with the closed-form stoichiometric sum dE_rxn = Sum_i c_rxn_i H_f_i, now
+    executable and dimensionally proven. The store log records the supersede:
+    the v1 uid is marked superseded_by the v2 uid, the v2 edge is live."""
+    import sympy as sp
+    from pathlib import Path
+    from omai.operator.dimcheck import dimension_of
+    from omai.operator.dimensions import ENERGY
+    from omai.operator.identity import edge_id, node_id
+    from omai.stability.operator.edges import compute_reaction_energy
+    from omai.store import Store
+
+    op = compute_reaction_energy
+    # The formula is a closed-form Sum, not an opaque applied function.
+    assert isinstance(op.formula, sp.Eq)
+    assert op.formula.rhs.has(sp.Sum)
+    # The dimensional gate proves both sides are ENERGY.
+    assert dimension_of(op.formula.lhs) == ENERGY
+    assert dimension_of(op.formula.rhs) == ENERGY
+
+    OLD_V1_UID = ("fd5d0e69fde548b23498f3ef5908ae15c2b32e7140cbdd9f0773175fa0"
+                  "cc82e8")
+    v2_uid = edge_id(op, node_id)
+    assert v2_uid != OLD_V1_UID
+    m = Store(Path(__file__).resolve().parents[1] / "map").read()
+    # v1 is superseded by v2; v2 is live.
+    assert m["edges"][OLD_V1_UID]["superseded_by"] == [v2_uid]
+    assert v2_uid in m["edges"]
+    # The output node (ReactionEnergy) is unchanged: same uid on both edges.
+    assert m["edges"][OLD_V1_UID]["identity"]["output"] == \
+        m["edges"][v2_uid]["identity"]["output"]
 
 
 def test_edge_wiring_and_schemes():

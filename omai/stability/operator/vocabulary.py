@@ -32,10 +32,13 @@ register_space_symbols({
     # Adsorption energy: just its field symbol (the adslab / slab / adsorbate
     # selectors are applied functions, invisible to the free-symbol check).
     "AdsorptionEnergy": {r"E_{ads}"},
-    # Reaction energy: its field symbol (the stoichiometric-combination
-    # selector E^{rxn} is an applied function over the FormationEnergy family,
-    # invisible to the free-symbol check).
-    "ReactionEnergy": {r"\Delta E_{rxn}"},
+    # Reaction energy: its field symbol \Delta E_{rxn}, plus the closed-form
+    # stoichiometric-sum symbols the v2 supersede surfaces (2026-07-10, review B1):
+    # \Delta H_f is the per-species formation energy IndexedBase (already the
+    # FormationEnergy input symbol, so derivable from the input; declared here for
+    # locality), c_{rxn} the signed stoichiometric coefficient, N_{rxn} the species
+    # count.
+    "ReactionEnergy": {r"\Delta E_{rxn}", r"\Delta H_f", r"c_{rxn}", r"N_{rxn}"},
     # Grain-boundary energy with the CSL slab-difference bookkeeping: the
     # atom count and the boundary area (the E^{GB} / E^{bulk}_{GB} selectors
     # are applied functions, invisible to the free-symbol check), mirroring

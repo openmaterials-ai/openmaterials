@@ -128,11 +128,22 @@ def compute_sync(current: dict) -> dict:
     # never auto-apply), else deprecate. A new uid consumed by a re_mint is
     # claimed so it is NOT also emitted as a bare add: landing it is the job of
     # the human-written supersede, not of --apply.
+    #
+    # A store entry already carrying ``superseded_by`` (or ``deprecated``) is
+    # skipped: it is an intentionally-retired identity whose successor already
+    # landed, so the live Python layer legitimately no longer produces it. Without
+    # this skip a completed supersede would forever re-surface the retired old edge
+    # as a re_mint / deprecate and the store could never return to "in sync". This
+    # is what makes the map's supersede flow converge: propose the new edge, write
+    # the supersede tying old -> new, and thereafter sync sees the old edge as
+    # retired and stays clean.
     claimed_new: set[str] = set()
     for store, py, anchor_of in ((store_nodes, py_nodes, _node_anchor),
                                  (store_edges, py_edges, _edge_anchor)):
         for uid, entry in store.items():
             if uid in py:
+                continue
+            if entry.get("superseded_by") or entry.get("deprecated"):
                 continue
             candidates = [u for u in new_by_anchor.get(anchor_of(entry), [])
                           if u not in claimed_new]
