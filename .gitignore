@@ -68,3 +68,6 @@ AtomisticSkills/
 # local secrets (API keys), never commit
 .env
 .env.*
+
+# paper parser proposal output (never committed)
+proposals/
