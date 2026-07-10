@@ -8,7 +8,7 @@ pure-regex `parse_orca_output.py` that reads ORCA `.out` files). ORCA itself is 
 proprietary binary (not pip-installable), so quantity claims anchor to the
 parsers, not to a captured output file.
 
-Companion catalog: `scans/orca-atomistic-skills.json` (19 entries).
+Companion catalog: `scans/orca-atomistic-skills.json` (18 entries).
 
 The honesty question the task poses is carried per-entry: which quantities are the
 **same physics** as the periodic DFT slice (total energies, forces, frequencies)
@@ -55,6 +55,19 @@ ORCA is driven two ways:
 nodes** at this HEAD. **Re-read `graph.json` at encode time**; the node count and
 the amset tail will have moved.
 
+> **Review correction (2026-07-10):** two snapshot errors. (1) The "**empty
+> `edges` array**" is a misreading: `graph.json` has **no `edges` key at all**;
+> edges live under the `links` key (D3 convention), never empty. This is the same
+> misreading a prior reviewer already fixed on the structure-gen scan. (2) The
+> HEAD is stale: the amset encode **has landed**. Re-read at current HEAD
+> `36104c1`, `graph.json` now carries **82 nodes / 198 links / 12 tiers**. The
+> registry-vs-graph discrepancy the scanner flagged has **resolved**:
+> `SeebeckCoefficient`, `ElectronicThermalConductivity`, `CarrierMobility`,
+> `StaticDielectricTensor` are all now graph nodes. Every ORCA-relevant node
+> below is re-confirmed present, and every absent candidate
+> (`DipoleMoment`, `HOMOLUMOGap`, `NMRShift`, `ZeroPointEnergy`, `ReactionBarrier`,
+> `SolvationFreeEnergy`) remains absent, so all candidate/deferral statuses stand.
+
 - **Present, relevant to this scan**: `TotalEnergy`, `Forces`, `Stress`,
   `BandGap`, `Frequency`, `MagneticMoment`, `FormationEnergy`, `ReactionEnergy`,
   `ActivationEnergy`, `MolarGibbsEnergy`, `ChemicalPotential`.
@@ -62,20 +75,25 @@ the amset tail will have moved.
   `HOMOLUMOGap`, `NMRShift`, `OrbitalEnergy`, molecular `GibbsFreeEnergy`,
   `ZeroPointEnergy`, `IRIntensity`, `ExcitationEnergy`.
 
-## Entry counts by status (19 entries)
+## Entry counts by status (18 entries)
 
 | Status | Count | Entries |
 |---|---|---|
-| already-mapped, same physics | 3 | forces, temperature, and total-energy-components (rep) |
+| already-mapped, same physics | 2 | forces, temperature |
 | already-mapped, basis question | 2 | final single-point energy (TotalEnergy), vibrational frequencies (Frequency) |
 | molecular-sibling candidate | 2 | HOMO-LUMO gap (vs BandGap), TS energy / reaction barrier (vs ActivationEnergy + deferred NEB) |
 | new-node candidate | 6 | Hessian, ZPE, enthalpy, Gibbs, entropy correction, solvation free energy |
 | representation-only | 4 | energy components, imaginary-mode count, IR intensities, orbital energies |
 | not surfaced by skills | 2 | dipole moment, NMR shift |
 
-(3 + 2 + 2 + 6 + 4 + 2 = 19; the JSON's `entry_counts_by_status` groups the two
-basis-question energy entries and the temperature/components split slightly
-differently but totals the same 19.)
+(2 + 2 + 2 + 6 + 4 + 2 = 18.)
+
+> **Review correction (2026-07-10):** the scan originally said "19 entries" here
+> and in the companion line above. The `entries` array holds **18** objects. The
+> phantom 19th came from double-counting `orca-total-energy-component`: it was
+> listed under "same physics" AND under "representation-only" (its true status).
+> The same-physics bucket is 2 (forces, temperature), not 3; the JSON
+> `entry_counts_by_status` is corrected to total 18.
 
 ## The per-molecule basis proposal (the crux)
 
@@ -236,3 +254,102 @@ split.
   ENERGY_PER_MOLE, FORCE, ENERGY_PER_LENGTH_SQUARED);
   `omai/operator/registry.py:84-152` (QUANTITY_TAGS);
   `docs/data/graph.json` (HEAD `671b092`, 77 nodes, empty edges).
+
+## Review verdicts (2026-07-10)
+
+Adversarial deep review of commit `9c8add9`'s catalog (18 entries), independent of
+the scanner. The three-skill ORCA surface re-grepped over all **126** skills; the
+parser (`parse_orca_output.py`) opened and every parsed quantity re-derived with
+line numbers; all conversion factors recomputed against `scipy.constants`
+(CODATA-2022); map side read from `omai/operator/{registry,dimensions}.py`,
+`omai/dft_ground_state/operator/nodes.py`, `omai/thermal_transport/operator/nodes.py`,
+and `docs/data/graph.json` re-read at current HEAD `36104c1` (**82 nodes / 198
+links / 12 tiers**). **Em-dash grep over both scan files: zero.**
+
+**Verdict: 18/18 entries VERIFIED. No status changed.** Every file:line anchor
+spot-checked accurate. Two corrections applied (both recorded inline above): the
+graph-snapshot `edges`->`links` misreading plus the stale HEAD, and the
+entry-count arithmetic (18, not 19: the scanner double-counted
+`orca-total-energy-component` under both "same physics" and "representation-only").
+
+### Three-skill ORCA surface: CONFIRMED
+
+Only `chem-dft-orca-{singlepoint,optimization,advanced-calculation}` invoke ORCA
+(singlepoint/optimization through SCINE `su.core.get_calculator("dft","orca")`;
+advanced through a raw `ORCA_BINARY_PATH` `subprocess` + the regex parser).
+`chem-spectrum-matcher` is a downstream consumer of an ORCA IR run and adds no new
+parsed quantity. The two extra case-insensitive `orca` grep hits are **substring
+false positives**: `resorcarene` (a COD paper title in
+`mat-db-optimade/examples/query-cod/results.json`) and `Oscillator`
+(`mat-solid-free-energy` `HarmonicOscillatorCalculator`). All negative claims
+re-verified: `chem-nmr-analysis`, `chem-nmr-predict`, `chem-thermochemistry`,
+`chem-vibration`, `chem-neb-barrier`, `chem-bond-dissociation`,
+`chem-ts-optimization`, `chem-irc-verification`, `chem-react-ot`,
+`chem-conformer-search` carry **zero** orca/scine/readuct references.
+
+### The four flagged parser claims: all CONFIRMED
+
+1. **T\*S-product-not-S**: `parse_orca_output.py:145-147` captures `Total entropy
+   correction ... Eh` (energy), the `-T*S` term, **not** the entropy `S`. No `S`
+   in J/(mol K) is ever parsed. `S = entropy_correction / temperature_K`.
+2. **Imaginary-frequencies-printed-negative**: the regex parser flags `f < 0` as
+   imaginary (`:106`); the SCINE path flags `n < -1e-6` (`run_optimization.py:234`,
+   a numerical-tolerance variant). TS wants exactly 1, min wants 0.
+3. **`final_energy` DLPNO/DFT collision**: the `FINAL SINGLE POINT ENERGY` regex
+   (`:39`, `run_orca_input.py:33`) is method-blind. ORCA writes that header for
+   DFT, DLPNO-CCSD(T), and CASSCF alike, all keyed `final_energy`; a correlated
+   CCSD(T) total and a DFT total share the key but are different physics.
+4. **Hardcoded `27.211386245988`**: confirmed at `parse_orca_output.py:32` and
+   inline at `run_orca_input.py:93`. It is the CODATA-2018 value; `scipy` 1.16
+   (CODATA-2022) gives `27.211386245981` (last two digits differ, within CODATA
+   uncertainty). "Exact match to the eV working unit" is essentially correct.
+
+### Conversion factors: all recomputed against scipy CODATA, all confirmed
+
+| factor | claimed | scipy (CODATA-2022) |
+|---|---|---|
+| Hartree -> eV | 27.211386245988 | 27.211386245981 (within uncertainty) |
+| Hartree -> kcal/mol | 627.5094740631 | 627.5094740629 |
+| Hartree -> kJ/mol | 2625.499639479 | 2625.499639479 |
+| eV -> kcal/mol | 23.060547830619 | 23.060547830619 (exact) |
+| eV/particle -> kJ/mol | 96.48533212331 | 96.48533212331 (exact) |
+| kcal/mol -> kJ/mol | 4.184 | 4.184 (exact, thermochem calorie) |
+| Debye | 3.33564e-30 C\*m | 3.33564095e-30 |
+| a.u. dipole (e\*a0) | 2.541746 D | 2.5417465 D |
+
+### Basis-proposal FACTS: all CONFIRMED
+
+- `TotalEnergy` per-cell: `nodes.py:82-88` "Extensive: one scalar per simulation
+  cell" (verbatim).
+- `Frequency` `(q, nu)` signature: `thermal_transport/nodes.py:135`
+  `indices=("q","nu")`; a molecule has no qpoint/branch.
+- `BandGap` VBM-CBM: `nodes.py:136-151` "valence-band maximum and the
+  conduction-band minimum", "KS gap, NOT the fundamental (quasiparticle) gap",
+  "rides with the `Potential` provenance".
+- Four ENERGY bases confirmed in `registry.py`: per-cell (`:87`), per-mole-of-cells
+  (`:114-120`, "per mole of primitive unit cells"), per-mole-of-atoms (`:143-144`,
+  "per mole of atoms ... SER reference"), per-molecule (ORCA, N=0).
+
+### Orchestrator decisions
+
+- **TotalEnergy**: same node + a required provenance label (`basis`, `code`,
+  `electron_treatment`, `functional`, `basis_set`, `dispersion`, `solvation`); the
+  label forbids cross-substrate subtraction. No separate `MolecularEnergy` node.
+- **Molecular Frequency**: mint a new index kind `mode` (no qpoint, no branch),
+  same `frequency` tag, served cm^-1, `n_imaginary` a derived label (0=min, 1=TS).
+- **HOMOLUMOGap**: mint a distinct molecular node (not `BandGap`+label): a molecule
+  has no bands, so equating with `BandGap` is a category error. Cousin, not same.
+- **TS / barrier family**: one `ReactionBarrier`/`ActivationEnergy` family kept
+  apart by a construction label (static-TS vs NEB-MEP vs Arrhenius-slope). TS
+  energy grounds a labeled `TotalEnergy` (saddle-point, 1 imaginary mode); mint
+  `ReactionBarrier` only when a skill computes the delta.
+- **Thermochemistry bundle**: mint a molecular-RRHO family (`ZeroPointEnergy`,
+  `MolecularEnthalpy`, `MolecularGibbsEnergy`, entropy correction) with a
+  construction label, kept apart from CALPHAD per-mole-of-atoms and phonon
+  per-mole-of-cells nodes. The entropy member is stored as `T*S` (energy), not `S`.
+- **Dipole / NMR**: defer both (not surfaced by any parser; the agent reads
+  `.property.txt` manually).
+- **Solvation**: encode solvated single points as a labeled `TotalEnergy` for now;
+  mint `SolvationFreeEnergy` only when a skill computes gas-minus-solvated.
+- **Molecular Hessian**: representation-only intermediate; the skills surface the
+  derived wavenumbers, not the raw Hessian.
