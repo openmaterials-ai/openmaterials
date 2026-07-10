@@ -1,0 +1,316 @@
+{
+  "scan": {
+    "title": "phonopy and LAMMPS deltas as used by AtomisticSkills",
+    "kind": "delta / gap analysis (not a fresh survey)",
+    "target": "the DELTAS between what the phonopy and lammps rails already ground and what AtomisticSkills (arXiv 2605.24002) actually exercises",
+    "codes": ["phonopy", "lammps"],
+    "sources": {
+      "phonopy_clone": "phonopy/ @ 3.5.1 (phonopy/phonopy/version.py:37)",
+      "lammps_clone": "lammps/ @ 30 Mar 2026 Development (lammps/src/version.h:1-2)",
+      "atomistic_skills": "AtomisticSkills/.agents/skills/ (126 skills), vendored",
+      "matcalc_qha_source": "/tmp/mcsrc/matcalc-0.5.1/src/matcalc/_qha.py (pip-downloaded; QHACalc wraps phonopy.PhonopyQHA)"
+    },
+    "graph_snapshot": {
+      "git_head": "3874add",
+      "node_count": 74,
+      "relevant_present": ["Gruneisen (MODE gamma_qnu, indices (q,nu), from FC2/FC3)", "MolarGibbsEnergy (CALPHAD, constant-P, per-mole-of-atoms basis)", "MolarHeatCapacity / MolarEntropy / MolarHelmholtzFreeEnergy / MolarInternalEnergy (phonopy, constant-V, per-mole-of-primitive-cell basis)", "ElasticConstants", "Pressure", "Frequency", "Eigenvectors", "PhononDOS"],
+      "relevant_absent": ["ThermalExpansion", "GibbsFreeEnergy (QHA constant-P Helmholtz->Gibbs; distinct from CALPHAD MolarGibbsEnergy)", "HeatCapacityConstantP / Cp", "ThermalGruneisen (macroscopic gamma(T), NOT the mode node)", "BulkModulusTemperature B(T)", "PhononIrreps / mode symmetry labels", "ThermalDisplacement / atomic MSD / ADP ellipsoids", "RadialDistributionFunction", "Density", "Viscosity", "PerAtomEnergy/Stress family (from prior lammps-thermal scan)", "ExchangedReservoirEnergy family (from prior lammps-thermal scan)"]
+    },
+    "note_on_prior_scans": "This scan does NOT re-catalog the 30 lammps-thermal entries (heat-flux/GK/NEMD family, RDF, per-atom energy/stress, reservoir energies) already in scans/lammps-thermal.json, nor the matcalc PhononCalc/Phonon3Calc/QHACalc verdicts already in scans/matcalc-ase-atomistic-skills.json. It records only the DELTA against those, cross-checked to the real skill scripts. Where a candidate here overlaps a prior scan's candidate, it is cross-referenced, not duplicated."
+  },
+  "entries": [
+
+    {
+      "name": "phonopy-frequency-confirm",
+      "code": "phonopy",
+      "quantity": "Phonon frequencies at q (mesh, band path, or Gamma) in linear THz",
+      "symbol": "omega_qnu",
+      "units": "linear_THz (confirmed everywhere AtomisticSkills touches phonopy)",
+      "skill_usages": [
+        {"skill": "mat-phonon", "anchor": "AtomisticSkills/.agents/skills/mat-phonon/scripts/calculate_phonon.py:46-58", "what": "PhononCalc(...).calc(atoms) writes phonon.yaml/band_structure.yaml/total_dos.dat; thermal_properties summary indexed at [30] for 300K on a t_step=10 grid"},
+        {"skill": "mat-raman-spectra", "anchor": "AtomisticSkills/.agents/skills/mat-raman-spectra/scripts/analyze_raman_modes.py:134-138", "what": "phonon.run_band_structure Gamma path -> band_dict['frequencies'][0][0] in THz, then *33.3564 THz->cm^-1"},
+        {"skill": "mat-kinetic-monte-carlo", "anchor": "AtomisticSkills/.agents/skills/mat-kinetic-monte-carlo/examples/literature_validation/compute_htst_prefactor.py:57-62", "what": "phonon.run_mesh([1,1,1], is_gamma_center=True) -> mesh_dict['frequencies'][0] in THz; imaginary modes returned as NEGATIVE frequencies (phonopy sqrt-of-negative convention)"}
+      ],
+      "maps_to": {"node": "Frequency", "status": "existing", "notes": "Confirms PHONOPY_FREQUENCY (linear_THz) is honest. THz->cm^-1 (raman) and negative-frequency-for-imaginary (hTST) are downstream conventions on the SAME node, not new nodes. Coverage confirmed."}
+    },
+
+    {
+      "name": "phonopy-molar-thermal-confirm",
+      "code": "phonopy",
+      "quantity": "Harmonic (constant-volume) molar thermal properties: Helmholtz free energy, entropy, internal energy, heat capacity C_V, one value per T on a grid",
+      "symbol": "F_mol, S_mol, E_mol, Cv_mol",
+      "units": "kJ/mol (F,E), J/(K*mol) (S,Cv); phonopy 'mol' = per mole of PRIMITIVE CELLS",
+      "skill_usages": [
+        {"skill": "mat-phonon", "anchor": "AtomisticSkills/.agents/skills/mat-phonon/scripts/calculate_phonon.py:60-72", "what": "result['thermal_properties'] summarized at index 30 (=300K on t_min=0,t_step=10); keys are phonopy's free_energy/entropy/heat_capacity/internal_energy"}
+      ],
+      "maps_to": {"node": "MolarHelmholtzFreeEnergy / MolarEntropy / MolarInternalEnergy / MolarHeatCapacity", "status": "existing", "notes": "Confirms the four Molar* phonopy specs. IMPORTANT basis guardrail (already in the rail notes): these are CONSTANT-VOLUME (harmonic, Helmholtz side) and per-mole-of-PRIMITIVE-CELL. The QHA cluster below produces the CONSTANT-PRESSURE (Gibbs side) analogs, which are DISTINCT nodes by the same potential+basis distinction that separates phonopy MolarHelmholtzFreeEnergy from CALPHAD MolarGibbsEnergy (omai/thermochemistry/operator/nodes.py:30-38). Coverage confirmed."}
+    },
+
+    {
+      "name": "phonopy-eigenvectors-confirm",
+      "code": "phonopy",
+      "quantity": "Phonon eigenvectors at Gamma (mass-weighted mode displacements)",
+      "symbol": "e_qnu",
+      "units": "dimensionless (phase + degenerate-subspace rotation freedom)",
+      "skill_usages": [
+        {"skill": "mat-raman-spectra", "anchor": "AtomisticSkills/.agents/skills/mat-raman-spectra/scripts/analyze_raman_modes.py:135,224", "what": "band_dict['eigenvectors'][0][0]; used to build the Raman tensor alpha_nu = sum_k (Z*_k . e_nu,k)/sqrt(m_k) from Born charges (bond-polarizability model)"}
+      ],
+      "maps_to": {"node": "Eigenvectors", "status": "existing", "notes": "Confirms PHONOPY_EIGENVECTORS. The eigenvectors are consumed with VASP Born charges (already the vasp/pymatgen BornCharges node) to form a Raman intensity, which is a NEW downstream quantity (see phonopy-raman-intensity). Node itself: coverage confirmed, NOT_COMPARABLE per-element caveat holds."}
+    },
+
+    {
+      "name": "phonopy-irreps-mode-symmetry",
+      "code": "phonopy",
+      "quantity": "Irreducible-representation (point-group) symmetry labels of the phonon modes at Gamma, plus per-mode Raman/IR activity flags derived from them",
+      "symbol": "Gamma_irrep label per mode (e.g. A1g, Eu, T2g)",
+      "units": "categorical (symmetry label); activity is boolean",
+      "gauge": "structure/symmetry-determined (spglib symprec dependent)",
+      "skill_usages": [
+        {"skill": "mat-raman-spectra", "anchor": "AtomisticSkills/.agents/skills/mat-raman-spectra/scripts/analyze_raman_modes.py:154-183", "what": "phonon.set_irreps(q=[0,0,0]) (phonopy 3.x) / phonon.run_irreps (2.x) -> irreps._ir_labels; each mode tagged with its irrep label and Raman-activity via mutual-exclusion rule for centrosymmetric groups"}
+      ],
+      "source_anchors": [
+        {"file": "phonopy/phonopy/phonon/irreps.py", "line": 57, "what": "class IrReps: character-table decomposition of the degenerate subspaces of D(q)"},
+        {"file": "phonopy/phonopy/phonon/irreps.py", "line": 144, "what": "self._ir_labels = irrep_labels.irrep_labels (may contain None for unresolved / non-symmorphic cases)"}
+      ],
+      "maps_to": {"node": null, "status": "new", "notes": "Candidate new node PhononModeSymmetry / PhononIrreps: the point-group irrep label attached to each Gamma mode, and the Raman/IR-activity flag derived from it. This is a genuinely NEW quantity on the map: the harmonic rail carries Frequency/Eigenvectors/DOS but no symmetry-label output. It is a categorical annotation on modes (like cna/atom in the lammps scan was flagged categorical), and non-symmorphic groups return None (the skill falls back to 'Unknown'). Cross-code comparability is by label-set match, not numeric. Skill-exercised TODAY by mat-raman-spectra."}
+    },
+
+    {
+      "name": "phonopy-raman-intensity",
+      "code": "phonopy",
+      "quantity": "Non-resonant Raman intensities per mode (bond-polarizability model): I_nu proportional to |alpha_nu|^2 (omega_laser-omega_nu)^4/omega_nu * Bose factor, from Born charges + eigenvectors",
+      "symbol": "I_nu",
+      "units": "arbitrary (normalized to max); MLIP tier uses equal intensities",
+      "skill_usages": [
+        {"skill": "mat-raman-spectra", "anchor": "AtomisticSkills/.agents/skills/mat-raman-spectra/scripts/analyze_raman_modes.py:186-277", "what": "compute_raman_intensities_from_born: alpha_nu = sum_k outer(Z_k@e_nu_k, 1); rotationally-averaged 10*a^2+7*b2; Bose-Einstein T factor; laser prefactor. DFT tier reads VASP OUTCAR Born + dielectric; MLIP tier assigns equal intensities."}
+      ],
+      "maps_to": {"node": null, "status": "new", "notes": "Candidate new node RamanIntensity (spectrum-layer, per-mode). A spectroscopic OBSERVABLE assembled from Eigenvectors (phonopy) + BornCharges + DielectricTensor (vasp/pymatgen, already mapped). Distinct domain (vibrational spectroscopy). Note the MLIP tier CANNOT produce real intensities (equal-weight fallback) because MLIPs give no Born charges; only the DFT (VASP DFPT) tier does. Skill-exercised TODAY. Sibling of a potential IR-intensity node."}
+    },
+
+    {
+      "name": "phonopy-qha-gibbs-free-energy",
+      "code": "phonopy",
+      "quantity": "Quasi-harmonic Gibbs free energy G(T,P): the constant-PRESSURE thermodynamic potential from the V-scan Helmholtz surface F(V,T) minimized over volume at each T (Legendre G = min_V[F(V,T)+PV])",
+      "symbol": "G(T)",
+      "units": "kJ/mol (QHACalc result dict); phonopy PhonopyQHA.gibbs_temperature",
+      "gauge": "observable (per-mole-of-primitive-cell basis, constant-P potential)",
+      "skill_usages": [
+        {"skill": "mat-qha-thermal-expansion", "anchor": "AtomisticSkills/.agents/skills/mat-qha-thermal-expansion/scripts/calculate_qha.py:33-41", "what": "QHACalc(..., eos='vinet', write_gibbs_temperature='gibbs_temperature.dat').calc(atoms); result['gibbs_free_energies'] (kJ/mol)"}
+      ],
+      "source_anchors": [
+        {"file": "phonopy/phonopy/qha/core.py", "line": 312, "what": "PhonopyQHA.gibbs_temperature property (G(T) from the EOS-fit F(V,T) surface)"},
+        {"file": "/tmp/mcsrc/matcalc-0.5.1/src/matcalc/_qha.py", "line": 253, "what": "qha = PhonopyQHA(...); result key 'gibbs_free_energies': qha.gibbs_temperature (kJ/mol), :269,299"}
+      ],
+      "maps_to": {"node": null, "status": "new", "notes": "Candidate new node GibbsFreeEnergy (QHA). THERMOCHEMISTRY-GUARDRAIL RELATIONSHIP (critical): this is CONSTANT-PRESSURE (Gibbs potential) whereas phonopy MolarHelmholtzFreeEnergy is CONSTANT-VOLUME (Helmholtz potential). The map ALREADY encodes exactly this distinction: omai/thermochemistry/operator/nodes.py:30-38 gives MolarGibbsEnergy (CALPHAD, constant-P, per-mole-of-ATOMS, Gibbs-minimization producer) a distinct UID from phonopy MolarHelmholtzFreeEnergy (constant-V, per-mole-of-primitive-cell, phonon-gas producer) even though their field exponent vectors match. The QHA Gibbs is a THIRD point in that same (potential x basis x producer) space: constant-P (like CALPHAD) but per-mole-of-primitive-cell and phonon-gas+EOS producer (like phonopy). Do NOT conflate it with either existing node; it needs its own UID carrying {potential: gibbs, basis: primitive_cell, producer: qha_eos_scan}."}
+    },
+
+    {
+      "name": "phonopy-qha-thermal-expansion",
+      "code": "phonopy",
+      "quantity": "Volumetric thermal expansion coefficient alpha(T) = (1/V)(dV/dT)_P, from the T-dependence of the QHA equilibrium volume V(T)",
+      "symbol": "alpha(T)",
+      "units": "1/K (QHACalc 'thermal_expansion_coefficients'); phonopy PhonopyQHA.thermal_expansion",
+      "gauge": "observable",
+      "skill_usages": [
+        {"skill": "mat-qha-thermal-expansion", "anchor": "AtomisticSkills/.agents/skills/mat-qha-thermal-expansion/scripts/calculate_qha.py:33-41", "what": "write_thermal_expansion='thermal_expansion.dat'; result['thermal_expansion_coefficients'] (1/K)"}
+      ],
+      "source_anchors": [
+        {"file": "phonopy/phonopy/qha/core.py", "line": 291, "what": "PhonopyQHA.thermal_expansion property"},
+        {"file": "phonopy/phonopy/qha/core.py", "line": 305, "what": "PhonopyQHA.volume_temperature V(T), the upstream of alpha(T)"},
+        {"file": "/tmp/mcsrc/matcalc-0.5.1/src/matcalc/_qha.py", "line": 268, "what": "result key 'thermal_expansion_coefficients': qha.thermal_expansion, unit '1/K' (:298)"}
+      ],
+      "maps_to": {"node": null, "status": "new", "notes": "Candidate new node ThermalExpansion (volumetric alpha(T), 1/K). No node today. Headline QHA output. Related to the QHA cluster's V(T) (also new, VolumeTemperature) and to the mode Gruneisen (present) via the thermodynamic relation alpha = gamma_thermal * Cv / (B*V). Skill-exercised TODAY."}
+    },
+
+    {
+      "name": "phonopy-qha-heat-capacity-p",
+      "code": "phonopy",
+      "quantity": "Constant-PRESSURE molar heat capacity C_P(T), from d(H)/dT along the QHA equilibrium path; phonopy gives both a numerical and a polyfit estimator",
+      "symbol": "C_P(T)",
+      "units": "J/(K*mol) (QHACalc 'heat_capacity_P'); phonopy PhonopyQHA.heat_capacity_P_polyfit / _numerical",
+      "gauge": "observable (per-mole-of-primitive-cell basis, constant-P)",
+      "skill_usages": [
+        {"skill": "mat-qha-thermal-expansion", "anchor": "AtomisticSkills/.agents/skills/mat-qha-thermal-expansion/scripts/calculate_qha.py:33-41", "what": "QHACalc result['heat_capacity_P'] (J/(K*mol)); matcalc uses the polyfit estimator by default"}
+      ],
+      "source_anchors": [
+        {"file": "phonopy/phonopy/qha/core.py", "line": 337, "what": "PhonopyQHA.heat_capacity_P_polyfit (matcalc default)"},
+        {"file": "phonopy/phonopy/qha/core.py", "line": 326, "what": "PhonopyQHA.heat_capacity_P_numerical (alternative estimator)"},
+        {"file": "/tmp/mcsrc/matcalc-0.5.1/src/matcalc/_qha.py", "line": 271, "what": "result key 'heat_capacity_P': qha.heat_capacity_P_polyfit, unit 'J/(K*mol)' (:301)"}
+      ],
+      "maps_to": {"node": null, "status": "new", "notes": "Candidate new node HeatCapacityConstantP (C_P, J/(K*mol)). THERMOCHEMISTRY-GUARDRAIL RELATIONSHIP: the existing phonopy MolarHeatCapacity is C_V (constant volume, harmonic). C_P differs from C_V by C_P-C_V = alpha^2 * B * V * T (the anharmonic/expansion correction). SAME field exponent vector, DIFFERENT potential (constant-P vs constant-V). Must carry a {constraint: constant_pressure} distinguisher exactly as the Gibbs/Helmholtz split does, or it silently aliases the C_V node. Two estimators (numerical, polyfit) = alternative-producer edges (Pattern C), like fc2's dual producers. Skill-exercised TODAY (polyfit)."}
+    },
+
+    {
+      "name": "phonopy-qha-thermal-gruneisen",
+      "code": "phonopy",
+      "quantity": "Macroscopic (thermal) Gruneisen parameter gamma(T): the thermodynamic average gamma = alpha*B*V/C_V, one SCALAR per temperature",
+      "symbol": "gamma_thermal(T)",
+      "units": "dimensionless (QHACalc 'gruneisen_parameters'); phonopy PhonopyQHA.gruneisen_temperature",
+      "gauge": "observable",
+      "skill_usages": [
+        {"skill": "mat-qha-thermal-expansion", "anchor": "AtomisticSkills/.agents/skills/mat-qha-thermal-expansion/scripts/calculate_qha.py:33-41", "what": "QHACalc result['gruneisen_parameters'] (dimensionless) via write_gruneisen_temperature default path"}
+      ],
+      "source_anchors": [
+        {"file": "phonopy/phonopy/qha/core.py", "line": 355, "what": "PhonopyQHA.gruneisen_temperature property (thermodynamic gamma(T))"},
+        {"file": "/tmp/mcsrc/matcalc-0.5.1/src/matcalc/_qha.py", "line": 272, "what": "result key 'gruneisen_parameters': qha.gruneisen_temperature, 'dimensionless' (:302)"}
+      ],
+      "maps_to": {"node": null, "status": "new", "notes": "Candidate new node ThermalGruneisen (macroscopic gamma(T), scalar-per-T). MUST NOT be conflated with the EXISTING Gruneisen node, which is the MODE Gruneisen gamma_qnu indexed by (q,nu) (omai/thermal_transport/operator/nodes.py:393-402, computed from FC2/FC3 via Maradudin-Fein). The QHA thermal gamma(T) is a single number per temperature: the heat-capacity-weighted thermodynamic average of the mode gammas. Different index signature (T-grid vs (q,nu)), different producer (EOS volume scan vs FC3), different tier. It is a CONTRACTION of the mode Gruneisen, so an edge mode-Gruneisen -> ThermalGruneisen is the honest relationship. Skill-exercised TODAY."}
+    },
+
+    {
+      "name": "phonopy-qha-bulk-modulus-temperature",
+      "code": "phonopy",
+      "quantity": "Temperature-dependent isothermal bulk modulus B(T) from the QHA EOS fit at each temperature's equilibrium volume",
+      "symbol": "B(T)",
+      "units": "GPa (QHACalc 'bulk_modulus_P'); phonopy PhonopyQHA.bulk_modulus_temperature",
+      "gauge": "observable",
+      "skill_usages": [
+        {"skill": "mat-qha-thermal-expansion", "anchor": "AtomisticSkills/.agents/skills/mat-qha-thermal-expansion/scripts/calculate_qha.py:33-41", "what": "QHACalc result['bulk_modulus_P'] (GPa)"}
+      ],
+      "source_anchors": [
+        {"file": "phonopy/phonopy/qha/core.py", "line": 319, "what": "PhonopyQHA.bulk_modulus_temperature property"},
+        {"file": "/tmp/mcsrc/matcalc-0.5.1/src/matcalc/_qha.py", "line": 270, "what": "result key 'bulk_modulus_P': qha.bulk_modulus_temperature, 'GPa' (:300)"}
+      ],
+      "maps_to": {"node": null, "status": "new", "notes": "Candidate: EITHER a T-indexed extension of the existing BulkModulus node (which today is a T=0 elastic/EOS scalar in GPa) OR a new BulkModulusTemperature node. Recommendation: index the existing BulkModulus by temperature (add a T index) rather than mint a second node, mirroring the open question in the lammps-thermal scan about T(bin) as an index vs new node. The QHA route is a distinct producer (EOS fit per T) parallel to the elastic-tensor VRH and EOS-curvature producers already noted in the matcalc scan. Skill-exercised TODAY. Note: matcalc labels it bulk_modulus_P (constant-P Gibbs surface), distinct from the T=0 elastic bulk modulus."}
+    },
+
+    {
+      "name": "phonopy-qha-helmholtz-volume-scan",
+      "code": "phonopy",
+      "quantity": "The QHA Helmholtz free-energy-vs-volume surface F(V,T) and equilibrium volume V(T): the discretization substrate the QHA thermodynamics are fit from",
+      "symbol": "F(V,T), V(T)",
+      "units": "kJ/mol (F), Angstrom^3 (V)",
+      "gauge": "scheme/discretization (the volume grid IS a matcalc scheme)",
+      "skill_usages": [
+        {"skill": "mat-qha-thermal-expansion", "anchor": "AtomisticSkills/.agents/skills/mat-qha-thermal-expansion/scripts/calculate_qha.py:33-41", "what": "QHACalc runs PhononCalc at each scale_factor in (0.95..1.05, 11 volumes) then PhonopyQHA fits F(V,T); the 11-volume grid and eos='vinet' are the matcalc/skill scheme"}
+      ],
+      "source_anchors": [
+        {"file": "phonopy/phonopy/qha/core.py", "line": 298, "what": "PhonopyQHA.helmholtz_volume F(V) surface"},
+        {"file": "/tmp/mcsrc/matcalc-0.5.1/src/matcalc/_qha.py", "line": 80, "what": "scale_factors=(0.95..1.05) default 11-volume grid; :77 eos default 'vinet'"}
+      ],
+      "maps_to": {"node": null, "status": "scheme-on-operator", "notes": "The F(V,T) volume scan is the DISCRETIZATION substrate (11 volumes, EOS choice vinet/birch_murnaghan/murnaghan) beneath every QHA output above. Like the matcalc EOS volume-grid and elastic strain-grid (matcalc-ase scan), this is a matcalc-owned SCHEME on the QHA operator, not a physical node. V(T) itself could be a minor node (VolumeTemperature) but is better read as the equilibrium-volume intermediate of alpha(T). Records the double-provenance: QHA volume grid + MLIP checkpoint."}
+    },
+
+    {
+      "name": "phonopy-thermal-displacement-adp",
+      "code": "phonopy",
+      "quantity": "Atomic thermal displacements / mean-square-displacement matrices (anisotropic displacement parameters, U_ij ellipsoids) from the harmonic phonon population",
+      "symbol": "<u_i u_j>(T)",
+      "units": "Angstrom^2 (MSD / U-matrix elements)",
+      "gauge": "observable (per-atom, temperature dependent)",
+      "skill_usages": [],
+      "source_anchors": [
+        {"file": "phonopy/phonopy/phonon/thermal_displacement.py", "line": 161, "what": "class ThermalDisplacements: per-atom mean-square displacements <u^2>(T) from the phonon gas"},
+        {"file": "phonopy/phonopy/phonon/thermal_displacement.py", "line": 302, "what": "class ThermalDisplacementMatrices: the full U_ij (ADP ellipsoid) matrices"}
+      ],
+      "maps_to": {"node": null, "status": "new-capability-only", "notes": "Candidate new node ThermalDisplacement / ADP (Angstrom^2). phonopy computes it (run_thermal_displacements / run_thermal_displacement_matrices) and it is the harmonic-phonon analog of the LAMMPS MSD node (which is DIFFUSIVE, not vibrational: distinct physics, do NOT alias). NO AtomisticSkills skill drives it today (capability-only in the vendored skill set), so it is a lower-priority candidate than the QHA cluster. Recorded for completeness of the phonopy delta."}
+    },
+
+    {
+      "name": "phonopy-band-connection-dispersion-confirm",
+      "code": "phonopy",
+      "quantity": "Band-structure dispersion along a q-path (frequencies vs q on a path) and the total phonon DOS",
+      "symbol": "omega(q-path), g(omega)",
+      "units": "linear_THz axis",
+      "skill_usages": [
+        {"skill": "mat-phonon", "anchor": "AtomisticSkills/.agents/skills/mat-phonon/scripts/calculate_phonon.py:52-54", "what": "PhononCalc writes band_structure.yaml + total_dos.dat"},
+        {"skill": "mat-raman-spectra", "anchor": "AtomisticSkills/.agents/skills/mat-raman-spectra/scripts/analyze_raman_modes.py:128-132", "what": "run_band_structure on a single Gamma path with_eigenvectors=True"}
+      ],
+      "maps_to": {"node": "Frequency / PhononDOS", "status": "existing", "notes": "The band path is Frequency indexed on a q-PATH rather than a q-MESH; DOS is PHONON_DOS. Both present. band_connection (phonopy's LO-TO / crossing-continuity ordering along the path) is a SCHEME on the dispersion operator, not a new node; no skill toggles it. Coverage confirmed. Recorded so the audit sees the path-vs-mesh index question, parallel to the T(bin)-index open question."}
+    },
+
+    {
+      "name": "lammps-md-thermo-metal-confirm",
+      "code": "lammps",
+      "quantity": "MD thermo stdout: step temp pe etotal press vol density under NPT/NVT ensembles, plus dump-custom trajectories, from MLIP-driven LAMMPS runs",
+      "symbol": "T, PE, E_tot, P, V, rho",
+      "units": "UNIT STYLE = metal in ALL three mat-lammps-md examples: K (temp), eV (pe/etotal), bar (press), Angstrom^3 (vol), g/cm^3 (density), 0.001 ps timestep",
+      "skill_usages": [
+        {"skill": "mat-lammps-md (mace)", "anchor": "AtomisticSkills/.agents/skills/mat-lammps-md/examples/mace/in.na2si3o7_quench_mace:5,22-23,26-39", "what": "units metal; pair_style mace; thermo_style custom step temp pe etotal press vol density; 3-stage NPT melt/quench/hold; dump custom ... id type x y z"},
+        {"skill": "mat-lammps-md (matgl)", "anchor": "AtomisticSkills/.agents/skills/mat-lammps-md/examples/matgl/in.cu_phase_transition_matgl:5,24-26,31", "what": "units metal; pair_style mliap python chgnet; NPT heating 300->1700K then NVT hold; same thermo_style + dump"},
+        {"skill": "mat-lammps-md (fairchem)", "anchor": "AtomisticSkills/.agents/skills/mat-lammps-md/examples/fairchem/in.relax_adsorption_fairchem:5,21-28", "what": "units metal; pair_style mliap python fairchem; min_style cg + minimize (energy minimization, not MD); variable E equal pe; print E to file"}
+      ],
+      "maps_to": {"node": "Temperature / Trajectory / Potential (+ Pressure, TotalEnergy)", "status": "existing", "notes": "Confirms the lammps rail's Potential/Temperature/Trajectory and the mechanics Pressure node ARE what the skills drive, all in UNIT STYLE metal. UNIT TRAP CORRECTION to the lammps-thermal scan and rail: those anchor the canonical examples/KAPPA scripts in units LJ (kB=mvv2e=nktv2p=1); but EVERY AtomisticSkills LAMMPS example uses units METAL (eV, bar, K, ps). So for the AS workload the metal-unit-style parameter table is the relevant one, not LJ and not the hard-coded REAL of the old contract_kappa_nemd spec. Coverage confirmed; the unit-style scheme should default-enumerate metal for the skill-driven path."}
+    },
+
+    {
+      "name": "lammps-md-density",
+      "code": "lammps",
+      "quantity": "Mass density rho = total mass / cell volume, a thermo output tracked live during the quench (glass densification) and phase-transition runs",
+      "symbol": "rho",
+      "units": "g/cm^3 (metal unit style)",
+      "gauge": "observable",
+      "skill_usages": [
+        {"skill": "mat-lammps-md (mace)", "anchor": "AtomisticSkills/.agents/skills/mat-lammps-md/examples/mace/in.na2si3o7_quench_mace:23", "what": "thermo_style custom ... density; density tracked across melt/quench/hold to read glass densification"},
+        {"skill": "mat-lammps-md (matgl)", "anchor": "AtomisticSkills/.agents/skills/mat-lammps-md/examples/matgl/in.cu_phase_transition_matgl:25", "what": "thermo_style custom ... density during Cu heating"}
+      ],
+      "maps_to": {"node": null, "status": "new-minor", "notes": "Candidate new node Density (g/cm^3), or a derived contraction TotalMass/CellVolume. Trivially derivable from Structure+composition and the (candidate) CellVolume node the lammps-thermal scan already flagged (thermo vol). Minor: it is a scalar readout of already-mapped quantities, but the skills track it as a first-class MD output (the physically meaningful signal of a quench). Low priority; note it does not exist and is not the phonon Density-of-States."}
+    },
+
+    {
+      "name": "lammps-min-energy-minimization",
+      "code": "lammps",
+      "quantity": "Energy minimization (geometry relaxation) via min_style cg + minimize, producing a relaxed structure + its potential energy (adsorption-energy component)",
+      "symbol": "E_min, relaxed r",
+      "units": "eV (metal)",
+      "gauge": "hidden (optimizer path) / observable (final E)",
+      "skill_usages": [
+        {"skill": "mat-lammps-md (fairchem)", "anchor": "AtomisticSkills/.agents/skills/mat-lammps-md/examples/fairchem/in.relax_adsorption_fairchem:24-29", "what": "min_style cg; minimize 1e-8 1e-10 2000 10000; variable E equal pe; print E; write_data. Used to get E_slab/E_adslab/E_adsorbate components for an adsorption energy."}
+      ],
+      "maps_to": {"node": "Structure / TotalEnergy", "status": "existing", "notes": "LAMMPS minimize is a THIRD engine (with ase.optimize and the qe/vasp relaxers) producing the already-mapped Structure and TotalEnergy nodes. min_style {cg, fire, ...} is a SCHEME on the relax/solve operator, parallel to ase's optimizer scheme (FIRE/BFGS) in the matcalc-ase scan. The adsorption-energy this feeds is the SAME AdsorptionEnergy new-node candidate the matcalc-ase scan flagged (mat-surface-adsorption via AdsorptionCalc); here mat-lammps-md computes the same quantity via LAMMPS minimize instead. Cross-engine relationship, not a new node here. Coverage confirmed for Structure/TotalEnergy."}
+    },
+
+    {
+      "name": "cross-engine-mlip-checkpoint-ase-vs-lammps",
+      "code": "lammps",
+      "quantity": "The SAME MLIP checkpoint (MACE / CHGNet-MatGL / FairChem-UMA) evaluated as an ASE calculator (matcalc/skill path) vs compiled into a LAMMPS pair_style (mace no_domain_decomposition / mliap python), producing the SAME E/F/S PES and hence agreeing derived quantities",
+      "symbol": "E, F, S (same checkpoint, two engines)",
+      "units": "eV, eV/Angstrom, eV/Angstrom^3 (ase) vs metal-unit eV, eV/A, bar (lammps)",
+      "gauge": "EXPECTED_AGREE (same underlying PES, up to engine numerics + unit conversion)",
+      "skill_usages": [
+        {"skill": "mat-lammps-md vs mat-phonon/mat-sample-pes-by-md", "anchor": "AtomisticSkills/.agents/skills/mat-lammps-md/examples/{mace,matgl,fairchem}/in.* pair_style lines vs the ase-calculator path in calculate_phonon.py:32 (wrapper.create_calculator())", "what": "mace: pair_style mace + model_file (in.na2si3o7:18-19) vs ase MACECalculator; chgnet: pair_style mliap python chgnet CHGNet-MPtrj-2023.12.1 (in.cu:18) vs matgl PESCalculator; fairchem: pair_style mliap python fairchem uma-s-1p1 (in.relax:18) vs FAIRChemCalculator. Same checkpoint identity string, two engines."}
+      ],
+      "maps_to": {"node": "Potential / TotalEnergy / Forces / Stress", "status": "cross-engine-expected-agree", "notes": "CONCRETE cross-engine EXPECTED_AGREE candidates (the mlip scan's abstract claim made real). Same MLIP checkpoint -> (a) ase.Atoms.calc PES driving matcalc/phonopy, and (b) a LAMMPS pair_style. The quantities that MUST agree (to engine numerics): Potential identity, TotalEnergy, Forces, Stress on identical configurations. Downstream: any Trajectory/Temperature/Pressure statistic from an identical (ensemble, seed) run should agree in distribution. TRAP: the ase side is eV/A/A^3 (CODATA-mixed per the matcalc scan), the LAMMPS metal side is eV/A/bar; the Stress comparison needs the bar<->eV/A^3 conversion (nktv2p, metal 1.6021765e6). This is the map's EXPECTED_AGREE edge between the ase Potential node and the lammps Potential node, keyed on checkpoint identity. Comparability caveat: pair_style mace no_domain_decomposition vs mliap-python bridges have their own numerical envelopes; agreement is to MLIP-inference precision, not bit-exact."}
+    }
+  ],
+
+  "summary": {
+    "entry_counts_by_status": {
+      "phonopy": {"existing_confirmed": 4, "new_candidate": 6, "scheme_on_operator": 1, "total": 11},
+      "lammps": {"existing_confirmed": 2, "new_minor": 1, "cross_engine_expected_agree": 1, "total": 4},
+      "note": "phonopy new candidates = irreps/mode-symmetry, raman-intensity, and the FOUR-member QHA cluster (Gibbs, thermal-expansion, Cp, thermal-Gruneisen) plus thermal-displacement/ADP; scheme = QHA F(V,T) volume scan. lammps existing = metal-unit thermo/trajectory + minimize->Structure/TotalEnergy; new-minor = Density; cross-engine = same-checkpoint ase-vs-pair_style EXPECTED_AGREE."
+    },
+    "honest_coverage_verdict": {
+      "phonopy_rail": "HONEST for what it claims. The 4 confirmed nodes (Frequency linear-THz, the four Molar* constant-V thermodynamics, Eigenvectors, DOS, DM, FC2, Born/dielectric/NAC, Gruneisen-mode, GroupVelocity) exactly match what mat-phonon/mat-raman/mat-kmc drive. The rail's docstring correctly scopes phonopy to the HARMONIC constant-V chain and hands QHA/anharmonic off. The gap is NOT dishonesty: it is that AtomisticSkills exercises phonopy BEYOND the harmonic thermal chain (QHA via PhonopyQHA, irreps via IrReps, thermal displacements) and those outputs have no node. Coverage is honest; scope is incomplete.",
+      "lammps_rail": "HONEST for the thermal-transport/GK/NEMD slice (11 nodes) it claims, and the mechanics ElasticConstants+Pressure. But the AtomisticSkills LAMMPS workload is NOT the thermal-transport slice at all: mat-lammps-md runs plain NPT/NVT MLIP-MD (melt/quench, phase transition, adsorption relax) in units METAL, producing Temperature/Trajectory/Pressure/TotalEnergy/Density. None of the KAPPA heat-flux/reservoir machinery the rail and lammps-thermal scan center on is touched by any skill. So the rail's coverage of its OWN slice is honest, but the slice it covers is largely orthogonal to what the skills use; the skill-relevant additions are Density (new-minor) and the metal-unit-style default."
+    },
+    "qha_cluster_proposal": {
+      "cluster": ["GibbsFreeEnergy(QHA, kJ/mol, constant-P)", "ThermalExpansion(alpha(T), 1/K)", "HeatCapacityConstantP(C_P, J/K/mol)", "ThermalGruneisen(gamma_thermal(T), dimensionless, scalar-per-T)", "BulkModulus[T] (GPa, T-indexed extension of existing node)"],
+      "producer": "phonopy.PhonopyQHA (qha/core.py:291-355) driven by matcalc QHACalc, exercised by the mat-qha-thermal-expansion skill (calculate_qha.py:33-41, eos='vinet', 11-volume scan)",
+      "scheme": "the F(V,T) volume scan (11 scale factors 0.95..1.05, EOS in {vinet, birch_murnaghan, murnaghan}) is a matcalc-owned discretization scheme on the QHA operator, carrying MLIP-checkpoint double-provenance",
+      "thermochemistry_guardrail_relationship": "The QHA cluster is CONSTANT-PRESSURE (Gibbs side); the existing phonopy Molar* nodes are CONSTANT-VOLUME (Helmholtz side). The map ALREADY encodes exactly this potential distinction: omai/thermochemistry/operator/nodes.py:30-38 gives CALPHAD MolarGibbsEnergy (constant-P, per-mole-of-ATOMS) a distinct UID from phonopy MolarHelmholtzFreeEnergy (constant-V, per-mole-of-primitive-cell) despite identical field exponent vectors, on a (potential x basis x producer) key. The QHA nodes are a THIRD region of that space: constant-P (like CALPHAD) but per-mole-of-primitive-cell + phonon-gas/EOS producer (like phonopy). Each QHA node must carry {constraint: constant_pressure, basis: primitive_cell, producer: qha_eos_scan} so C_P does not alias phonopy C_V and QHA-Gibbs does not alias CALPHAD-Gibbs. ThermalGruneisen must NOT alias the existing MODE Gruneisen (gamma_qnu, (q,nu)-indexed, FC3-produced); it is a T-indexed scalar CONTRACTION of it (edge: mode-Gruneisen -> ThermalGruneisen)."
+    },
+    "cross_engine_candidates": {
+      "concrete_expected_agree": "Same MLIP checkpoint via ase.Atoms.calc (matcalc/phonopy path) vs a LAMMPS pair_style: MACE (pair_style mace / MACECalculator), CHGNet (mliap python chgnet / matgl PESCalculator), FairChem UMA (mliap python fairchem / FAIRChemCalculator). Quantities that must agree to inference precision: Potential identity, TotalEnergy, Forces, Stress on identical configs; downstream Trajectory/Temperature/Pressure distributions for identical (ensemble, seed).",
+      "edge": "EXPECTED_AGREE edge between the ase Potential node and the lammps Potential node, keyed on checkpoint identity string; Stress comparison requires the metal bar <-> eV/A^3 conversion (nktv2p=1.6021765e6).",
+      "also": "mat-lammps-md's minimize-based adsorption-energy components (in.relax_adsorption_fairchem) target the SAME AdsorptionEnergy new-node candidate the matcalc-ase scan flagged via AdsorptionCalc; LAMMPS-minimize and ase-relax are cross-engine producers of it."
+    },
+    "unit_traps": [
+      "phonopy: linear THz CONFIRMED everywhere (mat-phonon thermal grid, mat-raman *33.3564 THz->cm^-1, mat-kmc mesh frequencies). No angular-vs-linear ambiguity in any skill.",
+      "phonopy imaginary modes: returned as NEGATIVE frequencies (sqrt-of-negative convention); mat-kmc filters them for the Vineyard prefactor (compute_htst_prefactor.py:87). A comparator must not treat negative freq as an error.",
+      "phonopy Molar* basis: per mole of PRIMITIVE CELLS, not atoms (rail note); QHA Gibbs/Cp inherit the same primitive-cell basis. Cross-code to CALPHAD (per mole of ATOMS) needs the atoms-per-cell divide.",
+      "LAMMPS unit style: METAL in ALL three mat-lammps-md examples (eV, bar, K, ps, g/cm^3), NOT the LJ of the KAPPA examples nor the hard-coded REAL of the old contract_kappa_nemd spec. Stress/pressure in BAR (metal), so the heat-flux/GK unit chain (nktv2p) and any cross-engine Stress compare to ase's eV/A^3 must convert bar<->eV/A^3.",
+      "QHA outputs mix unit bases in ONE result dict: thermal_expansion 1/K, gibbs kJ/mol, bulk_modulus_P GPa, heat_capacity_P J/(K*mol), gruneisen dimensionless (matcalc _qha.py:298-302). A consumer must read the per-key unit, not assume a single basis.",
+      "QHACalc.pressure is documented in GPa while MDCalc.pressure is eV/A^3 (matcalc-ase scan trap 8): the QHA Gibbs pressure axis is GPa."
+    ],
+    "open_questions": [
+      "Is BulkModulus[T] a temperature INDEX on the existing (T=0) BulkModulus node, or a new BulkModulusTemperature node? (Parallels the T(bin)-index question in the lammps-thermal scan.) Recommendation: index the existing node.",
+      "Should the QHA cluster land as one new domain (quasi-harmonic thermodynamics) with its own node group, or be distributed onto the existing thermal_transport + thermochemistry domains? The constant-P/constant-V guardrail argues it straddles both.",
+      "PhononIrreps: encode the categorical symmetry label as a node, or as a symmetry annotation/scheme on the Frequency/Eigenvectors nodes? (Non-symmorphic groups return None; the label is not always resolvable.)",
+      "RamanIntensity: ingest a vibrational-spectroscopy domain? It needs Eigenvectors (phonopy) x BornCharges x DielectricTensor (vasp/pymatgen) and only the DFT tier yields real intensities (MLIP tier is equal-weight). A sibling IR-intensity node would come with it.",
+      "ThermalDisplacement/ADP: capability-only in phonopy (no skill drives it today). Ingest now for completeness, or defer until a skill exercises it? Note it is the vibrational (harmonic) MSD, distinct from the diffusive LAMMPS MSD node.",
+      "Density (LAMMPS thermo): new scalar node, or a derived contraction of Structure/composition/CellVolume? It is skill-tracked (quench densification) but trivially derived.",
+      "Cross-engine EXPECTED_AGREE tolerance: what agreement envelope for the same-checkpoint ase-vs-pair_style comparison, given no_domain_decomposition vs mliap-python bridge numerics? A tolerance policy in compare(), keyed on checkpoint identity."
+    ]
+  }
+}
