@@ -96,6 +96,26 @@
   },
   "uid": "12cde23e9a333fdd03313c4cdbd82d51033f9bb3bd505466a8db5360faf166b4"
  },
+ "12ec58944efc3849b267bf3017d9049179ed21717b7791d06fc17d69b7150c39": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "configurational_energy"
+  },
+  "meta": {
+   "description": "Lattice-model energy of a configuration predicted by a cluster expansion: E = dot(coefs, correlations), the configurational-energetics analog of an MLIP potential energy on a structure. On a FIXED lattice and FIXED cell (relax_cell=False), reference-shifted by the training set (a total or a formation energy), so NOT a relaxed-structure DFT/MLIP TotalEnergy and NOT a per-atom FormationEnergy despite sharing the plain ENERGY dimension (1,2,-2,0,0,0,0); kept a distinct node by the configurational_energy quantity tag. BASIS is a per-instance caveat: extensive per supercell (processor.compute_property / predict default), per primitive cell (predict normalized=True, CV-RMSE in eV/prim), or per atom (eV/atom, what the grand-canonical-MC skill divides to report); which basis and which ECI training-energy reference an instance uses ride in the conditions, not the dimension. The cluster-expansion checkpoint that predicts it is a Potential-representation analog (the smol rail records it as an MLIP-checkpoint sibling), not minted as a node here.",
+   "name": "ConfigurationalEnergy",
+   "symbol": "E_{\\mathrm{cfg}}",
+   "tier": "Diffusion"
+  },
+  "uid": "12ec58944efc3849b267bf3017d9049179ed21717b7791d06fc17d69b7150c39"
+ },
  "12fb1ed0f109f6dd198199dde8ed169edc25c04ee12813e0612a96675784830c": {
   "identity": {
    "fields": [
@@ -442,6 +462,28 @@
    "tier": "Thermodynamics"
   },
   "uid": "38b082d42f5136a903752e5425c65c112c90bc564693ddb929ef3f175d9d96d8"
+ },
+ "3f5753096d30cc6741fe9c6fd5e247e9afbb87b94f5844ec233f9243345d3712": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^-1 L^-3 T^3 I^2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "carrier": "ionic"
+   },
+   "quantity": "electrical_conductivity"
+  },
+  "meta": {
+   "description": "Ionic electrical conductivity sigma from the Nernst-Einstein relation on the tracer diffusivity: sigma = (n/V) z^2 e^2 D / (k_B T), with the number density n/V, the squared ionic charge z^2 (oxidation state, else valence-electron count), the electron charge e, over the thermal energy k_B T. It assumes a HAVEN RATIO OF 1 (the tracer, not the collective charge, diffusivity drives it; the charge-diffusivity conductivity is a separate quantity). Dimension ELECTRICAL_CONDUCTIVITY (M=-1,L=-3,T=3,Theta=0,N=0,I=2,J=0), the S/m of siemens per metre; served here as the scalar extrapolated sigma_RT (300 K), with the rank-2 tensor sigma_{alpha,beta} generalization (conductivity components) a representation-layer packing. The map's first I=+2 node and the first electric-current-axis node in the diffusion slice (NOT the first current-axis node overall: Voltage at I=-1 precedes it), and EMPHATICALLY NOT ThermalConductivity (they share only the word 'conductivity'). The carrier=ionic label keeps it distinct from the electronic sibling that will join the same ElectricalConductivity family from amset. A companion of Diffusivity (differing only by the conversion factor).",
+   "name": "ElectricalConductivity[carrier=ionic]",
+   "symbol": "\\sigma_{ion}",
+   "tier": "Diffusion"
+  },
+  "uid": "3f5753096d30cc6741fe9c6fd5e247e9afbb87b94f5844ec233f9243345d3712"
  },
  "3f837e061bf37d1ad104455abad3b9bd3d8bb16048a656977c2488fd3c4bd521": {
   "identity": {
@@ -1097,6 +1139,26 @@
    "tier": "Stability"
   },
   "uid": "a385b7ca981904ab5d82176557d453cea4995164adfa22a6ca195e1dfcd815d5"
+ },
+ "a5736aa4760c27562f9e189829763a891b6fed83fe4a030a7e306b8d909d825c": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "reaction_energy"
+  },
+  "meta": {
+   "description": "Reaction energy dE_rxn of a balanced solid-state reaction: the stoichiometric combination of the per-atom formation energies of the products minus the reactants, weighted by the balancing coefficients, the thermodynamic driving force a reaction network scores. Plain ENERGY (M L^2 T^-2), served either per reaction-atom (eV/atom = energy / num_atoms, the skills' printed dG) or total eV (coefficient-dependent, as-balanced); which normalization an instance uses is a condition, not the dimension, exactly like the per-cell / per-atom split on the other energy-difference nodes. A DISTINCT quantity from a single-compound FormationEnergy (a difference of differences over a balanced reaction), kept apart by the reaction_energy tag. It is EMPHATICALLY NOT the finite-T SISSO Gibbs formation energy dGf(T) rxn_network builds reactions from (the GibbsComputedEntry descriptor, 300-2000 K, ~50 meV/atom MAD, MP-derived): that is a finite-temperature COUSIN of FormationEnergy, never naively equated to the 0 K / 298 K DFT FormationEnergy the producing edge consumes here. The reactants / products set, the balancing, and the MP energy provenance ride in the producing edge's scheme and the instance conditions.",
+   "name": "ReactionEnergy",
+   "symbol": "\\Delta E_{rxn}",
+   "tier": "Stability"
+  },
+  "uid": "a5736aa4760c27562f9e189829763a891b6fed83fe4a030a7e306b8d909d825c"
  },
  "a62ac1eae1e972a0b265a14f8a2af5610deb61eb0c883b7668ac4a64313b3b75": {
   "identity": {

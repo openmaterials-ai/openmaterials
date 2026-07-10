@@ -511,6 +511,35 @@
   },
   "uid": "5030641f5cd4aa1843e286c35d529ad7956c48a51603b1ae35121f4950cf1985"
  },
+ "504b2deeec3553dc90f91bdc0b4136feaf52abcbc585edd65500d5cab9f27cb2": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\sigma_{ion}', positive=True), Function('\\\\sigma^{NE}')(Symbol('D', positive=True), Symbol('T', positive=True), Symbol('\\\\mathcal{S}')))",
+   "inputs": [
+    "37eb727e4cf5e46c3ca04ff4bea4fe9dbb3f7f3c3fad8a1681c7e9d04bafd34f",
+    "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "3f5753096d30cc6741fe9c6fd5e247e9afbb87b94f5844ec233f9243345d3712",
+   "outputs": [
+    "3f5753096d30cc6741fe9c6fd5e247e9afbb87b94f5844ec233f9243345d3712"
+   ],
+   "schemes": {
+    "haven_ratio": "1",
+    "method": "nernst_einstein"
+   }
+  },
+  "meta": {
+   "description": "Ionic conductivity sigma = sigma^{NE}[D, T, Structure]: the Nernst-Einstein conversion sigma = (n/V) z^2 e^2 D / (k_B T) applied to the tracer diffusivity D at temperature T, with the number density n/V and the ionic charge z^2 (oxidation state, else valence-electron count) read off the Structure. sigma^{NE} is opaque over the Structure context; the method scheme records the Nernst-Einstein relation and the haven_ratio=1 assumption (the tracer, not the collective charge, diffusivity). pymatgen-analysis-diffusion's DiffusionAnalyzer.conductivity / get_extrapolated_conductivity. Implicit (a Structure-dependent conversion), so not sympy-executable.",
+   "formula_latex": "\\sigma_{ion} = \\sigma^{NE}{\\left(D,T,\\mathcal{S} \\right)}",
+   "formula_srepr": "Equality(Symbol('\\\\sigma_{ion}', positive=True), Function('\\\\sigma^{NE}')(Symbol('D', positive=True), Symbol('T', positive=True), Symbol('\\\\mathcal{S}')))",
+   "name": "compute_ionic_conductivity",
+   "schemes": {
+    "haven_ratio": "1",
+    "method": "nernst_einstein"
+   }
+  },
+  "uid": "504b2deeec3553dc90f91bdc0b4136feaf52abcbc585edd65500d5cab9f27cb2"
+ },
  "59ae54527b2e735e5408e66eadb81c9f1fa29720ea39207564e388a44cd1b04c": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('F^{at}')), Symbol('i', integer=True), Symbol('\\\\alpha', integer=True)), Mul(Integer(-1), Derivative(Symbol('E_{tot}'), Tuple(Indexed(IndexedBase(Symbol('R^{at}')), Symbol('i', integer=True), Symbol('\\\\alpha', integer=True)), Integer(1)))))",
@@ -1526,6 +1555,32 @@
   },
   "uid": "d267d86e7f4e4a66d26cf3bab54f4d1a5a693d972562a85f2154e290ed5c8bf4"
  },
+ "d3cc1efc62bc2eaeca95cbd9c0cc10a3f0bbdf850d7ef3c4991d437cdef4f084": {
+  "identity": {
+   "formula": "Equality(Symbol('E_{cfg}'), Function('E^{ce}')(Symbol('V'), Symbol('\\\\mathcal{S}')))",
+   "inputs": [
+    "80a4273845e09207860e06db18d1f1ee5670a9b9c8b1020a99928c872878f901",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "12ec58944efc3849b267bf3017d9049179ed21717b7791d06fc17d69b7150c39",
+   "outputs": [
+    "12ec58944efc3849b267bf3017d9049179ed21717b7791d06fc17d69b7150c39"
+   ],
+   "schemes": {
+    "method": "cluster_expansion"
+   }
+  },
+  "meta": {
+   "description": "Configurational energy E_cfg = E^{ce}[Potential, Structure]: the cluster-expansion prediction E = dot(coefs, correlations) evaluated on a configuration (the Structure) with a fitted cluster expansion (the Potential-representation analog, an MLIP-checkpoint sibling carrying the ECI coefficients). E^{ce} is opaque over the fitted checkpoint and the configuration; the method scheme records the cluster_expansion method. Fixed lattice, fixed cell, training-referenced (smol ClusterExpansion.predict / ExpansionProcessor.compute_property). Implicit (a checkpoint evaluation), so not sympy-executable.",
+   "formula_latex": "E_{cfg} = E^{ce}{\\left(V,\\mathcal{S} \\right)}",
+   "formula_srepr": "Equality(Symbol('E_{cfg}'), Function('E^{ce}')(Symbol('V'), Symbol('\\\\mathcal{S}')))",
+   "name": "compute_configurational_energy",
+   "schemes": {
+    "method": "cluster_expansion"
+   }
+  },
+  "uid": "d3cc1efc62bc2eaeca95cbd9c0cc10a3f0bbdf850d7ef3c4991d437cdef4f084"
+ },
  "d5a6a4d1c789d427aecbc40998ec2b7d32240c2850ac5d9ed226e268b6ed09f8": {
   "identity": {
    "formula": "Equality(Symbol('NP'), Function('f^{eq}')(Symbol('\\\\mathcal{D}'), Symbol('T')))",
@@ -1744,5 +1799,30 @@
    }
   },
   "uid": "fd0c5bbfc433db7ed55562ae46c06b3880389135fa84225a10c0687269251352"
+ },
+ "fd5d0e69fde548b23498f3ef5908ae15c2b32e7140cbdd9f0773175fa0cc82e8": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\Delta E_{rxn}'), Function('E^{rxn}')(Symbol('\\\\Delta H_f')))",
+   "inputs": [
+    "a385b7ca981904ab5d82176557d453cea4995164adfa22a6ca195e1dfcd815d5"
+   ],
+   "output": "a5736aa4760c27562f9e189829763a891b6fed83fe4a030a7e306b8d909d825c",
+   "outputs": [
+    "a5736aa4760c27562f9e189829763a891b6fed83fe4a030a7e306b8d909d825c"
+   ],
+   "schemes": {
+    "method": "stoichiometric_combination"
+   }
+  },
+  "meta": {
+   "description": "Reaction energy Delta E_rxn = E^{rxn}[Delta H_f]: the stoichiometric combination sum_p c_p H_f(p) - sum_r c_r H_f(r) of the per-atom formation energies of the products and reactants of a balanced reaction, weighted by the balancing coefficients (rxn_network's ComputedReaction.energy over a reduced-composition entry set, total eV; energy_per_atom = energy/num_atoms). E^{rxn} is the opaque stoichiometric-combination function over the FormationEnergy family (all reactant and product entries); the method scheme records the stoichiometric_combination, and WHICH entries plus the MP energy provenance ride in the conditions. The FormationEnergy input stands for the family of per-entry formation energies the balanced reaction consumes, the same family-of-values convention compute_surface_energy uses. NOT built from the finite-T SISSO Gibbs dGf(T) cousin (a naive equate to that descriptor is forbidden). Implicit (a balanced-reaction combination over an entry set), so not sympy-executable.",
+   "formula_latex": "\\Delta E_{rxn} = E^{rxn}{\\left(\\Delta H_{f} \\right)}",
+   "formula_srepr": "Equality(Symbol('\\\\Delta E_{rxn}'), Function('E^{rxn}')(Symbol('\\\\Delta H_f')))",
+   "name": "compute_reaction_energy",
+   "schemes": {
+    "method": "stoichiometric_combination"
+   }
+  },
+  "uid": "fd5d0e69fde548b23498f3ef5908ae15c2b32e7140cbdd9f0773175fa0cc82e8"
  }
 }
