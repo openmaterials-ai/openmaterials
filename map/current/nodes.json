@@ -717,6 +717,26 @@
   },
   "uid": "6cbd3322c5b6eb0105f9ca22d9ddc88334206ec9c115a31e6fb87409cc374c45"
  },
+ "7164425d1695208e46171b5030c938c3545c180b57018d51748d0507f9f08135": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "band_gap"
+  },
+  "meta": {
+   "description": "Electronic band gap E_gap of the ground state: the Kohn-Sham eigenvalue gap between the valence-band maximum and the conduction-band minimum a band-structure run reports (zero for a metal), a single scalar in eV alongside the energy, forces, and stress. It is the KS gap, NOT the fundamental (quasiparticle) gap: the two differ by the derivative discontinuity, and semilocal functionals underestimate the gap, so the value is strongly exchange-correlation-functional dependent and rides with the Potential provenance. The direct/indirect character and the Fermi level are downstream labels over the same band structure, not part of this scalar node.",
+   "name": "BandGap",
+   "symbol": "E_{gap}",
+   "tier": "Ground state"
+  },
+  "uid": "7164425d1695208e46171b5030c938c3545c180b57018d51748d0507f9f08135"
+ },
  "73372380af126dde147e403f69339b87ee2f938a896dd5b56e9100c055dc8f93": {
   "identity": {
    "fields": [

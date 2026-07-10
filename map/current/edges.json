@@ -234,6 +234,32 @@
   },
   "uid": "2444a4dc420004700fd7fe2e6b0f76ad69ac8799c7d8eb3ce2186e6ea138045b"
  },
+ "25e07a60a3f641abc12987675165b1195ea8ed9d7adff7217736c7bdfd824b1a": {
+  "identity": {
+   "formula": "Equality(Symbol('E_{gap}'), Function('E^{gap}_{KS}')(Symbol('\\\\mathcal{S}'), Symbol('V')))",
+   "inputs": [
+    "80a4273845e09207860e06db18d1f1ee5670a9b9c8b1020a99928c872878f901",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "7164425d1695208e46171b5030c938c3545c180b57018d51748d0507f9f08135",
+   "outputs": [
+    "7164425d1695208e46171b5030c938c3545c180b57018d51748d0507f9f08135"
+   ],
+   "schemes": {
+    "quantity": "ks_gap"
+   }
+  },
+  "meta": {
+   "description": "Electronic band gap E_gap = E^gap_KS[S, V]: the Kohn-Sham eigenvalue gap (valence-band maximum to conduction-band minimum) of the Structure S under the Potential V, read from a band-structure run. The scheme records quantity=ks_gap: this is the KS gap, opaque like solve_ground_state (an external band-structure solve reading the eigenvalues), so not sympy-executable. It is NOT the fundamental quasiparticle gap (they differ by the derivative discontinuity), and it is strongly exchange-correlation-functional dependent, so two runs differing in the functional realize different Potentials and different gaps, exactly as for the energy.",
+   "formula_latex": "E_{gap} = E^{gap}_{KS}{\\left(\\mathcal{S},V \\right)}",
+   "formula_srepr": "Equality(Symbol('E_{gap}'), Function('E^{gap}_{KS}')(Symbol('\\\\mathcal{S}'), Symbol('V')))",
+   "name": "compute_band_gap",
+   "schemes": {
+    "quantity": "ks_gap"
+   }
+  },
+  "uid": "25e07a60a3f641abc12987675165b1195ea8ed9d7adff7217736c7bdfd824b1a"
+ },
  "325b66602b582ded28ce13760e5718257c3624d5eccfec041949157ce6a0dbc2": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('g')), Symbol('\\\\omega')), Mul(Pow(pi, Integer(-1)), Integral(Mul(cos(Mul(Symbol('\\\\omega'), Symbol('\\\\tau', positive=True))), Indexed(IndexedBase(Symbol('Cv')), Symbol('\\\\tau', positive=True))), Tuple(Symbol('\\\\tau', positive=True), Integer(0), oo))))",
