@@ -4,6 +4,7 @@
     "slice": "as-used-by-AtomisticSkills",
     "source_root": "AtomisticSkills/.agents/skills/mat-*/",
     "paper": "arXiv 2605.24002 (AtomisticSkills)",
+    "entry_count": "30 entries (16 already-mapped, 10 new-node-candidate, 4 representation-only). NOTE: the original scan header and the .md said '26 entries / 14+8+4'; that count was WRONG - corrected in review 2026-07-09 by actual enumeration.",
     "pymatgen_version_anchor": "2025.6.14 (importable in miniconda base as /Users/juicy/miniconda3/lib/python3.12/site-packages/pymatgen; MP-served docs in examples carry pymatgen_version 2024.11.13). pymatgen-analysis-diffusion and pymatgen-analysis-defects are separate add-on distributions imported under the pymatgen.analysis.* namespace; not present in base, so their APIs are anchored to AtomisticSkills usage + canonical docstrings only.",
     "role_in_software": "pymatgen is the structure/analysis workhorse of the mat-* skills: it owns the crystal-structure object (Structure/Lattice/Composition), CIF/POSCAR/Vasprun/OUTCAR/LOBSTER I/O, symmetry (SpacegroupAnalyzer), and a set of pure-python physics analyses (elastic-tensor algebra, XRD kinematics, phase-diagram convex hull, diffusion Einstein relation, Wulff construction, Born/dielectric Raman post-processing). The heavy energies/forces/stresses are produced by an MLIP calculator or VASP/QE; pymatgen represents the structure they act on and post-processes the results into named physical quantities.",
     "canonical_units_note": "The openmaterials map's canonical units (from omai/operator/registry.py QUANTITY_TAGS and the QE/LAMMPS scans) are the reference. Conversion factors below are quoted to full precision with the pymatgen source line that defines them."
@@ -105,7 +106,7 @@
       "index_structure": ["full: 4 cartesian legs (3x3x3x3); Voigt-packed: two Voigt indices 1..6 (6x6)"],
       "units": "pymatgen ElasticTensor is stored in eV/ANGSTROM^3 (docstring: 'in units of eV/A^3'). .voigt returns the 6x6 in eV/A^3. AtomisticSkills multiplies by EV_PER_A3_TO_GPA = 160.2176634 to report GPa.",
       "producing_api": "pymatgen.analysis.elasticity.elastic.ElasticTensor (rank-4); .voigt (from pymatgen.core.tensors.Tensor.voigt, 6x6); built by matcalc.ElasticityCalc on DeformedStructureSet + stresses (ElasticTensor.from_independent_strains)",
-      "conversion_to_canonical": "1 eV/A^3 = 160.21766339999996 GPa EXACTLY (pymatgen Unit('GPa').get_conversion_factor(Unit('eV ang^-3')) = 0.006241509074460764; inverse = 160.2176634). The map's ElasticConstants canonical unit is GPa. Voigt reverse-map is fixed: [[0,5,4],[5,1,3],[4,3,2]] (Tensor.get_voigt_dict / reverse_voigt_map), and Voigt has a _vscale factor of 2 on the shear off-diagonals for strain-like tensors (relevant when round-tripping compliance, not for C itself which uses vscale 1 on rows/cols).",
+      "conversion_to_canonical": "1 eV/A^3 = 160.21766339999996 GPa (CODATA-VERIFIED IN REVIEW two ways: (a) scipy e/(1e-10)^3/1e9 = 160.21766339999996; (b) pymatgen Unit('GPa').get_conversion_factor(Unit('eV ang^-3')) = 0.006241509074460764, inverse = 160.21766339999996). The map's ElasticConstants canonical unit is GPa. The dimension is pressure/energy-density, exponents {M:1,L:-1,T:-2}, matching ENERGY_PER_LENGTH_CUBED in dimensions.py (Stress reuses the same). Voigt reverse-map is fixed: [[0,5,4],[5,1,3],[4,3,2]] (tensors.py:381, VERIFIED). Voigt has a _vscale factor (tensors.py:355 'return v_matrix * self._vscale') relevant when round-tripping compliance, not for C itself: k_voigt/g_voigt index voigt[:3,:3] and voigt[3:,3:] directly (elastic.py:163-172, VERIFIED).",
       "anchors": {
         "usage": [
           "mat-elasticity/scripts/calculate_elasticity.py:33 (EV_PER_A3_TO_GPA = 160.2176634)",
@@ -211,7 +212,7 @@
       "index_structure": [],
       "units": "eV per cell (ComputedEntry.energy); eV/atom (energy_per_atom, formation_energy_per_atom). Explicitly PER ATOM in the phase-diagram machinery.",
       "producing_api": "pymatgen.entries.computed_entries.ComputedEntry / ComputedStructureEntry (.energy, .energy_per_atom); pymatgen.analysis.phase_diagram.PhaseDiagram.get_form_energy_per_atom",
-      "conversion_to_canonical": "eV. Map's TotalEnergy node is 'per simulation cell' (registry tag total_energy). pymatgen carries BOTH per-cell (.energy) and per-atom (.energy_per_atom); the per-atom form is the phase-diagram currency. QE-scan scf-total-energy is Ry stdout / Hartree XML: 1 Ry = 13.605693 eV, 1 Ha = 27.211386 eV.",
+      "conversion_to_canonical": "eV. SETTLED IN REVIEW (duty 5b): the map's TotalEnergy node is 'one scalar per simulation cell', tier Sources, 'extensive, per cell' (omai/dft_ground_state/operator/nodes.py:14,48-55; registry tag total_energy 'per simulation cell'). So pymatgen's .energy (per cell) maps DIRECTLY to TotalEnergy; but .energy_per_atom / formation_energy_per_atom / e_above_hull are PER-ATOM and do NOT map to this node - they are distinct quantities (candidate FormationEnergy / EnergyAboveHull nodes). QE-scan scf-total-energy is Ry stdout / Hartree XML: 1 Ry = 13.605693122994 eV, 1 Ha = 27.211386245988 eV (CODATA-verified).",
       "anchors": {
         "usage": [
           "mat-stability/scripts/compute_ehull.py:139 (ComputedEntry(composition, energy, entry_id))",
@@ -286,11 +287,11 @@
           "mat-md-probability-density/scripts/calculate_probability_density.py:6 (ProbabilityDensityAnalysis from same add-on)"
         ],
         "source": [
-          "pymatgen-analysis-diffusion: pymatgen/analysis/diffusion/analyzer.py (DiffusionAnalyzer; not installed in base env, anchored to usage + docstring: diffusivity in cm^2/s, msd in A^2)"
+          "pymatgen-analysis-diffusion analyzer.py (VERIFIED IN REVIEW against wheel pymatgen_analysis_diffusion-2025.11.15 downloaded via pip --no-deps): analyzer.py:55 'Diffusivity in cm^2 / s'; :112 'msd: nsteps x 1 array of the mean square displacement of specie' (Angstrom^2); :383 self.dt is the time-coordinate array in the same units as time_step (fs). Base env still lacks the package; source line confirmed from the 2025.11.15 wheel, one minor version ahead of the AtomisticSkills usage but same API."
         ]
       },
       "status": "already-mapped",
-      "maps_to": {"node": "Diffusivity", "quantity_tag": "diffusivity", "notes": "Direct match. UNIT TRAP: pymatgen returns cm^2/s (not A^2/ps or SI m^2/s). MSD internal unit is A^2; time_step is passed in fs but analyzer.dt is in fs and the skill converts /1000 to ps. The DiffusionAnalyzer add-on must be installed separately."}
+      "maps_to": {"node": "Diffusivity", "quantity_tag": "diffusivity", "notes": "Direct match (dimension {L:2,T:-1} = DIFFUSIVITY in dimensions.py, confirmed). UNIT TRAP: pymatgen returns cm^2/s (not A^2/ps or SI m^2/s) - VERIFIED from wheel docstring analyzer.py:55. MSD internal unit is A^2; analyzer.dt is in fs and the skill converts /1000 to ps. The DiffusionAnalyzer add-on must be installed separately."}
     },
     {
       "name": "activation-energy",
@@ -326,11 +327,11 @@
           "mat-diffusion-analysis/scripts/analyze_diffusion.py:143 (msd = analyzer.msd, A^2)"
         ],
         "source": [
-          "pymatgen-analysis-diffusion: analyzer.py msd property (anchored to usage)"
+          "pymatgen-analysis-diffusion analyzer.py:112,297,378 (VERIFIED IN REVIEW against wheel 2025.11.15: .msd is 'nsteps x 1 array of the mean square displacement of specie' in Angstrom^2, computed at :297 as np.average(sq_disp_ions), stored at :378)"
         ]
       },
       "status": "already-mapped",
-      "maps_to": {"node": "MeanSquaredDisplacement", "quantity_tag": "mean_squared_displacement", "notes": "Direct match. pymatgen's DiffusionAnalyzer MSD is multi-origin averaged (matches the catalog's definition better than LAMMPS's single-origin compute msd, per the LAMMPS scan's own EXTENSION note)."}
+      "maps_to": {"node": "MeanSquaredDisplacement", "quantity_tag": "mean_squared_displacement", "notes": "Direct match (dimension {L:2} = LENGTH_SQUARED in dimensions.py, confirmed). pymatgen's DiffusionAnalyzer MSD is multi-origin averaged (matches the catalog's definition better than LAMMPS's single-origin compute msd, per the LAMMPS scan's own EXTENSION note)."}
     },
     {
       "name": "xrd-pattern",
@@ -363,7 +364,7 @@
       "index_structure": ["qpoint q", "branch nu", "(DOS) frequency bin"],
       "units": "pymatgen PhononBandStructure/PhononDos store frequencies in THz (linear). MP DFPT reference. mat-raman converts phonopy THz -> cm^-1 via 1 THz = 33.3564 cm^-1.",
       "producing_api": "pymatgen.phonon.bandstructure.PhononBandStructureSymmLine, pymatgen.phonon.dos.PhononDos (retrieved via mp_api); pymatgen.phonon.plotter.PhononBSPlotter / PhononDosPlotter",
-      "conversion_to_canonical": "map's Frequency tag is 'angular frequencies omega_qnu'; pymatgen/MP frequencies are THz (LINEAR nu). 1 THz = 33.35641 cm^-1; angular omega = 2pi*nu. QE-scan phonon frequencies are also linear (THz, cm^-1). The map's PhononDOS is states/cm^-1 (QE convention); pymatgen PhononDos axis is THz.",
+      "conversion_to_canonical": "SETTLED IN REVIEW (duty 5a): the map's CANONICAL Frequency representation unit is LINEAR_THz (omai/representation/units.py:60 'LINEAR_THZ = Unit(...FREQUENCY,...,si_scale=1e12)'; executor.py:72 'Frequency -> linear THz'). pymatgen/MP PhononBandStructure/PhononDos also store LINEAR THz, so they are CONSISTENT with the map's canonical unit - NO 2pi correction at the canonical layer. The registry-description wording 'angular frequencies omega_qnu' and the field name 'omega' are description-level labels; the dimension is FREQUENCY (T^-1) and the representation is linear. ANGULAR_THZ = 2pi*LINEAR_THZ exists in units.py:61 only as an adapter-declared alternative (e.g. ShengBTE rad/ps). 1 THz = 33.3564095198152 cm^-1 (CODATA-verified; scanner's 33.35641 is correct to its digits; mat-raman uses the truncated 33.3564). The map's PhononDOS is states/cm^-1 (QE convention); pymatgen PhononDos axis is THz.",
       "anchors": {
         "usage": [
           "mat-phonon/scripts/get_mp_phonon.py:28,62-68 (mpr.materials.phonon.get_bandstructure_from_material_id / get_dos_from_material_id; PhononBSPlotter, PhononDosPlotter)",
@@ -375,7 +376,7 @@
         ]
       },
       "status": "already-mapped",
-      "maps_to": {"node": "Frequency / PhononDOS", "quantity_tag": "frequency / phonon_dos", "notes": "pymatgen REPRESENTS these (retrieval + plotting) rather than computing them (phonopy/DFPT do). Maps to Frequency (registry: 'angular frequencies') and PhononDOS. TRAP: registry says Frequency is ANGULAR omega; pymatgen/MP store LINEAR THz. Declare linear-vs-angular (factor 2pi) and the THz-vs-cm^-1 axis choice (33.35641 cm^-1/THz)."}
+      "maps_to": {"node": "Frequency / PhononDOS", "quantity_tag": "frequency / phonon_dos", "notes": "pymatgen REPRESENTS these (retrieval + plotting) rather than computing them (phonopy/DFPT do). Maps to Frequency (FREQUENCY_STATE, field 'omega', dimension FREQUENCY, thermal_transport/nodes.py:133) and PhononDOS. NO 2pi trap (settled in review): the map's canonical Frequency unit IS linear THz, matching pymatgen/MP. The only live axis choice is THz-vs-cm^-1 (33.3564095198152 cm^-1/THz), handled by the INVERSE_CM adapter unit (units.py:64). Both Frequency and PhononDOS nodes confirmed present in docs/data/graph.json."}
     },
     {
       "name": "force-constants-representation",
@@ -383,9 +384,9 @@
       "symbol": "Phi_ab^ij(R)",
       "dimension": {"M": 1, "L": 0, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "energy/length^2 = M T^-2 (force/length)"},
       "index_structure": ["atom a", "atom b", "cartesian i", "cartesian j", "lattice vector R"],
-      "units": "MP ph_force_constants are phonopy-convention eV/ANGSTROM^2. (Contrast QE-scan flfrc Ry/bohr^2: 1 Ry/bohr^2 = 48.5829 eV/A^2.)",
+      "units": "MP ph_force_constants are phonopy-convention eV/ANGSTROM^2. (Contrast QE-scan flfrc Ry/bohr^2: 1 Ry/bohr^2 = 48.58681221205054 eV/A^2 [CODATA: 13.605693122994 eV/Ry / (0.52917721090380^2 A^2/bohr^2)]. NOTE: the scanner's 48.5829 was WRONG; corrected in review.)",
       "producing_api": "mpr.materials.phonon.get_data_by_id(fields=['ph_force_constants']); pymatgen represents/serializes via MontyEncoder",
-      "conversion_to_canonical": "eV/A^2 matches the map's ForceConstants[order=2] (phonopy convention). QE grounding is Ry/bohr^2 (factor 48.5829). Trap: for polar solids phonopy FORCE_CONSTANTS are the TOTAL FC2, whereas QE flfrc are short-range only (per the QE scan).",
+      "conversion_to_canonical": "eV/A^2 matches the map's ForceConstants[order=2] (phonopy convention). QE grounding is Ry/bohr^2 (factor 48.58681221205054, CODATA-verified in review; NOT 48.5829). Trap: for polar solids phonopy FORCE_CONSTANTS are the TOTAL FC2, whereas QE flfrc are short-range only (per the QE scan).",
       "anchors": {
         "usage": [
           "mat-phonon/scripts/get_mp_phonon.py:73-77 (get_data_by_id fields=['ph_force_constants'])"
@@ -492,9 +493,9 @@
       "symbol": "gamma_hkl, gamma_weighted",
       "dimension": {"M": 1, "L": 0, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "energy/area = M T^-2"},
       "index_structure": ["Miller index (hkl) per facet"],
-      "units": "gamma computed in eV/ANGSTROM^2 then converted to J/m^2 via 1 eV/A^2 = 16.0218 J/m^2 (skill constant; exact value 16.021766). WulffShape.weighted_surface_energy inherits the input energy units.",
+      "units": "gamma computed in eV/ANGSTROM^2 then converted to J/m^2 via 1 eV/A^2 = 16.0218 J/m^2 (skill constant at calculate_surface_energy.py:114; CODATA-exact value 16.021766339999996 = e/(1e-10)^2). WulffShape.weighted_surface_energy inherits the input energy units.",
       "producing_api": "pymatgen.core.surface.SlabGenerator / generate_all_slabs (build slabs); pymatgen.analysis.wulff.WulffShape(lattice, miller_indices, energies) (.weighted_surface_energy, .anisotropy, .shape_factor, .effective_radius). gamma itself computed in-skill: (E_slab - N*E_bulk)/(2*Area).",
-      "conversion_to_canonical": "no map node. 1 eV/A^2 = 16.0217662 J/m^2 (skill uses 16.0218). Note the same eV/A^2 dimension as ForceConstants but a DIFFERENT quantity (energy per area vs force per length).",
+      "conversion_to_canonical": "no map node. 1 eV/A^2 = 16.021766339999996 J/m^2 CODATA-exact (skill uses 16.0218). Note the same eV/A^2 dimension as ForceConstants (M T^-2, exponents {M:1,L:0,T:-2}) but a DIFFERENT quantity (energy per area vs force per length): both share ENERGY_PER_LENGTH_SQUARED exponents in dimensions.py.",
       "anchors": {
         "usage": [
           "mat-surface-energy/scripts/calculate_surface_energy.py:108-114 (gamma_ev_ang2 = (E_slab - N*E_bulk)/(2*area); *16.0218 -> J/m^2)",
@@ -566,7 +567,7 @@
           "mat-defect-energy/scripts/calculate_defect_energy.py:5,210-218 (E_f = E_defect - E_pristine + sum dn_i mu_i)"
         ],
         "source": [
-          "pymatgen-analysis-defects: pymatgen/analysis/defects/generators.py (not in base env; anchored to usage)"
+          "pymatgen-analysis-defects generators.py:71 (VacancyGenerator), :128 (SubstitutionGenerator), :249 (InterstitialGenerator) - VERIFIED IN REVIEW against wheel pymatgen_analysis_defects-2026.3.20 downloaded via pip --no-deps; all three DefectGenerator subclasses present. Base env still lacks the package. E_f closed form is in-skill (calculate_defect_energy.py), NOT in pymatgen; the add-on only builds defect Structures, so the units claim (eV) rests on the skill formula, which is dimensionally sound (all terms eV)."
         ]
       },
       "status": "new-node-candidate",
@@ -662,9 +663,9 @@
     }
   ],
   "open_questions": [
-    "pymatgen-analysis-diffusion and pymatgen-analysis-defects are separate distributions not installed in the base miniconda env, so DiffusionAnalyzer (cm^2/s), ProbabilityDensityAnalysis, and the defect generators are anchored to AtomisticSkills usage + canonical docstrings, NOT to a read source line. A reviewer with those packages installed should confirm DiffusionAnalyzer.diffusivity units are cm^2/s and that .msd is in A^2 with .dt in fs.",
-    "TotalEnergy per-cell vs per-atom: the registry tag total_energy is defined 'per simulation cell', but pymatgen's stability / phase-diagram / voltage flows are entirely per-atom (energy_per_atom, formation_energy_per_atom, e_above_hull in eV/atom). Reviewer must decide whether to add a per_atom label to TotalEnergy or a separate FormationEnergy/EnergyAboveHull node before ingesting mat-stability.",
-    "Frequency angular-vs-linear: registry describes Frequency as 'angular frequencies omega_qnu', but pymatgen/MP PhononBandStructure and PhononDos store LINEAR THz. The factor is 2pi (angular) and 33.35641 cm^-1/THz (axis). Confirm which convention the map's Frequency node truly intends before an EXPECTED_AGREE with MP phonons.",
+    "[RESOLVED IN REVIEW 2026-07-09] pymatgen-analysis-diffusion and pymatgen-analysis-defects were downloaded via pip --no-deps (network available): DiffusionAnalyzer.diffusivity = cm^2/s (analyzer.py:55), .msd = mean square displacement in Angstrom^2 (analyzer.py:112), .dt = time-coordinate array in fs (analyzer.py:383); VacancyGenerator/SubstitutionGenerator/InterstitialGenerator all present (generators.py:71/128/249). Wheels 2025.11.15 and 2026.3.20, both one/few versions ahead of AtomisticSkills usage, same API. Base env still lacks the packages; the source lines are read from the wheels, not the base env.",
+    "[STILL OPEN - ORCHESTRATOR DECISION] TotalEnergy per-cell vs per-atom: CONFIRMED IN REVIEW the map's TotalEnergy node is 'per simulation cell' / 'extensive, per cell' (dft_ground_state/nodes.py:14,48-55). pymatgen's .energy (per cell) maps directly; but its stability/phase-diagram/voltage flows are per-atom (energy_per_atom, formation_energy_per_atom, e_above_hull in eV/atom). These per-atom quantities do NOT map to the per-cell node. Orchestrator must decide: add a per_atom label to TotalEnergy, or mint separate FormationEnergy / EnergyAboveHull nodes, before ingesting mat-stability. (Review recommendation: separate nodes - a per-atom formation energy subtracts elemental references and is a genuinely different quantity, not a unit variant.)",
+    "[RESOLVED IN REVIEW 2026-07-09] Frequency angular-vs-linear: the map's CANONICAL Frequency representation unit is LINEAR_THz (units.py:60; executor.py:72). The registry-description 'angular frequencies omega_qnu' and field name 'omega' are description-level labels; the dimension is FREQUENCY (T^-1). pymatgen/MP store LINEAR THz, CONSISTENT with the canonical unit - NO 2pi correction at the canonical layer. An EXPECTED_AGREE with MP phonons is safe in linear THz. ANGULAR_THZ (=2pi*linear) exists only as an adapter alternative for codes like ShengBTE (rad/ps). Axis choice THz<->cm^-1 uses 33.3564095198152 cm^-1/THz.",
     "ElasticTensor.voigt _vscale: the base Tensor.voigt applies a scale factor (2 on shear components for strain-like rank-2, and pattern for rank-4) via _vscale; verified that for the STIFFNESS C_ij the 6x6 packing used by k_voigt/g_voigt indexes voigt[:3,:3] and voigt[3:,3:] directly, so the 160.2176634 factor is the only unit conversion. A reviewer should double-check the _vscale handling if compliance (S = C^-1) is ever ingested, where the factor-2/4 on off-diagonals matters.",
     "matcalc ElasticityCalc / EOSCalc internals: the elastic-tensor fit (DeformedStructureSet strains -> stresses -> ElasticTensor.from_independent_strains) and the BM EOS fit happen inside matcalc, not pymatgen; the vasp=True sign/kbar branch of from_independent_strains is NOT taken on the MLIP path (stresses are eV/A^3), so no -0.1 factor. Confirm matcalc does not re-apply any unit conversion before handing eV/A^3 to the skill (the skill's *160.2176634 assumes raw eV/A^3).",
     "Surface / GB / defect / voltage energies all reduce to differences of MLIP TotalEnergy values plus geometry; whether the map wants dedicated nodes (surface_energy, grain_boundary_energy, defect_formation_energy, intercalation_voltage) or wants them as contract edges over a generic TotalEnergy + Structure is a modeling decision for the encode stage. They are grouped here as new-node-candidates with their exact closed forms.",
