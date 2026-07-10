@@ -648,6 +648,57 @@
   },
   "uid": "6b7443f91473aedb777319f94c644d0f6832223bd64dd3338d22300045d62de2"
  },
+ "6e99a335cfb6b775c858856c9f81be42bf54bb931975aa16e4b13eedfa874b61": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\mu'), Function('\\\\mu^{eq}')(Symbol('G_m')))",
+   "inputs": [
+    "b048bc7569d568e2201557761eb758817674dd3a38b6f2379c5474f4cf91c66f"
+   ],
+   "output": "e707090e106994d3718f0afe5a20f2e60037f543334fa79b4a00360b7962d527",
+   "outputs": [
+    "e707090e106994d3718f0afe5a20f2e60037f543334fa79b4a00360b7962d527"
+   ],
+   "schemes": {
+    "method": "partial_molar_derivative"
+   }
+  },
+  "meta": {
+   "description": "Chemical potentials mu_c = mu^{eq}[G_m]: the partial molar Gibbs energies, pycalphad's MU, the common-tangent hyperplane of the minimization (one per non-vacancy component). mu^{eq} is the opaque composition-derivative of the molar Gibbs energy at equilibrium (the Lagrange multipliers of the mass-balance constraints); the composition is opaque context of the derivative, the CALPHAD analog of the hull's competing phases. The method scheme records the partial-molar (composition-derivative) construction. Implicit (a constrained derivative of the equilibrium free energy), so not sympy-executable.",
+   "formula_latex": "\\mu = \\mu^{eq}{\\left(G_{m} \\right)}",
+   "formula_srepr": "Equality(Symbol('\\\\mu'), Function('\\\\mu^{eq}')(Symbol('G_m')))",
+   "name": "compute_chemical_potentials",
+   "schemes": {
+    "method": "partial_molar_derivative"
+   }
+  },
+  "uid": "6e99a335cfb6b775c858856c9f81be42bf54bb931975aa16e4b13eedfa874b61"
+ },
+ "6f9aee9e741ba70cb9ee59098485a719edfaa20a864e0a5122ae7a225a875363": {
+  "identity": {
+   "formula": "Equality(Symbol('T_{\\\\mathrm{trans}}'), Function('T^{trans}')(Symbol('NP'), Symbol('T')))",
+   "inputs": [
+    "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0",
+    "7b55b11531084dcb2d5fd95100d62b2d68b787596e7c9712e06c011817ab5b8c"
+   ],
+   "output": "8b9dd2a79db11c01e15d37f64a7bd0d9c95f09ea080a67f7912d9b8aabd7b132",
+   "outputs": [
+    "8b9dd2a79db11c01e15d37f64a7bd0d9c95f09ea080a67f7912d9b8aabd7b132"
+   ],
+   "schemes": {
+    "method": "boundary_locus"
+   }
+  },
+  "meta": {
+   "description": "Transition temperature T_trans = T^{trans}[NP, T]: the temperature at which a phase fraction crosses 0 or 1 (a liquidus / solidus / solvus point) or three phases coexist (an invariant point), read as the locus of the phase-fraction sweep over temperature. T^{trans} is the opaque boundary-locus function over the phase fractions NP and the temperature axis T (the binplot boundary set, drawn by sweeping equilibrium over the T-x grid); the method scheme records the boundary-locus extraction. Implicit (a swept-equilibrium boundary detection), so not sympy-executable.",
+   "formula_latex": "T_{\\mathrm{trans}} = T^{trans}{\\left(NP,T \\right)}",
+   "formula_srepr": "Equality(Symbol('T_{\\\\mathrm{trans}}'), Function('T^{trans}')(Symbol('NP'), Symbol('T')))",
+   "name": "compute_transition_temperature",
+   "schemes": {
+    "method": "boundary_locus"
+   }
+  },
+  "uid": "6f9aee9e741ba70cb9ee59098485a719edfaa20a864e0a5122ae7a225a875363"
+ },
  "70b3a24785d80cd8cd1e3940c64032d39cad772ff92e73cd458f8b617ef40b1e": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('Jcorr')), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True), Symbol('\\\\tau', positive=True)), Mul(Pow(Symbol('n_{lag}', positive=True, integer=True), Integer(-1)), Sum(Mul(Indexed(IndexedBase(Symbol('J')), Symbol('\\\\alpha', integer=True), Symbol('t', integer=True)), Indexed(IndexedBase(Symbol('J')), Symbol('\\\\beta', integer=True), Add(Symbol('\\\\tau', positive=True), Symbol('t', integer=True)))), Tuple(Symbol('t', integer=True), Integer(1), Symbol('n_{lag}', positive=True, integer=True)))))",
@@ -929,6 +980,32 @@
   },
   "uid": "8c4e324d9fb31b0cde5f98b83effdc03f0fe77d04b9caf332ceecff6fc16ece1"
  },
+ "8e00f3c45c66888481ee6a2004e915534c06dfbc94ef59c7c761b85a1a7365a8": {
+  "identity": {
+   "formula": "Equality(Symbol('G_m'), Function('G^{\\\\min}')(Symbol('\\\\mathcal{D}'), Symbol('T')))",
+   "inputs": [
+    "3618484d27f4d34e4a8abf7db7b62201c5aefe00de89933375f082a883513bbd",
+    "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0"
+   ],
+   "output": "b048bc7569d568e2201557761eb758817674dd3a38b6f2379c5474f4cf91c66f",
+   "outputs": [
+    "b048bc7569d568e2201557761eb758817674dd3a38b6f2379c5474f4cf91c66f"
+   ],
+   "schemes": {
+    "method": "gibbs_minimization"
+   }
+  },
+  "meta": {
+   "description": "Molar Gibbs energy G_m = G^{min}[D, T]: the global free-energy minimization pycalphad.equilibrium(dbf, comps, phases, conds) performs at fixed (N, P, T, X) over the assessed database D, returning the equilibrium GM per mole of atoms. G^{min} is an opaque solver over the assessed Gibbs functions (GHSER* lattice stabilities plus Redlich-Kister excess plus magnetic / Einstein terms) minimized over the sublattice site fractions; the method scheme records the minimization (Gibbs minimization at constant P, the v.N:1 per-mole-of-atoms basis). The AssessedDatabase input stands for the model plus its provenance; composition and pressure are opaque conditions of the solve. Implicit (a global minimization over an assessed model), so not sympy-executable.",
+   "formula_latex": "G_{m} = G^{\\min}{\\left(\\mathcal{D},T \\right)}",
+   "formula_srepr": "Equality(Symbol('G_m'), Function('G^{\\\\min}')(Symbol('\\\\mathcal{D}'), Symbol('T')))",
+   "name": "solve_equilibrium",
+   "schemes": {
+    "method": "gibbs_minimization"
+   }
+  },
+  "uid": "8e00f3c45c66888481ee6a2004e915534c06dfbc94ef59c7c761b85a1a7365a8"
+ },
  "8e585d905e8a35061ccdc51d553ffce2940699c2159a975c75aeff9abba876f4": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('Z^*')), Symbol('i', integer=True), Symbol('\\\\gamma', integer=True), Symbol('\\\\alpha', integer=True)), Symbol('Z^*_{provided}'))",
@@ -947,6 +1024,32 @@
    "schemes": {}
   },
   "uid": "8e585d905e8a35061ccdc51d553ffce2940699c2159a975c75aeff9abba876f4"
+ },
+ "901873fa2497cc75e75079357e7125527526bf2590507835f5cbeae3e5fd2868": {
+  "identity": {
+   "formula": "Equality(Symbol('H_m'), Function('H^{eq}')(Symbol('\\\\mathcal{D}'), Symbol('T')))",
+   "inputs": [
+    "3618484d27f4d34e4a8abf7db7b62201c5aefe00de89933375f082a883513bbd",
+    "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0"
+   ],
+   "output": "600d0860290d3326202768db7249339c34ac675deb2ee8528a92207d3878b00c",
+   "outputs": [
+    "600d0860290d3326202768db7249339c34ac675deb2ee8528a92207d3878b00c"
+   ],
+   "schemes": {
+    "method": "legendre_derivative"
+   }
+  },
+  "meta": {
+   "description": "Molar enthalpy H_m = H^{eq}[D, T]: the assessed enthalpy channel of the equilibrium, pycalphad's HM = GM - T dGM/dT (the Legendre relation), per mole of atoms at constant pressure. H^{eq} is an opaque function over the assessed database D and temperature T (evaluated through the same Model that carries the Gibbs energy); the method scheme records the Legendre T-derivative construction. Implicit (a derivative of the assessed model at equilibrium), so not sympy-executable.",
+   "formula_latex": "H_{m} = H^{eq}{\\left(\\mathcal{D},T \\right)}",
+   "formula_srepr": "Equality(Symbol('H_m'), Function('H^{eq}')(Symbol('\\\\mathcal{D}'), Symbol('T')))",
+   "name": "compute_molar_enthalpy",
+   "schemes": {
+    "method": "legendre_derivative"
+   }
+  },
+  "uid": "901873fa2497cc75e75079357e7125527526bf2590507835f5cbeae3e5fd2868"
  },
  "979756d34934118442ec22671b68e036b5e9751c95ed110d3a508ba2dee95288": {
   "identity": {
@@ -1396,6 +1499,32 @@
    "schemes": {}
   },
   "uid": "d267d86e7f4e4a66d26cf3bab54f4d1a5a693d972562a85f2154e290ed5c8bf4"
+ },
+ "d5a6a4d1c789d427aecbc40998ec2b7d32240c2850ac5d9ed226e268b6ed09f8": {
+  "identity": {
+   "formula": "Equality(Symbol('NP'), Function('f^{eq}')(Symbol('\\\\mathcal{D}'), Symbol('T')))",
+   "inputs": [
+    "3618484d27f4d34e4a8abf7db7b62201c5aefe00de89933375f082a883513bbd",
+    "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0"
+   ],
+   "output": "7b55b11531084dcb2d5fd95100d62b2d68b787596e7c9712e06c011817ab5b8c",
+   "outputs": [
+    "7b55b11531084dcb2d5fd95100d62b2d68b787596e7c9712e06c011817ab5b8c"
+   ],
+   "schemes": {
+    "method": "lever_rule"
+   }
+  },
+  "meta": {
+   "description": "Phase fractions NP_p = f^{eq}[D, T]: the equilibrium molar amount of each stable phase, pycalphad's eq.NP paired with eq.Phase, the lever rule over the equilibrium assemblage of the assessed database D at temperature T. f^{eq} is the opaque per-phase molar-amount output of the same global minimization (the property-diagram skill's headline output, plotted vs T); the method scheme records the lever-rule assemblage split. Composition and pressure are opaque conditions. Implicit (a global minimization plus assemblage bookkeeping), so not sympy-executable.",
+   "formula_latex": "NP = f^{eq}{\\left(\\mathcal{D},T \\right)}",
+   "formula_srepr": "Equality(Symbol('NP'), Function('f^{eq}')(Symbol('\\\\mathcal{D}'), Symbol('T')))",
+   "name": "compute_phase_fractions",
+   "schemes": {
+    "method": "lever_rule"
+   }
+  },
+  "uid": "d5a6a4d1c789d427aecbc40998ec2b7d32240c2850ac5d9ed226e268b6ed09f8"
  },
  "d610d8d258da853680448fe2c9507736608d2cae92578e31b079451060e6d528": {
   "identity": {

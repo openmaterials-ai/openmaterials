@@ -380,6 +380,26 @@
   },
   "uid": "35e6000d8a0f2e4572e667befbd4cd5a8c6005fa8f6ef08791b6879c77baba64"
  },
+ "3618484d27f4d34e4a8abf7db7b62201c5aefe00de89933375f082a883513bbd": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "opaque:opaque",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "assessed_database"
+  },
+  "meta": {
+   "description": "The assessed Thermodynamic DataBase (TDB): the frozen, human-assessed set of Gibbs-energy models (SER-referenced GHSER* lattice stabilities, Redlich-Kister excess parameters, magnetic / Einstein contributions) that the equilibrium solve reads. An INPUT artifact, the CALPHAD analog of the phonon Potential and the MLIP checkpoint: a frozen human-assessed model (distinct from the ab-initio-computed side). Its provenance is the TDB file plus the published assessment identity (e.g. alzn_mey.tdb, NIMS 2009, parameters from S. an Mey, Z. Metallkd. 84 (1993) 451-455), which every value it produces must record as conditions. Opaque in Phase 1; scalar.",
+   "name": "AssessedDatabase",
+   "symbol": "\\mathcal{D}",
+   "tier": "Thermochemistry"
+  },
+  "uid": "3618484d27f4d34e4a8abf7db7b62201c5aefe00de89933375f082a883513bbd"
+ },
  "37eb727e4cf5e46c3ca04ff4bea4fe9dbb3f7f3c3fad8a1681c7e9d04bafd34f": {
   "identity": {
    "fields": [
@@ -672,6 +692,26 @@
   },
   "uid": "5d35f8f6975629291c51d432d3b137fb5bd92165706d37dbab71366a4714b71d"
  },
+ "600d0860290d3326202768db7249339c34ac675deb2ee8528a92207d3878b00c": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2 N^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "molar_enthalpy"
+  },
+  "meta": {
+   "description": "Assessed molar enthalpy H_m = G - T dG/dT of a phase, pycalphad's HM, derived from the Gibbs energy by the Legendre relation. PER MOLE OF ATOMS, at CONSTANT PRESSURE, SER reference; J/mol, ENERGY_PER_MOLE. The enthalpy of formation (H_m referenced to SER) is the CALPHAD analog of the DFT FormationEnergy, but referenced to SER not DFT elements and in J/mol-atoms not eV/atom (factor 96485.33212331). Same basis notes as MolarGibbsEnergy; a distinct quantity from the phonon-side molar energies (the guardrail: this is a Gibbs-side enthalpy per mole of atoms, not a per-cell phonon internal energy).",
+   "name": "MolarEnthalpy",
+   "symbol": "H_{\\mathrm{m}}",
+   "tier": "Thermochemistry"
+  },
+  "uid": "600d0860290d3326202768db7249339c34ac675deb2ee8528a92207d3878b00c"
+ },
  "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0": {
   "identity": {
    "fields": [
@@ -791,6 +831,28 @@
   },
   "uid": "78d005a949ff56a526a1911f0b24e766daecad0a7f5ce9c1cc15222f2ed73551"
  },
+ "7b55b11531084dcb2d5fd95100d62b2d68b787596e7c9712e06c011817ab5b8c": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "1",
+     "indices": [
+      "phase"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "phase_fraction"
+  },
+  "meta": {
+   "description": "Equilibrium molar amount (fraction) of each stable phase in the assemblage, pycalphad's NP, indexed by phase (the `p` axis). Under the v.N:1 normalization it is the mole fraction of each coexisting phase (the lever rule): the headline output of the property-diagram skill, plotted vs temperature to read solidification / heat-treatment paths. Dimensionless, no analog on the phonon / DFT map: the distinctive output of a Gibbs-minimization engine (how much of each phase coexists). A phase-fraction-vs-T curve is an array / spectrum instance; provenance = the assessed database plus composition and (T, P).",
+   "name": "PhaseFraction",
+   "symbol": "f_{\\mathrm{p}}",
+   "tier": "Thermochemistry"
+  },
+  "uid": "7b55b11531084dcb2d5fd95100d62b2d68b787596e7c9712e06c011817ab5b8c"
+ },
  "7f8d407ef3f36290c7f8e385cddb4a06a3c1bf34563f1df35ded2bb532e69fa4": {
   "identity": {
    "fields": [
@@ -885,6 +947,26 @@
    "tier": "Transport"
   },
   "uid": "8932e3cbadef74a82802b43fd1d25328cb40e6136c90df3b6a4a998e77f9567b"
+ },
+ "8b9dd2a79db11c01e15d37f64a7bd0d9c95f09ea080a67f7912d9b8aabd7b132": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "Th^1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "transition_temperature"
+  },
+  "meta": {
+   "description": "A computed phase-transition temperature: a liquidus / solidus / solvus point or an invariant (eutectic / eutectoid / peritectic) temperature, the locus where phase stability changes on the T-x diagram. Kelvin, TEMPERATURE dimension. DISTINCT node from the input Temperature (a Source the calculation is given): a transition temperature is COMPUTED by the equilibrium / binplot sweep, an output. The scalar invariant points are single (T, x) values; the full liquidus / solidus loci T(x) are a spectrum-layer product (deferred). Provenance = the assessed database plus components and phases.",
+   "name": "TransitionTemperature",
+   "symbol": "T_{\\mathrm{trans}}",
+   "tier": "Thermochemistry"
+  },
+  "uid": "8b9dd2a79db11c01e15d37f64a7bd0d9c95f09ea080a67f7912d9b8aabd7b132"
  },
  "910d47d67a7308728e2f7d211a08c1590239c7b802cd75128f00cd103a719b84": {
   "identity": {
@@ -1114,6 +1196,26 @@
    "tier": "Transport"
   },
   "uid": "ad1373f31b9dbb8bd24ea16e1f90f1d92a39d309f2dc22583fad4fd82eca6f59"
+ },
+ "b048bc7569d568e2201557761eb758817674dd3a38b6f2379c5474f4cf91c66f": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2 N^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "molar_gibbs_energy"
+  },
+  "meta": {
+   "description": "Assessed molar Gibbs energy G_m of a phase (or of the equilibrium assemblage): the free energy CALPHAD minimizes, pycalphad's GM. PER MOLE OF ATOMS (the v.N:1 system-moles normalization), at CONSTANT PRESSURE, with the SER (Stable Element Reference) as the energy zero. J/mol, dimension ENERGY_PER_MOLE (1,2,-2,0,-1,0,0), the map's first mole-axis observable. EXPLICITLY DISTINCT from the phonon-side Molar* nodes (MolarHelmholtzFreeEnergy, MolarInternalEnergy), which are a HELMHOLTZ free energy (constant volume) per mole of PRIMITIVE CELLS from a phonon-gas sum: same exponent vector, different thermodynamic potential, basis, and producer, kept apart by the molar_gibbs_energy quantity tag (the Molar* false-merge guardrail). To compare a G_m to a DFT per-atom energy, divide J/mol by 96485.33212331 for eV/atom AND bridge the SER-vs-DFT reference; not an EXPECTED_AGREE pair without that bridge.",
+   "name": "MolarGibbsEnergy",
+   "symbol": "G_{\\mathrm{m}}",
+   "tier": "Thermochemistry"
+  },
+  "uid": "b048bc7569d568e2201557761eb758817674dd3a38b6f2379c5474f4cf91c66f"
  },
  "b24a26725f5641ffb16720514a7fdb23bf03304ce0d51c9f39501d1c8c009b6c": {
   "identity": {
@@ -1368,6 +1470,28 @@
    "tier": "Harmonic"
   },
   "uid": "e62e58716111fdc1dff24d18e75c70904cbb07ce6e0025e24fcdac8c4ed0a53d"
+ },
+ "e707090e106994d3718f0afe5a20f2e60037f543334fa79b4a00360b7962d527": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2 N^-1",
+     "indices": [
+      "component"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "chemical_potential"
+  },
+  "meta": {
+   "description": "Equilibrium chemical potential mu_c of a component: the partial molar Gibbs energy, pycalphad's MU, one per non-vacancy component (the `c` component index). It is the common-tangent hyperplane of the Gibbs minimization (the Lagrange multipliers of the mass-balance constraints), the multi-component generalization of the hull tie-line, and the quantity whose equality across phases defines the phase boundaries. J/mol per mole of atoms, ENERGY_PER_MOLE. An OUTPUT of the equilibrium (distinct from the elemental-reference mu_i supplied as inputs to the stability domain's defect / voltage closed forms). Provenance = the assessed database plus the (components, phases, conditions) of the solve.",
+   "name": "ChemicalPotential",
+   "symbol": "\\mu",
+   "tier": "Thermochemistry"
+  },
+  "uid": "e707090e106994d3718f0afe5a20f2e60037f543334fa79b4a00360b7962d527"
  },
  "e7157a52da5eb7d2ae79e57692acc30d7e63a3a0d1c731b14da4d6ab8fd5eb88": {
   "identity": {
