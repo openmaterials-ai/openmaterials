@@ -52,7 +52,7 @@
   #cy{position:fixed;top:60px;left:0;right:0;bottom:0;
       background:radial-gradient(circle at 1px 1px,#e6e3dd 1px,transparent 0) -1px -1px/26px 26px,
                  linear-gradient(180deg,#fdfcfa,#f6f4f0);}
-  svg{width:100%;height:100%;display:block;cursor:grab;} svg.drag{cursor:grabbing;}
+  svg{width:100%;height:100%;display:block;cursor:grab;touch-action:none;} svg.drag{cursor:grabbing;}
   /* tier bands (warm paper: fill and rule warmed, headings ink, descriptions
      muted; the band opacity/rhythm are unchanged) */
   .band rect{fill:var(--band);opacity:.55;}
@@ -101,7 +101,7 @@
   /* provenance panel: the floating surface is the shared .om-panel; only its
      placement + content styles live here (page-specific). */
   .om-panel{position:fixed;top:72px;right:18px;width:360px;max-height:calc(100vh - 92px);overflow:auto;z-index:18;display:none;}
-  .om-panel .x{float:right;cursor:pointer;color:#cbd5e1;font-size:1.3rem;line-height:1;transition:.12s;} .om-panel .x:hover{color:#64748b;}
+  .om-panel .x{float:right;cursor:pointer;color:#cbd5e1;font-size:1.6rem;line-height:1;padding:2px 8px;margin:-4px -6px 0 0;transition:.12s;} .om-panel .x:hover,.om-panel .x:active{color:#64748b;}
   .om-panel .sym{font-size:1.8rem;color:#312e81;}
   .om-panel .badge{display:inline-block;font-size:.58rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;border-radius:999px;padding:3px 9px;margin-left:10px;vertical-align:middle;}
   .om-panel .badge.observable{background:var(--obs);} .om-panel .badge.hidden{background:#94a3b8;} .om-panel .badge.parameter{background:#64748b;}
@@ -116,7 +116,7 @@
   .fop:first-of-type{margin-top:2px;}
   .chips{display:flex;flex-wrap:wrap;gap:7px;}
   .chip{font-size:1.15rem;border:1px solid var(--line);background:#fff;border-radius:10px;padding:4px 11px;color:#312e81;cursor:pointer;transition:.12s;box-shadow:0 1px 2px rgba(16,24,40,.05);}
-  .chip:hover{border-color:var(--obs);box-shadow:0 2px 9px rgba(79,70,229,.16);}
+  .chip:hover,.chip:active,.chip:focus{border-color:var(--obs);box-shadow:0 2px 9px rgba(79,70,229,.16);outline:none;}
   .chip code{font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;font-size:.86rem;}
   .exp{border:1px solid var(--line);border-radius:13px;overflow:hidden;margin-bottom:9px;}
   .exp .mat-h{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.78rem;font-weight:600;padding:7px 12px;background:#f6f4f0;color:var(--ink-2);}
@@ -145,7 +145,7 @@
   #tour .nav .dot{width:8px;height:8px;border-radius:50%;background:#dbe3f2;}
   #tour .nav .dot.on{background:var(--obs);}
   #tour .nav button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 13px;font-size:.82rem;font-weight:600;cursor:pointer;color:var(--ink2);transition:.12s;font-family:inherit;}
-  #tour .nav button:hover{background:#f1f4fb;}
+  #tour .nav button:hover,#tour .nav button:active{background:#f1f4fb;}
   #tour .nav button.primary{background:var(--obs);color:#fff;border-color:var(--obs);}
   #tour .nav button.primary:hover{background:var(--obs2);}
   #tour .hint{font-size:.7rem;color:#a3aec0;margin-top:9px;}
@@ -166,7 +166,9 @@
     .top .sub{display:none;}
     .top .nav{display:none;}          /* nav collapses on small screens; brand still links home */
     .top .om-search{margin-left:10px;max-width:none;}
-    .top .om-btn{padding:8px 11px;font-size:.8rem;}
+    /* controls stay >=40px tall for reliable touch targets */
+    .top .om-btn{padding:11px 13px;font-size:.8rem;min-height:40px;}
+    .top .om-input{padding-top:11px;padding-bottom:11px;min-height:40px;}
     /* the side panel becomes a scrollable bottom sheet */
     .om-panel{top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;
       max-height:55vh;border-radius:var(--r-3) var(--r-3) 0 0;
@@ -446,6 +448,67 @@ svg.addEventListener('mousedown', e=>{ dragging=true; moved=false; sx=e.clientX;
 window.addEventListener('mouseup', ()=>{ dragging=false; svg.classList.remove('drag'); });
 window.addEventListener('mousemove', e=>{ if(!dragging)return; const m=svg.getScreenCTM(); if(!m)return; const dx=(e.clientX-sx)/m.a, dy=(e.clientY-sy)/m.d; if(Math.abs(e.clientX-sx)+Math.abs(e.clientY-sy)>4) moved=true; VB.x=vbs.x-dx; VB.y=vbs.y-dy; setVB(); });
 svg.addEventListener('wheel', e=>{ e.preventDefault(); const m=svg.getScreenCTM(); if(!m)return; const pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY; const u=pt.matrixTransform(m.inverse()); const f=e.deltaY>0?1.12:0.893; VB.x=u.x-(u.x-VB.x)*f; VB.y=u.y-(u.y-VB.y)*f; VB.w*=f; VB.h*=f; setVB(); }, {passive:false});
+
+// ---- interaction: touch (pan / pinch / tap) --------------------------------
+// Touch is handled independently of the mouse path so desktop behavior is
+// untouched. A client (screen) point maps to SVG-user space by inverting the
+// preserveAspectRatio="xMidYMid meet" fit (the same math syncLabels uses), so
+// no getScreenCTM is needed and every viewport change routes through VB+setVB,
+// keeping the HTML label overlay in sync. Single finger pans; two fingers pinch
+// zoom about the midpoint; a finger down-and-up under a small movement
+// threshold is a tap that selects (it re-uses the click routing).
+function clientToUser(cx,cy){
+  const r=svg.getBoundingClientRect();
+  const sc=Math.min(r.width/VB.w, r.height/VB.h) || 1;
+  const ox=(r.width-VB.w*sc)/2, oy=(r.height-VB.h*sc)/2;
+  return { x:(cx-r.left-ox)/sc + VB.x, y:(cy-r.top-oy)/sc + VB.y };
+}
+let tPan=null, tPinch=null, tMoved=false, tStart=null;
+function touchMid(t){ return { x:(t[0].clientX+t[1].clientX)/2, y:(t[0].clientY+t[1].clientY)/2 }; }
+function touchDist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy); }
+svg.addEventListener('touchstart', e=>{
+  if(e.touches.length===1){
+    tPinch=null; tMoved=false;
+    const t=e.touches[0]; tStart={x:t.clientX,y:t.clientY,target:e.target};
+    tPan={x:t.clientX,y:t.clientY,vbx:VB.x,vby:VB.y};
+  } else if(e.touches.length===2){
+    e.preventDefault(); tPan=null; tMoved=true;
+    tPinch={dist:touchDist(e.touches)||1,vb:{x:VB.x,y:VB.y,w:VB.w,h:VB.h}};
+  }
+}, {passive:false});
+svg.addEventListener('touchmove', e=>{
+  if(tPinch && e.touches.length>=2){
+    e.preventDefault();
+    const mid=touchMid(e.touches);
+    // anchor the pinch about the user-space point under the finger midpoint,
+    // measured against the gesture's starting viewBox
+    VB=tPinch.vb;
+    const u=clientToUser(mid.x,mid.y);
+    const f=tPinch.dist/(touchDist(e.touches)||1);
+    VB={ x:u.x-(u.x-tPinch.vb.x)*f, y:u.y-(u.y-tPinch.vb.y)*f, w:tPinch.vb.w*f, h:tPinch.vb.h*f };
+    setVB();
+  } else if(tPan && e.touches.length===1){
+    const t=e.touches[0];
+    if(Math.abs(t.clientX-tPan.x)+Math.abs(t.clientY-tPan.y)>6) tMoved=true;
+    if(!tMoved) return;
+    e.preventDefault();
+    const r=svg.getBoundingClientRect();
+    const sc=Math.min(r.width/VB.w, r.height/VB.h) || 1;
+    VB.x=tPan.vbx-(t.clientX-tPan.x)/sc; VB.y=tPan.vby-(t.clientY-tPan.y)/sc; setVB();
+  }
+}, {passive:false});
+svg.addEventListener('touchend', e=>{
+  if(e.touches.length===0){
+    if(tPan && !tMoved && tStart && !tourActive){
+      const nd=tStart.target.closest && tStart.target.closest('.node');
+      const ed=tStart.target.closest && tStart.target.closest('.edge');
+      if(nd){ selectNode(nodeById[nd.dataset.id]); }
+      else if(ed){ selectEdge(ed.dataset.edge, ed.dataset.op); }
+      else { clearSel(); }
+    } else if(tPan && !tMoved && tStart && tourActive){ tourNext(); }
+    tPan=null; tPinch=null; tStart=null;
+  }
+}, {passive:false});
 
 // ---- interaction: depth levels ---------------------------------------------
 // overview: hidden-type nodes (+their edges) dimmed so observables

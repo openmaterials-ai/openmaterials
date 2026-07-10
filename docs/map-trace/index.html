@@ -58,8 +58,18 @@
   .top .hint{color:var(--muted);font-size:.78rem;display:flex;gap:14px;align-items:center;}
   .top .hint kbd{background:#f4f2ee;border:1px solid var(--line);border-radius:6px;padding:2px 7px;font:600 .72rem 'JetBrains Mono',monospace;font-feature-settings:"zero" 1;color:var(--ink2);}
   @media (max-width:768px){
-    .top{gap:9px;padding:0 12px;} .top .sub{display:none;} .top .hint span{display:none;} .top .nav{display:none;}
-    .top .om-search{margin-left:8px;} .om-panel{top:auto;left:0;right:0;bottom:0;width:auto;max-height:55vh;border-radius:16px 16px 0 0;}
+    .top{gap:9px;padding:0 12px;} .top .sub{display:none;} .top .hint{display:none;} .top .nav{display:none;}
+    .top .om-search{margin-left:8px;max-width:none;}
+    /* controls stay >=40px tall for reliable touch targets */
+    .top .om-btn{padding:11px 14px;min-height:40px;} .top .om-input{padding-top:11px;padding-bottom:11px;min-height:40px;}
+    /* the derivation panel becomes a scrollable bottom sheet; the path bar and
+       legend crowd the sheet, so they step aside on small screens */
+    .om-panel{top:auto;left:0;right:0;bottom:0;width:auto;max-height:55vh;
+      border-radius:16px 16px 0 0;box-shadow:0 -12px 36px rgba(22,24,29,.20);padding:18px;}
+    /* body-scoped so these win over the base .legend/.pathbar rules that follow
+       later in source order at equal (class) specificity */
+    body .legend{display:none;}
+    body .pathbar{left:8px;right:8px;transform:none;justify-content:center;bottom:12px;}
   }
   @media (prefers-reduced-motion: reduce){ *{transition-duration:.001ms !important;} .edge.flow{animation:none !important;} }
   /* warm-paper canvas + dotted grid, the map's language (trace keeps its own
@@ -67,7 +77,7 @@
   #cy{position:fixed;top:58px;left:0;right:0;bottom:0;
       background:radial-gradient(circle at 1px 1px,#e6e3dd 1px,transparent 0) -1px -1px/30px 30px,
                  linear-gradient(180deg,#fdfcfa,#f6f4f0);}
-  svg{width:100%;height:100%;display:block;cursor:grab;} svg.drag{cursor:grabbing;}
+  svg{width:100%;height:100%;display:block;cursor:grab;touch-action:none;} svg.drag{cursor:grabbing;}
 
   /* edges: warm-gray at rest; upstream amber, downstream indigo when lit */
   .edge{fill:none;stroke:#d6d2cb;stroke-width:1.3;stroke-linecap:round;transition:stroke .25s,opacity .25s,stroke-width .25s;}
@@ -98,7 +108,7 @@
   /* derivation panel: the shared .om-panel floating surface; placement +
      content styles are page-specific. */
   .om-panel{position:fixed;top:72px;right:16px;width:392px;max-height:calc(100vh - 92px);overflow:auto;z-index:8;display:none;}
-  .om-panel .x{float:right;cursor:pointer;color:#cbd5e1;font-size:1.3rem;line-height:1;transition:.12s;} .om-panel .x:hover{color:var(--muted);}
+  .om-panel .x{float:right;cursor:pointer;color:#cbd5e1;font-size:1.6rem;line-height:1;padding:2px 8px;margin:-4px -6px 0 0;transition:.12s;} .om-panel .x:hover,.om-panel .x:active{color:var(--muted);}
   .om-panel .sym{font-size:1.7rem;color:#312e81;}
   .om-panel .badge{display:inline-block;font-size:.56rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#fff;border-radius:999px;padding:3px 9px;margin-left:10px;vertical-align:middle;}
   .om-panel .badge.observable{background:var(--obs);} .om-panel .badge.hidden{background:#94a3b8;} .om-panel .badge.parameter{background:#64748b;}
@@ -122,7 +132,7 @@
     box-shadow:0 12px 40px rgba(22,24,29,.12);z-index:9;font-size:.85rem;color:var(--ink2);}
   .pathbar .ep{font-size:1.05rem;color:#312e81;background:#eef2ff;border:1px solid #e0e4fb;border-radius:9px;padding:3px 10px;}
   .pathbar .clear{cursor:pointer;color:var(--muted);border:1px solid var(--line);border-radius:8px;padding:4px 9px;font-size:.76rem;font-weight:600;}
-  .pathbar .clear:hover{color:var(--ink);border-color:var(--obs);}
+  .pathbar .clear:hover,.pathbar .clear:active{color:var(--ink);border-color:var(--obs);}
   .rest-hint{position:fixed;left:50%;top:54%;transform:translate(-50%,-50%);text-align:center;color:var(--faint);z-index:2;pointer-events:none;transition:opacity .4s;}
   .rest-hint .big{font-family:var(--font-serif);font-size:1.5rem;color:var(--ink);font-weight:700;letter-spacing:-.01em;margin-bottom:6px;}
   .legend{position:fixed;left:16px;bottom:16px;z-index:5;display:flex;gap:14px;align-items:center;
@@ -314,6 +324,60 @@ svg.addEventListener('mousedown', e=>{ dragging=true; moved=false; sx=e.clientX;
 window.addEventListener('mouseup', ()=>{ dragging=false; svg.classList.remove('drag'); });
 window.addEventListener('mousemove', e=>{ if(!dragging)return; const m=svg.getScreenCTM(); if(!m)return; const dx=(e.clientX-sx)/m.a, dy=(e.clientY-sy)/m.d; if(Math.abs(e.clientX-sx)+Math.abs(e.clientY-sy)>4) moved=true; VB.x=vbs.x-dx; VB.y=vbs.y-dy; setVB(); });
 svg.addEventListener('wheel', e=>{ e.preventDefault(); const m=svg.getScreenCTM(); if(!m)return; const pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY; const u=pt.matrixTransform(m.inverse()); const f=e.deltaY>0?1.12:0.893; VB.x=u.x-(u.x-VB.x)*f; VB.y=u.y-(u.y-VB.y)*f; VB.w*=f; VB.h*=f; setVB(); }, {passive:false});
+
+// ---- touch: single-finger pan, two-finger pinch, tap = trace ---------------
+// Independent of the mouse path (desktop unchanged). A client point maps to
+// SVG-user space by inverting the preserveAspectRatio="xMidYMid meet" fit (the
+// same math syncLabels uses), so every viewport change routes through VB+setVB
+// and the HTML label overlay stays in sync. A tap under a small movement
+// threshold traces the touched node (touch has no shift for the path mode).
+function clientToUser(cx,cy){
+  const r=svg.getBoundingClientRect();
+  const sc=Math.min(r.width/VB.w, r.height/VB.h) || 1;
+  const ox=(r.width-VB.w*sc)/2, oy=(r.height-VB.h*sc)/2;
+  return { x:(cx-r.left-ox)/sc + VB.x, y:(cy-r.top-oy)/sc + VB.y };
+}
+let tPan=null, tPinch=null, tMoved=false, tStart=null;
+function touchMid(t){ return { x:(t[0].clientX+t[1].clientX)/2, y:(t[0].clientY+t[1].clientY)/2 }; }
+function touchDist(t){ const dx=t[0].clientX-t[1].clientX, dy=t[0].clientY-t[1].clientY; return Math.hypot(dx,dy); }
+svg.addEventListener('touchstart', e=>{
+  if(e.touches.length===1){
+    tPinch=null; tMoved=false;
+    const t=e.touches[0]; tStart={x:t.clientX,y:t.clientY,target:e.target};
+    tPan={x:t.clientX,y:t.clientY,vbx:VB.x,vby:VB.y};
+  } else if(e.touches.length===2){
+    e.preventDefault(); tPan=null; tMoved=true;
+    tPinch={dist:touchDist(e.touches)||1,vb:{x:VB.x,y:VB.y,w:VB.w,h:VB.h}};
+  }
+}, {passive:false});
+svg.addEventListener('touchmove', e=>{
+  if(tPinch && e.touches.length>=2){
+    e.preventDefault();
+    const mid=touchMid(e.touches);
+    VB=tPinch.vb;
+    const u=clientToUser(mid.x,mid.y);
+    const f=tPinch.dist/(touchDist(e.touches)||1);
+    VB={ x:u.x-(u.x-tPinch.vb.x)*f, y:u.y-(u.y-tPinch.vb.y)*f, w:tPinch.vb.w*f, h:tPinch.vb.h*f };
+    setVB();
+  } else if(tPan && e.touches.length===1){
+    const t=e.touches[0];
+    if(Math.abs(t.clientX-tPan.x)+Math.abs(t.clientY-tPan.y)>6) tMoved=true;
+    if(!tMoved) return;
+    e.preventDefault();
+    const r=svg.getBoundingClientRect();
+    const sc=Math.min(r.width/VB.w, r.height/VB.h) || 1;
+    VB.x=tPan.vbx-(t.clientX-tPan.x)/sc; VB.y=tPan.vby-(t.clientY-tPan.y)/sc; setVB();
+  }
+}, {passive:false});
+svg.addEventListener('touchend', e=>{
+  if(e.touches.length===0){
+    if(tPan && !tMoved && tStart){
+      const nd=tStart.target.closest && tStart.target.closest('.node');
+      if(nd){ trace(nd.dataset.id); } else { resetAll(); }
+    }
+    tPan=null; tPinch=null; tStart=null;
+  }
+}, {passive:false});
 svg.addEventListener('click', e=>{ if(moved)return; const nd=e.target.closest('.node'); if(!nd){ resetAll(); return; } const id=nd.dataset.id;
   if(e.shiftKey){ if(pathMode&&pathMode.a&&pathMode.a!==id){ finishPath(pathMode.a,id); } else { startPath(id); } return; }
   trace(id);
