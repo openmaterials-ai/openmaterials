@@ -168,7 +168,14 @@ def build_graph_dict(domains: tuple[Domain, ...]) -> dict:
 
 
 def build_codes(domains: tuple[Domain, ...]) -> dict:
+    # Every code rail we represent must be cited (paper/DOI) and carry its
+    # license (Giuseppe's rule). credits.CODE_CREDITS is the single source of
+    # truth; a rail missing from it gets license "UNKNOWN" here AND the
+    # enforcement test (tests/test_code_credits.py) fails, so no rail can land
+    # uncredited. Credits attach to every per-space entry of the rail so the
+    # site can read them from any of a rail's rows.
     from omai.representation.adapter import SpaceRepresentationSpec
+    from omai.representation.credits import CODE_CREDITS
     codes: dict[str, dict[str, dict]] = {}
     for d in domains:
         pkg = d.representation_package
@@ -181,7 +188,19 @@ def build_codes(domains: tuple[Domain, ...]) -> dict:
                 if isinstance(obj, SpaceRepresentationSpec):
                     api = next(iter(obj.code_api.values()), None) if obj.code_api else None
                     unit = next(iter(obj.observable_units.values()), None) if obj.observable_units else None
-                    codes.setdefault(obj.representation_name, {})[obj.space.name] = {"api": api, "unit": unit}
+                    cr = CODE_CREDITS.get(obj.representation_name)
+                    entry = {"api": api, "unit": unit}
+                    if cr is not None:
+                        entry["citation"] = cr["citation"]
+                        entry["doi"] = cr.get("doi")
+                        entry["license"] = cr["license"]
+                        entry["url"] = cr.get("url")
+                    else:
+                        entry["citation"] = ""
+                        entry["doi"] = None
+                        entry["license"] = "UNKNOWN"
+                        entry["url"] = None
+                    codes.setdefault(obj.representation_name, {})[obj.space.name] = entry
     return codes
 
 
