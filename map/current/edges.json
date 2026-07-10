@@ -890,6 +890,38 @@
   },
   "uid": "7e819af4e68ff4465eb8461e12d5d81bd6dbcb395280896a38e5cf4244642737"
  },
+ "8514fb3e8586db31ec55ec353254d206a41722760541644b2b5c08f770716a81": {
+  "identity": {
+   "formula": "Equality(Symbol('S'), Function('S^{bte}')(Symbol('\\\\mathcal{S}'), Symbol('\\\\varepsilon_0'), Symbol('C'), Symbol('\\\\omega')))",
+   "inputs": [
+    "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e",
+    "41f6c971e70bc42117a79b8ec51039f498280fdd9b77ef433bb602f90f966d93",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239",
+    "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8"
+   ],
+   "output": "80778c5d6cb9f0d1dd23d5c6cd6059acea161892532ce7c581c7477257debf02",
+   "outputs": [
+    "80778c5d6cb9f0d1dd23d5c6cd6059acea161892532ce7c581c7477257debf02"
+   ],
+   "schemes": {
+    "interpolation": "boltztrap2",
+    "method": "bte_ibte",
+    "scattering": "adp_imp_pop"
+   }
+  },
+  "meta": {
+   "description": "Seebeck coefficient S = S^{bte}[Structure, eps_0, C, omega]: the BoltzTraP2 Onsager thermopower over the amset-interpolated band structure with the same momentum-relaxation-time scattering. S^{bte} is opaque over the same four inputs as the conductivity edge (the static dielectric, the full rank-4 elastic tensor, and the phonon frequencies feed the identical scattering model; the deformation potentials and the dense bands are the deferred non-node inputs). The SIGN of S carries the carrier type. The schemes record the iterative-BTE method, the adp_imp_pop scattering, and the boltztrap2 interpolation. Implicit, so not sympy-executable.",
+   "formula_latex": "S = S^{bte}{\\left(\\mathcal{S},\\varepsilon_{0},C,\\omega \\right)}",
+   "formula_srepr": "Equality(Symbol('S'), Function('S^{bte}')(Symbol('\\\\mathcal{S}'), Symbol('\\\\varepsilon_0'), Symbol('C'), Symbol('\\\\omega')))",
+   "name": "compute_seebeck",
+   "schemes": {
+    "interpolation": "boltztrap2",
+    "method": "bte_ibte",
+    "scattering": "adp_imp_pop"
+   }
+  },
+  "uid": "8514fb3e8586db31ec55ec353254d206a41722760541644b2b5c08f770716a81"
+ },
  "88f8474bfda3d73e220f1db0ddfb8f00546007f1172ec663f4d4406568b3c5f2": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('\\\\sigma')), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True)), Mul(Integer(-1), Pow(Symbol('V_{cell}', positive=True), Integer(-1)), Derivative(Symbol('E_{tot}'), Tuple(Indexed(IndexedBase(Symbol('\\\\varepsilon^{str}')), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True)), Integer(1)))))",
@@ -1201,6 +1233,38 @@
   },
   "uid": "9d4ded802829a8b2fe5544556eeb81534fe39e3ceae5efac0065e7ddcf3da152"
  },
+ "9fc03548d4ca70a6634ed22f93f7efb198f00c48c8c8b0bd94b2b37d7f73c456": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\sigma_{el}'), Function('\\\\sigma^{bte}')(Symbol('\\\\mathcal{S}'), Symbol('\\\\varepsilon_0'), Symbol('C'), Symbol('\\\\omega')))",
+   "inputs": [
+    "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e",
+    "41f6c971e70bc42117a79b8ec51039f498280fdd9b77ef433bb602f90f966d93",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239",
+    "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8"
+   ],
+   "output": "c4a81f649b3964aed4d4b3c48dfec4f252958c9560332286e2105b175794144b",
+   "outputs": [
+    "c4a81f649b3964aed4d4b3c48dfec4f252958c9560332286e2105b175794144b"
+   ],
+   "schemes": {
+    "interpolation": "boltztrap2",
+    "method": "bte_ibte",
+    "scattering": "adp_imp_pop"
+   }
+  },
+  "meta": {
+   "description": "Electronic conductivity sigma = sigma^{bte}[Structure, eps_0, C, omega]: the BoltzTraP2 Onsager conductivity over the amset-interpolated dense band structure with momentum-relaxation-time scattering (ADP + IMP + PIE + POP) replacing the constant relaxation time. sigma^{bte} is opaque over the Structure, the static dielectric eps_0 (POP / PIE / IMP screening), the FULL rank-4 elastic tensor C (the ADP and PIE longitudinal modulus, derived per q via the Christoffel construction), and the phonon frequencies omega (the effective POP frequency). The dense band structure / wavefunction amset interpolates and the ADP deformation potentials are amset inputs that are not map nodes (deferred source parameters). The schemes record the iterative-BTE method, the adp_imp_pop scattering, and the boltztrap2 interpolation. Implicit (an interpolated-BTE solve over a scattering model), so not sympy-executable.",
+   "formula_latex": "\\sigma_{el} = \\sigma^{bte}{\\left(\\mathcal{S},\\varepsilon_{0},C,\\omega \\right)}",
+   "formula_srepr": "Equality(Symbol('\\\\sigma_{el}'), Function('\\\\sigma^{bte}')(Symbol('\\\\mathcal{S}'), Symbol('\\\\varepsilon_0'), Symbol('C'), Symbol('\\\\omega')))",
+   "name": "compute_electronic_conductivity",
+   "schemes": {
+    "interpolation": "boltztrap2",
+    "method": "bte_ibte",
+    "scattering": "adp_imp_pop"
+   }
+  },
+  "uid": "9fc03548d4ca70a6634ed22f93f7efb198f00c48c8c8b0bd94b2b37d7f73c456"
+ },
  "a4bc99a6b2efc1df1400041ada33cfb59e97819f189e3501a99c06f9c5e5d49f": {
   "identity": {
    "formula": "Equality(Symbol('V_{avg}'), Mul(Pow(Symbol('n_{ion}', positive=True), Integer(-1)), Pow(Symbol('q_e', positive=True), Integer(-1)), Add(Mul(Symbol('\\\\mu_{ion}'), Symbol('n_{ion}', positive=True)), Function('E^{empty}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}')), Mul(Integer(-1), Function('E^{full}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}'))))))",
@@ -1294,6 +1358,38 @@
    }
   },
   "uid": "c0093343fed48c5cc30a81368be68ddd6000b7ecab4d816c2a1601a01f35163e"
+ },
+ "c168368c90fa77e7b76a5668757de7f74d5fbb02b07c73544307cd48aa42d8e9": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\mu_e'), Function('\\\\mu^{bte}')(Symbol('\\\\mathcal{S}'), Symbol('\\\\varepsilon_0'), Symbol('C'), Symbol('\\\\omega')))",
+   "inputs": [
+    "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e",
+    "41f6c971e70bc42117a79b8ec51039f498280fdd9b77ef433bb602f90f966d93",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239",
+    "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8"
+   ],
+   "output": "3303dee51d36b5a42bf80aa0ab62bdecd0db34cc77782c5203192ecf3512a91d",
+   "outputs": [
+    "3303dee51d36b5a42bf80aa0ab62bdecd0db34cc77782c5203192ecf3512a91d"
+   ],
+   "schemes": {
+    "interpolation": "boltztrap2",
+    "method": "bte_ibte",
+    "scattering": "adp_imp_pop"
+   }
+  },
+  "meta": {
+   "description": "Carrier mobility mu = mu^{bte}[Structure, eps_0, C, omega]: the mobility sigma / (n e) over the amset-interpolated band structure with the same momentum-relaxation-time scattering, COMPUTED FOR NON-METALS ONLY. mu^{bte} is opaque over the same four inputs (static dielectric, full rank-4 elastic tensor, phonon frequencies; deformation potentials and dense bands deferred); with separate_mobility amset also reports a per-mechanism breakdown (a resolved-spectrum layer deferred here). The schemes record the iterative-BTE method, the adp_imp_pop scattering, and the boltztrap2 interpolation. Implicit, so not sympy-executable.",
+   "formula_latex": "\\mu_{e} = \\mu^{bte}{\\left(\\mathcal{S},\\varepsilon_{0},C,\\omega \\right)}",
+   "formula_srepr": "Equality(Symbol('\\\\mu_e'), Function('\\\\mu^{bte}')(Symbol('\\\\mathcal{S}'), Symbol('\\\\varepsilon_0'), Symbol('C'), Symbol('\\\\omega')))",
+   "name": "compute_carrier_mobility",
+   "schemes": {
+    "interpolation": "boltztrap2",
+    "method": "bte_ibte",
+    "scattering": "adp_imp_pop"
+   }
+  },
+  "uid": "c168368c90fa77e7b76a5668757de7f74d5fbb02b07c73544307cd48aa42d8e9"
  },
  "c3e43a0416eba1abf7d4cfa1467761af3b7aa7003df592db3a3599c635d58073": {
   "identity": {
@@ -1746,6 +1842,33 @@
   },
   "uid": "e88e11c5770a9dc9c33df7139ddf40f072f3e415f20e15d860c3490104c3c34a"
  },
+ "ea3c7c5ef2138ad5bc519a723cdd29bf4a098583fdff8f8100a4548904f64863": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\varepsilon_0'), Function('\\\\varepsilon_0^{stat}')(Symbol('\\\\varepsilon_\\\\infty'), Symbol('Z^*'), Symbol('\\\\omega')))",
+   "inputs": [
+    "438f0314dee5f9e98d88e4a7ba4425ef0edd207605338b318340da27bf28b2a4",
+    "a84077d8f12cf490f370b5cd0b98a47e3e31b7ec75fc8763699763f8b2313db4",
+    "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8"
+   ],
+   "output": "41f6c971e70bc42117a79b8ec51039f498280fdd9b77ef433bb602f90f966d93",
+   "outputs": [
+    "41f6c971e70bc42117a79b8ec51039f498280fdd9b77ef433bb602f90f966d93"
+   ],
+   "schemes": {
+    "method": "ionic_contribution"
+   }
+  },
+  "meta": {
+   "description": "Static dielectric tensor eps_0 = eps_0^{stat}[eps_inf, Z*, omega]: the high-frequency electronic dielectric tensor eps_inf plus the ionic (lattice-polarization) contribution built from the Born effective charges Z* and the phonon frequencies omega (the mode-oscillator-strength sum over the polar modes). eps_0^{stat} is an opaque function over the three phonon/dielectric inputs; the method scheme records the ionic_contribution assembly (eps_0 = eps_inf + ionic). atomate2's VaspAmsetMaker assembles it from the dielectric + Born-charge outputs (vasp/flows/amset.py:261-266). Implicit (a mode-strength sum over the polar phonons), so not sympy-executable.",
+   "formula_latex": "\\varepsilon_{0} = \\varepsilon_0^{stat}{\\left(\\varepsilon_{\\infty},Z^{*},\\omega \\right)}",
+   "formula_srepr": "Equality(Symbol('\\\\varepsilon_0'), Function('\\\\varepsilon_0^{stat}')(Symbol('\\\\varepsilon_\\\\infty'), Symbol('Z^*'), Symbol('\\\\omega')))",
+   "name": "compute_static_dielectric",
+   "schemes": {
+    "method": "ionic_contribution"
+   }
+  },
+  "uid": "ea3c7c5ef2138ad5bc519a723cdd29bf4a098583fdff8f8100a4548904f64863"
+ },
  "f2e7f20060fc7a467fa60d0dcede02095054636adf260b0f78f1206350524738": {
   "identity": {
    "formula": "Equality(Symbol('E_{tot}'), Function('E_{KS}')(Symbol('\\\\mathcal{S}'), Symbol('V')))",
@@ -1824,5 +1947,37 @@
    }
   },
   "uid": "fd5d0e69fde548b23498f3ef5908ae15c2b32e7140cbdd9f0773175fa0cc82e8"
+ },
+ "fe7f863a4325b44bf1f15e1b1f2521d7ec03c5c3bd0efa796998b12b6975f1e3": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\kappa_e'), Function('\\\\kappa_e^{bte}')(Symbol('\\\\mathcal{S}'), Symbol('\\\\varepsilon_0'), Symbol('C'), Symbol('\\\\omega')))",
+   "inputs": [
+    "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e",
+    "41f6c971e70bc42117a79b8ec51039f498280fdd9b77ef433bb602f90f966d93",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239",
+    "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8"
+   ],
+   "output": "960b38ae04ecc9fbaacb02d9ae832f15e84b8cac0563e7f6a62ddf32c61d725c",
+   "outputs": [
+    "960b38ae04ecc9fbaacb02d9ae832f15e84b8cac0563e7f6a62ddf32c61d725c"
+   ],
+   "schemes": {
+    "interpolation": "boltztrap2",
+    "method": "bte_ibte",
+    "scattering": "adp_imp_pop"
+   }
+  },
+  "meta": {
+   "description": "Electronic thermal conductivity kappa_e = kappa_e^{bte}[Structure, eps_0, C, omega]: the BoltzTraP2 Onsager electronic thermal conductivity over the amset-interpolated band structure with the same scattering model, the electronic partner of the lattice thermal conductivity (kappa_total = lattice + electronic). kappa_e^{bte} is opaque over the same four inputs (static dielectric, full rank-4 elastic tensor, phonon frequencies; deformation potentials and dense bands deferred). amset's own source flags the kappa unit as unconfirmed (data.py:483 '# TODO: confirm unit of kappa'; header '?'); W/(m K) is the BoltzTraP2 convention, carried with that caveat on the rail. The schemes record the iterative-BTE method, the adp_imp_pop scattering, and the boltztrap2 interpolation. Implicit, so not sympy-executable.",
+   "formula_latex": "\\kappa_{e} = \\kappa_e^{bte}{\\left(\\mathcal{S},\\varepsilon_{0},C,\\omega \\right)}",
+   "formula_srepr": "Equality(Symbol('\\\\kappa_e'), Function('\\\\kappa_e^{bte}')(Symbol('\\\\mathcal{S}'), Symbol('\\\\varepsilon_0'), Symbol('C'), Symbol('\\\\omega')))",
+   "name": "compute_electronic_thermal_conductivity",
+   "schemes": {
+    "interpolation": "boltztrap2",
+    "method": "bte_ibte",
+    "scattering": "adp_imp_pop"
+   }
+  },
+  "uid": "fe7f863a4325b44bf1f15e1b1f2521d7ec03c5c3bd0efa796998b12b6975f1e3"
  }
 }
