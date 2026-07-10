@@ -142,6 +142,10 @@ RY_PER_BOHR = Unit("Ry_per_bohr", FORCE, 13.605693122994 / 0.529177210903)
 # 6.241509074460763e-3 eV/Å³ (so kbar -> GPa is exactly 0.1).
 KBAR = Unit("kbar", ENERGY_PER_LENGTH_CUBED, 6.241509074460763e-4)
 GPA = Unit("GPa", ENERGY_PER_LENGTH_CUBED, 6.241509074460763e-3)
+# 1 Pa = 1e-9 GPa. Registered because pymatgen's ElasticTensor.y_mod emits the
+# Young's modulus in SI pascal (elastic.py:199-204, a 9.0e9 factor over its
+# eV/A^3 moduli), a 1e9 trap against the GPa the mat-* skills report.
+PA = Unit("Pa", ENERGY_PER_LENGTH_CUBED, 6.241509074460763e-12)
 
 
 # Canonical length unit: Å (angstrom). Canonical volume unit: Å³.
@@ -180,6 +184,7 @@ UNITS: dict[str, Unit] = {
         RY_PER_BOHR,
         KBAR,
         GPA,
+        PA,
         ANGSTROM,
         ANGSTROM_CUBED,
         DIMENSIONLESS_UNIT,

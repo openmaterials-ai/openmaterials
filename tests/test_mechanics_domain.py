@@ -53,15 +53,17 @@ def test_mechanics_nodes_are_the_elastic_tensor_moduli_and_pressure():
     from omai.mechanics.operator import NODES
 
     assert [s.name for s in NODES] == [
-        "ElasticConstants", "BulkModulus", "ShearModulus", "Pressure"]
+        "ElasticConstants", "BulkModulus", "ShearModulus", "Pressure",
+        "YoungsModulus", "PoissonRatio"]
 
 
-def test_mechanics_edges_are_the_four_operators():
+def test_mechanics_edges_are_the_six_operators():
     from omai.mechanics.operator import EDGES
 
     assert [op.name for op in EDGES] == [
         "compute_elastic_constants", "contract_pressure",
-        "contract_bulk_modulus", "contract_shear_modulus"]
+        "contract_bulk_modulus", "contract_shear_modulus",
+        "contract_youngs_modulus", "contract_poisson_ratio"]
 
 
 def test_elastic_constants_is_the_full_rank4_tensor():
@@ -74,16 +76,20 @@ def test_elastic_constants_is_the_full_rank4_tensor():
     assert field.indices == ("alpha", "beta", "gamma", "delta")
 
 
-def test_the_moduli_and_pressure_are_scalars():
+def test_the_moduli_pressure_and_ratios_are_scalars():
     from omai.mechanics.operator.nodes import (
         BULK_MODULUS,
+        POISSON_RATIO,
         PRESSURE,
         SHEAR_MODULUS,
+        YOUNGS_MODULUS,
     )
 
     assert BULK_MODULUS.field("K").indices == ()
     assert SHEAR_MODULUS.field("G").indices == ()
     assert PRESSURE.field("P").indices == ()
+    assert YOUNGS_MODULUS.field("E_Y").indices == ()
+    assert POISSON_RATIO.field("nu").indices == ()
 
 
 # --------------------------------------------------------------------------
@@ -95,15 +101,18 @@ def test_unified_validate_dag_is_clean():
     assert validate_dag(nodes, edges) == []
 
 
-def test_all_four_mechanics_edges_are_dimensionally_ok():
-    """The dimensional gate proves each new edge (energy per volume on every
-    side): the elastic tensor as a stress derivative against the
-    dimensionless strain, the pressure as a stress trace, and both Voigt
-    moduli as contractions of the stiffness tensor."""
+def test_all_six_mechanics_edges_are_dimensionally_ok():
+    """The dimensional gate proves each edge: the elastic tensor as a stress
+    derivative against the dimensionless strain, the pressure as a stress
+    trace, both Voigt moduli as contractions of the stiffness tensor, the
+    Young's modulus as pressure-dimensioned (the K/G algebra preserves the
+    energy density), and the Poisson ratio as exactly dimensionless (the
+    ratios cancel)."""
     nodes, edges = _all_nodes_edges()
     report = dimensional_report(nodes, edges)
     for name in ("compute_elastic_constants", "contract_pressure",
-                 "contract_bulk_modulus", "contract_shear_modulus"):
+                 "contract_bulk_modulus", "contract_shear_modulus",
+                 "contract_youngs_modulus", "contract_poisson_ratio"):
         assert name in report["ok"], (name, report)
     # No new violations anywhere (the two pinned schematic ones may remain).
     assert report["violation"] == [] or all(
@@ -112,9 +121,11 @@ def test_all_four_mechanics_edges_are_dimensionally_ok():
     ), report["violation"]
 
 
-def test_no_node_uid_collisions_at_59_nodes():
+def test_no_node_uid_collisions_at_61_nodes():
+    # 59 with the original mechanics four; 61 with YoungsModulus and
+    # PoissonRatio (2026-07-09).
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 59
+    assert len(g["nodes"]) == 61
     uids = [n["uid"] for n in g["nodes"]]
     assert len(set(uids)) == len(uids), "node uid collision"
 
@@ -139,6 +150,8 @@ def test_mechanics_nodes_carry_the_tier():
     assert tier_of["BulkModulus"] == "Mechanics"
     assert tier_of["ShearModulus"] == "Mechanics"
     assert tier_of["Pressure"] == "Mechanics"
+    assert tier_of["YoungsModulus"] == "Mechanics"
+    assert tier_of["PoissonRatio"] == "Mechanics"
 
 
 # --------------------------------------------------------------------------
@@ -225,17 +238,21 @@ def test_mat_elasticity_representation_appears_and_covers_the_moduli():
     codes = build_codes(DOMAINS)
     assert "mat-elasticity" in codes
     mat = codes["mat-elasticity"]
-    # The catalog's produces map onto ElasticConstants and the two moduli;
-    # Young's modulus and Poisson's ratio are catalog-only (no node).
-    for name in ("ElasticConstants", "BulkModulus", "ShearModulus"):
+    # The catalog's produces now map onto all five mechanics observables the
+    # skill emits (Young's modulus and Poisson's ratio gained nodes with the
+    # pymatgen scan, 2026-07-09).
+    for name in ("ElasticConstants", "BulkModulus", "ShearModulus",
+                 "YoungsModulus", "PoissonRatio"):
         assert name in mat, f"mat-elasticity coverage missing {name}"
 
 
 def test_mechanics_representation_package_discovery_finds_the_specs():
     """Discovery mirrors build_codes: walk the package's modules and collect
-    spec instances by introspection. The LAMMPS module contributes two space
-    specs (ElasticConstants, Pressure) and one operator spec; mat-elasticity
-    contributes three space specs (the tensor and the two moduli)."""
+    spec instances by introspection. LAMMPS contributes two space specs
+    (ElasticConstants, Pressure) and one operator spec; mat-elasticity five
+    space specs (tensor, both moduli, Young's, Poisson); pymatgen five space
+    specs (same five observables, native units) and three operator specs
+    (the finite-strain fit and the two isotropic contractions)."""
     import importlib
     import pkgutil
 
@@ -257,9 +274,11 @@ def test_mechanics_representation_package_discovery_finds_the_specs():
                 space_specs.append((attr, obj))
             elif isinstance(obj, OperatorRepresentationSpec):
                 op_specs.append((attr, obj))
-    assert len(space_specs) == 5, [a for a, _ in space_specs]
-    assert len(op_specs) == 1, [a for a, _ in op_specs]
-    assert op_specs[0][1].operator.name == "compute_elastic_constants"
+    assert len(space_specs) == 12, [a for a, _ in space_specs]
+    assert len(op_specs) == 4, [a for a, _ in op_specs]
+    assert sorted({s.operator.name for _, s in op_specs}) == [
+        "compute_elastic_constants", "contract_poisson_ratio",
+        "contract_youngs_modulus"]
 
 
 def test_lammps_elastic_and_pressure_units_are_the_declared_ones():
@@ -324,8 +343,11 @@ def test_mechanics_contribution_is_records_110_to_117():
         .read_text().splitlines()
     assert len(lines) >= 117, "the mechanics contribution has not landed"
 
-    domain_uids = [node_id(s) for s in NODES] + \
-        [edge_id(op, node_id) for op in EDGES]
+    # The v1 contribution is history: the FIRST four nodes and FIRST four
+    # edges (the domain later grew the two isotropic contractions, records
+    # 118-121 below).
+    domain_uids = [node_id(s) for s in NODES[:4]] + \
+        [edge_id(op, node_id) for op in EDGES[:4]]
     recs = [json.loads(line) for line in lines[109:117]]
     assert [r["payload"]["uid"] for r in recs] == domain_uids
     assert [r["op"] for r in recs] == ["add_node"] * 4 + ["add_edge"] * 4
@@ -359,3 +381,137 @@ def test_mat_elasticity_cu_instances_pin_the_live_node_uids():
     assert g["value"] == 51.45
     assert g["units"] == "GPa"
     assert g["node_uid"] == node_id(SHEAR_MODULUS)
+
+
+# --------------------------------------------------------------------------
+# The mechanics contracts (YoungsModulus, PoissonRatio): the first of the two
+# pymatgen-scan contributions, records 118-121.
+# --------------------------------------------------------------------------
+
+def test_youngs_and_poisson_edges_consume_the_two_moduli():
+    from omai.mechanics.operator.edges import (
+        contract_poisson_ratio,
+        contract_youngs_modulus,
+    )
+
+    for op in (contract_youngs_modulus, contract_poisson_ratio):
+        assert [s.name for s in op.inputs] == ["BulkModulus", "ShearModulus"]
+    assert [o.name for o in contract_youngs_modulus.outputs] == ["YoungsModulus"]
+    assert [o.name for o in contract_poisson_ratio.outputs] == ["PoissonRatio"]
+
+
+def test_youngs_and_poisson_formulas_are_sympy_executable():
+    """Unlike every implicit edge in the store, these two are EXECUTABLE
+    closed forms: explicit Eq definitions whose LHS and RHS share no free
+    symbols, so the default executability heuristic resolves True with no
+    override."""
+    from omai.mechanics.operator.edges import (
+        contract_poisson_ratio,
+        contract_youngs_modulus,
+    )
+
+    assert contract_youngs_modulus.is_executable_in_sympy
+    assert contract_poisson_ratio.is_executable_in_sympy
+    assert contract_youngs_modulus.is_executable_in_sympy_override is None
+    assert contract_poisson_ratio.is_executable_in_sympy_override is None
+
+
+def test_youngs_and_poisson_evaluate_to_the_committed_cu_values():
+    """Numerical evaluation against the committed mat-elasticity Cu example
+    (omai/materials/skills_catalog.json, examples/Cu/elasticity_results.json):
+    K = 145.85, G = 51.45 GPa (VRH) give E_Y = 138.110107... GPa, matching
+    the catalog's 138.11 verbatim, and nu = 0.3421779... The catalog's nu
+    0.34217507884737186 was computed from the unrounded moduli, so it agrees
+    to 3e-6, not to machine precision."""
+    import sympy as sp
+
+    from omai.mechanics.operator.edges import (
+        contract_poisson_ratio,
+        contract_youngs_modulus,
+    )
+
+    K, G = sp.symbols("K G")
+    subs = {K: sp.Float("145.85"), G: sp.Float("51.45")}
+    e_y = float(contract_youngs_modulus.formula.rhs.subs(subs))
+    nu = float(contract_poisson_ratio.formula.rhs.subs(subs))
+    assert abs(e_y - 138.1101073619632) < 1e-9
+    assert round(e_y, 2) == 138.11  # the committed catalog value
+    assert abs(nu - 0.34217791411042947) < 1e-12
+    assert abs(nu - 0.34217507884737186) < 3e-6  # catalog, unrounded inputs
+
+
+def test_youngs_is_pressure_dimensioned_and_poisson_dimensionless():
+    """The dimensional gate PROVES both contracts (no KNOWN_VIOLATIONS
+    entries): E_Y = 9KG/(3K+G) carries M L^-1 T^-2 and nu = (3K-2G)/(2(3K+G))
+    carries the all-zero exponent vector."""
+    import sympy as sp
+
+    from omai.operator.dimcheck import dimension_of
+    from omai.operator.dimensions import (
+        DIMENSIONLESS,
+        ENERGY_PER_LENGTH_CUBED,
+    )
+    from omai.mechanics.operator.edges import (
+        contract_poisson_ratio,
+        contract_youngs_modulus,
+    )
+
+    assert dimension_of(contract_youngs_modulus.formula.rhs) == \
+        ENERGY_PER_LENGTH_CUBED
+    assert dimension_of(contract_poisson_ratio.formula.rhs) == DIMENSIONLESS
+    assert dimension_of(sp.Symbol("E_Y")) == ENERGY_PER_LENGTH_CUBED
+    assert dimension_of(sp.Symbol("nu")) == DIMENSIONLESS
+
+
+def test_bare_E_stays_the_thermal_md_energy_not_the_youngs_modulus():
+    """Guard for the deliberate E_Y naming: bare E is the thermal domain's
+    per-atom MD energy in the heat-current formula and must stay UNBOUND in
+    the global dimension registry (binding it to an energy density would
+    poison compute_heat_current's Add check)."""
+    from omai.operator.dimcheck import SYMBOL_DIMENSIONS
+
+    assert "E" not in SYMBOL_DIMENSIONS
+    assert "E_Y" in SYMBOL_DIMENSIONS
+
+
+def test_pymatgen_representation_covers_the_mechanics_family():
+    from omai.map_data import build_codes
+
+    codes = build_codes(DOMAINS)
+    assert "pymatgen" in codes
+    pmg = codes["pymatgen"]
+    for name in ("ElasticConstants", "BulkModulus", "ShearModulus",
+                 "YoungsModulus", "PoissonRatio"):
+        assert name in pmg, f"pymatgen coverage missing {name}"
+    # The native-unit traps the scan verified: eV/A^3 storage and y_mod's Pa.
+    assert pmg["ElasticConstants"]["unit"] == "eV_per_A3"
+    assert pmg["YoungsModulus"]["unit"] == "Pa"
+    assert pmg["PoissonRatio"]["unit"] == "dimensionless"
+
+
+def test_mechanics_contracts_are_records_118_to_121():
+    """The frozen log positions of the first pymatgen-scan contribution: the
+    two nodes then the two edges (in NODES / EDGES order), authored through
+    sync --apply as records 118-121. Positions are history and never move;
+    records 110-117 (the mechanics v1) stay untouched above."""
+    import json
+    from pathlib import Path
+
+    from omai.operator.identity import edge_id
+    from omai.mechanics.operator import EDGES, NODES
+
+    lines = (Path(__file__).resolve().parents[1] / "map" / "log.jsonl") \
+        .read_text().splitlines()
+    assert len(lines) >= 121, "the mechanics contracts have not landed"
+
+    contribution_uids = [node_id(s) for s in NODES[4:6]] + \
+        [edge_id(op, node_id) for op in EDGES[4:6]]
+    recs = [json.loads(line) for line in lines[117:121]]
+    assert [r["payload"]["uid"] for r in recs] == contribution_uids
+    assert [r["op"] for r in recs] == ["add_node"] * 2 + ["add_edge"] * 2
+    names = [r["payload"]["meta"]["name"] for r in recs]
+    assert names == ["YoungsModulus", "PoissonRatio",
+                     "contract_youngs_modulus", "contract_poisson_ratio"]
+    for r in recs:
+        assert r["author"] == "gbarbalinardo"
+        assert r["date"] == "2026-07-09"

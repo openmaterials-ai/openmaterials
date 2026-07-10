@@ -16,11 +16,17 @@ registered by the dft ground-state domain and are not re-registered here.
 from __future__ import annotations
 
 from omai.operator.dimcheck import register_symbol_dimensions
-from omai.operator.dimensions import ENERGY_PER_LENGTH_CUBED
+from omai.operator.dimensions import DIMENSIONLESS, ENERGY_PER_LENGTH_CUBED
 
 register_symbol_dimensions({
     "C": ENERGY_PER_LENGTH_CUBED,
     "K": ENERGY_PER_LENGTH_CUBED,
     "G": ENERGY_PER_LENGTH_CUBED,
     "P": ENERGY_PER_LENGTH_CUBED,
+    # Young's modulus: pressure-dimensioned, deliberately E_Y (bare E is the
+    # thermal MD per-atom energy). Poisson ratio: dimensionless, deliberately
+    # the Latin-spelled nu (\nu is the generic branch dummy). With these two
+    # bindings the dimensional gate PROVES both contract edges.
+    "E_Y": ENERGY_PER_LENGTH_CUBED,
+    "nu": DIMENSIONLESS,
 })

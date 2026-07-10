@@ -10,6 +10,8 @@ SYMBOLS: dict[str, str] = {
     "BulkModulus": r"K",
     "ShearModulus": r"G",
     "Pressure": r"P",
+    "YoungsModulus": r"E_Y",
+    "PoissonRatio": r"\nu",
 }
 
 MECHANICS = Domain(

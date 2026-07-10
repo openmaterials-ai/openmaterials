@@ -1,13 +1,15 @@
 r"""Operators (edges) of the mechanics domain.
 
-Four edges. The producing edge is the finite-strain elastic-tensor calculation;
-the other three are closed-form contractions of the tensor (and of the stress)
-into isotropic scalars:
+Six edges. The producing edge is the finite-strain elastic-tensor calculation;
+the other five are closed-form contractions of the tensor (and of the stress,
+and of the two moduli) into isotropic scalars:
 
-  compute_elastic_constants : (Stress, Structure) -> ElasticConstants
-  contract_pressure         : (Stress,)           -> Pressure
-  contract_bulk_modulus     : (ElasticConstants,) -> BulkModulus
-  contract_shear_modulus    : (ElasticConstants,) -> ShearModulus
+  compute_elastic_constants : (Stress, Structure)          -> ElasticConstants
+  contract_pressure         : (Stress,)                    -> Pressure
+  contract_bulk_modulus     : (ElasticConstants,)          -> BulkModulus
+  contract_shear_modulus    : (ElasticConstants,)          -> ShearModulus
+  contract_youngs_modulus   : (BulkModulus, ShearModulus)  -> YoungsModulus
+  contract_poisson_ratio    : (BulkModulus, ShearModulus)  -> PoissonRatio
 
 Symbols. The stress IndexedBase \sigma and the strain \varepsilon^{str} are the
 SAME base names the dft ground-state domain registered (reused so the elastic
@@ -16,7 +18,14 @@ carries, and the pressure contracts the same stress). The mechanics fields C, K,
 G, P are new bare names; none of them collides with an existing global symbol
 (verified: no other edge formula references C / K / G / P), and each is bound to
 ENERGY_PER_LENGTH_CUBED in the domain's dimensions registry so the dimensional
-gate proves all four edges.
+gate proves the edges.
+
+The 2026-07-09 additions deliberately AVOID two tempting bare names: the
+Young's modulus is E_Y (not E: bare E is the thermal domain's per-atom MD
+energy IndexedBase in the heat-current formula, and binding it to an energy
+density would poison that edge's dimensional check), and the Poisson ratio is
+the Latin-spelled nu (not \nu: the backslashed \nu is the registered generic
+branch dummy index). sympy renders "nu" as the Greek letter anyway.
 """
 from __future__ import annotations
 
@@ -26,8 +35,10 @@ from omai.operator.operator import Operator
 from omai.mechanics.operator.nodes import (
     BULK_MODULUS,
     ELASTIC_CONSTANTS,
+    POISSON_RATIO,
     PRESSURE,
     SHEAR_MODULUS,
+    YOUNGS_MODULUS,
 )
 from omai.dft_ground_state.operator.nodes import STRESS, STRUCTURE
 
@@ -40,6 +51,8 @@ _C = sp.IndexedBase("C")
 _K = sp.Symbol("K")
 _G = sp.Symbol("G")
 _P = sp.Symbol("P")
+_E_Y = sp.Symbol("E_Y")
+_nu = sp.Symbol("nu")
 _sigma = sp.IndexedBase(r"\sigma")     # reused: the dft ground-state cell stress
 _eps_str = sp.IndexedBase(r"\varepsilon^{str}")  # reused: the dft homogeneous strain
 _a, _b, _g, _d = sp.symbols(r"\alpha \beta \gamma \delta", integer=True)
@@ -161,9 +174,55 @@ contract_shear_modulus = Operator(
     ),
 )
 
+# ---------------------------------------------------------------------------
+# Isotropic contractions of the two moduli (added 2026-07-09, pymatgen scan).
+# Both are EXECUTABLE in sympy: explicit Eq definitions whose LHS and RHS
+# share no symbols, so the default executability heuristic holds and the
+# dimensional gate PROVES both (K, G energy-density in; E_Y energy-density
+# out, nu dimensionless out, the K/G ratios cancelling exactly).
+# ---------------------------------------------------------------------------
+
+contract_youngs_modulus = Operator(
+    name="contract_youngs_modulus",
+    inputs=(BULK_MODULUS, SHEAR_MODULUS),
+    outputs=(YOUNGS_MODULUS,),
+    formula=sp.Eq(_E_Y, 9 * _K * _G / (3 * _K + _G)),
+    description=(
+        "Isotropic Young's modulus E_Y = 9KG/(3K + G): the standard "
+        "two-constant identity of isotropic linear elasticity, valid for "
+        "whichever average (Voigt, Reuss, or Hill) produced the K and G it "
+        "consumes; the averaging provenance rides on the inputs, not on this "
+        "identity. Closed-form and sympy-executable; for the committed Cu "
+        "instance (K = 145.85, G = 51.45 GPa, VRH) it evaluates to "
+        "E_Y = 138.11 GPa, matching the mat-elasticity example verbatim. "
+        "pymatgen's ElasticTensor.y_mod encodes the same identity but "
+        "returns SI Pa (elastic.py:199-204, factor 9.0e9), a 1e9 trap "
+        "against the GPa convention recorded on the representations."
+    ),
+)
+
+contract_poisson_ratio = Operator(
+    name="contract_poisson_ratio",
+    inputs=(BULK_MODULUS, SHEAR_MODULUS),
+    outputs=(POISSON_RATIO,),
+    formula=sp.Eq(_nu, (3 * _K - 2 * _G) / (2 * (3 * _K + _G))),
+    description=(
+        "Isotropic Poisson ratio nu = (3K - 2G)/(2(3K + G)) (equivalently "
+        "(3K - 2G)/(6K + 2G), the form mat-elasticity's script prints): the "
+        "second two-constant identity of isotropic linear elasticity, "
+        "dimensionless because the K/G ratios cancel exactly, which the "
+        "dimensional gate proves. Closed-form and sympy-executable; for the "
+        "committed Cu instance (K = 145.85, G = 51.45 GPa, VRH) it evaluates "
+        "to nu = 0.342, matching the mat-elasticity example. pymatgen's "
+        "equivalent is ElasticTensor.homogeneous_poisson (elastic.py:403)."
+    ),
+)
+
 EDGES: tuple[Operator, ...] = (
     compute_elastic_constants,
     contract_pressure,
     contract_bulk_modulus,
     contract_shear_modulus,
+    contract_youngs_modulus,
+    contract_poisson_ratio,
 )

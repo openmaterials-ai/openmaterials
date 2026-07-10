@@ -1,10 +1,12 @@
 """Operator nodes of the mechanics domain.
 
 The continuum mechanical response of a material under the elastic (small-strain)
-approximation: the full rank-4 stiffness tensor, its two isotropic Voigt moduli,
-and the mechanical pressure. All four are ObservableSpaces (gauge-invariant,
-cross-code comparable after unit conversion), all carrying the energy-density
-dimension ENERGY_PER_LENGTH_CUBED (the same M L^-1 T^-2 exponents as a pressure).
+approximation: the full rank-4 stiffness tensor, its isotropic moduli, the
+Poisson ratio, and the mechanical pressure. All six are ObservableSpaces
+(gauge-invariant, cross-code comparable after unit conversion); every field but
+the Poisson ratio carries the energy-density dimension ENERGY_PER_LENGTH_CUBED
+(the same M L^-1 T^-2 exponents as a pressure), the Poisson ratio is
+DIMENSIONLESS (all-zero exponents).
 
 Node table:
 
@@ -14,6 +16,8 @@ Node table:
   BulkModulus      bulk_modulus       ENERGY_PER_LENGTH_CUBED  ()
   ShearModulus     shear_modulus      ENERGY_PER_LENGTH_CUBED  ()
   Pressure         pressure           ENERGY_PER_LENGTH_CUBED  ()
+  YoungsModulus    youngs_modulus     ENERGY_PER_LENGTH_CUBED  ()
+  PoissonRatio     poisson_ratio      DIMENSIONLESS            ()
 
 ElasticConstants is the FULL rank-4 Cartesian tensor C_{alpha,beta,gamma,delta}.
 The Voigt 6x6 matrix C_ij that codes and papers print is a representation-layer
@@ -21,14 +25,15 @@ packing (the pair-index symmetrization alpha,beta -> i and gamma,delta -> j),
 recorded on the LAMMPS / mat-elasticity specs, never on the node identity: the
 node is the tensor, one object independent of how a code lays it out.
 
-Deferred candidates (mat-elasticity produces them, but they are catalog-only for
-now, no node): YoungsModulus and PoissonsRatio (further isotropic combinations of
-K and G), plus the Reuss and Hill averages (they arrive as scheme overrides on
-the contraction representations, not as new nodes).
+YoungsModulus and PoissonRatio (added 2026-07-09 from the pymatgen scan) are the
+two remaining isotropic combinations of K and G, produced by the executable
+contract edges E_Y = 9KG/(3K+G) and nu = (3K-2G)/(2(3K+G)). Deferred
+candidates: the Reuss and Hill averages (they arrive as scheme overrides on the
+contraction representations, not as new nodes).
 """
 from __future__ import annotations
 
-from omai.operator.dimensions import ENERGY_PER_LENGTH_CUBED
+from omai.operator.dimensions import DIMENSIONLESS, ENERGY_PER_LENGTH_CUBED
 from omai.operator.space import Field, ObservableSpace, Space
 
 ELASTIC_CONSTANTS = ObservableSpace(
@@ -92,9 +97,39 @@ PRESSURE = ObservableSpace(
     ),
 )
 
+YOUNGS_MODULUS = ObservableSpace(
+    name="YoungsModulus",
+    fields=(Field("E_Y", ENERGY_PER_LENGTH_CUBED, indices=()),),
+    tier="Mechanics",
+    description=(
+        "Isotropic Young's modulus E_Y: the material's uniaxial stiffness, "
+        "the stress-to-strain ratio of a bar pulled along one axis with free "
+        "lateral faces. Fully determined by the bulk and shear moduli through "
+        "the isotropic identity E_Y = 9KG/(3K + G), an executable contraction "
+        "(not a new measurement). Scalar, energy-density dimension, "
+        "conventionally quoted in GPa; note pymatgen's ElasticTensor.y_mod "
+        "emits SI Pa (a 1e9 trap recorded on the representation)."
+    ),
+)
+
+POISSON_RATIO = ObservableSpace(
+    name="PoissonRatio",
+    fields=(Field("nu", DIMENSIONLESS, indices=()),),
+    tier="Mechanics",
+    description=(
+        "Isotropic Poisson ratio nu: the negative transverse-to-axial strain "
+        "ratio under uniaxial stress. Fully determined by the bulk and shear "
+        "moduli through the isotropic identity nu = (3K - 2G)/(2(3K + G)), an "
+        "executable contraction. Dimensionless scalar (all-zero exponents), "
+        "bounded (-1, 1/2) for stable isotropic media; about 0.34 for Cu."
+    ),
+)
+
 NODES: tuple[Space, ...] = (
     ELASTIC_CONSTANTS,
     BULK_MODULUS,
     SHEAR_MODULUS,
     PRESSURE,
+    YOUNGS_MODULUS,
+    POISSON_RATIO,
 )

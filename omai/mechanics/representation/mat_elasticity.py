@@ -10,16 +10,18 @@ FairChem. Its `produces` map onto the mechanics nodes where they match:
   elastic_tensor       C_{ij}   -> ElasticConstants       GPa
   bulk_modulus_vrh     B_{VRH}  -> BulkModulus             GPa
   shear_modulus_vrh    G_{VRH}  -> ShearModulus            GPa
-  youngs_modulus       E        -> (catalog-only: no node, skipped)
-  poissons_ratio       nu       -> (catalog-only: no node, skipped)
+  youngs_modulus       E        -> YoungsModulus           GPa
+  poissons_ratio       nu       -> PoissonRatio            (dimensionless)
 
-Young's modulus and Poisson's ratio are further isotropic combinations of K and
-G; they have no map node yet, so they are deliberately not represented here (the
-skill still produces them; the map simply does not carry them). The VRH label is
-the Voigt-Reuss-Hill (Hill) average, a scheme distinct from the Voigt-only
-contraction the mechanics contract_bulk_modulus / contract_shear_modulus edges
-encode; that distinction is recorded in the notes rather than as a numeric
-conversion, since both are averages of the same stiffness tensor.
+Young's modulus and Poisson's ratio were catalog-only until the pymatgen scan
+landed their nodes (2026-07-09); the skill recomputes both in GPa-scale form
+from the VRH moduli (E = 9BG/(3B+G), nu = (3B-2G)/(6B+2G) at
+calculate_elasticity.py:91-99), exactly the mechanics contract edges. The VRH
+label is the Voigt-Reuss-Hill (Hill) average, a scheme distinct from the
+Voigt-only contraction the mechanics contract_bulk_modulus /
+contract_shear_modulus edges encode; that distinction is recorded in the notes
+rather than as a numeric conversion, since both are averages of the same
+stiffness tensor.
 """
 from __future__ import annotations
 
@@ -27,7 +29,9 @@ from omai.representation.adapter import SpaceRepresentationSpec
 from omai.mechanics.operator.nodes import (
     BULK_MODULUS,
     ELASTIC_CONSTANTS,
+    POISSON_RATIO,
     SHEAR_MODULUS,
+    YOUNGS_MODULUS,
 )
 
 MAT_ELASTICITY_ELASTIC_CONSTANTS = SpaceRepresentationSpec(
@@ -70,5 +74,35 @@ MAT_ELASTICITY_SHEAR_MODULUS = SpaceRepresentationSpec(
         "mean; the mechanics contract_shear_modulus edge encodes the Voigt "
         "member (average=voigt), so VRH and the pure-Voigt G differ by the "
         "Reuss contribution."
+    ),
+)
+
+MAT_ELASTICITY_YOUNGS_MODULUS = SpaceRepresentationSpec(
+    space=YOUNGS_MODULUS,
+    representation_name="mat-elasticity",
+    observable_units={"E_Y": "GPa"},
+    code_api={"E_Y": "calculate_elasticity.py E = 9BG/(3B+G) over the VRH moduli, GPa"},
+    notes=(
+        "Young's modulus recomputed in GPa from the VRH moduli by the "
+        "skill's own closed form E = 9BG/(3B+G) "
+        "(calculate_elasticity.py:91-99), exactly the map's "
+        "contract_youngs_modulus edge over VRH inputs. The Cu example emits "
+        "138.11 GPa (examples/Cu/elasticity_results.json). Deliberately NOT "
+        "pymatgen's ElasticTensor.y_mod, which returns SI Pa (a 1e9 trap "
+        "recorded on the pymatgen spec)."
+    ),
+)
+
+MAT_ELASTICITY_POISSON_RATIO = SpaceRepresentationSpec(
+    space=POISSON_RATIO,
+    representation_name="mat-elasticity",
+    observable_units={"nu": "dimensionless"},
+    code_api={"nu": "calculate_elasticity.py nu = (3B-2G)/(6B+2G) over the VRH moduli"},
+    notes=(
+        "Poisson's ratio from the skill's closed form nu = (3B-2G)/(6B+2G) "
+        "(calculate_elasticity.py:91-99), the same identity as the map's "
+        "contract_poisson_ratio edge ((3K-2G)/(2(3K+G)) expanded). "
+        "Dimensionless; the Cu example emits 0.34217507884737186 "
+        "(examples/Cu/elasticity_results.json)."
     ),
 )

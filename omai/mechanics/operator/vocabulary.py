@@ -27,6 +27,11 @@ register_space_symbols({
     "BulkModulus": {"K"},
     "ShearModulus": {"G"},
     "Pressure": {"P"},
+    # The two remaining isotropic combinations of K and G (2026-07-09).
+    # E_Y, not bare E (the thermal domain's per-atom MD energy); Latin nu,
+    # not the generic branch dummy \nu (sympy renders it Greek regardless).
+    "YoungsModulus": {"E_Y"},
+    "PoissonRatio": {"nu"},
     # The stress the pressure contracts (already registered by the dft domain).
     "Stress": {r"\sigma"},
 })

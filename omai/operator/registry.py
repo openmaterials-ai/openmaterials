@@ -83,6 +83,8 @@ QUANTITY_TAGS: dict[str, str] = {
     "elastic_constants": "Rank-4 Cartesian elastic stiffness tensor C_{alpha,beta,gamma,delta}, the second strain derivative of the energy density (Voigt 6x6 is a representation packing).",
     "bulk_modulus": "Isotropic bulk modulus K, the Voigt average resistance to uniform (hydrostatic) compression from the elastic tensor.",
     "shear_modulus": "Isotropic shear modulus G, the Voigt average resistance to shape-changing (shear) deformation from the elastic tensor.",
+    "youngs_modulus": "Isotropic Young's modulus E_Y = 9KG/(3K+G), the uniaxial stiffness contracted from the bulk and shear moduli.",
+    "poisson_ratio": "Isotropic Poisson ratio nu = (3K-2G)/(2(3K+G)), the dimensionless transverse-contraction ratio from the bulk and shear moduli.",
     "pressure": "Mechanical pressure P = trace(stress)/3, positive under compression (the stress pressure convention).",
     "temperature": "Thermodynamic temperature at which the calculation is evaluated.",
     "force_constants": "Real-space interatomic force constants (harmonic or higher order).",
