@@ -256,7 +256,9 @@ def test_mechanics_representation_package_discovery_finds_the_specs():
     specs (same five observables, native units) and three operator specs
     (the finite-strain fit and the two isotropic contractions); vasp
     (2026-07-09, atomate2/VASP scan) one space spec (ElasticConstants, the
-    OUTCAR IBRION=6 kbar route) and one operator spec (compute_elastic_constants)."""
+    OUTCAR IBRION=6 kbar route) and one operator spec (compute_elastic_constants);
+    mp-api (2026-07-09, the DATABASE rail) five space specs (the tensor and the
+    four scalar reductions, GPa moduli and SI-Pa Young's) and no operator specs."""
     import importlib
     import pkgutil
 
@@ -278,7 +280,9 @@ def test_mechanics_representation_package_discovery_finds_the_specs():
                 space_specs.append((attr, obj))
             elif isinstance(obj, OperatorRepresentationSpec):
                 op_specs.append((attr, obj))
-    assert len(space_specs) == 13, [a for a, _ in space_specs]
+    # 2 lammps + 5 mat-elasticity + 5 pymatgen + 1 vasp + 5 mp-api = 18 space
+    # specs; the operator specs are unchanged (mp-api adds none).
+    assert len(space_specs) == 18, [a for a, _ in space_specs]
     assert len(op_specs) == 5, [a for a, _ in op_specs]
     assert sorted({s.operator.name for _, s in op_specs}) == [
         "compute_elastic_constants", "contract_poisson_ratio",

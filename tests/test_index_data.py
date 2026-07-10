@@ -70,9 +70,10 @@ def test_write_index_emits_one_file_per_representation(tmp_path):
     # skills (the mechanics domain added the mat-elasticity skill, 10th rep;
     # the pymatgen scan added the pymatgen rail, 11th; the MLIP-family scan
     # added the mace / matgl / fairchem rails, 12th-14th; the atomate2/VASP scan
-    # added the vasp rail, 15th).
+    # added the vasp rail, 15th; the mp-api scan added the mp-api DATABASE rail,
+    # 16th).
     assert len(files) == len(reps)
-    assert len(files) == 15
+    assert len(files) == 16
 
 
 def test_each_index_entry_uid_matches_live_node_id(tmp_path):

@@ -58,6 +58,11 @@ from omai.dft_ground_state.representation.vasp import (
     VASP_STRUCTURE,
     VASP_TOTAL_ENERGY,
 )
+from omai.dft_ground_state.representation.mp_api import (
+    MP_API_BAND_GAP,
+    MP_API_MAGNETIC_MOMENT,
+    MP_API_STRUCTURE,
+)
 
 __all__ = [
     "QE_FORCES",
@@ -96,4 +101,7 @@ __all__ = [
     "VASP_STRESS",
     "VASP_STRUCTURE",
     "VASP_TOTAL_ENERGY",
+    "MP_API_BAND_GAP",
+    "MP_API_MAGNETIC_MOMENT",
+    "MP_API_STRUCTURE",
 ]
