@@ -39,12 +39,16 @@ needs ARE present: `DielectricTensor`, `BornCharges`, `Frequency` (phonon), plus
 thermal conductivity; amset's `kappa_e` is the **electronic** contribution: same
 dimension, different carrier.
 
-**DEEP-REVIEW freshness (2026-07-10)**: `map/log.jsonl` is **144 records**;
-`docs/data/graph.json` is **73 nodes**; the matcalc/ASE encode had **not** landed
-(no records 145-147). CORRECTION: the lattice `ThermalConductivity[*]` family has
-**9 nodes** on the current graph (2 `bte_solver` + 7 `transport_model`), **not
-11** as stated in the original scan. `DielectricTensor`, `BornCharges`,
-`Frequency`, `ElasticConstants`, `BandGap`, `Voltage` all confirmed present.
+**DEEP-REVIEW freshness (2026-07-10)**: at the start of review `map/log.jsonl` was
+**144 records** / graph **73 nodes**. **During** review an encode landed records
+**145-147** (a stability surface-adsorption node + a mechanics equation-of-state
+node), taking the working tree to **147 records / 74 nodes**. None of those are
+electronic-transport, so this catalog's core claim (no `ElectricalConductivity` /
+`Seebeck` / `Mobility` / `ElectronicThermalConductivity` / `ScatteringRate` node)
+**still holds** at 74 nodes. CORRECTION: the lattice `ThermalConductivity[*]`
+family has **9 nodes** (2 `bte_solver` + 7 `transport_model`), **not 11** as in the
+original scan. `DielectricTensor`, `BornCharges`, `Frequency`, `ElasticConstants`,
+`BandGap`, `Voltage` all confirmed present.
 
 ## Entry counts by status (7 entries)
 
@@ -298,7 +302,8 @@ independently in pure Python **and** cross-checked against
 amset 0.5.1 source re-read (`/tmp/amsetsrc/amset_pkg`); atomate2 0.1.4
 `VaspAmsetMaker` re-read (`/tmp/a2src/extracted/.../vasp/flows/amset.py`);
 config-thermo `IonicConductivity` dimension re-read; `registry.py` LABEL_KEYS
-re-read; `map/log.jsonl` (144) and `graph.json` (73) re-read.
+re-read; `map/log.jsonl` and `graph.json` re-read (144 records / 73 nodes at review
+start, 147 / 74 after a concurrent non-transport encode landed 145-147).
 
 **Dimension verdicts (all VERIFIED).**
 
@@ -342,9 +347,11 @@ full rank-3 e-tensor contracted to the h-coefficient; (2) it is NOT auto-wired b
 4. **Lattice `ThermalConductivity` count (was WRONG).** 11 -> **9** (2 `bte_solver`
    + 7 `transport_model`).
 
-**Non-physics corrections.** Graph freshness (144 records, no 145-147, 73 nodes);
-`carrier` LABEL_KEY is collision-free (current keys `{order, bte_solver,
-transport_model, channel, wrt}`).
+**Non-physics corrections.** Graph freshness: 144 records / 73 nodes at review
+start; a concurrent encode landed 145-147 (surface-adsorption + equation-of-state,
+non-transport) -> 147 records / 74 nodes; no transport node landed. `carrier`
+LABEL_KEY is collision-free (current keys `{order, bte_solver, transport_model,
+channel, wrt}`).
 
 **Orchestrator decisions.**
 
