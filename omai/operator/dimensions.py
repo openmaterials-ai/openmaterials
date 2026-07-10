@@ -168,6 +168,19 @@ THERMAL_EXPANSIVITY = Dimension("thermal_expansivity", (0, 0, 0, -1, 0, 0, 0))
 # carries it. Canonical unit g/cm^3 (the metal serving unit), so the SI
 # kg/m^3 carries to_operator 1e-3 (1 kg/m^3 = 1e-3 g/cm^3).
 MASS_DENSITY = Dimension("mass_density", (1, -3, 0, 0, 0, 0, 0))
+# Molar volume: volume per mole, m^3/mol = L^3 N^-1 (0,3,0,0,-1,0,0). The MolarVolume
+# node (V_m = N_A V_cell, per mole of PRIMITIVE CELLS, the phonon molar basis)
+# carries it: exactly CellVolume's VOLUME (0,3,0,0,0,0,0) times Avogadro's N^-1.
+# It is the one node that closes the molar Gruneisen and C_P - C_V identities the
+# whole-map physics review (2026-07-10) found the map one node short of. Canonical
+# unit m3_per_mol; cm3_per_mol carries 1e-6 (1 cm^3/mol = 1e-6 m^3/mol).
+VOLUME_PER_MOLE = Dimension("volume_per_mole", (0, 3, 0, 0, -1, 0, 0))
+# Thermoelectric power factor: W m^-1 K^-2 = M L T^-3 Th^-2 (1,1,-3,-2,0,0,0). The
+# PowerFactor node (PF = sigma_e S^2, ELECTRICAL_CONDUCTIVITY times SEEBECK squared)
+# carries it: (-1,-3,3,0,0,2,0) + 2*(1,2,-3,-1,0,-1,0) = (1,1,-3,-2,0,0,0). Canonical
+# unit w_per_m_k2. A genuinely new derived dimension, the thermoelectric-slice
+# first fruit of the whole-map physics review.
+POWER_FACTOR = Dimension("power_factor", (1, 1, -3, -2, 0, 0, 0))
 
 
 DIMENSIONS: dict[str, Dimension] = {
@@ -203,5 +216,7 @@ DIMENSIONS: dict[str, Dimension] = {
         MOBILITY,
         THERMAL_EXPANSIVITY,
         MASS_DENSITY,
+        VOLUME_PER_MOLE,
+        POWER_FACTOR,
     ]
 }

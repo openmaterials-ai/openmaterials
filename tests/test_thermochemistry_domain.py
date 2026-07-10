@@ -44,7 +44,7 @@ def test_thermochemistry_domain_between_stability_and_materials():
     assert names == [
         "thermal_transport", "dft_ground_state", "mechanics", "stability",
         "thermochemistry", "quasiharmonic", "molecular",
-        "electronic_transport", "materials"]
+        "electronic_transport", "materials", "thermodynamic_identities"]
 
 
 def test_thermochemistry_declares_the_single_tier():
@@ -328,10 +328,12 @@ def test_map_has_eighty_seven_nodes_and_thirteen_tiers():
     # ReactionBarrier[construction=neb_mep], BondDissociationEnergy) in the new
     # Molecular tier (ORCA + MD/chem, 2026-07-10); 91 with the characterization
     # scan's GrainBoundaryEnergy joining the existing Stability tier (no new
-    # tier), 2026-07-10.
+    # tier), 2026-07-10; 95 nodes and 15 tiers with the whole-map physics
+    # review's four thermodynamic-identity nodes in the new Thermoelectric tier
+    # (2026-07-10).
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 91
-    assert len(g["tiers"]) == 14
+    assert len(g["nodes"]) == 95
+    assert len(g["tiers"]) == 15
 
 
 # --------------------------------------------------------------------------

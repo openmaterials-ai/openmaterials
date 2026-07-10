@@ -37,9 +37,11 @@ from omai.operator.dimensions import (
     SEEBECK,
     TEMPERATURE,
     THERMAL_CONDUCTIVITY,
+    POWER_FACTOR,
     THERMAL_EXPANSIVITY,
     VOLTAGE,
     VOLUME,
+    VOLUME_PER_MOLE,
 )
 
 
@@ -235,6 +237,21 @@ GRAM_PER_CM3 = Unit("gram_per_cm3", MASS_DENSITY, 1.0, si_scale=1000.0)
 KG_PER_M3 = Unit("kg_per_m3", MASS_DENSITY, 1e-3)
 
 
+# Canonical molar-volume unit: cubic metre per mole (m^3/mol), the SI molar
+# volume V_m = N_A V_cell (per mole of primitive cells). The common crystallography
+# convention cm^3/mol is 1e-6 m^3/mol (1 cm^3 = 1e-6 m^3), so cm3_per_mol carries
+# to_operator 1e-6 to the canonical m^3/mol.
+M3_PER_MOL = Unit("m3_per_mol", VOLUME_PER_MOLE, 1.0, si_scale=1.0)
+CM3_PER_MOL = Unit("cm3_per_mol", VOLUME_PER_MOLE, 1e-6)
+
+
+# Canonical thermoelectric power-factor unit: watt per metre per kelvin squared
+# (W/(m K^2)), PF = sigma_e S^2. The SI unit is canonical with to_operator 1.0;
+# the common thermoelectrics convention muW/(cm K^2) is a representation-layer
+# packing left to a future thermoelectric rail (none serves PF directly today).
+W_PER_M_K2 = Unit("w_per_m_k2", POWER_FACTOR, 1.0, si_scale=1.0)
+
+
 UNITS: dict[str, Unit] = {
     u.name: u
     for u in [
@@ -280,6 +297,9 @@ UNITS: dict[str, Unit] = {
         PER_KELVIN,
         GRAM_PER_CM3,
         KG_PER_M3,
+        M3_PER_MOL,
+        CM3_PER_MOL,
+        W_PER_M_K2,
     ]
 }
 

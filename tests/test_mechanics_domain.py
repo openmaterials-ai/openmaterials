@@ -41,7 +41,7 @@ def test_mechanics_domain_in_domains_between_ground_state_and_stability():
     assert names == [
         "thermal_transport", "dft_ground_state", "mechanics", "stability",
         "thermochemistry", "quasiharmonic", "molecular",
-        "electronic_transport", "materials"]
+        "electronic_transport", "materials", "thermodynamic_identities"]
 
 
 def test_mechanics_domain_declares_mechanics_tier():
@@ -137,9 +137,11 @@ def test_no_node_uid_collisions_at_91_nodes():
     # quasi-harmonic nodes plus MassDensity (2026-07-10); 90 with the molecular
     # scan's three nodes (HOMOLUMOGap, ReactionBarrier[construction=neb_mep],
     # BondDissociationEnergy, 2026-07-10); 91 with the characterization scan's
-    # GrainBoundaryEnergy (2026-07-10).
+    # GrainBoundaryEnergy (2026-07-10); 95 with the whole-map physics review's
+    # four thermodynamic-identity nodes (ThermalConductivity[contribution=total],
+    # MolarVolume, PowerFactor, ZT) in the new Thermoelectric tier (2026-07-10).
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 91
+    assert len(g["nodes"]) == 95
     uids = [n["uid"] for n in g["nodes"]]
     assert len(set(uids)) == len(uids), "node uid collision"
 

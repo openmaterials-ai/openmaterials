@@ -168,6 +168,9 @@ QUANTITY_TAGS: dict[str, str] = {
     "homolumo_gap": "Kohn-Sham HOMO-LUMO gap of a MOLECULE: the eV difference between the two discrete frontier molecular orbitals (highest occupied, lowest unoccupied) of a finite system with no bands; a cousin of the periodic band_gap (same ENERGY dimension, same KS-eigenvalue-gap family and caveats) but never equated (a molecule has no Brillouin zone, so no VBM/CBM). Tag derived from the node name HOMOLUMOGap (the HOMOLUMO acronym stays one token, exactly as PhononDOS -> phonon_dos).",
     "reaction_barrier": "Energy barrier of a reaction or migration: the peak-minus-reactant energy along a path (NEB minimum-energy path) or from a static saddle point (sella / ORCA transition state); one construction per label {neb_mep, static_ts_mlip, static_ts_dft}, cross-construction subtraction forbidden. Distinct from the Arrhenius activation_energy (a diffusivity-slope, not a PES barrier).",
     "bond_dissociation_energy": "Energy to cleave one chemical bond of a molecule: a difference of relaxed fragment total energies (homolytic radicals, or heterolytic charged fragments) on the per-molecule basis; a labeled sibling of the solid-state reaction_energy, kcal/mol native in the chemist's convention.",
+    "molar_volume": "Molar volume V_m = N_A V_cell, the volume per mole of PRIMITIVE CELLS (the phonon molar basis, matching the per-mole-of-cells Molar* thermodynamics, NOT per mole of atoms); m^3/mol. A promoted-parameter-style contraction of CellVolume by Avogadro's number, the one node that makes the molar Gruneisen and C_P - C_V identities executable (whole-map physics review 2026-07-10).",
+    "power_factor": "Thermoelectric power factor PF = sigma_e S^2, the electronic electrical conductivity times the Seebeck coefficient squared; W/(m K^2). The first fruit of the thermoelectric slice, one input to the figure of merit ZT.",
+    "zt": "Dimensionless thermoelectric figure of merit ZT = PF T / kappa_total = sigma_e S^2 T / (kappa_lattice + kappa_electronic); the single relation that stitches the lattice and electronic thermal-transport halves of the map into one thermoelectrics story. Tag derived from the node name ZT (the ZT acronym stays one token, as HOMOLUMOGap -> homolumo_gap and PhononDOS -> phonon_dos).",
 }
 
 
@@ -263,4 +266,20 @@ LABEL_KEYS: dict[str, frozenset[str]] = {
     # Collision-free against the other label keys (order, bte_solver,
     # transport_model, channel, wrt, carrier): no value or key overlaps.
     "construction": frozenset({"neb_mep", "static_ts_mlip", "static_ts_dft"}),
+    # The contribution of a thermal conductivity: total (the additive sum of the
+    # lattice and electronic heat channels, kappa_total = kappa_lattice +
+    # kappa_electronic). Carried by the ThermalConductivity[contribution=total]
+    # node, which joins the thermal_conductivity family (same tag, same
+    # THERMAL_CONDUCTIVITY dimension) and is kept a distinct node ONLY by this
+    # contribution label. Deliberately a SEPARATE label key from transport_model
+    # (which distinguishes the lattice SOLVER routes: wigner, green_kubo, ...):
+    # the total is a different axis (which heat channels are summed), not a
+    # lattice-solver choice, so it must not collide with the transport_model
+    # value set. Collision-free against every other label key (order, bte_solver,
+    # transport_model, channel, wrt, carrier, construction): no value ('total' is
+    # not a key of any other, and while 'total' is also a channel value for
+    # linewidths, the KEY contribution is fresh and identity keys on key+value,
+    # so no node aliases). The lattice-only and electronic-only members are the
+    # existing distinctly-tagged nodes; only the summed total needs this label.
+    "contribution": frozenset({"total"}),
 }

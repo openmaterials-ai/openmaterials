@@ -127,13 +127,19 @@ def build_graph_dict(domains: tuple[Domain, ...]) -> dict:
         for pid, psym, sobj, *rest in d.param_promotions:
             if pid in seen:
                 continue
+            # Consumers are collected across EVERY domain's edges, not only the
+            # promoting domain's: a promoted parameter (e.g. CellVolume) may be
+            # read by a formula in another domain (e.g. the thermodynamic-identity
+            # V_m = N_A V_cell), and its provide_ presentation link must still be
+            # drawn to that cross-domain consumer.
             consumers, seen_c = [], set()
-            for op in d.edges:
-                if _uses(getattr(op, "formula", None), sobj):
-                    for o in op.outputs:
-                        if o.name not in seen_c:
-                            seen_c.add(o.name)
-                            consumers.append(o.name)
+            for dd in domains:
+                for op in dd.edges:
+                    if _uses(getattr(op, "formula", None), sobj):
+                        for o in op.outputs:
+                            if o.name not in seen_c:
+                                seen_c.add(o.name)
+                                consumers.append(o.name)
             if not consumers:
                 continue
             seen.add(pid)
@@ -244,9 +250,11 @@ def _domains() -> tuple[Domain, ...]:
         from omai.molecular.domain import MOLECULAR
         from omai.electronic_transport.domain import ELECTRONIC_TRANSPORT
         from omai.materials.domain import MATERIALS
+        from omai.thermodynamic_identities.domain import THERMODYNAMIC_IDENTITIES
         _DOMAINS_CACHE = (THERMAL_TRANSPORT, DFT_GROUND_STATE, MECHANICS,
                           STABILITY, THERMOCHEMISTRY, QUASIHARMONIC,
-                          MOLECULAR, ELECTRONIC_TRANSPORT, MATERIALS)
+                          MOLECULAR, ELECTRONIC_TRANSPORT, MATERIALS,
+                          THERMODYNAMIC_IDENTITIES)
     return _DOMAINS_CACHE
 
 
