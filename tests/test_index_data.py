@@ -71,9 +71,12 @@ def test_write_index_emits_one_file_per_representation(tmp_path):
     # the pymatgen scan added the pymatgen rail, 11th; the MLIP-family scan
     # added the mace / matgl / fairchem rails, 12th-14th; the atomate2/VASP scan
     # added the vasp rail, 15th; the mp-api scan added the mp-api DATABASE rail,
-    # 16th; the pycalphad scan added the pycalphad rail, 17th.
+    # 16th; the pycalphad scan added the pycalphad rail, 17th; the matcalc/ASE
+    # scan added the ase Structure/Trajectory coverage and the two skill rails
+    # mat-equation-of-state and mat-surface-adsorption, 18th-19th (matcalc
+    # itself is NOT a rail, the atomate2 ruling).
     assert len(files) == len(reps)
-    assert len(files) == 17
+    assert len(files) == 19
 
 
 def test_each_index_entry_uid_matches_live_node_id(tmp_path):

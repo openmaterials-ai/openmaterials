@@ -95,6 +95,7 @@ QUANTITY_TAGS: dict[str, str] = {
     "formation_energy": "Formation energy per atom relative to elemental reference phases (intensive, eV/atom; distinct from the per-cell total energy).",
     "energy_above_hull": "Per-atom distance above the convex hull of formation energies; zero means thermodynamically stable.",
     "surface_energy": "Surface energy per unit area of a crystal facet, from the slab-bulk energy difference over twice the slab area.",
+    "adsorption_energy": "Adsorption energy of an adsorbate on a surface, the adslab-minus-slab-minus-adsorbate energy difference per configuration (eV).",
     "voltage": "Average intercalation (open-circuit) voltage: the Nernst energy difference over the transferred charge.",
     "magnetic_moment": "Per-site magnetic moment of the spin-polarized ground state, in Bohr magnetons.",
     "band_gap": "Electronic band gap of the ground state, the Kohn-Sham eigenvalue gap (eV).",

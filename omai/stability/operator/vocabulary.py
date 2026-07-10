@@ -29,4 +29,7 @@ register_space_symbols({
     # Voltage with the Nernst bookkeeping: ion count, working-ion chemical
     # potential, elementary charge.
     "Voltage": {r"V_{avg}", r"n_{ion}", r"\mu_{ion}", "q_e"},
+    # Adsorption energy: just its field symbol (the adslab / slab / adsorbate
+    # selectors are applied functions, invisible to the free-symbol check).
+    "AdsorptionEnergy": {r"E_{ads}"},
 })

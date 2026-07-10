@@ -246,10 +246,15 @@ def test_dft_representation_package_discovery_finds_the_specs():
     assert by_rep_space["mp-api"] == {
         "Structure", "MagneticMoment", "BandGap"}
     assert "mp-api" not in by_rep_op
+    # ase (2026-07-10, matcalc/ASE scan): the relaxed-Structure producer spec
+    # lives here (where the Structure node lives); the ase Potential and
+    # Trajectory specs live in the thermal-transport package. No operator spec.
+    assert by_rep_space["ase"] == {"Structure"}
+    assert "ase" not in by_rep_op
     # 8 (qe 4 + pymatgen 4) + mace 4 + matgl 5 + fairchem 4 + vasp 6 + mp-api 3
-    # = 30 space specs; 2 (qe, pymatgen operator) + 3 MLIP + 4 vasp = 9 operator
-    # specs (mp-api adds none).
-    assert len(space_specs) == 30, [a for a, _ in space_specs]
+    # + ase 1 = 31 space specs; 2 (qe, pymatgen operator) + 3 MLIP + 4 vasp = 9
+    # operator specs (mp-api and ase add none).
+    assert len(space_specs) == 31, [a for a, _ in space_specs]
     assert len(op_specs) == 9, [a for a, _ in op_specs]
 
 
@@ -660,17 +665,19 @@ def test_band_gap_contribution_is_records_132_133():
 # Task 5: evidence: the first QE instances from the Si cross-check.
 # --------------------------------------------------------------------------
 
-def test_instances_bundle_28_records_all_uid_pinned():
+def test_instances_bundle_30_records_all_uid_pinned():
     # 9 at genesis, 11 with the QE Si cross-check pair, 13 with the two
     # mat-elasticity Cu moduli, 22 with the nine pymatgen-scan values
     # (Cu E/nu, three Cu surface facets, LiFePO4 voltage, Fe moment, Li2O
     # formation and hull), 28 with the six mp-api-scan MP-retrieved values
     # (Li2S / LiS4 band gap, formation energy, and energy above hull from the
-    # committed mat-db-mp query_mp li_s_stable.json).
+    # committed mat-db-mp query_mp li_s_stable.json), 30 with the two
+    # matcalc/ASE-scan values (CO-on-Cu(111) adsorption energy and the Si EOS
+    # Birch-Murnaghan bulk modulus, both committed AtomisticSkills examples).
     from omai.map_data import build_instances
 
     insts = build_instances()
-    assert len(insts) == 28
+    assert len(insts) == 30
     for it in insts:
         assert it.get("node_uid"), f"instance for {it['variable']} lacks node_uid"
 

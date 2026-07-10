@@ -1,4 +1,5 @@
-"""The stability domain: FormationEnergy, EnergyAboveHull, SurfaceEnergy, Voltage.
+"""The stability domain: FormationEnergy, EnergyAboveHull, SurfaceEnergy,
+Voltage, AdsorptionEnergy.
 
 Phase stability and electrochemistry from the pymatgen scan (AtomisticSkills,
 arXiv 2605.24002): the per-atom formation energy against elemental references,
@@ -8,6 +9,18 @@ TotalEnergy the ground-state domain already carries; the per-atom quantities
 are DISTINCT nodes from TotalEnergy (the scan's highest-risk trap: pymatgen's
 energy_per_atom / formation_energy_per_atom / e_above_hull are per-atom
 currencies that never map to the per-cell node).
+
+The matcalc/ASE scan (arXiv 2605.24002) added AdsorptionEnergy (2026-07-10):
+the surface-energetics kin of SurfaceEnergy, an extensive (per-configuration,
+NOT per-atom) energy difference E_adslab - E_slab - E_adsorbate, driven by
+mat-surface-adsorption via matcalc AdsorptionCalc.
+
+Deferred with reasons (from the matcalc/ASE scan): the QHA finite-T
+thermodynamics domain (Gibbs G(T), thermal expansion alpha(T), Cp(T); driven
+by mat-qha-thermal-expansion via matcalc QHACalc) is owed a basis
+reconciliation to the thermochemistry domain's second slice before it lands;
+the NEB migration barrier (chem-neb-barrier via raw ase.mep, not matcalc
+NEBCalc) is queued with the MD / chem family task.
 
 Deferred candidates from the scan's new-node list, each with why:
 

@@ -185,6 +185,16 @@ FAIRCHEM_SOLVE_GROUND_STATE = OperatorRepresentationSpec(
         "model_name also fixes force_type in {conservative, direct} - a "
         "'direct' checkpoint's forces are not the exact energy gradient, so the "
         "operator it realizes does not conserve energy in NVE, a gauge property "
-        "that instances built on its Trajectory must record."
+        "that instances built on its Trajectory must record. "
+        "MATCALC-DRIVER DOUBLE-PROVENANCE (matcalc/ASE scan): matcalc's "
+        "property calculators (ElasticityCalc, EOSCalc, PhononCalc, "
+        "AdsorptionCalc, ...) drive THIS same fairchem checkpoint through the "
+        "ASE calculator; each derived node carries a TWO-LAYER provenance, the "
+        "matcalc DRIVER + its scheme (strain grid, EOS volume scan n_points, "
+        "supercell / mesh / displacement, optimizer / fmax / cell_filter, "
+        "matcalc-owned discretizations) AND this fairchem checkpoint (the true "
+        "PES). matcalc mints no unit basis of its own, so it earns no rail; the "
+        "schemes ride the driven-node operator specs and this checkpoint is the "
+        "physics, both required for reproducibility."
     ),
 )

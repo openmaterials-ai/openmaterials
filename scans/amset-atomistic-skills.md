@@ -35,11 +35,16 @@ mobility ~8500 and hole ~400 cm^2/Vs, ADP + POP (+ piezoelectric) limited.
 transport quantities is present (no ElectricalConductivity, Seebeck, Mobility,
 ElectronicThermalConductivity, ScatteringRate). Three cross-domain INPUTS amset
 needs ARE present: `DielectricTensor`, `BornCharges`, `Frequency` (phonon), plus
-`ElasticConstants`. The map's `ThermalConductivity[*]` family (11 nodes) is
-**lattice** thermal conductivity; amset's `kappa_e` is the **electronic**
-contribution: same dimension, different carrier. The task noted a matcalc/ASE
-encode might land records 145-147 while I ran; at my read the graph was 73 nodes
-and no electronic-transport node had landed.
+`ElasticConstants`. The map's `ThermalConductivity[*]` family is **lattice**
+thermal conductivity; amset's `kappa_e` is the **electronic** contribution: same
+dimension, different carrier.
+
+**DEEP-REVIEW freshness (2026-07-10)**: `map/log.jsonl` is **144 records**;
+`docs/data/graph.json` is **73 nodes**; the matcalc/ASE encode had **not** landed
+(no records 145-147). CORRECTION: the lattice `ThermalConductivity[*]` family has
+**9 nodes** on the current graph (2 `bte_solver` + 7 `transport_model`), **not
+11** as stated in the original scan. `DielectricTensor`, `BornCharges`,
+`Frequency`, `ElasticConstants`, `BandGap`, `Voltage` all confirmed present.
 
 ## Entry counts by status (7 entries)
 
@@ -153,16 +158,28 @@ Already on the map (feed amset UPSTREAM through the phonon/dielectric calc):
   `inelastic.py:62-64`). eps_0 is a distinct dielectric quantity (new-node note).
 - `Frequency` (phonon) - the effective POP frequency `pop_frequency` (THz,
   `defaults.yaml:41`) is a reduction of the phonon spectrum omega_LO.
-- `ElasticConstants` - amset takes a single longitudinal-average elastic constant
-  in GPa (`defaults.yaml:36`) for ADP/PIE, a reduction of the rank-4 tensor.
+- `ElasticConstants` - **REVIEW CORRECTION**: amset takes the **full rank-4**
+  elastic tensor, not a longitudinal scalar. `cast_elastic_tensor` (`util.py:115`)
+  expands any scalar/6x6-Voigt/3x3x3x3 input to the full `(3,3,3,3)` `C_ijkl`; the
+  longitudinal modulus `c_long` is derived per q-direction at run time via the
+  Christoffel construction (`get_christoffel_tensors` einsum + `solve_christoffel_
+  equation`, `elastic.py:180-183,266-267`). atomate2 `VaspAmsetMaker` wires
+  `elastic.output.elastic_tensor.raw` (`vasp/flows/amset.py:290`), the full tensor.
 - `BornCharges` - drive omega_LO and the Frohlich POP coupling; feed amset
   upstream through the phonon calc, not as a direct amset argument (provenance).
+  **REVIEW CONFIRMED** from atomate2: `VaspAmsetMaker` calls
+  `calculate_polar_phonon_frequency(structure, normalmode_frequencies,
+  normalmode_eigenvecs, outcar["born"])` (`vasp/flows/amset.py:245-250`) to reduce
+  Born charges + normal modes into the single effective `pop_frequency`.
 
 Not yet on the map (produced by `VaspAmsetMaker`, new source-node candidates):
 
 - `deformation_potential` (eV, VBM+CBM) - the strained-band step.
-- `piezoelectric_constant` (C/m^2) - same dimension as SpontaneousPolarization
-  (VASP-scan candidate).
+- `piezoelectric_constant` (C/m^2) - the full rank-3 e-tensor (3x6 Voigt ->
+  3x3x3, `util.py:146`), contracted with the inverse eps_inf to the h-coefficient
+  (`elastic.py:398-406`). Same dimension as SpontaneousPolarization (VASP-scan
+  candidate). **REVIEW**: NOT wired by `VaspAmsetMaker` (no `piezo` in
+  `flows/amset.py`); PIE is only active if the user supplies it via `amset_settings`.
 - the dense uniform **band structure / wavefunction** amset interpolates
   (BoltzTraP2 `fite`/`sphere`, `bandstructure.py:10,53`); the map has `BandGap`
   but not the full bands.
@@ -202,7 +219,7 @@ from different carriers, different operators, different domains. Merging them (o
 letting them false-merge on shared dimension) is a physics error. Register the
 electronic kappa with a carrier label that keeps it distinct:
 `ThermalConductivity[carrier=electronic]` (parallel to the conductivity carrier
-label; the existing 11 lattice nodes gain `carrier=lattice`) OR a distinct
+label; the existing 9 lattice nodes gain `carrier=lattice`) OR a distinct
 `ElectronicThermalConductivity` tag. Same structural pattern as the conductivity
 family: a carrier label over a shared dimension. amset's own `# TODO: confirm
 unit of kappa` (`data.py:483`) means the unit assertion W/(m.K) should carry a
@@ -251,7 +268,7 @@ unit of kappa` (`data.py:483`) means the unit assertion W/(m.K) should carry a
    labeled family (recommended) vs distinct tags. Would rename the config-thermo
    IonicConductivity; needs a `carrier` LABEL_KEY. DEFERRED.
 2. **Electronic kappa identity**: `ThermalConductivity[carrier=electronic]`
-   (adds `carrier=lattice` to the 11 existing nodes) vs a distinct
+   (adds `carrier=lattice` to the 9 existing lattice nodes) vs a distinct
    `ElectronicThermalConductivity` tag.
 3. **Seebeck standalone vs thermoelectric bundle** (sigma, S, kappa_e, power
    factor S^2 sigma, ZT). amset computes the first three; PF/ZT are downstream.
@@ -272,6 +289,80 @@ unit of kappa` (`data.py:483`) means the unit assertion W/(m.K) should carry a
 9. **Version pin**: amset 0.5.1 downloaded; the atomate2-agent env is unpinned.
    Pin before an encode relies on the `to_data` schema; the kappa-unit TODO may
    be fixed upstream.
+
+## Review verdicts (2026-07-10)
+
+Adversarial deep-review, default-distrust. Four transport dimensions re-derived
+independently in pure Python **and** cross-checked against
+`omai.operator.dimensions` (`VOLTAGE`, `THERMAL_CONDUCTIVITY`, `FREQUENCY`).
+amset 0.5.1 source re-read (`/tmp/amsetsrc/amset_pkg`); atomate2 0.1.4
+`VaspAmsetMaker` re-read (`/tmp/a2src/extracted/.../vasp/flows/amset.py`);
+config-thermo `IonicConductivity` dimension re-read; `registry.py` LABEL_KEYS
+re-read; `map/log.jsonl` (144) and `graph.json` (73) re-read.
+
+**Dimension verdicts (all VERIFIED).**
+
+- Seebeck `(1,2,-3,-1,0,-1,0)` = V/K (from omai `VOLTAGE` minus `Th`). VERIFIED.
+- Mobility `(-1,0,2,0,0,1,0)` = L^2/(V.s) = M^-1 T^2 I. VERIFIED.
+- Electronic sigma `(-1,-3,3,0,0,2,0)` = S/m. VERIFIED; **identical exponent
+  vector to config-thermo `IonicConductivity`** (re-confirmed from that catalog).
+- Electronic kappa `(1,1,-3,-1,0,0,0)` = W/(m.K). VERIFIED (= omai
+  `THERMAL_CONDUCTIVITY`).
+
+**`to_data` unit findings (verbatim).** `to_data` at `data.py:461`; the comment
+`# TODO: confirm unit of kappa` is **line 483** verbatim; **line 484** is
+`for prop, unit in [("cond", "S/m"), ("seebeck", "µV/K"), ("kappa", "?")]:`. So the
+**serialized** units are sigma = **S/m** (confirmed, NOT S/cm), seebeck = **µV/K**
+(micro-sign U+00B5; the ASCII `muV/K` in this catalog is a faithful
+transliteration), kappa = **`?`** (unconfirmed by amset itself). Shape
+`(n_doping, n_temperature, 3, 3)`, upper triangle written per `(doping,T)` row via
+`np.triu_indices(3)` (`data.py:464`): CONFIRMED. `run.py:583` header uses Unicode
+glyphs `σ [S/m]`, `S [µV/K]`, `μ [cm²/Vs]`: CONFIRMED.
+
+**Per-entry verdicts.** All 7 entries CONFIRMED (dimensions, serving units,
+statuses). Two additions to `amset-piezoelectric-constant`: (1) the input is the
+full rank-3 e-tensor contracted to the h-coefficient; (2) it is NOT auto-wired by
+`VaspAmsetMaker`.
+
+**Physics-changing corrections.**
+
+1. **Elastic input (was WRONG).** The scan repeatedly called `elastic_constant`
+   "a single longitudinal-average scalar, a reduction of the rank-4 tensor". FALSE.
+   amset consumes the **full rank-4** `(3,3,3,3)` tensor: `cast_elastic_tensor`
+   (`util.py:115`) expands any scalar/Voigt/full input to `(3,3,3,3)`; `c_long`
+   is derived **per q-direction at run time** via the Christoffel construction
+   (`elastic.py:180-183,266-267`). `VaspAmsetMaker` wires
+   `elastic.output.elastic_tensor.raw` (the full tensor, `flows/amset.py:290`). The
+   cross-domain edge is the full `ElasticConstants` tensor. Corrected throughout.
+2. **Born-charge wiring (sharpened).** `VaspAmsetMaker` reduces Born charges +
+   normal modes to the effective `pop_frequency` via
+   `calculate_polar_phonon_frequency(..., outcar["born"])` (`flows/amset.py:245-250`).
+3. **Piezo not auto-wired (added).** PIE is off in the default GaAs flow unless the
+   user supplies `piezoelectric_constant`.
+4. **Lattice `ThermalConductivity` count (was WRONG).** 11 -> **9** (2 `bte_solver`
+   + 7 `transport_model`).
+
+**Non-physics corrections.** Graph freshness (144 records, no 145-147, 73 nodes);
+`carrier` LABEL_KEY is collision-free (current keys `{order, bte_solver,
+transport_model, channel, wrt}`).
+
+**Orchestrator decisions.**
+
+1. **Mint** the four transport nodes; register the three new dimension constants
+   the map lacks (`electrical_conductivity`, `seebeck_coefficient`, `mobility`);
+   electronic kappa reuses `THERMAL_CONDUCTIVITY`.
+2. **Conductivity family**: recommended one `electrical_conductivity` tag with a
+   `carrier` label, renaming config-thermo `IonicConductivity` to
+   `ElectricalConductivity[carrier=ionic]`. Identity double-confirmed; `carrier`
+   key is clean. DECISION DEFERRED to orchestrator.
+3. **Kappa carrier label MANDATORY**: never merge electronic and lattice kappa on
+   shared dimension; the 9 lattice nodes gain `carrier=lattice` if the label lands.
+4. **Elastic edge** from the FULL `ElasticConstants` tensor node.
+5. **Mint `StaticDielectricTensor`** (eps_0 = eps_inf + eps_ionic) distinct from the
+   eps_inf `DielectricTensor` (`flows/amset.py:261-266`).
+6. **Kappa unit**: record W/(m.K) with a "confirm against BoltzTraP2; amset
+   serializes `?`" note before any `EXPECTED_AGREE`.
+7. **Pin amset** at encode (0.5.1 here; the kappa `# TODO` may be resolved upstream).
 
 ## Source anchors
 

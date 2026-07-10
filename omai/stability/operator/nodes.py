@@ -6,12 +6,21 @@ Structure it belongs to.
 
 Node table:
 
-  Node            quantity tag       dimension                  indices
-  --------------  -----------------  -------------------------  -------
-  FormationEnergy formation_energy   ENERGY                     ()
-  EnergyAboveHull energy_above_hull  ENERGY                     ()
-  SurfaceEnergy   surface_energy     ENERGY_PER_LENGTH_SQUARED  ()
-  Voltage         voltage            VOLTAGE (M L^2 T^-3 I^-1)  ()
+  Node             quantity tag       dimension                  indices
+  ---------------  -----------------  -------------------------  -------
+  FormationEnergy  formation_energy   ENERGY                     ()
+  EnergyAboveHull  energy_above_hull  ENERGY                     ()
+  SurfaceEnergy    surface_energy     ENERGY_PER_LENGTH_SQUARED  ()
+  Voltage          voltage            VOLTAGE (M L^2 T^-3 I^-1)  ()
+  AdsorptionEnergy adsorption_energy  ENERGY                     ()
+
+AdsorptionEnergy (added 2026-07-10 from the matcalc/ASE scan) is surface
+energetics kin to SurfaceEnergy: a scalar ENERGY per adsorbate-surface
+configuration (eV, extensive, NOT per-atom, so plain ENERGY like the per-cell
+energy differences it is built from). The configuration (adsorbate, facet,
+adsorption site) rides in the instance conditions and the producing edge's
+scheme, not in the node's index signature, exactly as the facet does for
+SurfaceEnergy. Driven by mat-surface-adsorption via matcalc AdsorptionCalc.
 
 Per-atom discipline. FormationEnergy and EnergyAboveHull are INTENSIVE
 per-atom quantities (eV/atom, the phase-diagram currency), distinct nodes from
@@ -108,9 +117,31 @@ VOLTAGE_STATE = ObservableSpace(
     ),
 )
 
+ADSORPTION_ENERGY = ObservableSpace(
+    name="AdsorptionEnergy",
+    fields=(Field("E_ads", ENERGY, indices=()),),
+    tier="Stability",
+    description=(
+        "Adsorption energy E_ads of an adsorbate on a crystal surface, the "
+        "energy difference E_ads = E_adslab - E_slab - E_adsorbate of the "
+        "relaxed adsorbate-on-slab configuration against the isolated clean "
+        "slab and the isolated adsorbate. Scalar per adsorbate-surface "
+        "configuration in eV; negative for favourable (bound) adsorption. "
+        "EXTENSIVE (an energy difference over whole cells), plain ENERGY, NOT "
+        "the per-atom currency of FormationEnergy and EnergyAboveHull: it is "
+        "surface energetics kin to SurfaceEnergy, the same M L^2 T^-2 as the "
+        "TotalEnergy differences it is built from. The adsorbate, the facet "
+        "(hkl), and the adsorption site (ontop / bridge / hollow) are carried "
+        "by conditions and the producing edge's scheme, not by the node's "
+        "index signature (no per-site index kind, deliberately: distinct "
+        "sites are distinct configurations, distinct instances)."
+    ),
+)
+
 NODES: tuple[Space, ...] = (
     FORMATION_ENERGY,
     ENERGY_ABOVE_HULL,
     SURFACE_ENERGY,
     VOLTAGE_STATE,
+    ADSORPTION_ENERGY,
 )

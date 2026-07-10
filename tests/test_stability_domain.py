@@ -57,19 +57,21 @@ def test_stability_domain_declares_stability_tier():
     ),)
 
 
-def test_stability_nodes_are_the_four_energy_difference_observables():
+def test_stability_nodes_are_the_five_energy_difference_observables():
     from omai.stability.operator import NODES
 
     assert [s.name for s in NODES] == [
-        "FormationEnergy", "EnergyAboveHull", "SurfaceEnergy", "Voltage"]
+        "FormationEnergy", "EnergyAboveHull", "SurfaceEnergy", "Voltage",
+        "AdsorptionEnergy"]
 
 
-def test_stability_edges_are_the_four_operators():
+def test_stability_edges_are_the_five_operators():
     from omai.stability.operator import EDGES
 
     assert [op.name for op in EDGES] == [
         "compute_formation_energy", "compute_energy_above_hull",
-        "compute_surface_energy", "compute_intercalation_voltage"]
+        "compute_surface_energy", "compute_intercalation_voltage",
+        "compute_adsorption_energy"]
 
 
 # --------------------------------------------------------------------------
@@ -350,11 +352,16 @@ def test_stability_and_magnetism_are_records_122_to_131():
         .read_text().splitlines()
     assert len(lines) >= 131, "the stability contribution has not landed"
 
+    # The v1 stability contribution is history: exactly the FIRST four nodes
+    # and FIRST four edges (the domain later grew: AdsorptionEnergy and
+    # compute_adsorption_energy landed 2026-07-10 as records 145-147 below).
+    v1_nodes = NODES[:4]
+    v1_edges = EDGES[:4]
     contribution_uids = (
         [node_id(MAGNETIC_MOMENT_STATE)]
-        + [node_id(s) for s in NODES]
+        + [node_id(s) for s in v1_nodes]
         + [edge_id(compute_magnetic_moments, node_id)]
-        + [edge_id(op, node_id) for op in EDGES]
+        + [edge_id(op, node_id) for op in v1_edges]
     )
     recs = [json.loads(line) for line in lines[121:131]]
     assert [r["payload"]["uid"] for r in recs] == contribution_uids
@@ -435,3 +442,144 @@ def test_store_head_at_133_records_genesis_frozen():
     # Genesis stays the frozen prefix, byte-identical.
     assert root.joinpath("GENESIS").read_text().strip() == \
         "e6e8044e92039696417b53b220b0f3f10559a286b0eaabbe7ea4167ff510f6cd"
+
+
+# --------------------------------------------------------------------------
+# The matcalc/ASE scan: AdsorptionEnergy (2026-07-10), surface energetics
+# kin to SurfaceEnergy, driven by mat-surface-adsorption via AdsorptionCalc.
+# --------------------------------------------------------------------------
+
+def test_adsorption_energy_is_a_scalar_energy_node_not_per_atom():
+    """AdsorptionEnergy is a scalar ENERGY per configuration (eV, extensive),
+    NOT the per-atom currency of FormationEnergy / EnergyAboveHull, and NOT
+    the per-cell TotalEnergy: a distinct node kin to SurfaceEnergy."""
+    from omai.operator.dimensions import ENERGY
+    from omai.dft_ground_state.operator.nodes import TOTAL_ENERGY
+    from omai.stability.operator.nodes import (
+        ADSORPTION_ENERGY,
+        FORMATION_ENERGY,
+        SURFACE_ENERGY,
+    )
+
+    assert ADSORPTION_ENERGY.field("E_ads").dimension == ENERGY
+    assert ADSORPTION_ENERGY.field("E_ads").indices == ()
+    # Distinct identities.
+    assert node_id(ADSORPTION_ENERGY) != node_id(TOTAL_ENERGY)
+    assert node_id(ADSORPTION_ENERGY) != node_id(FORMATION_ENERGY)
+    assert node_id(ADSORPTION_ENERGY) != node_id(SURFACE_ENERGY)
+    # Extensive, per configuration: the description says so.
+    assert "EXTENSIVE" in ADSORPTION_ENERGY.description
+    assert "per adsorbate-surface configuration" in ADSORPTION_ENERGY.description
+
+
+def test_compute_adsorption_energy_wiring_and_scheme():
+    from omai.stability.operator.edges import compute_adsorption_energy
+
+    assert [s.name for s in compute_adsorption_energy.inputs] == [
+        "TotalEnergy", "Structure"]
+    assert [o.name for o in compute_adsorption_energy.outputs] == [
+        "AdsorptionEnergy"]
+    assert compute_adsorption_energy.schemes == {
+        "reference_convention": "adslab_minus_slab_minus_adsorbate"}
+    # Implicit (opaque selectors over the energy family), so not executable.
+    assert compute_adsorption_energy.is_executable_in_sympy_override is False
+    assert not compute_adsorption_energy.is_executable_in_sympy
+
+
+def test_adsorption_edge_is_skipped_not_a_violation():
+    """The adslab / slab / adsorbate selectors are opaque applied functions,
+    so the dimensional gate classifies the edge SKIPPED (like the other four
+    stability edges), never a violation."""
+    nodes, edges = _all_nodes_edges()
+    report = dimensional_report(nodes, edges)
+    assert "compute_adsorption_energy" in report["skipped"], report
+    assert report["violation"] == [] or all(
+        "compute_gruneisen" in v or "compute_phase_space_3phonon" in v
+        for v in report["violation"]
+    ), report["violation"]
+
+
+def test_mat_surface_adsorption_is_the_rail_not_matcalc():
+    """Per the atomate2 ruling, matcalc mints no rail: the AdsorptionEnergy
+    coverage lands on the driving skill rail (mat-surface-adsorption), with
+    matcalc recorded in the notes."""
+    from omai.map_data import build_codes
+
+    codes = build_codes(DOMAINS)
+    assert "matcalc" not in codes
+    rail = codes["mat-surface-adsorption"]
+    assert rail["AdsorptionEnergy"]["unit"] == "ev"
+    from omai.stability.representation.mat_surface_adsorption import (
+        MATCALC_ADSORPTION_ENERGY,
+    )
+    assert "AdsorptionCalc" in MATCALC_ADSORPTION_ENERGY.notes
+    assert "double-provenance" in MATCALC_ADSORPTION_ENERGY.notes.lower()
+
+
+def test_adsorption_energy_landed_in_the_committed_store():
+    from pathlib import Path
+
+    from omai.operator.identity import edge_id
+    from omai.store import Store
+    from omai.stability.operator.edges import compute_adsorption_energy
+    from omai.stability.operator.nodes import ADSORPTION_ENERGY
+
+    m = Store(Path(__file__).resolve().parents[1] / "map").read()
+    assert node_id(ADSORPTION_ENERGY) in m["nodes"]
+    assert edge_id(compute_adsorption_energy, node_id) in m["edges"]
+
+
+def test_matcalc_ase_contribution_is_records_145_to_147():
+    """The frozen log positions of the matcalc/ASE scan contribution: the
+    AdsorptionEnergy add_node, then the two add_edges in DOMAINS walk order
+    (compute_bulk_modulus_eos in mechanics before compute_adsorption_energy in
+    stability). Records 145-147, authored through sync --apply on 2026-07-10.
+    Positions are history and never move."""
+    import json
+    from pathlib import Path
+
+    from omai.operator.identity import edge_id
+    from omai.mechanics.operator.edges import compute_bulk_modulus_eos
+    from omai.stability.operator.edges import compute_adsorption_energy
+    from omai.stability.operator.nodes import ADSORPTION_ENERGY
+
+    lines = (Path(__file__).resolve().parents[1] / "map" / "log.jsonl") \
+        .read_text().splitlines()
+    assert len(lines) >= 147, "the matcalc/ASE contribution has not landed"
+
+    rec_145 = json.loads(lines[144])
+    assert rec_145["op"] == "add_node"
+    assert rec_145["payload"]["uid"] == node_id(ADSORPTION_ENERGY)
+    assert rec_145["payload"]["meta"]["name"] == "AdsorptionEnergy"
+
+    rec_146 = json.loads(lines[145])
+    assert rec_146["op"] == "add_edge"
+    assert rec_146["payload"]["uid"] == edge_id(compute_bulk_modulus_eos, node_id)
+    assert rec_146["payload"]["meta"]["name"] == "compute_bulk_modulus_eos"
+
+    rec_147 = json.loads(lines[146])
+    assert rec_147["op"] == "add_edge"
+    assert rec_147["payload"]["uid"] == edge_id(compute_adsorption_energy, node_id)
+    assert rec_147["payload"]["meta"]["name"] == "compute_adsorption_energy"
+
+    for r in (rec_145, rec_146, rec_147):
+        assert r["author"] == "gbarbalinardo"
+        assert r["date"] == "2026-07-10"
+        assert "matcalc/ASE scan" in r["reason"]
+        assert "2605.24002" in r["reason"]
+
+
+def test_adsorption_energy_instance_pins_the_live_node_uid():
+    """Evidence: the committed CO-on-Cu(111) most-stable-site adsorption energy
+    from the mat-surface-adsorption example."""
+    from omai.map_data import build_instances
+    from omai.stability.operator.nodes import ADSORPTION_ENERGY
+
+    insts = build_instances()
+    by_key = {(it["variable"], it["material"]): it for it in insts}
+
+    it = by_key[("AdsorptionEnergy", "CO on Cu (111)")]
+    assert it["value"] == -1.12
+    assert it["units"] == "eV"
+    assert it["source"]["kind"] == "simulation"
+    assert it["node_uid"] == node_id(ADSORPTION_ENERGY)

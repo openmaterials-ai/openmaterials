@@ -215,6 +215,16 @@ MATGL_SOLVE_GROUND_STATE = OperatorRepresentationSpec(
         "functional is fixed by model_name. Unlike QE there is no k-mesh / "
         "smearing / conv_thr; the discretization of THIS operator is the model "
         "choice (model_name, is_fine_tuned) plus the wrapper's stress_unit "
-        "override that keeps the emitted stress in eV/A^3."
+        "override that keeps the emitted stress in eV/A^3. "
+        "MATCALC-DRIVER DOUBLE-PROVENANCE (matcalc/ASE scan): matcalc's "
+        "property calculators (ElasticityCalc, EOSCalc, PhononCalc, "
+        "AdsorptionCalc, ...) drive THIS same matgl checkpoint through the ASE "
+        "calculator; each derived node they produce carries a TWO-LAYER "
+        "provenance, the matcalc DRIVER + its scheme (strain grid, EOS volume "
+        "scan n_points, supercell / mesh / displacement, optimizer / fmax / "
+        "cell_filter, matcalc-owned discretizations) AND this matgl checkpoint "
+        "(the true PES). matcalc mints no unit basis of its own, so it earns no "
+        "rail; the schemes ride the driven-node operator specs and this "
+        "checkpoint is the physics, both required for reproducibility."
     ),
 )

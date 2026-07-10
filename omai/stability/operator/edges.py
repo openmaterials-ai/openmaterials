@@ -10,6 +10,7 @@ inputs, with the selection recorded as schemes:
   compute_energy_above_hull     : (FormationEnergy, Structure) -> EnergyAboveHull
   compute_surface_energy        : (TotalEnergy, Structure)     -> SurfaceEnergy
   compute_intercalation_voltage : (TotalEnergy, Structure)     -> Voltage
+  compute_adsorption_energy     : (TotalEnergy, Structure)     -> AdsorptionEnergy
 
 The TotalEnergy input stands for the FAMILY of ground-state energy
 evaluations each edge consumes (compound + elemental references; slab + bulk;
@@ -21,11 +22,13 @@ component through the P4 gate, alongside the magnetic-moment edge that also
 touches Structure.
 
 Symbols. Every field symbol is new and collision-checked: \Delta H_f,
-E_{hull}, \gamma_{surf} (NOT bare \gamma, the generic dummy index), V_{avg}.
-The opaque selector functions (E^{form}_{ref}, d^{hull}, E^{slab}, E^{bulk},
-E^{full}, E^{empty}, m^{KS}) are applied functions, not free symbols, so they
-need no vocabulary entries; their arguments E_{tot} and \mathcal{S} are the
-registered ground-state symbols.
+E_{hull}, \gamma_{surf} (NOT bare \gamma, the generic dummy index), V_{avg},
+E_{ads} (the adsorption energy, distinct from the ground-state E_{tot} and
+the surface \gamma_{surf}). The opaque selector functions (E^{form}_{ref},
+d^{hull}, E^{slab}, E^{bulk}, E^{full}, E^{empty}, E^{adslab},
+E^{slab}_{ads}, E^{adsorbate}, m^{KS}) are applied functions, not free
+symbols, so they need no vocabulary entries; their arguments E_{tot} and
+\mathcal{S} are the registered ground-state symbols.
 """
 from __future__ import annotations
 
@@ -33,6 +36,7 @@ import sympy as sp
 
 from omai.operator.operator import Operator
 from omai.stability.operator.nodes import (
+    ADSORPTION_ENERGY,
     ENERGY_ABOVE_HULL,
     FORMATION_ENERGY,
     SURFACE_ENERGY,
@@ -65,6 +69,11 @@ _E_slab = sp.Function(r"E^{slab}")
 _E_bulk = sp.Function(r"E^{bulk}")
 _E_full = sp.Function(r"E^{full}")
 _E_empty = sp.Function(r"E^{empty}")
+# Adsorption energy: the adslab / clean-slab / isolated-adsorbate selectors.
+_E_ads = sp.Symbol(r"E_{ads}")
+_E_adslab = sp.Function(r"E^{adslab}")
+_E_slab_ads = sp.Function(r"E^{slab}_{ads}")
+_E_adsorbate = sp.Function(r"E^{adsorbate}")
 
 
 # ---------------------------------------------------------------------------
@@ -170,9 +179,39 @@ compute_intercalation_voltage = Operator(
     ),
 )
 
+compute_adsorption_energy = Operator(
+    name="compute_adsorption_energy",
+    inputs=(TOTAL_ENERGY, STRUCTURE),
+    outputs=(ADSORPTION_ENERGY,),
+    schemes={"reference_convention": "adslab_minus_slab_minus_adsorbate"},
+    formula=sp.Eq(
+        _E_ads,
+        _E_adslab(_E_tot, _S) - _E_slab_ads(_E_tot, _S) - _E_adsorbate(_E_tot, _S),
+    ),
+    is_executable_in_sympy_override=False,
+    description=(
+        "Adsorption energy E_ads = E_adslab - E_slab - E_adsorbate: the "
+        "energy of the relaxed adsorbate-on-slab configuration minus the "
+        "isolated clean slab and the isolated adsorbate (the "
+        "reference_convention scheme records this adslab-minus-slab-minus-"
+        "adsorbate reference; a different reference set, for instance a "
+        "molecular reference for the adsorbate, would change what is "
+        "computed). E^{adslab}, E^{slab}_{ads}, and E^{adsorbate} are opaque "
+        "selectors over the TotalEnergy family (the three cells matcalc "
+        "AdsorptionCalc relaxes with the same ASE calculator, each via an "
+        "internal RelaxCalc); the TotalEnergy input stands for that family of "
+        "three energy evaluations, the same family-of-values convention "
+        "compute_surface_energy uses for the slab and bulk. Scalar per "
+        "adsorbate-surface configuration (adsorbate, facet, site) recorded in "
+        "conditions. Implicit (slab / adslab construction plus relaxations), "
+        "so not sympy-executable."
+    ),
+)
+
 EDGES: tuple[Operator, ...] = (
     compute_formation_energy,
     compute_energy_above_hull,
     compute_surface_energy,
     compute_intercalation_voltage,
+    compute_adsorption_energy,
 )

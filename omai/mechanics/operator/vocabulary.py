@@ -16,15 +16,22 @@ by the dft domain and re-declared here for locality.
 
 from __future__ import annotations
 
-from omai.operator.vocabulary import register_space_symbols
+from omai.operator.vocabulary import register_formula_constants, register_space_symbols
+
+# The equilibrium cell volume V_0 the EOS fit locates (the curvature point of
+# the Birch-Murnaghan E(V) route to the bulk modulus). E_{tot} and V_{cell}
+# are registered by the ground-state / thermal domains; V_0 is new.
+register_formula_constants({"V_0"})
 
 register_space_symbols({
     # The stiffness tensor C and the homogeneous strain it differentiates
     # against (varepsilon^{str}, shared with the dft domain).
     "ElasticConstants": {"C", r"\varepsilon^{str}"},
     # The isotropic Voigt moduli and the mechanical pressure, each its own
-    # scalar field symbol.
-    "BulkModulus": {"K"},
+    # scalar field symbol. BulkModulus also carries the EOS-route symbols (the
+    # total energy it curves and the equilibrium volume) for the Pattern C
+    # alternative producer compute_bulk_modulus_eos.
+    "BulkModulus": {"K", "E_{tot}", "V_{cell}", "V_0"},
     "ShearModulus": {"G"},
     "Pressure": {"P"},
     # The two remaining isotropic combinations of K and G (2026-07-09).

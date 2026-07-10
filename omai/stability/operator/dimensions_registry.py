@@ -38,4 +38,7 @@ register_symbol_dimensions({
     r"n_{ion}": DIMENSIONLESS,
     r"\mu_{ion}": ENERGY,
     "q_e": ENERGY / VOLTAGE,
+    # Adsorption energy: plain ENERGY (an energy difference over whole cells,
+    # extensive, NOT the per-atom currency).
+    r"E_{ads}": ENERGY,
 })

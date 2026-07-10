@@ -58,13 +58,14 @@ def test_mechanics_nodes_are_the_elastic_tensor_moduli_and_pressure():
         "YoungsModulus", "PoissonRatio"]
 
 
-def test_mechanics_edges_are_the_six_operators():
+def test_mechanics_edges_are_the_seven_operators():
     from omai.mechanics.operator import EDGES
 
     assert [op.name for op in EDGES] == [
         "compute_elastic_constants", "contract_pressure",
         "contract_bulk_modulus", "contract_shear_modulus",
-        "contract_youngs_modulus", "contract_poisson_ratio"]
+        "contract_youngs_modulus", "contract_poisson_ratio",
+        "compute_bulk_modulus_eos"]
 
 
 def test_elastic_constants_is_the_full_rank4_tensor():
@@ -122,13 +123,14 @@ def test_all_six_mechanics_edges_are_dimensionally_ok():
     ), report["violation"]
 
 
-def test_no_node_uid_collisions_at_73_nodes():
+def test_no_node_uid_collisions_at_74_nodes():
     # 59 with the original mechanics four; 61 with YoungsModulus and
     # PoissonRatio; 66 with the stability four plus MagneticMoment; 67 with
     # BandGap (2026-07-09, atomate2/VASP scan); 73 with the six
-    # thermochemistry nodes (2026-07-09, pycalphad scan).
+    # thermochemistry nodes (2026-07-09, pycalphad scan); 74 with
+    # AdsorptionEnergy (2026-07-10, matcalc/ASE scan).
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 73
+    assert len(g["nodes"]) == 74
     uids = [n["uid"] for n in g["nodes"]]
     assert len(set(uids)) == len(uids), "node uid collision"
 
@@ -259,7 +261,10 @@ def test_mechanics_representation_package_discovery_finds_the_specs():
     (2026-07-09, atomate2/VASP scan) one space spec (ElasticConstants, the
     OUTCAR IBRION=6 kbar route) and one operator spec (compute_elastic_constants);
     mp-api (2026-07-09, the DATABASE rail) five space specs (the tensor and the
-    four scalar reductions, GPa moduli and SI-Pa Young's) and no operator specs."""
+    four scalar reductions, GPa moduli and SI-Pa Young's) and no operator specs;
+    mat_equation_of_state (2026-07-10, matcalc/ASE scan) one space spec
+    (BulkModulus, the EOS Birch-Murnaghan route) and one operator spec
+    (compute_bulk_modulus_eos, the Pattern C alternative producer)."""
     import importlib
     import pkgutil
 
@@ -281,13 +286,14 @@ def test_mechanics_representation_package_discovery_finds_the_specs():
                 space_specs.append((attr, obj))
             elif isinstance(obj, OperatorRepresentationSpec):
                 op_specs.append((attr, obj))
-    # 2 lammps + 5 mat-elasticity + 5 pymatgen + 1 vasp + 5 mp-api = 18 space
-    # specs; the operator specs are unchanged (mp-api adds none).
-    assert len(space_specs) == 18, [a for a, _ in space_specs]
-    assert len(op_specs) == 5, [a for a, _ in op_specs]
+    # 2 lammps + 5 mat-elasticity + 5 pymatgen + 1 vasp + 5 mp-api
+    # + 1 mat_equation_of_state = 19 space specs; the operator specs gain the
+    # EOS Pattern C producer (compute_bulk_modulus_eos).
+    assert len(space_specs) == 19, [a for a, _ in space_specs]
+    assert len(op_specs) == 6, [a for a, _ in op_specs]
     assert sorted({s.operator.name for _, s in op_specs}) == [
-        "compute_elastic_constants", "contract_poisson_ratio",
-        "contract_youngs_modulus"]
+        "compute_bulk_modulus_eos", "compute_elastic_constants",
+        "contract_poisson_ratio", "contract_youngs_modulus"]
 
 
 def test_lammps_elastic_and_pressure_units_are_the_declared_ones():
@@ -335,6 +341,57 @@ def test_committed_store_contains_the_mechanics_contribution():
         assert node_id(s) in m["nodes"], f"store missing node {s.name}"
     for op in EDGES:
         assert edge_id(op, node_id) in m["edges"], f"store missing edge {op.name}"
+
+
+def test_bulk_modulus_has_two_producing_edges_pattern_c():
+    """The matcalc/ASE scan's Pattern C addition: BulkModulus now has TWO
+    producing edges, contract_bulk_modulus (the elastic-tensor VRH route) AND
+    compute_bulk_modulus_eos (the Birch-Murnaghan E(V) route), exactly as
+    ForceConstants[order=2] carries two producers. The node is NOT re-minted;
+    both edges name the same BulkModulus node uid."""
+    from omai.mechanics.operator.edges import (
+        compute_bulk_modulus_eos,
+        contract_bulk_modulus,
+    )
+    from omai.mechanics.operator.nodes import BULK_MODULUS
+
+    # Both edges output the same, single BulkModulus node.
+    assert [o.name for o in contract_bulk_modulus.outputs] == ["BulkModulus"]
+    assert [o.name for o in compute_bulk_modulus_eos.outputs] == ["BulkModulus"]
+    assert node_id(contract_bulk_modulus.outputs[0]) == node_id(BULK_MODULUS)
+    assert node_id(compute_bulk_modulus_eos.outputs[0]) == node_id(BULK_MODULUS)
+
+    # The graph surfaces both producers on the one node's formula list.
+    g = build_graph_dict(DOMAINS)
+    bm = next(n for n in g["nodes"] if n["id"] == "BulkModulus")
+    ops = {f["op"] for f in bm["formulas"]}
+    assert {"contract_bulk_modulus", "compute_bulk_modulus_eos"} <= ops, ops
+    # Exactly ONE BulkModulus node in the graph (no re-mint / duplicate).
+    assert sum(1 for n in g["nodes"] if n["id"] == "BulkModulus") == 1
+
+
+def test_compute_bulk_modulus_eos_wiring_and_scheme():
+    from omai.mechanics.operator.edges import compute_bulk_modulus_eos
+
+    # Pattern C signature: (TotalEnergy, Structure), the same energy-route
+    # inputs as compute_fc2_finite_displacement's finite-displacement route.
+    assert [s.name for s in compute_bulk_modulus_eos.inputs] == [
+        "TotalEnergy", "Structure"]
+    assert compute_bulk_modulus_eos.schemes == {
+        "method": "birch_murnaghan", "n_points": "11"}
+    # Implicit (a fit over an external volume scan), so not sympy-executable.
+    assert compute_bulk_modulus_eos.is_executable_in_sympy_override is False
+    assert not compute_bulk_modulus_eos.is_executable_in_sympy
+
+
+def test_eos_bulk_modulus_rail_is_the_skill_not_matcalc():
+    """The EOS BulkModulus coverage lands on mat-equation-of-state (the driving
+    skill rail), not a matcalc rail (the atomate2 ruling)."""
+    from omai.map_data import build_codes
+
+    codes = build_codes(DOMAINS)
+    assert "matcalc" not in codes
+    assert codes["mat-equation-of-state"]["BulkModulus"]["unit"] == "GPa"
 
 
 def test_mechanics_contribution_is_records_110_to_117():
@@ -409,6 +466,27 @@ def test_mat_elasticity_cu_instances_pin_the_live_node_uids():
     assert nu["value"] == 0.34217507884737186
     assert nu["units"] == "dimensionless"
     assert nu["node_uid"] == node_id(POISSON_RATIO)
+
+
+def test_eos_si_bulk_modulus_instance_pins_the_same_bulk_modulus_node():
+    """The matcalc/ASE scan's EOS-route evidence: the committed Si
+    Birch-Murnaghan bulk modulus pins the SAME BulkModulus node uid the
+    elastic-tensor VRH Cu instance does (one node, two producing routes)."""
+    from omai.map_data import build_instances
+    from omai.mechanics.operator.nodes import BULK_MODULUS
+
+    insts = build_instances()
+    by_key = {(it["variable"], it["material"]): it for it in insts}
+
+    si = by_key[("BulkModulus", "Si")]
+    assert si["value"] == 96.42681590768773
+    assert si["units"] == "GPa"
+    assert si["conditions"]["route"] == "birch_murnaghan_eos"
+    assert si["source"]["kind"] == "simulation"
+    assert si["node_uid"] == node_id(BULK_MODULUS)
+    # Same node as the Cu VRH-route instance (Pattern C: one node, two routes).
+    cu = by_key[("BulkModulus", "Cu")]
+    assert si["node_uid"] == cu["node_uid"]
 
 
 # --------------------------------------------------------------------------

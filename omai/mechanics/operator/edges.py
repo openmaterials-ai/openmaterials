@@ -10,6 +10,16 @@ and of the two moduli) into isotropic scalars:
   contract_shear_modulus    : (ElasticConstants,)          -> ShearModulus
   contract_youngs_modulus   : (BulkModulus, ShearModulus)  -> YoungsModulus
   contract_poisson_ratio    : (BulkModulus, ShearModulus)  -> PoissonRatio
+  compute_bulk_modulus_eos  : (TotalEnergy, Structure)     -> BulkModulus
+
+compute_bulk_modulus_eos (added 2026-07-10 from the matcalc/ASE scan) is a
+Pattern C ALTERNATIVE PRODUCER of the existing BulkModulus node, the second
+inbound producer edge alongside contract_bulk_modulus (the elastic-tensor VRH
+route). It is the Birch-Murnaghan E(V) route: a genuinely different estimator
+of the SAME physical bulk modulus, mirroring exactly how
+compute_fc2_finite_displacement joined compute_force_constants[order=2] as a
+second producer of ForceConstants[order=2]. No node is re-minted; the node
+identity is unchanged and only the edge is new.
 
 Symbols. The stress IndexedBase \sigma and the strain \varepsilon^{str} are the
 SAME base names the dft ground-state domain registered (reused so the elastic
@@ -40,7 +50,7 @@ from omai.mechanics.operator.nodes import (
     SHEAR_MODULUS,
     YOUNGS_MODULUS,
 )
-from omai.dft_ground_state.operator.nodes import STRESS, STRUCTURE
+from omai.dft_ground_state.operator.nodes import STRESS, STRUCTURE, TOTAL_ENERGY
 
 
 # ---------------------------------------------------------------------------
@@ -56,6 +66,13 @@ _nu = sp.Symbol("nu")
 _sigma = sp.IndexedBase(r"\sigma")     # reused: the dft ground-state cell stress
 _eps_str = sp.IndexedBase(r"\varepsilon^{str}")  # reused: the dft homogeneous strain
 _a, _b, _g, _d = sp.symbols(r"\alpha \beta \gamma \delta", integer=True)
+# EOS (Birch-Murnaghan) route to the bulk modulus: the equilibrium curvature
+# of the total energy against cell volume, K = V0 d^2E/dV^2 |_{V0}. E_tot and
+# V_{cell} are the registered ground-state / cell-volume symbols; V0 is the
+# equilibrium volume the fit locates.
+_E_tot = sp.Symbol("E_{tot}")
+_V_cell = sp.Symbol("V_{cell}", positive=True)
+_V0 = sp.Symbol("V_0", positive=True)
 
 
 # ---------------------------------------------------------------------------
@@ -218,6 +235,49 @@ contract_poisson_ratio = Operator(
     ),
 )
 
+# ---------------------------------------------------------------------------
+# Pattern C alternative producer of BulkModulus (added 2026-07-10, matcalc/ASE
+# scan). The Birch-Murnaghan E(V) route: a second inbound producer edge on the
+# existing BulkModulus node, exactly as compute_fc2_finite_displacement is a
+# second producer of ForceConstants[order=2] alongside the direct route. The
+# node is NOT re-minted; only the edge is new. Implicit (a fit over an external
+# volume scan), so not sympy-executable, and SKIPPED by the dimensional gate
+# like compute_fc2_finite_displacement (the Derivative makes it opaque),
+# though it is dimensionally consistent: V_0 * d^2 E / dV^2 =
+# VOLUME * ENERGY / VOLUME^2 = ENERGY / VOLUME = ENERGY_PER_LENGTH_CUBED.
+# ---------------------------------------------------------------------------
+
+compute_bulk_modulus_eos = Operator(
+    name="compute_bulk_modulus_eos",
+    inputs=(TOTAL_ENERGY, STRUCTURE),
+    outputs=(BULK_MODULUS,),
+    schemes={"method": "birch_murnaghan", "n_points": "11"},
+    formula=sp.Eq(
+        _K,
+        _V0 * sp.Derivative(_E_tot, _V_cell, 2),
+    ),
+    is_executable_in_sympy_override=False,
+    description=(
+        "Equation-of-state bulk modulus K = V_0 d^2 E_tot/dV_cell^2 |_{V_0}: "
+        "the equilibrium curvature of the total energy against cell volume, "
+        "fit through a Birch-Murnaghan equation of state over a symmetric "
+        "volume scan (the method=birch_murnaghan scheme; matcalc EOSCalc's "
+        "default n_points=11 volume grid over +/-max_abs_strain is the "
+        "operator discretization, recorded on the representation). The "
+        "TotalEnergy input stands for the family of per-cell energies "
+        "evaluated at each scanned volume (E(V) curve), the same "
+        "family-of-values convention compute_fc2_finite_displacement uses for "
+        "the displaced forces. Pattern C: an ALTERNATIVE PRODUCER of "
+        "BulkModulus alongside contract_bulk_modulus (the elastic-tensor VRH "
+        "route), a genuinely different estimator of the SAME physical bulk "
+        "modulus of the SAME material; downstream consumers are unaware which "
+        "route fired, exactly as for the two ForceConstants[order=2] "
+        "producers. Implicit (a fit over an external volume scan), so not "
+        "sympy-executable; the pymatgen BirchMurnaghan b0_GPa the skill reads "
+        "(mat-equation-of-state) is this K in GPa."
+    ),
+)
+
 EDGES: tuple[Operator, ...] = (
     compute_elastic_constants,
     contract_pressure,
@@ -225,4 +285,5 @@ EDGES: tuple[Operator, ...] = (
     contract_shear_modulus,
     contract_youngs_modulus,
     contract_poisson_ratio,
+    compute_bulk_modulus_eos,
 )

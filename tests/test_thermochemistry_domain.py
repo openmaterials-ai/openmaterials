@@ -307,9 +307,11 @@ def test_thermochemistry_nodes_carry_the_tier():
         assert tier_of[name] == "Thermochemistry"
 
 
-def test_map_has_seventy_three_nodes_and_eleven_tiers():
+def test_map_has_seventy_four_nodes_and_eleven_tiers():
+    # 73 through the pycalphad scan; 74 with AdsorptionEnergy (2026-07-10,
+    # matcalc/ASE scan), which joins the existing Stability tier (no new tier).
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 73
+    assert len(g["nodes"]) == 74
     assert len(g["tiers"]) == 11
 
 
@@ -351,11 +353,19 @@ def test_pycalphad_rail_covers_the_six_nodes():
     assert pc["AssessedDatabase"]["unit"] is None
 
 
-def test_pycalphad_is_the_seventeenth_rail():
+def test_pycalphad_is_a_rail_and_the_matcalc_scan_added_two_skill_rails():
     from omai.map_data import build_codes
 
-    assert len(build_codes(DOMAINS)) == 17
-    assert "pycalphad" in build_codes(DOMAINS)
+    codes = build_codes(DOMAINS)
+    # pycalphad was the 17th rail when it landed; the matcalc/ASE scan
+    # (2026-07-10) added the mat-equation-of-state and mat-surface-adsorption
+    # skill rails (matcalc itself is NOT a rail, the atomate2 ruling), bringing
+    # the total to 19.
+    assert len(codes) == 19
+    assert "pycalphad" in codes
+    assert "mat-equation-of-state" in codes
+    assert "mat-surface-adsorption" in codes
+    assert "matcalc" not in codes
 
 
 # --------------------------------------------------------------------------
@@ -420,8 +430,10 @@ def test_store_head_at_144_records_genesis_frozen():
     root = Path(__file__).resolve().parents[1] / "map"
     lines = root.joinpath("log.jsonl").read_text().splitlines()
     # 133 before this contribution; 144 after the six thermochemistry nodes
-    # and five edges (records 134-144).
-    assert len(lines) == 144
+    # and five edges (records 134-144). The log only grows past 144 as later
+    # contributions land (the matcalc/ASE scan added records 145-147); this
+    # test pins the floor and the frozen genesis, not the exact head.
+    assert len(lines) >= 144
     assert Store(root).verify() == []
     # Genesis stays the frozen prefix, byte-identical.
     assert root.joinpath("GENESIS").read_text().strip() == \
