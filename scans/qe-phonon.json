@@ -431,7 +431,7 @@
         {"file": "q-e/PHonon/PH/io_dyn_mat.f90", "line": 220, "what": "XML write_ifc: IFC / IFC_LR tags"}
       ],
       "operation": {"kind": "fft", "closed_form": "C(R) = (1/N_q) sum_q [C(q) - C_LR(q)] e^{-iqR}", "notes": "Inverse FFT of the q-grid force constants after subtracting the Gonze rigid-ion (dipole-dipole) long-range term for polar solids (X. Gonze et al., PRB 50, 13035 (1994) formula in rigid.f90:rgd_blk). matdyn re-adds the term analytically at arbitrary q."},
-      "maps_to": {"node": "ForceConstants[order=2]", "status": "existing", "notes": "This is QE's grounding of the FC2 leaf the thermal DAG takes as given. TWO declared conventions required: (1) unit Ry/bohr^2 (1 Ry/bohr^2 = 48.5829 eV/A^2 vs eV/A^2 codes); (2) for polar materials the array is SHORT-RANGE only; total FC2 = frc + dipole term(Z*, eps, alph). Naive comparison with e.g. phonopy FORCE_CONSTANTS is wrong whenever Z* != 0."},
+      "maps_to": {"node": "ForceConstants[order=2]", "status": "existing", "notes": "This is QE's grounding of the FC2 leaf the thermal DAG takes as given. TWO declared conventions required: (1) unit Ry/bohr^2 (1 Ry/bohr^2 = 48.58681221205054 eV/A^2 vs eV/A^2 codes); (2) for polar materials the array is SHORT-RANGE only; total FC2 = frc + dipole term(Z*, eps, alph). Naive comparison with e.g. phonopy FORCE_CONSTANTS is wrong whenever Z* != 0."},
       "conventions": ["Ry/bohr^2", "short-range only when Z* present (lrigid=T)", "index nesting i,j,na,nb outermost, m1 fastest innermost", "text masses Ry a.u. / XML masses amu", "real part only stored", "alph Ewald parameter (default 1.0) written next to lrigid; older files lack it and readfc falls back"],
       "example_instances": ["example02 alas444.fc from alas.dyn0..8"]
     },
