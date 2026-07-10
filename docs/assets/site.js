@@ -23,18 +23,8 @@
   var siteBase = new URL('..', assetsBase).href;         // .../ (docs root)
 
   function site(p) { return new URL(p, siteBase).href; }
-  function asset(p) { return new URL(p, assetsBase).href; }
 
   var REPO = 'https://github.com/gbarbalinardo/openmaterials';
-
-  // The brand mark (a tiny DAG), inline so it needs no extra request.
-  var MARK =
-    '<svg class="om-mark om-mark-svg" width="24" height="24" viewBox="0 0 64 64" aria-hidden="true">' +
-    '<rect width="64" height="64" rx="15" fill="#4f46e5"/>' +
-    '<g stroke="#fff" stroke-width="3.4" stroke-linecap="round" fill="none" opacity="0.92">' +
-    '<line x1="19" y1="20" x2="41" y2="32"/><line x1="41" y1="32" x2="19" y2="45"/></g>' +
-    '<g fill="#fff"><circle cx="19" cy="20" r="6.2"/><circle cx="41" cy="32" r="6.2"/>' +
-    '<circle cx="19" cy="45" r="6.2"/></g></svg>';
 
   // Nav items: [label, href, matchPrefix, isExternal]. The GitHub item is an
   // icon-less text link "Source".
@@ -171,9 +161,6 @@
   } else {
     mount();
   }
-
-  // expose for pages (e.g. the map) that build a compact header variant.
-  window.OMChrome = { site: site, asset: asset, mark: MARK, repo: REPO, nav: NAV };
 
   // The PDF sits behind a long edge cache; stamping the live version onto
   // Document links makes every new map version fetch a fresh copy.

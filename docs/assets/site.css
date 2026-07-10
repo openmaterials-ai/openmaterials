@@ -28,7 +28,7 @@
   --accent:#4f46e5; --accent-2:#4338ca; --accent-soft:#eef2ff;
   --link:#16181d;                 /* prose links are ink; accent on hover */
   /* semantic (established by the map; do not change hue) */
-  --observable:#4f46e5; --simulation:#0f9d6b; --measurement:#d98a14;
+  --simulation:#0f9d6b;
   /* the one dark surface (the "terminal") */
   --code-bg:#1f2125; --code-ink:#e6e8ef;
   /* type */
@@ -36,7 +36,7 @@
   --font-sans:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --font-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',SFMono,Menlo,Consolas,'Liberation Mono',monospace;
   /* shape */
-  --r-1:8px; --r-2:10px; --r-3:12px;
+  --r-2:10px; --r-3:12px;
   /* the only allowed shadow on prose pages: the sticky header hairline */
   --shadow-head:0 1px 0 rgba(22,24,29,.04);
   /* motion */
@@ -59,11 +59,11 @@ code,kbd,samp{font-family:var(--font-mono);font-feature-settings:"zero" 1;}
 h1,h2,h3,h4{font-family:var(--font-serif);font-weight:700;letter-spacing:-.015em;line-height:1.1;margin:0 0 .4em;}
 
 /* prose links: ink with a 1px underline, accent on hover */
-.prose a,a.prose-link{
+a.prose-link{
   color:var(--ink);text-decoration:underline;text-decoration-thickness:1px;
   text-underline-offset:3px;transition:color var(--t);
 }
-.prose a:hover,a.prose-link:hover{color:var(--accent);}
+a.prose-link:hover{color:var(--accent);}
 
 /* focus-visible: a consistent, legible ring across the whole site */
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px;}
@@ -153,7 +153,6 @@ a:focus-visible{outline-offset:3px;}
 @media (max-width:720px){
   .om-footer-cols{grid-template-columns:1fr;gap:28px;}
   .om-nav{gap:16px;}
-  .om-nav .om-hide-sm{display:none;}
 }
 /* small screens: keep the header on one line and let the nav scroll rather than
    push the page wider (which used to bleed prose off the right edge). The brand
@@ -242,9 +241,6 @@ a:focus-visible{outline-offset:3px;}
 .om-kv .om-kv-row:first-child{border-top:none;}
 .om-kv .om-kv-k{color:var(--ink-2);font-weight:500;}
 .om-kv .om-kv-v{font-family:var(--font-mono);font-feature-settings:"zero" 1;color:var(--ink);text-align:right;word-break:break-word;}
-
-/* the reusable DAG mark, used as favicon fallback */
-.om-mark-svg{border-radius:7px;}
 
 @media (prefers-reduced-motion: reduce){
   *{transition-duration:.001ms !important;animation-duration:.001ms !important;animation-iteration-count:1 !important;}
