@@ -988,6 +988,26 @@
   },
   "uid": "910d47d67a7308728e2f7d211a08c1590239c7b802cd75128f00cd103a719b84"
  },
+ "949582fba59372799c672b38510bd07f2e733f8bd6e63887b9728a672b1c5b25": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "adsorption_energy"
+  },
+  "meta": {
+   "description": "Adsorption energy E_ads of an adsorbate on a crystal surface, the energy difference E_ads = E_adslab - E_slab - E_adsorbate of the relaxed adsorbate-on-slab configuration against the isolated clean slab and the isolated adsorbate. Scalar per adsorbate-surface configuration in eV; negative for favourable (bound) adsorption. EXTENSIVE (an energy difference over whole cells), plain ENERGY, NOT the per-atom currency of FormationEnergy and EnergyAboveHull: it is surface energetics kin to SurfaceEnergy, the same M L^2 T^-2 as the TotalEnergy differences it is built from. The adsorbate, the facet (hkl), and the adsorption site (ontop / bridge / hollow) are carried by conditions and the producing edge's scheme, not by the node's index signature (no per-site index kind, deliberately: distinct sites are distinct configurations, distinct instances).",
+   "name": "AdsorptionEnergy",
+   "symbol": "E_{ads}",
+   "tier": "Stability"
+  },
+  "uid": "949582fba59372799c672b38510bd07f2e733f8bd6e63887b9728a672b1c5b25"
+ },
  "9b0af04f9828cfb02e19d5e41ab2c61fbe4759f049258b85c650baf22e43ebf1": {
   "identity": {
    "fields": [

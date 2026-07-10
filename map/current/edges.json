@@ -310,6 +310,32 @@
   },
   "uid": "3466399c40c467b80ca4b9b3a83c9c5b0d73df41ed0295e3a4d6685683972909"
  },
+ "35f53c511ef6202b79b33e89856071aa1f3f8610ad7705bd3f608784d6216a1f": {
+  "identity": {
+   "formula": "Equality(Symbol('E_{ads}'), Add(Function('E^{adslab}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}')), Mul(Integer(-1), Function('E^{adsorbate}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}'))), Mul(Integer(-1), Function('E^{slab}_{ads}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}')))))",
+   "inputs": [
+    "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "949582fba59372799c672b38510bd07f2e733f8bd6e63887b9728a672b1c5b25",
+   "outputs": [
+    "949582fba59372799c672b38510bd07f2e733f8bd6e63887b9728a672b1c5b25"
+   ],
+   "schemes": {
+    "reference_convention": "adslab_minus_slab_minus_adsorbate"
+   }
+  },
+  "meta": {
+   "description": "Adsorption energy E_ads = E_adslab - E_slab - E_adsorbate: the energy of the relaxed adsorbate-on-slab configuration minus the isolated clean slab and the isolated adsorbate (the reference_convention scheme records this adslab-minus-slab-minus-adsorbate reference; a different reference set, for instance a molecular reference for the adsorbate, would change what is computed). E^{adslab}, E^{slab}_{ads}, and E^{adsorbate} are opaque selectors over the TotalEnergy family (the three cells matcalc AdsorptionCalc relaxes with the same ASE calculator, each via an internal RelaxCalc); the TotalEnergy input stands for that family of three energy evaluations, the same family-of-values convention compute_surface_energy uses for the slab and bulk. Scalar per adsorbate-surface configuration (adsorbate, facet, site) recorded in conditions. Implicit (slab / adslab construction plus relaxations), so not sympy-executable.",
+   "formula_latex": "E_{ads} = E^{adslab}{\\left(E_{tot},\\mathcal{S} \\right)} - E^{adsorbate}{\\left(E_{tot},\\mathcal{S} \\right)} - E^{slab}_{ads}{\\left(E_{tot},\\mathcal{S} \\right)}",
+   "formula_srepr": "Equality(Symbol('E_{ads}'), Add(Function('E^{adslab}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}')), Mul(Integer(-1), Function('E^{adsorbate}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}'))), Mul(Integer(-1), Function('E^{slab}_{ads}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}')))))",
+   "name": "compute_adsorption_energy",
+   "schemes": {
+    "reference_convention": "adslab_minus_slab_minus_adsorbate"
+   }
+  },
+  "uid": "35f53c511ef6202b79b33e89856071aa1f3f8610ad7705bd3f608784d6216a1f"
+ },
  "3662d6183de400b2337d314499e31dd473b7b2ea3994290f21046e36bdcedfdb": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('c')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Mul(Rational(1, 4), Pow(Symbol('T', positive=True), Integer(-2)), Pow(Symbol('\\\\hbar', positive=True), Integer(2)), Pow(Symbol('k_B', positive=True), Integer(-1)), Pow(sinh(Mul(Rational(1, 2), Pow(Symbol('T', positive=True), Integer(-1)), Symbol('\\\\hbar', positive=True), Pow(Symbol('k_B', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('\\\\omega')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)))), Integer(-2)), Pow(Indexed(IndexedBase(Symbol('\\\\omega')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Integer(2))))",
@@ -1615,6 +1641,34 @@
    }
   },
   "uid": "dee3e5f2230cae44c646c62985260fc103745cc44d0b1c2a87fe0a72ca675a97"
+ },
+ "e78d5769e8a4718966dee70a82eb5ac9622b35e20edf471ee1d8dc88ab40868c": {
+  "identity": {
+   "formula": "Equality(Symbol('K'), Mul(Symbol('V_0', positive=True), Derivative(Symbol('E_{tot}'), Tuple(Symbol('V_{cell}', positive=True), Integer(2)))))",
+   "inputs": [
+    "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced",
+   "outputs": [
+    "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced"
+   ],
+   "schemes": {
+    "method": "birch_murnaghan",
+    "n_points": "11"
+   }
+  },
+  "meta": {
+   "description": "Equation-of-state bulk modulus K = V_0 d^2 E_tot/dV_cell^2 |_{V_0}: the equilibrium curvature of the total energy against cell volume, fit through a Birch-Murnaghan equation of state over a symmetric volume scan (the method=birch_murnaghan scheme; matcalc EOSCalc's default n_points=11 volume grid over +/-max_abs_strain is the operator discretization, recorded on the representation). The TotalEnergy input stands for the family of per-cell energies evaluated at each scanned volume (E(V) curve), the same family-of-values convention compute_fc2_finite_displacement uses for the displaced forces. Pattern C: an ALTERNATIVE PRODUCER of BulkModulus alongside contract_bulk_modulus (the elastic-tensor VRH route), a genuinely different estimator of the SAME physical bulk modulus of the SAME material; downstream consumers are unaware which route fired, exactly as for the two ForceConstants[order=2] producers. Implicit (a fit over an external volume scan), so not sympy-executable; the pymatgen BirchMurnaghan b0_GPa the skill reads (mat-equation-of-state) is this K in GPa.",
+   "formula_latex": "K = V_{0} \\frac{d^{2}}{d V_{cell}^{2}} E_{tot}",
+   "formula_srepr": "Equality(Symbol('K'), Mul(Symbol('V_0', positive=True), Derivative(Symbol('E_{tot}'), Tuple(Symbol('V_{cell}', positive=True), Integer(2)))))",
+   "name": "compute_bulk_modulus_eos",
+   "schemes": {
+    "method": "birch_murnaghan",
+    "n_points": "11"
+   }
+  },
+  "uid": "e78d5769e8a4718966dee70a82eb5ac9622b35e20edf471ee1d8dc88ab40868c"
  },
  "e88e11c5770a9dc9c33df7139ddf40f072f3e415f20e15d860c3490104c3c34a": {
   "identity": {
