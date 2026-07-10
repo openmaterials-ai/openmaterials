@@ -61,12 +61,16 @@ omai/
                      #   gauge discipline, validate_dag, dimensions, identity
   representation/    # the bridge: units, normalizations, per-code specs,
                      #   compare, and the execute/compose/cross-check runtime
-  thermal_transport/ # per-domain packages: each carries an operator/ DAG
+  thermal_transport/ # nine per-domain packages: each carries an operator/ DAG
   dft_ground_state/  #   (Spaces + Operators) and a representation/ set of
   mechanics/         #   per-code adapters. thermal_transport spans kaldo,
   stability/         #   phono3py, phonopy, shengbte, qe, ase, lammps, gpumd;
-  materials/         #   materials grows from AtomisticSkills (diffusion
-                     #   subgraph, skills_catalog.json)
+  thermochemistry/   #   the ground-state, mechanics, and stability domains grew
+  quasiharmonic/     #   from the AtomisticSkills scans (pymatgen, matcalc, mp-api);
+  molecular/         #   thermochemistry (pycalphad), quasiharmonic (phonopy QHA),
+  electronic_transport/ # molecular (orca, openmm), and electronic_transport (amset)
+  materials/         #   are the newer slices; materials grows from AtomisticSkills
+                     #   (diffusion subgraph, skills_catalog.json)
   map_data.py        # unified multi-domain export -> docs/data/*.json
   store.py           # log-first store: push/read/diff/verify
 examples/            # runnable tours; start with quickstart.py
