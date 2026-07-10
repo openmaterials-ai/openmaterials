@@ -1,6 +1,6 @@
 {
  "representation": "pymatgen",
- "map_version": "3a8f6a390cc36a995a6a9ce2451f3226a54121a93087eebf2950ece0eae94875",
+ "map_version": "e2745ab18af17c38e4e3e26b8fba678786ad1986a27e14564c715bf0edc1bb6c",
  "covers": [
   {
    "node": "ActivationEnergy",
@@ -61,6 +61,12 @@
    "uid": "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8",
    "api": "pymatgen.phonon.bandstructure.PhononBandStructureSymmLine (mp_api retrieval), linear THz",
    "unit": "linear_THz"
+  },
+  {
+   "node": "GrainBoundaryEnergy",
+   "uid": "f81c9c7907dc4297e44624098da25bfd87c1654a4198853bb185891282c24528",
+   "api": "pymatgen.analysis.gb.grain.GrainBoundaryGenerator CSL slabs; in-skill gamma_GB = (E_GB - N E_bulk)/(2A), J/m^2",
+   "unit": "J_per_m2"
   },
   {
    "node": "MagneticMoment",

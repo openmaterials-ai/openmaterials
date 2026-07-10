@@ -1,0 +1,12 @@
+{
+ "representation": "mattergen",
+ "map_version": "e2745ab18af17c38e4e3e26b8fba678786ad1986a27e14564c715bf0edc1bb6c",
+ "covers": [
+  {
+   "node": "Structure",
+   "uid": "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239",
+   "api": "MatterGen generator.generate(batch_size, num_batches, output_dir) -> pymatgen Structures written to CIF (mattergen_wrapper.py:130-145); dimensionless generated artifact",
+   "unit": null
+  }
+ ]
+}

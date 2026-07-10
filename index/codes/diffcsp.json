@@ -1,0 +1,12 @@
+{
+ "representation": "diffcsp",
+ "map_version": "e2745ab18af17c38e4e3e26b8fba678786ad1986a27e14564c715bf0edc1bb6c",
+ "covers": [
+  {
+   "node": "Structure",
+   "uid": "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239",
+   "api": "DiffCSP++ generate_structures_with_symmetry(spacegroup, wyckoff_letters, atom_types, model_name='mp_csp', step_lr=1e-5) -> CIFs (diffcsp_server.py:54-107); dimensionless generated artifact",
+   "unit": null
+  }
+ ]
+}
