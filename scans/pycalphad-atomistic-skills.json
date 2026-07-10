@@ -1,0 +1,366 @@
+{
+  "scan": {
+    "code": "pycalphad (CALPHAD-based computational thermodynamics)",
+    "slice": "as-used-by-AtomisticSkills",
+    "source_root": "AtomisticSkills/.agents/skills/mat-calphad-phase-diagram/ and mat-calphad-property-diagram/ (the calphad-agent skills: plot_phase_diagram.py, plot_phase_fractions.py, SKILL.md, examples/Al-Zn/alzn_mey.tdb) + AtomisticSkills/conda-envs/calphad-agent/ (core_env.yaml pins pycalphad via pip)",
+    "paper": "arXiv 2605.24002 (AtomisticSkills)",
+    "entry_count": "13 entry objects (by actual enumeration of the entries array). Status split: 2 already-mapped (molar-entropy, molar-heat-capacity; both CROSS-CODE cousins with a normalization/basis caveat, never a naive equate), 6 new-node-candidate (molar-gibbs-energy, molar-enthalpy, chemical-potential, phase-fraction, activity, transition-temperature), 5 representation-only (site-fraction, phase-diagram, tdb-assessed-database, molar-mass-density-context, system-moles-condition). This is the queue's first genuinely NEW physics domain: phase thermodynamics from assessed Gibbs-energy databases (macroscopic CALPHAD), not atomistics. NOTE the already-mapped count is deliberately conservative: CALPHAD's molar quantities SHARE dimension vectors with the map's phonon molar nodes but are a DIFFERENT physics (assessed Gibbs vs harmonic Helmholtz), a DIFFERENT normalization basis (mole of atoms vs mole of primitive cells), and a DIFFERENT producing operator (Gibbs minimization over assessed models vs a phonon-gas sum); see the mandatory distinctions object.",
+    "pycalphad_version_anchor": "0.11.2 (NOT importable in miniconda base: `No module named pycalphad`; the calphad-agent conda env is NOT created on this machine either. Anchored by `pip download --no-deps --dest /tmp/pcsrc pycalphad` -> pycalphad-0.11.2-cp312-cp312-macosx_11_0_arm64.whl, unzipped to /tmp/pcsrc/wheel and read from source. The core_env.yaml pins `pip: - pycalphad` with no version, so the skill would install whatever is current; 0.11.2 is the current release and its property-unit declarations are stable across recent 0.10-0.11 versions. Elements are implicitly uppercase in TDB (plot_phase_diagram.py:48).",
+    "role_in_software": "pycalphad is the ENGINE of the two calphad-agent skills. Unlike an MLIP/DFT engine (which minimizes an ab-initio energy over nuclear coordinates), pycalphad minimizes a GIBBS ENERGY assembled from ASSESSED, PRE-FITTED thermodynamic models read from a TDB (Thermodynamic DataBase) file. Its three load-bearing calls: Database(tdb) loads the assessed Gibbs-energy functions (GHSER* lattice-stability polynomials + Redlich-Kister excess parameters + magnetic/Einstein contributions); equilibrium(dbf, comps, phases, conds) performs the global free-energy minimization at fixed (N, P, T, X) and returns an xarray Dataset of GM (molar Gibbs energy), MU (chemical potentials), NP (phase fractions), Phase (stable phase names), X (phase compositions), Y (sublattice site fractions); binplot(dbf, comps, phases, conds) sweeps the minimization over a (T, X) grid to draw the T-x phase-diagram boundaries (liquidus/solidus/solvus, invariant reactions). The skills consume eq.NP + eq.Phase (property diagram) and the binplot boundary set (phase diagram).",
+    "canonical_units_note": "The openmaterials map's canonical units (omai/operator/registry.py QUANTITY_TAGS, omai/operator/dimensions.py exponent vectors, and the QE/pymatgen/mp scans) are the reference. Exponent vector convention is (M, L, T, Theta, N, I, J): the FIFTH slot N is the amount-of-substance (mole) axis. CALPHAD's molar energies live in J/mol, so they REQUIRE N=-1 in the exponent vector (unlike the map's ENERGY node which is per-cell, N=0). pycalphad's own unit declarations are read verbatim from pycalphad/property_framework/units.py; conversion factors below are computed to full precision (scipy CODATA) with the source line that defines each pycalphad unit."
+  },
+  "distinctions_calphad_vs_dft_hull": {
+    "why_this_object_is_mandatory": "The map already carries FormationEnergy and EnergyAboveHull (stability domain, DFT/MLIP side). CALPHAD's Gibbs energies are the ASSESSED-THERMODYNAMICS side of the SAME physics (which phase is stable), reached by a completely different route. Conflating them corrupts identity. Five axes of distinction:",
+    "1_reference_state": "DFT/MLIP FormationEnergy references the composition-weighted ELEMENTAL DFT total energies (Materials Project elemental references in the committed li2o example). CALPHAD references the SER (Stable Element Reference: the stable structure of each pure element at 298.15 K, 1 bar), encoded as the GHSER* functions in the TDB (e.g. GHSERAL, GHSERZN in alzn_mey.tdb). Different zero of energy: a CALPHAD Gibbs energy and a DFT formation energy are NOT the same number and are NOT an EXPECTED_AGREE pair without a reference-state bridge.",
+    "2_finite_temperature": "The DFT hull (EnergyAboveHull) is a 0 K, static-lattice, athermal convex hull of formation ENERGIES (no entropy). The CALPHAD hull is a FINITE-TEMPERATURE convex hull of molar GIBBS energies G(T) = H - TS, including configurational + vibrational + magnetic entropy baked into the assessed polynomials. CALPHAD phase stability is T-dependent (that is the entire point of a T-x phase diagram); the DFT hull is not. A CALPHAD 'stable phase at 700 K' and a DFT '0 K ground state' can differ.",
+    "3_assessed_vs_computed": "DFT/MLIP energies are COMPUTED ab initio for the specific structure. CALPHAD energies are ASSESSED: fitted (by a human assessor) to reproduce a body of experimental + first-principles data, then frozen into a TDB. The TDB + its assessment citation (alzn_mey.tdb: NIMS 2009, parameters from S. an Mey, Z. Metallkd. 84 (1993) 451-455) is the analog of the MLIP checkpoint / pseudopotential: it IS the model. Provenance = which TDB, which assessment.",
+    "4_gibbs_vs_helmholtz_and_the_molar_node_trap": "The map's existing Molar* nodes (MolarHelmholtzFreeEnergy, MolarEntropy, MolarInternalEnergy, MolarHeatCapacity) are HARMONIC-PHONON quantities: a HELMHOLTZ free energy F (constant volume) from a phonon-gas sum, per mole of PRIMITIVE UNIT CELLS (phonopy convention, kJ/mol; nodes.py:210-241). CALPHAD's GM/HM/SM/CPM are a GIBBS free energy G (constant pressure) from assessed models, per mole of ATOMS (system-moles, v.N normalization; units.py:29-45). SAME dimension vectors, DIFFERENT thermodynamic potential (G vs F), DIFFERENT normalization basis (atoms vs cells), DIFFERENT producer. They must NOT collapse to the same node.",
+    "5_phase_fraction_and_diagram_are_new": "Phase fraction NP (dimensionless molar amount of each phase), transition temperatures (liquidus/solidus/invariant points, K), activity, and site fraction Y have NO analog anywhere on the current map. They are the distinctive outputs of a Gibbs-minimization engine and define the new domain."
+  },
+  "unit_factors": {
+    "j_per_mol_vs_ev_per_atom": {
+      "factor": "1 eV/atom = 96485.33212331 J/mol (= 9.648533212331 x 10^4). Inverse: 1 J/mol = 1.0364269656262175e-05 eV/atom = 0.010364269656262174 meV/atom.",
+      "derivation": "1 eV/atom is e joule per atom; multiply by Avogadro N_A to get per mole: e * N_A = 1.602176634e-19 C * 6.02214076e23 /mol = 96485.33212331 J/mol. Since e and N_A are BOTH SI-exact (2019 redefinition), this factor is EXACT. It is numerically identical to the Faraday constant F = e*N_A = 96485.33212331 C/mol (same product).",
+      "verification": "scipy.constants: Avogadro=6.02214076e23, e=1.602176634e-19; e*Avogadro=96485.33212331001.",
+      "why_it_matters": "The map's DFT/MLIP stability nodes (FormationEnergy, EnergyAboveHull) are eV/atom (N=0 dimension, ENERGY). CALPHAD's GM/HM/MU are J/mol (N=-1 dimension, ENERGY_PER_MOLE). Any cross-code comparison of a CALPHAD molar Gibbs/formation energy against a DFT per-atom formation energy passes through THIS factor AND a per-atom-vs-per-formula-unit basis check (below)."
+    },
+    "per_mole_of_atoms_vs_per_mole_of_formula_units": {
+      "statement": "pycalphad exposes energy in TWO normalizations. GM (=Model.energy) is per MOLE OF ATOMS (the default eq/calculate output, normalized by Model._site_ratio_normalization; model.py:484). G (=Model.formulaenergy = GM * site_ratio_normalization; model.py:485) is per MOLE OF FORMULA UNITS. units.py confirms: GM_implementation_units='J / mol' (the mol is mole-of-atoms once the v.N system-moles normalization is applied), while G_implementation_units='J' (extensive per formula unit).",
+      "conversion": "G(per f.u.) = GM(per mole atoms) * (atoms per formula unit). For a sublattice model the atoms-per-f.u. is Model.moles summed over components; units.py:_conversions_per_formula_unit computes moles_per_fu and grams_per_fu for the per-mole<->per-mass (g/mol) context.",
+      "trap": "A CALPHAD 'per mole' number is per mole of ATOMS by pycalphad default (because the skills set v.N: 1, i.e. one mole of system atoms). Do NOT confuse it with per mole of formula units (which for a multi-atom f.u. differs by the atoms-per-f.u. factor), NOR with the map's Molar* nodes which are per mole of PRIMITIVE UNIT CELLS. Three different 'moles'."
+    },
+    "R_gas_constant": {
+      "value": "pycalphad hardcodes v.R = 8.3145 J/mol/K (variables.py:939: `si_gas_constant = R = Float(8.3145)`). CODATA exact R = N_A*k_B = 8.31446261815324 J/mol/K. pycalphad's 8.3145 is a 5-significant-figure truncation (0.0001% high). All ideal-mixing (-R T sum x ln x) and Einstein/two-state terms use this v.R.",
+      "note": "k_B = 8.617333262e-5 eV/K (CODATA, matches the map's activation-energy anchor). The CALPHAD R and the phonon-side k_B are the same physics (R = N_A k_B) at different normalization."
+    },
+    "kJ_per_mol_note": "phonopy (the map's molar-node producer) emits kJ/mol; pycalphad emits J/mol. Factor 1000. When bridging a CALPHAD molar energy to any kJ/mol quantity, apply the 1000 AND remember the basis differs (atoms vs cells)."
+  },
+  "entries": [
+    {
+      "name": "molar-gibbs-energy",
+      "quantity": "Molar Gibbs energy of a phase (or of the equilibrium assemblage): the assessed free energy CALPHAD minimizes",
+      "symbol": "GM (G_m)",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": -1, "I": 0, "J": 0, "note": "energy per mole; SAME exponent vector as the map's ENERGY_PER_MOLE"},
+      "index_structure": [],
+      "units": "J / mol (per mole of ATOMS). pycalphad property_framework/units.py:29-30: `energy_implementation_units = GM_implementation_units = 'J / mol'`, `GM_display_units = 'J / mol'`, display name 'Gibbs Energy'. GM = Model.energy (model.py:484), normalized per mole of atoms by _site_ratio_normalization. equilibrium() returns GM as a default Dataset output (equilibrium.py:49 'PhaseRecord objects with GM output').",
+      "producing_api": "pycalphad.Database(tdb) assembles G(T,x) from GHSER* lattice stabilities + Redlich-Kister excess + magnetic/Einstein terms; pycalphad.equilibrium(dbf, comps, phases, conds) minimizes it and returns eq.GM (J/mol); pycalphad.calculate(dbf, comps, phase, output='GM') samples it without minimizing.",
+      "conversion_to_canonical": "J/mol maps to the map's ENERGY_PER_MOLE dimension (1,2,-2,0,-1,0,0). BUT there is NO molar-GIBBS node on the map: the four Molar* nodes are Helmholtz/internal/entropy/heat-capacity, all HARMONIC-PHONON and per mole of PRIMITIVE CELLS. GM is a Gibbs energy per mole of ATOMS from an assessed model: a distinct quantity. To compare a GM number to a DFT per-atom energy: divide J/mol by 96485.33212331 to get eV/atom (per mole atoms already matches per-atom once divided by N_A implicitly in the factor).",
+      "anchors": {
+        "usage": [
+          "mat-calphad-property-diagram/scripts/plot_phase_fractions.py:68 (equilibrium(dbf, comps, phases, conds); GM is a default output of the returned Dataset even though the skill reads NP/Phase from it)",
+          "mat-calphad-phase-diagram/scripts/plot_phase_diagram.py:76 (binplot -> repeated equilibrium minimizations of GM over the (T,X) grid)"
+        ],
+        "source": [
+          "pycalphad/property_framework/units.py:29-31 (GM_implementation_units / display_units = 'J / mol', name 'Gibbs Energy')",
+          "pycalphad/model.py:484 (energy = GM = property(lambda self: self.ast)); :485 (formulaenergy = G = ast * _site_ratio_normalization)",
+          "pycalphad/core/equilibrium.py:15,49,72 (equilibrium signature; GM/MU are the base outputs)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "molar_gibbs_energy (proposed; NOT in the registry)", "notes": "The headline new node of the thermochemistry domain. J/mol (per mole of atoms), dimension ENERGY_PER_MOLE (already exists in dimensions.py, reused). NO existing molar node fits: the map's MolarHelmholtzFreeEnergy is F (constant V) per mole of primitive cells from phonons; GM is G (constant P) per mole of atoms from an assessed database. Propose a SEPARATE MolarGibbsEnergy node with a basis label (per_mole_of_atoms) and provenance = the TDB + assessment. This is the source node the whole domain minimizes."}
+    },
+    {
+      "name": "molar-enthalpy",
+      "quantity": "Molar enthalpy of a phase, H_m = G + TS = GM - T d(GM)/dT",
+      "symbol": "HM (H_m)",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": -1, "I": 0, "J": 0},
+      "index_structure": [],
+      "units": "J / mol (per mole of atoms). units.py:35-36: `HM_implementation_units = GM_implementation_units` = 'J / mol', display name 'Enthalpy'. HM = Model.enthalpy = GM - v.T*GM.diff(v.T) (model.py:487).",
+      "producing_api": "pycalphad.calculate(..., output='HM') or equilibrium(..., output='HM'); derived from GM by the -T dGM/dT Legendre relation inside the Model.",
+      "conversion_to_canonical": "J/mol, ENERGY_PER_MOLE. Same node family as GM (a Gibbs-derived molar energy). Enthalpy of formation (HM referenced to SER) is the CALPHAD analog of DFT FormationEnergy, but referenced to SER not DFT elements (see distinctions #1) and in J/mol-atoms not eV/atom (factor 96485.33212331).",
+      "anchors": {
+        "usage": [
+          "(not directly read by the two skills, which consume NP/Phase; HM is a standard equilibrium/calculate output and the enthalpy channel of the assessed model, cataloged for domain completeness)"
+        ],
+        "source": [
+          "pycalphad/property_framework/units.py:35-39 (HM units = GM units; H_implementation_units = 'J' extensive)",
+          "pycalphad/model.py:487 (enthalpy = HM = property: GM - v.T*self.GM.diff(v.T))"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "molar_enthalpy (proposed)", "notes": "New node, J/mol per mole atoms, ENERGY_PER_MOLE. Derived from MolarGibbsEnergy by the Legendre relation HM = GM - T dGM/dT; a contract candidate downstream of the molar Gibbs node. The mixing enthalpy HM_MIX (model.py:492) is the excess over the endmember reference and is the CALPHAD 'heat of mixing'."}
+    },
+    {
+      "name": "molar-entropy",
+      "quantity": "Molar entropy of a phase, S_m = -d(GM)/dT",
+      "symbol": "SM (S_m)",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": -1, "N": -1, "I": 0, "J": 0, "note": "energy per temperature per mole; the map's ENERGY_PER_TEMPERATURE_PER_MOLE exponent vector"},
+      "index_structure": [],
+      "units": "J / mol / K (per mole of atoms). units.py:41-42: `entropy_implementation_units = SM_implementation_units = 'J / mol / K'`, display name 'Entropy'. SM = Model.entropy = -GM.diff(v.T) (model.py:486).",
+      "producing_api": "pycalphad.calculate/equilibrium(..., output='SM'); the -dGM/dT derivative of the assessed Gibbs energy (includes configurational -R sum x ln x + vibrational + magnetic contributions).",
+      "conversion_to_canonical": "J/mol/K maps to the map's ENERGY_PER_TEMPERATURE_PER_MOLE dimension (1,2,-2,-1,-1,0,0), the SAME exponent vector as the map's MolarEntropy node. BUT MolarEntropy on the map is a HARMONIC-PHONON entropy per mole of PRIMITIVE CELLS (nodes.py:221-230); CALPHAD SM is the assessed TOTAL entropy (config + vib + magnetic) per mole of ATOMS. Same units, distinct quantity: cross-code cousin, never a naive equate.",
+      "anchors": {
+        "usage": [
+          "(SM not directly read by the two skills; standard output, cataloged. The ideal-mixing entropy -R T sum x ln x appears in every equilibrium minimization via model.py:957.)"
+        ],
+        "source": [
+          "pycalphad/property_framework/units.py:41-42 (SM = 'J / mol / K')",
+          "pycalphad/model.py:486 (entropy = SM = -self.GM.diff(v.T)); :957 (ideal_mixing_term uses v.R)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "MolarEntropy (SAME DIMENSION, DIFFERENT PHYSICS/BASIS)", "quantity_tag": "molar_entropy", "notes": "Marked already-mapped ONLY at the dimension/tag level: the map's molar_entropy tag and MolarEntropy node share the exponent vector (1,2,-2,-1,-1,0,0). But the map's node is a phonon-gas entropy per mole of PRIMITIVE CELLS; CALPHAD SM is the assessed total entropy per mole of ATOMS. These are cross-code COUSINS. Encode decision: either (a) add a basis label (per_mole_of_atoms vs per_mole_of_cells) + a producer tag to the existing node, or (b) mint a distinct MolarEntropy[source=calphad] variant. Do NOT let a CALPHAD SM instance and a phonopy MolarEntropy instance merge as the same evidence."}
+    },
+    {
+      "name": "molar-heat-capacity",
+      "quantity": "Molar heat capacity at constant pressure, CP_m = -T d^2(GM)/dT^2",
+      "symbol": "CPM (C_P,m)",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": -1, "N": -1, "I": 0, "J": 0},
+      "index_structure": [],
+      "units": "J / mol / K (per mole of atoms). units.py:44-45: `cpm_implementation_units = CPM_implementation_units = 'J / mol / K'`, display name 'Heat Capacity'. CPM = Model.heat_capacity = -v.T*GM.diff(v.T, v.T) (model.py:489).",
+      "producing_api": "pycalphad.calculate/equilibrium(..., output='CPM'); second T-derivative of the assessed Gibbs energy.",
+      "conversion_to_canonical": "J/mol/K = ENERGY_PER_TEMPERATURE_PER_MOLE (1,2,-2,-1,-1,0,0). CRITICAL BASIS + KIND TRAP: the map HAS MolarHeatCapacity (nodes.py:156-166) BUT (1) it is a CONSTANT-VOLUME C_V harmonic-phonon heat capacity per mole of PRIMITIVE CELLS, whereas CALPHAD CPM is CONSTANT-PRESSURE C_P per mole of ATOMS; C_P != C_V (they differ by the TV alpha^2/kappa dilation term). (2) The map ALSO has a per-mode HeatCapacity node with dimension ENERGY_PER_TEMPERATURE (1,2,-2,-1,0,0, NO mole axis) indexed (q,nu): that per-mode phonon node is a DIFFERENT dimension AND kind entirely from CALPHAD CPM. Be precise: CALPHAD CPM is the molar (N=-1) constant-pressure heat capacity, NOT the per-mode HeatCapacity and NOT identical to MolarHeatCapacity (C_P vs C_V, atoms vs cells).",
+      "anchors": {
+        "usage": [
+          "(CPM not directly read by the two skills; cataloged. The magnetic and Einstein Model contributions (model.py:1064,1146,1167-1189) enter CPM through the second T-derivative.)"
+        ],
+        "source": [
+          "pycalphad/property_framework/units.py:44-45 (CPM = 'J / mol / K', name 'Heat Capacity')",
+          "pycalphad/model.py:489 (heat_capacity = CPM = -v.T*self.GM.diff(v.T, v.T))"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "MolarHeatCapacity (SAME DIMENSION, C_P-vs-C_V + basis mismatch)", "quantity_tag": "molar_heat_capacity", "notes": "already-mapped at dimension/tag level (both are molar_heat_capacity, ENERGY_PER_TEMPERATURE_PER_MOLE). But the map's node is C_V (constant volume, harmonic phonons, per mole of primitive cells); CALPHAD CPM is C_P (constant pressure, assessed model, per mole of atoms). C_P and C_V are physically distinct (C_P - C_V = T V alpha^2 / kappa_T). Cross-code cousin. Encode decision: label the ensemble (constant_p vs constant_v) and the basis, or mint a MolarHeatCapacity[ensemble=constant_p,source=calphad] variant. NEVER equate with the per-mode HeatCapacity node (that one has no mole axis and is indexed (q,nu))."}
+    },
+    {
+      "name": "chemical-potential",
+      "quantity": "Chemical potential of a component: the equilibrium partial molar Gibbs energy, and the tie-line-defining quantity of the CALPHAD minimization",
+      "symbol": "MU (mu_i)",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": -1, "I": 0, "J": 0, "note": "energy per mole; same as molar Gibbs energy"},
+      "index_structure": ["component / species i (one MU per non-vacancy component)"],
+      "units": "J / mol. variables.py:830-836: `class ChemicalPotential(StateVariable): implementation_units = 'J / mol'; display_units = 'J / mol'; display_name = 'Chemical Potential {species}'`. Aliased v.MU (variables.py:937). equilibrium() returns MU as a base Dataset output (equilibrium.py:49,72,81).",
+      "producing_api": "pycalphad.equilibrium(...).MU (the Lagrange multipliers of the mass-balance constraints, i.e. the common-tangent hyperplane of the minimization); also a conditionable state variable (CONDITIONS_REQUIRING_HESSIANS includes ChemicalPotential, variables.py:941).",
+      "conversion_to_canonical": "J/mol, ENERGY_PER_MOLE (1,2,-2,0,-1,0,0). No map node. The chemical potential is the per-component partial molar Gibbs energy; it defines the tie-lines and is the CALPHAD analog of the DFT chemical-potential references mu_i that enter the map's (in-flight, pymatgen scan) defect-formation-energy and intercalation-voltage closed forms, but here it is COMPUTED by the Gibbs minimization, not supplied as an elemental reference.",
+      "anchors": {
+        "usage": [
+          "(MU is a default equilibrium output; the skills draw phase boundaries which ARE the loci of equal MU across phases. binplot/equilibrium compute it internally at plot_phase_diagram.py:76 / plot_phase_fractions.py:68.)"
+        ],
+        "source": [
+          "pycalphad/variables.py:830-836 (ChemicalPotential, 'J / mol'), :937 (MU = ChemicalPotential), :941 (CONDITIONS_REQUIRING_HESSIANS)",
+          "pycalphad/core/equilibrium.py:49,72,81 (MU is a base output; chemical_potentials read per index)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "chemical_potential (proposed)", "notes": "New node, J/mol, ENERGY_PER_MOLE, indexed by component. It is the common-tangent hyperplane of the Gibbs minimization (the multi-component generalization of the hull tie-line). Distinct from the map's mu_i elemental references (which are inputs to defect/voltage formulas): CALPHAD MU is an OUTPUT of the equilibrium. Provenance = TDB + (comps, phases, conds)."}
+    },
+    {
+      "name": "phase-fraction",
+      "quantity": "Equilibrium molar amount (fraction) of each stable phase in the assemblage",
+      "symbol": "NP (f_phase)",
+      "dimension": {"M": 0, "L": 0, "T": 0, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "dimensionless molar amount"},
+      "index_structure": ["phase index (which stable phase)"],
+      "units": "dimensionless (fraction). variables.py:488-494: `class PhaseFraction(StateVariable): implementation_units = 'fraction'; display_units = 'fraction'`, varname 'NP_<phase>'. Aliased v.NP (variables.py:938). Under the v.N: 1 normalization used by the skills, NP is the mole fraction of each phase in the equilibrium assemblage (lever rule).",
+      "producing_api": "pycalphad.equilibrium(dbf, comps, phases, conds).NP -> xarray of per-phase molar amounts; paired with eq.Phase (the stable phase-name labels). THE primary output of the property-diagram skill.",
+      "conversion_to_canonical": "dimensionless; no map node. This is the distinctive lever-rule output of a Gibbs-minimization engine (how much of each phase coexists), with no analog on the phonon/DFT map.",
+      "anchors": {
+        "usage": [
+          "mat-calphad-property-diagram/scripts/plot_phase_fractions.py:73-92 (comment 'eq.NP gives the phase fractions (Molar Amount of Phase)'; eq.NP.values indexed [0,0,temp,0,idx]; plotted vs T, filtered >1e-3), :96 (ylabel 'Phase Fraction')"
+        ],
+        "source": [
+          "pycalphad/variables.py:488-505 (PhaseFraction, 'fraction', NP_<phase>, result += compset.NP), :938 (NP = PhaseFraction)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "phase_fraction (proposed)", "notes": "New source-tier observable of the thermochemistry domain (dimensionless, indexed by phase). The headline output of mat-calphad-property-diagram: the equilibrium molar amount of each coexisting phase vs T (solidification/heat-treatment paths). No analog on the current map. Depends on the whole equilibrium (all phases in the TDB); provenance = TDB + composition + (T,P). A phase-fraction-vs-T curve is a spectrum/array instance, like si-frequency-qe.json, not a single scalar."}
+    },
+    {
+      "name": "site-fraction",
+      "quantity": "Sublattice site fraction: the internal composition degree of freedom of each phase's sublattice model",
+      "symbol": "Y (y_s,j)",
+      "dimension": {"M": 0, "L": 0, "T": 0, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "dimensionless fraction"},
+      "index_structure": ["phase", "sublattice s", "species j on that sublattice"],
+      "units": "dimensionless (fraction). variables.py:412-417: `class SiteFraction(StateVariable): implementation_units = 'fraction'; display_units = 'fraction'`, repr 'Y(phase,subl,species)' (variables.py:482-485). The internal DOF pycalphad minimizes over within each phase (compositional order parameter of the compound-energy formalism).",
+      "producing_api": "pycalphad.equilibrium(...).Y and calculate(...) points; the sublattice occupancies that the compound-energy-formalism Model is built on (Model.moles / site_ratios, model.py:410-461).",
+      "conversion_to_canonical": "dimensionless; no map node. Site fractions are the internal representation coordinates of the CALPHAD sublattice model (which sublattice holds which species, and in what fraction). They are more a REPRESENTATION coordinate of the phase than a physical observable.",
+      "anchors": {
+        "usage": [
+          "(Y is minimized internally by equilibrium/binplot at plot_phase_diagram.py:76 / plot_phase_fractions.py:68; the skills do not print it, but every GM evaluation is a function of Y.)"
+        ],
+        "source": [
+          "pycalphad/variables.py:412-485 (SiteFraction, 'fraction', Y(phase,subl,species) repr)",
+          "pycalphad/model.py:410-461 (moles / site_ratios / _site_ratio_normalization over sublattices)"
+        ]
+      },
+      "status": "representation-only",
+      "maps_to": {"node": null, "quantity_tag": null, "notes": "Representation-only: site fractions Y are the internal sublattice-occupancy coordinates of the compound-energy-formalism model, the CALPHAD analog of a discretization/representation choice on the phase, not a physical observable. They belong in the representation/provenance of a phase's Gibbs energy (which sublattice model), not as a map Space. Analogous to how the pymatgen scan treats site symmetry / Voigt packing as representation."}
+    },
+    {
+      "name": "activity",
+      "quantity": "Thermodynamic activity of a component, a_i = exp((mu_i - mu_i_ref)/RT)",
+      "symbol": "a_i (ACR)",
+      "dimension": {"M": 0, "L": 0, "T": 0, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "dimensionless"},
+      "index_structure": ["component i"],
+      "units": "dimensionless. Derived from the chemical potential MU (J/mol) and the gas constant v.R (8.3145 J/mol/K): a_i = exp((mu_i - mu_i^ref)/(R T)). pycalphad computes it via the ReferenceState meta-property / property framework (reference-shifted MU); not a hardcoded 'ACR' StateVariable with its own implementation_units, but a derived dimensionless ratio.",
+      "producing_api": "pycalphad.property_framework ReferenceState (metaproperties.py:232-322) shifts MU to a chosen reference plane; activity = exp((MU_shifted)/(R T)). The pycalphad activity tutorial uses this ReferenceState + MU route.",
+      "conversion_to_canonical": "dimensionless; no map node. Activity is the exponential of the reference-shifted chemical potential over RT: a derived quantity, one per component, encoding deviation from ideal/reference behavior.",
+      "anchors": {
+        "usage": [
+          "(not computed by the two calphad-agent skills; cataloged for domain completeness because activity is a canonical CALPHAD output and the task brief lists it. It is reachable from the same equilibrium MU the skills already compute.)"
+        ],
+        "source": [
+          "pycalphad/property_framework/metaproperties.py:232-322 (ReferenceState meta-property: reference-plane shift of a property, the mechanism activity is built on)",
+          "pycalphad/variables.py:939 (v.R = 8.3145 J/mol/K, the RT in the activity exponent)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "activity (proposed)", "notes": "New node, dimensionless, indexed by component. Derived from ChemicalPotential + a chosen ReferenceState via a_i = exp((mu_i - mu_i_ref)/RT). A contract candidate downstream of a chemical_potential node; low priority relative to phase_fraction / molar_gibbs_energy but physically central to CALPHAD (drives oxidation, vapor pressure). Reference state (the mu_i_ref choice) is the producing scheme."}
+    },
+    {
+      "name": "transition-temperature",
+      "quantity": "Phase-transition temperatures read off the phase diagram: liquidus, solidus, solvus, and invariant (eutectic/eutectoid/peritectic) temperatures",
+      "symbol": "T_liq, T_sol, T_inv",
+      "dimension": {"M": 0, "L": 0, "T": 0, "Theta": 1, "N": 0, "I": 0, "J": 0, "note": "temperature, K"},
+      "index_structure": ["boundary / invariant identity (which transition, at which composition)"],
+      "units": "KELVIN. The T axis of binplot (v.T conditions, variables.py:902 TemperatureType implementation_units='kelvin'). Liquidus/solidus/solvus are the phase-boundary curves T(x); invariant points (eutectic etc.) are the fixed (T,x) where three phases coexist. The Al-Zn example README cites eutectoid ~550 K, liquidus from ~933 K (Al) to ~692 K (Zn).",
+      "producing_api": "pycalphad.binplot(dbf, comps, phases, conds) draws the T-x boundaries by sweeping equilibrium over the (T,X) grid (plot_phase_diagram.py:76); the transition temperatures are the boundary loci, read from the diagram (not returned as a labeled scalar by the skill, but they ARE the physical content).",
+      "conversion_to_canonical": "Kelvin; the map's temperature dimension (0,0,0,1,0,0,0) and Temperature Source node use K. But Temperature on the map is an INPUT (a Source you provide); a CALPHAD transition temperature is an OUTPUT (a computed locus where phases exchange stability). Distinct role: a derived observable, not the input Temperature node.",
+      "anchors": {
+        "usage": [
+          "mat-calphad-phase-diagram/scripts/plot_phase_diagram.py:62-67 (conds: v.T (t_start,t_stop,t_step), v.X(el2) (0,1,0.02)), :76 (binplot draws liquidus/solidus/solvus), :80-81 (axes 'Mole Fraction'/'Temperature (K)')",
+          "mat-calphad-phase-diagram/examples/Al-Zn/README.md (liquidus ~933K->692K, eutectoid ~550K, FCC miscibility gap)"
+        ],
+        "source": [
+          "pycalphad/variables.py:901-904 (TemperatureType, 'kelvin', v.T)",
+          "pycalphad/mapping/compat_api.py:6-8 (binplot: binary isobaric phase diagram)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "transition_temperature (proposed)", "notes": "New node, temperature (K), the output side. Liquidus/solidus/solvus/invariant temperatures are the physical content of a phase diagram. Distinct from the input Temperature Source node (which you provide): a transition temperature is COMPUTED by the equilibrium/binplot as the locus where phase stability changes. A phase boundary is a curve T(x), an array/spectrum instance; an invariant point is a scalar (T,x). Provenance = TDB + comps + phases."}
+    },
+    {
+      "name": "phase-diagram",
+      "quantity": "The binary T-x (temperature-composition) phase diagram: the map of which phase assemblage is stable over (T, x)",
+      "symbol": "diagram(T,x)",
+      "dimension": {"note": "a product/artifact: T axis in K, x axis dimensionless mole fraction, regions labeled by stable-phase sets"},
+      "index_structure": ["temperature grid", "composition grid"],
+      "units": "T in KELVIN, x dimensionless mole fraction (v.X, MoleFraction implementation_units='fraction', variables.py:528-534). The diagram itself is the boundary set + region labels, not a single scalar.",
+      "producing_api": "pycalphad.binplot(dbf, comps, phases, conds, plot_kwargs) (plot_phase_diagram.py:76); ternplot for ternary isotherms (compat_api.py:65, not used by the current skill: 'Ternary isotherms require a separate script not yet implemented', SKILL.md constraints).",
+      "conversion_to_canonical": "no scalar map node; the phase diagram is the top-level PRODUCT of the domain (analog of a full band structure or a full kappa-vs-T curve: a derived representation aggregating many equilibrium solves). Its atomic contents (phase fractions, transition temperatures, stable-phase labels) are the mapped quantities.",
+      "anchors": {
+        "usage": [
+          "mat-calphad-phase-diagram/scripts/plot_phase_diagram.py:76 (binplot(dbf, comps, phases, conds)), whole-file (the skill IS a phase-diagram producer)"
+        ],
+        "source": [
+          "pycalphad/mapping/compat_api.py:6-42 (binplot, binary isobaric phase diagram, returns Axes), :65-105 (ternplot)",
+          "pycalphad/variables.py:528-534 (MoleFraction v.X, 'fraction')"
+        ]
+      },
+      "status": "representation-only",
+      "maps_to": {"node": null, "quantity_tag": null, "notes": "Representation-only: the phase diagram is a derived PRODUCT/artifact aggregating many Gibbs minimizations (like the pymatgen scan's PDPlotter output or a full kappa(T) curve). It is not itself a Space; its scalar contents (phase_fraction, transition_temperature, chemical_potential) are the mappable quantities. Binplot/ternplot are the map's binary/ternary diagram products; the current skill implements only the binary route."}
+    },
+    {
+      "name": "tdb-assessed-database",
+      "quantity": "The Thermodynamic DataBase: the assessed Gibbs-energy model set (lattice stabilities + excess parameters) that IS the CALPHAD engine's physics",
+      "symbol": "TDB (Database)",
+      "dimension": {"note": "not a physical quantity: a model artifact carrying assessed G(T,x) functions"},
+      "index_structure": ["element", "phase", "sublattice model", "parameter (GHSER*, L, magnetic)"],
+      "units": "the TDB functions are Gibbs energies in J/mol (SGTE convention: GHSER* polynomials a + b*T + c*T*ln(T) + sum d_n*T^n + e*T^-1, in J per mole of atoms). alzn_mey.tdb defines GHSERAL, GHSERZN, GALLIQ, GZNLIQ etc. as such polynomials with T-range breakpoints.",
+      "producing_api": "pycalphad.Database(path) (io/database.py; io/tdb.py registers the TDB format hook, __init__.py). Database.phases, .elements, .symbols expose the loaded model. plot_phase_diagram.py:51,57 (dbf = Database(tdb); phases = list(dbf.phases.keys())).",
+      "conversion_to_canonical": "not a quantity; it is the MODEL/CHECKPOINT of the domain. The TDB + its assessment citation is the CALPHAD analog of the MLIP checkpoint or the DFT pseudopotential: the frozen, versioned model that produces every value. Provenance = which TDB file, which published assessment.",
+      "anchors": {
+        "usage": [
+          "mat-calphad-phase-diagram/scripts/plot_phase_diagram.py:51 (dbf = Database(args.tdb)), :57 (dbf.phases.keys())",
+          "mat-calphad-property-diagram/scripts/plot_phase_fractions.py:58,61 (Database, dbf.phases)",
+          "mat-calphad-phase-diagram/examples/Al-Zn/alzn_mey.tdb (NIMS 2009; parameters from S. an Mey, Z. Metallkd. 84 (1993) 451-455; header lines 1-19)"
+        ],
+        "source": [
+          "pycalphad/io/database.py (class Database), pycalphad/io/tdb.py (TDB read/write format hook), pycalphad/__init__.py:7,11 (Database import + tdb hook trigger)"
+        ]
+      },
+      "status": "representation-only",
+      "maps_to": {"node": "Structure/Potential-analog (a MODEL artifact, not a Space)", "quantity_tag": null, "notes": "Representation-only, and the DOMAIN'S DEFINING ARTIFACT. The TDB is to CALPHAD what the MLIP checkpoint is to the mat-* MLIP skills and the pseudopotential is to QE: the assessed, versioned model the engine reads. It carries the assessment provenance (which TDB, which paper) that every CALPHAD instance must record as conditions. Not a physical Space; the analog of provenance/representation layers elsewhere. The GHSER* lattice-stability functions are the SER-referenced pure-element Gibbs energies (distinctions #1)."}
+    },
+    {
+      "name": "molar-mass-density-context",
+      "quantity": "Molar mass (g/mol) context that pycalphad builds to convert per-mole to per-mass quantities",
+      "symbol": "M_molar",
+      "dimension": {"M": 1, "L": 0, "T": 0, "Theta": 0, "N": -1, "I": 0, "J": 0, "note": "g/mol"},
+      "index_structure": [],
+      "units": "g/mol (g/mol-atom). units.py:67,73: `molar_weight = 0.0 # g/mol-atom`; `molar_weight = Q_(molar_weight, 'g/mol')`. Built from compset molar_masses to enable per-mole <-> per-mass (per gram) conversions of GM/HM/SM/CPM.",
+      "producing_api": "pycalphad.property_framework.units.unit_conversion_context / _conversions_per_formula_unit (units.py:48-91); invoked by to_display_units to convert e.g. J/mol -> J/g.",
+      "conversion_to_canonical": "g/mol; the map's atomic-mass axis is amu (per atom) not g/mol (per mole). g/mol = amu numerically (1 amu = 1 g/mol by definition of the mole), but the map's AtomicMass node is per-atom amu, whereas this is the per-mole molar mass of the phase. Derivable, low value.",
+      "anchors": {
+        "usage": [
+          "(internal to pycalphad's unit-conversion machinery; not called by the skills, cataloged because it is HOW pycalphad handles the per-mole normalization the distinctions object hinges on)"
+        ],
+        "source": [
+          "pycalphad/property_framework/units.py:48-91 (_conversions_per_formula_unit, unit_conversion_context; molar_weight in g/mol-atom; atom = 1/avogadro_number * mol at :14)"
+        ]
+      },
+      "status": "representation-only",
+      "maps_to": {"node": "AtomicMass-analog (unit-context, not a Space)", "quantity_tag": null, "notes": "Representation-only: the molar-mass context is pycalphad's internal machinery for per-mole<->per-mass unit conversion, not a physical observable. Cataloged because it makes the per-mole-of-atoms basis explicit (molar_weight is in g/mol-atom, and pint defines atom = mol/N_A at units.py:14): direct evidence that GM's 'mol' is mole-of-atoms. Not a map node."}
+    },
+    {
+      "name": "system-moles-condition",
+      "quantity": "The v.N condition: total moles of system, the normalization that fixes the per-mole basis of every output",
+      "symbol": "N (v.N)",
+      "dimension": {"M": 0, "L": 0, "T": 0, "Theta": 0, "N": 1, "I": 0, "J": 0, "note": "moles"},
+      "index_structure": [],
+      "units": "mol. variables.py:922-925: `class SystemMolesType(StateVariable): implementation_units = 'mol'; display_units = 'mol'; display_name = 'No. Moles'`. The skills set v.N: 1 (one mole of system atoms) in conds (plot_phase_diagram.py:63, plot_phase_fractions.py:65), which makes GM/HM/SM/CPM and NP per-mole-of-atoms and phase-fraction respectively.",
+      "producing_api": "supplied as a condition to equilibrium/binplot (conds = {v.N: 1, v.P: 101325, v.T: (...), v.X(el): ...}); an IndependentPotential-family state variable.",
+      "conversion_to_canonical": "mol; a condition/parameter, not an observable. It is the normalization knob: v.N: 1 = per mole of atoms. Analogous to the map's promoted parameters (AtomCount, CellVolume) that set the normalization of extensive quantities.",
+      "anchors": {
+        "usage": [
+          "mat-calphad-phase-diagram/scripts/plot_phase_diagram.py:62-67 (conds = {v.N: 1, v.P: 101325, v.T: (t_start,t_stop,t_step), v.X(el2): (0,1,0.02)})",
+          "mat-calphad-property-diagram/scripts/plot_phase_fractions.py:65 (conds = {v.N: 1, v.P: 101325, v.T: (...), v.X(solute): comp_val})"
+        ],
+        "source": [
+          "pycalphad/variables.py:922-925 (SystemMolesType, 'mol', 'No. Moles'), :834 (P=101325 Pa is v.P, PressureType 'pascal' variables.py:912-915)"
+        ]
+      },
+      "status": "representation-only",
+      "maps_to": {"node": "normalization parameter (promoted-param-analog)", "quantity_tag": null, "notes": "Representation-only: v.N (and v.P = 101325 Pa) are CONDITIONS of the minimization, the normalization/state knobs, not observables. v.N: 1 is what pins the per-mole-of-atoms basis of every molar output; it is the CALPHAD analog of the map's promoted parameters (AtomCount/CellVolume) that fix extensive-quantity normalization. Record it (and P) as conditions on every CALPHAD instance."}
+    }
+  ],
+  "proposed_new_domain": {
+    "name": "thermochemistry",
+    "one_line": "Phase thermodynamics from assessed Gibbs-energy databases: the macroscopic CALPHAD side of stability, finite-T and assessed, distinct from the 0 K DFT hull.",
+    "template": "Modeled on omai/stability/domain.py (a clean single-tier Domain descriptor) and omai/thermal_transport/domain.py (multi-tier). Reuses existing dimensions ENERGY_PER_MOLE and ENERGY_PER_TEMPERATURE_PER_MOLE; introduces the phase index kind and (for boundaries) a composition/temperature grid.",
+    "proposed_tiers": [
+      {
+        "tier": "Assessed models",
+        "description": "The TDB artifact and its per-phase assessed Gibbs energies: the SER-referenced lattice stabilities (GHSER*) + Redlich-Kister excess + magnetic/Einstein terms. The domain's Sources tier (analog of thermal_transport 'Sources').",
+        "nodes": ["TDBDatabase (representation/model artifact)", "MolarGibbsEnergy (per phase, J/mol-atoms)"]
+      },
+      {
+        "tier": "Molar thermodynamics",
+        "description": "T-derivative thermodynamic potentials of the assessed Gibbs energy: enthalpy, entropy, constant-pressure heat capacity, chemical potentials. All per mole of atoms, J/mol family. Analog of thermal_transport 'Thermodynamics' but Gibbs/assessed not Helmholtz/phonon.",
+        "nodes": ["MolarEnthalpy", "MolarEntropy[source=calphad]", "MolarHeatCapacity[ensemble=constant_p,source=calphad]", "ChemicalPotential", "Activity"]
+      },
+      {
+        "tier": "Equilibrium",
+        "description": "Outputs of the Gibbs minimization at fixed (N,P,T,x): which phases coexist and in what amount. The distinctive CALPHAD tier with no phonon/DFT analog.",
+        "nodes": ["PhaseFraction (NP, dimensionless, per phase)", "SiteFraction (Y, representation coordinate)"]
+      },
+      {
+        "tier": "Phase diagram",
+        "description": "The swept-equilibrium products: transition temperatures and the T-x / isothermal diagrams. Aggregate representations, analog of thermal_transport 'Transport' cumulative products.",
+        "nodes": ["TransitionTemperature (liquidus/solidus/solvus/invariant, K)", "PhaseDiagram (binplot/ternplot product, representation-only)"]
+      }
+    ],
+    "identity_guardrails": "Because CALPHAD molar quantities share dimension vectors with the phonon Molar* nodes, node identity MUST be disambiguated by (a) a source/producer label (calphad vs phonopy), (b) a basis label (per_mole_of_atoms vs per_mole_of_primitive_cells), and (c) for heat capacity an ensemble label (constant_p vs constant_v). Otherwise a CALPHAD SM and a phonopy MolarEntropy false-merge (the registry's stated purpose: keep same-typed distinct quantities apart)."
+  },
+  "traps": [
+    "J/mol vs eV/atom: factor 96485.33212331 (= e*N_A, SI-exact, numerically the Faraday constant). CALPHAD molar energies are J/mol (N=-1 in the exponent vector); the map's DFT stability nodes are eV/atom (N=0, plain ENERGY). Any cross-code compare passes through this factor. The N axis (mole) MUST appear in the CALPHAD exponent vectors.",
+    "Molar basis triple ambiguity: pycalphad 'per mole' (with v.N: 1) is per mole of ATOMS; the map's Molar* nodes are per mole of PRIMITIVE CELLS (phonopy); a per-formula-unit basis (pycalphad G = formulaenergy) is a THIRD. All three called 'molar'. atoms/f.u. and cells/f.u. factors differ per phase.",
+    "Gibbs vs Helmholtz: CALPHAD GM/HM/SM/CPM are Gibbs-potential (constant P) quantities; the map's Molar* nodes are Helmholtz/internal (constant V) harmonic-phonon quantities. Same dimensions, different thermodynamic potential. CPM (C_P) != the map's MolarHeatCapacity (C_V): C_P - C_V = T V alpha^2 / kappa_T.",
+    "Per-mode HeatCapacity vs molar CPM: the map's per-mode HeatCapacity node is ENERGY_PER_TEMPERATURE (NO mole axis, indexed (q,nu)); CALPHAD CPM is ENERGY_PER_TEMPERATURE_PER_MOLE (mole axis, scalar). Different dimension AND different kind. Never equate.",
+    "CALPHAD stability is NOT the DFT hull: different reference state (SER vs DFT elements), finite-T (Gibbs G(T) vs 0 K formation energy), assessed (fitted TDB) vs computed (ab initio). A CALPHAD stable phase and a DFT ground state can differ; not an EXPECTED_AGREE pair without a reference bridge. (Full distinctions object above.)",
+    "R = 8.3145 hardcoded: pycalphad uses v.R = 8.3145 J/mol/K (variables.py:939), a 5-sig-fig truncation of CODATA 8.31446261815324. Every ideal-mixing and Einstein term carries this constant.",
+    "Elements uppercase + VA vacancy: TDB elements are implicitly uppercase (plot_phase_diagram.py:48); the vacancy species 'VA' must be explicitly included in comps (plot_phase_diagram.py:53-54 comment), or the sublattice models break.",
+    "Pressure baked in: conds set v.P: 101325 Pa (1 atm); GM is the Gibbs (constant-P) energy at THIS pressure. Record P as a condition.",
+    "binplot returns a matplotlib Axes, not a data table: the transition temperatures / boundaries are drawn, not returned as labeled scalars; extracting them for instances needs the Workspace/mapping API, not the plot.",
+    "phonopy emits kJ/mol, pycalphad emits J/mol: factor 1000 on top of the basis difference when bridging to the map's Molar* nodes."
+  ],
+  "open_questions": [
+    "pycalphad NOT importable in base and the calphad-agent conda env is NOT created on this machine; all API/unit anchors are read from the pip-downloaded wheel pycalphad-0.11.2 (/tmp/pcsrc/wheel), NOT a live import. core_env.yaml pins pycalphad with NO version, so a real install could differ; the property-unit declarations (units.py) are stable across recent 0.10-0.11 but pin the version at encode time.",
+    "Encode decision (mirrors the pymatgen scan's per-cell-vs-per-atom decision): do CALPHAD molar quantities get (a) SEPARATE nodes (MolarGibbsEnergy, MolarEnthalpy, plus source/basis-labeled MolarEntropy/MolarHeatCapacity variants), or (b) labels on the existing phonon Molar* nodes? Review leans (a): different thermodynamic potential (G vs F), different basis (atoms vs cells), different producer; a shared node would false-merge two physically distinct entropies/heat-capacities.",
+    "The map has MolarHelmholtzFreeEnergy and MolarInternalEnergy but NO MolarGibbsEnergy and NO MolarEnthalpy. CALPHAD supplies exactly the missing Gibbs-side pair. Confirm the domain should ADD MolarGibbsEnergy / MolarEnthalpy rather than relabel the Helmholtz nodes.",
+    "phase_fraction (NP) and transition_temperature curves are ARRAYS/spectra (vs T or vs x), like si-frequency-qe.json, not scalars. Confirm they enter via the representation/spectrum layer, not as scalar instance records; invariant points (eutectic (T,x)) ARE scalars.",
+    "activity is not read by either calphad-agent skill (they consume NP/Phase and the binplot boundaries). It is reachable from the same equilibrium MU via ReferenceState. Decide whether to open the activity node now or defer until a skill uses it.",
+    "TransitionTemperature is an OUTPUT temperature; the map's Temperature is an INPUT Source. Confirm a distinct node (transition_temperature tag) rather than reusing the Temperature Source node.",
+    "SiteFraction Y and the sublattice model: treat as representation coordinate (this scan's verdict) or expose as a node? It is the compound-energy-formalism internal DOF, analogous to the pymatgen scan's Voigt-packing / symmetry representation-only verdicts.",
+    "TDB assessment provenance: the analog of the MLIP checkpoint. Confirm the instance schema (Appendix C of docs/openmaterials.tex) records {tdb_file, assessment_citation, comps, phases, v.N, v.P, v.T, v.X} as conditions. This scan does not touch omai/ or docs/data.",
+    "ternplot (ternary isotherms) exists in pycalphad (compat_api.py:65) but the current skill implements only binplot (binary); SKILL.md notes ternary 'not yet implemented'. Anchor the ternary diagram node to the API, flag that the skill does not exercise it."
+  ]
+}
