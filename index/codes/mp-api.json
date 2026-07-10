@@ -1,0 +1,84 @@
+{
+ "representation": "mp-api",
+ "map_version": "10bfc37c633898ed51c0a789fd161bf05f42bd45d8426ac0c091ba59073f5157",
+ "covers": [
+  {
+   "node": "BandGap",
+   "uid": "7164425d1695208e46171b5030c938c3545c180b57018d51748d0507f9f08135",
+   "api": "mpr.materials.summary.search(fields=['band_gap']).band_gap, eV; also bs.get_band_gap()['energy'] from the electronic-structure endpoint",
+   "unit": "ev"
+  },
+  {
+   "node": "BulkModulus",
+   "uid": "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced",
+   "api": "mpr.materials.elasticity.search().bulk_modulus.vrh, GPa (nested {voigt, reuss, vrh} dict)",
+   "unit": "GPa"
+  },
+  {
+   "node": "DielectricTensor",
+   "uid": "a84077d8f12cf490f370b5cd0b98a47e3e31b7ec75fc8763699763f8b2313db4",
+   "api": "mpr.materials.summary.search(fields=['e_electronic']).e_electronic, dimensionless (electronic dielectric constant)",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "ElasticConstants",
+   "uid": "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e",
+   "api": "mpr.materials.elasticity.search().elastic_tensor.{raw, ieee_format} (Voigt 6x6), GPa",
+   "unit": "GPa"
+  },
+  {
+   "node": "EnergyAboveHull",
+   "uid": "910d47d67a7308728e2f7d211a08c1590239c7b802cd75128f00cd103a719b84",
+   "api": "mpr.materials.summary.search(fields=['energy_above_hull']).energy_above_hull, eV/atom; also mpr.materials.thermo.search(thermo_types=[...])",
+   "unit": "ev_per_atom"
+  },
+  {
+   "node": "FormationEnergy",
+   "uid": "a385b7ca981904ab5d82176557d453cea4995164adfa22a6ca195e1dfcd815d5",
+   "api": "mpr.materials.summary.search(fields=['formation_energy_per_atom']).formation_energy_per_atom, eV/atom",
+   "unit": "ev_per_atom"
+  },
+  {
+   "node": "MagneticMoment",
+   "uid": "1423a9b16e18881e4388fee44f536891a6295aaa6e0fc3775bbbe89ee480847a",
+   "api": "mpr.materials.magnetism.search().magmoms[i] (per-site list, mu_B); MagnetismDoc.magmoms",
+   "unit": "mu_B"
+  },
+  {
+   "node": "PoissonRatio",
+   "uid": "e95ba3f5810f8554656c148dae26520cf3258cace0b951dd75e69ee8c552c132",
+   "api": "mpr.materials.elasticity.search().homogeneous_poisson, dimensionless",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "ShearModulus",
+   "uid": "1ab85488c90143e38b94e27f93ab96571f381e7b09d507fa7a38216ffd34c5ec",
+   "api": "mpr.materials.elasticity.search().shear_modulus.vrh, GPa (nested {voigt, reuss, vrh} dict)",
+   "unit": "GPa"
+  },
+  {
+   "node": "Structure",
+   "uid": "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239",
+   "api": "mpr.materials.summary.search(fields=['structure']).structure / mpr.materials.get_structure_by_material_id(material_id) -> pymatgen Structure, angstrom",
+   "unit": null
+  },
+  {
+   "node": "SurfaceEnergy",
+   "uid": "306384aed4a1204fb7ca2347729de8d1816fa5fc32f4855a5d5f56a4d0fc1ddf",
+   "api": "mpr.materials.summary.search(fields=['weighted_surface_energy']).weighted_surface_energy, J/m^2 (Wulff-weighted aggregate)",
+   "unit": "J_per_m2"
+  },
+  {
+   "node": "Voltage",
+   "uid": "26831a0aabc3508a944405ec2fd763a0637abeeac1ed3d87df64c27392d638f4",
+   "api": "mpr.materials.insertion_electrodes.search(working_ion=...).average_voltage, V",
+   "unit": "volt"
+  },
+  {
+   "node": "YoungsModulus",
+   "uid": "022d18213f7d63713ef4fddb484e1ae6d898873ce20377176013f620225637d8",
+   "api": "mpr.materials.elasticity.search().young_modulus, SI Pa (DIVIDE by 1e9 for GPa)",
+   "unit": "Pa"
+  }
+ ]
+}
