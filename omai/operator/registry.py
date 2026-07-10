@@ -132,6 +132,9 @@ QUANTITY_TAGS: dict[str, str] = {
     "velocity_autocorrelation": "Atom-and-time-averaged velocity autocorrelation function.",
     "mean_squared_displacement": "Atom-and-time-averaged mean squared displacement (diffusion probe).",
     "diffusivity": "Self-diffusion coefficient from the Einstein relation.",
+    "electrical_conductivity": "Electrical conductivity from a carrier flux; the ionic (Nernst-Einstein) carrier is a tracer-diffusivity conductivity, the electronic carrier the amset sibling (kept apart by the carrier label).",
+    "configurational_energy": "Lattice-model (cluster-expansion) energy of a configuration on a fixed lattice; a fitted-Hamiltonian energy, distinct from a relaxed-structure DFT/MLIP total energy.",
+    "reaction_energy": "Stoichiometric reaction energy of a balanced solid-state reaction, combined from the per-atom formation energies of reactants and products.",
     "activation_energy": "Arrhenius activation energy from the temperature dependence of diffusivity.",
     "cell_volume": "Volume of the primitive unit cell (promoted parameter).",
     "atomic_mass": "Per-atom masses (promoted parameter).",
@@ -217,4 +220,12 @@ LABEL_KEYS: dict[str, frozenset[str]] = {
     ),
     "channel": frozenset({"anharmonic_3ph", "isotope", "boundary", "total"}),
     "wrt": frozenset({"omega", "mfp"}),
+    # The charge carrier of an electrical conductivity: ionic (Nernst-Einstein
+    # from a tracer diffusivity, this contribution) vs electronic (the amset
+    # sibling that joins the same ElectricalConductivity family). Same
+    # electrical_conductivity tag and ELECTRICAL_CONDUCTIVITY dimension, kept
+    # apart as distinct nodes only by this carrier label. Collision-free
+    # against the other label keys (order, bte_solver, transport_model,
+    # channel, wrt): no value or key overlaps.
+    "carrier": frozenset({"ionic", "electronic"}),
 }

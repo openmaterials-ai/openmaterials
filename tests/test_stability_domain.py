@@ -62,7 +62,7 @@ def test_stability_nodes_are_the_five_energy_difference_observables():
 
     assert [s.name for s in NODES] == [
         "FormationEnergy", "EnergyAboveHull", "SurfaceEnergy", "Voltage",
-        "AdsorptionEnergy"]
+        "AdsorptionEnergy", "ReactionEnergy"]
 
 
 def test_stability_edges_are_the_five_operators():
@@ -71,7 +71,7 @@ def test_stability_edges_are_the_five_operators():
     assert [op.name for op in EDGES] == [
         "compute_formation_energy", "compute_energy_above_hull",
         "compute_surface_energy", "compute_intercalation_voltage",
-        "compute_adsorption_energy"]
+        "compute_adsorption_energy", "compute_reaction_energy"]
 
 
 # --------------------------------------------------------------------------

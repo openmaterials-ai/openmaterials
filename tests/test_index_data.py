@@ -65,7 +65,11 @@ def test_write_index_emits_one_file_per_representation(tmp_path):
     codes_dir = tmp_path / "codes"
     files = sorted(p.name for p in codes_dir.glob("*.json"))
     reps = sorted(build_codes(DOMAINS).keys())
-    assert files == [f"{r}.json" for r in reps]
+    # One file per representation, named <rep>.json. Compared as sets: a plain
+    # sorted-list compare is fragile when one rep name is a prefix of another
+    # (pymatgen vs pymatgen-analysis-diffusion sort differently before and after
+    # suffixing, because '-' < '.').
+    assert set(files) == {f"{r}.json" for r in reps}
     # One file per representation; the count grows as domains add codes /
     # skills (the mechanics domain added the mat-elasticity skill, 10th rep;
     # the pymatgen scan added the pymatgen rail, 11th; the MLIP-family scan
@@ -74,9 +78,10 @@ def test_write_index_emits_one_file_per_representation(tmp_path):
     # 16th; the pycalphad scan added the pycalphad rail, 17th; the matcalc/ASE
     # scan added the ase Structure/Trajectory coverage and the two skill rails
     # mat-equation-of-state and mat-surface-adsorption, 18th-19th (matcalc
-    # itself is NOT a rail, the atomate2 ruling).
+    # itself is NOT a rail, the atomate2 ruling); the config-thermo scan added
+    # smol, rxn-network, and pymatgen-analysis-diffusion, 20th-22nd.
     assert len(files) == len(reps)
-    assert len(files) == 19
+    assert len(files) == 22
 
 
 def test_each_index_entry_uid_matches_live_node_id(tmp_path):

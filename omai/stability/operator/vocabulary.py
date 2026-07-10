@@ -32,4 +32,8 @@ register_space_symbols({
     # Adsorption energy: just its field symbol (the adslab / slab / adsorbate
     # selectors are applied functions, invisible to the free-symbol check).
     "AdsorptionEnergy": {r"E_{ads}"},
+    # Reaction energy: its field symbol (the stoichiometric-combination
+    # selector E^{rxn} is an applied function over the FormationEnergy family,
+    # invisible to the free-symbol check).
+    "ReactionEnergy": {r"\Delta E_{rxn}"},
 })

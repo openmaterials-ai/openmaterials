@@ -13,6 +13,7 @@ Node table:
   SurfaceEnergy    surface_energy     ENERGY_PER_LENGTH_SQUARED  ()
   Voltage          voltage            VOLTAGE (M L^2 T^-3 I^-1)  ()
   AdsorptionEnergy adsorption_energy  ENERGY                     ()
+  ReactionEnergy   reaction_energy    ENERGY                     ()
 
 AdsorptionEnergy (added 2026-07-10 from the matcalc/ASE scan) is surface
 energetics kin to SurfaceEnergy: a scalar ENERGY per adsorbate-surface
@@ -39,6 +40,18 @@ registered hkl index kind, deliberately).
 Voltage is the map's first use of the electric-current axis (the volt,
 M L^2 T^-3 I^-1); eV per elementary charge = 1 V exactly, so the eV energy
 differences of the Nernst form are already volts.
+
+ReactionEnergy (added 2026-07-10 from the config-thermo scan, rxn_network) is
+the stoichiometric reaction energy of a balanced solid-state reaction, combined
+from the per-atom formation energies of reactants and products (plain ENERGY,
+served per reaction-atom eV/atom or total eV; the normalization is an instance
+condition, not the dimension, exactly like the other energy-difference nodes).
+It is EXPLICITLY NOT the finite-T SISSO Gibbs formation energy dGf(T) that
+rxn_network builds the reactions FROM: that GibbsComputedEntry descriptor
+(300-2000 K, ~50 meV/atom MAD, MP-derived) is a finite-temperature COUSIN of
+FormationEnergy, never naively equated to the 0 K / 298 K DFT FormationEnergy
+this node's producing edge consumes. A distinct quantity from a single-compound
+FormationEnergy, kept apart by the reaction_energy tag.
 """
 from __future__ import annotations
 
@@ -138,10 +151,38 @@ ADSORPTION_ENERGY = ObservableSpace(
     ),
 )
 
+REACTION_ENERGY = ObservableSpace(
+    name="ReactionEnergy",
+    fields=(Field("dE_rxn", ENERGY, indices=()),),
+    tier="Stability",
+    description=(
+        "Reaction energy dE_rxn of a balanced solid-state reaction: the "
+        "stoichiometric combination of the per-atom formation energies of the "
+        "products minus the reactants, weighted by the balancing coefficients, "
+        "the thermodynamic driving force a reaction network scores. Plain "
+        "ENERGY (M L^2 T^-2), served either per reaction-atom (eV/atom = "
+        "energy / num_atoms, the skills' printed dG) or total eV "
+        "(coefficient-dependent, as-balanced); which normalization an instance "
+        "uses is a condition, not the dimension, exactly like the per-cell / "
+        "per-atom split on the other energy-difference nodes. A DISTINCT "
+        "quantity from a single-compound FormationEnergy (a difference of "
+        "differences over a balanced reaction), kept apart by the "
+        "reaction_energy tag. It is EMPHATICALLY NOT the finite-T SISSO Gibbs "
+        "formation energy dGf(T) rxn_network builds reactions from (the "
+        "GibbsComputedEntry descriptor, 300-2000 K, ~50 meV/atom MAD, "
+        "MP-derived): that is a finite-temperature COUSIN of FormationEnergy, "
+        "never naively equated to the 0 K / 298 K DFT FormationEnergy the "
+        "producing edge consumes here. The reactants / products set, the "
+        "balancing, and the MP energy provenance ride in the producing edge's "
+        "scheme and the instance conditions."
+    ),
+)
+
 NODES: tuple[Space, ...] = (
     FORMATION_ENERGY,
     ENERGY_ABOVE_HULL,
     SURFACE_ENERGY,
     VOLTAGE_STATE,
     ADSORPTION_ENERGY,
+    REACTION_ENERGY,
 )

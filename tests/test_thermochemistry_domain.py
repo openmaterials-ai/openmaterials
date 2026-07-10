@@ -307,11 +307,14 @@ def test_thermochemistry_nodes_carry_the_tier():
         assert tier_of[name] == "Thermochemistry"
 
 
-def test_map_has_seventy_four_nodes_and_eleven_tiers():
+def test_map_has_seventy_seven_nodes_and_eleven_tiers():
     # 73 through the pycalphad scan; 74 with AdsorptionEnergy (2026-07-10,
-    # matcalc/ASE scan), which joins the existing Stability tier (no new tier).
+    # matcalc/ASE scan); 77 with the config-thermo scan's
+    # ElectricalConductivity[carrier=ionic] + ConfigurationalEnergy (joining the
+    # existing Diffusion tier) and ReactionEnergy (joining Stability). No new
+    # tier.
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 74
+    assert len(g["nodes"]) == 77
     assert len(g["tiers"]) == 11
 
 
@@ -353,19 +356,23 @@ def test_pycalphad_rail_covers_the_six_nodes():
     assert pc["AssessedDatabase"]["unit"] is None
 
 
-def test_pycalphad_is_a_rail_and_the_matcalc_scan_added_two_skill_rails():
+def test_pycalphad_is_a_rail_and_the_config_thermo_scan_added_three_rails():
     from omai.map_data import build_codes
 
     codes = build_codes(DOMAINS)
     # pycalphad was the 17th rail when it landed; the matcalc/ASE scan
-    # (2026-07-10) added the mat-equation-of-state and mat-surface-adsorption
-    # skill rails (matcalc itself is NOT a rail, the atomate2 ruling), bringing
-    # the total to 19.
-    assert len(codes) == 19
+    # (2026-07-10) added mat-equation-of-state and mat-surface-adsorption
+    # (matcalc itself is NOT a rail, the atomate2 ruling), reaching 19; the
+    # config-thermo scan (2026-07-10) added three more: smol, rxn-network, and
+    # pymatgen-analysis-diffusion, reaching 22.
+    assert len(codes) == 22
     assert "pycalphad" in codes
     assert "mat-equation-of-state" in codes
     assert "mat-surface-adsorption" in codes
     assert "matcalc" not in codes
+    assert "smol" in codes
+    assert "rxn-network" in codes
+    assert "pymatgen-analysis-diffusion" in codes
 
 
 # --------------------------------------------------------------------------

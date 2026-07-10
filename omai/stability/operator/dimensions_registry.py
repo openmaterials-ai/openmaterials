@@ -41,4 +41,7 @@ register_symbol_dimensions({
     # Adsorption energy: plain ENERGY (an energy difference over whole cells,
     # extensive, NOT the per-atom currency).
     r"E_{ads}": ENERGY,
+    # Reaction energy: plain ENERGY (the per-reaction-atom vs total-eV
+    # normalization belongs to the quantity, not the dimension).
+    r"\Delta E_{rxn}": ENERGY,
 })

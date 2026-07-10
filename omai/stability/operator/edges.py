@@ -39,6 +39,7 @@ from omai.stability.operator.nodes import (
     ADSORPTION_ENERGY,
     ENERGY_ABOVE_HULL,
     FORMATION_ENERGY,
+    REACTION_ENERGY,
     SURFACE_ENERGY,
     VOLTAGE_STATE,
 )
@@ -74,6 +75,9 @@ _E_ads = sp.Symbol(r"E_{ads}")
 _E_adslab = sp.Function(r"E^{adslab}")
 _E_slab_ads = sp.Function(r"E^{slab}_{ads}")
 _E_adsorbate = sp.Function(r"E^{adsorbate}")
+# Reaction energy: the stoichiometric combination of formation energies.
+_dE_rxn = sp.Symbol(r"\Delta E_{rxn}")
+_E_rxn = sp.Function(r"E^{rxn}")
 
 
 # ---------------------------------------------------------------------------
@@ -208,10 +212,37 @@ compute_adsorption_energy = Operator(
     ),
 )
 
+compute_reaction_energy = Operator(
+    name="compute_reaction_energy",
+    inputs=(FORMATION_ENERGY,),
+    outputs=(REACTION_ENERGY,),
+    schemes={"method": "stoichiometric_combination"},
+    formula=sp.Eq(_dE_rxn, _E_rxn(_dH_f)),
+    is_executable_in_sympy_override=False,
+    description=(
+        "Reaction energy Delta E_rxn = E^{rxn}[Delta H_f]: the stoichiometric "
+        "combination sum_p c_p H_f(p) - sum_r c_r H_f(r) of the per-atom "
+        "formation energies of the products and reactants of a balanced "
+        "reaction, weighted by the balancing coefficients (rxn_network's "
+        "ComputedReaction.energy over a reduced-composition entry set, total "
+        "eV; energy_per_atom = energy/num_atoms). E^{rxn} is the opaque "
+        "stoichiometric-combination function over the FormationEnergy family "
+        "(all reactant and product entries); the method scheme records the "
+        "stoichiometric_combination, and WHICH entries plus the MP energy "
+        "provenance ride in the conditions. The FormationEnergy input stands "
+        "for the family of per-entry formation energies the balanced reaction "
+        "consumes, the same family-of-values convention compute_surface_energy "
+        "uses. NOT built from the finite-T SISSO Gibbs dGf(T) cousin (a naive "
+        "equate to that descriptor is forbidden). Implicit (a balanced-reaction "
+        "combination over an entry set), so not sympy-executable."
+    ),
+)
+
 EDGES: tuple[Operator, ...] = (
     compute_formation_energy,
     compute_energy_above_hull,
     compute_surface_energy,
     compute_intercalation_voltage,
     compute_adsorption_energy,
+    compute_reaction_energy,
 )

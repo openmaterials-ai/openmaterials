@@ -134,6 +134,15 @@ VOLTAGE = Dimension("voltage", (1, 2, -3, 0, 0, -1, 0))
 # magneton). Second current-axis dimension; the per-site MagneticMoment
 # carries it. The mu_B convention lives in the unit registry, not here.
 MAGNETIC_MOMENT = Dimension("magnetic_moment", (0, 2, 0, 0, 0, 1, 0))
+# Electrical (ionic) conductivity: siemens per metre, S/m =
+# M^-1 L^-3 T^3 I^2. Derived two ways (both agree): from Nernst-Einstein,
+# (n/V)[L^-3] x z^2 e^2[I^2 T^2] x D[L^2 T^-1] / (k_B T)[M L^2 T^-2]; and from
+# S/m first principles, S = A/V = I^2 T/(M L^2 T^-2) so S/m = M^-1 L^-3 T^3 I^2.
+# The first I=+2 dimension on the map (Voltage at I=-1 already opened the
+# electric-current axis; MagneticMoment carries I=+1). EMPHATICALLY NOT
+# ThermalConductivity (1,1,-3,-1,0,0,0): different L and T signs, an I axis
+# instead of a Theta axis; they share only the English word "conductivity".
+ELECTRICAL_CONDUCTIVITY = Dimension("electrical_conductivity", (-1, -3, 3, 0, 0, 2, 0))
 
 
 DIMENSIONS: dict[str, Dimension] = {
@@ -164,5 +173,6 @@ DIMENSIONS: dict[str, Dimension] = {
         DIFFUSIVITY,
         VOLTAGE,
         MAGNETIC_MOMENT,
+        ELECTRICAL_CONDUCTIVITY,
     ]
 }

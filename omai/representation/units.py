@@ -25,6 +25,7 @@ from omai.operator.dimensions import (
     ENERGY_PER_TEMPERATURE,
     ENERGY_PER_TEMPERATURE_PER_MOLE,
     ENERGY_PER_TEMPERATURE_PER_VOLUME,
+    ELECTRICAL_CONDUCTIVITY,
     FORCE,
     FREQUENCY,
     FREQUENCY_SQUARED,
@@ -185,6 +186,14 @@ VOLT = Unit("volt", VOLTAGE, 1.0, si_scale=1.0)
 MU_B = Unit("mu_B", MAGNETIC_MOMENT, 1.0, si_scale=9.2740100783e-24)
 
 
+# Canonical electrical-conductivity unit: the SI siemens per metre (S/m). The
+# pymatgen-analysis-diffusion Nernst-Einstein conductivity is emitted in
+# mS/cm; 1 S/m = 10 mS/cm, so mS/cm carries to_operator 0.1 to the canonical
+# S/m. (1 S/cm would be 100; the skills report mS/cm.)
+S_PER_M = Unit("s_per_m", ELECTRICAL_CONDUCTIVITY, 1.0, si_scale=1.0)
+MS_PER_CM = Unit("ms_per_cm", ELECTRICAL_CONDUCTIVITY, 0.1)
+
+
 UNITS: dict[str, Unit] = {
     u.name: u
     for u in [
@@ -220,6 +229,8 @@ UNITS: dict[str, Unit] = {
         DIMENSIONLESS_UNIT,
         VOLT,
         MU_B,
+        S_PER_M,
+        MS_PER_CM,
     ]
 }
 

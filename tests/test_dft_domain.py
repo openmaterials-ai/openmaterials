@@ -665,7 +665,7 @@ def test_band_gap_contribution_is_records_132_133():
 # Task 5: evidence: the first QE instances from the Si cross-check.
 # --------------------------------------------------------------------------
 
-def test_instances_bundle_30_records_all_uid_pinned():
+def test_instances_bundle_32_records_all_uid_pinned():
     # 9 at genesis, 11 with the QE Si cross-check pair, 13 with the two
     # mat-elasticity Cu moduli, 22 with the nine pymatgen-scan values
     # (Cu E/nu, three Cu surface facets, LiFePO4 voltage, Fe moment, Li2O
@@ -673,11 +673,13 @@ def test_instances_bundle_30_records_all_uid_pinned():
     # (Li2S / LiS4 band gap, formation energy, and energy above hull from the
     # committed mat-db-mp query_mp li_s_stable.json), 30 with the two
     # matcalc/ASE-scan values (CO-on-Cu(111) adsorption energy and the Si EOS
-    # Birch-Murnaghan bulk modulus, both committed AtomisticSkills examples).
+    # Birch-Murnaghan bulk modulus), 32 with the two config-thermo-scan values
+    # (the LGPS Nernst-Einstein RT ionic conductivity and the LiZnPO4 reaction
+    # energy, both committed AtomisticSkills examples).
     from omai.map_data import build_instances
 
     insts = build_instances()
-    assert len(insts) == 30
+    assert len(insts) == 32
     for it in insts:
         assert it.get("node_uid"), f"instance for {it['variable']} lacks node_uid"
 

@@ -11,6 +11,7 @@ SYMBOLS: dict[str, str] = {
     "SurfaceEnergy": r"\gamma_{surf}",
     "Voltage": r"V_{avg}",
     "AdsorptionEnergy": r"E_{ads}",
+    "ReactionEnergy": r"\Delta E_{rxn}",
 }
 
 STABILITY = Domain(

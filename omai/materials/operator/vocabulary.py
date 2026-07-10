@@ -23,4 +23,11 @@ register_space_symbols({
     "Diffusivity": {"D"},
     "ActivationEnergy": {"E_a"},
     "MeanSquaredDisplacement": {r"\mathrm{slope}_{MSD}"},
+    # Config-thermo scan. sigma is the ionic conductivity; E_{cfg} the
+    # cluster-expansion configurational energy. The Nernst-Einstein and
+    # cluster-expansion solver functions are applied functions (invisible to
+    # the free-symbol check), and their arguments (D, T, Structure, Potential)
+    # are already-registered symbols, so no further entries are needed.
+    "ElectricalConductivity[carrier=ionic]": {r"\sigma_{ion}"},
+    "ConfigurationalEnergy": {"E_{cfg}"},
 })
