@@ -131,16 +131,11 @@
   </div>
 
   <div id="keyPanel">
-    <div class="khead">Anthropic API key</div>
-    <div class="kdesc">Required to analyse new papers. Your key is stored only in this browser
-      and sent directly to <code>api.anthropic.com</code>, never relayed through
-      openmaterials.ai servers.</div>
-    <div class="krow">
-      <input type="text" class="om-input" id="keyInput" placeholder="sk-ant-&hellip;" autocomplete="off" spellcheck="false">
-      <button class="om-btn om-btn-primary" onclick="saveKey()">Save key</button>
-    </div>
-    <div class="knote">Key is stored locally in your browser (<code>localStorage</code>) and sent
-      only to <code>api.anthropic.com</code>.</div>
+    <div class="khead">How this works</div>
+    <div class="kdesc">Analysis runs through a cost-contained relay on
+      <code>openmaterials.ai</code> infrastructure; no account or API key is
+      needed. The demo has a small daily budget shared by all visitors, so a
+      run may ask you to come back tomorrow.</div>
   </div>
 
   <div id="progressList"></div>
@@ -166,8 +161,6 @@ var ACCEPTED=[];
 
 function err(m){var e=document.getElementById('err');e.style.display='block';e.textContent='Error: '+m;}
 window.onerror=function(m){err(m);};
-function getKey(){return localStorage.getItem('om_anthropic_key')||'';}
-function setKey(k){localStorage.setItem('om_anthropic_key',k);}
 
 function tex(latex){
   try{return katex.renderToString(latex,{throwOnError:false});}catch(e){return latex;}
@@ -179,7 +172,6 @@ Promise.all([
 ]).then(function(res){
   CATALOG=res[0]; KNOWN=new Set(CATALOG.map(c=>c.id));
   res[1].nodes.forEach(function(n){ NODE_BY_ID[n.id]=n; });
-  var kp=document.getElementById('keyPanel'); if(kp) kp.style.display=getKey()?'none':'block';
 }).catch(function(e){err('data: '+e);});
 
 function runDemo(){
@@ -191,14 +183,6 @@ function runDemo(){
 }
 </script>
 <script>
-function saveKey(){
-  var k=(document.getElementById('keyInput').value||'').trim();
-  if(!k){err('Please enter an API key before saving.');return;}
-  setKey(k);
-  document.getElementById('keyInput').value='';
-  var kp=document.getElementById('keyPanel');if(kp)kp.style.display='none';
-}
-
 /* ---- Step 1: PDF text via pdf.js ---- */
 async function extractPdfText(file){
   const pdfjs = await import('../assets/vendor/pdfjs/pdf.min.mjs');
@@ -210,21 +194,27 @@ async function extractPdfText(file){
   return {text:text, pages:doc.numPages};
 }
 
-/* ---- Step 2: LLM extraction via Anthropic browser SDK ---- */
+/* ---- Step 2: LLM extraction via the openmaterials relay ---- */
+const PROXY_URL='https://openmaterials-learn.giuseppe-barbalinardo.workers.dev';
 async function extractWithLLM(paperText){
-  const Anthropic=(await import('../assets/vendor/anthropic/sdk.mjs')).default;
-  const client=new Anthropic({apiKey:getKey(), dangerouslyAllowBrowser:true});
   const catalog=CATALOG.map(function(c){return {id:c.id,symbol:c.symbol,type:c.type,dimension:c.dimension,description:c.description};});
   const sys='You map a materials-physics paper onto a fixed catalog of quantities. '
     +'Return ONLY JSON: {coverage:[node id...], value_instances:[{node_id,material,conditions,value(number),units,uncertainty,quote(VERBATIM from the paper),page}], formulas:[], novel_quantities:[{description,symbol,units,why_not_in_map}]}. '
     +'Never invent a value; every value_instance MUST have a verbatim quote from the paper text. '
     +'Use node_id only from the catalog; if a reported quantity is not in the catalog, put it in novel_quantities. '
     +'In Phase 1 leave formulas as an empty array.';
-  const msg=await client.messages.create({
+  const resp=await fetch(PROXY_URL,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({
     model:'claude-opus-4-8', max_tokens:4096,
     system:sys+'\n\nCATALOG:\n'+JSON.stringify(catalog),
     messages:[{role:'user',content:'PAPER TEXT:\n'+paperText.slice(0,120000)}]
-  });
+  })});
+  const msg=await resp.json();
+  if(!resp.ok){
+    const t=(msg.error&&msg.error.type)||'';
+    if(t==='budget_exhausted') throw new Error('The demo\'s shared daily budget is spent; please try again tomorrow.');
+    if(t==='rate_limit_error') throw new Error('Daily demo limit reached for your address; please try again tomorrow.');
+    throw new Error((msg.error&&msg.error.message)||('relay error '+resp.status));
+  }
   const txt=msg.content.map(function(b){return b.text||'';}).join('');
   const m=txt.match(/\{[\s\S]*\}/); if(!m) throw new Error('no JSON in model reply');
   return JSON.parse(m[0]);
@@ -253,10 +243,6 @@ function makeProgressRow(name){
 
 async function processPdfFiles(files){
   if(!files||!files.length) return;
-  if(!getKey()){
-    var kp=document.getElementById('keyPanel'); if(kp) kp.style.display='block';
-    return;
-  }
   document.getElementById('progressList').innerHTML='';
   var papers=[];
   for(var i=0;i<files.length;i++){

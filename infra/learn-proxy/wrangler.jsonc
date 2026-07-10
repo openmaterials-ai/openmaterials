@@ -1,0 +1,14 @@
+{
+  "name": "openmaterials-learn",
+  "main": "src/index.js",
+  "compatibility_date": "2026-06-20",
+  "kv_namespaces": [
+    { "binding": "BUDGET", "id": "2f9071bf71504c23bee8668859702480" }
+  ],
+  "vars": {
+    "DAILY_BUDGET_USD": "5",
+    "PER_IP_DAILY": "5",
+    "ALLOWED_ORIGINS": "https://openmaterials.ai,http://localhost:8917"
+  },
+  "observability": { "enabled": true }
+}
