@@ -675,11 +675,13 @@ def test_instances_bundle_32_records_all_uid_pinned():
     # matcalc/ASE-scan values (CO-on-Cu(111) adsorption energy and the Si EOS
     # Birch-Murnaghan bulk modulus), 32 with the two config-thermo-scan values
     # (the LGPS Nernst-Einstein RT ionic conductivity and the LiZnPO4 reaction
-    # energy, both committed AtomisticSkills examples).
+    # energy, both committed AtomisticSkills examples), 33 with the phonopy/LAMMPS
+    # delta scan's Li BCC thermal-expansion value at 300 K (the committed
+    # mat-qha-thermal-expansion TensorNet example).
     from omai.map_data import build_instances
 
     insts = build_instances()
-    assert len(insts) == 32
+    assert len(insts) == 33
     for it in insts:
         assert it.get("node_uid"), f"instance for {it['variable']} lacks node_uid"
 

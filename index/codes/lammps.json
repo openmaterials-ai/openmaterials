@@ -1,6 +1,6 @@
 {
  "representation": "lammps",
- "map_version": "b31ecc6fa365d344b2090ca385f348e07d2820eed678f5a8943bf819cf68ece3",
+ "map_version": "3b923227835eed51e16411f051ae4360bd7d6786c3cd9cc5ef02c6fd348e20cc",
  "covers": [
   {
    "node": "ElasticConstants",
@@ -19,6 +19,12 @@
    "uid": "d8f44a4cce5e3dfea1ec9329189d49ac70e33d69cab222e2679f7791a30613ac",
    "api": "fix <id> all ave/correlate <Nevery> <Nrepeat> <Nfreq> c_heatflux[1] c_heatflux[2] c_heatflux[3]",
    "unit": null
+  },
+  {
+   "node": "MassDensity",
+   "uid": "24749d8ecb8f22bd0931e83ebdc540a6cb0753bd4f3a611f142b31050353d42d",
+   "api": "thermo 'density' column (thermo_style custom ... density)",
+   "unit": "gram_per_cm3"
   },
   {
    "node": "MeanSquaredDisplacement",

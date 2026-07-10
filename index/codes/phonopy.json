@@ -1,6 +1,6 @@
 {
  "representation": "phonopy",
- "map_version": "b31ecc6fa365d344b2090ca385f348e07d2820eed678f5a8943bf819cf68ece3",
+ "map_version": "3b923227835eed51e16411f051ae4360bd7d6786c3cd9cc5ef02c6fd348e20cc",
  "covers": [
   {
    "node": "BareDynamicalMatrix",
@@ -13,6 +13,12 @@
    "uid": "438f0314dee5f9e98d88e4a7ba4425ef0edd207605338b318340da27bf28b2a4",
    "api": "Phonopy.nac_params['born']",
    "unit": "dimensionless"
+  },
+  {
+   "node": "BulkModulus",
+   "uid": "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced",
+   "api": "PhonopyQHA.bulk_modulus_temperature (matcalc QHACalc 'bulk_modulus_P')",
+   "unit": "GPa"
   },
   {
    "node": "DielectricTensor",
@@ -57,6 +63,12 @@
    "unit": null
   },
   {
+   "node": "HeatCapacityConstantP",
+   "uid": "08057e4554a3420c933329b3821de9295e2b5950191e23cafe310b0a15adc7b6",
+   "api": "PhonopyQHA.heat_capacity_P_polyfit (matcalc QHACalc 'heat_capacity_P')",
+   "unit": "J_per_K_per_mol"
+  },
+  {
    "node": "MolarEntropy",
    "uid": "0f08fcb37791dc7cc3e0e0ee5c611abbefc5075867719b275fcaa77ada4f1ac2",
    "api": "get_thermal_properties_dict()['entropy']",
@@ -93,10 +105,28 @@
    "unit": null
   },
   {
+   "node": "QHAGibbsEnergy",
+   "uid": "bb10912780eb22d45beff551be14f7f4216f3aae26161e8bfd60cdc051f63f58",
+   "api": "PhonopyQHA.gibbs_temperature (matcalc QHACalc 'gibbs_free_energies')",
+   "unit": "kJ_per_mol"
+  },
+  {
    "node": "Temperature",
    "uid": "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0",
    "api": "Phonopy.run_thermal_properties(temperatures=...)",
    "unit": null
+  },
+  {
+   "node": "ThermalExpansion",
+   "uid": "9b42f8aebb6099cdcd910a272a92208881b598688bac7830c3ae0a412152473e",
+   "api": "PhonopyQHA.thermal_expansion (matcalc QHACalc 'thermal_expansion_coefficients')",
+   "unit": "per_kelvin"
+  },
+  {
+   "node": "ThermalGruneisen",
+   "uid": "22b1bd519d50d93fd24a919e021bab85aff246464a66a08f8274558834983985",
+   "api": "PhonopyQHA.gruneisen_temperature (matcalc QHACalc 'gruneisen_parameters')",
+   "unit": "dimensionless"
   },
   {
    "node": "VolumetricHeatCapacity",
