@@ -1878,6 +1878,28 @@
   },
   "uid": "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
  },
+ "e1270ea9a293c9107226bf831f60985f5525a0c386dca70841743bdc5d082c26": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "T^-1",
+     "indices": [
+      "mode"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "molecular_frequency"
+  },
+  "meta": {
+   "description": "Molecular normal-mode vibrational frequencies of a finite molecule: the 3N-6 (or 3N-5 for a linear molecule) discrete modes obtained by diagonalizing the mass-weighted Hessian, indexed by mode number m (the registered `mode` index kind). Dimension FREQUENCY (0,0,-1,0,0,0,0), served in wavenumbers cm^-1 native (the ORCA / quantum-chemistry convention). IMAGINARY modes are serialized as NEGATIVE frequencies (a mode whose Hessian eigenvalue is negative, an unstable direction); n_imaginary, the count of imaginary modes, is the SADDLE-ORDER diagnostic (a minimum has 0, a first-order transition state exactly 1). EXPLICITLY NOT the periodic phonon Frequency node (the (q, nu) = (qpoint, branch) dispersion omega_qnu over the Brillouin zone): a molecule has NO q and NO phonon branch (no periodicity, only the discrete mode index m), so the two never alias, kept apart by the molecular_frequency tag and the mode-index signature vs the phonon (qpoint, branch). CONVENTION CAVEAT: cm^-1 is a linear wavenumber (1 cm^-1 = c . 100 m^-1 = 0.0299792458 linear THz), NOT an angular frequency; the angular-vs-wavenumber factor 2 pi c is a representation-layer convention, recorded on the rail. The molecular thermochemistry (RRHO) bundle that consumes these modes for the partition function is the next named hook, now unblocked.",
+   "name": "MolecularFrequency",
+   "symbol": "\\nu_{\\mathrm{mol}}",
+   "tier": "Molecular"
+  },
+  "uid": "e1270ea9a293c9107226bf831f60985f5525a0c386dca70841743bdc5d082c26"
+ },
  "e3ba3f3522daaaa0a91c35e0302be3bc11c00c176a6090863c45b3c2664fed37": {
   "identity": {
    "fields": [

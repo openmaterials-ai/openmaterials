@@ -2337,6 +2337,32 @@
   },
   "uid": "e88e11c5770a9dc9c33df7139ddf40f072f3e415f20e15d860c3490104c3c34a"
  },
+ "e8e86bed52c1e09311b9baada0501b7668b72cf8de3797735bc4c7bb60090f3f": {
+  "identity": {
+   "formula": "Equality(Indexed(IndexedBase(Symbol('nu_mol')), Symbol('m', integer=True)), Function('\\\\nu^{H}')(Symbol('\\\\mathcal{S}'), Symbol('V')))",
+   "inputs": [
+    "80a4273845e09207860e06db18d1f1ee5670a9b9c8b1020a99928c872878f901",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "e1270ea9a293c9107226bf831f60985f5525a0c386dca70841743bdc5d082c26",
+   "outputs": [
+    "e1270ea9a293c9107226bf831f60985f5525a0c386dca70841743bdc5d082c26"
+   ],
+   "schemes": {
+    "method": "hessian_normal_modes"
+   }
+  },
+  "meta": {
+   "description": "Molecular normal-mode frequencies nu_mol,m = nu^{H}[Structure, Potential]: the 3N-6 (or 3N-5) discrete vibrational frequencies from diagonalizing the mass-weighted Hessian of the molecular potential at a stationary structure, cm^-1 native. nu^{H} is opaque over the molecular Structure and the chosen functional / basis (the Potential-provenance analog; the Hessian is the second derivative of that energy surface); the method scheme records the hessian_normal_modes construction. Imaginary modes serialize NEGATIVE (a negative Hessian eigenvalue), and n_imaginary (their count) is the saddle-order diagnostic (0 for a minimum, 1 for a transition state). Indexed by mode m (the registered `mode` kind), NOT the periodic phonon (q, nu) axis. Unblocks the RRHO molecular-thermochemistry bundle (the modes drive the partition function). Implicit (a Hessian diagonalization, an opaque quantum-chemistry / MLIP solve), so not sympy-executable.",
+   "formula_latex": "{\\nu_{mol}}_{m} = \\nu^{H}{\\left(\\mathcal{S},V \\right)}",
+   "formula_srepr": "Equality(Indexed(IndexedBase(Symbol('nu_mol')), Symbol('m', integer=True)), Function('\\\\nu^{H}')(Symbol('\\\\mathcal{S}'), Symbol('V')))",
+   "name": "compute_molecular_frequencies",
+   "schemes": {
+    "method": "hessian_normal_modes"
+   }
+  },
+  "uid": "e8e86bed52c1e09311b9baada0501b7668b72cf8de3797735bc4c7bb60090f3f"
+ },
  "ea3c7c5ef2138ad5bc519a723cdd29bf4a098583fdff8f8100a4548904f64863": {
   "identity": {
    "formula": "Equality(Symbol('\\\\varepsilon_0'), Function('\\\\varepsilon_0^{stat}')(Symbol('\\\\varepsilon_\\\\infty'), Symbol('Z^*'), Symbol('\\\\omega')))",
