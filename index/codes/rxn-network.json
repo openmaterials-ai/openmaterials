@@ -1,0 +1,12 @@
+{
+ "representation": "rxn-network",
+ "map_version": "8d46a57ec8239841f40d18928043fd6fb4ec4a99766a2e8984d57c815e979958",
+ "covers": [
+  {
+   "node": "ReactionEnergy",
+   "uid": "a5736aa4760c27562f9e189829763a891b6fed83fe4a030a7e306b8d909d825c",
+   "api": "ComputedReaction.energy (total eV) / .energy_per_atom (eV/atom) (reactions/computed.py:104-145)",
+   "unit": "ev"
+  }
+ ]
+}

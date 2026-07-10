@@ -1,0 +1,30 @@
+{
+ "representation": "pymatgen-analysis-diffusion",
+ "map_version": "8d46a57ec8239841f40d18928043fd6fb4ec4a99766a2e8984d57c815e979958",
+ "covers": [
+  {
+   "node": "ActivationEnergy",
+   "uid": "5d35f8f6975629291c51d432d3b137fb5bd92165706d37dbab71366a4714b71d",
+   "api": "fit_arrhenius (analyzer.py:877-897)",
+   "unit": "ev"
+  },
+  {
+   "node": "Diffusivity",
+   "uid": "37eb727e4cf5e46c3ca04ff4bea4fe9dbb3f7f3c3fad8a1681c7e9d04bafd34f",
+   "api": "DiffusionAnalyzer.diffusivity / get_extrapolated_diffusivity (analyzer.py:55,226)",
+   "unit": "cm^2/s"
+  },
+  {
+   "node": "ElectricalConductivity[carrier=ionic]",
+   "uid": "3f5753096d30cc6741fe9c6fd5e247e9afbb87b94f5844ec233f9243345d3712",
+   "api": "DiffusionAnalyzer.conductivity / get_extrapolated_conductivity (analyzer.py:338,846-869)",
+   "unit": "ms_per_cm"
+  },
+  {
+   "node": "MeanSquaredDisplacement",
+   "uid": "28ebe96bc049a92e4318fd5242778f30e5647531d0a2b39c5891546329c8bca0",
+   "api": "DiffusionAnalyzer.msd vs .dt (analyzer.py:920+)",
+   "unit": "A^2"
+  }
+ ]
+}

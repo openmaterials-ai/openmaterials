@@ -1,0 +1,18 @@
+{
+ "representation": "smol",
+ "map_version": "8d46a57ec8239841f40d18928043fd6fb4ec4a99766a2e8984d57c815e979958",
+ "covers": [
+  {
+   "node": "ConfigurationalEnergy",
+   "uid": "12ec58944efc3849b267bf3017d9049179ed21717b7791d06fc17d69b7150c39",
+   "api": "ClusterExpansion.predict / ExpansionProcessor.compute_property (cofe/expansion.py:259-288)",
+   "unit": "ev"
+  },
+  {
+   "node": "Potential",
+   "uid": "80a4273845e09207860e06db18d1f1ee5670a9b9c8b1020a99928c872878f901",
+   "api": "ClusterExpansion (cofe/expansion.py:159 coefs; :172-183 ECI); load/save cluster_expansion.json",
+   "unit": null
+  }
+ ]
+}
