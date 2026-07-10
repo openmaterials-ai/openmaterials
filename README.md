@@ -61,19 +61,19 @@ omai/
                      #   gauge discipline, validate_dag, dimensions, identity
   representation/    # the bridge: units, normalizations, per-code specs,
                      #   compare, and the execute/compose/cross-check runtime
-  thermal_transport/
-    operator/        # the lattice-thermal-transport DAG (Spaces + Operators)
-    representation/  # per-code adapters (kaldo, phono3py, phonopy,
-                     #   shengbte, qe, ase, lammps, gpumd)
-  materials/         # second domain, grown from AtomisticSkills: diffusion
-                     #   subgraph, skills_catalog.json
+  thermal_transport/ # per-domain packages: each carries an operator/ DAG
+  dft_ground_state/  #   (Spaces + Operators) and a representation/ set of
+  mechanics/         #   per-code adapters. thermal_transport spans kaldo,
+  stability/         #   phono3py, phonopy, shengbte, qe, ase, lammps, gpumd;
+  materials/         #   materials grows from AtomisticSkills (diffusion
+                     #   subgraph, skills_catalog.json)
   map_data.py        # unified multi-domain export -> docs/data/*.json
   store.py           # log-first store: push/read/diff/verify
 examples/            # runnable tours; start with quickstart.py
 experiments/         # full cross-code material studies (silicon, germanium, NaCl)
 tests/               # pytest suite
 docs/                # the openmaterials document + the openmaterials.ai site
-                     #   (map, learn, deck)
+                     #   (map, map-trace, learn, deck, map-lab)
 ```
 
 ## Design
