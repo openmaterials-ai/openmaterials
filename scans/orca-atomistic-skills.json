@@ -1,0 +1,349 @@
+{
+  "scan": "orca-atomistic-skills",
+  "title": "ORCA (molecular quantum chemistry) as used by AtomisticSkills",
+  "arxiv": "2605.24002",
+  "date": "2026-07-10",
+  "scanner_note": "SCAN stage only: catalog, not map code. This is the map's FIRST molecular code. The honesty question the task poses (which quantities are the SAME physics as the periodic DFT slice, and which are genuinely molecular-domain) is carried in each entry's 'per_what' and 'physics_vs_periodic' fields.",
+  "graph_snapshot": {
+    "head": "671b092",
+    "node_count": 77,
+    "edges_in_graph_json": 0,
+    "note": "The amset encode is landing while this scan runs: ElectricalConductivity[carrier=ionic] is already a graph node and the registry.py QUANTITY_TAGS already carry seebeck_coefficient, electronic_thermal_conductivity, carrier_mobility, static_dielectric_tensor (records ~154-163), but those four are NOT yet graph nodes at this HEAD. graph.json currently ships an empty edges array. Re-read graph.json at encode time; node count and the amset tail will have moved.",
+    "nodes_relevant_to_this_scan_present": ["TotalEnergy", "Forces", "Stress", "BandGap", "Frequency", "MagneticMoment", "FormationEnergy", "ReactionEnergy", "ActivationEnergy", "MolarGibbsEnergy", "ChemicalPotential"],
+    "nodes_relevant_absent": ["DipoleMoment", "SolvationFreeEnergy", "ReactionBarrier", "HOMOLUMOGap", "NMRShift", "OrbitalEnergy", "GibbsFreeEnergy(molecular)", "ZeroPointEnergy", "IRIntensity", "ExcitationEnergy", "OscillatorStrength"]
+  },
+  "sources": {
+    "provenance": "ORCA itself is proprietary-binary (not pip-installable). Every quantity claim below is anchored to a committed AtomisticSkills file:line: the orca-agent skills' run scripts, the shared orca_utils.py, and the pure-regex parse_orca_output.py that reads ORCA .out files. Unit/constant claims are anchored to the literal constants written in those files. No ORCA output file is committed in the repo (the example dirs carry only .xyz inputs and validate_*.py), so the parsed quantities are anchored to the parser regexes, not to a captured .out.",
+    "orca_version": "ORCA 6.1 (advanced skill links faccts.de/docs/orca/6.1; a stray README links 6.0 manual). Version is not pinned in an env; it is whatever ORCA_BINARY_PATH points to.",
+    "env": {
+      "name": "orca-agent",
+      "no_mcp_server": true,
+      "scripts_only": true,
+      "requires_env_var": "ORCA_BINARY_PATH",
+      "core_env_yaml": "conda-envs/orca-agent/core_env.yaml (scine-utilities-python, scine-readuct-python, ase, numpy<2, scipy, pyyaml); x86_64 only, no aarch64 build",
+      "full_env_yaml": "conda-envs/orca-agent/example_full_env.yaml (scine-readuct==6.1.0, scine-utilities==10.1.0, ase==3.28.0, numpy==1.26.4, scipy==1.17.1)",
+      "wrapping": "SCINE Utilities (su.core.get_calculator('dft','orca')) generates ORCA input, parses output, and returns su.Property.{Energy,Gradients,Hessian}. SCINE ReaDuct drives geometry / TS optimization. The advanced skill bypasses SCINE and runs the ORCA binary directly via subprocess, then regex-parses the .out."
+    },
+    "the_three_orca_skills": [
+      "chem-dft-orca-singlepoint (SCINE): energy, optional gradients (forces), optional Hessian",
+      "chem-dft-orca-optimization (SCINE/ReaDuct): min or single-ended TS optimization; optional final Hessian -> normal-mode wavenumbers, imaginary-mode count",
+      "chem-dft-orca-advanced-calculation (raw binary + regex parser): custom .inp for TD-DFT, DLPNO-CCSD(T), CASSCF/NEVPT2, NMR, EPR, ZORA, PES scans; parses energy, orbitals/HOMO-LUMO, frequencies+IR, thermochemistry"
+    ],
+    "one_downstream_consumer": "chem-spectrum-matcher references an ORCA frequency calculation as one route to a predicted IR spectrum (SKILL.md:53,112-115,168,180,206-208), converting output via src/utils/dft/orca_utils.py. It does not add new parsed quantities beyond the freq/IR the parser already exposes."
+  },
+  "unit_conversion_factor_set": {
+    "HARTREE_TO_EV": {
+      "value": 27.211386245988,
+      "hardcoded_at": ["chem-dft-orca-advanced-calculation/scripts/parse_orca_output.py:32", "chem-dft-orca-advanced-calculation/scripts/run_orca_input.py:93 (inline literal 27.211386245988)"],
+      "scine_source_at": "src/utils/dft/orca_utils.py:27 (HARTREE_TO_EV = su.EV_PER_HARTREE); the SCINE-wrapped scripts import this, so single-point/optimization use the scine constant, the pure-regex parser hardcodes the same literal",
+      "note": "CODATA 1 Hartree = 27.211386245988 eV, exact match to the map's eV working unit. THE UNIT TRAP OF THE DAY: ORCA reports Hartree (Eh) natively; the map's ENERGY nodes serve eV. Multiply by this factor."
+    },
+    "BOHR_PER_ANGSTROM": {
+      "value_note": "su.BOHR_PER_ANGSTROM (CODATA a0 = 0.52917721067 Angstrom, so BOHR_PER_ANGSTROM ~ 1.8897259886); not hardcoded, taken from scine",
+      "source_at": "src/utils/dft/orca_utils.py:28",
+      "used_for": "forces (Hartree/Bohr -> eV/Angstrom via *HARTREE_TO_EV*BOHR_PER_ANGSTROM, run_singlepoint.py:137) and Hessian (Hartree/Bohr^2 -> eV/Angstrom^2 via *HARTREE_TO_EV*BOHR_PER_ANGSTROM^2, run_singlepoint.py:147)"
+    },
+    "kcal_per_mol_and_kJ_per_mol": {
+      "note": "ORCA thermochemistry natively reports Hartree (Eh) for ZPE, enthalpy, Gibbs, entropy correction; the parser converts to eV only. NO kcal/mol appears in any parsed AtomisticSkills path. The kcal/mol thermochemistry landscape is the CHEMIST'S convention ORCA can print but the skills do not parse. Exact factors for when a molecular-domain node is minted: 1 Hartree = 627.5094740631 kcal/mol; 1 Hartree = 2625.499639479 kJ/mol; 1 eV = 23.060547830619 kcal/mol; 1 kcal/mol = 4.184 kJ/mol (exact, thermochemical calorie).",
+      "relation_to_ENERGY_PER_MOLE": "kcal/mol and kJ/mol are per-mole-of-MOLECULES energies (N=-1 axis, dimension ENERGY_PER_MOLE = (1,2,-2,0,-1,0,0)), the same dimension the CALPHAD ChemicalPotential/MolarGibbsEnergy nodes carry BUT per mole of molecules vs per mole of atoms. A single ORCA molecular Gibbs energy is per-MOLECULE (Hartree, N=0). Multiplying by Avogadro turns it into kJ/mol (per-mole-of-molecules). Faraday relation for the eV<->per-mole bridge: 1 eV/particle = 96.48533212331 kJ/mol = 23.06054783 kcal/mol."
+    },
+    "frequencies_cm_inverse": {
+      "parser_unit": "cm**-1 (parse_orca_output.py:102 regex 'cm\\*\\*-1'; result key frequencies_cm1)",
+      "scine_normal_modes_unit": "wave numbers cm^-1 from su.normal_modes.calculate(...).get_wave_numbers() (run_optimization.py:232, key 'hessian_wave_numbers_cm-1')",
+      "note": "cm^-1 is a spectroscopic WAVENUMBER (nu-tilde = nu/c). To relate to the map's Frequency node (FREQUENCY dimension T^-1, angular omega): omega[rad/s] = 2*pi*c*nu_tilde, with c = 2.99792458e10 cm/s. A cm^-1 is dimension L^-1 as printed but is a stand-in for a frequency. IMAGINARY modes are reported as negative cm^-1 (parser flags f<0 as imaginary, n_imaginary count; a TS wants exactly 1)."
+    },
+    "ir_intensities": {"unit": "km/mol (parse_orca_output.py:113 'km/mol', key ir_intensities_km_per_mol)", "note": "molar absorption intensity; a per-mole quantity, representation-level for a spectrum, not a scalar map node"},
+    "dipole_moment": {"unit": "Debye (ORCA native) / a.u.; NOT parsed by any AtomisticSkills path", "note": "1 Debye = 3.33564e-30 C*m; a.u. dipole (e*a0) = 2.541746 Debye. Would be dimension CHARGE*LENGTH = (0,1,1,0,0,1,0), a NEW dimension axis (I=1,L=1). Candidate only; the skills do not surface it."},
+    "nmr_shift": {"unit": "ppm (dimensionless, shielding tensor referenced to a standard); NOT parsed", "note": "ORCA NMR block writes shielding tensors to calculation.property.txt; the advanced SKILL.md:129 tells the agent to read that file MANUALLY. No AtomisticSkills parser extracts NMR. Candidate only."}
+  },
+  "entry_counts_by_status": {
+    "already-mapped-same-physics": 3,
+    "already-mapped-with-basis-question": 1,
+    "molecular-sibling-candidate": 2,
+    "new-node-candidate": 6,
+    "representation-only": 4,
+    "not-surfaced-by-skills": 3,
+    "total": 19
+  },
+  "entries": [
+    {
+      "id": "orca-final-single-point-energy",
+      "quantity": "Electronic total energy (FINAL SINGLE POINT ENERGY)",
+      "status": "already-mapped-with-basis-question",
+      "grounds_node": "TotalEnergy",
+      "dimension": "ENERGY (1,2,-2,0,0,0,0)",
+      "native_unit": "Hartree (Eh)",
+      "served_unit": "eV (x27.211386245988)",
+      "parsed_at": ["parse_orca_output.py:39-43 (final_energy_hartree, final_energy_eV)", "run_singlepoint.py:116-117 (results.energy, *HARTREE_TO_EV)", "run_orca_input.py:33,90-93 (FINAL SINGLE POINT ENERGY regex, *27.211386245988)", "run_optimization.py:189-190 (final energy at optimized geometry)"],
+      "per_what": "PER-MOLECULE (per whole finite system), extensive. This is the crux honesty question. The map's TotalEnergy is 'extensive: one scalar per simulation CELL' (dft_ground_state/operator/nodes.py:78-88). A molecular total energy is one scalar per MOLECULE. Same ENERGY dimension, same 'extensive scalar' shape, same KS-SCF physics; the basis differs (finite molecule with no PBC vs periodic cell).",
+      "physics_vs_periodic": "SAME physics (converged Kohn-Sham SCF total energy) EXCEPT: (a) no periodic boundary conditions, no k-point sum, no plane-wave/pseudopotential; ORCA is all-electron/ECP with atom-centered Gaussian basis (def2-SVP default); (b) the energy zero is the isolated-atoms/all-electron reference, NOT the pseudopotential reference the periodic codes use, so ORCA and QE/VASP total energies are NOT on the same absolute scale and must never be subtracted across codes; (c) additional physics ORCA can add: dispersion correction (parse_orca_output.py:53-55, dispersion_correction_hartree), nuclear repulsion (parse_orca_output.py:45-47), post-HF DLPNO-CCSD(T) correlation.",
+      "proposal": "Same TotalEnergy node with a mandatory basis/provenance label (per-molecule vs per-cell, code, all-electron-vs-pseudopotential reference, basis_set, functional, dispersion). Do NOT mint a separate MolecularEnergy node: the dimension and observable shape are identical; the distinction is provenance metadata, exactly as BandGap already rides Potential provenance. But the label MUST block cross-reference subtraction of ORCA vs periodic totals.",
+      "trap": "Hartree native; energy-zero reference differs from periodic codes; DLPNO-CCSD(T) total is a correlated energy not a DFT one (the parser labels the number 'final_energy' regardless of method)."
+    },
+    {
+      "id": "orca-total-energy-component",
+      "quantity": "Total Energy / Nuclear Repulsion component energies",
+      "status": "representation-only",
+      "grounds_node": "TotalEnergy (component decomposition)",
+      "dimension": "ENERGY",
+      "native_unit": "Hartree (Eh)",
+      "parsed_at": ["parse_orca_output.py:45-51 (Nuclear Repulsion Eh, Total Energy Eh)"],
+      "per_what": "per-molecule",
+      "physics_vs_periodic": "Component breakdown (nuclear repulsion, total) of the same SCF energy; a representation-layer decomposition of TotalEnergy, not a distinct observable.",
+      "proposal": "Representation-only: these are parser conveniences that decompose the same scalar. Not a node."
+    },
+    {
+      "id": "orca-forces",
+      "quantity": "Forces (from analytic gradients)",
+      "status": "already-mapped-same-physics",
+      "grounds_node": "Forces",
+      "dimension": "FORCE (1,1,-2,0,0,0,0)",
+      "native_unit": "Hartree/Bohr (gradient)",
+      "served_unit": "eV/Angstrom (F = -gradient * HARTREE_TO_EV * BOHR_PER_ANGSTROM)",
+      "parsed_at": ["run_singlepoint.py:135-143 (forces_eV_per_Ang, max_force, rms_force)", "run_optimization.py:191-194 (final forces at optimized geometry)"],
+      "per_what": "per-atom Cartesian, indexed (i, alpha) exactly like the map Forces node (dft_ground_state/operator/nodes.py:91-93).",
+      "physics_vs_periodic": "SAME physics: Hellmann-Feynman gradient of the total energy wrt nuclear positions, F = -dE/dR. The map node's own description is code-agnostic. ORCA gives analytic gradients; sign convention (force = -gradient) is applied in the script. Vanishes at a relaxed minimum (the optimization skill checks max/rms force).",
+      "proposal": "Same Forces node, no change. The gradient->force sign flip and Hartree/Bohr->eV/Angstrom conversion are representation-layer."
+    },
+    {
+      "id": "orca-hessian",
+      "quantity": "Hessian (Cartesian second derivatives)",
+      "status": "new-node-candidate",
+      "grounds_node": "none directly; sibling of ForceConstants[order=2]",
+      "dimension": "ENERGY_PER_LENGTH_SQUARED (1,0,-2,0,0,0,0) per (Cartesian, Cartesian) pair",
+      "native_unit": "Hartree/Bohr^2",
+      "served_unit": "eV/Angstrom^2 (hessian * HARTREE_TO_EV * BOHR_PER_ANGSTROM^2)",
+      "parsed_at": ["run_singlepoint.py:145-151 (hessian_eV_per_Ang2)", "run_optimization.py:225-238 (final Hessian, normal modes)"],
+      "per_what": "3N x 3N mass-UNweighted Cartesian second-derivative matrix of a single molecule. The map's phonon-side counterpart is ForceConstants[order=2] (real-space IFCs, indices over atom pairs and lattice vectors) and DynamicalMatrix (mass-weighted, FREQUENCY_SQUARED). The molecular Cartesian Hessian is the finite-system, single-cell, no-lattice-sum analog.",
+      "physics_vs_periodic": "SAME underlying quantity (second energy derivative) but the map has no molecular Hessian node: the periodic slice jumps straight to force constants indexed by lattice vectors. A molecular Hessian has no q, no lattice sum, no branch index.",
+      "proposal": "Either a MolecularHessian representation feeding ForceConstants[order=2] with a molecular (gamma-point-only, no lattice) label, OR representation-only if the map only cares about the derived normal modes. Recommend: representation-only intermediate; the observable the skills report is the wavenumbers (next entry)."
+    },
+    {
+      "id": "orca-vibrational-frequencies",
+      "quantity": "Vibrational frequencies / normal-mode wavenumbers",
+      "status": "already-mapped-with-basis-question",
+      "grounds_node": "Frequency (with molecular-mode basis question)",
+      "dimension": "the map's Frequency is FREQUENCY (0,0,-1,0,0,0,0), angular omega; ORCA reports cm^-1 (spectroscopic wavenumber, printed as L^-1 = nu/c)",
+      "native_unit": "cm^-1 (wavenumber); imaginary modes as negative cm^-1",
+      "parsed_at": ["parse_orca_output.py:98-120 (frequencies_cm1, n_imaginary, imaginary_frequencies_cm1, n_real, ir_intensities_km_per_mol)", "run_optimization.py:231-236 (su.normal_modes.calculate -> get_wave_numbers, hessian_wave_numbers_cm-1, n_imaginary_modes)"],
+      "per_what": "PER MOLECULAR NORMAL MODE (3N-6 or 3N-5 modes), a single 1-D list indexed by mode number. The map's Frequency node is omega_{q,nu} indexed (q, nu) = (qpoint, branch) (thermal_transport/operator/nodes.py:133-134). A molecule has NO q-axis (no periodicity, only the gamma point) and no phonon branch: its modes are the gamma-point subset only.",
+      "physics_vs_periodic": "SAME physics as a phonon at gamma (harmonic normal modes = eigenvalues of the mass-weighted Hessian) BUT: molecular modes are discrete 3N-6 with no dispersion, no branch structure, no BZ. A molecular normal mode IS a gamma-point phonon of a hypothetical isolated 'cell', so it maps onto Frequency with a molecular label (index over mode only, no q) OR onto a distinct axis. Wavenumber (cm^-1) vs angular frequency (rad/s) is a unit convention within the same FREQUENCY dimension: omega = 2*pi*c*nu_tilde.",
+      "proposal": "SAME Frequency node BUT the (q,nu) index signature does not fit: a molecule has no qpoint index. Two options: (a) mint a molecular Frequency variant with index (mode) only, kind 'mode' (a NEW index kind), unit cm^-1; (b) treat the whole mode list as a MolecularVibrationalSpectrum representation. Recommend option (a): same quantity tag 'frequency', new index kind for the molecular mode axis, cm^-1 serving unit, with the imaginary-mode count as a derived label (0 for a minimum, exactly 1 for a TS). This is the map's first non-periodic frequency.",
+      "trap": "cm^-1 (wavenumber, L^-1 as printed) is NOT the same UNIT as the map's rad/s angular frequency, though the same FREQUENCY dimension after the 2*pi*c bridge. Imaginary frequencies are printed as NEGATIVE cm^-1 (a convention for a negative Hessian eigenvalue, sqrt of a negative number)."
+    },
+    {
+      "id": "orca-imaginary-mode-count",
+      "quantity": "Imaginary-mode count (n_imaginary)",
+      "status": "representation-only",
+      "grounds_node": "derived label over Frequency",
+      "dimension": "dimensionless integer",
+      "parsed_at": ["parse_orca_output.py:106-110", "run_optimization.py:234-247 (TS wants 1, min wants 0)"],
+      "per_what": "one integer per molecule (count of negative-wavenumber modes)",
+      "physics_vs_periodic": "A stability/saddle-order diagnostic derived from the frequency list; the analog on the periodic side is a dynamical-instability check. Not an observable node.",
+      "proposal": "Representation-only: a derived label (n_imaginary) on the molecular Frequency instance; 0 = minimum, 1 = transition state (this is how the map should recognize a TS)."
+    },
+    {
+      "id": "orca-ir-intensities",
+      "quantity": "IR intensities",
+      "status": "representation-only",
+      "grounds_node": "none (spectrum representation)",
+      "dimension": "km/mol (molar absorption intensity)",
+      "native_unit": "km/mol",
+      "parsed_at": ["parse_orca_output.py:112-118 (ir_intensities_km_per_mol)"],
+      "per_what": "one intensity per normal mode; together with the frequencies this is an IR stick spectrum",
+      "physics_vs_periodic": "The (frequency, intensity) pairs form a predicted IR spectrum, consumed by chem-spectrum-matcher. This is a spectrum representation (like the phonon DOS / Raman the map ingests via the representation layer), not a scalar node.",
+      "proposal": "Representation-only: IR spectrum = (molecular Frequency, IR intensity) pairs. chem-spectrum-matcher (SKILL.md:53,112-115) uses it to score against NIST WebBook IR by cosine similarity."
+    },
+    {
+      "id": "orca-orbital-energies",
+      "quantity": "Orbital (Kohn-Sham eigenvalue) energies",
+      "status": "representation-only",
+      "grounds_node": "none (feeds HOMO-LUMO)",
+      "dimension": "ENERGY",
+      "native_unit": "Hartree, also printed eV; parser keeps both",
+      "parsed_at": ["parse_orca_output.py:60-84 (orbitals list: index, occupation, energy_hartree, energy_eV)"],
+      "per_what": "one energy per molecular orbital (indexed by orbital number, with occupation)",
+      "physics_vs_periodic": "The molecular analog of a band-structure eigenvalue set, but for discrete MOs, not a k-resolved band. The full orbital list is a representation; the scalar the skill highlights is the HOMO-LUMO gap (next entry).",
+      "proposal": "Representation-only (the full orbital-energy list). Occupation > 0.5 splits occupied from virtual (parser convention, line 86-87)."
+    },
+    {
+      "id": "orca-homo-lumo-gap",
+      "quantity": "HOMO-LUMO gap",
+      "status": "molecular-sibling-candidate",
+      "grounds_node": "BandGap (COUSIN, not equate)",
+      "dimension": "ENERGY (1,2,-2,0,0,0,0)",
+      "native_unit": "eV (LUMO_eV - HOMO_eV)",
+      "parsed_at": ["parse_orca_output.py:86-93 (homo_eV, lumo_eV, homo_lumo_gap_eV)"],
+      "per_what": "one scalar per molecule (difference of two discrete MO eigenvalues)",
+      "physics_vs_periodic": "COUSIN of BandGap, NOT the same node. BandGap is the KS eigenvalue gap between the periodic valence-band MAXIMUM and conduction-band MINIMUM over the Brillouin zone (dft_ground_state/operator/nodes.py:134-151). HOMO-LUMO is the gap between two DISCRETE frontier molecular orbitals of a finite system, no BZ, no VBM/CBM. Same ENERGY dimension, same 'KS eigenvalue gap' family, same functional-dependence caveat (both underestimate with semilocal functionals, both are KS not quasiparticle gaps). But a molecular HOMO-LUMO gap is not a band gap: a molecule has no bands.",
+      "proposal": "Molecular sibling. Two options: (a) mint HOMOLUMOGap as a distinct node in the molecular domain (recommended: a molecule has no band structure, so calling it BandGap is a category error), OR (b) same BandGap tag with a periodic-vs-molecular basis label. The task's 'cousins?' answer: YES cousins (same dimension, same KS-gap physics family), NO not the same node (band vs discrete-orbital is a genuine physics distinction, mirroring the per-cell vs per-molecule TotalEnergy question).",
+      "trap": "Do not equate a molecular HOMO-LUMO gap with a solid-state band gap: the map already flags BandGap as strongly XC-functional-dependent and KS-not-quasiparticle; HOMO-LUMO inherits both caveats AND adds the band-vs-orbital distinction."
+    },
+    {
+      "id": "orca-zero-point-energy",
+      "quantity": "Zero-point vibrational energy",
+      "status": "new-node-candidate",
+      "grounds_node": "none (thermochemistry correction)",
+      "dimension": "ENERGY",
+      "native_unit": "Hartree (Eh); parser also gives eV",
+      "parsed_at": ["parse_orca_output.py:127-131 (zero_point_energy_hartree, zero_point_energy_eV)"],
+      "per_what": "one scalar per molecule, sum of hbar*omega/2 over the 3N-6 real modes",
+      "physics_vs_periodic": "GENUINELY MOLECULAR-DOMAIN thermochemistry (though physically the same ZPE the phonon side integrates). The phonon slice carries per-mode HelmholtzFreeEnergy/InternalEnergy that INCLUDE the zero-point term; a molecular ZPE is the finite-system, discrete-mode total. Distinct because it is a per-molecule scalar correction, not a per-mode field.",
+      "proposal": "New-node-candidate: ZeroPointEnergy (per-molecule ENERGY scalar) OR a component of a molecular thermochemistry bundle (ZPE, enthalpy, Gibbs, entropy correction). Recommend a molecular-thermochemistry node family rather than one node per correction."
+    },
+    {
+      "id": "orca-enthalpy",
+      "quantity": "Total enthalpy (thermochemistry)",
+      "status": "new-node-candidate",
+      "grounds_node": "none (molecular thermochemistry)",
+      "dimension": "ENERGY (per-molecule); cousin of ENERGY_PER_MOLE (MolarEnthalpy) after Avogadro",
+      "native_unit": "Hartree (Eh); parser gives eV",
+      "parsed_at": ["parse_orca_output.py:133-137 (enthalpy_hartree, enthalpy_eV)"],
+      "per_what": "per-MOLECULE H = E_elec + ZPE + thermal(vib+rot+trans) + kT (ideal-gas RRHO partition function at temperature_K, parse_orca_output.py:149-151). Distinct basis from the CALPHAD MolarEnthalpy node (ENERGY_PER_MOLE, per mole of ATOMS, SER reference, registry.py:144).",
+      "physics_vs_periodic": "GENUINELY MOLECULAR-DOMAIN: ideal-gas rigid-rotor-harmonic-oscillator statistical thermodynamics of a finite molecule at T. The periodic side has no molecular enthalpy; its closest analog is the CALPHAD MolarEnthalpy (per mole of atoms, assessed) and the phonon MolarInternalEnergy (per mole of cells). Same ENERGY family, different statistical construction and per-basis.",
+      "proposal": "New-node-candidate in a molecular thermochemistry family. NEVER equate with CALPHAD MolarEnthalpy: per-molecule Hartree (N=0) vs per-mole-of-atoms J/mol (N=-1); the RRHO gas-phase construction is not the assessed-Gibbs construction.",
+      "trap": "per-molecule (Hartree, N=0) vs per-mole (kJ/mol, N=-1). Avogadro bridges: H[kJ/mol per molecule] = H[Hartree]*2625.499639479. Do not confuse with per-mole-of-atoms CALPHAD enthalpy."
+    },
+    {
+      "id": "orca-gibbs-free-energy",
+      "quantity": "Final Gibbs free energy (thermochemistry)",
+      "status": "new-node-candidate",
+      "grounds_node": "none (molecular thermochemistry); cousin of MolarGibbsEnergy",
+      "dimension": "ENERGY (per-molecule)",
+      "native_unit": "Hartree (Eh); parser gives eV",
+      "parsed_at": ["parse_orca_output.py:139-143 (gibbs_energy_hartree, gibbs_energy_eV)", "run_optimization logging notes Gibbs at parse_orca_output.py:200-203"],
+      "per_what": "per-MOLECULE G = H - T*S at temperature_K, from the RRHO ideal-gas partition function. Distinct from the CALPHAD MolarGibbsEnergy (registry.py:143, ENERGY_PER_MOLE, per mole of atoms, assessed, SER reference).",
+      "physics_vs_periodic": "GENUINELY MOLECULAR-DOMAIN gas-phase thermochemistry. This is the quantity molecular reaction free energies and barriers are built from (delta-G of two Gibbs energies). The CALPHAD MolarGibbsEnergy is a different object (assessed, per-mole-of-atoms, condensed phase).",
+      "proposal": "New-node-candidate: MolecularGibbsEnergy (per-molecule ENERGY, gas-phase RRHO) in the molecular thermochemistry family. It is the substrate for the reaction-barrier candidate below.",
+      "trap": "per-molecule Hartree gas-phase RRHO G is NOT the CALPHAD condensed-phase assessed molar Gibbs energy. Different basis (molecule vs mole-of-atoms), different physics (RRHO vs assessed model)."
+    },
+    {
+      "id": "orca-entropy-correction",
+      "quantity": "Total entropy correction (T*S term)",
+      "status": "new-node-candidate",
+      "grounds_node": "none",
+      "dimension": "ENERGY as parsed (T*S already multiplied by T, in Eh). Underlying S is ENERGY_PER_TEMPERATURE.",
+      "native_unit": "Hartree (Eh); this is the T*S product, not S itself",
+      "parsed_at": ["parse_orca_output.py:145-147 (entropy_correction_hartree)"],
+      "per_what": "per-molecule; the -T*S contribution to G at temperature_K",
+      "physics_vs_periodic": "Molecular RRHO entropy contribution. The phonon side has per-mode Entropy (ENERGY_PER_TEMPERATURE, s_qnu) and MolarEntropy; the molecular T*S correction is a per-molecule scalar (and is parsed AS T*S in energy units, a trap).",
+      "proposal": "New-node-candidate (or component of the molecular thermochemistry bundle). NOTE the parser stores T*S (energy), not S (entropy); the entropy itself would need dividing by temperature_K.",
+      "trap": "Parsed value is the T*S PRODUCT in Hartree (energy), not the entropy S. To get S in ENERGY_PER_TEMPERATURE, divide by temperature_K (parse_orca_output.py:149-151)."
+    },
+    {
+      "id": "orca-temperature",
+      "quantity": "Temperature of the thermochemistry evaluation",
+      "status": "already-mapped-same-physics",
+      "grounds_node": "Temperature (input condition)",
+      "dimension": "TEMPERATURE (0,0,0,1,0,0,0)",
+      "native_unit": "K",
+      "parsed_at": ["parse_orca_output.py:149-151 (temperature_K)"],
+      "per_what": "scalar condition under which the RRHO thermochemistry is evaluated (default 298.15 K)",
+      "physics_vs_periodic": "SAME as the map Temperature condition node. Carries the thermochemistry state.",
+      "proposal": "Same Temperature node, as an input condition on the molecular thermochemistry instances."
+    },
+    {
+      "id": "orca-solvation-free-energy",
+      "quantity": "Implicit solvation free energy (CPCM / SMD)",
+      "status": "new-node-candidate",
+      "grounds_node": "none",
+      "dimension": "ENERGY (per-molecule); chemists report kcal/mol",
+      "native_unit": "Hartree (Eh) natively; NOT surfaced by any AtomisticSkills parser",
+      "parsed_at": ["INDIRECT: --solvation {CPCM,SMD} + --solvent flags exist (run_singlepoint.py:181-191, setup_orca_calculator orca_utils.py:165-167); the solvated energy is returned as the ordinary 'energy_hartree' with solvation/solvent recorded in the output dict (run_singlepoint.py:129-130). No dedicated G_solv is parsed."],
+      "per_what": "per-molecule. A solvation free energy is the DIFFERENCE gas-phase energy minus solvated energy; the skills do not compute the difference, they only tag whether solvation was on.",
+      "physics_vs_periodic": "GENUINELY MOLECULAR-DOMAIN: implicit continuum solvation (CPCM/SMD) has no periodic-DFT-slice analog. It is a hallmark molecular-chemistry quantity.",
+      "proposal": "New-node-candidate SolvationFreeEnergy (per-molecule ENERGY, delta between gas and solvated single points), BUT currently NOT surfaced: the skills serve the solvated total energy tagged with solvation/solvent, not the G_solv difference. Encode as a labeled TotalEnergy instance (solvation=CPCM/SMD, solvent=water/...) for now; mint SolvationFreeEnergy only if a skill starts computing the difference.",
+      "trap": "kcal/mol is the chemist's convention for solvation energies (1 Hartree = 627.5094740631 kcal/mol); ORCA prints Hartree. The skills do not compute or parse the difference at all."
+    },
+    {
+      "id": "orca-transition-state-energy",
+      "quantity": "Transition-state (saddle-point) energy and reaction barrier",
+      "status": "molecular-sibling-candidate",
+      "grounds_node": "cousin of ActivationEnergy; relates to the deferred NEB barrier",
+      "dimension": "ENERGY (per-molecule) for the TS energy; a BARRIER is a delta-E or delta-G (still ENERGY)",
+      "native_unit": "Hartree / eV",
+      "parsed_at": ["run_optimization.py:141-153 (opt_type='ts', run_tsopt_task -> saddle point), :234-247 (TS verified by exactly 1 imaginary mode)", "the barrier itself = E(TS) - E(reactant) is NOT computed by any single script; it is the agent-level subtraction of two single-point/optimization energies"],
+      "per_what": "per-molecule TS energy (one converged saddle-point single point). A reaction barrier is E(TS)-E(reactant), a per-reaction delta.",
+      "physics_vs_periodic": "COUSIN of the map's ActivationEnergy (registry.py:138, Arrhenius activation energy from D(T)) AND the DEFERRED periodic NEB barrier. But a molecular TS barrier is a static delta-E(electronic) or delta-G(RRHO) between two stationary points, whereas ActivationEnergy is the Arrhenius slope of a diffusivity, and NEB gives a minimum-energy-path barrier. Same ENERGY dimension, three different constructions.",
+      "proposal": "The TS energy grounds TotalEnergy (labeled saddle-point, 1 imaginary mode). The BARRIER (delta) is a molecular-domain ReactionBarrier candidate distinct from Arrhenius ActivationEnergy: mint ReactionBarrier only when a skill computes the delta. Ties to the deferred NEB-barrier decision: recommend a single ReactionBarrier/ActivationEnergy family with a construction label (static-TS vs NEB-MEP vs Arrhenius-slope), all ENERGY, kept apart by label.",
+      "trap": "A TS is verified by EXACTLY ONE imaginary frequency (run_optimization.py:240-243); a minimum by zero. Do not equate a static electronic barrier with an Arrhenius activation energy or a finite-T Gibbs barrier without recording the construction."
+    },
+    {
+      "id": "orca-dipole-moment",
+      "quantity": "Dipole moment",
+      "status": "not-surfaced-by-skills",
+      "grounds_node": "none",
+      "dimension": "CHARGE_TIMES_LENGTH (0,1,1,0,0,1,0), a NEW dimension (I=1 and L=1)",
+      "native_unit": "Debye (ORCA prints Debye and a.u.); NOT parsed by AtomisticSkills",
+      "parsed_at": ["NONE. No AtomisticSkills parser extracts the dipole. ORCA writes it to the .out and .property.txt; advanced SKILL.md:129 tells the agent to read the property file manually."],
+      "per_what": "per-molecule vector; magnitude is the scalar usually reported",
+      "physics_vs_periodic": "GENUINELY MOLECULAR-DOMAIN (a bulk crystal's analog is polarization/Born charges, already on the map as born_charges). Would open a new dimension axis (charge*length).",
+      "proposal": "Candidate only, NOT surfaced by any skill. Defer. If minted: DipoleMoment, dimension (0,1,1,0,0,1,0), unit Debye (1 D = 3.33564e-30 C*m; 1 a.u. = 2.541746 D)."
+    },
+    {
+      "id": "orca-nmr-shift",
+      "quantity": "NMR shielding / chemical shift",
+      "status": "not-surfaced-by-skills",
+      "grounds_node": "none",
+      "dimension": "dimensionless (ppm)",
+      "native_unit": "ppm (shielding tensor referenced to a standard); NOT parsed by AtomisticSkills",
+      "parsed_at": ["NONE. Advanced SKILL.md:138 (`! B3LYP def2-TZVP NMR`, 'Shielding tensors in output') and :129 tell the agent to read calculation.property.txt MANUALLY. No parser extracts NMR. Note: chem-nmr-analysis and chem-nmr-predict are EMPIRICAL (Wasserstein deconvolution of 1H spectra, SPINUS prediction), NOT ORCA-based; they do not consume ORCA output."],
+      "per_what": "per-nucleus shielding (isotropic sigma), referenced to a standard to give a chemical shift in ppm",
+      "physics_vs_periodic": "GENUINELY MOLECULAR-DOMAIN (solid-state NMR exists but the skills' NMR is molecular/empirical). No periodic-slice analog.",
+      "proposal": "Candidate only, NOT surfaced by any ORCA parser. Defer. If minted: NMRShift, dimensionless (ppm)."
+    }
+  ],
+  "molecular_vs_periodic_node_questions": {
+    "TotalEnergy": "SAME node + mandatory basis label. per-molecule (extensive scalar per molecule) vs per-cell (extensive scalar per cell): identical ENERGY dimension and observable shape; the difference (no PBC, all-electron vs pseudopotential energy-zero) is provenance metadata that MUST block cross-code subtraction. Do not mint a separate MolecularEnergy node.",
+    "Forces": "SAME node, no question. Hellmann-Feynman -dE/dR, per-atom (i,alpha), identical to the periodic Forces node. Only the Hartree/Bohr->eV/Angstrom conversion and sign flip are representation-layer.",
+    "Frequency": "SAME quantity tag 'frequency' BUT the index signature does not fit: the map Frequency is omega_{q,nu} (qpoint, branch); a molecule has NO qpoint and no branch, only 3N-6 discrete modes. Recommend a molecular Frequency variant with a NEW index kind (mode), served in cm^-1 (wavenumber), with n_imaginary as a derived label (0=min, 1=TS). This is the map's first non-periodic frequency.",
+    "HOMOLUMO_vs_BandGap": "COUSINS, not the same node. Same ENERGY dimension, same KS-eigenvalue-gap family, same functional-dependence and KS-not-quasiparticle caveats. But BandGap is VBM-to-CBM over the Brillouin zone; HOMO-LUMO is between two discrete frontier MOs of a finite system with no bands. Recommend a distinct molecular HOMOLUMOGap node (calling it BandGap is a category error), mirroring the per-cell/per-molecule TotalEnergy split."
+  },
+  "per_molecule_basis_proposal": {
+    "summary": "The map's TotalEnergy is defined as 'extensive: one scalar per simulation CELL' (dft_ground_state/operator/nodes.py:78-88). A molecular total energy is 'one scalar per MOLECULE'. Both are extensive ENERGY scalars with an empty index tuple (). The observable shape is IDENTICAL; only the underlying substrate differs (finite molecule, no PBC vs periodic cell).",
+    "recommendation": "Introduce a required basis/provenance label on the ENERGY-family molecular instances rather than a parallel node hierarchy. The label must record: (basis = per_molecule | per_cell), (code = orca | qe | vasp | ...), (electron_treatment = all_electron | ecp | pseudopotential), (functional, basis_set, dispersion, solvation). Rationale: the map already lets BandGap ride Potential provenance and keeps same-typed quantities apart by labels/tags, not by dimension. The load-bearing job of the label is to forbid cross-substrate subtraction: an ORCA all-electron molecular total energy and a QE pseudopotential cell energy are on different absolute scales and must never be differenced.",
+    "where_the_basis_matters_most": "TotalEnergy (per-molecule vs per-cell, all-electron vs pseudopotential energy-zero), the molecular thermochemistry family (per-molecule Hartree vs the CALPHAD per-mole-of-atoms and phonon per-mole-of-cells nodes), and the frequency axis (molecular mode index vs qpoint,branch)."
+  },
+  "traps": [
+    "HARTREE: ORCA reports Hartree (Eh) natively for ALL energies (SCF, orbital, ZPE, enthalpy, Gibbs, entropy correction). Convert with 27.211386245988 eV/Hartree (hardcoded parse_orca_output.py:32, run_orca_input.py:93; su.EV_PER_HARTREE in orca_utils.py:27). The map serves eV.",
+    "kcal/mol and kJ/mol: the chemist's thermochemistry conventions. ORCA can print them but the AtomisticSkills parsers convert to eV only; NO kcal/mol appears in a parsed path. Exact: 1 Hartree = 627.5094740631 kcal/mol = 2625.499639479 kJ/mol; 1 kcal/mol = 4.184 kJ/mol (thermochemical calorie). These are per-mole-of-MOLECULES (N=-1), a different basis from the CALPHAD per-mole-of-ATOMS ENERGY_PER_MOLE nodes.",
+    "PER-MOLECULE vs PER-CELL vs PER-MOLE: the ORCA total energy and thermochemistry are per-MOLECULE (N=0, extensive scalar). The map TotalEnergy is per-CELL. The CALPHAD MolarGibbsEnergy/ChemicalPotential/MolarEnthalpy are per-mole-of-ATOMS (N=-1). The phonon Molar* nodes are per-mole-of-CELLS. Four distinct bases in the ENERGY family; a label must carry which.",
+    "ENERGY-ZERO REFERENCE: ORCA is all-electron (or ECP) with a Gaussian basis; its absolute total energy zero differs from the pseudopotential reference of QE/VASP. ORCA and periodic total energies are NOT comparable in absolute terms and must never be subtracted across codes.",
+    "cm^-1 IS A WAVENUMBER, not an angular frequency: parsed frequencies_cm1 are spectroscopic nu-tilde (printed as L^-1 = nu/c). The map Frequency is angular omega (T^-1, rad/s). Bridge: omega = 2*pi*c*nu_tilde, c = 2.99792458e10 cm/s. Same FREQUENCY dimension after the bridge, different unit.",
+    "IMAGINARY FREQUENCIES are printed as NEGATIVE cm^-1 (sqrt of a negative Hessian eigenvalue). n_imaginary: 0 = minimum, exactly 1 = transition state (run_optimization.py:240-247). A stability/saddle-order diagnostic, not a real frequency.",
+    "ENTROPY CORRECTION is parsed as the T*S PRODUCT in Hartree (energy), NOT the entropy S. Divide by temperature_K to recover S in ENERGY_PER_TEMPERATURE (parse_orca_output.py:145-151).",
+    "BASIS-SET PROVENANCE is the checkpoint analog: the def2-SVP default (functional PBE) is a LOW-accuracy default; results ride on (functional, basis_set, dispersion, solvation, special_option). def2-SVP/def2-TZVP/def2-TZVPP, PBE/B3LYP/PBE0/wB97X-V, D3BJ/D4 all change the number. The wB97M-V functional needs a documented hack (--functional '' --dispersion '' --special_option wB97M-V, SKILL.md:98-101) for any hyphenated functional name. Record the full method string as provenance, exactly as an MLIP checkpoint is recorded.",
+    "FROZEN-CORE / correlation convention: DLPNO-CCSD(T) is available through the SAME single-point skill (SKILL.md:119-134) and its correlated energy is labeled 'final_energy' by the parser identically to a DFT energy. The frozen-core approximation (default for correlated methods) and the DLPNO local-approximation thresholds are method provenance the parser does not capture. A CCSD(T) energy and a DFT energy share the 'final_energy' key but are different physics.",
+    "DISPERSION correction is folded into the method string (method = f'{functional}-{dispersion}', orca_utils.py:160-161) and also parsed separately (dispersion_correction_hartree, parse_orca_output.py:53-55). It is part of the total, not additive on top of the reported final energy.",
+    "SOLVATION: --solvation requires --solvent (orca_utils.py:146-150). The solvated single point returns the ordinary energy tagged with solvation/solvent; NO G_solv difference is computed. Do not read a solvation free energy off a single solvated run."
+  ],
+  "open_questions": [
+    "TotalEnergy basis label: adopt a required (basis, code, electron_treatment, functional, basis_set, dispersion, solvation) provenance label on ENERGY-family instances, with cross-substrate subtraction forbidden? (Recommended: yes, same node + label.)",
+    "Molecular Frequency: mint a new index kind 'mode' for the non-periodic mode axis (no qpoint, no branch), served cm^-1, with n_imaginary as a derived label? Or treat the mode list as a MolecularVibrationalSpectrum representation? (Recommended: new index kind, same 'frequency' tag.)",
+    "HOMOLUMOGap: distinct molecular node (recommended) vs BandGap with a periodic/molecular basis label? A molecule has no bands, so a distinct node avoids a category error.",
+    "Molecular thermochemistry family: mint a bundle (ZeroPointEnergy, MolecularEnthalpy, MolecularGibbsEnergy, entropy correction) as per-molecule gas-phase RRHO ENERGY nodes, kept apart from the CALPHAD per-mole-of-atoms and phonon per-mole-of-cells nodes by basis label? Or one node per correction? (Recommended: a family with a molecular RRHO construction label.)",
+    "ReactionBarrier / TS energy: the TS energy grounds a labeled TotalEnergy (saddle-point, 1 imaginary mode). The barrier delta is computed at agent level, not by a script. Mint ReactionBarrier only when a skill computes the delta; unify with the deferred NEB barrier and Arrhenius ActivationEnergy under one family kept apart by construction label (static-TS vs NEB-MEP vs Arrhenius-slope)?",
+    "SolvationFreeEnergy: currently NOT surfaced (skills tag solvation on/off, do not compute G_solv). Encode solvated runs as labeled TotalEnergy for now; mint SolvationFreeEnergy only when a skill computes gas-minus-solvated?",
+    "Molecular Hessian: representation-only intermediate (recommended) or a node feeding a gamma-point-only ForceConstants variant?",
+    "DipoleMoment (Debye, new dimension charge*length, I=1 L=1) and NMRShift (ppm, dimensionless): both are GENUINELY molecular-domain but NOT surfaced by any ORCA parser (agent reads .property.txt manually). Defer both until a skill parses them.",
+    "Snapshot drift: scanned at HEAD 671b092, 77 nodes, empty edges array, amset ElectricalConductivity[carrier=ionic] present but seebeck/carrier_mobility/electronic_thermal_conductivity/static_dielectric_tensor in registry.py QUANTITY_TAGS yet NOT graph nodes. Re-read graph.json at encode time.",
+    "IR spectrum (frequency, intensity km/mol pairs): confirm representation-only, ingested like phonon DOS / Raman via the representation layer (chem-spectrum-matcher consumes it)."
+  ],
+  "source_anchors": {
+    "skills": [
+      "chem-dft-orca-singlepoint/SKILL.md:1-168, scripts/run_singlepoint.py:32-155 (energy, forces, hessian; HARTREE_TO_EV, BOHR_PER_ANGSTROM)",
+      "chem-dft-orca-optimization/scripts/run_optimization.py:130-249 (min/ts opt, final energy/forces, su.normal_modes wavenumbers cm-1, n_imaginary)",
+      "chem-dft-orca-advanced-calculation/SKILL.md:1-170 (TD-DFT, DLPNO-CCSD(T), CASSCF/NEVPT2, NMR, EPR, ZORA, scans), scripts/parse_orca_output.py:32-205 (the authoritative parsed-quantity list), scripts/run_orca_input.py:33-106 (FINAL SINGLE POINT ENERGY, SCF convergence)",
+      "chem-spectrum-matcher/SKILL.md:53,112-115,168,180,206-208 (ORCA IR one route to predicted IR spectrum)",
+      "src/utils/dft/orca_utils.py:27-28,58-71,103-217 (HARTREE_TO_EV=su.EV_PER_HARTREE, BOHR_PER_ANGSTROM=su.BOHR_PER_ANGSTROM, setup_orca_calculator settings)",
+      "conda-envs/orca-agent/core_env.yaml, example_full_env.yaml (scine-utilities 10.1.0, scine-readuct 6.1.0, ase 3.28.0; ORCA_BINARY_PATH)"
+    ],
+    "map_side": [
+      "omai/dft_ground_state/operator/nodes.py:78-89 (TotalEnergy, ENERGY, extensive per cell), :91-103 (Forces, FORCE, i/alpha), :134-151 (BandGap, ENERGY, KS gap)",
+      "omai/thermal_transport/operator/nodes.py:133-134 (Frequency, FREQUENCY, indices q,nu)",
+      "omai/operator/dimensions.py:96 (ENERGY 1,2,-2,0,0,0,0), :91 (FREQUENCY 0,0,-1), :106 (ENERGY_PER_MOLE 1,2,-2,0,-1,0,0), :114 (FORCE 1,1,-2), :108 (ENERGY_PER_LENGTH_SQUARED for Hessian)",
+      "omai/operator/registry.py:84-152 (QUANTITY_TAGS: total_energy 'per simulation cell', forces, band_gap 'KS eigenvalue gap', frequency 'per-mode phonon angular frequencies', molar_gibbs_energy/chemical_potential per-mole-of-atoms, activation_energy Arrhenius, reaction_energy)",
+      "docs/data/graph.json (HEAD 671b092, 77 nodes, empty edges)"
+    ]
+  }
+}
