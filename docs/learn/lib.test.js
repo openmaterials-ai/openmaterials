@@ -51,6 +51,37 @@ test('aggregateCoverage unions touched nodes and counts instances per node', () 
   assert.strictEqual(agg.instanceCount['C'], 1);
 });
 
+test('buildInstance emits the exact committed instance schema key set', () => {
+  const vi = { node_id: 'ThermalConductivity[transport_model=wigner]', material: 'Si',
+    conditions: '277 K', value: 166, units: 'W/m/K', uncertainty: null,
+    quote: 'Considering the extrapolated value to be 166 W/mK', page: 8, kind: 'measurement' };
+  const inst = L.buildInstance(vi, { title: 'Heat transport in silicon', ref: 'esfarjani-2011' });
+  assert.deepStrictEqual(Object.keys(inst).sort(),
+    ['conditions', 'material', 'source', 'units', 'uncertainty', 'value', 'variable'].sort());
+  assert.deepStrictEqual(Object.keys(inst.source).sort(),
+    ['detail', 'kind', 'ref'].sort());
+  assert.strictEqual(inst.variable, 'ThermalConductivity[transport_model=wigner]');
+  assert.strictEqual(inst.source.kind, 'measurement');
+  assert.strictEqual(inst.source.ref, 'paper:esfarjani-2011');
+  assert.ok(inst.source.detail.indexOf('(p. 8)') !== -1);
+  assert.ok(inst.source.detail.indexOf('Heat transport in silicon') !== -1);
+});
+
+test('buildInstance defaults source.kind to simulation when unspecified', () => {
+  const vi = { node_id: 'Temperature', material: 'Si', conditions: '', value: 300,
+    units: 'K', uncertainty: null, quote: 'T = 300 K', page: 1 };
+  const inst = L.buildInstance(vi, { title: 'Some paper', ref: 'some-paper' });
+  assert.strictEqual(inst.source.kind, 'simulation');
+});
+
+test('instanceSlug yields a valid lowercase material-variable-source slug', () => {
+  const inst = { variable: 'ThermalConductivity[transport_model=wigner]', material: 'Si',
+    source: { ref: 'paper:esfarjani-2011' } };
+  const slug = L.instanceSlug(inst);
+  assert.strictEqual(slug, 'si-thermalconductivity-esfarjani-2011');
+  assert.match(slug, /^[a-z0-9]+(-[a-z0-9]+)*$/);
+});
+
 test('demo fixture passes validateExtraction against the catalog', () => {
   const fs = require('node:fs');
   const fixture = JSON.parse(fs.readFileSync(__dirname + '/demo/esfarjani-si.json', 'utf8'));

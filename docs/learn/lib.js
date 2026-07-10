@@ -55,6 +55,51 @@
     });
   }
 
+  function slugify(s) {
+    return String(s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+
+  // Build a single contributable instance record matching the committed
+  // docs/data/instances schema exactly:
+  // {variable, material, conditions, value, units, uncertainty, source{kind, ref, detail}}
+  // `vi` is a validated value-instance (node_id, material, conditions, value,
+  // units, uncertainty, quote, page); `paper` is {title, ref, kind?}.
+  function buildInstance(vi, paper) {
+    paper = paper || {};
+    const title = paper.title || '';
+    const paperSlug = paper.ref || slugify(title);
+    const kind = paper.kind === 'measurement' ? 'measurement'
+      : (paper.kind === 'simulation' ? 'simulation'
+        : (vi && vi.kind === 'measurement' ? 'measurement' : 'simulation'));
+    let detail = (vi && vi.quote) ? String(vi.quote) : '';
+    if (vi && (vi.page !== null && vi.page !== undefined && vi.page !== '')) {
+      detail += ' (p. ' + vi.page + ')';
+    }
+    if (title) detail += (detail ? ' ' : '') + title;
+    return {
+      variable: vi.node_id,
+      material: vi.material || '',
+      conditions: vi.conditions || '',
+      value: vi.value,
+      units: vi.units || '',
+      uncertainty: (typeof vi.uncertainty === 'number') ? vi.uncertainty : null,
+      source: {
+        kind: kind,
+        ref: 'paper:' + paperSlug,
+        detail: detail
+      }
+    };
+  }
+
+  // Filename slug for a contributable instance: material-variable-source hints,
+  // lowercase, matching the docs/data/instances naming convention.
+  function instanceSlug(inst) {
+    inst = inst || {};
+    const variable = (inst.variable || '').replace(/\[.*$/, '');
+    const paperSlug = (inst.source && inst.source.ref) ? inst.source.ref.replace(/^paper:/, '') : '';
+    return slugify([inst.material, variable, paperSlug].filter(Boolean).join('-'));
+  }
+
   function aggregateCoverage(papers) {
     const touched = new Set();
     const instanceCount = {};
@@ -71,7 +116,8 @@
   }
 
   const api = { validateExtraction: validateExtraction, toInstances: toInstances,
-                aggregateCoverage: aggregateCoverage };
+                aggregateCoverage: aggregateCoverage, slugify: slugify,
+                buildInstance: buildInstance, instanceSlug: instanceSlug };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.LearnLib = api;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

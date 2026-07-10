@@ -54,6 +54,17 @@
   .prog-state.error{background:#fee2e2;color:#991b1b;}
   .prog-row .prog-msg{font-size:.75rem;color:var(--muted);margin-top:1px;}
 
+  /* in-progress spinner (the only new CSS on this page) */
+  .om-spinner{width:18px;height:18px;border-radius:50%;flex:0 0 auto;
+    border:2px solid var(--accent-soft);border-top-color:var(--accent);
+    animation:om-spin .7s linear infinite;}
+  @keyframes om-spin{to{transform:rotate(360deg);}}
+  @media (prefers-reduced-motion:reduce){
+    .om-spinner{border:none;background:var(--accent);animation:om-pulse 1.1s ease-in-out infinite;}
+    @keyframes om-pulse{0%,100%{opacity:.35;}50%{opacity:1;}}
+  }
+  .dropzone.busy{opacity:.6;pointer-events:none;}
+
   /* result area */
   #result{width:min(96vw,780px);display:none;flex-direction:column;gap:20px;}
 
@@ -124,17 +135,15 @@
     <div class="ico">&#128196;</div>
     <div class="head">Drop a paper (PDF) or a batch</div>
     <div class="sub2">Drag and drop one or more PDF files here, or choose a file.</div>
-    <label class="om-btn" for="fileInput">Choose PDF&hellip;</label>
+    <label class="om-btn" id="chooseBtn" for="fileInput">Choose PDF&hellip;</label>
     <input type="file" id="fileInput" accept="application/pdf" multiple>
-    <div class="or">or</div>
-    <button class="om-btn om-btn-primary" onclick="runDemo()">Try the demo</button>
   </div>
 
   <div id="keyPanel">
     <div class="khead">How this works</div>
     <div class="kdesc">Analysis runs through a cost-contained relay on
       <code>openmaterials.ai</code> infrastructure; no account or API key is
-      needed. The demo has a small daily budget shared by all visitors, so a
+      needed. The relay has a small daily budget shared by all visitors, so a
       run may ask you to come back tomorrow.</div>
   </div>
 
@@ -173,14 +182,6 @@ Promise.all([
   CATALOG=res[0]; KNOWN=new Set(CATALOG.map(c=>c.id));
   res[1].nodes.forEach(function(n){ NODE_BY_ID[n.id]=n; });
 }).catch(function(e){err('data: '+e);});
-
-function runDemo(){
-  fetch('demo/esfarjani-si.json?v='+Date.now()).then(r=>r.json()).then(function(fx){
-    var v=LearnLib.validateExtraction(fx.extraction, KNOWN);
-    v.paper=fx.paper;
-    renderResult([v]);
-  }).catch(function(e){err('demo: '+e);});
-}
 </script>
 <script>
 /* ---- Step 1: PDF text via pdf.js ---- */
@@ -211,8 +212,8 @@ async function extractWithLLM(paperText){
   const msg=await resp.json();
   if(!resp.ok){
     const t=(msg.error&&msg.error.type)||'';
-    if(t==='budget_exhausted') throw new Error('The demo\'s shared daily budget is spent; please try again tomorrow.');
-    if(t==='rate_limit_error') throw new Error('Daily demo limit reached for your address; please try again tomorrow.');
+    if(t==='budget_exhausted') throw new Error('The shared daily budget is spent; please try again tomorrow.');
+    if(t==='rate_limit_error') throw new Error('Daily limit reached for your address; please try again tomorrow.');
     throw new Error((msg.error&&msg.error.message)||('relay error '+resp.status));
   }
   const txt=msg.content.map(function(b){return b.text||'';}).join('');
@@ -228,39 +229,60 @@ function slugify(s){
 function makeProgressRow(name){
   var pl=document.getElementById('progressList');
   var row=document.createElement('div'); row.className='prog-row';
+  var spin=document.createElement('span'); spin.className='om-spinner';
   var nm=document.createElement('span'); nm.className='prog-name'; nm.textContent=name;
   var st=document.createElement('span'); st.className='prog-state reading'; st.textContent='reading';
   var mg=document.createElement('div'); mg.className='prog-msg';
-  row.appendChild(nm); row.appendChild(st); row.appendChild(mg);
+  row.appendChild(spin); row.appendChild(nm); row.appendChild(st); row.appendChild(mg);
   pl.appendChild(row);
   return {
     setState:function(state,msg){
       st.className='prog-state '+state; st.textContent=state;
       if(msg) mg.textContent=msg; else mg.textContent='';
+      /* the spinner only spins while a step is in progress */
+      spin.style.display=(state==='reading'||state==='extracting')?'inline-block':'none';
     }
   };
+}
+
+/* toggle the whole page's running state: show/clear the spinner-bearing
+   progress area and disable the drop/choose controls while work runs. */
+function setRunning(on){
+  var dz=document.getElementById('dropzone');
+  var choose=document.getElementById('chooseBtn');
+  var input=document.getElementById('fileInput');
+  if(dz) dz.classList.toggle('busy',!!on);
+  if(choose){ choose.setAttribute('aria-disabled',on?'true':'false'); }
+  if(input) input.disabled=!!on;
+  document.body.setAttribute('data-running',on?'1':'0');
 }
 
 async function processPdfFiles(files){
   if(!files||!files.length) return;
   document.getElementById('progressList').innerHTML='';
   var papers=[];
-  for(var i=0;i<files.length;i++){
-    var file=files[i];
-    if(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf')) continue;
-    var row=makeProgressRow(file.name);
-    try{
-      row.setState('reading','');
-      var textResult=await extractPdfText(file);
-      row.setState('extracting',''+textResult.pages+' pages read');
-      var raw=await extractWithLLM(textResult.text);
-      var validated=LearnLib.validateExtraction(raw, KNOWN);
-      validated.paper={title:file.name, ref:slugify(file.name)};
-      papers.push(validated);
-      row.setState('done',validated.value_instances.length+' value(s) extracted');
-    }catch(e){
-      row.setState('error',String(e&&e.message||e));
+  setRunning(true);
+  try{
+    for(var i=0;i<files.length;i++){
+      var file=files[i];
+      if(file.type!=='application/pdf'&&!file.name.toLowerCase().endsWith('.pdf')) continue;
+      var row=makeProgressRow(file.name);
+      try{
+        row.setState('reading','reading PDF...');
+        var textResult=await extractPdfText(file);
+        row.setState('extracting',textResult.pages+' pages read; extracting values (this takes about a minute)...');
+        var raw=await extractWithLLM(textResult.text);
+        var validated=LearnLib.validateExtraction(raw, KNOWN);
+        validated.paper={title:file.name, ref:slugify(file.name)};
+        papers.push(validated);
+        row.setState('done',validated.value_instances.length+' value(s) extracted');
+      }catch(e){
+        /* clears the spinner for this row; 429 budget/rate messages render here */
+        row.setState('error',String(e&&e.message||e));
+      }
     }
+  }finally{
+    setRunning(false);
   }
   if(papers.length) renderResult(papers);
 }
@@ -324,11 +346,7 @@ function renderResult(papers){
       var rowKey='row_'+(paperRef||'p')+'_'+idx;
       /* accepted by default (only mapped rows go in) */
       if(vi.node_id){
-        ACCEPTED.push({
-          node_id:vi.node_id, material:vi.material, conditions:vi.conditions,
-          value:vi.value, units:vi.units, uncertainty:vi.uncertainty,
-          quote:vi.quote, paperRef:paperRef, _key:rowKey
-        });
+        ACCEPTED.push({ vi:vi, paper:p.paper, _key:rowKey });
       }
 
       var rowEl=document.createElement('div'); rowEl.className='vi-row'; rowEl.id=rowKey;
@@ -374,31 +392,59 @@ function renderResult(papers){
       btnR.textContent='Reject';
 
       if(!vi.node_id){
-        btnA.disabled=true; btnA.title='Novel quantities cannot be exported to known variables';
+        btnA.disabled=true; btnA.title='Novel quantities cannot map onto a known variable';
         btnA.style.opacity='0.45'; btnA.style.cursor='default';
       }
 
-      (function(localVi, localRef, localKey, localBtnA, localBtnR, localRowEl){
+      /* per-card contribute actions, shown once accepted */
+      var actDiv=document.createElement('div'); actDiv.className='vi-controls';
+      actDiv.style.display=vi.node_id?'flex':'none';
+
+      function buildActions(localVi, localPaper){
+        actDiv.innerHTML='';
+        var inst=LearnLib.buildInstance(localVi, localPaper);
+        var slug=LearnLib.instanceSlug(inst);
+        var json=JSON.stringify(inst,null,2);
+
+        var dl=document.createElement('button'); dl.className='om-btn om-btn-sm';
+        dl.textContent='Download JSON';
+        dl.addEventListener('click',function(){ downloadJson(slug+'.json', json); });
+        actDiv.appendChild(dl);
+
+        var encoded=encodeURIComponent(json);
+        if(encoded.length<=7000){
+          var gh=document.createElement('a'); gh.className='om-btn om-btn-sm';
+          gh.textContent='Propose on GitHub';
+          gh.href='https://github.com/gbarbalinardo/openmaterials/new/main?filename='
+            +encodeURIComponent('docs/data/instances/'+slug+'.json')+'&value='+encoded;
+          gh.target='_blank'; gh.rel='noopener';
+          actDiv.appendChild(gh);
+        }
+      }
+      if(vi.node_id){ buildActions(vi, p.paper); }
+
+      (function(localVi, localPaper, localKey, localBtnA, localBtnR, localRowEl, localActDiv){
         localBtnA.addEventListener('click',function(){
           localBtnA.classList.add('active'); localBtnR.classList.remove('active');
           localRowEl.classList.remove('rejected');
-          if(localVi.node_id&&!findAccepted(localKey)){
-            ACCEPTED.push({
-              node_id:localVi.node_id, material:localVi.material, conditions:localVi.conditions,
-              value:localVi.value, units:localVi.units, uncertainty:localVi.uncertainty,
-              quote:localVi.quote, paperRef:localRef, _key:localKey
-            });
+          if(localVi.node_id){
+            if(!findAccepted(localKey)){ ACCEPTED.push({ vi:localVi, paper:localPaper, _key:localKey }); }
+            localActDiv.style.display='flex';
           }
+          refreshSummary();
         });
         localBtnR.addEventListener('click',function(){
           localBtnR.classList.add('active'); localBtnA.classList.remove('active');
           localRowEl.classList.add('rejected');
+          localActDiv.style.display='none';
           removeAccepted(localKey);
+          refreshSummary();
         });
-      })(vi, paperRef, rowKey, btnA, btnR, rowEl);
+      })(vi, p.paper, rowKey, btnA, btnR, rowEl, actDiv);
 
       ctrlDiv.appendChild(btnA); ctrlDiv.appendChild(btnR);
       rowEl.appendChild(ctrlDiv);
+      rowEl.appendChild(actDiv);
       grp.appendChild(rowEl);
     });
     revEl.appendChild(grp);
@@ -427,26 +473,48 @@ function renderResult(papers){
     attnEl.style.display='none';
   }
 
-  /* -- Export section -- */
-  var expEl=document.getElementById('resultExport');
-  expEl.innerHTML='<div class="sec-head">Export</div>';
-  var expBtn=document.createElement('button'); expBtn.className='om-btn om-btn-primary';
-  expBtn.textContent='Export instances JSON';
-  expBtn.addEventListener('click',function(){
-    exportInstances(papers);
-  });
-  expEl.appendChild(expBtn);
-  var note=document.createElement('div'); note.className='export-note';
-  note.innerHTML='Exports accepted, mapped instances in the OpenMaterials commons format. '
-    +'Novel-quantity rows are skipped (they have no catalog node_id to export to). '
-    +'Once downloaded, open a PR adding the file under '
-    +'<a href="https://github.com/gbarbalinardo/openmaterials-ai/tree/main/docs/data/instances/" '
-    +'target="_blank" rel="noopener">docs/data/instances/</a> in the repo.';
-  expEl.appendChild(note);
+  /* -- Accepted summary bar (rendered/refreshed by refreshSummary) -- */
+  refreshSummary();
 
   /* show result area */
   var resultEl=document.getElementById('result');
   resultEl.style.display='flex';
+}
+
+/* Summary bar: appears once >=1 value is accepted, with Download all + the
+   review-gate explanation. Reuses existing .export-section / .om-btn classes. */
+function refreshSummary(){
+  var expEl=document.getElementById('resultExport');
+  if(!expEl) return;
+  var n=ACCEPTED.length;
+  if(!n){ expEl.innerHTML=''; expEl.style.display='none'; return; }
+  expEl.style.display='flex';
+  expEl.innerHTML='<div class="sec-head">'+n+' value'+(n===1?'':'s')+' accepted</div>';
+
+  var dlAll=document.createElement('button'); dlAll.className='om-btn om-btn-primary';
+  dlAll.textContent='Download all';
+  dlAll.addEventListener('click',downloadAllInstances);
+  expEl.appendChild(dlAll);
+
+  var note=document.createElement('div'); note.className='export-note';
+  note.textContent='Each value enters the map only through review: download the JSON '
+    +'and open a pull request adding it under docs/data/instances/.';
+  expEl.appendChild(note);
+}
+
+function downloadAllInstances(){
+  if(!ACCEPTED.length){ return; }
+  var recs=ACCEPTED.map(function(r){ return LearnLib.buildInstance(r.vi, r.paper); });
+  downloadJson('instances-accepted.json', JSON.stringify(recs,null,2));
+}
+
+function downloadJson(fname, json){
+  var blob=new Blob([json],{type:'application/json'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a'); a.href=url; a.download=fname;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},1000);
 }
 
 function escHtml(s){
@@ -459,25 +527,6 @@ function findAccepted(key){
 }
 function removeAccepted(key){
   ACCEPTED=ACCEPTED.filter(function(r){return r._key!==key;});
-}
-
-function exportInstances(papers){
-  var mappedRows=ACCEPTED.filter(function(r){return r.node_id;});
-  if(!mappedRows.length){alert('No accepted mapped instances to export.');return;}
-  var payload=mappedRows.map(function(r){
-    return {node_id:r.node_id, material:r.material, conditions:r.conditions,
-            value:r.value, units:r.units, uncertainty:r.uncertainty,
-            quote:r.quote, source_ref:r.paperRef};
-  });
-  var recs=LearnLib.toInstances(payload);
-  var firstRef=(papers[0]&&papers[0].paper&&papers[0].paper.ref)||'export';
-  var fname='instances-'+firstRef+'.json';
-  var blob=new Blob([JSON.stringify(recs,null,2)],{type:'application/json'});
-  var url=URL.createObjectURL(blob);
-  var a=document.createElement('a'); a.href=url; a.download=fname;
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a);
-  setTimeout(function(){URL.revokeObjectURL(url);},1000);
 }
 </script>
 </body>
