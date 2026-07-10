@@ -1,0 +1,674 @@
+{
+  "scan": {
+    "code": "pymatgen",
+    "slice": "as-used-by-AtomisticSkills",
+    "source_root": "AtomisticSkills/.agents/skills/mat-*/",
+    "paper": "arXiv 2605.24002 (AtomisticSkills)",
+    "pymatgen_version_anchor": "2025.6.14 (importable in miniconda base as /Users/juicy/miniconda3/lib/python3.12/site-packages/pymatgen; MP-served docs in examples carry pymatgen_version 2024.11.13). pymatgen-analysis-diffusion and pymatgen-analysis-defects are separate add-on distributions imported under the pymatgen.analysis.* namespace; not present in base, so their APIs are anchored to AtomisticSkills usage + canonical docstrings only.",
+    "role_in_software": "pymatgen is the structure/analysis workhorse of the mat-* skills: it owns the crystal-structure object (Structure/Lattice/Composition), CIF/POSCAR/Vasprun/OUTCAR/LOBSTER I/O, symmetry (SpacegroupAnalyzer), and a set of pure-python physics analyses (elastic-tensor algebra, XRD kinematics, phase-diagram convex hull, diffusion Einstein relation, Wulff construction, Born/dielectric Raman post-processing). The heavy energies/forces/stresses are produced by an MLIP calculator or VASP/QE; pymatgen represents the structure they act on and post-processes the results into named physical quantities.",
+    "canonical_units_note": "The openmaterials map's canonical units (from omai/operator/registry.py QUANTITY_TAGS and the QE/LAMMPS scans) are the reference. Conversion factors below are quoted to full precision with the pymatgen source line that defines them."
+  },
+  "entries": [
+    {
+      "name": "crystal-structure",
+      "quantity": "The periodic crystal: lattice vectors + species + fractional positions (the object every mat-* skill passes around)",
+      "symbol": "Structure",
+      "dimension": {"note": "container, not a single physical quantity; carries L (lattice, angstrom), N (species/counts), M (masses)"},
+      "index_structure": ["site index i=0..nsites-1", "cartesian/fractional component"],
+      "units": "Lattice vectors and cartesian coordinates in ANGSTROM; fractional coordinates dimensionless. Species carry Element/Species objects (atomic_mass in amu).",
+      "producing_api": "pymatgen.core.structure.Structure (Structure.from_file / Structure.from_str; IStructure base); pymatgen.io.ase.AseAtomsAdaptor.get_structure round-trips ASE Atoms <-> Structure",
+      "conversion_to_canonical": "angstrom is already the map's length unit (matches QE-scan atomic-positions after the alat/bohr conversion; matches LAMMPS metal distance).",
+      "anchors": {
+        "usage": [
+          "mat-xrd-calculator/scripts/calculate_xrd.py:26 (Structure.from_file)",
+          "mat-diffusion-analysis/scripts/analyze_diffusion.py:119-120 (AseAtomsAdaptor().get_structure per frame)",
+          "mat-intercalation-voltage/scripts/remove_atoms.py:18 (Structure edited in place: remove_species)",
+          "mat-amorphization/scripts/prep_supercell.py:11-12 (SpacegroupAnalyzer -> conventional structure)"
+        ],
+        "source": [
+          "pymatgen/core/structure.py:1006 (class IStructure)",
+          "pymatgen/core/structure.py:4137 (class Structure)",
+          "pymatgen/core/structure.py:432 (composition property)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "Structure", "quantity_tag": "structure", "notes": "Exact match to the opaque Phase-1 Structure node (registry tag 'structure': cell, species, positions). pymatgen is THE realization of this node across the mat-* skills; AseAtomsAdaptor is the bridge to the ASE object the MLIP calculators consume."}
+    },
+    {
+      "name": "cell-volume",
+      "quantity": "Volume of the (primitive or conventional) unit cell",
+      "symbol": "V, Omega",
+      "dimension": {"M": 0, "L": 3, "T": 0, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": [],
+      "units": "ANGSTROM^3 (Lattice.volume returns abs(det) of the cartesian lattice matrix)",
+      "producing_api": "pymatgen.core.lattice.Lattice.volume (via Structure.volume -> IStructure.volume)",
+      "conversion_to_canonical": "angstrom^3 is the map's volume unit. QE-scan CellVolume is bohr^3: 1 bohr^3 = 0.14818471 angstrom^3 (a0 = 0.529177210903 A). The mat-* skills work directly in angstrom^3, so NO bohr conversion applies here.",
+      "anchors": {
+        "usage": [
+          "mat-equation-of-state/scripts/calculate_eos.py:78,84,103 (equilibrium volume from MatCalc EOSCalc, reported in A^3)",
+          "mat-surface-energy/scripts/calculate_surface_energy.py:93-111 (slab a-b area from lattice; surface area is the 2D analog)"
+        ],
+        "source": [
+          "pymatgen/core/lattice.py:182-185 (Lattice.volume, 'Volume of the unit cell in Angstrom^3')",
+          "pymatgen/core/structure.py:1616 (IStructure.volume)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "CellVolume", "quantity_tag": "cell_volume", "notes": "Direct match. Trap for cross-code identity: QE reports bohr^3, pymatgen angstrom^3. Declare units=angstrom^3 on the pymatgen realization; a compare() against a QE CellVolume needs the 0.148185 factor."}
+    },
+    {
+      "name": "atomic-mass",
+      "quantity": "Per-species / per-site atomic mass",
+      "symbol": "M_s, m_i",
+      "dimension": {"M": 1, "L": 0, "T": 0, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": ["site index i or species index s"],
+      "units": "amu (atomic mass units, standard atomic weights; site.mass and Element.atomic_mass return amu Mass objects)",
+      "producing_api": "pymatgen.core.periodic_table.Element.atomic_mass; Site.mass; Composition.weight (sum in amu)",
+      "conversion_to_canonical": "amu matches the map's AtomicMass unit and the QE/LAMMPS scans (QE input amu; the QE text-file 911.444 Ry-a.u. re-emission is a QE file trap, not present in pymatgen).",
+      "anchors": {
+        "usage": [
+          "mat-raman-spectra/scripts/analyze_raman_modes.py:226 (masses = [site.mass for site in phonon.primitive.sites]  # amu; used to mass-weight Raman displacements)"
+        ],
+        "source": [
+          "pymatgen/core/composition.py:550-552 (weight = Mass(sum(amount*el.atomic_mass ...), 'amu'))"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "AtomicMass", "quantity_tag": "atomic_mass", "notes": "Direct match. pymatgen exposes masses in amu with no unit ambiguity."}
+    },
+    {
+      "name": "atom-count",
+      "quantity": "Number of atoms / sites in the cell",
+      "symbol": "N, nsites",
+      "dimension": {"M": 0, "L": 0, "T": 0, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": [],
+      "units": "dimensionless integer count; Composition.num_atoms is a float sum of amounts",
+      "producing_api": "len(Structure); Structure.num_sites; pymatgen.core.composition.Composition.num_atoms",
+      "conversion_to_canonical": "dimensionless; matches AtomCount.",
+      "anchors": {
+        "usage": [
+          "mat-surface-energy/scripts/calculate_surface_energy.py:111 (num_atoms in the slab surface-energy per-atom normalization)",
+          "mat-stability/scripts/compute_ehull.py:181 (e_above_hull is per-atom, i.e. divided by atom count implicitly by pymatgen)"
+        ],
+        "source": [
+          "pymatgen/core/composition.py:543 (Composition.num_atoms)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "AtomCount", "quantity_tag": "atom_count", "notes": "Direct match (promoted parameter)."}
+    },
+    {
+      "name": "elastic-stiffness-tensor",
+      "quantity": "Second-order elastic (stiffness) tensor C_{alpha,beta,gamma,delta}: second strain derivative of the energy density",
+      "symbol": "C_ijkl (Voigt C_ij, 6x6)",
+      "dimension": {"M": 1, "L": -1, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "pressure/stress dimension"},
+      "index_structure": ["full: 4 cartesian legs (3x3x3x3); Voigt-packed: two Voigt indices 1..6 (6x6)"],
+      "units": "pymatgen ElasticTensor is stored in eV/ANGSTROM^3 (docstring: 'in units of eV/A^3'). .voigt returns the 6x6 in eV/A^3. AtomisticSkills multiplies by EV_PER_A3_TO_GPA = 160.2176634 to report GPa.",
+      "producing_api": "pymatgen.analysis.elasticity.elastic.ElasticTensor (rank-4); .voigt (from pymatgen.core.tensors.Tensor.voigt, 6x6); built by matcalc.ElasticityCalc on DeformedStructureSet + stresses (ElasticTensor.from_independent_strains)",
+      "conversion_to_canonical": "1 eV/A^3 = 160.21766339999996 GPa EXACTLY (pymatgen Unit('GPa').get_conversion_factor(Unit('eV ang^-3')) = 0.006241509074460764; inverse = 160.2176634). The map's ElasticConstants canonical unit is GPa. Voigt reverse-map is fixed: [[0,5,4],[5,1,3],[4,3,2]] (Tensor.get_voigt_dict / reverse_voigt_map), and Voigt has a _vscale factor of 2 on the shear off-diagonals for strain-like tensors (relevant when round-tripping compliance, not for C itself which uses vscale 1 on rows/cols).",
+      "anchors": {
+        "usage": [
+          "mat-elasticity/scripts/calculate_elasticity.py:33 (EV_PER_A3_TO_GPA = 160.2176634)",
+          "mat-elasticity/scripts/calculate_elasticity.py:82-86 (elastic_tensor.voigt in eV/A^3, then *160.2176634 -> GPa)"
+        ],
+        "source": [
+          "pymatgen/analysis/elasticity/elastic.py:130-136 (class ElasticTensor 'in units of eV/A^3')",
+          "pymatgen/analysis/elasticity/elastic.py:52 (GPa_to_eV_A3 = Unit('GPa').get_conversion_factor(Unit('eV ang^-3')))",
+          "pymatgen/analysis/elasticity/elastic.py:490-519 (from_independent_strains; vasp branch multiplies by -0.1 for kbar->GPa sign)",
+          "pymatgen/core/tensors.py:347-351 (Tensor.voigt), pymatgen/core/tensors.py:381 (reverse_voigt_map [[0,5,4],[5,1,3],[4,3,2]])"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "ElasticConstants", "quantity_tag": "elastic_constants", "notes": "Direct match to the rank-4 ElasticConstants node (registry: 'Voigt 6x6 is a representation packing'). TWO declared conventions required: (1) unit eV/A^3 internally, GPa after the 160.2176634 factor; (2) Voigt packing with the reverse_voigt_map above. The from_independent_strains(vasp=True) path additionally does c_ij *= -0.1 to fix VASP's kbar-with-opposite-sign stress; the MLIP path used by AtomisticSkills does not, so declare stress_sign/units provenance."}
+    },
+    {
+      "name": "bulk-modulus-vrh",
+      "quantity": "Isotropic bulk modulus, Voigt-Reuss-Hill average of the elastic tensor",
+      "symbol": "K_vrh (K_v, K_r)",
+      "dimension": {"M": 1, "L": -1, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": [],
+      "units": "eV/ANGSTROM^3 from pymatgen ElasticTensor.k_vrh; GPa after the 160.2176634 factor in AtomisticSkills",
+      "producing_api": "pymatgen.analysis.elasticity.elastic.ElasticTensor.k_vrh (= 0.5*(k_voigt + k_reuss)); k_voigt = voigt[:3,:3].mean()",
+      "conversion_to_canonical": "1 eV/A^3 = 160.2176634 GPa (same factor as elastic tensor). Map's BulkModulus canonical unit GPa.",
+      "anchors": {
+        "usage": [
+          "mat-elasticity/scripts/calculate_elasticity.py:87 (bulk_modulus_gpa = result['bulk_modulus_vrh'] * EV_PER_A3_TO_GPA)"
+        ],
+        "source": [
+          "pymatgen/analysis/elasticity/elastic.py:163-165 (k_voigt = voigt[:3,:3].mean(), 'in eV/A^3')",
+          "pymatgen/analysis/elasticity/elastic.py:189-191 (k_vrh = 0.5*(k_voigt+k_reuss))"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "BulkModulus", "quantity_tag": "bulk_modulus", "notes": "Direct match. matcalc reports bulk_modulus_vrh in eV/A^3; the skill converts. Declare the VRH averaging scheme (Voigt-Reuss-Hill) as provenance, distinct from k_voigt/k_reuss."}
+    },
+    {
+      "name": "shear-modulus-vrh",
+      "quantity": "Isotropic shear modulus, Voigt-Reuss-Hill average of the elastic tensor",
+      "symbol": "G_vrh (G_v, G_r)",
+      "dimension": {"M": 1, "L": -1, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": [],
+      "units": "eV/ANGSTROM^3 from pymatgen ElasticTensor.g_vrh; GPa after 160.2176634 in AtomisticSkills",
+      "producing_api": "pymatgen.analysis.elasticity.elastic.ElasticTensor.g_vrh (= 0.5*(g_voigt + g_reuss))",
+      "conversion_to_canonical": "1 eV/A^3 = 160.2176634 GPa. Map's ShearModulus canonical unit GPa.",
+      "anchors": {
+        "usage": [
+          "mat-elasticity/scripts/calculate_elasticity.py:88 (shear_modulus_gpa = result['shear_modulus_vrh'] * EV_PER_A3_TO_GPA)"
+        ],
+        "source": [
+          "pymatgen/analysis/elasticity/elastic.py:167-172 (g_voigt formula), :193-196 (g_vrh)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "ShearModulus", "quantity_tag": "shear_modulus", "notes": "Direct match. Same eV/A^3 -> GPa trap and VRH scheme provenance as bulk modulus."}
+    },
+    {
+      "name": "youngs-modulus-and-poisson",
+      "quantity": "Young's modulus E and Poisson's ratio nu, derived algebraically from K and G",
+      "symbol": "E, nu",
+      "dimension": {"M": 1, "L": -1, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "E has stress dimension; nu is dimensionless"},
+      "index_structure": [],
+      "units": "AtomisticSkills computes E in GPa from K,G in GPa via E = 9KG/(3K+G); nu dimensionless via (3K-2G)/(6K+2G). (pymatgen's ElasticTensor.y_mod returns Pa via a 9.0e9 factor; AtomisticSkills does NOT use y_mod, it recomputes from GPa moduli.)",
+      "producing_api": "AtomisticSkills closed form (calculate_elasticity.py); pymatgen alternative pymatgen.analysis.elasticity.elastic.ElasticTensor.y_mod (returns SI Pa) and .homogeneous_poisson",
+      "conversion_to_canonical": "GPa; derived, not a new fundamental quantity.",
+      "anchors": {
+        "usage": [
+          "mat-elasticity/scripts/calculate_elasticity.py:91-99 (E = 9BG/(3B+G); nu = (3B-2G)/(6B+2G))"
+        ],
+        "source": [
+          "pymatgen/analysis/elasticity/elastic.py:198-204 (y_mod = 9.0e9 * k_vrh*g_vrh/(3k+g), SI Pa)",
+          "pymatgen/analysis/elasticity/elastic.py:403 (homogeneous_poisson)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "youngs_modulus (proposed), poisson_ratio (proposed)", "notes": "No YoungsModulus or PoissonRatio node exists. Both are deterministic functions of BulkModulus and ShearModulus (E = 9KG/(3K+G), nu = (3K-2G)/(6K+2G)), so they are contract candidates downstream of the two moduli, not source-tier. Low priority: derivable. Note pymatgen's y_mod returns Pa (SI) whereas the skill's E is GPa; a naive equate is off by 1e9."}
+    },
+    {
+      "name": "birch-murnaghan-eos",
+      "quantity": "Energy-volume equation of state: equilibrium volume V0, equilibrium energy E0, and bulk modulus B0 from the Birch-Murnaghan fit",
+      "symbol": "E(V); V0, E0, B0",
+      "dimension": {"note": "E0: energy (M L^2 T^-2); V0: L^3; B0: pressure (M L^-1 T^-2)"},
+      "index_structure": ["strain point index (energy-volume samples)"],
+      "units": "volumes in ANGSTROM^3, energies in eV, B0 in GPa (matcalc EOSCalc key bulk_modulus_bm). The energy-volume curve E(V) is eV vs A^3.",
+      "producing_api": "matcalc.EOSCalc (fits pymatgen.analysis.eos.BirchMurnaghan / EOS to (V,E) from volumetric strains); pymatgen.analysis.eos.EOS",
+      "conversion_to_canonical": "B0 in GPa matches BulkModulus; V0 in A^3 matches CellVolume; E0 in eV matches TotalEnergy per cell (NOT per atom here).",
+      "anchors": {
+        "usage": [
+          "mat-equation-of-state/scripts/calculate_eos.py:71-97 (EOSCalc.calc -> bulk_modulus_bm GPa, volume A^3, energy eV, volumes/energies arrays)"
+        ],
+        "source": [
+          "pymatgen/analysis/eos.py (BirchMurnaghan class; matcalc wraps it) [not line-anchored: matcalc-internal fit; EOSCalc is the caller]"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "BulkModulus", "quantity_tag": "bulk_modulus", "notes": "The EOS route grounds BulkModulus by a SECOND method (BM fit of E(V)) distinct from the elastic-tensor route; the map should carry it as an alternate producing operation. V0 -> CellVolume, E0 -> TotalEnergy (per cell). The B0 from BM and K_vrh from C_ij are an EXPECTED_AGREE pair (both bulk moduli, different algorithms)."}
+    },
+    {
+      "name": "total-energy-per-atom-and-formation",
+      "quantity": "DFT/MLIP total energy, and its per-atom and formation-energy derivatives entering thermodynamic stability",
+      "symbol": "E_tot, E/atom, E_form/atom",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": [],
+      "units": "eV per cell (ComputedEntry.energy); eV/atom (energy_per_atom, formation_energy_per_atom). Explicitly PER ATOM in the phase-diagram machinery.",
+      "producing_api": "pymatgen.entries.computed_entries.ComputedEntry / ComputedStructureEntry (.energy, .energy_per_atom); pymatgen.analysis.phase_diagram.PhaseDiagram.get_form_energy_per_atom",
+      "conversion_to_canonical": "eV. Map's TotalEnergy node is 'per simulation cell' (registry tag total_energy). pymatgen carries BOTH per-cell (.energy) and per-atom (.energy_per_atom); the per-atom form is the phase-diagram currency. QE-scan scf-total-energy is Ry stdout / Hartree XML: 1 Ry = 13.605693 eV, 1 Ha = 27.211386 eV.",
+      "anchors": {
+        "usage": [
+          "mat-stability/scripts/compute_ehull.py:139 (ComputedEntry(composition, energy, entry_id))",
+          "mat-intercalation-voltage/scripts/calculate_voltage.py:39-41 (e_full/e_empty/e_metal in eV, per cell)",
+          "mat-defect-energy/scripts/calculate_defect_energy.py:5,218 (E_f = E_defect - E_pristine + sum dn_i mu_i, eV)"
+        ],
+        "source": [
+          "pymatgen/entries/computed_entries.py (ComputedEntry.energy / energy_per_atom)",
+          "pymatgen/analysis/phase_diagram.py:562-575 (get_form_energy, get_form_energy_per_atom)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "TotalEnergy", "quantity_tag": "total_energy", "notes": "Maps to TotalEnergy but flags a UNIT TRAP the map must resolve: registry says total_energy is 'per simulation cell', yet pymatgen's stability/phase-diagram/voltage flows run in eV/ATOM (energy_per_atom, formation_energy_per_atom). Formation energy per atom is arguably a distinct node (subtracts elemental references). Recommend an explicit per_atom vs per_cell label on TotalEnergy or a separate FormationEnergy node."}
+    },
+    {
+      "name": "energy-above-hull",
+      "quantity": "Thermodynamic stability: energy of a composition above the convex-hull tie-line of competing phases",
+      "symbol": "E_hull (E above hull)",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "energy per atom"},
+      "index_structure": [],
+      "units": "eV/atom natively (PhaseDiagram.get_e_above_hull); AtomisticSkills multiplies by 1000 to report meV/atom",
+      "producing_api": "pymatgen.analysis.phase_diagram.PhaseDiagram (convex hull over ComputedEntry set); .get_e_above_hull / .get_decomp_and_e_above_hull; MP-served field energy_above_hull",
+      "conversion_to_canonical": "eV/atom; 1000 meV = 1 eV. No node exists.",
+      "anchors": {
+        "usage": [
+          "mat-stability/scripts/compute_ehull.py:166 (pd = PhaseDiagram(entries)), :181 (e_hull = pd.get_e_above_hull(target_entry)*1000  # meV/atom)",
+          "mat-phase-diagram/scripts/get_phase_diagram.py:113,186 (PDPlotter, pd.stable_entries)",
+          "mat-db-mp/scripts/query_mp.py:8,330 (energy_above_hull served by MP)"
+        ],
+        "source": [
+          "pymatgen/analysis/phase_diagram.py:716-757 (get_decomp_and_e_above_hull)",
+          "pymatgen/analysis/phase_diagram.py:522 (stable_entries), :684-714 (hull energy per atom)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "energy_above_hull (proposed)", "notes": "No stability/hull node on the map. High-value new source-tier node (it is the single most-used output across mat-stability, mat-phase-diagram, mat-db-mp, mat-structure-novelty). Units eV/atom (meV/atom in reports). Depends on a whole ComputedEntry set (the competing-phases convex hull), so its provenance is a SET of TotalEnergy values, not one."}
+    },
+    {
+      "name": "stress-tensor",
+      "quantity": "Cell-averaged macroscopic stress, consumed by ElasticTensor.from_independent_strains to fit C_ij",
+      "symbol": "sigma_ij",
+      "dimension": {"M": 1, "L": -1, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": ["cartesian alpha", "cartesian beta (Voigt-6 when packed)"],
+      "units": "as delivered by the calculator: MLIP/ASE stress is eV/ANGSTROM^3 (Voigt 6-vector); VASP stress is kbar with an opposite sign, which pymatgen's from_independent_strains(vasp=True) fixes via c_ij *= -0.1 (kbar->GPa and sign). The MLIP route used by AtomisticSkills feeds eV/A^3 directly.",
+      "producing_api": "consumed by pymatgen.analysis.elasticity.elastic.ElasticTensor.from_independent_strains(strains, stresses); produced by the ASE calculator, not pymatgen",
+      "conversion_to_canonical": "map's Stress canonical is a pressure tensor. 1 eV/A^3 = 160.2176634 GPa; VASP kbar = 0.1 GPa (with sign flip). QE-scan stress-tensor is Ry/bohr^3 + kbar.",
+      "anchors": {
+        "usage": [
+          "mat-elasticity/scripts/calculate_elasticity.py:79 (elast_calc.calc(atoms) -> stresses fitted internally by matcalc via DeformedStructureSet)"
+        ],
+        "source": [
+          "pymatgen/analysis/elasticity/elastic.py:490-519 (from_independent_strains; :519 c_ij *= -0.1 for vasp)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "Stress", "quantity_tag": "stress", "notes": "Maps to Stress. pymatgen only REPRESENTS/CONSUMES stress (in elasticity fitting); it does not compute it (the MLIP does). Record the eV/A^3 vs VASP-kbar(-sign) trap: from_independent_strains(vasp=True) applies -0.1; AtomisticSkills' MLIP path does not."}
+    },
+    {
+      "name": "diffusivity",
+      "quantity": "Self-diffusion coefficient of a mobile species from the Einstein relation on an MD trajectory",
+      "symbol": "D",
+      "dimension": {"M": 0, "L": 2, "T": -1, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": [],
+      "units": "cm^2/s (pymatgen DiffusionAnalyzer.diffusivity and diffusivity_std_dev). MSD in ANGSTROM^2, time in ps internally (time_step passed in fs).",
+      "producing_api": "pymatgen.analysis.diffusion.analyzer.DiffusionAnalyzer.from_structures (add-on distribution pymatgen-analysis-diffusion); .diffusivity, .diffusivity_std_dev, .msd, .dt",
+      "conversion_to_canonical": "map's Diffusivity node: the skill reports cm^2/s (1 cm^2/s = 1e16 A^2/s). Einstein D = MSD/(2 d t) with d spatial dims; the skill uses MSD = 6 D t (3D). LAMMPS-scan diffusivity uses the same Einstein relation from compute msd (A^2, metal ps).",
+      "anchors": {
+        "usage": [
+          "mat-diffusion-analysis/scripts/analyze_diffusion.py:25 (from pymatgen.analysis.diffusion.analyzer import DiffusionAnalyzer)",
+          "mat-diffusion-analysis/scripts/analyze_diffusion.py:123-135 (DiffusionAnalyzer.from_structures(..., specie, temperature, time_step_fs); D = analyzer.diffusivity in cm^2/s)",
+          "mat-diffusion-analysis/scripts/analyze_diffusion.py:142-148 (times_ps = analyzer.dt/1000; msd = analyzer.msd (A^2); slope 6*D*1e4)",
+          "mat-md-probability-density/scripts/calculate_probability_density.py:6 (ProbabilityDensityAnalysis from same add-on)"
+        ],
+        "source": [
+          "pymatgen-analysis-diffusion: pymatgen/analysis/diffusion/analyzer.py (DiffusionAnalyzer; not installed in base env, anchored to usage + docstring: diffusivity in cm^2/s, msd in A^2)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "Diffusivity", "quantity_tag": "diffusivity", "notes": "Direct match. UNIT TRAP: pymatgen returns cm^2/s (not A^2/ps or SI m^2/s). MSD internal unit is A^2; time_step is passed in fs but analyzer.dt is in fs and the skill converts /1000 to ps. The DiffusionAnalyzer add-on must be installed separately."}
+    },
+    {
+      "name": "activation-energy",
+      "quantity": "Arrhenius activation energy from the temperature dependence of the diffusivity",
+      "symbol": "E_a",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": [],
+      "units": "eV (fit of ln D vs 1/T, slope * k_B). k_B = 8.617333262e-5 eV/K.",
+      "producing_api": "mat-diffusion-analysis/scripts/calculate_activation_energy.py (Arrhenius fit over several DiffusionAnalyzer D(T) points); pymatgen.analysis.diffusion.analyzer.get_arrhenius_plot / fit_arrhenius (add-on)",
+      "conversion_to_canonical": "eV matches ActivationEnergy. (Often reported meV or kJ/mol elsewhere; the skill keeps eV.)",
+      "anchors": {
+        "usage": [
+          "mat-diffusion-analysis/scripts/calculate_activation_energy.py (Arrhenius fit; consumes D(T) from analyze_diffusion.py)"
+        ],
+        "source": [
+          "pymatgen-analysis-diffusion: pymatgen/analysis/diffusion/analyzer.py fit_arrhenius (anchored to usage; not in base env)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "ActivationEnergy", "quantity_tag": "activation_energy", "notes": "Direct match (eV). Depends on a set of Diffusivity(T); provenance is multiple temperatures."}
+    },
+    {
+      "name": "mean-squared-displacement",
+      "quantity": "Mean squared displacement of the mobile species vs time (the Einstein-relation integrand)",
+      "symbol": "MSD(t)",
+      "dimension": {"M": 0, "L": 2, "T": 0, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": ["time-lag index (analyzer.dt frames)"],
+      "units": "ANGSTROM^2 vs time in ps (analyzer.msd, analyzer.dt/1000)",
+      "producing_api": "pymatgen.analysis.diffusion.analyzer.DiffusionAnalyzer.msd, .dt (add-on)",
+      "conversion_to_canonical": "A^2 matches the map's MeanSquaredDisplacement (LAMMPS-scan msd is also A^2). NOTE the estimator difference: DiffusionAnalyzer uses multiple time origins (averaged), unlike LAMMPS compute msd (single origin) noted in the LAMMPS scan.",
+      "anchors": {
+        "usage": [
+          "mat-diffusion-analysis/scripts/analyze_diffusion.py:143 (msd = analyzer.msd, A^2)"
+        ],
+        "source": [
+          "pymatgen-analysis-diffusion: analyzer.py msd property (anchored to usage)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "MeanSquaredDisplacement", "quantity_tag": "mean_squared_displacement", "notes": "Direct match. pymatgen's DiffusionAnalyzer MSD is multi-origin averaged (matches the catalog's definition better than LAMMPS's single-origin compute msd, per the LAMMPS scan's own EXTENSION note)."}
+    },
+    {
+      "name": "xrd-pattern",
+      "quantity": "Kinematic X-ray powder diffraction pattern: peak 2theta angles, relative intensities, hkl, and d-spacings",
+      "symbol": "I(2theta); d_hkl",
+      "dimension": {"note": "2theta: dimensionless angle (degrees); intensity: dimensionless (scaled to 100); d_hkl: L (angstrom)"},
+      "index_structure": ["reflection index (peak)", "hkl triplet per peak"],
+      "units": "2theta in DEGREES; d_hkl in ANGSTROM; intensities scaled so max = 100 (scaled=True); wavelength in ANGSTROM (CuKa = 1.54184 A default).",
+      "producing_api": "pymatgen.analysis.diffraction.xrd.XRDCalculator(wavelength, symprec); .get_pattern(structure, scaled=True, two_theta_range=(0,90)) -> DiffractionPattern with .x (2theta), .y (intensity), .hkls, .d_hkls",
+      "conversion_to_canonical": "no map node; 2theta degrees, d_hkl angstrom. Wavelength table: CuKa 1.54184, CuKa1 1.54056, CuKa2 1.54439, MoKa etc. Bragg: 2 d sin(theta) = lambda; pymatgen computes theta = asin(wavelength*g_hkl/2), s = |g_hkl|/2.",
+      "anchors": {
+        "usage": [
+          "mat-xrd-calculator/scripts/calculate_xrd.py:30-48 (XRDCalculator(wavelength, symprec); pattern.hkls, pattern.d_hkls)",
+          "mat-xrd-calculator/scripts/xrd_utils.py:1-60 (Caglioti pseudo-Voigt broadening applied downstream: FWHM^2 = U tan^2 + V tan + W)",
+          "mat-xrd-phase-analysis, mat-xrd-refinement, mat-xrd-digitizer consume the same pattern"
+        ],
+        "source": [
+          "pymatgen/analysis/diffraction/xrd.py:23-56 (WAVELENGTHS: CuKa=1.54184 ...)",
+          "pymatgen/analysis/diffraction/xrd.py:103-127 (wavelength resolution), :131-259 (get_pattern; :207 theta=asin(wavelength*g_hkl/2); :240-256 Lorentz polarization correction; :259 d_hkl = 1/g_hkl)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "xrd_pattern (proposed)", "notes": "No diffraction node on the thermal-transport-centric map. Candidate new source-tier observable if the characterization domain is ingested; 2theta(deg)/d_hkl(angstrom)/scaled intensity. pymatgen intensity = |F_hkl|^2 * Lorentz-polarization, kinematic (no absorption/preferred orientation). Feeds mat-xrd-* refinement/matching skills."}
+    },
+    {
+      "name": "phonon-band-structure-and-dos",
+      "quantity": "Phonon dispersion omega(q,nu) and phonon density of states g(omega), as retrieved/represented from Materials Project or phonopy",
+      "symbol": "omega(q,nu), g(omega)",
+      "dimension": {"note": "frequency: T^-1 (represented in THz / cm^-1); DOS: states per frequency"},
+      "index_structure": ["qpoint q", "branch nu", "(DOS) frequency bin"],
+      "units": "pymatgen PhononBandStructure/PhononDos store frequencies in THz (linear). MP DFPT reference. mat-raman converts phonopy THz -> cm^-1 via 1 THz = 33.3564 cm^-1.",
+      "producing_api": "pymatgen.phonon.bandstructure.PhononBandStructureSymmLine, pymatgen.phonon.dos.PhononDos (retrieved via mp_api); pymatgen.phonon.plotter.PhononBSPlotter / PhononDosPlotter",
+      "conversion_to_canonical": "map's Frequency tag is 'angular frequencies omega_qnu'; pymatgen/MP frequencies are THz (LINEAR nu). 1 THz = 33.35641 cm^-1; angular omega = 2pi*nu. QE-scan phonon frequencies are also linear (THz, cm^-1). The map's PhononDOS is states/cm^-1 (QE convention); pymatgen PhononDos axis is THz.",
+      "anchors": {
+        "usage": [
+          "mat-phonon/scripts/get_mp_phonon.py:28,62-68 (mpr.materials.phonon.get_bandstructure_from_material_id / get_dos_from_material_id; PhononBSPlotter, PhononDosPlotter)",
+          "mat-raman-spectra/scripts/analyze_raman_modes.py:134-139 (freqs_thz -> cm^-1 via *33.3564)"
+        ],
+        "source": [
+          "pymatgen/phonon/plotter.py (PhononBSPlotter, PhononDosPlotter)",
+          "pymatgen/phonon/bandstructure.py, pymatgen/phonon/dos.py (THz-based representations)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "Frequency / PhononDOS", "quantity_tag": "frequency / phonon_dos", "notes": "pymatgen REPRESENTS these (retrieval + plotting) rather than computing them (phonopy/DFPT do). Maps to Frequency (registry: 'angular frequencies') and PhononDOS. TRAP: registry says Frequency is ANGULAR omega; pymatgen/MP store LINEAR THz. Declare linear-vs-angular (factor 2pi) and the THz-vs-cm^-1 axis choice (33.35641 cm^-1/THz)."}
+    },
+    {
+      "name": "force-constants-representation",
+      "quantity": "Real-space interatomic force constants, retrieved as an MP field (ph_force_constants) and represented by pymatgen",
+      "symbol": "Phi_ab^ij(R)",
+      "dimension": {"M": 1, "L": 0, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "energy/length^2 = M T^-2 (force/length)"},
+      "index_structure": ["atom a", "atom b", "cartesian i", "cartesian j", "lattice vector R"],
+      "units": "MP ph_force_constants are phonopy-convention eV/ANGSTROM^2. (Contrast QE-scan flfrc Ry/bohr^2: 1 Ry/bohr^2 = 48.5829 eV/A^2.)",
+      "producing_api": "mpr.materials.phonon.get_data_by_id(fields=['ph_force_constants']); pymatgen represents/serializes via MontyEncoder",
+      "conversion_to_canonical": "eV/A^2 matches the map's ForceConstants[order=2] (phonopy convention). QE grounding is Ry/bohr^2 (factor 48.5829). Trap: for polar solids phonopy FORCE_CONSTANTS are the TOTAL FC2, whereas QE flfrc are short-range only (per the QE scan).",
+      "anchors": {
+        "usage": [
+          "mat-phonon/scripts/get_mp_phonon.py:73-77 (get_data_by_id fields=['ph_force_constants'])"
+        ],
+        "source": [
+          "MP materials.phonon endpoint (mp_api); pymatgen MontyEncoder serialization"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "ForceConstants[order=2]", "quantity_tag": "force_constants", "notes": "Representation-only via pymatgen (retrieval + MontyEncoder). eV/A^2 phonopy convention. Same node QE grounds in Ry/bohr^2; the phonopy total-FC vs QE short-range-FC distinction is the cross-code trap."}
+    },
+    {
+      "name": "born-charges-and-dielectric-raman",
+      "quantity": "Born effective charges Z* and clamped-ion dielectric tensor eps_inf, read from VASP OUTCAR to build Raman tensors",
+      "symbol": "Z*_{k,ab}, eps_inf_{ab}",
+      "dimension": {"note": "Z*: dimensionless (units of e); eps_inf: dimensionless"},
+      "index_structure": ["atom k", "cartesian alpha", "cartesian beta"],
+      "units": "Z* dimensionless (units of elementary charge e), shape (n_atoms,3,3); eps_inf dimensionless (3,3). Read via Outcar.born and Outcar.dielectric_tensor.",
+      "producing_api": "pymatgen.io.vasp.outputs.Outcar (.born -> Z* array, .dielectric_tensor -> eps_inf); consumed by mat-raman's Raman-tensor contraction",
+      "conversion_to_canonical": "dimensionless. Matches BornCharges (units of e) and DielectricTensor (dimensionless, clamped-ion). Same as QE-scan zeu/eps_inf.",
+      "anchors": {
+        "usage": [
+          "mat-raman-spectra/scripts/analyze_raman_modes.py:209-213 (Outcar.born shape (n_atoms,3,3); Outcar.dielectric_tensor shape (3,3))",
+          "mat-raman-spectra/scripts/analyze_raman_modes.py:240-245 (Raman tensor: Z*_k contracted with mass-weighted mode displacement)"
+        ],
+        "source": [
+          "pymatgen/io/vasp/outputs.py (class Outcar: born, dielectric_tensor parsers)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "BornCharges / DielectricTensor", "quantity_tag": "born_charges / dielectric_tensor", "notes": "Representation-only via pymatgen (VASP OUTCAR parse). Z* -> BornCharges (units of e), eps_inf -> DielectricTensor (dimensionless). Same nodes QE grounds. Raman intensity itself (arbitrary units, Lorentzian-broadened) is a NEW candidate below."}
+    },
+    {
+      "name": "raman-intensity",
+      "quantity": "Non-resonant Raman scattering intensity per mode, from Born-charge-contracted mode displacements",
+      "symbol": "I_Raman(omega)",
+      "dimension": {"note": "arbitrary units (relative intensities), vs frequency in cm^-1"},
+      "index_structure": ["mode nu", "(spectrum) frequency bin cm^-1"],
+      "units": "arbitrary units (a.u.), frequency axis cm^-1; Lorentzian-broadened sum over Raman-active modes",
+      "producing_api": "mat-raman-spectra/scripts/analyze_raman_modes.py (compute_raman_intensities_from_born + Lorentzian simulate); uses pymatgen Outcar (Z*, eps) + phonopy eigenvectors + pymatgen SpacegroupAnalyzer point group for selection rules",
+      "conversion_to_canonical": "no map node; a.u. intensity vs cm^-1.",
+      "anchors": {
+        "usage": [
+          "mat-raman-spectra/scripts/analyze_raman_modes.py:186-245 (Raman tensor / intensity), :288 (Lorentzian spectrum), :142-149 (point group from SpacegroupAnalyzer.get_point_group_symbol)"
+        ],
+        "source": [
+          "pymatgen/symmetry/analyzer.py (SpacegroupAnalyzer.get_point_group_symbol)",
+          "pymatgen/io/vasp/outputs.py (Outcar.born, dielectric_tensor)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "raman_intensity (proposed)", "notes": "No spectroscopy node. Candidate new observable (a.u. vs cm^-1) if the spectroscopy domain is ingested. Downstream of BornCharges + DielectricTensor + Eigenvectors; the point-group selection rule (via SpacegroupAnalyzer) is a scheme, not a Space."}
+    },
+    {
+      "name": "space-group-and-symmetry",
+      "quantity": "Space group, point group, and symmetry-standardized cells (primitive / conventional) of a structure",
+      "symbol": "SG number, HM symbol, point group",
+      "dimension": {"note": "discrete labels + a standardized Structure (angstrom)"},
+      "index_structure": [],
+      "units": "space-group number (1-230, integer), Hermann-Mauguin / point-group symbols (strings); symprec in ANGSTROM controls tolerance",
+      "producing_api": "pymatgen.symmetry.analyzer.SpacegroupAnalyzer (.get_space_group_symbol, .get_space_group_number, .get_point_group_symbol, .get_conventional_standard_structure, .get_primitive_standard_structure, .get_symmetry_dataset via spglib); Structure.get_space_group_info(symprec)",
+      "conversion_to_canonical": "no numeric unit; symprec tolerance in angstrom. This is structure metadata / a representation choice, not a physical Space.",
+      "anchors": {
+        "usage": [
+          "mat-amorphization/scripts/prep_supercell.py:4,11-12 (SpacegroupAnalyzer -> get_conventional_standard_structure)",
+          "mat-raman-spectra/scripts/analyze_raman_modes.py:145-149 (get_point_group_symbol, symprec=0.1)",
+          "mat-structure-novelty/scripts/match_structure.py:201-204 (get_space_group_symbol)",
+          "mat-db-mp/scripts/find_similar_structures.py:126 (get_space_group_info)",
+          "mat-elemental-energies, mat-solid-free-energy, mat-melting-point, mat-surface-energy (primitive/conventional standardization)"
+        ],
+        "source": [
+          "pymatgen/symmetry/analyzer.py (class SpacegroupAnalyzer, spglib-backed)",
+          "pymatgen/core/structure.py:1554 (get_space_group_info)"
+        ]
+      },
+      "status": "representation-only",
+      "maps_to": {"node": "Structure", "quantity_tag": "structure", "notes": "Not a physical quantity: symmetry analysis and cell standardization are representation choices ON the Structure node (which primitive/conventional cell, symprec tolerance). Belongs in representation/discretization provenance of the Structure, not a new Space. Pervasive: nearly every skill standardizes the cell before computing."}
+    },
+    {
+      "name": "structure-match-and-novelty",
+      "quantity": "Structural equivalence / similarity: whether two structures are the same phase (StructureMatcher) and the data-mined ionic-substitution probability",
+      "symbol": "match (bool), rmsd, P_substitution",
+      "dimension": {"note": "match: boolean; rmsd: L (angstrom, normalized); probability: dimensionless"},
+      "index_structure": [],
+      "units": "StructureMatcher tolerances ltol (fractional), stol (site-tolerance, fraction of avg free length), angle_tol (degrees); substitution probability dimensionless (data-mined lambda table, Hautier et al. 2011)",
+      "producing_api": "pymatgen.analysis.structure_matcher.StructureMatcher (.fit, .get_rms_dist); pymatgen.analysis.structure_prediction.substitutor.Substitutor / substitution_probability.SubstitutionProbability",
+      "conversion_to_canonical": "no physical node; identity/similarity metric on structures.",
+      "anchors": {
+        "usage": [
+          "mat-structure-novelty/scripts/match_structure.py:20,171 (StructureMatcher, primitive_cell=True)",
+          "mat-ionic-substitution/scripts/propose_substitutions.py:23 (Substitutor, Hautier 2011; :31 threshold)"
+        ],
+        "source": [
+          "pymatgen/analysis/structure_matcher.py (StructureMatcher)",
+          "pymatgen/analysis/structure_prediction/substitution_probability.py (data-mined lambda)"
+        ]
+      },
+      "status": "representation-only",
+      "maps_to": {"node": "Structure", "quantity_tag": "structure", "notes": "Equivalence relation / generative model on Structure, not a physical observable. StructureMatcher realizes the compare()/identity semantics for the Structure node (which the kernel's content-hash identity is the map-side analog of). Substitution probability is a generative prior, out of the physics-DAG scope."}
+    },
+    {
+      "name": "surface-energy-and-wulff",
+      "quantity": "Surface energy per unit area of a crystal facet, and the Wulff-construction weighted surface energy / anisotropy",
+      "symbol": "gamma_hkl, gamma_weighted",
+      "dimension": {"M": 1, "L": 0, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "energy/area = M T^-2"},
+      "index_structure": ["Miller index (hkl) per facet"],
+      "units": "gamma computed in eV/ANGSTROM^2 then converted to J/m^2 via 1 eV/A^2 = 16.0218 J/m^2 (skill constant; exact value 16.021766). WulffShape.weighted_surface_energy inherits the input energy units.",
+      "producing_api": "pymatgen.core.surface.SlabGenerator / generate_all_slabs (build slabs); pymatgen.analysis.wulff.WulffShape(lattice, miller_indices, energies) (.weighted_surface_energy, .anisotropy, .shape_factor, .effective_radius). gamma itself computed in-skill: (E_slab - N*E_bulk)/(2*Area).",
+      "conversion_to_canonical": "no map node. 1 eV/A^2 = 16.0217662 J/m^2 (skill uses 16.0218). Note the same eV/A^2 dimension as ForceConstants but a DIFFERENT quantity (energy per area vs force per length).",
+      "anchors": {
+        "usage": [
+          "mat-surface-energy/scripts/calculate_surface_energy.py:108-114 (gamma_ev_ang2 = (E_slab - N*E_bulk)/(2*area); *16.0218 -> J/m^2)",
+          "mat-surface-energy/scripts/create_slabs.py:6,15,57 (SlabGenerator/generate_all_slabs; get_primitive_structure)",
+          "mat-surface-energy/scripts/generate_wulff.py:16,55,69 (WulffShape; weighted_surface_energy, J/m^2)"
+        ],
+        "source": [
+          "pymatgen/core/surface.py (SlabGenerator, generate_all_slabs)",
+          "pymatgen/analysis/wulff.py:474 (units J/m^2 vs eV/A^2 toggle), :636-717 (volume, surface_area, weighted_surface_energy, anisotropy, effective_radius)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "surface_energy (proposed)", "notes": "No surface node. Candidate new source-tier observable (J/m^2, per Miller facet) if the surface/interface domain is ingested. gamma = (E_slab - N E_bulk)/(2 Area); depends on TWO TotalEnergy values (slab + bulk) and the slab area. WulffShape aggregates per-facet gammas into a morphology."}
+    },
+    {
+      "name": "grain-boundary-energy",
+      "quantity": "Grain-boundary energy per unit area from GB and bulk energies",
+      "symbol": "gamma_gb",
+      "dimension": {"M": 1, "L": 0, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": ["GB plane / sigma / rotation-axis descriptor"],
+      "units": "J/m^2 (computed like surface energy: (E_gb - N E_bulk)/(2 A), 1 eV/A^2 = 16.0218 J/m^2)",
+      "producing_api": "pymatgen.core.interface.GrainBoundaryGenerator (new path) / pymatgen.analysis.gb.grain.GrainBoundaryGenerator (legacy path); GB energy computed in-skill from MLIP energies",
+      "conversion_to_canonical": "J/m^2; same eV/A^2 factor as surface energy.",
+      "anchors": {
+        "usage": [
+          "mat-grain-boundary/scripts/create_grain_boundary.py:61 (from pymatgen.analysis.gb.grain import GrainBoundaryGenerator) / :64 (pymatgen.core.interface import GrainBoundaryGenerator; version-dependent import)",
+          "mat-grain-boundary/scripts/calculate_gb_energy.py (GB energy per area)"
+        ],
+        "source": [
+          "pymatgen/core/interface.py (GrainBoundaryGenerator)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "grain_boundary_energy (proposed)", "notes": "Same defect-energetics family as surface energy (J/m^2). Candidate new node if the microstructure domain is ingested. pymatgen builds the GB geometry; the energy is an MLIP-energy contraction. Note the moving import path (analysis.gb.grain -> core.interface) across pymatgen versions."}
+    },
+    {
+      "name": "intercalation-voltage",
+      "quantity": "Average intercalation (electrode) voltage from de/intercalated total energies",
+      "symbol": "V_avg",
+      "dimension": {"M": 1, "L": 2, "T": -3, "I": -1, "Theta": 0, "N": 0, "J": 0, "note": "volts = J/C"},
+      "index_structure": [],
+      "units": "VOLTS. V = -(E_full - E_empty - n_ions*mu_metal)/(n_ions * z), z electrons per ion (z=1 for Li). Energies in eV, charge in e, so eV/e = V directly (no Faraday constant needed).",
+      "producing_api": "AtomisticSkills closed form (calculate_voltage.py); pymatgen.core Structure edits (remove_atoms.py: remove_species) prepare the de-intercalated cell. (pymatgen.apps.battery.InsertionElectrode is the library equivalent, not used here.)",
+      "conversion_to_canonical": "no map node; volts. eV per elementary charge = 1 volt exactly.",
+      "anchors": {
+        "usage": [
+          "mat-intercalation-voltage/scripts/calculate_voltage.py:39-55 (voltage = -(e_full - e_empty - n_ions*mu_metal)/n_ions, V)",
+          "mat-intercalation-voltage/scripts/remove_atoms.py:18-30 (Structure.remove_species to build de-intercalated cell)"
+        ],
+        "source": [
+          "pymatgen/core/structure.py:4137 (Structure.remove_species mutation); pymatgen/apps/battery/ (InsertionElectrode, library alternative)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "intercalation_voltage (proposed)", "notes": "No electrochemistry node. Candidate new node (volts) if the battery domain is ingested. Depends on THREE TotalEnergy values (full, empty, metal reference). pymatgen's role here is only Structure preparation; the voltage is an energy contraction."}
+    },
+    {
+      "name": "defect-formation-energy",
+      "quantity": "Point-defect formation energy from defect, pristine, and chemical-potential references",
+      "symbol": "E_f (defect)",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": ["defect type (vacancy/substitution/interstitial)", "site"],
+      "units": "eV. E_f = E_defect - E_pristine + sum_i(delta_n_i * mu_i), all in eV.",
+      "producing_api": "pymatgen.analysis.defects.generators.VacancyGenerator / SubstitutionGenerator / InterstitialGenerator (add-on pymatgen-analysis-defects) build defect Structures; E_f computed in-skill",
+      "conversion_to_canonical": "eV; no dedicated node.",
+      "anchors": {
+        "usage": [
+          "mat-defect-energy/scripts/generate_defects.py:22-25 (VacancyGenerator, SubstitutionGenerator, InterstitialGenerator)",
+          "mat-defect-energy/scripts/calculate_defect_energy.py:5,210-218 (E_f = E_defect - E_pristine + sum dn_i mu_i)"
+        ],
+        "source": [
+          "pymatgen-analysis-defects: pymatgen/analysis/defects/generators.py (not in base env; anchored to usage)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "defect_formation_energy (proposed)", "notes": "No defect node. Candidate new node (eV) if the defect domain is ingested. Depends on TotalEnergy(defect), TotalEnergy(pristine), and elemental chemical potentials mu_i. pymatgen (defects add-on) builds the defect geometry only."}
+    },
+    {
+      "name": "magnetic-moment",
+      "quantity": "Per-site and total magnetic moment; magnetic ordering classification",
+      "symbol": "m_i, M_total",
+      "dimension": {"note": "Bohr magnetons mu_B (dimensionless in atomic-magnetic units); ordering is a discrete label"},
+      "index_structure": ["site i"],
+      "units": "Bohr magnetons (mu_B) per site; total = sum in mu_B. Ordering enum via pymatgen.analysis.magnetism.Ordering (FM/AFM/FiM/NM).",
+      "producing_api": "pymatgen.analysis.magnetism.Ordering / CollinearMagneticStructureAnalyzer; site moments parsed from calculator output; MP field total_magnetization",
+      "conversion_to_canonical": "no map node; mu_B. total_magnetization from MP is mu_B per formula unit / per cell (MP convention).",
+      "anchors": {
+        "usage": [
+          "mat-magnetic-density/scripts/parse_magnetic_moments.py:31,70-81,144 (site_moments, total_magnetization in mu_B)",
+          "mat-magnetic-density/scripts/visualize_magnetic_structure.py:27 (from pymatgen.analysis.magnetism import Ordering)",
+          "mat-db-mp/scripts/get_magnetism.py, query_mp.py:11 (total_magnetization served by MP)"
+        ],
+        "source": [
+          "pymatgen/analysis/magnetism/analyzer.py (Ordering, CollinearMagneticStructureAnalyzer)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "magnetic_moment (proposed)", "notes": "No magnetism node. Candidate new observable (mu_B) if the magnetism domain is ingested. Ordering (FM/AFM/...) is a discrete label. pymatgen classifies/parses; the moment is a calculator output."}
+    },
+    {
+      "name": "band-gap-and-electronic-structure",
+      "quantity": "Electronic band gap, Fermi level, metal/insulator classification, and the band-structure / electronic-DOS representation",
+      "symbol": "E_gap, E_fermi",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "energy"},
+      "index_structure": ["(bands) kpoint, band, spin", "(DOS) energy bin"],
+      "units": "eV (band gap, Fermi level, DOS energy axis); is_metal boolean; is_gap_direct boolean",
+      "producing_api": "pymatgen.electronic_structure.bandstructure.BandStructureSymmLine (.get_band_gap()['energy'], .is_metal(), .efermi); pymatgen.electronic_structure.dos.CompleteDos (.efermi, get_gap); pymatgen.io.vasp.BSVasprun/Vasprun; plotters BSPlotter/DosPlotter",
+      "conversion_to_canonical": "eV; no map node (electronic structure is below the thermal DAG floor, analogous to the QE-scan Kohn-Sham wavefunctions being hidden).",
+      "anchors": {
+        "usage": [
+          "mat-electronic-structure/scripts/get_mp_electronic_structure.py:79-84 (bs.get_band_gap()['energy'], is_metal, is_gap_direct, efermi, eV)",
+          "mat-electronic-structure/scripts/plot_dos.py:73-76 (dos.efermi, band gap eV)",
+          "mat-db-mp/scripts/query_mp.py:9 (band_gap, is_metal served by MP)"
+        ],
+        "source": [
+          "pymatgen/electronic_structure/bandstructure.py (get_band_gap, is_metal), pymatgen/electronic_structure/dos.py, pymatgen/electronic_structure/plotter.py (BSPlotter, DosPlotter)",
+          "pymatgen/io/vasp/outputs.py (Vasprun, BSVasprun)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "band_gap (proposed)", "notes": "No electronic-structure node on the (phonon/transport) map. Candidate new observable (eV) if the electronic domain is ingested; the band structure / electronic DOS are hidden electronic intermediates. Mostly representation-only (MP retrieval + plotting) in AtomisticSkills."}
+    },
+    {
+      "name": "cohp-bonding",
+      "quantity": "Crystal Orbital Hamilton Population: bonding/antibonding energy-resolved analysis (LOBSTER)",
+      "symbol": "COHP(E), ICOHP",
+      "dimension": {"note": "COHP: states-weighted energy (a.u. per bond); ICOHP: eV (integrated)"},
+      "index_structure": ["bond pair", "energy bin (eV)", "spin"],
+      "units": "energy axis eV; ICOHP in eV (integrated bond strength); COHP in arbitrary/relative units",
+      "producing_api": "pymatgen.io.lobster.Cohpcar (parses LOBSTER COHPCAR.lobster); analyzed in mat-dft-lobster",
+      "conversion_to_canonical": "eV energy axis; no map node.",
+      "anchors": {
+        "usage": [
+          "mat-dft-lobster/scripts/analyze_lobster.py:14 (from pymatgen.io.lobster import Cohpcar)"
+        ],
+        "source": [
+          "pymatgen/io/lobster/outputs.py (class Cohpcar)"
+        ]
+      },
+      "status": "representation-only",
+      "maps_to": {"node": null, "quantity_tag": null, "notes": "Bonding-analysis diagnostic (eV energy axis). Representation-only via pymatgen (LOBSTER file parse). Out of the thermal/mechanical DAG scope; would be a chemistry-domain node."}
+    },
+    {
+      "name": "ase-structure-bridge",
+      "quantity": "Round-trip conversion between pymatgen Structure/Molecule and ASE Atoms (the interop that lets MLIP calculators act on pymatgen structures)",
+      "symbol": "Structure <-> Atoms",
+      "dimension": {"note": "no physical quantity; a representation adapter"},
+      "index_structure": ["site index"],
+      "units": "preserves angstrom lattice/positions; carries species and (optionally) magmoms, charges",
+      "producing_api": "pymatgen.io.ase.AseAtomsAdaptor.get_structure(atoms) / get_atoms(structure); pymatgen.io.babel.BabelMolAdaptor (molecules); pymatgen.io.cif.CifWriter (CIF export)",
+      "conversion_to_canonical": "identity adapter; no unit change (angstrom both sides).",
+      "anchors": {
+        "usage": [
+          "mat-diffusion-analysis/scripts/analyze_diffusion.py:26,119-120 (AseAtomsAdaptor().get_structure per MD frame)",
+          "mat-surface-adsorption, mat-lammps-md, mat-sample-pes-by-md, mat-melting-point (AseAtomsAdaptor bridge)",
+          "mat-defect-energy/scripts/... (CifWriter export)"
+        ],
+        "source": [
+          "pymatgen/io/ase.py (AseAtomsAdaptor.get_structure / get_atoms)",
+          "pymatgen/io/cif.py (CifWriter), pymatgen/io/babel.py (BabelMolAdaptor)"
+        ]
+      },
+      "status": "representation-only",
+      "maps_to": {"node": "Structure", "quantity_tag": "structure", "notes": "Pure representation adapter on the Structure node (pymatgen <-> ASE <-> CIF). The most-used pymatgen call across the MD-based skills, because the MLIP calculators are ASE-native while pymatgen owns the structure object and its analyses. No physical content; provenance/serialization only."}
+    }
+  ],
+  "open_questions": [
+    "pymatgen-analysis-diffusion and pymatgen-analysis-defects are separate distributions not installed in the base miniconda env, so DiffusionAnalyzer (cm^2/s), ProbabilityDensityAnalysis, and the defect generators are anchored to AtomisticSkills usage + canonical docstrings, NOT to a read source line. A reviewer with those packages installed should confirm DiffusionAnalyzer.diffusivity units are cm^2/s and that .msd is in A^2 with .dt in fs.",
+    "TotalEnergy per-cell vs per-atom: the registry tag total_energy is defined 'per simulation cell', but pymatgen's stability / phase-diagram / voltage flows are entirely per-atom (energy_per_atom, formation_energy_per_atom, e_above_hull in eV/atom). Reviewer must decide whether to add a per_atom label to TotalEnergy or a separate FormationEnergy/EnergyAboveHull node before ingesting mat-stability.",
+    "Frequency angular-vs-linear: registry describes Frequency as 'angular frequencies omega_qnu', but pymatgen/MP PhononBandStructure and PhononDos store LINEAR THz. The factor is 2pi (angular) and 33.35641 cm^-1/THz (axis). Confirm which convention the map's Frequency node truly intends before an EXPECTED_AGREE with MP phonons.",
+    "ElasticTensor.voigt _vscale: the base Tensor.voigt applies a scale factor (2 on shear components for strain-like rank-2, and pattern for rank-4) via _vscale; verified that for the STIFFNESS C_ij the 6x6 packing used by k_voigt/g_voigt indexes voigt[:3,:3] and voigt[3:,3:] directly, so the 160.2176634 factor is the only unit conversion. A reviewer should double-check the _vscale handling if compliance (S = C^-1) is ever ingested, where the factor-2/4 on off-diagonals matters.",
+    "matcalc ElasticityCalc / EOSCalc internals: the elastic-tensor fit (DeformedStructureSet strains -> stresses -> ElasticTensor.from_independent_strains) and the BM EOS fit happen inside matcalc, not pymatgen; the vasp=True sign/kbar branch of from_independent_strains is NOT taken on the MLIP path (stresses are eV/A^3), so no -0.1 factor. Confirm matcalc does not re-apply any unit conversion before handing eV/A^3 to the skill (the skill's *160.2176634 assumes raw eV/A^3).",
+    "Surface / GB / defect / voltage energies all reduce to differences of MLIP TotalEnergy values plus geometry; whether the map wants dedicated nodes (surface_energy, grain_boundary_energy, defect_formation_energy, intercalation_voltage) or wants them as contract edges over a generic TotalEnergy + Structure is a modeling decision for the encode stage. They are grouped here as new-node-candidates with their exact closed forms.",
+    "XRD intensity model: pymatgen XRDCalculator applies the Lorentz-polarization correction and |F_hkl|^2 but NOT absorption, preferred orientation, or thermal (Debye-Waller unless debye_waller_factors passed). If mat-xrd-refinement is ingested, the intensity node needs those scheme flags declared.",
+    "GrainBoundaryGenerator import path moved between pymatgen versions (pymatgen.analysis.gb.grain -> pymatgen.core.interface); the skill try/excepts both. Pin the version when anchoring the GB node."
+  ]
+}
