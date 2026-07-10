@@ -37,8 +37,10 @@
       "git_head": "7c6ff1d85fe6051824042d73cdfce83df1fe1041",
       "node_count": 77,
       "edges_in_graph_json": 0,
-      "structure_node": "Structure (kind: symbolic). Quantity tag `structure` in omai/operator/registry.py:86: 'Atomic structure: cell, species, and positions (opaque in Phase 1).'",
-      "structure_is_pure_source": "CONFIRMED. No edge in the map produces Structure. graph.json carries 0 edges (edges live in the operator layer, not the doc data); grepping the Structure node across producers shows it only ever CONSUMED (relax, solve_ground_state, phonon, MD all take Structure in). Today Structure is a root SOURCE node. A generative producer would be the FIRST edge into Structure.",
+      "REVIEW_CORRECTION_2026_07_10": "The scan's 'edges_in_graph_json: 0' is WRONG. docs/data/graph.json at head 7c6ff1d carries the edges under the key `links` (D3 convention), NOT `edges`; there are 179 links, not 0. The scan author looked for an absent `edges` key. The load-bearing conclusion nonetheless SURVIVES and is BETTER supported by the real data: Structure appears as `target` in ZERO of the 179 links and as `source` in 15 (Structure -> TotalEnergy, Forces, Stress, ForceConstants[order=2], MagneticMoment, BandGap, ElasticConstants, BulkModulus, FormationEnergy, EnergyAboveHull, SurfaceEnergy, Voltage, AdsorptionEnergy, ElectricalConductivity[carrier=ionic], ConfigurationalEnergy). Structure is a pure SOURCE: consumed by 15 operators, produced by none.",
+      "structure_node": "Structure (kind: symbolic, symbol \\mathcal{S}, tier Sources). Quantity tag `structure` in omai/operator/registry.py:86: 'Atomic structure: cell, species, and positions (opaque in Phase 1).'",
+      "structure_is_pure_source": "CONFIRMED (independently re-verified 2026-07-10 against the 179 committed links). No link in graph.json has target==Structure; 15 links have source==Structure. Today Structure is a root SOURCE node. A generative producer would be the FIRST edge into Structure.",
+      "amset_encode_note": "REVIEW 2026-07-10: the amset encode the brief said might land records 154-163 while reviewing had NOT landed; graph.json is still 77 nodes / 179 links. amset adds no Structure producer, so the pure-source claim survives regardless.",
       "records_148_153_note": "The config-thermo encode the brief warned might land (records 148-153) had NOT landed at scan time; node_count is 77 (was 74 at the phonopy-lammps review). Not racing that encode."
     }
   },
@@ -65,7 +67,8 @@
         "node": "Structure",
         "status": "producer-of-existing-source (PROPOSAL: representation-only provenance, NOT a new node)",
         "notes": "Output IS a Structure. The interesting question the brief poses. Recommendation: a generated structure is EVIDENCE of a Structure whose SOURCE is the generator; the generator identity (mattergen_base, guidance_scale, seed) is representation/provenance metadata on the Structure instance, not a new physics node. See generative_operator_proposal in summary."
-      }
+      },
+      "review_verdict_2026_07_10": "VERIFIED. mattergen_wrapper.py: AVAILABLE_MODELS at 34-39 (mattergen_base, mp_20_base, dft_mag_density, chemical_system); from_hf_hub at 78; self.generator.generate at 130; struct.to(filename=..., fmt='cif') at 144 (anchor range 130-145 correct). mattergen_server.py: guidance_scale default 0.0 = unconditional at 42/63 (anchor 35-100 correct). Producer-of-Structure claim holds; representation-only provenance recommendation sound."
     },
     {
       "name": "mattergen-generate-conditioned",
@@ -94,7 +97,8 @@
         "node": "Structure",
         "status": "producer-of-existing-source with a CONDITIONING label (representation-only)",
         "notes": "The conditioning target (a property value, a chemical system) is a REPRESENTATION note on the generated Structure's provenance, not an edge FROM the property node. Physically the diffusion is p(S|c); on the map c is a label on the source annotation, not a consumed field (the property is a training-time steering target, not an evaluated input). Guidance_scale is a discretization/steering scheme parameter."
-      }
+      },
+      "review_verdict_2026_07_10": "VERIFIED. mattergen_server.py lines 82-86: `if chemical_system:` -> model_name='chemical_system', properties={'chemical_system': chemical_system}, and if guidance_scale==0.0 bump to 1.0 (anchor 81-94 correct). properties={'dft_mag_density':0.15} documented at server line 59. chemical_system controls ELEMENTS not stoichiometry confirmed at SKILL.md:131-140 (Li-Zr-Cl may yield LiCl/ZrCl4 or omit Li; mandatory post-filter). Conditioning-as-label modeling is correct."
     },
     {
       "name": "diffcsp-generate-csp-symmetry",
@@ -118,7 +122,8 @@
         "node": "Structure",
         "status": "producer-of-existing-source, symmetry-CONSTRAINED (representation-only provenance)",
         "notes": "Output is a Structure. The space-group + Wyckoff spec is an INPUT constraint (a symmetry label on the generation), not a map node consumed as a field. See space_group_as_node open question: SG number is a categorical annotation on the generated Structure, likely representation-only, not a new quantity node."
-      }
+      },
+      "review_verdict_2026_07_10": "VERIFIED. diffcsp_server.py: generate_structures_with_symmetry(spacegroup, wyckoff_letters, atom_types, model_name='mp_csp', step_lr=1e-5) at 55-61; CSP models mp_csp/perov_csp/mpts_csp at 79-82 (anchor 54-107 correct). diffcsp_wrapper.py: _build_syminfo_data def at 574; `from pyxtal.symmetry import Group` at 591; Group(spacegroup)[letter].ops -> op.affine_matrix at 600-610; anchor_index feeds PyG Data at 616+ (anchor 574-630 correct). Space-group+Wyckoff conditioning confirmed."
     },
     {
       "name": "diffcsp-generate-unconditional",
@@ -137,7 +142,8 @@
         "node": "Structure",
         "status": "producer-of-existing-source (representation-only provenance)",
         "notes": "Same as mattergen unconditional. A diffusion-sampled Structure whose source is the DiffCSP++ Gen checkpoint."
-      }
+      },
+      "review_verdict_2026_07_10": "VERIFIED. unconditional_generate.py:15 lists Required packages: torch, pyxtal, pymatgen, hydra-core (pyxtal an env dep here, not a call), line 79 the --model mp_gen runner. Anchors correct. Producer-of-Structure via Gen checkpoint holds."
     },
     {
       "name": "adit-generate-crystals",
@@ -156,7 +162,8 @@
         "node": "Structure",
         "status": "producer-of-existing-source (representation-only provenance); NOTE also produces Molecule (XYZ), off today's crystal-only map",
         "notes": "Not in the brief's four codes but the same generative-producer class; cataloged so the proposal covers the whole family. The molecule branch has no map node (Phase 1 is crystalline)."
-      }
+      },
+      "review_verdict_2026_07_10": "VERIFIED as sibling producer. ml-generative-adit/SKILL.md: unified latent diffusion (MP20+QM9) at 11,26-29; generation_type='crystals' -> CIF / 'molecules' -> XYZ at 35-49; cfg_scale=2.0 at 42; 'The public checkpoint is unconditional only - you cannot condition on specific compositions, space groups, or properties' at 85-87. adit-as-sibling framing correct. (Note: the adit SKILL.md source at line 85 contains an em-dash, but the scan files do not quote it verbatim and remain em-dash clean.)"
     },
     {
       "name": "random-structure-search-airss",
@@ -175,7 +182,8 @@
         "node": "Structure",
         "status": "producer-of-existing-source (representation-only provenance)",
         "notes": "TRAP CORRECTION for the brief: the AIRSS-style random search does NOT use pyxtal. pyxtal (from_random / symmetry-constrained random structures) is NOT called by any AtomisticSkills skill. This skill is the map-relevant 'random symmetric structure producer', and it is pymatgen. Its structures are FRACTIONAL-coord, P1, pre-relaxation inputs."
-      }
+      },
+      "review_verdict_2026_07_10": "VERIFIED. generate_random_structures.py: imports `from pymatgen.core import Composition, Lattice, Structure, Element` (26) and `from pymatgen.symmetry.groups import SpaceGroup` (27); SpaceGroup.from_int_number at 179; Structure(..., coords_are_cartesian=False) at 205 (random FRACTIONAL); min-distance = sum covalent radii * 0.7 at 107,120. NO pyxtal import in the file. SKILL.md:82 'No symmetry enforcement: Generated structures have atoms at random positions (P1). Symmetry emerges only after relaxation.' verbatim. pymatgen-not-pyxtal correction is CORRECT. Anchor line 179 (not 179-212 exactly, but from_int_number+Structure build span 179-212) fine."
     },
     {
       "name": "smact-composition-screening",
@@ -199,7 +207,8 @@
         "node": "(none - not a map quantity)",
         "status": "not-driven / representation-only IF ever ingested",
         "notes": "smact outputs a dimension-free boolean over compositions: it is a FILTER on the composition space, not a producer of any physical quantity or Structure. It has no field, no dimension, no index. It is NOT map-node material. If a validity/screening annotation is ever wanted, it is a categorical label on a Composition, not a physics node. Cataloged as NOT-DRIVEN in AtomisticSkills and dimension-free by nature."
-      }
+      },
+      "review_verdict_2026_07_10": "VERIFIED, both claims. (1) ZERO call sites: exhaustive `grep -rn 'smact\\|SMACT' AtomisticSkills/` returns only env docs (adit-agent/README.md:37, diffcsp-agent/README.md:28, diffcsp-agent/core_env.yaml:21, mattergen-agent/INSTALL_BLACKWELL.md:136,249, mattergen-agent/example_full_env.yaml:188 SMACT==3.2.0). No .py hit anywhere in 126 skills or src/. (2) The running charge screening is pymatgen: mat-ionic-substitution/scripts/propose_substitutions.py:25 imports AutoOxiStateDecorationTransformation, :60 instantiates it, :92-94 checks total_charge; SKILL.md:98 documents 'pymatgen's AutoOxiStateDecorationTransformation'. (3) smact source (pip download smact-4.0.0) CONFIRMS the electronegativity-ordering trap: screening.py smact_validity (577) requires charge neutrality AND, by default use_pauling_test=True, pauling_test (167: 'positive ions should be of lower electronegativity'); smact_filter (379) 'applies the charge neutrality and electronegativity tests'; line 478 requires cn_r AND pauling_test(ox_states, electronegs). A composition can be charge-balanced yet smact-invalid on EN order. TRAP 4 is accurate. not-driven / dimension-free verdict stands."
     },
     {
       "name": "pyxtal-symmetry-helper",
@@ -223,7 +232,8 @@
         "node": "(none - internal symmetry helper)",
         "status": "not a producer / not map-node material",
         "notes": "The brief framed pyxtal as 'symmetry-constrained random structures'. In AtomisticSkills pyxtal is NOT used to generate structures at all - its pyxtal.from_random capability is unused. It is used only as a Wyckoff-operator TABLE inside diffcsp's wrapper. It produces nothing on the map. Space-group / Wyckoff appears only as an INPUT CONSTRAINT to diffcsp, handled as a representation label."
-      }
+      },
+      "review_verdict_2026_07_10": "VERIFIED, load-bearing. Exhaustive `grep -rn 'pyxtal' AtomisticSkills/` across all 126 skills + src + docs: the ONLY functional call is `from pyxtal.symmetry import Group` at src/utils/mlips/diffcsp/diffcsp_wrapper.py:591. Every other hit is documentation/env: mcp-environments.md:21, ml-generative-diffcsp/SKILL.md:106 (doc pointer), batch_generate.py:29 + unconditional_generate.py:15 (Required-packages comment), adit-agent/README.md:35, diffcsp-agent/README.md:27,76. Additional adversarial grep `grep -rn 'from_random\\|from_seed\\|pyxtal(' AtomisticSkills/` returns NOTHING (exit 1) and `grep -rn 'pyxtal\\.' AtomisticSkills/` returns only the 591 import. NO from_random anywhere. pyxtal is a Wyckoff-operator table only; produces nothing on the map. Claim (a) CONFIRMED exactly as stated."
     }
   ],
   "summary": {
@@ -296,6 +306,29 @@
       "6. Molecule branch (adit molecules): out of Phase-1 crystalline scope; note as a future non-periodic Structure sibling only.",
       "7. Cross-generator diversity: the workflows deliberately run mattergen + diffcsp + adit for DIVERSITY on the same target. Is there an EXPECTED-DISAGREE / diversity relation worth modeling (unlike MLIP EXPECTED_AGREE, generators are meant to DISAGREE)? Likely representation-only, but noted."
     ],
-    "nothing_blocked": "No source was inaccessible for the map-relevant facts. The four packages do not import locally and mattergen/diffcsp are git-only, but all functional usage lives in vendored AtomisticSkills skills, wrappers, servers, and env docs, every claim anchored to a real file:line. pyxtal/smact were not pip-downloaded because they are env-only in AtomisticSkills (pyxtal: one Wyckoff-table call; smact: zero call sites)."
+    "nothing_blocked": "No source was inaccessible for the map-relevant facts. The four packages do not import locally and mattergen/diffcsp are git-only, but all functional usage lives in vendored AtomisticSkills skills, wrappers, servers, and env docs, every claim anchored to a real file:line. pyxtal/smact were not pip-downloaded because they are env-only in AtomisticSkills (pyxtal: one Wyckoff-table call; smact: zero call sites).",
+    "review_2026_07_10": {
+      "reviewer": "deep-review stage (adversarial), independent of the scanner",
+      "verdict_summary": "8/8 entries VERIFIED. Both brief-corrections (pyxtal env-only Wyckoff-table, smact zero-call-site) hold under exhaustive grep. Structure-pure-source claim holds. One factual correction to the graph_snapshot (edges_in_graph_json). All file:line anchors spot-checked accurate. Zero em-dashes. The provenance proposal is consistent with the implemented instance schema with one concrete refinement below.",
+      "exhaustive_grep_pyxtal": "126 skills. `grep -rn pyxtal AtomisticSkills/`: ONE functional call, diffcsp_wrapper.py:591 `from pyxtal.symmetry import Group`. `grep from_random|from_seed|pyxtal(`: zero (exit 1). `grep pyxtal.`: only the 591 import. Claim (a) exact.",
+      "exhaustive_grep_smact": "`grep -rn smact|SMACT AtomisticSkills/`: SIX hits, ALL env docs (2 READMEs, core_env.yaml, INSTALL_BLACKWELL.md x2, example_full_env.yaml). Zero .py / skill call sites. Charge screening that runs is pymatgen AutoOxiStateDecorationTransformation (propose_substitutions.py:25,60; SKILL.md:98). Claim (b) exact.",
+      "graph_correction": "edges_in_graph_json:0 was wrong (the key is `links`, present, 179). Corrected in graph_snapshot. Structure has 0 inbound links, 15 outbound: pure source, claim survives and is better-supported by the real data.",
+      "smact_source_check": "pip download smact-4.0.0 succeeded. screening.py confirms smact_validity = charge-neutral AND (default) Pauling electronegativity-ordering. TRAP 4 accurate. (AtomisticSkills pins 3.2.0; the two-gate validity logic is stable across 3.x/4.0.)",
+      "provenance_record_shape_finding": {
+        "implemented_schema": "A committed map instance (e.g. docs/data/instances/li2s-mp-1153-formationenergy-atomisticskills-mat-db-mp.json) is: {variable, material, conditions{}, value, units, uncertainty, source{kind, ref, detail}}. The mp-id precedent lives in TWO places at once: material='Li2S (mp-1153)' (formula + parenthesized source id) AND source={kind:'simulation', ref:'atomisticskills-mat-db-mp', detail:'...retrieved by the AtomisticSkills mat-db-mp query_mp skill...'}. So provenance in the implemented schema is carried by (1) a parenthesized tag in the `material` string and (2) the structured `source` object.",
+        "how_a_generated_structure_record_looks": "The scan's proposed generation-provenance dict {generator_code, checkpoint/model_name, conditioning, sampler_scheme, seed} is COMPATIBLE but does not map 1:1 onto the committed schema. Under the implemented conventions a generated-structure provenance record would be: material carries a generator tag paralleling '(mp-123)', e.g. 'Li2ZrCl6 (mattergen:chemical_system)' or 'CsPbI3 (diffcsp:mp_csp)'; and source={kind:'simulation', ref:'atomisticskills-ml-generative-mattergen', detail:'MatterGen chemical_system model, guidance_scale=1.0, chemical_system=Li-Zr-Cl, seed=..., generated CIF then relaxed by ...'}. The scan's five proposed fields (generator_code, checkpoint, conditioning, sampler_scheme, seed) all land inside source.ref (generator_code -> the skill ref) and source.detail (checkpoint, conditioning, sampler_scheme, seed as prose), exactly as mat-db-mp folds its retrieval provenance into source.detail today.",
+        "does_the_proposal_contradict_the_schema": "NO contradiction. The proposal's 'representation-only provenance on the Structure instance, not a producing edge' is fully expressible: the committed instances already record source={kind, ref, detail} and a parenthesized material-string tag, and never introduce an inbound edge for a database-sourced Structure. A generator is source.kind='simulation' with a generator ref/detail, exactly parallel to mat-db-mp. The ONE refinement: the scan presents the provenance as a flat 5-key dict; the implemented schema does not have a dedicated structured provenance sub-object for those 5 keys (they would live as prose in source.detail plus a material tag). If the orchestrator wants the 5 keys machine-readable rather than prose, that is a schema EXTENSION (add a source.generation sub-object), not a fix to this scan. Flagged as orchestrator decision 3.",
+        "caveat": "Structure is a symbolic SOURCE node with no committed Structure-valued instances yet (all 32 committed instances are scalar-valued quantities like FormationEnergy/BandGap on an mp-sourced material). So the generated-structure provenance shape is inferred from the mp-id material-tag + source-object precedent, which is the closest committed analog; it has not yet been exercised for a Structure-valued instance."
+      },
+      "orchestrator_decisions": [
+        "1. ACCEPT both brief-corrections as findings (pyxtal env-only Wyckoff-table at diffcsp_wrapper.py:591; smact zero-call-site, charge screening is pymatgen). Verified exhaustively across all 126 skills. The brief's framing of pyxtal as a random-structure generator and smact as an active screener is wrong for AtomisticSkills.",
+        "2. ADOPT the representation-only provenance model for generative producers in Phase 1: keep Structure a pure source node, no inbound generate_structure edge. This preserves the source topology and matches how mp-sourced structures already enter (source object + material tag).",
+        "3. DECIDE provenance granularity: prose-in-source.detail (matches today's mat-db-mp instances exactly, zero schema change) vs a structured source.generation={generator_code, checkpoint, conditioning, sampler_scheme, seed} sub-object (machine-readable, a small schema extension). Recommend prose-first now, structured later if a generative campaign is actually ingested. Not blocking.",
+        "4. DO NOT ingest smact as a node (dimension-free, not skill-driven). If composition-validity is ever wanted it is a categorical label on a Composition, and Composition is not yet a first-class map node.",
+        "5. DO NOT create space-group/Wyckoff or novelty as physics nodes: categorical/dimensionless representation-only labels on Structure instances. energy_above_hull / formation_energy already exist as nodes (registry.py:95-96) and are the real screening gates the generative pipeline consumes.",
+        "6. IF Phase 2 makes generators first-class edges, treat it as a deliberate kernel decision (it inverts the source topology); the honest edge is generator -> Structure with conditioning as a LABEL, never an edge from a property node.",
+        "7. The molecule branch of adit and cross-generator diversity relations are out of Phase-1 crystalline scope; noted, not actioned."
+      ]
+    }
   }
 }

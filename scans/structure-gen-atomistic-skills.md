@@ -7,10 +7,20 @@ edge**. Companion catalog: `scans/structure-gen-atomistic-skills.json` (8
 entries). This is a SCAN, not map code.
 
 **Graph snapshot at my end:** `docs/data/graph.json` = **77 nodes**, git HEAD
-`7c6ff1d`, **0 edges in graph.json** (edges live in the operator layer, not the
-doc data). The config-thermo encode the brief warned about (records 148-153) had
+`7c6ff1d`. The config-thermo encode the brief warned about (records 148-153) had
 NOT landed; node count is 77 (was 74 at the phonopy-lammps review). Not racing
 that encode.
+
+> **Review correction (2026-07-10):** the scan text above originally said "0
+> edges in graph.json". That is wrong: the edges live under the key `links` (D3
+> convention), not `edges`. `docs/data/graph.json` at HEAD `7c6ff1d` carries
+> **179 links**. The load-bearing conclusion survives and is *better* supported:
+> `Structure` is the `target` of **0** of those 179 links and the `source` of
+> **15** (`Structure -> {TotalEnergy, Forces, Stress, ForceConstants[order=2],
+> MagneticMoment, BandGap, ElasticConstants, BulkModulus, FormationEnergy,
+> EnergyAboveHull, SurfaceEnergy, Voltage, AdsorptionEnergy,
+> ElectricalConductivity[carrier=ionic], ConfigurationalEnergy}`). Structure is a
+> pure source: consumed by 15 operators, produced by none.
 
 **`Structure` is a pure source, confirmed.** The quantity tag `structure`
 (`omai/operator/registry.py:86`) reads "Atomic structure: cell, species, and
@@ -196,3 +206,100 @@ mattergen/diffcsp are git-only, but all functional usage lives in vendored
 AtomisticSkills skills, wrappers, servers, and env docs, every claim anchored to a
 real `file:line`. pyxtal/smact were not pip-downloaded because they are env-only
 here (pyxtal: one Wyckoff-table call; smact: zero call sites).
+
+## Review verdicts (2026-07-10)
+
+Adversarial deep review of commit `671b092`'s catalog (8 entries), independent of
+the scanner. Both brief-corrections re-verified by exhaustive grep across all
+**126** skills. `smact-4.0.0` wheel re-opened from `/tmp/gensrc`. Map side read
+from `omai/operator/registry.py`, `docs/data/graph.json` (re-read at HEAD
+`7c6ff1d`, **77 nodes / 179 links**), and a committed instance
+(`docs/data/instances/li2s-mp-1153-formationenergy-atomisticskills-mat-db-mp.json`).
+**Em-dash grep over both files: zero.**
+
+**Verdict: 8/8 entries VERIFIED.** No status changed. One factual correction
+(graph `edges` -> `links`, above). Every file:line anchor spot-checked accurate.
+
+### The two load-bearing brief-corrections both hold
+
+- **pyxtal is env-only, one Wyckoff-table call. VERIFIED exactly.**
+  `grep -rn pyxtal AtomisticSkills/` over all 126 skills returns ONE functional
+  call: `from pyxtal.symmetry import Group` at `diffcsp_wrapper.py:591`. Every
+  other hit is a doc/env mention (`mcp-environments.md:21`,
+  `ml-generative-diffcsp/SKILL.md:106`, `batch_generate.py:29`,
+  `unconditional_generate.py:15`, two READMEs). The adversarial
+  `grep from_random|from_seed|pyxtal(` returns **nothing** (exit 1); `grep pyxtal.`
+  returns only the `591` import. **No `from_random` anywhere.** pyxtal produces
+  nothing on the map.
+- **smact has zero skill call sites. VERIFIED exactly.**
+  `grep -rn smact|SMACT AtomisticSkills/` returns SIX hits, all env docs
+  (`adit-agent/README.md:37`, `diffcsp-agent/README.md:28`,
+  `diffcsp-agent/core_env.yaml:21`, `mattergen-agent/INSTALL_BLACKWELL.md:136,249`,
+  `mattergen-agent/example_full_env.yaml:188` SMACT==3.2.0). No `.py` hit in any
+  skill or `src/`. The charge screening that DOES run is pymatgen's
+  `AutoOxiStateDecorationTransformation` (`propose_substitutions.py:25,60`,
+  `SKILL.md:98`), not smact.
+
+### smact source check (TRAP 4)
+
+`pip download smact-4.0.0` into `/tmp/gensrc`. `screening.py` confirms the trap:
+`smact_validity` (`:577`) requires charge neutrality **AND** (default
+`use_pauling_test=True`) the Pauling electronegativity-ordering test;
+`smact_filter` (`:379`) "applies the charge neutrality and electronegativity
+tests"; `pauling_test` (`:167`) enforces "positive ions should be of lower
+electronegativity". A composition can be charge-balanced yet smact-invalid on EN
+order. (AtomisticSkills pins `3.2.0`; the two-gate validity logic is stable across
+`3.x`/`4.0`.) TRAP 4 accurate.
+
+### The provenance-record shape (open question 2), against the implemented schema
+
+A committed map instance is `{variable, material, conditions{}, value, units,
+uncertainty, source{kind, ref, detail}}`. The mp-id precedent lives in TWO places
+at once: `material = "Li2S (mp-1153)"` (formula + parenthesized source id) **and**
+`source = {kind:"simulation", ref:"atomisticskills-mat-db-mp", detail:"...retrieved
+by the AtomisticSkills mat-db-mp query_mp skill..."}`.
+
+So a generated-structure provenance record, under the committed conventions, would
+look like: `material = "Li2ZrCl6 (mattergen:chemical_system)"` (generator tag
+paralleling `(mp-123)`) and `source = {kind:"simulation",
+ref:"atomisticskills-ml-generative-mattergen", detail:"MatterGen chemical_system
+model, guidance_scale=1.0, chemical_system=Li-Zr-Cl, seed=..., CIF then relaxed
+by ..."}`. The scan's proposed 5-key dict `{generator_code, checkpoint,
+conditioning, sampler_scheme, seed}` all lands inside `source.ref` (generator_code
+-> the skill ref) and `source.detail` (the rest, as prose), exactly as mat-db-mp
+folds its retrieval provenance into `source.detail` today.
+
+**No contradiction with the implemented schema.** "Representation-only provenance,
+no producing edge" is fully expressible: the committed database-sourced instances
+already carry `source` + a material-string tag and introduce **no** inbound edge.
+A generator is just `source.kind="simulation"` with a generator ref/detail,
+parallel to mat-db-mp. **One refinement:** the scan presents the provenance as a
+flat 5-key dict, but the implemented schema has no dedicated structured provenance
+sub-object; those keys would live as prose in `source.detail` plus the material
+tag. Making them machine-readable is a schema EXTENSION (`source.generation`
+sub-object), not a fix to this scan. **Caveat:** Structure is a symbolic source
+node with no Structure-valued instances committed yet (all 32 instances are scalar
+quantities on mp-sourced materials), so this shape is inferred from the closest
+committed analog, not yet exercised for a Structure-valued instance.
+
+### Orchestrator decisions
+
+1. **ACCEPT both brief-corrections** as findings; the brief's framing of pyxtal as
+   a random-structure generator and smact as an active screener is wrong for
+   AtomisticSkills.
+2. **ADOPT representation-only provenance** for generative producers in Phase 1:
+   keep `Structure` a pure source, no inbound `generate_structure` edge. Matches
+   how mp-sourced structures already enter.
+3. **DECIDE provenance granularity:** prose-in-`source.detail` (zero schema change,
+   matches today's instances) vs a structured `source.generation` sub-object
+   (machine-readable, small extension). Recommend prose-first now. Not blocking.
+4. **DO NOT ingest smact** as a node (dimension-free, not skill-driven).
+5. **DO NOT create** space-group/Wyckoff or novelty as physics nodes: categorical/
+   dimensionless representation-only labels. `energy_above_hull` /
+   `formation_energy` already exist (`registry.py:95-96`) as the real gates.
+6. **IF Phase 2 makes generators first-class edges,** treat it as a deliberate
+   kernel decision (it inverts the source topology); the honest edge is
+   `generator -> Structure` with conditioning as a LABEL, never from a property
+   node.
+7. **adit molecule branch and cross-generator diversity relations** stay out of
+   Phase-1 crystalline scope; noted, not actioned.
