@@ -1932,6 +1932,26 @@
   },
   "uid": "f52d161ad0be284c121c6fd10fe403c922aaa59646746c12719622004da5fa3a"
  },
+ "f81c9c7907dc4297e44624098da25bfd87c1654a4198853bb185891282c24528": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "grain_boundary_energy"
+  },
+  "meta": {
+   "description": "Grain-boundary energy gamma_GB: the excess energy per unit boundary area of a crystalline grain boundary, gamma_GB = (E_GB - N E_bulk)/(2 A) for a coincidence-site-lattice (CSL) slab supercell exposing the boundary on both periodic faces (the factor 2 for the two boundaries). The SIBLING of SurfaceEnergy: the same ENERGY_PER_LENGTH_SQUARED dimension (M T^-2) and the same slab-energy-difference construction over the ground-state TotalEnergy, kept a distinct node by the grain_boundary_energy tag (it also shares M T^-2 with ForceConstants[order=2] and SurfaceEnergy, all three held apart by their tags). Scalar per boundary configuration: the CSL Sigma, the misorientation tilt angle, the rotation axis, and the GB plane ride in the instance conditions and the producing edge's scheme, not in the node's index signature (no registered Sigma / tilt index kind, deliberately: distinct boundaries are distinct configurations, distinct instances). Canonical eV/A^2, conventionally quoted in J/m^2. Produced by mat-grain-boundary (pymatgen GrainBoundaryGenerator CSL slabs relaxed by an MLIP), the phase-field / kMC INPUT, NOT a fipy phase-field output.",
+   "name": "GrainBoundaryEnergy",
+   "symbol": "GrainBoundaryEnergy",
+   "tier": "Stability"
+  },
+  "uid": "f81c9c7907dc4297e44624098da25bfd87c1654a4198853bb185891282c24528"
+ },
  "f8b092359048e5130d56697ca9504bb4740b875aca685a8f760316bfb5e9a661": {
   "identity": {
    "fields": [

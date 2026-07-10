@@ -927,6 +927,32 @@
   },
   "uid": "712b8145370a0072f225bd2f1d8c954b64311a3ca2f387320aa17e466926513c"
  },
+ "74ba9279dc65f3acd9e2be4ca13861b510212aa24a19aca4b29c65976003bf1b": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\gamma_{GB}'), Mul(Rational(1, 2), Pow(Symbol('A_{GB}', positive=True), Integer(-1)), Add(Mul(Integer(-1), Symbol('N_{GB}', positive=True), Function('E^{bulk}_{GB}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}'))), Function('E^{GB}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}')))))",
+   "inputs": [
+    "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "f81c9c7907dc4297e44624098da25bfd87c1654a4198853bb185891282c24528",
+   "outputs": [
+    "f81c9c7907dc4297e44624098da25bfd87c1654a4198853bb185891282c24528"
+   ],
+   "schemes": {
+    "method": "slab_energy_difference"
+   }
+  },
+  "meta": {
+   "description": "Grain-boundary energy gamma_GB = (E_GB - N_GB E_bulk)/(2 A_GB): the CSL-slab-minus-bulk energy difference per unit boundary area, the factor 2 because a periodic slab exposes the boundary on BOTH faces, the SAME slab_energy_difference construction as compute_surface_energy (a labeled sibling on the same ENERGY_PER_LENGTH_SQUARED node family, kept apart by the grain_boundary_energy tag). E^{GB} and E^{bulk}_{GB} are opaque selectors over the TotalEnergy family (the coincidence-site-lattice grain-boundary supercell built by pymatgen GrainBoundaryGenerator for the chosen Sigma / tilt / axis / GB plane, and the bulk reference per atom, N_GB counting the atoms; the committed Cu example uses the per-atom bulk energy -10.825556 eV); A_GB is the boundary in-plane area. Computed in eV/A^2 and quoted in J/m^2. Realized by mat-grain-boundary over an MLIP relax (relax_cell=False), NOT a fipy phase-field output; the method scheme records the slab_energy_difference. Implicit (CSL slab construction plus relaxations), so not sympy-executable.",
+   "formula_latex": "\\gamma_{GB} = \\frac{- N_{GB} E^{bulk}_{GB}{\\left(E_{tot},\\mathcal{S} \\right)} + E^{GB}{\\left(E_{tot},\\mathcal{S} \\right)}}{2 A_{GB}}",
+   "formula_srepr": "Equality(Symbol('\\\\gamma_{GB}'), Mul(Rational(1, 2), Pow(Symbol('A_{GB}', positive=True), Integer(-1)), Add(Mul(Integer(-1), Symbol('N_{GB}', positive=True), Function('E^{bulk}_{GB}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}'))), Function('E^{GB}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}')))))",
+   "name": "compute_grain_boundary_energy",
+   "schemes": {
+    "method": "slab_energy_difference"
+   }
+  },
+  "uid": "74ba9279dc65f3acd9e2be4ca13861b510212aa24a19aca4b29c65976003bf1b"
+ },
  "77d1268cd072ac2acfbf95872ae6a8acc0a20ac9e196dfe7256048ad9f5f8f2d": {
   "identity": {
    "formula": "Equality(Symbol('E_{mol}'), Mul(Symbol('N_A', positive=True), Pow(Symbol('N_q', positive=True, integer=True), Integer(-1)), Sum(Indexed(IndexedBase(Symbol('e')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Tuple(Symbol('\\\\mathbf{q}'), Integer(1), Symbol('N_q', positive=True, integer=True)), Tuple(Symbol('\\\\nu', integer=True), Integer(1), Mul(Integer(3), Symbol('N', positive=True, integer=True))))))",
