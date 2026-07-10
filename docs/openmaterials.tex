@@ -258,10 +258,11 @@ state (the first contribution to land through the protocol gates), the
 mechanics domain (the elastic tensor, its Voigt moduli, and the pressure), the
 stability, thermochemistry, quasi-harmonic, molecular, and electronic-transport
 domains (grown from the AtomisticSkills scans),
-and a first materials-diffusion subgraph; the unified map of
-91 quantities and 90 operators is content-addressed in the log-first store
+a first materials-diffusion subgraph, and a thermodynamic-identities domain that
+closes the map's formulas together; the unified map of
+98 quantities and 94 operators is content-addressed in the log-first store
 (Part~\ref{part:kernel}), grown past its frozen genesis version through the
-contribution gates, and the whole is held together by a suite of 1237
+contribution gates, and the whole is held together by a suite of 1327
 passing tests.
 
 What is next is mostly upward and outward. The upstream from the
@@ -324,6 +325,16 @@ and a rich initial map worth using. The app comes second. Protocol adoption is
 what makes the app valuable, the same way git had to matter before GitHub
 could.
 
+The site already carries a first taste of the app: a Learn page that runs the
+paper parser as a public demo. Because that demo calls a paid model, it runs
+through a cost-gated Cloudflare Worker (\texttt{infra/learn-proxy}) rather than
+from the browser: the Worker holds a daily budget and per-IP limits and keeps the
+API key server-side, never shipping it to the page. The Learn page is also a
+contributor on-ramp: a value a reader accepts from the parser's output is
+exported as an instance JSON in the committed schema, with a prefilled GitHub pull
+request link, so contributing a value from a paper is one reviewed PR through the
+same gates the maintainers use.
+
 \section{Structure and evidence}
 
 Two kinds of thing live on the map, and they come from different places. This
@@ -352,8 +363,8 @@ and its result is a value on a node.
 
 \section{The map}
 
-The map is a curated reference graph. Today it holds 91 nodes (88 observable
-and hidden quantities plus 3 promoted parameters) and 217 edges. Nodes are
+The map is a curated reference graph. Today it holds 98 nodes (95 observable
+and hidden quantities plus 3 promoted parameters) and 242 edges. Nodes are
 typed physical quantities. An edge produces one node from a list of input
 nodes, carrying the symbolic formula that relates them (parameter inputs are
 marked as inputs rather than derived through a formula).
@@ -426,7 +437,9 @@ structure, values, or both; the map validates them; a human confirms.
   the code implements (structure), and it lets a run of the code be recorded as
   an instance (values).
   \item The paper parser turns a paper's formulas into edges (structure) and its
-  measured or computed numbers into values on nodes.
+  measured or computed numbers into values on nodes; its first version
+  (\texttt{omai/paper\_parser}, extracting values as gated evidence) is
+  implemented, detailed under the parser contract below.
   \item The run parser reads a concrete run and records its inputs (from the input
   file) and its outputs as values on the nodes they belong to.
 \end{itemize}
@@ -552,6 +565,21 @@ only when an \texttt{XRDPattern} node is minted.
 proposed structure and value records. Every proposal must pass validation below
 before a human confirms it into the index.
 
+\paragraph{The paper parser (P1), implemented.} The first parser now exists:
+\texttt{omai/paper\_parser} turns a PDF into a gated evidence proposal in six
+stages. INGEST extracts the text with page offsets; DETECT enumerates every
+reported value with a verbatim, page-located quote (a citations-enabled model
+pass); MAP aligns each detected value against the node catalog via structured
+outputs; VALIDATE runs deterministically over the kernel, killing any claim whose
+quote is not found verbatim in the document (the hallucination gate) and flagging
+values that duplicate a committed instance; REVIEW is an adversarial model pass;
+and PROPOSE emits a proposal file that a human confirms with \texttt{--apply}
+before any instance is written. The pipeline never prints or logs the API key.
+It is golden-evaluated against this very document: on the eight expected values it
+recovers seven (recall 0.875), no hallucinated quote survives validation, and
+every recovered known is correctly flagged as a duplicate of its committed
+instance.
+
 \paragraph{Index schema.} Registry: \texttt{index/papers/}, \texttt{index/codes/},
 \texttt{index/experiments/}, each entry pinned to (element hash at map version).
 Derived files (regenerated, never hand-edited): symbol-to-node,
@@ -572,12 +600,12 @@ the reviewers decide what enters the commons.
 
 \section{Status and build order}
 
-Today's map is eighty-two change records past v1, its frozen genesis version:
-88 typed quantities plus 3 promoted
+Today's map is one hundred three change records past v1, its frozen genesis version:
+95 typed quantities plus 3 promoted
 parameters, the symbolic formula on every relational edge, 27 representations
 mapped (kaldo 32 variables, phono3py 31, phonopy 22, pymatgen 22, ShengBTE 20,
-mp-api 13, QE 13, LAMMPS 12, VASP 9, GPUMD 8, pycalphad 6, and a further fifteen
-codes and mat-* / chem-* skills at four or fewer each), and real instances
+mp-api 13, QE 13, LAMMPS 12, VASP 9, GPUMD 8, pycalphad 7, and a further sixteen
+codes and mat-* / chem-* skills at five or fewer each), and real instances
 computed through the framework: cross-code silicon thermal conductivity
 (Tersoff potential, 8x8x8 mesh, 300 K: kaldo 19.46 RTA and 26.91 direct,
 phono3py 16.74 RTA and 24.30 direct, in W/m K) plus an LGPS activation energy
@@ -2390,6 +2418,22 @@ for review, applying additions and metadata edits behind a flag while always
 routing a re-mint (an identity-content change) through an explicit supersede
 record rather than an automatic rewrite.
 
+\paragraph{The first supersedes.} The store has now exercised that supersede
+machinery for real, twice. A whole-map physics review reformulated two edges from
+opaque solver calls into closed form: the reaction energy went from
+$E^{\mathrm{rxn}}[\Delta H_f]$ to the stoichiometric sum
+$\Delta E_{\mathrm{rxn}} = \sum_i c^{\mathrm{rxn}}_i H_{f,i}$ (records 193-194),
+and the ionic conductivity went from $\sigma^{\mathrm{NE}}[D, T, \mathrm{Structure}]$
+to the executable Nernst-Einstein relation
+$\sigma = n_c z^2 e^2 D / (k_B T)$, promoting the carrier density $n_c$ to a
+first-class node (records 200-201). In each case the formula fingerprint changed,
+so the edge id changed: the new edge is minted, the old edge carries a
+\texttt{superseded\_by} pointer, and a sync of the operator layer skips the
+retired entry rather than re-proposing it. This is the versioning contract holding
+up under a genuine change of physics, not a metadata edit: a reformulation that
+alters what an edge computes mints a new identity, and the chain records the
+retirement rather than rewriting history in place.
+
 \section{Genesis}
 \label{sec:kernel-genesis}
 
@@ -2419,6 +2463,22 @@ apply attempt the connectivity gate correctly rejected until the elastic edge
 took the stress route) followed through the same gates. All
 landed as ordinary change records on top of the untouched genesis prefix, which
 is exactly the accumulation the kernel was built to support.
+
+\paragraph{The thermodynamic-identities domain.} A whole-map physics review of the
+combined formulas added a small domain (records 183-192) whose whole job is to tie
+the map's separate branches together with six executable, gate-proven relations:
+the Gr\"uneisen identity $\gamma_{th} = K \alpha_V / C_V$, the total thermal
+conductivity $\kappa_{\mathrm{tot}} = \kappa + \kappa_e$, the molar volume
+$V_m = N_A V_{\mathrm{cell}}$, the $C_P - C_V$ relation
+$C_P = C_V + K T V_m \alpha_V^2$, the power factor $\mathrm{PF} = S^2 \sigma_{el}$,
+and the thermoelectric figure of merit $ZT = \mathrm{PF}\,T / \kappa_{\mathrm{tot}}$.
+Because a production route is never part of a node's identity, several of these
+close as second and third producers of quantities the map already carried: the
+thermal Gr\"uneisen parameter and the constant-pressure heat capacity each now have
+two independent routes, and the bulk modulus three. That is the multi-producer
+pattern the identity design was meant to admit: a new derivation of an existing
+quantity is a parallel edge into the same node, not a re-minted node, so the
+routes stand side by side as cross-checks.
 
 \paragraph{Instance uid pinning.} Instances are additive JSON that attach a value
 to a node. Each instance pins to an exact element by node uid, so the genesis
@@ -2561,28 +2621,30 @@ trusted). What remains, in order:
 \label{sec:status-live}
 
 The map is at store head version
-\texttt{e2745ab18af17c38e4e3e26b8fba678786ad1986a27e14564c715bf0edc1bb6c}
-(2026-07-10, 182 records), eighty-two change records past the frozen genesis hash
+\texttt{b505d9421136e70bfa21d89dd6f81ba6a765c0d00b4f7e6226220ed5743a111e}
+(2026-07-10, 203 records), one hundred three change records past the frozen genesis hash
 \texttt{e6e8044e92039696417b53b220b0f3f10559a286b0eaabbe7ea4167ff510f6cd}
 (2026-07-07, the untouched 100-record prefix). The live numbers:
 
 \begin{itemize}[leftmargin=2em, itemsep=0.25em]
-  \item \textbf{Structure.} 91 nodes (88 observable and hidden quantities plus 3
-        promoted parameters), 217 rendered links, 90 deduplicated operators,
-        rendered in fourteen physics tiers (Sources, Harmonic, Thermodynamics,
+  \item \textbf{Structure.} 98 nodes (95 observable and hidden quantities plus 3
+        promoted parameters), 242 rendered links, 94 deduplicated operators,
+        rendered in fifteen physics tiers (Sources, Harmonic, Thermodynamics,
         Scattering, Transport, Molecular dynamics, Ground state, Mechanics,
         Stability, Thermochemistry, Quasi-harmonic, Molecular, Electronic
-        transport, Diffusion). The five newest tiers (Stability,
-        Thermochemistry, Quasi-harmonic, Molecular, Electronic transport) landed
-        from the AtomisticSkills scans. The
+        transport, Diffusion, Thermoelectric). The newest tier (Thermoelectric)
+        and its power-factor and ZT nodes landed with the thermodynamic-identities
+        domain that closes the map's formulas together; the five before it
+        (Stability, Thermochemistry, Quasi-harmonic, Molecular, Electronic
+        transport) landed from the AtomisticSkills scans. The
         rendered-link count exceeds the operator count because the site graph
         draws one link per (input $\to$ output) pair while an operator with
         several inputs is a single edge in the store.
   \item \textbf{Representations.} 27 codes mapped, with per-code variable coverage:
         kaldo 32, phono3py 31, phonopy 22, pymatgen 22, ShengBTE 20, mp-api 13,
-        Quantum ESPRESSO 13, LAMMPS 12, VASP 9, GPUMD 8, pycalphad 6, matgl 5,
-        mat-elasticity 5, amset 5, fairchem 4, MACE 4, OpenMM 4, ORCA 4,
-        pymatgen-analysis-diffusion 4, ASE 3, mat-diffusion-analysis 2, smol 2,
+        Quantum ESPRESSO 13, LAMMPS 12, VASP 9, GPUMD 8, pycalphad 7, matgl 5,
+        mat-elasticity 5, amset 5, ORCA 5, pymatgen-analysis-diffusion 5,
+        fairchem 4, MACE 4, OpenMM 4, ASE 3, mat-diffusion-analysis 2, smol 2,
         mat-equation-of-state 1, mat-surface-adsorption 1, rxn-network 1,
         diffcsp 1, mattergen 1.
   \item \textbf{Instances.} 45 recorded values, 43 simulation and 2 measurement.
@@ -2595,15 +2657,18 @@ The map is at store head version
         steady-state thermal conductivities of bulk single-crystal silicon
         ($156\,\mathrm{W/(m\,K)}$) and germanium ($60.2\,\mathrm{W/(m\,K)}$) at
         $300\,\mathrm{K}$ and natural isotopic abundance.
-  \item \textbf{Dimensional gate.} Of the 90 edges, 28 are ok, 2 are
-        documented-schematic violations (\texttt{compute\_gruneisen} and
-        \texttt{compute\_phase\_space\_3phonon}, kept schematic by choice), and 60
-        are skipped (not closed-form \texttt{Eq} edges the gate can check, most
-        of them the opaque solver edges of the newer domains). The
-        two ground-state derivatives (\texttt{compute\_forces\_hf} and
-        \texttt{compute\_stress\_cell}) and all four mechanics edges (the
-        elastic tensor as $-\partial\sigma/\partial\varepsilon$, the pressure
-        trace, and both Voigt moduli) are proven ok.
+  \item \textbf{Dimensional gate.} Of the 100 operator edges the gate walks, 37
+        are ok, 2 are documented-schematic violations
+        (\texttt{compute\_gruneisen} and \texttt{compute\_phase\_space\_3phonon},
+        kept schematic by choice), and 61 are skipped (not closed-form
+        \texttt{Eq} edges the gate can check, most of them the opaque solver
+        edges of the newer domains). The two ground-state derivatives
+        (\texttt{compute\_forces\_hf} and \texttt{compute\_stress\_cell}) and all
+        four mechanics edges (the elastic tensor as
+        $-\partial\sigma/\partial\varepsilon$, the pressure trace, and both Voigt
+        moduli) are proven ok, as are the six thermodynamic-identity edges (the
+        Gr\"uneisen identity, total thermal conductivity, molar volume, the
+        $C_P - C_V$ relation, the power factor, and $ZT$).
   \item \textbf{Tests.} The suite is 1327 passing.
 \end{itemize}
 
@@ -2622,15 +2687,15 @@ Quantum ESPRESSO             & 13 & GPL-2.0 \\
 LAMMPS                       & 12 & GPL-2.0 \\
 VASP                         & 9  & Proprietary \\
 GPUMD                        & 8  & GPL-3.0 \\
-pycalphad                    & 6  & MIT \\
+pycalphad                    & 7  & MIT \\
 matgl                        & 5  & BSD-3-Clause \\
 mat-elasticity               & 5  & MIT \\
 amset                        & 5  & BSD-3-Clause \\
+ORCA                         & 5  & Proprietary \\
+pymatgen-analysis-diffusion  & 5  & BSD-3-Clause \\
 fairchem                     & 4  & MIT \\
 MACE                         & 4  & MIT \\
 OpenMM                       & 4  & MIT \\
-ORCA                         & 4  & Proprietary \\
-pymatgen-analysis-diffusion  & 4  & BSD-3-Clause \\
 ASE                          & 3  & LGPL-2.1 \\
 mat-diffusion-analysis       & 2  & MIT \\
 smol                         & 2  & BSD-3-Clause \\
@@ -2781,10 +2846,12 @@ order from here:
         map through the same gates. Mechanics landed 2026-07-08 as records
         110-117 (the elastic tensor, its Voigt moduli, and the pressure, via
         LAMMPS ELASTIC and mat-elasticity, with the two Cu moduli as its first
-        instances); the AtomisticSkills scans then grew the map to record 182
+        instances); the AtomisticSkills scans then grew the map through record 182
         (2026-07-10) with the stability, thermochemistry, quasi-harmonic,
         molecular, and electronic-transport domains and the pymatgen, mp-api,
-        CALPHAD, amset, ORCA, and OpenMM rails.
+        CALPHAD, amset, ORCA, and OpenMM rails, and a whole-map physics review
+        added the thermodynamic-identities domain and two closed-form supersedes
+        (records 183-203).
   \item \textbf{The app}, once the protocol and a rich mother map exist.
 \end{enumerate}
 
