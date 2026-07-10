@@ -1,0 +1,12 @@
+{
+ "representation": "mat-equation-of-state",
+ "map_version": "70e13ca561e4071bef1f662eb65fc79acde2d40cebe90f6965beb46bcb37cc27",
+ "covers": [
+  {
+   "node": "BulkModulus",
+   "uid": "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced",
+   "api": "matcalc EOSCalc(calc).calc(struct)['bulk_modulus_bm'] (pymatgen BirchMurnaghan b0_GPa), GPa (_eos.py:164)",
+   "unit": "GPa"
+  }
+ ]
+}

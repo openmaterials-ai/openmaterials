@@ -1,11 +1,23 @@
 {
  "representation": "ase",
- "map_version": "ef54998e173fc13d6f0599393eb97dc93204237732bff6964df2c17e11e583cc",
+ "map_version": "70e13ca561e4071bef1f662eb65fc79acde2d40cebe90f6965beb46bcb37cc27",
  "covers": [
   {
    "node": "Potential",
    "uid": "80a4273845e09207860e06db18d1f1ee5670a9b9c8b1020a99928c872878f901",
    "api": "ase.Atoms.calc",
+   "unit": null
+  },
+  {
+   "node": "Structure",
+   "uid": "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239",
+   "api": "ase.optimize optimizer (FIRE / BFGS) + ase.filters cell filter (FrechetCellFilter / ExpCellFilter) -> relaxed ase.Atoms / pymatgen Structure",
+   "unit": null
+  },
+  {
+   "node": "Trajectory",
+   "uid": "12cde23e9a333fdd03313c4cdbd82d51033f9bb3bd505466a8db5360faf166b4",
+   "api": "ase.md integrator frames via ase.io.trajectory.TrajectoryWriter (positions, A)",
    "unit": null
   }
  ]

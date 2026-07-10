@@ -1,0 +1,12 @@
+{
+ "representation": "mat-surface-adsorption",
+ "map_version": "70e13ca561e4071bef1f662eb65fc79acde2d40cebe90f6965beb46bcb37cc27",
+ "covers": [
+  {
+   "node": "AdsorptionEnergy",
+   "uid": "949582fba59372799c672b38510bd07f2e733f8bd6e63887b9728a672b1c5b25",
+   "api": "matcalc AdsorptionCalc(calc).calc_adslabs(...) per-site adsorption_energy (E_adslab - E_slab - E_adsorbate), eV (_adsorption.py:28-)",
+   "unit": "ev"
+  }
+ ]
+}
