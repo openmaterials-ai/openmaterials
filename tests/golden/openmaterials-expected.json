@@ -1,0 +1,83 @@
+{
+  "target": "docs/openmaterials.pdf",
+  "method": "Text was extracted from the PDF FIRST (pypdf, 52 pages); only committed instance values whose numeric string (or a clearly equivalent rounded rendering) literally appears in the extracted text are included, each with its expected map node id and the committed instance whose DUPLICATE flag it must trip. All eight qualifying values are Si/Ge thermal-conductivity and LGPS ionic-conductivity / activation-energy numbers that the paper prints in prose, an abstract summary sentence, and an embedded JSON snippet. Other corpus values (Cu moduli, grain-boundary energies, band gaps, formation energies, LiFePO4 voltage, thermal expansion) do not appear as numeric strings in the extracted text and are honestly excluded.",
+  "acceptance": {
+    "recall_min": 0.8,
+    "hallucinated_quotes_surviving_validation": 0,
+    "all_recovered_knowns_flagged_duplicate": true
+  },
+  "expected": [
+    {
+      "value": 19.46,
+      "value_text": "19.46",
+      "unit": "W/(m K)",
+      "material": "Si",
+      "node_id": "ThermalConductivity[bte_solver=rta]",
+      "committed_instance": "si-thermalconductivity-bte-solver-rta-kaldo.json",
+      "note": "kaldo RTA, printed in an embedded JSON snippet and the abstract summary."
+    },
+    {
+      "value": 16.735,
+      "value_text": "16.74",
+      "unit": "W/(m K)",
+      "material": "Si",
+      "node_id": "ThermalConductivity[bte_solver=rta]",
+      "committed_instance": "si-thermalconductivity-bte-solver-rta-phono3py.json",
+      "note": "phono3py RTA; paper prints the rounded 16.74."
+    },
+    {
+      "value": 24.301,
+      "value_text": "24.30",
+      "unit": "W/(m K)",
+      "material": "Si",
+      "node_id": "ThermalConductivity[bte_solver=direct_inverse]",
+      "committed_instance": "si-thermalconductivity-bte-solver-direct-inverse-phono3py.json",
+      "note": "phono3py direct; paper prints the rounded 24.30."
+    },
+    {
+      "value": 26.908,
+      "value_text": "26.91",
+      "unit": "W/(m K)",
+      "material": "Si",
+      "node_id": "ThermalConductivity[bte_solver=direct_inverse]",
+      "committed_instance": "si-thermalconductivity-bte-solver-direct-inverse-kaldo.json",
+      "note": "kaldo direct; paper prints the rounded 26.91."
+    },
+    {
+      "value": 156.0,
+      "value_text": "156",
+      "unit": "W/(m K)",
+      "material": "Si",
+      "node_id": "ThermalConductivity[bte_solver=direct_inverse]",
+      "committed_instance": "si-thermalconductivity-bte-solver-direct-inverse-glassbrenner-slack-1964.json",
+      "note": "bulk single-crystal Si experimental reference (300 K), printed in the abstract."
+    },
+    {
+      "value": 60.2,
+      "value_text": "60.2",
+      "unit": "W/(m K)",
+      "material": "Ge",
+      "node_id": "ThermalConductivity[bte_solver=direct_inverse]",
+      "committed_instance": "ge-thermalconductivity-bte-solver-direct-inverse-glassbrenner-slack-1964.json",
+      "note": "bulk single-crystal Ge experimental reference (300 K), printed in the abstract."
+    },
+    {
+      "value": 91.44,
+      "value_text": "91.44",
+      "unit": "mS/cm",
+      "material": "LGPS",
+      "node_id": "ElectricalConductivity[carrier=ionic]",
+      "committed_instance": "lgps-electricalconductivity-carrier-ionic-atomisticskills-mat-diffusion-analysis-lgps.json",
+      "note": "LGPS room-temperature ionic conductivity, printed in prose."
+    },
+    {
+      "value": 0.152,
+      "value_text": "0.152",
+      "unit": "eV",
+      "material": "LGPS",
+      "node_id": "ActivationEnergy",
+      "committed_instance": "lgps-activationenergy-atomisticskills-mat-diffusion-analysis-lgps.json",
+      "note": "LGPS activation energy, printed in the abstract summary."
+    }
+  ]
+}
