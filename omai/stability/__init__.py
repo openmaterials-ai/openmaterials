@@ -1,5 +1,5 @@
 """The stability domain: FormationEnergy, EnergyAboveHull, SurfaceEnergy,
-Voltage, AdsorptionEnergy.
+Voltage, AdsorptionEnergy, ReactionEnergy, GrainBoundaryEnergy.
 
 Phase stability and electrochemistry from the pymatgen scan (AtomisticSkills,
 arXiv 2605.24002): the per-atom formation energy against elemental references,
@@ -15,12 +15,22 @@ the surface-energetics kin of SurfaceEnergy, an extensive (per-configuration,
 NOT per-atom) energy difference E_adslab - E_slab - E_adsorbate, driven by
 mat-surface-adsorption via matcalc AdsorptionCalc.
 
-Deferred with reasons (from the matcalc/ASE scan): the QHA finite-T
-thermodynamics domain (Gibbs G(T), thermal expansion alpha(T), Cp(T); driven
-by mat-qha-thermal-expansion via matcalc QHACalc) is owed a basis
-reconciliation to the thermochemistry domain's second slice before it lands;
-the NEB migration barrier (chem-neb-barrier via raw ase.mep, not matcalc
-NEBCalc) is queued with the MD / chem family task.
+The config-thermo scan (arXiv 2605.24002) added ReactionEnergy (2026-07-10):
+the stoichiometric energy of a balanced solid-state reaction, combined from the
+per-atom formation energies of reactants and products via rxn_network.
+
+The characterization scan (arXiv 2605.24002) added GrainBoundaryEnergy
+(2026-07-10, records 181-182): the sibling of SurfaceEnergy on the same
+energy-per-area dimension, the CSL-slab-minus-bulk excess over twice the
+boundary area (pymatgen GrainBoundaryGenerator CSL slabs plus an MLIP relax),
+with the boundary configuration (Sigma, tilt, axis, GB plane) in conditions.
+
+Two candidates the matcalc/ASE scan deferred have since landed in their own
+domains: the QHA finite-T thermodynamics (Gibbs G(T), thermal expansion
+alpha(T), Cp(T)) landed as the quasiharmonic domain (2026-07-10) via the
+phonopy PhonopyQHA route; the NEB migration barrier (chem-neb-barrier via
+ase.mep) landed as the molecular ReactionBarrier[construction=neb_mep]
+(2026-07-10).
 
 Deferred candidates from the scan's new-node list, each with why:
 
@@ -32,9 +42,6 @@ Deferred candidates from the scan's new-node list, each with why:
     (reservoir choices, charge states, Freysoldt corrections) as first-class
     schemes; the committed examples span neutral and charged conventions
     that must not be merged silently.
-  * Grain-boundary energy gamma_gb: the surface-energy family's second
-    slice (same J/m^2 difference form, GrainBoundaryGenerator import path
-    moved across pymatgen versions and needs its own version pin).
   * Bare energy-per-atom: subsumed, deliberately not a node: it is
     TotalEnergy / N_atoms, a normalization of an existing quantity, not a
     distinct physical quantity (unlike the formation energy, which also
