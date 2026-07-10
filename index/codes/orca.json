@@ -1,0 +1,30 @@
+{
+ "representation": "orca",
+ "map_version": "3a8f6a390cc36a995a6a9ce2451f3226a54121a93087eebf2950ece0eae94875",
+ "covers": [
+  {
+   "node": "Forces",
+   "uid": "9c5a2fdedab6b668ccf5f2043fb4c29a982bcde5063fd6ac8633ee2c7858ecbf",
+   "api": "run_singlepoint.py forces_eV_per_Ang (-gradient)",
+   "unit": "eV_per_A"
+  },
+  {
+   "node": "HOMOLUMOGap",
+   "uid": "8998dd04e7ff8c51679a06f9c40bffb8923fc6d9b8b1f5b3b955999c029a5c5e",
+   "api": "parse_orca_output.py homo_lumo_gap_eV",
+   "unit": "ev"
+  },
+  {
+   "node": "ReactionBarrier[construction=neb_mep]",
+   "uid": "c922f2cfe105ec7d7fc5afd8eabcc0cc2e7adde25e2231272a4dd34493b4bd98",
+   "api": "run_optimization.py tsopt saddle (agent-level E(TS)-E(reactant))",
+   "unit": "ev"
+  },
+  {
+   "node": "TotalEnergy",
+   "uid": "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+   "api": "parse_orca_output.py final_energy_eV / run_singlepoint.py results.energy",
+   "unit": "ev"
+  }
+ ]
+}
