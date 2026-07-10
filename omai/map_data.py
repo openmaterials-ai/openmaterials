@@ -210,6 +210,116 @@ def _slug(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-")
 
 
+def _canonical_axis(domains: tuple[Domain, ...], variable: str):
+    """The CanonicalAxis a node's representation declares, or None.
+
+    Scans every domain's representation package for a SpaceRepresentationSpec
+    whose space is `variable` and that carries a canonical_axis. This is the
+    source of truth the spectrum bridge validates a record's axis and value
+    units against. Returns the first declaration found (a node's canonical axis
+    is a single physical convention; no two specs should disagree)."""
+    from omai.representation.adapter import SpaceRepresentationSpec
+
+    for d in domains:
+        pkg = d.representation_package
+        for m in pkgutil.iter_modules(pkg.__path__):
+            mod = importlib.import_module(f"{pkg.__name__}.{m.name}")
+            for attr in dir(mod):
+                if attr.startswith("_"):
+                    continue
+                obj = getattr(mod, attr)
+                if (isinstance(obj, SpaceRepresentationSpec)
+                        and obj.space.name == variable
+                        and obj.canonical_axis is not None):
+                    return obj.canonical_axis
+    return None
+
+
+def _validate_spectrum(rec: dict, *, name_to_uid: dict, axis_by_var, where: str):
+    """Shared spectrum validation for both the write bridge and the bundler.
+
+    Enforces the spectrum contract: required keys present; source.kind in the
+    instance vocabulary; variable resolves to a node; the node declares a
+    canonical axis; the axis unit is registered and dimensionally consistent
+    with that declaration; the value unit (when the declaration pins one, or the
+    record supplies one) is registered and dimensionally consistent; the axis is
+    strictly monotonic; the array lengths agree; and every axis and value entry
+    is a real finite number (the same real-values-only bar as instances)."""
+    from omai.representation.units import UNITS
+
+    for key in ("variable", "material", "conditions", "axis", "values", "units", "source"):
+        if key not in rec:
+            raise ValueError(f"{where}: missing '{key}'")
+    if rec["source"].get("kind") not in ("simulation", "measurement"):
+        raise ValueError(f"{where}: source.kind must be simulation|measurement")
+    variable = rec["variable"]
+    if variable not in name_to_uid:
+        raise ValueError(f"{where}: unknown variable {variable!r}")
+
+    axis = rec["axis"]
+    for key in ("name", "units", "values"):
+        if key not in axis:
+            raise ValueError(f"{where}: axis missing '{key}'")
+
+    canon = axis_by_var(variable)
+    if canon is None:
+        raise ValueError(
+            f"{where}: {variable!r} declares no canonical axis; it is not a "
+            f"spectrum-capable node (add a CanonicalAxis to its representation)")
+
+    # Axis unit: registered and dimensionally consistent with the declaration.
+    if axis["units"] not in UNITS:
+        raise ValueError(f"{where}: axis unit {axis['units']!r} is not registered")
+    if UNITS[axis["units"]].dimension != UNITS[canon.unit].dimension:
+        raise ValueError(
+            f"{where}: axis unit {axis['units']!r} "
+            f"({UNITS[axis['units']].dimension.name}) is dimensionally "
+            f"inconsistent with the canonical axis unit {canon.unit!r} "
+            f"({UNITS[canon.unit].dimension.name})")
+
+    # Value unit: consistent with the declaration. When the declaration pins a
+    # value_unit, the record's units must be registered and share its dimension.
+    # When the declaration leaves it open (value_unit is None, e.g. a DOS
+    # density), the record's units are a free string (the normalization rides in
+    # conditions), but if it happens to name a registered unit that unit must
+    # still match a pinned value_unit (there is none), so any string passes.
+    if canon.value_unit is not None:
+        if rec["units"] not in UNITS:
+            raise ValueError(f"{where}: value unit {rec['units']!r} is not registered")
+        if UNITS[rec["units"]].dimension != UNITS[canon.value_unit].dimension:
+            raise ValueError(
+                f"{where}: value unit {rec['units']!r} "
+                f"({UNITS[rec['units']].dimension.name}) is dimensionally "
+                f"inconsistent with the canonical value unit {canon.value_unit!r} "
+                f"({UNITS[canon.value_unit].dimension.name})")
+
+    axis_vals, vals = axis["values"], rec["values"]
+    unc = rec.get("uncertainty")
+
+    def _all_real(seq):
+        import math as _math
+        return all(isinstance(x, (int, float)) and not isinstance(x, bool)
+                   and _math.isfinite(x) for x in seq)
+
+    if not axis_vals or not vals:
+        raise ValueError(f"{where}: axis and values must be non-empty")
+    if not _all_real(axis_vals) or not _all_real(vals):
+        raise ValueError(f"{where}: axis and values must be real finite numbers")
+    if unc is not None and not _all_real(unc):
+        raise ValueError(f"{where}: uncertainty must be real finite numbers or null")
+    if len(axis_vals) != len(vals):
+        raise ValueError(
+            f"{where}: axis has {len(axis_vals)} points but values has {len(vals)}")
+    if unc is not None and len(unc) != len(vals):
+        raise ValueError(
+            f"{where}: uncertainty has {len(unc)} points but values has {len(vals)}")
+
+    strictly_up = all(b > a for a, b in zip(axis_vals, axis_vals[1:]))
+    strictly_down = all(b < a for a, b in zip(axis_vals, axis_vals[1:]))
+    if not (strictly_up or strictly_down):
+        raise ValueError(f"{where}: axis must be strictly monotonic")
+
+
 def record_instance(*, domains, variable, material, value, units, source_kind,
                     source_ref, conditions=None, uncertainty=None, detail=None,
                     instances_dir=None):
@@ -224,6 +334,56 @@ def record_instance(*, domains, variable, material, value, units, source_kind,
            "value": value, "units": units, "uncertainty": uncertainty,
            "source": {"kind": source_kind, "ref": source_ref, "detail": detail}}
     path = instances_dir / (_slug(f"{material}-{variable}-{source_ref}") + ".json")
+    path.write_text(json.dumps(rec))
+    return path
+
+
+def build_spectra(spectra_dir: Path | None = None) -> list[dict]:
+    """The uid-pinned spectrum index (docs/data/spectra.json).
+
+    A spectrum is function-valued evidence: an array of ordinates against a
+    strictly monotonic axis, attached to a spectrum-capable node. Each record is
+    validated and pinned to the live node uid of its variable, exactly like an
+    instance, so the function follows the element through supersede chains."""
+    spectra_dir = spectra_dir or (_DOCS / "data" / "spectra")
+    domains = _domains()
+    name_to_uid = {n["id"]: n["uid"] for n in build_graph_dict(domains)["nodes"]}
+    out = []
+    if not spectra_dir.exists():
+        return out
+    for f in sorted(spectra_dir.glob("*.json")):
+        rec = json.loads(f.read_text())
+        _validate_spectrum(
+            rec, name_to_uid=name_to_uid,
+            axis_by_var=lambda v: _canonical_axis(domains, v), where=f.name)
+        rec["node_uid"] = name_to_uid[rec["variable"]]
+        out.append(rec)
+    return out
+
+
+def record_spectrum(*, domains, variable, material, axis_name, axis_units,
+                    axis_values, values, units, source_kind, source_ref,
+                    conditions=None, uncertainty=None, detail=None,
+                    spectra_dir=None):
+    """Validate a function-valued record and write it under docs/data/spectra/.
+
+    The sibling of record_instance: the scalar {value} is replaced by an axis +
+    ordinate array. Validation (shared with the bundler) requires the variable
+    to resolve to a spectrum-capable node, the axis and value units to be
+    registered and dimensionally consistent with that node's canonical-axis
+    declaration, the axis strictly monotonic, the arrays equal-length, and every
+    number real and finite."""
+    name_to_uid = {n["id"]: n["uid"] for n in build_graph_dict(domains)["nodes"]}
+    rec = {"variable": variable, "material": material, "conditions": conditions or {},
+           "axis": {"name": axis_name, "units": axis_units, "values": list(axis_values)},
+           "values": list(values), "units": units, "uncertainty": uncertainty,
+           "source": {"kind": source_kind, "ref": source_ref, "detail": detail}}
+    _validate_spectrum(
+        rec, name_to_uid=name_to_uid,
+        axis_by_var=lambda v: _canonical_axis(domains, v), where=f"{material}/{variable}")
+    spectra_dir = Path(spectra_dir) if spectra_dir else (_DOCS / "data" / "spectra")
+    spectra_dir.mkdir(parents=True, exist_ok=True)
+    path = spectra_dir / (_slug(f"{material}-{variable}-{source_ref}") + ".json")
     path.write_text(json.dumps(rec))
     return path
 
@@ -285,6 +445,13 @@ def write_instances(path: Path | None = None) -> Path:
     path = path or (_DOCS / "data" / "instances.json")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(build_instances()))
+    return path
+
+
+def write_spectra(path: Path | None = None) -> Path:
+    path = path or (_DOCS / "data" / "spectra.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(build_spectra()))
     return path
 
 
@@ -351,6 +518,7 @@ def write_version(path: Path | None = None) -> Path:
 if __name__ == "__main__":
     print("wrote", write_graph())
     print("wrote", write_instances())
+    print("wrote", write_spectra())
     print("wrote", write_codes())
     print("wrote", write_catalog())
     print("wrote", write_version())

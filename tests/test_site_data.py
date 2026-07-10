@@ -1,6 +1,14 @@
 import pytest
 
-from omai.map_data import DOMAINS, build_codes as _build_codes, build_graph_dict as _build_graph_dict, build_instances, record_instance as _record_instance
+from omai.map_data import (
+    DOMAINS,
+    build_codes as _build_codes,
+    build_graph_dict as _build_graph_dict,
+    build_instances,
+    build_spectra,
+    record_instance as _record_instance,
+    record_spectrum as _record_spectrum,
+)
 from omai.thermal_transport.domain import THERMAL_TRANSPORT
 
 
@@ -14,6 +22,24 @@ def build_graph_dict():
 
 def record_instance(**kw):
     return _record_instance(domains=DOMAINS, **kw)
+
+
+def record_spectrum(**kw):
+    return _record_spectrum(domains=DOMAINS, **kw)
+
+
+# A minimal valid PhononDOS spectrum: a linear-THz axis (registered, FREQUENCY)
+# and an open-normalization density (units a free string, per the DOS convention).
+def _good_spectrum(**over):
+    kw = dict(
+        variable="PhononDOS", material="Si",
+        axis_name="omega", axis_units="linear_THz",
+        axis_values=[0.0, 1.0, 2.0, 3.0], values=[0.0, 0.4, 0.9, 0.3],
+        units="states/THz", source_kind="simulation", source_ref="phonopy",
+        conditions={"normalization": "per cell"},
+    )
+    kw.update(over)
+    return kw
 
 
 def test_build_codes_maps_real_variables():
@@ -86,4 +112,85 @@ def test_record_instance_rejects_unknown_variable(tmp_path):
             variable="NotAVariable", material="Si", value=1.0, units="x",
             source_kind="simulation", source_ref="kaldo", instances_dir=tmp_path,
         )
+
+
+# ---- spectrum layer (function-valued evidence) -----------------------------
+
+
+def test_record_spectrum_roundtrip(tmp_path):
+    p = record_spectrum(spectra_dir=tmp_path, **_good_spectrum())
+    assert p.exists()
+    recs = build_spectra(tmp_path)
+    assert len(recs) == 1
+    r = recs[0]
+    assert r["variable"] == "PhononDOS"
+    assert r["axis"]["name"] == "omega" and r["axis"]["units"] == "linear_THz"
+    assert r["values"] == [0.0, 0.4, 0.9, 0.3]
+    assert len(r["axis"]["values"]) == len(r["values"])
+
+
+def test_record_spectrum_pins_node_uid(tmp_path):
+    record_spectrum(spectra_dir=tmp_path, **_good_spectrum())
+    recs = build_spectra(tmp_path)
+    name_to_uid = {n["id"]: n["uid"] for n in _build_graph_dict(DOMAINS)["nodes"]}
+    # Bundling pins the record to the live node uid of its variable (P3).
+    assert recs[0]["node_uid"] == name_to_uid["PhononDOS"]
+
+
+def test_record_spectrum_rejects_unknown_variable(tmp_path):
+    with pytest.raises(ValueError):
+        record_spectrum(spectra_dir=tmp_path, **_good_spectrum(variable="NotAVariable"))
+
+
+def test_record_spectrum_rejects_unit_mismatch(tmp_path):
+    # A THERMAL_CONDUCTIVITY axis unit against a FREQUENCY canonical axis.
+    with pytest.raises(ValueError):
+        record_spectrum(spectra_dir=tmp_path, **_good_spectrum(axis_units="W_per_m_per_K"))
+
+
+def test_record_spectrum_rejects_unregistered_axis_unit(tmp_path):
+    with pytest.raises(ValueError):
+        record_spectrum(spectra_dir=tmp_path, **_good_spectrum(axis_units="not_a_unit"))
+
+
+def test_record_spectrum_rejects_non_monotonic_axis(tmp_path):
+    with pytest.raises(ValueError):
+        record_spectrum(spectra_dir=tmp_path,
+                        **_good_spectrum(axis_values=[0.0, 2.0, 1.0, 3.0]))
+
+
+def test_record_spectrum_rejects_length_mismatch(tmp_path):
+    with pytest.raises(ValueError):
+        record_spectrum(spectra_dir=tmp_path,
+                        **_good_spectrum(values=[0.0, 0.4, 0.9]))
+
+
+def test_record_spectrum_rejects_non_real_values(tmp_path):
+    with pytest.raises(ValueError):
+        record_spectrum(spectra_dir=tmp_path,
+                        **_good_spectrum(values=[0.0, 0.4, "x", 0.3]))
+
+
+def test_record_spectrum_rejects_non_spectrum_node(tmp_path):
+    # ThermalConductivity is a scalar node: no canonical axis declared.
+    with pytest.raises(ValueError):
+        record_spectrum(
+            spectra_dir=tmp_path,
+            **_good_spectrum(variable="ThermalConductivity[transport_model=wigner]"))
+
+
+def test_spectra_bundle_valid():
+    # The committed spectra bundle must validate against the unified map and pin
+    # each record to its live node uid.
+    from omai import map_data
+
+    specs = build_spectra()
+    nodes = map_data.build_graph_dict(map_data.DOMAINS)["nodes"]
+    name_to_uid = {n["id"]: n["uid"] for n in nodes}
+    required = {"variable", "material", "conditions", "axis", "values", "units", "source"}
+    for s in specs:
+        assert required <= set(s), s
+        assert s["variable"] in name_to_uid, s["variable"]
+        assert s["node_uid"] == name_to_uid[s["variable"]]
+        assert len(s["axis"]["values"]) == len(s["values"])
 

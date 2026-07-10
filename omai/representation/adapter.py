@@ -50,6 +50,38 @@ from omai.representation.units import UNITS
 
 
 @dataclass(frozen=True)
+class CanonicalAxis:
+    """The canonical function-axis a spectrum-capable node's evidence is stored on.
+
+    A spectrum record (docs/data/spectra/<slug>.json) is a function value(axis):
+    an array of ordinates against a strictly monotonic axis. This declaration,
+    carried on the node's representation spec, pins the canonical axis so the
+    validation bridge (omai.map_data.record_spectrum) can check a submitted
+    record's axis and value units against a fixed convention rather than against
+    ad-hoc per-record choices.
+
+      name              the axis label (e.g. "omega", "d_hkl").
+      unit              the registered unit name the axis is stored in (its
+                        Unit.dimension is the axis's dimension).
+      value_unit        the registered unit the ordinates are in, or None when
+                        the value normalization is open (e.g. a phonon DOS
+                        density: states per THz per cell vs per formula unit
+                        rides in the record's conditions, so no unit is pinned).
+      required_conditions
+                        conditions a served/derived axis needs but the canonical
+                        axis does not (e.g. XRD radiation wavelength: the stored
+                        d_hkl is wavelength-free, but a served 2theta axis
+                        requires it). Free-form; recorded for discipline, not
+                        enforced numerically this slice.
+    """
+
+    name: str
+    unit: str
+    value_unit: str | None = None
+    required_conditions: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
 class SpaceRepresentationSpec:
     space: Space
     representation_name: str
@@ -61,6 +93,15 @@ class SpaceRepresentationSpec:
     # shengbte's Linewidth → {"Gamma": "BTE.w_anharmonic"}. May be empty for
     # adapters where the API name lives in prose `notes` instead.
     code_api: dict[str, str] = field(default_factory=dict)
+    # Canonical function-axis declaration for a spectrum-capable node (the
+    # spectrum layer). None for scalar nodes. A CanonicalAxis names the stored
+    # axis (a registered unit + its dimension), the registered value unit the
+    # spectrum's ordinates are in (or None when the value normalization is open
+    # and rides in the record's conditions, e.g. a phonon DOS density), and any
+    # conditions a served axis requires (e.g. XRD radiation wavelength). Read by
+    # omai.map_data.record_spectrum to validate function-valued evidence; no new
+    # operator node is minted (per the characterization verdicts).
+    canonical_axis: "CanonicalAxis | None" = None
     notes: str = ""
 
     def declared_unit(self, observable_name: str) -> str:

@@ -29,7 +29,7 @@ Convention notes (review-settled):
 
 from __future__ import annotations
 
-from omai.representation.adapter import SpaceRepresentationSpec
+from omai.representation.adapter import CanonicalAxis, SpaceRepresentationSpec
 from omai.thermal_transport.operator.nodes import (
     BORN_CHARGES,
     DIELECTRIC_TENSOR,
@@ -62,6 +62,12 @@ PYMATGEN_FREQUENCY = SpaceRepresentationSpec(
 PYMATGEN_PHONON_DOS = SpaceRepresentationSpec(
     space=PHONON_DOS,
     representation_name="pymatgen",
+    # Spectrum-layer canonical axis: the DOS is stored as g(omega) on a LINEAR
+    # THz frequency axis (the map's PhononDOS convention). The density's own unit
+    # is left open (value_unit=None): the DOS normalization (per cell vs per
+    # formula unit, states/THz vs states/cm^-1) rides in the record's conditions,
+    # matching this spec's standing note that no unit is declared for the density.
+    canonical_axis=CanonicalAxis(name="omega", unit="linear_THz", value_unit=None),
     code_api={
         "g": "pymatgen.phonon.dos.PhononDos (mp_api retrieval), densities against a linear-THz axis",
     },

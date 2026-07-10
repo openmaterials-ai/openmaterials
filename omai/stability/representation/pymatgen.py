@@ -294,7 +294,12 @@ PYMATGEN_COMPUTE_GRAIN_BOUNDARY_ENERGY = OperatorRepresentationSpec(
 #     (Angstrom, d_hkl = 1/g_hkl, xrd.py:259) or Q = 4 pi sin(theta)/lambda
 #     (Angstrom^-1); 2theta (degrees) is a DERIVED / served axis that carries
 #     the wavelength as a REQUIRED condition (Bragg 2 d sin theta = lambda, so
-#     the same plane sits at different 2theta for Cu vs Mo radiation).
+#     the same plane sits at different 2theta for Cu vs Mo radiation). In the
+#     spectrum layer's vocabulary this is CanonicalAxis(name="d_hkl",
+#     unit="angstrom", required_conditions=("radiation",)); it is recorded here
+#     as a NOTE, not attached to a SpaceRepresentationSpec, because no XRDPattern
+#     node exists to attach it to (the deferral below). A record_spectrum against
+#     XRD is therefore not admissible until that node is minted.
 #   * WAVELENGTH is a required physical condition, not an internal gauge: it
 #     changes 2theta AND the relative intensities (via the LP factor and
 #     s = sin theta / lambda). Drawn from the pymatgen WAVELENGTHS vocabulary
