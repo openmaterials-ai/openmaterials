@@ -44,6 +44,26 @@
   },
   "uid": "022d18213f7d63713ef4fddb484e1ae6d898873ce20377176013f620225637d8"
  },
+ "08057e4554a3420c933329b3821de9295e2b5950191e23cafe310b0a15adc7b6": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2 Th^-1 N^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "heat_capacity_constant_p"
+  },
+  "meta": {
+   "description": "Constant-pressure molar heat capacity C_P(T) along the QHA equilibrium path, phonopy PhonopyQHA's heat_capacity_P_polyfit (qha/core.py:337; the numerical estimator at :326 is the alternative), matcalc QHACalc's heat_capacity_P. PER MOLE OF THE PHONOPY CELL, at CONSTANT PRESSURE. REUSES the ENERGY_PER_TEMPERATURE_PER_MOLE exponent vector (1,2,-2,-1,-1,0,0) = J/(K*mol) of the harmonic MolarHeatCapacity (C_V), but is a DISTINCT node (a distinct uid by the heat_capacity_constant_p tag): C_P is the constant-pressure heat capacity, differing from the constant-volume C_V by C_P - C_V = alpha^2 * B * V * T (the expansion correction) and by the thermodynamic potential. Same dimension, different quantity, kept apart by the name / quantity tag (never molar_heat_capacity); the constant-pressure fact lives in this prose. matcalc serves it in J/(K*mol) (_qha.py:301), the canonical J_per_K_per_mol. Scalar, a function of T only.",
+   "name": "HeatCapacityConstantP",
+   "symbol": "C_P",
+   "tier": "Quasi-harmonic"
+  },
+  "uid": "08057e4554a3420c933329b3821de9295e2b5950191e23cafe310b0a15adc7b6"
+ },
  "0f08fcb37791dc7cc3e0e0ee5c611abbefc5075867719b275fcaa77ada4f1ac2": {
   "identity": {
    "fields": [
@@ -244,6 +264,46 @@
    "tier": "Thermodynamics"
   },
   "uid": "220926f4974baec5c511f5acae2c9c4e09a8276d41c1314391b91dec537ef2fb"
+ },
+ "22b1bd519d50d93fd24a919e021bab85aff246464a66a08f8274558834983985": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "thermal_gruneisen"
+  },
+  "meta": {
+   "description": "Macroscopic (thermal) Gruneisen parameter gamma(T) = alpha B V / C_V, a single SCALAR per temperature: the heat-capacity-weighted thermodynamic average of the mode Gruneisen parameters, phonopy PhonopyQHA's gruneisen_temperature (qha/core.py:355), matcalc QHACalc's gruneisen_parameters. Dimensionless. EXPLICITLY DISTINCT (a distinct uid by the thermal_gruneisen tag) from the existing MODE Gruneisen (field gamma_G, DIMENSIONLESS, indices (q,nu), computed from FC2/FC3 via the Maradudin-Fein expression): the mode node is (q,nu)-indexed and FC3-produced, this is a T-only scalar from the EOS volume scan, a genuine CONTRACTION of the mode gammas (the honest edge mode-Gruneisen -> ThermalGruneisen). Same DIMENSIONLESS dimension, different index signature and producer, kept apart by the name / quantity tag. Scalar, a function of T only.",
+   "name": "ThermalGruneisen",
+   "symbol": "\\gamma_{th}",
+   "tier": "Quasi-harmonic"
+  },
+  "uid": "22b1bd519d50d93fd24a919e021bab85aff246464a66a08f8274558834983985"
+ },
+ "24749d8ecb8f22bd0931e83ebdc540a6cb0753bd4f3a611f142b31050353d42d": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^-3",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "mass_density"
+  },
+  "meta": {
+   "description": "Mass density rho = total cell mass / cell volume, the LAMMPS metal-unit MD thermo 'density' column (mat-lammps-md tracks it across a melt / quench / hold to read glass densification, and across the Cu phase transition). Dimension MASS_DENSITY (1,-3,0,0,0,0,0) = M L^-3, served in g/cm^3 (the metal serving unit; the SI kg/m^3 = 1e-3 g/cm^3). A derived contraction of the Structure (contract_density: total mass over cell volume), NOT a phonon density of states and NOT a first-principles response: a scalar readout of quantities the Structure already carries, admitted because the skills track it as a first-class MD output. Scalar, in the Mechanics tier.",
+   "name": "MassDensity",
+   "symbol": "\\rho",
+   "tier": "Mechanics"
+  },
+  "uid": "24749d8ecb8f22bd0931e83ebdc540a6cb0753bd4f3a611f142b31050353d42d"
  },
  "25dc9f7af8aec52efb6be16b7b7c76f8334b03056f8838c3ff432fdad8482fb6": {
   "identity": {
@@ -1155,6 +1215,26 @@
   },
   "uid": "9b0af04f9828cfb02e19d5e41ab2c61fbe4759f049258b85c650baf22e43ebf1"
  },
+ "9b42f8aebb6099cdcd910a272a92208881b598688bac7830c3ae0a412152473e": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "Th^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "thermal_expansion"
+  },
+  "meta": {
+   "description": "Volumetric thermal expansion coefficient alpha(T) = (1/V)(dV/dT)_P from the temperature dependence of the QHA equilibrium volume V(T) at the Gibbs minimum, phonopy PhonopyQHA's thermal_expansion (qha/core.py:291), matcalc QHACalc's thermal_expansion_coefficients. Dimension THERMAL_EXPANSIVITY (0,0,0,-1,0,0,0) = 1/K, the map's first pure inverse-temperature dimension. Related to the mode Gruneisen and the constant-volume heat capacity by alpha = gamma_thermal * C_V / (B V) (the thermodynamic Gruneisen relation). matcalc serves it in 1/K (_qha.py:298), the canonical per_kelvin. Scalar, a function of T only.",
+   "name": "ThermalExpansion",
+   "symbol": "\\alpha_V",
+   "tier": "Quasi-harmonic"
+  },
+  "uid": "9b42f8aebb6099cdcd910a272a92208881b598688bac7830c3ae0a412152473e"
+ },
  "9c5a2fdedab6b668ccf5f2043fb4c29a982bcde5063fd6ac8633ee2c7858ecbf": {
   "identity": {
    "fields": [
@@ -1433,6 +1513,26 @@
    "tier": "Transport"
   },
   "uid": "b6a79d756cf45fc64a3a07feb9e46c7372f398b3ee54806bf1c9903d8a42039f"
+ },
+ "bb10912780eb22d45beff551be14f7f4216f3aae26161e8bfd60cdc051f63f58": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2 N^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "qha_gibbs_energy"
+  },
+  "meta": {
+   "description": "Quasi-harmonic Gibbs energy G(T) at constant pressure: the Legendre transform G = min_V[F(V,T) + pV] of the phonon Helmholtz surface F(V,T) minimized over volume at each temperature, phonopy PhonopyQHA's gibbs_temperature (qha/core.py:312), matcalc QHACalc's gibbs_free_energies. PER MOLE OF THE PHONOPY CELL (its natom; matcalc primitivizes the structure, so per primitive/unit cell, NOT per formula unit and NOT per mole of atoms), CONSTANT PRESSURE, from a phonon-gas F(V,T) plus an equation-of-state volume scan. J/mol, dimension ENERGY_PER_MOLE (1,2,-2,0,-1,0,0). EXPLICITLY DISTINCT (a distinct uid by the qha_gibbs_energy tag) from BOTH the CALPHAD MolarGibbsEnergy (constant-P but per mole of ATOMS, assessed Gibbs minimization) AND the phonopy MolarHelmholtzFreeEnergy (per mole of the phonopy cell but constant VOLUME, Helmholtz side): same ENERGY_PER_MOLE exponent vector, different potential / basis / producer, kept apart by the name / quantity tag (the constant-P / constant-V guardrail; identity is name-based, the basis lives in this prose). matcalc serves it in kJ/mol (_qha.py:299; the canonical J/mol carries a 1000 factor). To cross-code to a CALPHAD G_m (per mole of atoms) divide by atoms-per-cell.",
+   "name": "QHAGibbsEnergy",
+   "symbol": "G_{qha}",
+   "tier": "Quasi-harmonic"
+  },
+  "uid": "bb10912780eb22d45beff551be14f7f4216f3aae26161e8bfd60cdc051f63f58"
  },
  "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced": {
   "identity": {

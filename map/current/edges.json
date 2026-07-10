@@ -260,6 +260,33 @@
   },
   "uid": "25e07a60a3f641abc12987675165b1195ea8ed9d7adff7217736c7bdfd824b1a"
  },
+ "2dfd344c598d659dbc5e4c8def4cefcb69b1a0bd215a9202f981618b18611b89": {
+  "identity": {
+   "formula": "Equality(Symbol('G_{qha}'), Function('G^{qha}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}'), Symbol('\\\\omega')))",
+   "inputs": [
+    "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239",
+    "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8"
+   ],
+   "output": "bb10912780eb22d45beff551be14f7f4216f3aae26161e8bfd60cdc051f63f58",
+   "outputs": [
+    "bb10912780eb22d45beff551be14f7f4216f3aae26161e8bfd60cdc051f63f58"
+   ],
+   "schemes": {
+    "method": "qha_fvt_minimization"
+   }
+  },
+  "meta": {
+   "description": "Quasi-harmonic Gibbs energy G = G^{qha}[E_tot, Structure, omega]: the constant-pressure Gibbs energy from minimizing the phonon Helmholtz surface F(V,T) + pV over volume at each temperature, phonopy PhonopyQHA's gibbs_temperature. G^{qha} is opaque over the per-volume total energies E_tot (the E(V) curve of the volume scan), the Structure, and the phonon frequencies omega (the F(V,T) phonon-gas free energy at each scanned volume). The TotalEnergy and Frequency inputs stand for the FAMILY of per-volume evaluations of the F(V,T) scan, the family-of-values convention compute_bulk_modulus_eos and compute_fc2_finite_displacement use. The scheme records the qha_fvt_minimization method (matcalc's F(V,T) volume grid and EOS choice are the discretization). Implicit (a volume-scan phonon-gas + EOS minimization), so not sympy-executable.",
+   "formula_latex": "G_{qha} = G^{qha}{\\left(E_{tot},\\mathcal{S},\\omega \\right)}",
+   "formula_srepr": "Equality(Symbol('G_{qha}'), Function('G^{qha}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}'), Symbol('\\\\omega')))",
+   "name": "compute_qha_gibbs",
+   "schemes": {
+    "method": "qha_fvt_minimization"
+   }
+  },
+  "uid": "2dfd344c598d659dbc5e4c8def4cefcb69b1a0bd215a9202f981618b18611b89"
+ },
  "325b66602b582ded28ce13760e5718257c3624d5eccfec041949157ce6a0dbc2": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('g')), Symbol('\\\\omega')), Mul(Pow(pi, Integer(-1)), Integral(Mul(cos(Mul(Symbol('\\\\omega'), Symbol('\\\\tau', positive=True))), Indexed(IndexedBase(Symbol('Cv')), Symbol('\\\\tau', positive=True))), Tuple(Symbol('\\\\tau', positive=True), Integer(0), oo))))",
@@ -335,6 +362,31 @@
    }
   },
   "uid": "35f53c511ef6202b79b33e89856071aa1f3f8610ad7705bd3f608784d6216a1f"
+ },
+ "36100a86ef25aada0acd615151092323ba680b4a9791bb58d1175adcea96deb2": {
+  "identity": {
+   "formula": "Equality(Symbol('C_P'), Function('C_P^{qha}')(Symbol('G_{qha}')))",
+   "inputs": [
+    "bb10912780eb22d45beff551be14f7f4216f3aae26161e8bfd60cdc051f63f58"
+   ],
+   "output": "08057e4554a3420c933329b3821de9295e2b5950191e23cafe310b0a15adc7b6",
+   "outputs": [
+    "08057e4554a3420c933329b3821de9295e2b5950191e23cafe310b0a15adc7b6"
+   ],
+   "schemes": {
+    "method": "polyfit_enthalpy_derivative"
+   }
+  },
+  "meta": {
+   "description": "Constant-pressure heat capacity C_P = C_P^{qha}[G]: the molar C_P(T) along the QHA equilibrium path, d(H)/dT at constant pressure, phonopy PhonopyQHA's heat_capacity_P_polyfit (matcalc default; the numerical estimator is the sibling). C_P^{qha} is opaque over the QHA Gibbs energy (the enthalpy H = G + T S it differentiates along the equilibrium path); J/(K*mol). It is the constant-pressure partner of the harmonic constant-volume MolarHeatCapacity (C_V), differing by C_P - C_V = alpha^2 B V T. Implicit (a polyfit-derivative estimator), so not sympy-executable.",
+   "formula_latex": "C_{P} = C_P^{qha}{\\left(G_{qha} \\right)}",
+   "formula_srepr": "Equality(Symbol('C_P'), Function('C_P^{qha}')(Symbol('G_{qha}')))",
+   "name": "compute_heat_capacity_p",
+   "schemes": {
+    "method": "polyfit_enthalpy_derivative"
+   }
+  },
+  "uid": "36100a86ef25aada0acd615151092323ba680b4a9791bb58d1175adcea96deb2"
  },
  "3662d6183de400b2337d314499e31dd473b7b2ea3994290f21046e36bdcedfdb": {
   "identity": {
@@ -459,6 +511,31 @@
    "schemes": {}
   },
   "uid": "40d04377570142198d0a7f3d505de3b8fa6fdcf0418622be679aceec11b13264"
+ },
+ "4e11a6ef1474661ab6ea320a5c99e8774edbe32b5a4dcdb13d97fda4b108995e": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\alpha_V'), Function('\\\\alpha^{qha}')(Symbol('G_{qha}')))",
+   "inputs": [
+    "bb10912780eb22d45beff551be14f7f4216f3aae26161e8bfd60cdc051f63f58"
+   ],
+   "output": "9b42f8aebb6099cdcd910a272a92208881b598688bac7830c3ae0a412152473e",
+   "outputs": [
+    "9b42f8aebb6099cdcd910a272a92208881b598688bac7830c3ae0a412152473e"
+   ],
+   "schemes": {
+    "method": "dv_dt_at_gibbs_minimum"
+   }
+  },
+  "meta": {
+   "description": "Volumetric thermal expansion alpha = alpha^{qha}[G]: the coefficient alpha(T) = (1/V)(dV/dT)_P read from the temperature dependence of the QHA equilibrium volume, the volume that minimizes the quasi-harmonic Gibbs energy at each temperature, phonopy PhonopyQHA's thermal_expansion. alpha^{qha} is opaque over the QHA Gibbs energy (whose per-temperature volume minimum V(T) it differentiates); 1/K. Implicit (a numerical dV/dT along the Gibbs-minimum locus), so not sympy-executable.",
+   "formula_latex": "\\alpha_{V} = \\alpha^{qha}{\\left(G_{qha} \\right)}",
+   "formula_srepr": "Equality(Symbol('\\\\alpha_V'), Function('\\\\alpha^{qha}')(Symbol('G_{qha}')))",
+   "name": "compute_thermal_expansion",
+   "schemes": {
+    "method": "dv_dt_at_gibbs_minimum"
+   }
+  },
+  "uid": "4e11a6ef1474661ab6ea320a5c99e8774edbe32b5a4dcdb13d97fda4b108995e"
  },
  "4e7f15bf40f88fab20271ac052a22b491e7955ab3ebab9bb229713adf057a040": {
   "identity": {
@@ -1291,6 +1368,53 @@
   },
   "uid": "a4bc99a6b2efc1df1400041ada33cfb59e97819f189e3501a99c06f9c5e5d49f"
  },
+ "a611c687b4bef634ea1f629f5dc1a4746e4abb8489d1ead4933714a331fff141": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\rho', positive=True), Function('\\\\rho^{cell}')(Symbol('\\\\mathcal{S}')))",
+   "inputs": [
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "24749d8ecb8f22bd0931e83ebdc540a6cb0753bd4f3a611f142b31050353d42d",
+   "outputs": [
+    "24749d8ecb8f22bd0931e83ebdc540a6cb0753bd4f3a611f142b31050353d42d"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Mass density rho = rho^{cell}[Structure]: the total cell mass divided by the cell volume, both read from the Structure (cell + species + positions). rho^{cell} is an opaque contraction over the Structure (in Phase 1 the Structure is opaque, so the mass sum over species and the cell volume are not surfaced as separate symbols). The LAMMPS metal-unit MD thermo 'density' column (g/cm^3) mat-lammps-md tracks as the physical signal of a quench densification. Distinct from the phonon density of states. Implicit (a readout over the opaque Structure), so not sympy-executable.",
+   "formula_latex": "\\rho = \\rho^{cell}{\\left(\\mathcal{S} \\right)}",
+   "formula_srepr": "Equality(Symbol('\\\\rho', positive=True), Function('\\\\rho^{cell}')(Symbol('\\\\mathcal{S}')))",
+   "name": "contract_density",
+   "schemes": {}
+  },
+  "uid": "a611c687b4bef634ea1f629f5dc1a4746e4abb8489d1ead4933714a331fff141"
+ },
+ "aa554ec7f8a638108f1039bffd5f1c727687f5fd0d018d61d2916e745a5f6f29": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\gamma_{th}'), Function('\\\\gamma^{qha}')(Symbol('\\\\gamma_G'), Symbol('\\\\omega')))",
+   "inputs": [
+    "a62ac1eae1e972a0b265a14f8a2af5610deb61eb0c883b7668ac4a64313b3b75",
+    "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8"
+   ],
+   "output": "22b1bd519d50d93fd24a919e021bab85aff246464a66a08f8274558834983985",
+   "outputs": [
+    "22b1bd519d50d93fd24a919e021bab85aff246464a66a08f8274558834983985"
+   ],
+   "schemes": {
+    "method": "heat_capacity_weighted_average"
+   }
+  },
+  "meta": {
+   "description": "Macroscopic thermal Gruneisen gamma(T) = gamma^{qha}[gamma_G, omega]: the heat-capacity-weighted average of the mode Gruneisen parameters gamma_qnu, a single scalar per temperature, phonopy PhonopyQHA's gruneisen_temperature. A CONTRACTION of the existing MODE Gruneisen (field gamma_G, (q,nu)-indexed, FC3-produced) over the Brillouin zone, weighted by the per-mode heat capacities (hence the mode frequencies omega, which fix the Bose occupation and the mode C_V weights). gamma^{qha} is opaque over the mode gammas and the frequencies; dimensionless. The distinct T-only index signature and producer keep it a DISTINCT node from the mode Gruneisen (not an alias). Implicit (a weighted BZ average), so not sympy-executable.",
+   "formula_latex": "\\gamma_{th} = \\gamma^{qha}{\\left(\\gamma_{G},\\omega \\right)}",
+   "formula_srepr": "Equality(Symbol('\\\\gamma_{th}'), Function('\\\\gamma^{qha}')(Symbol('\\\\gamma_G'), Symbol('\\\\omega')))",
+   "name": "contract_thermal_gruneisen",
+   "schemes": {
+    "method": "heat_capacity_weighted_average"
+   }
+  },
+  "uid": "aa554ec7f8a638108f1039bffd5f1c727687f5fd0d018d61d2916e745a5f6f29"
+ },
  "acbf580bd577b7499bc6806f2882511b90aaab32cabdb290a0de452d251e7514": {
   "identity": {
    "formula": "Equality(Symbol('P'), Mul(Rational(1, 3), Sum(Indexed(IndexedBase(Symbol('\\\\sigma')), Symbol('\\\\alpha', integer=True), Symbol('\\\\alpha', integer=True)), Tuple(Symbol('\\\\alpha', integer=True), Integer(1), Integer(3)))))",
@@ -1761,6 +1885,35 @@
    }
   },
   "uid": "d621418b9f5a046b12c5dbaadbb6a83fee0b1a013dc84ab1ccc25423eba06605"
+ },
+ "de67212047d6c2bb08a94d9394adffe1b1cc183b7a1811d838de2dcfb9323235": {
+  "identity": {
+   "formula": "Equality(Symbol('K'), Function('K^{qha}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}'), Symbol('\\\\omega')))",
+   "inputs": [
+    "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239",
+    "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8"
+   ],
+   "output": "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced",
+   "outputs": [
+    "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced"
+   ],
+   "schemes": {
+    "eos": "vinet_or_birch_murnaghan",
+    "method": "qha_eos_scan"
+   }
+  },
+  "meta": {
+   "description": "Temperature-dependent bulk modulus K = K^{qha}[E_tot, Structure, omega]: the isothermal bulk modulus fit from an equation of state at each temperature's QHA equilibrium volume, phonopy PhonopyQHA's bulk_modulus_temperature (matcalc bulk_modulus_P, GPa). Pattern C: the THIRD alternative producer of the existing BulkModulus node, alongside contract_bulk_modulus (the elastic-tensor VRH route) and compute_bulk_modulus_eos (the T=0 Birch-Murnaghan E(V) curvature). The node is NOT re-minted; B(T) values are INSTANCES of BulkModulus whose conditions carry the temperature (temperature is an evaluation condition, not a new node). K^{qha} is opaque over the per-volume E(V) energies, the Structure, and the phonon frequencies (the F(V,T) surface). The scheme records the qha_eos_scan method and the vinet_or_birch_murnaghan EOS. Implicit (a fit over an external volume scan), so not sympy-executable; downstream consumers are unaware which of the three routes fired, exactly as for the two other BulkModulus producers.",
+   "formula_latex": "K = K^{qha}{\\left(E_{tot},\\mathcal{S},\\omega \\right)}",
+   "formula_srepr": "Equality(Symbol('K'), Function('K^{qha}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}'), Symbol('\\\\omega')))",
+   "name": "compute_bulk_modulus_qha",
+   "schemes": {
+    "eos": "vinet_or_birch_murnaghan",
+    "method": "qha_eos_scan"
+   }
+  },
+  "uid": "de67212047d6c2bb08a94d9394adffe1b1cc183b7a1811d838de2dcfb9323235"
  },
  "dee3e5f2230cae44c646c62985260fc103745cc44d0b1c2a87fe0a72ca675a97": {
   "identity": {
