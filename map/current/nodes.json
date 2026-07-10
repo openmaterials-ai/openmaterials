@@ -116,6 +116,28 @@
   },
   "uid": "12fb1ed0f109f6dd198199dde8ed169edc25c04ee12813e0612a96675784830c"
  },
+ "1423a9b16e18881e4388fee44f536891a6295aaa6e0fc3775bbbe89ee480847a": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "L^2 I^1",
+     "indices": [
+      "atom"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "magnetic_moment"
+  },
+  "meta": {
+   "description": "Per-site magnetic moment m_i of the spin-polarized ground state, in Bohr magnetons: the projection of the spin density onto site i that a spin-polarized SCF reports next to the energy, forces, and stress (VASP MAGMOM/magnetization, QE site moments; MP serves the cell total as total_magnetization). Dimension MAGNETIC_MOMENT (L^2 I, the map's first magnetic use of the current axis); the collinear FM/AFM/FiM/NM ordering classification is a downstream label over these moments (pymatgen Ordering), not part of the node.",
+   "name": "MagneticMoment",
+   "symbol": "m^{spin}",
+   "tier": "Ground state"
+  },
+  "uid": "1423a9b16e18881e4388fee44f536891a6295aaa6e0fc3775bbbe89ee480847a"
+ },
  "183e66d4e443326d2c346a0327cdb125026bd8f6a91a9bb97b61265fcade7e85": {
   "identity": {
    "fields": [
@@ -228,6 +250,26 @@
   },
   "uid": "25dc9f7af8aec52efb6be16b7b7c76f8334b03056f8838c3ff432fdad8482fb6"
  },
+ "26831a0aabc3508a944405ec2fd763a0637abeeac1ed3d87df64c27392d638f4": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-3 I^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "voltage"
+  },
+  "meta": {
+   "description": "Average intercalation (open-circuit) voltage V_avg of an electrode against the working-ion metal: the Nernst energy difference of the intercalated and de-intercalated cells (minus the metal reservoir) over the transferred charge, V = -(E_full - E_empty - n mu_metal)/(n e). The map's first current-axis quantity (volts, M L^2 T^-3 I^-1); since the energies are eV and the charge is n elementary charges, eV/e = 1 V exactly and no Faraday factor appears. The working ion (Li in the committed example) is the producing edge's scheme.",
+   "name": "Voltage",
+   "symbol": "V_{avg}",
+   "tier": "Stability"
+  },
+  "uid": "26831a0aabc3508a944405ec2fd763a0637abeeac1ed3d87df64c27392d638f4"
+ },
  "28ebe96bc049a92e4318fd5242778f30e5647531d0a2b39c5891546329c8bca0": {
   "identity": {
    "fields": [
@@ -269,6 +311,26 @@
    "tier": "Thermodynamics"
   },
   "uid": "29e324b97f31cdb7d3cd8ef6aec5668fff111fd7ee96bd19dd0426b8728c1d47"
+ },
+ "306384aed4a1204fb7ca2347729de8d1816fa5fc32f4855a5d5f56a4d0fc1ddf": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "surface_energy"
+  },
+  "meta": {
+   "description": "Surface energy gamma of a crystal facet: the excess energy per unit area of creating the surface, gamma = (E_slab - N E_bulk)/(2A) for a symmetric slab exposing the facet on both faces. Scalar per facet: the Miller index (hkl) is carried by conditions and representations, not by the node's index signature. Dimension M T^-2 (energy per area), the same exponents as the force constants (force per length) but a distinct quantity kept apart by tag; canonical eV/A^2, conventionally quoted in J/m^2 (1 eV/A^2 = 16.021766339999996 J/m^2). The Wulff construction aggregates per-facet gammas into a morphology downstream.",
+   "name": "SurfaceEnergy",
+   "symbol": "\\gamma_{surf}",
+   "tier": "Stability"
+  },
+  "uid": "306384aed4a1204fb7ca2347729de8d1816fa5fc32f4855a5d5f56a4d0fc1ddf"
  },
  "343adfdb0717f7f81ae52cc5fca8279ff84a9715ba19b5630d405453682b12f9": {
   "identity": {
@@ -804,6 +866,26 @@
   },
   "uid": "8932e3cbadef74a82802b43fd1d25328cb40e6136c90df3b6a4a998e77f9567b"
  },
+ "910d47d67a7308728e2f7d211a08c1590239c7b802cd75128f00cd103a719b84": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "energy_above_hull"
+  },
+  "meta": {
+   "description": "Energy above the convex hull E_hull: the per-atom distance of a composition's formation energy above the hull of all competing phases in its chemical system. INTENSIVE, in eV/atom (reported meV/atom by mat-stability, a factor 1000); exactly zero for the thermodynamic ground state, positive for metastable phases. Its provenance is a SET of competing-phase energies (the hull), recorded by the producing edge's hull_source scheme; the single most-used output across the stability skills.",
+   "name": "EnergyAboveHull",
+   "symbol": "E_{hull}",
+   "tier": "Stability"
+  },
+  "uid": "910d47d67a7308728e2f7d211a08c1590239c7b802cd75128f00cd103a719b84"
+ },
  "9b0af04f9828cfb02e19d5e41ab2c61fbe4759f049258b85c650baf22e43ebf1": {
   "identity": {
    "fields": [
@@ -873,6 +955,26 @@
    "tier": "Transport"
   },
   "uid": "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9"
+ },
+ "a385b7ca981904ab5d82176557d453cea4995164adfa22a6ca195e1dfcd815d5": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "formation_energy"
+  },
+  "meta": {
+   "description": "Formation energy per atom Delta H_f: the energy of the compound relative to the composition-weighted elemental reference phases, divided by the atom count. INTENSIVE, in eV/atom (the per-atom normalization is this quantity's definition, not a unit variant of the per-cell TotalEnergy; the formation energy also subtracts the elemental references, so it is a genuinely distinct quantity). Negative for compounds stable against decomposition into the elements; the elemental reference set is the producing edge's scheme (Materials Project references in the committed examples).",
+   "name": "FormationEnergy",
+   "symbol": "\\Delta H_f",
+   "tier": "Stability"
+  },
+  "uid": "a385b7ca981904ab5d82176557d453cea4995164adfa22a6ca195e1dfcd815d5"
  },
  "a62ac1eae1e972a0b265a14f8a2af5610deb61eb0c883b7668ac4a64313b3b75": {
   "identity": {

@@ -48,6 +48,32 @@
   },
   "uid": "0547586f6514cf3d00afe174e20fb0222f1a645a124957664f7de6dd7b232941"
  },
+ "06031f46aa761681e4ae480682ceeda163e0cd23aa69453db6ab01bf3ec3e4e6": {
+  "identity": {
+   "formula": "Equality(Indexed(IndexedBase(Symbol('m^{spin}')), Symbol('i', integer=True)), Function('m^{KS}')(Symbol('\\\\mathcal{S}'), Symbol('V')))",
+   "inputs": [
+    "80a4273845e09207860e06db18d1f1ee5670a9b9c8b1020a99928c872878f901",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "1423a9b16e18881e4388fee44f536891a6295aaa6e0fc3775bbbe89ee480847a",
+   "outputs": [
+    "1423a9b16e18881e4388fee44f536891a6295aaa6e0fc3775bbbe89ee480847a"
+   ],
+   "schemes": {
+    "method": "spin_polarized_scf"
+   }
+  },
+  "meta": {
+   "description": "Per-site magnetic moments m^{spin}_i = m^{KS}[S, V]: the site-projected spin density of the converged spin-polarized Kohn-Sham ground state of Structure S under Potential V, a ground-state output alongside the energy, forces, and stress (the same (S, V) signature as solve_ground_state, one more response of the same solve). Implicit (an external spin-polarized SCF), so not sympy-executable. In Bohr magnetons; the site-projection scheme (integration sphere / Wigner-Seitz cell) is a representation-level discretization, and the FM/AFM/FiM/NM ordering label is a downstream classification over these moments, not part of the node.",
+   "formula_latex": "{m^{spin}}_{i} = m^{KS}{\\left(\\mathcal{S},V \\right)}",
+   "formula_srepr": "Equality(Indexed(IndexedBase(Symbol('m^{spin}')), Symbol('i', integer=True)), Function('m^{KS}')(Symbol('\\\\mathcal{S}'), Symbol('V')))",
+   "name": "compute_magnetic_moments",
+   "schemes": {
+    "method": "spin_polarized_scf"
+   }
+  },
+  "uid": "06031f46aa761681e4ae480682ceeda163e0cd23aa69453db6ab01bf3ec3e4e6"
+ },
  "0888c8ca7d7127d39bd7181a531fb1e773221ff5eba025c309772952ba5f4f16": {
   "identity": {
    "formula": "Equality(Symbol('D', positive=True), Mul(Rational(1, 2), Symbol('\\\\mathrm{slope}_{MSD}', positive=True), Pow(Symbol('d', positive=True, integer=True), Integer(-1))))",
@@ -382,6 +408,32 @@
   },
   "uid": "40d04377570142198d0a7f3d505de3b8fa6fdcf0418622be679aceec11b13264"
  },
+ "4e7f15bf40f88fab20271ac052a22b491e7955ab3ebab9bb229713adf057a040": {
+  "identity": {
+   "formula": "Equality(Symbol('E_{hull}'), Function('d^{hull}')(Symbol('\\\\Delta H_f'), Symbol('\\\\mathcal{S}')))",
+   "inputs": [
+    "a385b7ca981904ab5d82176557d453cea4995164adfa22a6ca195e1dfcd815d5",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "910d47d67a7308728e2f7d211a08c1590239c7b802cd75128f00cd103a719b84",
+   "outputs": [
+    "910d47d67a7308728e2f7d211a08c1590239c7b802cd75128f00cd103a719b84"
+   ],
+   "schemes": {
+    "hull_source": "materials_project"
+   }
+  },
+  "meta": {
+   "description": "Energy above the convex hull E_hull = d^{hull}[Delta H_f, S]: the vertical per-atom distance of the composition's formation energy above the convex hull of ALL competing phases in its chemical system (pymatgen PhaseDiagram.get_e_above_hull over a ComputedEntry set; mat-stability multiplies by 1000 to report meV/atom). The hull is an opaque convex-hull function of the competing entries; WHERE those entries come from is the hull_source scheme (the Materials Project database, R2SCAN or GGA+U thermo types, in the committed examples). Zero exactly for the ground state. Implicit (a convex-hull construction), so not sympy-executable.",
+   "formula_latex": "E_{hull} = d^{hull}{\\left(\\Delta H_{f},\\mathcal{S} \\right)}",
+   "formula_srepr": "Equality(Symbol('E_{hull}'), Function('d^{hull}')(Symbol('\\\\Delta H_f'), Symbol('\\\\mathcal{S}')))",
+   "name": "compute_energy_above_hull",
+   "schemes": {
+    "hull_source": "materials_project"
+   }
+  },
+  "uid": "4e7f15bf40f88fab20271ac052a22b491e7955ab3ebab9bb229713adf057a040"
+ },
  "5030641f5cd4aa1843e286c35d529ad7956c48a51603b1ae35121f4950cf1985": {
   "identity": {
    "formula": "Equality(Symbol('g'), Mul(Pow(Symbol('N_q', positive=True, integer=True), Integer(-1)), Sum(Function('\\\\delta')(Add(Symbol('\\\\omega'), Mul(Integer(-1), Indexed(IndexedBase(Symbol('\\\\omega')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True))))), Tuple(Symbol('\\\\mathbf{q}'), Integer(1), Symbol('N_q', positive=True, integer=True)), Tuple(Symbol('\\\\nu', integer=True), Integer(1), Mul(Integer(3), Symbol('N', positive=True, integer=True))))))",
@@ -661,6 +713,32 @@
   },
   "uid": "7b9e21caad74ed2be7cf49af55b1e745bb8a2606b035bee37c46c37a09cf58fc"
  },
+ "7cff61b1def5290a5fb1bcdfcbf984d8244627d0b33e996480dc9da24aba3637": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\Delta H_f'), Function('E^{form}_{ref}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}')))",
+   "inputs": [
+    "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "a385b7ca981904ab5d82176557d453cea4995164adfa22a6ca195e1dfcd815d5",
+   "outputs": [
+    "a385b7ca981904ab5d82176557d453cea4995164adfa22a6ca195e1dfcd815d5"
+   ],
+   "schemes": {
+    "elemental_references": "materials_project"
+   }
+  },
+  "meta": {
+   "description": "Formation energy per atom Delta H_f = E^{form}_{ref}[E_tot, S]: subtract the composition-weighted elemental reference chemical potentials from the compound's total energy and divide by the atom count, (E_tot - sum_a n_a mu_a)/N. The reference chemical potentials mu_a are an opaque reference function over the elemental ground states; WHICH reference set is the elemental_references scheme (Materials Project references, with their GGA/GGA+U/R2SCAN mixing corrections, in the committed examples; pymatgen PhaseDiagram.get_form_energy_per_atom). The TotalEnergy input stands for the family of energies involved (compound plus each elemental reference). Implicit (an external lookup-and-subtract over a computed entry set), so not sympy-executable.",
+   "formula_latex": "\\Delta H_{f} = E^{form}_{ref}{\\left(E_{tot},\\mathcal{S} \\right)}",
+   "formula_srepr": "Equality(Symbol('\\\\Delta H_f'), Function('E^{form}_{ref}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}')))",
+   "name": "compute_formation_energy",
+   "schemes": {
+    "elemental_references": "materials_project"
+   }
+  },
+  "uid": "7cff61b1def5290a5fb1bcdfcbf984d8244627d0b33e996480dc9da24aba3637"
+ },
  "7e819af4e68ff4465eb8461e12d5d81bd6dbcb395280896a38e5cf4244642737": {
   "identity": {
    "formula": "Equality(Symbol('T', positive=True), Symbol('T_{\\\\mathrm{provided}}', positive=True))",
@@ -939,6 +1017,32 @@
   },
   "uid": "9d4ded802829a8b2fe5544556eeb81534fe39e3ceae5efac0065e7ddcf3da152"
  },
+ "a4bc99a6b2efc1df1400041ada33cfb59e97819f189e3501a99c06f9c5e5d49f": {
+  "identity": {
+   "formula": "Equality(Symbol('V_{avg}'), Mul(Pow(Symbol('n_{ion}', positive=True), Integer(-1)), Pow(Symbol('q_e', positive=True), Integer(-1)), Add(Mul(Symbol('\\\\mu_{ion}'), Symbol('n_{ion}', positive=True)), Function('E^{empty}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}')), Mul(Integer(-1), Function('E^{full}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}'))))))",
+   "inputs": [
+    "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "26831a0aabc3508a944405ec2fd763a0637abeeac1ed3d87df64c27392d638f4",
+   "outputs": [
+    "26831a0aabc3508a944405ec2fd763a0637abeeac1ed3d87df64c27392d638f4"
+   ],
+   "schemes": {
+    "working_ion": "Li"
+   }
+  },
+  "meta": {
+   "description": "Average intercalation voltage V_avg = -(E_full - E_empty - n_ion mu_ion)/(n_ion q_e): the Nernst energy difference of the intercalated (E^{full}) and de-intercalated (E^{empty}) cells, minus n_ion atoms of the working-ion metal reservoir (chemical potential mu_ion per atom), over the transferred charge n_ion q_e (one electron per ion for Li). With energies in eV the eV/e quotient is volts exactly, no Faraday factor. E^{full} and E^{empty} are opaque selectors over the TotalEnergy family (the de-intercalated cell built by Structure.remove_species in the skill); the working_ion scheme records which ion and reservoir (Li vs Li/Li+ in the committed LiFePO4 example). Implicit, so not sympy-executable.",
+   "formula_latex": "V_{avg} = \\frac{\\mu_{ion} n_{ion} + E^{empty}{\\left(E_{tot},\\mathcal{S} \\right)} - E^{full}{\\left(E_{tot},\\mathcal{S} \\right)}}{n_{ion} q_{e}}",
+   "formula_srepr": "Equality(Symbol('V_{avg}'), Mul(Pow(Symbol('n_{ion}', positive=True), Integer(-1)), Pow(Symbol('q_e', positive=True), Integer(-1)), Add(Mul(Symbol('\\\\mu_{ion}'), Symbol('n_{ion}', positive=True)), Function('E^{empty}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}')), Mul(Integer(-1), Function('E^{full}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}'))))))",
+   "name": "compute_intercalation_voltage",
+   "schemes": {
+    "working_ion": "Li"
+   }
+  },
+  "uid": "a4bc99a6b2efc1df1400041ada33cfb59e97819f189e3501a99c06f9c5e5d49f"
+ },
  "acbf580bd577b7499bc6806f2882511b90aaab32cabdb290a0de452d251e7514": {
   "identity": {
    "formula": "Equality(Symbol('P'), Mul(Rational(1, 3), Sum(Indexed(IndexedBase(Symbol('\\\\sigma')), Symbol('\\\\alpha', integer=True), Symbol('\\\\alpha', integer=True)), Tuple(Symbol('\\\\alpha', integer=True), Integer(1), Integer(3)))))",
@@ -1070,6 +1174,32 @@
    "schemes": {}
   },
   "uid": "c6655ff437e25290b3f7a8181260299ecd1839430b5156a78b24d829db82e45d"
+ },
+ "c8b2e006408e3e2c08f6c71eb7cd4e1a07f72ab20034fe883c691c1cad278492": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\gamma_{surf}'), Mul(Rational(1, 2), Pow(Symbol('A_{surf}', positive=True), Integer(-1)), Add(Mul(Integer(-1), Symbol('N_{slab}', positive=True), Function('E^{bulk}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}'))), Function('E^{slab}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}')))))",
+   "inputs": [
+    "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "306384aed4a1204fb7ca2347729de8d1816fa5fc32f4855a5d5f56a4d0fc1ddf",
+   "outputs": [
+    "306384aed4a1204fb7ca2347729de8d1816fa5fc32f4855a5d5f56a4d0fc1ddf"
+   ],
+   "schemes": {
+    "slab_termination": "symmetric"
+   }
+  },
+  "meta": {
+   "description": "Surface energy gamma_surf = (E_slab - N_slab E_bulk)/(2 A_surf): the slab-bulk energy difference per unit area, the factor 2 because a symmetric slab exposes the facet on BOTH faces (the slab_termination scheme records that convention; asymmetric terminations would change what is computed). E^{slab} and E^{bulk} are opaque selectors over the TotalEnergy family (the slab supercell built by pymatgen SlabGenerator for the chosen (hkl), and the bulk reference per formula unit, N_slab counting the bulk units in the slab); A_surf is the slab's in-plane cell area. Computed in eV/A^2 and quoted in J/m^2 (factor 16.021766339999996; the skill truncates to 16.0218). Implicit (slab construction plus relaxations), so not sympy-executable.",
+   "formula_latex": "\\gamma_{surf} = \\frac{- N_{slab} E^{bulk}{\\left(E_{tot},\\mathcal{S} \\right)} + E^{slab}{\\left(E_{tot},\\mathcal{S} \\right)}}{2 A_{surf}}",
+   "formula_srepr": "Equality(Symbol('\\\\gamma_{surf}'), Mul(Rational(1, 2), Pow(Symbol('A_{surf}', positive=True), Integer(-1)), Add(Mul(Integer(-1), Symbol('N_{slab}', positive=True), Function('E^{bulk}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}'))), Function('E^{slab}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}')))))",
+   "name": "compute_surface_energy",
+   "schemes": {
+    "slab_termination": "symmetric"
+   }
+  },
+  "uid": "c8b2e006408e3e2c08f6c71eb7cd4e1a07f72ab20034fe883c691c1cad278492"
  },
  "c9322877acc6349a7e18b29646674344b12d39565adf4ee3e23f2b82e1b53ab3": {
   "identity": {
