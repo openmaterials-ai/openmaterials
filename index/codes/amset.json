@@ -1,0 +1,36 @@
+{
+ "representation": "amset",
+ "map_version": "b31ecc6fa365d344b2090ca385f348e07d2820eed678f5a8943bf819cf68ece3",
+ "covers": [
+  {
+   "node": "CarrierMobility",
+   "uid": "3303dee51d36b5a42bf80aa0ab62bdecd0db34cc77782c5203192ecf3512a91d",
+   "api": "amset.core.run mobility, cm^2/(V s) (transport.py:133-135; run.py:583,617 header 'mu [cm^2/Vs]')",
+   "unit": "cm2_per_v_s"
+  },
+  {
+   "node": "ElectricalConductivity[carrier=electronic]",
+   "uid": "c4a81f649b3964aed4d4b3c48dfec4f252958c9560332286e2105b175794144b",
+   "api": "amset.core.data.to_data cond, S/m (data.py:484); run.py:583 header 'sigma [S/m]'",
+   "unit": "s_per_m"
+  },
+  {
+   "node": "ElectronicThermalConductivity",
+   "uid": "960b38ae04ecc9fbaacb02d9ae832f15e84b8cac0563e7f6a62ddf32c61d725c",
+   "api": "amset.core.data.to_data kappa, header unit '?' (data.py:483-484); electronic_thermal_conductivity field (data.py:80)",
+   "unit": "W_per_m_per_K"
+  },
+  {
+   "node": "SeebeckCoefficient",
+   "uid": "80778c5d6cb9f0d1dd23d5c6cd6059acea161892532ce7c581c7477257debf02",
+   "api": "amset.core.data.to_data seebeck, muV/K (data.py:484; transport.py:191 *1e6); run.py:583 header 'S [muV/K]'",
+   "unit": "muv_per_k"
+  },
+  {
+   "node": "StaticDielectricTensor",
+   "uid": "41f6c971e70bc42117a79b8ec51039f498280fdd9b77ef433bb602f90f966d93",
+   "api": "atomate2 VaspAmsetMaker static+dielectric outputs assembled to eps_0 = eps_inf + ionic (vasp/flows/amset.py:261-266); amset settings static_dielectric",
+   "unit": "dimensionless"
+  }
+ ]
+}
