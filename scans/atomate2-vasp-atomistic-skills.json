@@ -1,0 +1,369 @@
+{
+  "scan": {
+    "code": "atomate2 + VASP",
+    "slice": "as-used-by-AtomisticSkills",
+    "source_root": "AtomisticSkills/src/utils/dft/ (atomate2_utils.py, vasp_parser.py, vasp_writer.py), src/mcp_server/atomate2_server.py, and the mat-dft-* skills (.agents/skills/mat-dft-vasp, mat-dft-lobster, mat-dft-electronic-transport, mat-dft-electron-phonon, mat-dft-ferroelectric, mat-defect-energy-dft, mat-dielectric-response, mat-electronic-structure, mat-magnetic-density)",
+    "paper": "arXiv 2605.24002 (AtomisticSkills)",
+    "entry_count": "18 entries (7 already-mapped, 8 new-node-candidate, 3 representation-only/framework).",
+    "code_versions": "atomate2 + pymatgen + ase pinned in conda-envs/atomate2-agent/core_env.yaml (python 3.10, atomate2, pymatgen, ase, jobflow-remote, amset, lobsterpy). No explicit version pins in the env file. pymatgen.io.vasp read directly from the miniconda base env: /Users/juicy/miniconda3/lib/python3.12/site-packages/pymatgen/io/vasp/outputs.py (pymatgen 2025.6.14). atomate2 is NOT importable in base; anchored to the AtomisticSkills wrapper usage + the atomate2.vasp.flows/jobs maker names actually imported. ase.units in base is 3.x with CODATA-2014 _e = 1.6021766208e-19 (verified: 1/ase.units.GPa = 160.21766208).",
+    "role_in_software": "atomate2 is the DFT WORKFLOW framework: it builds jobflow DAGs of VASP jobs (Static, Relax, BandStructure, Optics, Lobster, Ferroelectric, ElectronPhonon, Amset, FormationEnergy makers) from a pymatgen Structure, submits them locally (run_locally) or remotely (jobflow-remote to Perlmutter), stores TaskDocuments in MongoDB, and parses VASP outputs (via VaspDrone / get_vasp_task_document -> TaskDoc) into energy/forces/stress/structure. VASP is the DFT ENGINE underneath: it is a REPRESENTATION of the same operator nodes QE already grounds (TotalEnergy, Forces, Stress) plus electronic-structure observables QE does not currently expose on the map (band gap, electronic DOS, dielectric function, magnetic moments, polarization). AtomisticSkills reaches VASP ONLY through atomate2 (the mat-dft-vasp skill's manual path is deprecated in favor of the atomate2 MCP tool); the raw pymatgen Vasprun/Outcar parsers exist as a secondary path.",
+    "canonical_units_note": "The openmaterials map's canonical units (omai/dft_ground_state/operator/nodes.py + representation/qe.py, and omai/operator/registry.py QUANTITY_TAGS) are the reference. The map's Stress node stores sigma with the QE store convention: sigma_store = -(1/V) dE/d(strain), PRESSURE convention, POSITIVE diagonal = compressive (qe.py:116-131, verified from vendored QE source). This scan states VASP's stress convention RELATIVE to that store convention below (see stress-tensor entry and trap #1)."
+  },
+  "entries": [
+    {
+      "name": "vasp-total-energy",
+      "quantity": "DFT total energy of the converged VASP SCF ground state, per simulation cell",
+      "symbol": "E_tot (e_0_energy / e_fr_energy / e_wo_entrp)",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": [],
+      "units": "eV per cell. atomate2 TaskDoc.output.energy is eV (VASP native). Three VASP variants: e_fr_energy (free energy TOTEN, = E - TS_smear with smearing), e_wo_entrp (energy without entropy), e_0_energy (energy(sigma->0), the sigma->0 extrapolation). pymatgen Vasprun.final_energy returns e_0_energy (with a bugfix reconstruction at outputs.py:700-710).",
+      "producing_api": "atomate2.vasp.jobs.core.StaticMaker / RelaxMaker (and MP/MatPES variants) -> TaskDoc.output.energy; pymatgen.io.vasp.outputs.Vasprun.final_energy (vasprun.xml); parsed in Atomate2Handler.extract_results (atomate2_utils.py:438-440) and _get_training_data_core (:705-709)",
+      "conversion_to_canonical": "eV is the map's TotalEnergy unit AND the MLIP-scan / pymatgen-scan unit; NO conversion. QE grounds this in Ry (stdout '!') / Hartree (XML), factors 1 Ry = 13.605693122994 eV, 1 Ha = 27.211386245988 eV (CODATA-verified in prior scans). SMEARING TRAP identical to QE: the reported energy variant depends on ISMEAR/SIGMA. e_fr_energy is the smeared free energy F = E - TS_smear (exactly the QE '!' smeared free-energy note in qe.py:82-84); e_0_energy is the sigma->0 extrapolation. A cross-code EXPECTED_AGREE with QE must compare the SAME variant.",
+      "anchors": {
+        "usage": [
+          "src/utils/dft/atomate2_utils.py:438-440 (extract_results: getattr(output,'energy', getattr(output,'final_energy',None)))",
+          "src/utils/dft/atomate2_utils.py:705-709 (_get_training_data_core: energy = actual_output.get('energy') or ...)",
+          "src/utils/dft/vasp_parser.py:58 (results['final_energy'] = vasprun.final_energy)"
+        ],
+        "source": [
+          "pymatgen/io/vasp/outputs.py:700-710 (Vasprun.final_energy -> e_0_energy with bugfix)",
+          "pymatgen/io/vasp/outputs.py:6213-6215 (Outcar TOTEN patterns: 'free energy TOTEN'->e_fr_energy, 'energy without entropy'->e_wo_entrp, 'energy(sigma->0)'->e_0_energy)",
+          "pymatgen/io/vasp/outputs.py:2073-2074 (Outcar e_fr_energy / e_wo_entrp regexes)",
+          "atomate2.vasp.jobs.core.StaticMaker / RelaxMaker (TaskDoc.output.energy); atomate2.vasp.jobs.base.get_vasp_task_document (atomate2_utils.py:414)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "TotalEnergy", "quantity_tag": "total_energy", "notes": "Direct match to the per-cell TotalEnergy node (dft_ground_state/nodes.py:47-58). VASP is a SECOND representation of the same node QE grounds; add a codes.json 'vasp' Space entry with observable_units {E_tot: eV} and code_api 'atomate2 TaskDoc.output.energy / vasprun.xml e_0_energy'. Record the smearing / energy-variant scheme (e_0_energy vs e_fr_energy vs e_wo_entrp), the exact per-cell analog of the QE smeared-free-energy note. Provenance must record BOTH the atomate2 maker (StaticMaker/RelaxMaker/MatPes*/MP*) AND the VASP INCAR preset (omat, mp, matpes-pbe/r2scan, mp-r2scan) since these set the XC functional and thus the absolute energy zero."}
+    },
+    {
+      "name": "vasp-forces",
+      "quantity": "Per-atom Hellmann-Feynman forces on the nuclei in the VASP ground state",
+      "symbol": "F_{i,alpha}",
+      "dimension": {"M": 1, "L": 1, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": ["site index i", "cartesian alpha"],
+      "units": "eV/ANGSTROM. atomate2 TaskDoc.output.forces and pymatgen Vasprun.forces[-1] are eV/A (VASP native). Shape (n_atoms, 3).",
+      "producing_api": "atomate2 TaskDoc.output.forces; pymatgen.io.vasp.outputs.Vasprun.forces (varray name='forces', outputs.py:555-556) / Outcar.read_table (forces); atomate2_utils.py:441 (forces = getattr(output,'forces',None)), vasp_parser.py:68-71 (vasprun.forces[-1])",
+      "conversion_to_canonical": "eV/A is the map's Forces unit (FORCE dimension M L T^-2; ObservableSpace F, indices (i, alpha), nodes.py:60-72) AND the MLIP-scan unit; NO conversion. QE grounds Forces in Ry/bohr (stdout, 'Ry/au' = Ry/bohr) / Hartree/bohr (XML); factor 1 Ry/bohr = 25.71104309541616 eV/A (= 13.605693122994 eV/Ry / 0.529177210903 A/bohr). No per-atom vs per-cell ambiguity: forces are inherently per-atom.",
+      "anchors": {
+        "usage": [
+          "src/utils/dft/atomate2_utils.py:441,449-450 (forces from output; np.array(...).tolist())",
+          "src/utils/dft/atomate2_utils.py:712,728-729 (forces = actual_output.get('forces') or ...)",
+          "src/utils/dft/vasp_parser.py:68-71 (results['forces'] = vasprun.forces[-1])"
+        ],
+        "source": [
+          "pymatgen/io/vasp/outputs.py:555-556 (varray name='forces' parse), :1272 (add_site_property('forces', step['forces']))",
+          "atomate2 TaskDoc.output.forces"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "Forces", "quantity_tag": "forces", "notes": "Direct match to Forces (nodes.py:60-72). VASP second representation; codes.json 'vasp' Space entry observable_units {F: eV_per_angstrom}. NOTE: the registry quantity_tag is 'forces' but nodes.py names the ObservableSpace 'Forces' with field 'F' typed FORCE; quantity_tag_for('Forces') = 'forces'. Vasprun.forces[-1] takes the FINAL ionic step (vasp_parser.py:69); the finite-displacement route to ForceConstants harvests exactly these per-supercell forces (same as the QE finite-displacement note nodes.py:29-33)."}
+    },
+    {
+      "name": "vasp-stress-tensor",
+      "quantity": "Cell-averaged macroscopic (Cauchy) stress tensor of the VASP ground state",
+      "symbol": "sigma_{alpha,beta}",
+      "dimension": {"M": 1, "L": -1, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": ["cartesian alpha", "cartesian beta"],
+      "units": "TWO source unit systems, a genuine trap. (a) RAW pymatgen Vasprun.stress[-1] is in kBAR (VASP native varray name='stress'); AtomisticSkills converts to eV/A^3 via *0.1*ase.units.GPa (vasp_parser.py:75-81). (b) atomate2 TaskDoc.output.stress is standardized to GPa (atomate2_utils.py:454 comment 'Atomate2 standardizes stress to GPa'); AtomisticSkills converts via *ase.units.GPa (:456-458). Both AtomisticSkills conversions to the ASE store additionally multiply by -1 (see sign below).",
+      "producing_api": "atomate2 TaskDoc.output.stress (GPa); pymatgen.io.vasp.outputs.Vasprun.stress (kbar, varray name='stress', outputs.py:557-558); converted in atomate2_utils.py:451-458 (TaskDoc route) and :718-726 (MongoDB route) and vasp_parser.py:74-81 (raw route)",
+      "conversion_to_canonical": "Map's Stress node is typed ENERGY_PER_LENGTH_CUBED (M L^-1 T^-2), stored in the QE convention sigma_store = -(1/V)dE/d(strain), POSITIVE diagonal = compressive (qe.py:116-131). Unit factors: 1 kbar = 0.1 GPa (exact); 1 GPa = ase.units.GPa eV/A^3 = 0.006241509125883258 eV/A^3 (ase CODATA-2014), inverse 1 eV/A^3 = 160.21766208 GPa (ase) / 160.21766339999996 GPa (scipy CODATA-2018) / = 1602.1766... kbar. So a VASP-kbar stress that equals the map's Stress AT THE STORE SIGN converts to eV/A^3 by *0.1*ase.units.GPa. SIGN, stated relative to the store convention: see below and trap #1.",
+      "vasp_stress_sign_relative_to_store": "VASP prints stress in the SAME sign as the map's store (QE) convention: BOTH are compression-positive / -(1/V)dE/d(strain). AtomisticSkills's three conversion sites all target the ASE convention (tension-positive, sigma_ASE = +(1/V)dE/d(strain)), which is the OPPOSITE of VASP and of the map store; that is why AtomisticSkills multiplies by -1 in the atomate2 paths (atomate2_utils.py:456 '-1.0*ase.units.GPa', :726 '-0.1*ase.units.GPa') with the explicit comment 'VASP uses compressive positive convention, while ASE uses tensile positive'. THEREFORE, relative to the map's Stress store (QE compression-positive): VASP stress needs NO sign flip (both compression-positive); only the -1 that AtomisticSkills applies to reach ASE. The map's own QE store is compression-positive (qe.py:117-127: variable-cell force fcell ~ (stress - press*I), so a compressed cell prints positive sigma), so VASP -> map-store is sign-preserving. INCONSISTENCY inside AtomisticSkills to flag: the RAW-Vasprun path vasp_parser.py:79-81 does *0.1*ase.units.GPa with NO -1, i.e. it leaves the result in VASP/compression-positive (map-store-consistent, ASE-INconsistent), while the two atomate2 paths DO flip to ASE. The three paths disagree in sign convention (see trap #1); the map-store-correct sign is the un-flipped (compression-positive) one.",
+      "anchors": {
+        "usage": [
+          "src/utils/dft/atomate2_utils.py:451-458 (extract_results, TaskDoc route: 'Atomate2 standardizes stress to GPa. We convert to eV/A^3. VASP uses compressive positive convention, while ASE uses tensile positive. Multiply by -1.'  stress = np.array(stress) * -1.0 * ase.units.GPa)",
+          "src/utils/dft/atomate2_utils.py:718-726 (MongoDB route: 'VASP stress is in kB. 1 kB = 0.1 GPa. ... VASP compressive positive, ASE tensile positive, multiply by -1'  stress = np.array(stress) * -0.1 * ase.units.GPa)",
+          "src/utils/dft/vasp_parser.py:74-81 (raw Vasprun route: 'VASP stress is in kB. Convert to eV/A^3. 1 kB = 0.1 GPa.'  stress = np.array(vasprun.stress[-1]) * 0.1 * ase.units.GPa  -- NO -1)"
+        ],
+        "source": [
+          "pymatgen/io/vasp/outputs.py:557-558 (varray name='stress' parse in ionic step)",
+          "atomate2 TaskDoc.output.stress (GPa-standardized); atomate2.vasp.drones.VaspDrone (atomate2_utils.py:415)",
+          "ase.units.GPa = 0.006241509125883258 eV/A^3 (CODATA-2014, verified 1/ase.units.GPa = 160.21766208)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "Stress", "quantity_tag": "stress", "notes": "Maps to Stress (nodes.py:74-85, sigma indices (alpha,beta), typed ENERGY_PER_LENGTH_CUBED). VASP second representation of the same node QE grounds. codes.json 'vasp' Space entry: observable_units {sigma: kbar} for the raw Vasprun route OR {sigma: GPa} for the atomate2 TaskDoc route (declare BOTH, they are different artifacts of the same run). Record the sign convention as compression-positive (SAME as the QE store, qe.py), and record that AtomisticSkills re-signs to ASE tension-positive in its atomate2 paths but not its raw path. This is the CENTRAL finding of the scan (see vasp_stress_sign_relative_to_store and trap #1)."}
+    },
+    {
+      "name": "vasp-structure",
+      "quantity": "The crystal structure a VASP run consumes/relaxes (POSCAR / CONTCAR)",
+      "symbol": "Structure",
+      "dimension": {"note": "opaque container; L (lattice, angstrom), N (species), M (masses)"},
+      "index_structure": ["site index i"],
+      "units": "POSCAR/CONTCAR lattice and positions in ANGSTROM (or fractional). pymatgen Structure round-trips via Poscar / Vasprun.final_structure; atomate2 TaskDoc.structure and doc.structure.as_dict().",
+      "producing_api": "atomate2 TaskDoc.structure (relaxed CONTCAR); pymatgen.io.vasp.inputs.Poscar / outputs.Vasprun.final_structure; Atomate2Handler.load_structures (atomate2_utils.py:121-145, Structure.from_file / AseAtomsAdaptor.get_structure); flow_maker.make(struct) (atomate2_server.py:118)",
+      "conversion_to_canonical": "angstrom is the map's length unit; opaque Structure node, no numeric unit. Matches the QE_STRUCTURE representation (qe.py:48-66) and the pymatgen crystal-structure entry.",
+      "anchors": {
+        "usage": [
+          "src/utils/dft/atomate2_utils.py:121-145 (load_structures: Structure.from_file / AseAtomsAdaptor.get_structure)",
+          "src/utils/dft/atomate2_utils.py:443-445 (doc.structure.as_dict()), :702 (structure from TaskDoc)",
+          "src/mcp_server/atomate2_server.py:118 (flow_maker.make(struct))"
+        ],
+        "source": [
+          "pymatgen/io/vasp/inputs.py (Poscar), outputs.py (Vasprun.final_structure); atomate2 TaskDoc.structure"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "Structure", "quantity_tag": "structure", "notes": "Direct match to the shared Structure node (nodes.py:44-45 imports STRUCTURE from shared_primitives). VASP consumes it as POSCAR and emits the relaxed CONTCAR (Vasprun.final_structure) - the relax workflow's Structure->Structure edge. A RelaxMaker run is a Structure-in / (Structure, TotalEnergy, Forces, Stress)-out operation; a StaticMaker is Structure-in / (TotalEnergy, Forces, Stress)-out at fixed geometry. Same node QE grounds via CELL_PARAMETERS/ATOMIC_POSITIONS cards."}
+    },
+    {
+      "name": "vasp-elastic-modulus",
+      "quantity": "Elastic (stiffness) moduli tensor read from VASP OUTCAR (IBRION=6 finite-differences)",
+      "symbol": "C_ij (6x6, TOTAL ELASTIC MODULI)",
+      "dimension": {"M": 1, "L": -1, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": ["Voigt i 1..6", "Voigt j 1..6"],
+      "units": "kBAR as printed by VASP ('TOTAL ELASTIC MODULI (kBar)', pymatgen Outcar.elastic_modulus parses this header). 1 kbar = 0.1 GPa; the map's ElasticConstants canonical unit is GPa (pymatgen scan). NOTE the pymatgen from_independent_strains(vasp=True) path applies c_ij *= -0.1 (kbar->GPa AND sign) for a stress-fit route; the OUTCAR direct route (Outcar.elastic_modulus) is already the modulus in kbar, needing only *0.1 for GPa (no sign flip on the modulus itself).",
+      "producing_api": "pymatgen.io.vasp.outputs.Outcar.elastic_modulus (parsed in vasp_parser.py:124); VASP IBRION=6 direct elastic tensor. atomate2 has an ElasticMaker (atomate2.vasp.flows.elastic) but AtomisticSkills's DFT path reads OUTCAR.elastic_modulus directly rather than driving the atomate2 elastic flow (the MLIP path via matcalc.ElasticityCalc is the mapped elasticity producer, see pymatgen/mlip scans).",
+      "conversion_to_canonical": "kbar -> GPa via *0.1 (exact). Map's ElasticConstants node stores GPa. The pymatgen-scan elastic entry already maps ElasticConstants via the MLIP/matcalc route (eV/A^3 * 160.2176634 -> GPa); this VASP OUTCAR route is a SECOND representation (kbar direct from VASP finite-differences). VASP OUTCAR TOTAL ELASTIC MODULI already includes ionic relaxation contributions only if IBRION=6 with the right flags; the clamped-ion vs relaxed-ion distinction is a scheme.",
+      "anchors": {
+        "usage": [
+          "src/utils/dft/vasp_parser.py:124 (results['elastic_modulus'] = outcar.elastic_modulus)"
+        ],
+        "source": [
+          "pymatgen/io/vasp/outputs.py:2824 (header_pattern r'TOTAL ELASTIC MODULI \\(kBar\\)')"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "ElasticConstants", "quantity_tag": "elastic_constants", "notes": "Maps to ElasticConstants (already on the map, grounded by the MLIP/matcalc route in the pymatgen scan). VASP OUTCAR elastic_modulus is a DIFFERENT representation (kbar, IBRION=6 direct finite-differences) than the matcalc stress-strain fit. Add as an alternate producing representation; the two are an EXPECTED_AGREE pair (VASP DFT elastic tensor vs MLIP elastic tensor). Unit trap: kbar (VASP) vs eV/A^3 (matcalc internal) vs GPa (canonical); the map's ElasticConstants is landing right now from the pymatgen encode, so this is a representation add, not a new node."}
+    },
+    {
+      "name": "vasp-born-charges",
+      "quantity": "Born effective charge tensors Z* read from VASP OUTCAR (LEPSILON/LCALCEPS)",
+      "symbol": "Z*_{k,alpha,beta}",
+      "dimension": {"note": "dimensionless (units of elementary charge e)"},
+      "index_structure": ["atom k", "cartesian alpha", "cartesian beta"],
+      "units": "dimensionless (units of e), shape (n_atoms, 3, 3). pymatgen Outcar.born_charges / Outcar.born.",
+      "producing_api": "pymatgen.io.vasp.outputs.Outcar.born_charges (vasp_parser.py:126) / Outcar.born (outputs.py:3209-3257, 'BORN EFFECTIVE CHARGES' section); VASP LEPSILON=.TRUE. Same parser the mat-raman skill uses (pymatgen scan born-charges-and-dielectric entry).",
+      "conversion_to_canonical": "dimensionless (units of e); matches BornCharges (thermal_transport/nodes.py, DIMENSIONLESS). Same node QE grounds (zeu). No conversion.",
+      "anchors": {
+        "usage": [
+          "src/utils/dft/vasp_parser.py:126 (results['born_charges'] = outcar.born_charges)"
+        ],
+        "source": [
+          "pymatgen/io/vasp/outputs.py:3209-3257 (Outcar.born parser, 'BORN EFFECTIVE CHARGES' section)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "BornCharges", "quantity_tag": "born_charges", "notes": "Direct match to BornCharges (on the map from the thermal domain, confirmed present in graph.json). VASP OUTCAR is a representation of the same node (via LEPSILON). Same parser the pymatgen-scan born-charges entry catalogs for mat-raman; here it is a DFT-domain producer (VASP directly, not MP retrieval)."}
+    },
+    {
+      "name": "vasp-dielectric-tensor",
+      "quantity": "Macroscopic electronic (clamped-ion) dielectric tensor eps_inf and the frequency-dependent dielectric function eps(omega)",
+      "symbol": "eps_inf_{alpha,beta}, eps(omega)",
+      "dimension": {"note": "dimensionless (relative permittivity)"},
+      "index_structure": ["cartesian alpha", "cartesian beta", "(spectrum) frequency/energy bin"],
+      "units": "dimensionless. Static clamped-ion eps_inf (3x3) via LEPSILON; frequency-dependent Re(eps)/Im(eps) vs photon energy (eV) via LOPTICS (OpticsMaker). mat-dielectric-response parses OUTCAR dielectric blocks (energy eV, Re(eps), Im(eps)).",
+      "producing_api": "atomate2.vasp.flows.core.OpticsMaker (frequency-dependent, LOPTICS); pymatgen Outcar.dielectric_tensor (static, LEPSILON); mat-dielectric-response/scripts/plot_dielectric.py parses OUTCAR dielectric sections (:189-256)",
+      "conversion_to_canonical": "dimensionless; matches DielectricTensor (thermal_transport/nodes.py, DIMENSIONLESS, clamped-ion eps_inf) for the STATIC tensor. NO conversion. The FREQUENCY-DEPENDENT eps(omega) (dispersion + absorption) is a NEW candidate below (the map's DielectricTensor is the omega->infinity clamped-ion scalar-tensor, not the spectrum).",
+      "anchors": {
+        "usage": [
+          ".agents/skills/mat-dielectric-response/scripts/plot_dielectric.py:189-256 (parse_dielectric_section: energy eV, Re(eps), Im(eps) from OUTCAR)",
+          ".agents/skills/mat-dielectric-response/scripts/plot_dielectric.py:170-186 (ensure_frequency_dependent_calculation: static vs frequency-dependent guard)"
+        ],
+        "source": [
+          "pymatgen/io/vasp/outputs.py (Outcar.dielectric_tensor); atomate2.vasp.flows.core.OpticsMaker (LOPTICS)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "DielectricTensor", "quantity_tag": "dielectric_tensor", "notes": "The STATIC clamped-ion eps_inf maps directly to DielectricTensor (on the map from the thermal domain, present in graph.json), the same node QE grounds (eps_inf) and the pymatgen scan catalogs. VASP (LEPSILON) is a DFT-domain representation. The FREQUENCY-DEPENDENT dielectric function eps(omega) from LOPTICS/OpticsMaker is a distinct spectroscopic observable (new-node-candidate dielectric-function below): the map's node is the single infinite-frequency tensor, not the eV-resolved spectrum."}
+    },
+    {
+      "name": "band-gap-and-electronic-dos",
+      "quantity": "Electronic band gap, Fermi level, metal/insulator classification, and the electronic band structure / DOS from a VASP BandStructureMaker run",
+      "symbol": "E_gap, E_fermi, is_metal, is_gap_direct",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "energy (eV); is_metal/is_gap_direct boolean"},
+      "index_structure": ["(bands) kpoint, band, spin", "(DOS) energy bin (eV)"],
+      "units": "eV (band gap, Fermi level, DOS energy axis). is_metal / is_gap_direct boolean. pymatgen BSVasprun.get_band_structure().get_band_gap()['energy'].",
+      "producing_api": "atomate2.vasp.flows.core.BandStructureMaker (line/uniform/both mode) -> vasprun.xml; pymatgen.io.vasp.outputs.BSVasprun (plot_band_structure.py:69) / Vasprun; bs.get_band_gap()['energy'], bs.is_metal(), bs.efermi (get_mp_electronic_structure.py:79-84, plot_band_structure.py:75-78)",
+      "conversion_to_canonical": "eV; NO map node. Electronic structure is below the map's thermal/mechanical DAG floor (analogous to the QE Kohn-Sham wavefunctions being hidden, nodes.py:22-25). Band gap eV / Fermi level eV.",
+      "anchors": {
+        "usage": [
+          ".agents/skills/mat-electronic-structure/scripts/plot_band_structure.py:69-78 (BSVasprun; bs.is_metal(); bs.get_band_gap())",
+          ".agents/skills/mat-electronic-structure/scripts/get_mp_electronic_structure.py:79-84 (band_gap, is_metal, is_gap_direct, efermi)",
+          "src/utils/dft/atomate2_utils.py:195-198 (BandStructureMaker, bandstructure_type line/uniform/both)"
+        ],
+        "source": [
+          "pymatgen/io/vasp/outputs.py (BSVasprun, Vasprun.get_band_structure); pymatgen/electronic_structure/bandstructure.py (get_band_gap, is_metal)",
+          "atomate2.vasp.flows.core.BandStructureMaker (atomate2_utils.py:160,196-198)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "band_gap (proposed)", "notes": "No electronic-structure node on the (phonon/transport/mechanics) map. HIGH-value candidate if the electronic domain is ingested: band gap (eV) is the single most-used VASP electronic observable across mat-electronic-structure, mat-dft-electronic-transport, mat-db-mp. The band structure E(k) and electronic DOS g(E) are hidden electronic intermediates (like the KS wavefunctions). Same candidate the pymatgen scan flagged (band-gap-and-electronic-structure); this scan confirms the VASP/atomate2 DFT producer (BandStructureMaker) alongside the MP-retrieval path. Producing workflow: atomate2 BandStructureMaker (static + line/uniform NSCF)."}
+    },
+    {
+      "name": "dielectric-function-spectrum",
+      "quantity": "Frequency-dependent complex dielectric function eps(omega) = Re(eps) + i Im(eps) and the derived optical absorption",
+      "symbol": "eps(omega), Re(eps), Im(eps), alpha(omega)",
+      "dimension": {"note": "eps dimensionless (relative permittivity) vs photon energy in eV; absorption alpha in cm^-1"},
+      "index_structure": ["cartesian component (xx,yy,zz,...)", "photon-energy bin (eV)"],
+      "units": "eps dimensionless, energy axis eV; absorption 1/cm. LOPTICS (independent-particle) response; VASP OUTCAR dielectric blocks (energy eV, Re(eps), Im(eps)).",
+      "producing_api": "atomate2.vasp.flows.core.OpticsMaker (LOPTICS); mat-dielectric-response/scripts/plot_dielectric.py (parse_dielectric_section, :189-256; ensure_frequency_dependent_calculation, :170-186)",
+      "conversion_to_canonical": "no map node; eps(omega) dimensionless vs eV. Distinct from the static DielectricTensor node (which is the omega->infinity clamped-ion tensor). The spectrum carries the interband optical response.",
+      "anchors": {
+        "usage": [
+          ".agents/skills/mat-dielectric-response/scripts/plot_dielectric.py:4-17 (LOPTICS Re(eps)/-Im(eps) overlay), :189-256 (OUTCAR dielectric section parse)"
+        ],
+        "source": [
+          "atomate2.vasp.flows.core.OpticsMaker; pymatgen Vasprun.dielectric (frequency-dependent)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "dielectric_function (proposed)", "notes": "No optical-spectrum node. Candidate new spectroscopic observable (eps(omega), dimensionless vs eV) if the optical/dielectric domain is ingested. Downstream of the electronic band structure (interband transitions). Distinct from the map's static DielectricTensor (eps_inf clamped-ion). Anchors the mat-dielectric-response skill. Independent-particle (LOPTICS) omits local-field / excitonic (BSE) effects: a scheme flag."}
+    },
+    {
+      "name": "electronic-transport-coefficients",
+      "quantity": "Boltzmann-transport electronic conductivity, Seebeck coefficient, and electronic thermal conductivity from AMSET (VASP band structure + scattering)",
+      "symbol": "sigma_el, S (Seebeck), kappa_el, mobility",
+      "dimension": {"note": "sigma_el: S/m (Siemens/m); S (Seebeck): V/K; kappa_el: W/(m K); mobility: cm^2/(V s)"},
+      "index_structure": ["temperature", "doping/carrier concentration", "cartesian tensor component"],
+      "units": "AMSET native: conductivity S/m, Seebeck V/K (often uV/K reported), electronic thermal conductivity W/m/K, mobility cm^2/V/s, all vs temperature and doping.",
+      "producing_api": "atomate2.vasp.flows.amset.VaspAmsetMaker (mat-dft-electronic-transport/scripts/generate_inputs.py:14); AMSET reads the VASP dense-mesh band structure + wavefunction coefficients + dielectric/deformation-potential/phonon inputs for scattering",
+      "conversion_to_canonical": "no map node. NOTE: the map already has a lattice ThermalConductivity family (BTE/Wigner/QHGK/Green-Kubo), but that is the PHONON (lattice) kappa; AMSET's kappa_el is the ELECTRONIC contribution, a physically distinct quantity. Seebeck V/K and electrical conductivity S/m have no map analog.",
+      "anchors": {
+        "usage": [
+          ".agents/skills/mat-dft-electronic-transport/scripts/generate_inputs.py:14 (from atomate2.vasp.flows.amset import VaspAmsetMaker)"
+        ],
+        "source": [
+          "atomate2.vasp.flows.amset.VaspAmsetMaker; amset (in conda-envs/atomate2-agent core_env.yaml)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "electrical_conductivity / seebeck_coefficient / electronic_thermal_conductivity (proposed)", "notes": "No electronic-transport nodes. Candidate new domain (thermoelectrics) if ingested. DISTINCT from the map's lattice ThermalConductivity: AMSET's kappa_el is the electronic (carrier) contribution, and sigma_el/Seebeck have no lattice analog. Depends on the VASP band structure + a scattering model (a scheme: ADP/POP/IMP/... rate approximations). Whole electronic-transport domain hangs off VaspAmsetMaker."}
+    },
+    {
+      "name": "spontaneous-polarization",
+      "quantity": "Spontaneous ferroelectric polarization from the Berry-phase (LCALCPOL) branch-mapped along a distortion path",
+      "symbol": "P_s",
+      "dimension": {"M": 0, "L": -2, "T": 1, "I": 1, "Theta": 0, "N": 0, "J": 0, "note": "surface charge density, C/m^2"},
+      "index_structure": ["cartesian component", "(path) interpolation image index"],
+      "units": "C/m^2 (micro-C/cm^2 commonly reported). Berry-phase polarization is defined modulo a quantum eP/Omega; branch continuity along the polar->nonpolar path resolves the physical value.",
+      "producing_api": "atomate2.vasp.flows.ferroelectric.FerroelectricMaker (mat-dft-ferroelectric/scripts/generate_inputs.py:14,63); VASP LCALCPOL=.TRUE. Berry-phase across interpolated images (:61-63)",
+      "conversion_to_canonical": "no map node; C/m^2. The polarization quantum / branch ambiguity is a genuine gauge-like structure (polarization is only defined modulo a lattice of quanta), a good showcase for the map's gauge machinery if ferroelectrics are ingested.",
+      "anchors": {
+        "usage": [
+          ".agents/skills/mat-dft-ferroelectric/scripts/generate_inputs.py:14,61-63 (FerroelectricMaker; LCALCPOL Berry-phase branch mapping across images)"
+        ],
+        "source": [
+          "atomate2.vasp.flows.ferroelectric.FerroelectricMaker; VASP LCALCPOL"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "spontaneous_polarization (proposed)", "notes": "No ferroelectric node. Candidate new observable (C/m^2) if the ferroelectrics domain is ingested. The Berry-phase polarization QUANTUM (P defined modulo eR/Omega) is a lattice-gauge ambiguity resolved only by branch continuity along the distortion path - a natural fit for the map's gauge-group discipline (compare the eigenvector U(1)/U(d) gauges). Whole ferroelectric domain hangs off FerroelectricMaker."}
+    },
+    {
+      "name": "magnetic-moment-vasp",
+      "quantity": "Per-site and total magnetic moment from a VASP spin-polarized run",
+      "symbol": "m_i, M_total",
+      "dimension": {"note": "Bohr magnetons mu_B per site; total in mu_B"},
+      "index_structure": ["site i"],
+      "units": "Bohr magnetons (mu_B). pymatgen Outcar.magnetization (per-site dict) and Outcar.total_magnetization.",
+      "producing_api": "pymatgen.io.vasp.outputs.Outcar.magnetization / .total_magnetization (vasp_parser.py:121-122); mat-magnetic-density parses atomate2 VASP results (parse_magnetic_moments.py). VASP ISPIN=2 collinear spin.",
+      "conversion_to_canonical": "no map node; mu_B. Same candidate the pymatgen scan flagged (magnetic-moment); this confirms the VASP/atomate2 DFT producer (Outcar.magnetization) alongside the MP-retrieval path.",
+      "anchors": {
+        "usage": [
+          "src/utils/dft/vasp_parser.py:121-122 (outcar.magnetization, outcar.total_magnetization)",
+          ".agents/skills/mat-magnetic-density/scripts/parse_magnetic_moments.py (per-site / total moment from atomate2 VASP results)"
+        ],
+        "source": [
+          "pymatgen/io/vasp/outputs.py (Outcar.magnetization, Outcar.total_magnetization)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "magnetic_moment (proposed)", "notes": "No magnetism node. Candidate new observable (mu_B) if the magnetism domain is ingested. Same node the pymatgen scan proposes; this scan adds the direct-VASP producer (Outcar.magnetization, per-site (n_atoms) and scalar total). Ordering (FM/AFM/...) is a discrete label. Cross-references the MLIP scan's unclaimed CHGNet magmom head - VASP is the DFT ground truth for that quantity."}
+    },
+    {
+      "name": "defect-formation-energy-dft",
+      "quantity": "Charged point-defect formation energy from atomate2 FormationEnergyMaker (VASP defect + pristine + chemical potentials + charge corrections)",
+      "symbol": "E_f(defect, q)",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": ["defect type", "charge state q", "Fermi level E_F"],
+      "units": "eV. E_f(q) = E_defect(q) - E_pristine + sum_i n_i mu_i + q(E_VBM + E_F) + E_corr (Freysoldt/Kumagai finite-size charge correction).",
+      "producing_api": "atomate2.vasp.flows.defect.FormationEnergyMaker (mat-defect-energy-dft, imported in build_diagram.py:67); VASP static/relax on defect + pristine supercells across charge states",
+      "conversion_to_canonical": "eV; no map node. The DFT/charged analog of the pymatgen scan's defect-formation-energy candidate (which was the MLIP/neutral in-skill closed form). Adds the charge-state + Fermi-level dependence and finite-size charge corrections.",
+      "anchors": {
+        "usage": [
+          ".agents/skills/mat-defect-energy-dft/examples/MgO_charged_vacancy/build_diagram.py:67 (from atomate2.vasp.flows.defect import FormationEnergyMaker)",
+          ".agents/skills/mat-defect-energy-dft/SKILL.md (charged-defect formation-energy diagram workflow)"
+        ],
+        "source": [
+          "atomate2.vasp.flows.defect.FormationEnergyMaker (pymatgen-analysis-defects backend)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "defect_formation_energy (proposed)", "notes": "No defect node. Candidate new node (eV) if the defect domain is ingested. This is the CHARGED-DEFECT DFT route (FormationEnergyMaker with Freysoldt/Kumagai corrections + Fermi-level dependence), a richer producer than the pymatgen scan's neutral MLIP in-skill formula. Depends on TotalEnergy(defect, q), TotalEnergy(pristine), elemental chemical potentials mu_i, and the VBM/Fermi reference. Same proposed node; two producers (DFT-charged here, MLIP-neutral in the pymatgen scan) => an EXPECTED_AGREE only at neutral charge."}
+    },
+    {
+      "name": "cohp-bonding-vasp-lobster",
+      "quantity": "Crystal Orbital Hamilton Population (bonding/antibonding) from a VASP+LOBSTER workflow",
+      "symbol": "COHP(E), ICOHP",
+      "dimension": {"note": "energy axis eV; ICOHP eV (integrated); COHP relative units"},
+      "index_structure": ["bond pair", "energy bin (eV)", "spin"],
+      "units": "energy axis eV; ICOHP eV. VASP produces the wavefunctions; LOBSTER projects onto local orbitals; pymatgen.io.lobster parses.",
+      "producing_api": "atomate2.vasp.flows.lobster.VaspLobsterMaker (atomate2_utils.py:202, mat-dft-lobster/generate_inputs.py:5); lobsterpy (conda env); pymatgen.io.lobster.Cohpcar",
+      "conversion_to_canonical": "eV energy axis; no map node. Same representation-only status as the pymatgen scan's cohp-bonding entry; this scan adds the atomate2 VaspLobsterMaker workflow that produces the VASP inputs LOBSTER consumes.",
+      "anchors": {
+        "usage": [
+          "src/utils/dft/atomate2_utils.py:201-204 (VaspLobsterMaker), :227-235 (lobster maker INCAR routing)",
+          ".agents/skills/mat-dft-lobster/scripts/generate_inputs.py:5 (from atomate2.vasp.flows.lobster import VaspLobsterMaker)"
+        ],
+        "source": [
+          "atomate2.vasp.flows.lobster.VaspLobsterMaker; pymatgen/io/lobster/outputs.py (Cohpcar); lobsterpy"
+        ]
+      },
+      "status": "representation-only",
+      "maps_to": {"node": null, "quantity_tag": null, "notes": "Bonding-analysis diagnostic (eV energy axis). Representation-only (chemistry-domain, out of the thermal/mechanical DAG scope), matching the pymatgen scan's cohp-bonding verdict. The VaspLobsterMaker is the atomate2 workflow that generates the VASP run LOBSTER post-processes; not a physics-DAG node."}
+    },
+    {
+      "name": "atomate2-workflow-framework",
+      "quantity": "The jobflow DAG framework itself: makers, presets, INCAR generators, TaskDocument parsing, remote submission",
+      "symbol": "Maker.make(struct) -> Flow -> TaskDoc",
+      "dimension": {"note": "not a physical quantity; a workflow/provenance framework"},
+      "index_structure": [],
+      "units": "n/a. Presets carry the XC functional + INCAR settings; the maker carries the calculation topology (static / relax / bandstructure line+uniform / optics / lobster / ferroelectric / elph / amset / defect).",
+      "producing_api": "atomate2.vasp.jobs.core.StaticMaker/RelaxMaker, atomate2.vasp.jobs.mp.MPMetaGGARelaxMaker/MPMetaGGAStaticMaker, atomate2.vasp.jobs.matpes.MatPesGGAStaticMaker/MatPesMetaGGAStaticMaker, atomate2.vasp.flows.matpes.MatPesStaticFlowMaker, atomate2.vasp.flows.core.BandStructureMaker/OpticsMaker (Atomate2Handler.get_flow_maker, atomate2_utils.py:147-240); jobflow.run_locally / jobflow_remote.submit_flow (atomate2_server.py:124-171); TaskDoc parse via atomate2.vasp.drones.VaspDrone + get_vasp_task_document (atomate2_utils.py:414-431)",
+      "conversion_to_canonical": "no unit. This is the PROVENANCE / discretization layer, the VASP analog of QE_SOLVE_GROUND_STATE (qe.py:139-159). The preset (omat / mp / matpes-pbe / matpes-r2scan / mp-r2scan) fixes the XC functional, ENCUT, ISMEAR/SIGMA, EDIFF, ISIF, IBRION; the maker fixes the topology.",
+      "anchors": {
+        "usage": [
+          "src/utils/dft/atomate2_utils.py:147-240 (get_flow_maker: presets -> makers; user_incar_settings routing)",
+          "src/utils/dft/vasp_writer.py:25,55-100 (PRESETS -> pymatgen input sets; INCAR flags IBRION/NSW/ISIF/EDIFF/EDIFFG per calculation_type; xc_functional r2scan/PBE)",
+          "src/mcp_server/atomate2_server.py:37-173 (run_atomate2_vasp_calculation MCP tool: preset_type, calculation_type, execution_mode local/remote)"
+        ],
+        "source": [
+          "atomate2.vasp.jobs.core / jobs.mp / jobs.matpes / flows.core / flows.matpes (maker classes); jobflow / jobflow-remote"
+        ]
+      },
+      "status": "representation-only",
+      "maps_to": {"node": "solve_ground_state (operator representation)", "quantity_tag": null, "notes": "The atomate2/VASP analog of the QE_SOLVE_GROUND_STATE OperatorRepresentationSpec (qe.py:139-159). Encode as an OperatorRepresentationSpec representation_name='atomate2_vasp' on solve_ground_state, with discretization_choices = {ENCUT (plane-wave cutoff, eV), KPOINTS/KSPACING mesh, ISMEAR/SIGMA smearing, EDIFF SCF threshold, PREC, and the POTCAR set + XC functional as the Potential provenance}. The preset (omat/mp/matpes-*/mp-r2scan) and maker topology are the atomate2 provenance fields; two runs differing in POTCAR set / XC / cutoff realize different Potentials, exactly as the QE note states. Provenance of every VASP-produced node must record BOTH the atomate2 maker AND the INCAR preset."}
+    },
+    {
+      "name": "vasp-charge-density",
+      "quantity": "Self-consistent electronic charge density n(r) on the FFT grid (CHGCAR), and related grid quantities (LOCPOT, WAVECAR)",
+      "symbol": "n(r)",
+      "dimension": {"note": "electrons per volume (L^-3); on a real-space grid"},
+      "index_structure": ["real-space grid point (ngx, ngy, ngz)"],
+      "units": "electrons/cell on the FFT grid (VASP CHGCAR stores rho*Omega). pymatgen.io.vasp.outputs.Chgcar / Locpot / Wavecar parse these; referenced but not consumed as a mapped observable in AtomisticSkills.",
+      "producing_api": "pymatgen.io.vasp.outputs.Chgcar (CHGCAR), Locpot (LOCPOT), Wavecar (WAVECAR); atomate2 keeps LCHARG/LWAVE flags per maker",
+      "conversion_to_canonical": "no map node. The map defers ChargeDensity (nodes.py:19-22: 'an observable in principle (Hohenberg-Kohn), but needs a real-space grid index kind and a density dimension, and nothing downstream consumes it yet'). VASP is a concrete producer if that node is ever added.",
+      "anchors": {
+        "usage": [
+          "AtomisticSkills references Chgcar/Locpot/Wavecar in parser scaffolding (grep Chgcar/Locpot/Wavecar in scripts); not consumed as a mapped observable"
+        ],
+        "source": [
+          "pymatgen/io/vasp/outputs.py (Chgcar, Locpot, Wavecar classes)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "charge_density (proposed, DEFERRED)", "notes": "Matches the map's explicitly DEFERRED ChargeDensity candidate (nodes.py:19-22). Needs a real-space grid index kind and a density dimension the map does not yet have. VASP (CHGCAR) is a concrete representation should the node land; until then it stays deferred, same reasoning as the QE scan. WAVECAR (Kohn-Sham wavefunctions) is the hidden U(N)-gauge space (nodes.py:23-25), also deferred."}
+    }
+  ],
+  "open_questions": [
+    "[FINDING - stress sign] VASP prints stress in the SAME (compression-positive, pressure) convention as the map's QE store (sigma_store = -(1/V)dE/d(strain), positive diagonal = compressive; qe.py:116-131). VASP -> map-store therefore needs NO sign flip. AtomisticSkills's atomate2 paths (atomate2_utils.py:456 -1.0*ase.units.GPa; :726 -0.1*ase.units.GPa) DO multiply by -1 because they target the ASE tension-positive convention; the raw-Vasprun path (vasp_parser.py:79-81, *0.1*ase.units.GPa, NO -1) does NOT flip and thus stays in VASP/compression-positive = map-store-consistent. The three AtomisticSkills paths disagree in sign; the map-store-correct one is the un-flipped path. ENCODE must record the VASP Stress representation as compression-positive (matching the QE store), and note the ASE re-sign that AtomisticSkills applies downstream.",
+    "[UNIT TRAP - stress units] Raw pymatgen Vasprun.stress is kBAR (VASP native), but atomate2 TaskDoc.output.stress is GPa (atomate2 standardizes). Same run, two artifacts, two units (kbar vs GPa, factor 10). vasp_parser.py:75-81 converts kbar via *0.1*ase.units.GPa; atomate2_utils.py:456 converts GPa via *ase.units.GPa (no 0.1). The codes.json vasp Stress representation should declare BOTH observable_units {sigma: kbar} (raw Vasprun) and {sigma: GPa} (atomate2 TaskDoc), or split into two representation specs. 1 kbar = 0.1 GPa exactly; 1 GPa = 0.006241509125883258 eV/A^3 (ase CODATA-2014) = 160.21766208 GPa per eV/A^3 inverse.",
+    "[CONSTANT-GENERATION] AtomisticSkills's VASP stress/energy conversions use ase.units.GPa, which in the base env is CODATA-2014 (_e = 1.6021766208e-19; verified 1/ase.units.GPa = 160.21766208). This matches the MLIP-scan benchmark finding (1602.1766208 kbar/(eV/A^3)) and DIFFERS from the pymatgen-scan elasticity constant 160.21766339999996 (CODATA-2018/scipy). ~1e-8 relative, physically negligible, but the same in-repo constant-generation mismatch to record on the VASP Stress representation.",
+    "[SMEARING / ENERGY VARIANT] VASP TotalEnergy has three variants (e_fr_energy = smeared free energy F = E - TS_smear, e_wo_entrp, e_0_energy = sigma->0 extrapolation; outputs.py:6213-6215). pymatgen Vasprun.final_energy returns e_0_energy; atomate2 TaskDoc.output.energy is typically e_0_energy. This is the exact per-cell analog of the QE '!' smeared-free-energy trap (qe.py:82-84). A cross-code EXPECTED_AGREE between VASP and QE TotalEnergy must compare the SAME energy variant AND account for the different absolute energy zero (pseudopotential/PAW + XC functional dependent).",
+    "[ABSOLUTE ENERGY ZERO] VASP PAW + XC-functional (PBE / r2SCAN / omat / MatPES presets) sets the absolute total-energy zero; QE uses different pseudopotentials. VASP and QE TotalEnergy agree only on RELATIVE energies (formation, EOS curvature), never absolute - identical to the MLIP-scan model+functional caveat. The preset (omat/mp/matpes-pbe/matpes-r2scan/mp-r2scan) is required Potential provenance.",
+    "[atomate2 NOT IMPORTABLE in base env] atomate2 and jobflow-remote are not in the miniconda base env; the maker names (StaticMaker, RelaxMaker, BandStructureMaker, OpticsMaker, VaspLobsterMaker, FerroelectricMaker, ElectronPhononMaker, VaspAmsetMaker, FormationEnergyMaker, MatPesStaticFlowMaker, MP*Maker) are anchored to the AtomisticSkills import sites, not read from atomate2 source. pymatgen.io.vasp (the actual VASP output parser) IS importable and was read directly (outputs.py:557-558 stress varray, :2824 TOTAL ELASTIC MODULI kBar, :6213-6215 TOTEN variants, :3209-3257 Born). A reviewer with the atomate2-agent env installed should confirm TaskDoc.output.stress is GPa and .energy is e_0_energy.",
+    "[ELASTIC ROUTE] AtomisticSkills reads Outcar.elastic_modulus (kbar, IBRION=6 direct; vasp_parser.py:124) but the mapped ElasticConstants producer in the pymatgen/mlip scans is matcalc.ElasticityCalc (stress-strain fit, eV/A^3). The atomate2 ElasticMaker (atomate2.vasp.flows.elastic) exists but is not driven by the AtomisticSkills DFT scripts scanned here. ElasticConstants is landing from the pymatgen encode NOW; add the VASP OUTCAR route as an alternate representation (kbar->GPa via *0.1), an EXPECTED_AGREE with the MLIP route.",
+    "[FREQUENCY-DEPENDENT vs STATIC DIELECTRIC] The map's DielectricTensor node is the STATIC clamped-ion eps_inf (omega->infinity). VASP LEPSILON gives that; VASP LOPTICS/OpticsMaker gives the frequency-dependent eps(omega) spectrum, a DISTINCT observable (new-node-candidate dielectric-function). Do not conflate: eps_inf is the omega->infinity limit of the LOPTICS spectrum's real part.",
+    "[DEFECT DFT vs MLIP] The FormationEnergyMaker route here is CHARGED (Fermi-level and charge-state dependent, Freysoldt/Kumagai finite-size corrections); the pymatgen-scan defect-formation-energy is the NEUTRAL in-skill MLIP formula. Same proposed node, two producers; EXPECTED_AGREE holds only at neutral charge state."
+  ]
+}
