@@ -27,4 +27,7 @@ register_space_symbols({
     "Structure": {r"\mathcal{S}", r"R^{at}"},
     # The opaque potential appears as the second argument of E_KS(S, V).
     "Potential": {"V"},
+    # Per-site magnetic moment (m^{spin}, not bare m: that is the thermal
+    # domain's registered atomic mass).
+    "MagneticMoment": {r"m^{spin}"},
 })

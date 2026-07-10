@@ -8,12 +8,13 @@ its Sources tier as an input, joining Potential).
 
 Node table:
 
-  Node          quantity tag   dimension                  indices        notes
-  ------------  -------------  -------------------------  -------------  -----
-  Structure     structure      opaque                     ()             shared input
-  TotalEnergy   total_energy   ENERGY                     ()             extensive, per cell
-  Forces        force          FORCE (M L T^-2)           (i, alpha)     per-atom Cartesian
-  Stress        stress         ENERGY_PER_LENGTH_CUBED    (alpha, beta)  cell-averaged Cauchy
+  Node           quantity tag     dimension                  indices        notes
+  -------------  ---------------  -------------------------  -------------  -----
+  Structure      structure        opaque                     ()             shared input
+  TotalEnergy    total_energy     ENERGY                     ()             extensive, per cell
+  Forces         force            FORCE (M L T^-2)           (i, alpha)     per-atom Cartesian
+  Stress         stress           ENERGY_PER_LENGTH_CUBED    (alpha, beta)  cell-averaged Cauchy
+  MagneticMoment magnetic_moment  MAGNETIC_MOMENT (L^2 I)    (i,)           per-site, mu_B
 
 Deferred v1 candidates (from the QE scan's seven new-node set), each with why:
 
@@ -37,7 +38,12 @@ Follow-up edges beyond the v1 leaves:
 """
 from __future__ import annotations
 
-from omai.operator.dimensions import ENERGY, ENERGY_PER_LENGTH_CUBED, FORCE
+from omai.operator.dimensions import (
+    ENERGY,
+    ENERGY_PER_LENGTH_CUBED,
+    FORCE,
+    MAGNETIC_MOMENT,
+)
 from omai.operator.space import Field, ObservableSpace, Space
 
 # Structure enters NODES from the shared primitives (same node the materials
@@ -84,4 +90,26 @@ STRESS = ObservableSpace(
     ),
 )
 
-NODES: tuple[Space, ...] = (STRUCTURE, TOTAL_ENERGY, FORCES, STRESS)
+MAGNETIC_MOMENT_STATE = ObservableSpace(
+    name="MagneticMoment",
+    fields=(Field("m", MAGNETIC_MOMENT, indices=("i",)),),
+    tier="Ground state",
+    description=(
+        "Per-site magnetic moment m_i of the spin-polarized ground state, in "
+        "Bohr magnetons: the projection of the spin density onto site i that "
+        "a spin-polarized SCF reports next to the energy, forces, and "
+        "stress (VASP MAGMOM/magnetization, QE site moments; MP serves the "
+        "cell total as total_magnetization). Dimension MAGNETIC_MOMENT "
+        "(L^2 I, the map's first magnetic use of the current axis); the "
+        "collinear FM/AFM/FiM/NM ordering classification is a downstream "
+        "label over these moments (pymatgen Ordering), not part of the node."
+    ),
+)
+
+NODES: tuple[Space, ...] = (
+    STRUCTURE,
+    TOTAL_ENERGY,
+    FORCES,
+    STRESS,
+    MAGNETIC_MOMENT_STATE,
+)

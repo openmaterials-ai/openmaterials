@@ -1,11 +1,13 @@
 r"""Operators (edges) of the DFT ground-state domain.
 
-Four edges, all implicit (is_executable_in_sympy_override=False): the
+Five edges, all implicit (is_executable_in_sympy_override=False): the
 Kohn-Sham SCF solve, the two response derivatives (Hellmann-Feynman forces,
-cell stress) a DFT engine reports alongside the energy, and the
+cell stress) a DFT engine reports alongside the energy, the
 finite-displacement route from Forces to the second-order force constants
 (Pattern C alternative producer, knitting the ground-state tier into the
-thermal-transport chain).
+thermal-transport chain), and the spin-polarized per-site magnetic moments
+(added 2026-07-09 from the pymatgen scan, the same (Structure, Potential)
+signature as the SCF solve).
 
 Symbol choices are deliberately distinct from the thermal domain's globals to
 avoid collisions in the shared dimension / vocabulary registries: E_{tot} and
@@ -21,6 +23,7 @@ import sympy as sp
 from omai.operator.operator import Operator
 from omai.dft_ground_state.operator.nodes import (
     FORCES,
+    MAGNETIC_MOMENT_STATE,
     STRESS,
     STRUCTURE,
     TOTAL_ENERGY,
@@ -49,6 +52,11 @@ _Phi2 = sp.IndexedBase(r"\Phi^{(2)}")
 # schematic convention (u_i(0) is a registered global constant there).
 _F_jR = sp.Symbol("F_j(R)")
 _u_i0 = sp.Symbol("u_i(0)")
+# Per-site magnetic moment (m^{spin}, NOT bare m: that is the thermal
+# domain's registered atomic mass) and the opaque spin-polarized ground-state
+# functional producing it.
+_m_spin = sp.IndexedBase(r"m^{spin}")
+_m_KS = sp.Function(r"m^{KS}")
 
 
 # ---------------------------------------------------------------------------
@@ -128,9 +136,31 @@ compute_fc2_finite_displacement = Operator(
     ),
 )
 
+compute_magnetic_moments = Operator(
+    name="compute_magnetic_moments",
+    inputs=(STRUCTURE, POTENTIAL),
+    outputs=(MAGNETIC_MOMENT_STATE,),
+    schemes={"method": "spin_polarized_scf"},
+    formula=sp.Eq(_m_spin[_i], _m_KS(_S, _V_sym)),
+    is_executable_in_sympy_override=False,
+    description=(
+        "Per-site magnetic moments m^{spin}_i = m^{KS}[S, V]: the "
+        "site-projected spin density of the converged spin-polarized "
+        "Kohn-Sham ground state of Structure S under Potential V, a "
+        "ground-state output alongside the energy, forces, and stress (the "
+        "same (S, V) signature as solve_ground_state, one more response of "
+        "the same solve). Implicit (an external spin-polarized SCF), so not "
+        "sympy-executable. In Bohr magnetons; the site-projection scheme "
+        "(integration sphere / Wigner-Seitz cell) is a representation-level "
+        "discretization, and the FM/AFM/FiM/NM ordering label is a "
+        "downstream classification over these moments, not part of the node."
+    ),
+)
+
 EDGES: tuple[Operator, ...] = (
     solve_ground_state,
     compute_forces_hf,
     compute_stress_cell,
     compute_fc2_finite_displacement,
+    compute_magnetic_moments,
 )

@@ -127,6 +127,13 @@ ENERGY_TIMES_LENGTH_PER_TIME = Dimension(
 OPAQUE = Dimension("opaque")  # for parameter states like Potential whose internal structure is unmodeled
 VOLUME = Dimension("volume", (0, 3, 0, 0, 0, 0, 0))
 DIFFUSIVITY = Dimension("diffusivity", (0, 2, -1, 0, 0, 0, 0))  # length^2 / time
+# Voltage: energy per charge, M L^2 T^-3 I^-1 (the volt). The map's first use
+# of the electric-current base axis; the intercalation Voltage node carries it.
+VOLTAGE = Dimension("voltage", (1, 2, -3, 0, 0, -1, 0))
+# Magnetic (dipole) moment: current x area, L^2 I (the A m^2 of the Bohr
+# magneton). Second current-axis dimension; the per-site MagneticMoment
+# carries it. The mu_B convention lives in the unit registry, not here.
+MAGNETIC_MOMENT = Dimension("magnetic_moment", (0, 2, 0, 0, 0, 1, 0))
 
 
 DIMENSIONS: dict[str, Dimension] = {
@@ -155,5 +162,7 @@ DIMENSIONS: dict[str, Dimension] = {
         OPAQUE,
         VOLUME,
         DIFFUSIVITY,
+        VOLTAGE,
+        MAGNETIC_MOMENT,
     ]
 }

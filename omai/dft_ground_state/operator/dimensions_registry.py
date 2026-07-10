@@ -20,6 +20,7 @@ from omai.operator.dimensions import (
     ENERGY_PER_LENGTH_CUBED,
     FORCE,
     LENGTH,
+    MAGNETIC_MOMENT,
 )
 
 register_symbol_dimensions({
@@ -30,4 +31,7 @@ register_symbol_dimensions({
     r"\sigma": ENERGY_PER_LENGTH_CUBED,
     # A homogeneous strain is dimensionless (dL / L).
     r"\varepsilon^{str}": DIMENSIONLESS,
+    # Per-site magnetic moment, L^2 I (mu_B currency). m^{spin}, not bare m
+    # (the thermal domain's atomic mass).
+    r"m^{spin}": MAGNETIC_MOMENT,
 })

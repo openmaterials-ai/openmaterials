@@ -50,11 +50,11 @@ def test_dft_domain_declares_ground_state_tier():
     assert tier_names == ["Ground state"]
 
 
-def test_dft_nodes_are_structure_total_energy_forces_stress():
+def test_dft_nodes_are_structure_energy_forces_stress_moments():
     from omai.dft_ground_state.operator import NODES
 
     assert [s.name for s in NODES] == [
-        "Structure", "TotalEnergy", "Forces", "Stress"]
+        "Structure", "TotalEnergy", "Forces", "Stress", "MagneticMoment"]
 
 
 def test_dft_edges_are_the_ground_state_operators():
@@ -64,7 +64,7 @@ def test_dft_edges_are_the_ground_state_operators():
 
     assert [op.name for op in EDGES] == [
         "solve_ground_state", "compute_forces_hf", "compute_stress_cell",
-        "compute_fc2_finite_displacement"]
+        "compute_fc2_finite_displacement", "compute_magnetic_moments"]
 
 
 def test_structure_is_imported_from_shared_primitives():
@@ -129,6 +129,7 @@ def test_ground_state_nodes_carry_the_tier_and_structure_in_sources():
     assert tier_of["TotalEnergy"] == "Ground state"
     assert tier_of["Forces"] == "Ground state"
     assert tier_of["Stress"] == "Ground state"
+    assert tier_of["MagneticMoment"] == "Ground state"
     assert tier_of["Structure"] == "Sources"
 
 
@@ -146,7 +147,7 @@ def test_new_nodes_validate_against_the_registries():
     from omai.operator.identity import node_identity
     from omai.dft_ground_state.operator import NODES
 
-    new_names = {"TotalEnergy", "Forces", "Stress"}
+    new_names = {"TotalEnergy", "Forces", "Stress", "MagneticMoment"}
     records = []
     for s in NODES:
         if s.name in new_names:
@@ -178,8 +179,10 @@ def test_build_codes_qe_covers_13_including_the_ground_state():
 
 def test_dft_representation_package_discovery_finds_the_specs():
     """Discovery mirrors build_codes / the boundary suite: walk the package's
-    modules and collect spec instances by introspection. Four space specs plus
-    one operator spec, all representation_name 'qe'."""
+    modules and collect spec instances by introspection. QE contributes four
+    space specs and one operator spec; pymatgen (2026-07-09) four space specs
+    (Structure, TotalEnergy, Stress, MagneticMoment) and one operator spec
+    (compute_magnetic_moments)."""
     import importlib
     import pkgutil
 
@@ -201,14 +204,19 @@ def test_dft_representation_package_discovery_finds_the_specs():
                 space_specs.append((attr, obj))
             elif isinstance(obj, OperatorRepresentationSpec):
                 op_specs.append((attr, obj))
-    assert len(space_specs) == 4, [a for a, _ in space_specs]
-    assert len(op_specs) == 1, [a for a, _ in op_specs]
-    assert {s.space.name for _, s in space_specs} == {
-        "Structure", "TotalEnergy", "Forces", "Stress"}
-    assert op_specs[0][1].operator.name == "solve_ground_state"
+    by_rep_space, by_rep_op = {}, {}
     for _, s in space_specs:
-        assert s.representation_name == "qe"
-    assert op_specs[0][1].representation_name == "qe"
+        by_rep_space.setdefault(s.representation_name, set()).add(s.space.name)
+    for _, s in op_specs:
+        by_rep_op.setdefault(s.representation_name, set()).add(s.operator.name)
+    assert by_rep_space["qe"] == {
+        "Structure", "TotalEnergy", "Forces", "Stress"}
+    assert by_rep_op["qe"] == {"solve_ground_state"}
+    assert by_rep_space["pymatgen"] == {
+        "Structure", "TotalEnergy", "Stress", "MagneticMoment"}
+    assert by_rep_op["pymatgen"] == {"compute_magnetic_moments"}
+    assert len(space_specs) == 8, [a for a, _ in space_specs]
+    assert len(op_specs) == 2, [a for a, _ in op_specs]
 
 
 def test_qe_ground_state_units_are_the_declared_ones():
@@ -286,11 +294,12 @@ def test_dft_contribution_is_records_102_to_108_after_the_symbol_edit():
     assert rec_101["op"] == "edit_meta"
     assert rec_101["payload"]["uid"] == node_id(BARE_DYNAMICAL_MATRIX)
 
-    # The v1 contribution is history: exactly the four nodes plus the FIRST
-    # three edges (the domain later grew, e.g. record 109 below).
+    # The v1 contribution is history: exactly the FIRST four nodes plus the
+    # FIRST three edges (the domain later grew: record 109 below, and the
+    # MagneticMoment node landed 2026-07-09 as part of records 122-131).
     v1_edges = [op for op in EDGES if op.name in (
         "solve_ground_state", "compute_forces_hf", "compute_stress_cell")]
-    domain_uids = [node_id(s) for s in NODES] + \
+    domain_uids = [node_id(s) for s in NODES[:4]] + \
         [edge_id(op, node_id) for op in v1_edges]
     recs = [json.loads(line) for line in lines[101:108]]
     assert [r["payload"]["uid"] for r in recs] == domain_uids

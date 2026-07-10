@@ -36,10 +36,11 @@ def _all_nodes_edges():
 # The domain descriptor and its wiring into DOMAINS.
 # --------------------------------------------------------------------------
 
-def test_mechanics_domain_in_domains_between_ground_state_and_diffusion():
+def test_mechanics_domain_in_domains_between_ground_state_and_stability():
     names = [d.name for d in DOMAINS]
     assert names == [
-        "thermal_transport", "dft_ground_state", "mechanics", "materials"]
+        "thermal_transport", "dft_ground_state", "mechanics", "stability",
+        "materials"]
 
 
 def test_mechanics_domain_declares_mechanics_tier():
@@ -121,11 +122,12 @@ def test_all_six_mechanics_edges_are_dimensionally_ok():
     ), report["violation"]
 
 
-def test_no_node_uid_collisions_at_61_nodes():
+def test_no_node_uid_collisions_at_66_nodes():
     # 59 with the original mechanics four; 61 with YoungsModulus and
-    # PoissonRatio (2026-07-09).
+    # PoissonRatio; 66 with the stability four plus MagneticMoment
+    # (2026-07-09).
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 61
+    assert len(g["nodes"]) == 66
     uids = [n["uid"] for n in g["nodes"]]
     assert len(set(uids)) == len(uids), "node uid collision"
 
@@ -134,13 +136,13 @@ def test_no_node_uid_collisions_at_61_nodes():
 # The unified graph: tier order and node placement.
 # --------------------------------------------------------------------------
 
-def test_mechanics_tier_ordered_after_ground_state_before_diffusion():
+def test_mechanics_tier_ordered_after_ground_state_before_stability():
     g = build_graph_dict(DOMAINS)
     tier_names = [t["name"] for t in g["tiers"]]
     assert "Mechanics" in tier_names
     i = tier_names.index("Mechanics")
     assert tier_names[i - 1] == "Ground state"
-    assert tier_names[i + 1] == "Diffusion"
+    assert tier_names[i + 1] == "Stability"
 
 
 def test_mechanics_nodes_carry_the_tier():

@@ -30,8 +30,10 @@ from omai.operator.dimensions import (
     FREQUENCY_SQUARED,
     LENGTH,
     LENGTH_TIMES_FREQUENCY,
+    MAGNETIC_MOMENT,
     TEMPERATURE,
     THERMAL_CONDUCTIVITY,
+    VOLTAGE,
     VOLUME,
 )
 
@@ -115,6 +117,13 @@ EV_PER_A3 = Unit("eV_per_A3", ENERGY_PER_LENGTH_CUBED, 1.0)
 # unit string printed in the file; the factor is Ry[eV] / bohr[Å]² (CODATA).
 EV_PER_A2 = Unit("eV_per_A2", ENERGY_PER_LENGTH_SQUARED, 1.0)
 RY_PER_BOHR2 = Unit("Ry_per_bohr2", ENERGY_PER_LENGTH_SQUARED, 13.605693122994 / 0.529177210903**2)
+# Surface energy shares the M T^-2 exponents with the force constants (energy
+# per area vs force per length: same dimension, different quantities, kept
+# apart by the surface_energy quantity tag). Canonical stays eV/Å² (the map's
+# eV-Å family); 1 eV/Å² = 1.602176634e-19 J / 1e-20 m² = 16.021766339999996
+# J/m² (full precision; mat-surface-energy truncates to 16.0218), so
+# 1 J/m² = 1/16.021766339999996 eV/Å².
+J_PER_M2 = Unit("J_per_m2", ENERGY_PER_LENGTH_SQUARED, 1.0 / 16.021766339999996)
 
 
 # Energy units for the DFT ground state. JOULE stays the canonical ENERGY unit
@@ -124,6 +133,12 @@ RY_PER_BOHR2 = Unit("Ry_per_bohr2", ENERGY_PER_LENGTH_SQUARED, 13.605693122994 /
 # 13.605693122994 * 1.602176634e-19.
 EV = Unit("ev", ENERGY, _E)
 RY = Unit("ry", ENERGY, 13.605693122994 * _E)
+# eV per atom: the phase-diagram currency (formation energies, hull
+# distances). Numerically identical to eV: the per-atom character belongs to
+# the QUANTITY (formation_energy, energy_above_hull are intensive per-atom
+# nodes), not to the unit, which measures plain energy. Registered as its own
+# name so specs and instances state the convention explicitly.
+EV_PER_ATOM = Unit("ev_per_atom", ENERGY, _E)
 
 
 # Force units. Canonical: eV/Å (to_operator 1.0); its absolute SI scale is
@@ -157,6 +172,19 @@ ANGSTROM_CUBED = Unit("angstrom_cubed", VOLUME, 1.0, si_scale=1e-30)
 DIMENSIONLESS_UNIT = Unit("dimensionless", DIMENSIONLESS, 1.0, si_scale=1.0)
 
 
+# Canonical voltage unit: the SI volt (energy per charge). eV per elementary
+# charge = 1 V exactly, so intercalation voltages computed as eV energy
+# differences over n electrons are already in volts with no extra factor.
+VOLT = Unit("volt", VOLTAGE, 1.0, si_scale=1.0)
+
+
+# Canonical magnetic-moment unit: the Bohr magneton, the currency of every
+# spin-polarized DFT output (VASP MAGMOM/magnetization, MP total_magnetization,
+# QE site moments). Absolute SI scale: mu_B = 9.2740100783e-24 J/T = A m^2
+# (CODATA 2018).
+MU_B = Unit("mu_B", MAGNETIC_MOMENT, 1.0, si_scale=9.2740100783e-24)
+
+
 UNITS: dict[str, Unit] = {
     u.name: u
     for u in [
@@ -178,8 +206,10 @@ UNITS: dict[str, Unit] = {
         EV_PER_A3,
         EV_PER_A2,
         RY_PER_BOHR2,
+        J_PER_M2,
         EV,
         RY,
+        EV_PER_ATOM,
         EV_PER_A,
         RY_PER_BOHR,
         KBAR,
@@ -188,6 +218,8 @@ UNITS: dict[str, Unit] = {
         ANGSTROM,
         ANGSTROM_CUBED,
         DIMENSIONLESS_UNIT,
+        VOLT,
+        MU_B,
     ]
 }
 

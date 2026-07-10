@@ -10,6 +10,7 @@ SYMBOLS: dict[str, str] = {
     "TotalEnergy": r"E_{tot}",
     "Forces": r"F^{at}",
     "Stress": r"\sigma",
+    "MagneticMoment": r"m^{spin}",
 }
 
 DFT_GROUND_STATE = Domain(
