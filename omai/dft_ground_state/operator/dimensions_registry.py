@@ -34,4 +34,7 @@ register_symbol_dimensions({
     # Per-site magnetic moment, L^2 I (mu_B currency). m^{spin}, not bare m
     # (the thermal domain's atomic mass).
     r"m^{spin}": MAGNETIC_MOMENT,
+    # Electronic band gap, an energy (the compute_band_gap formula stays a
+    # dimensional SKIP because V is unregistered, like solve_ground_state).
+    "E_{gap}": ENERGY,
 })

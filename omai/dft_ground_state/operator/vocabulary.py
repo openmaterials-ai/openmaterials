@@ -30,4 +30,6 @@ register_space_symbols({
     # Per-site magnetic moment (m^{spin}, not bare m: that is the thermal
     # domain's registered atomic mass).
     "MagneticMoment": {r"m^{spin}"},
+    # Electronic band gap scalar the band-structure solve reports.
+    "BandGap": {"E_{gap}"},
 })

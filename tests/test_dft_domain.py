@@ -54,7 +54,8 @@ def test_dft_nodes_are_structure_energy_forces_stress_moments():
     from omai.dft_ground_state.operator import NODES
 
     assert [s.name for s in NODES] == [
-        "Structure", "TotalEnergy", "Forces", "Stress", "MagneticMoment"]
+        "Structure", "TotalEnergy", "Forces", "Stress", "MagneticMoment",
+        "BandGap"]
 
 
 def test_dft_edges_are_the_ground_state_operators():
@@ -64,7 +65,8 @@ def test_dft_edges_are_the_ground_state_operators():
 
     assert [op.name for op in EDGES] == [
         "solve_ground_state", "compute_forces_hf", "compute_stress_cell",
-        "compute_fc2_finite_displacement", "compute_magnetic_moments"]
+        "compute_fc2_finite_displacement", "compute_magnetic_moments",
+        "compute_band_gap"]
 
 
 def test_structure_is_imported_from_shared_primitives():
@@ -130,6 +132,7 @@ def test_ground_state_nodes_carry_the_tier_and_structure_in_sources():
     assert tier_of["Forces"] == "Ground state"
     assert tier_of["Stress"] == "Ground state"
     assert tier_of["MagneticMoment"] == "Ground state"
+    assert tier_of["BandGap"] == "Ground state"
     assert tier_of["Structure"] == "Sources"
 
 
@@ -227,10 +230,20 @@ def test_dft_representation_package_discovery_finds_the_specs():
         "Potential", "TotalEnergy", "Forces", "Stress", "MagneticMoment"}
     for rep in ("mace", "matgl", "fairchem"):
         assert by_rep_op[rep] == {"solve_ground_state"}, rep
-    # 8 (qe 4 + pymatgen 4) + mace 4 + matgl 5 + fairchem 4 = 21 space specs;
-    # 2 (qe, pymatgen operator) + 3 MLIP operator specs = 5 operator specs.
-    assert len(space_specs) == 21, [a for a, _ in space_specs]
-    assert len(op_specs) == 5, [a for a, _ in op_specs]
+    # vasp (2026-07-09, atomate2/VASP scan): six space specs (the four QE
+    # grounds plus MagneticMoment and the new electronic BandGap) and four
+    # operator specs (the SCF solve, the band-gap read, and the force/stress
+    # responses read off the same TaskDoc).
+    assert by_rep_space["vasp"] == {
+        "Structure", "TotalEnergy", "Forces", "Stress", "MagneticMoment",
+        "BandGap"}
+    assert by_rep_op["vasp"] == {
+        "solve_ground_state", "compute_band_gap", "compute_forces_hf",
+        "compute_stress_cell"}
+    # 8 (qe 4 + pymatgen 4) + mace 4 + matgl 5 + fairchem 4 + vasp 6 = 27 space
+    # specs; 2 (qe, pymatgen operator) + 3 MLIP + 4 vasp = 9 operator specs.
+    assert len(space_specs) == 27, [a for a, _ in space_specs]
+    assert len(op_specs) == 9, [a for a, _ in op_specs]
 
 
 def test_qe_ground_state_units_are_the_declared_ones():
@@ -267,6 +280,129 @@ def test_qe_solve_ground_state_declares_the_scf_discretizations():
     for key in ("ecutwfc", "k_mesh", "smearing", "conv_thr",
                 "pseudopotentials"):
         assert key in QE_SOLVE_GROUND_STATE.discretization_choices, key
+
+
+# --------------------------------------------------------------------------
+# The vasp rail (atomate2/VASP scan, arXiv 2605.24002): a SECOND representation
+# of the QE-grounded ground state plus MagneticMoment and the new BandGap,
+# spanning three domains (dft, mechanics, thermal).
+# --------------------------------------------------------------------------
+
+def test_vasp_ground_state_units_are_the_declared_ones():
+    from omai.dft_ground_state.representation.vasp import (
+        VASP_BAND_GAP,
+        VASP_FORCES,
+        VASP_MAGNETIC_MOMENT,
+        VASP_STRESS,
+        VASP_STRUCTURE,
+        VASP_TOTAL_ENERGY,
+    )
+
+    # eV per cell, eV/A, kbar (NOT GPa), mu_B, eV for the gap.
+    assert VASP_TOTAL_ENERGY.observable_units == {"E_tot": "ev"}
+    assert VASP_FORCES.observable_units == {"F": "eV_per_A"}
+    assert VASP_STRESS.observable_units == {"sigma": "kbar"}
+    assert VASP_MAGNETIC_MOMENT.observable_units == {"m": "mu_B"}
+    assert VASP_BAND_GAP.observable_units == {"E_gap": "ev"}
+    # Structure is opaque: an artifact (POSCAR/CONTCAR), never a numeric unit.
+    assert VASP_STRUCTURE.observable_units == {}
+
+
+def test_vasp_stress_is_kbar_compression_positive_no_flip_to_store():
+    """The scan's central finding: VASP stress is kbar (both routes, NOT GPa),
+    compression-positive (the SAME sign as the map's Stress store), so VASP ->
+    store needs NO sign flip. The 10x AtomisticSkills bug and the ASE re-sign
+    are recorded but do not change the stored representation."""
+    from omai.dft_ground_state.representation.vasp import VASP_STRESS
+
+    assert VASP_STRESS.observable_units == {"sigma": "kbar"}
+    notes = VASP_STRESS.notes
+    assert "compression-positive" in notes
+    assert "NO sign flip" in notes
+    assert "10x too large" in notes  # the AtomisticSkills atomate2_utils.py:456 defect
+    assert "units of kB" in notes  # the emmet OutputDoc contract
+    assert "elastic.py:518-519" in notes  # the independent confirmation anchor
+
+
+def test_vasp_total_energy_declares_the_e_0_energy_variant():
+    """TotalEnergy is the e_0_energy (sigma->0) variant; the other two VASP
+    variants are named as DIFFERENT quantities, not this node."""
+    from omai.dft_ground_state.representation.vasp import VASP_TOTAL_ENERGY
+
+    notes = VASP_TOTAL_ENERGY.notes
+    assert "e_0_energy" in notes
+    assert "e_fr_energy" in notes
+    assert "e_wo_entrp" in notes
+    assert "RELATIVE energies" in notes  # the absolute-zero caveat
+
+
+def test_vasp_band_gap_notes_record_the_ks_gap_and_functional_dependence():
+    """The KS-gap vs fundamental-gap caveat, the functional dependence, and the
+    BandStructureMaker producer are the facts on the BandGap spec."""
+    from omai.dft_ground_state.representation.vasp import (
+        VASP_BAND_GAP,
+        VASP_COMPUTE_BAND_GAP,
+    )
+
+    notes = VASP_BAND_GAP.notes
+    assert "Kohn-Sham" in notes
+    assert "NOT the fundamental" in notes
+    assert "functional" in notes
+    # The compute edge's scheme is quantity=ks_gap; the maker is BandStructureMaker.
+    assert VASP_COMPUTE_BAND_GAP.operator.schemes == {"quantity": "ks_gap"}
+    assert "BandStructureMaker" in VASP_COMPUTE_BAND_GAP.notes
+
+
+def test_vasp_solve_ground_state_declares_the_incar_discretizations():
+    from omai.dft_ground_state.representation.vasp import VASP_SOLVE_GROUND_STATE
+
+    for key in ("ENCUT", "k_mesh", "smearing", "EDIFF", "potcar_xc"):
+        assert key in VASP_SOLVE_GROUND_STATE.discretization_choices, key
+    # atomate2 is the workflow layer, pinned to the verified 0.1.4 wheel.
+    assert "0.1.4" in VASP_SOLVE_GROUND_STATE.notes
+    assert "StaticMaker" in VASP_SOLVE_GROUND_STATE.notes
+
+
+def test_vasp_rail_spans_three_domains_in_build_codes():
+    """The vasp rail is cross-domain (like the pymatgen encode): dft
+    (Structure/E/F/S/MagneticMoment/BandGap), mechanics (ElasticConstants),
+    thermal (BornCharges/DielectricTensor) = nine space specs on one rail."""
+    from omai.map_data import build_codes
+
+    vasp = build_codes(DOMAINS)["vasp"]
+    assert set(vasp) == {
+        "Structure", "TotalEnergy", "Forces", "Stress", "MagneticMoment",
+        "BandGap", "ElasticConstants", "BornCharges", "DielectricTensor"}
+
+
+def test_vasp_elastic_constants_is_kbar_outcar_route_expected_agree():
+    """The mechanics vasp spec: ElasticConstants in kbar (OUTCAR IBRION=6
+    direct), an EXPECTED_AGREE alternate to the matcalc eV/A^3 route, with the
+    from_independent_strains(vasp=True) stress-fit route noted as distinct."""
+    from omai.mechanics.representation.vasp import VASP_ELASTIC_CONSTANTS
+
+    assert VASP_ELASTIC_CONSTANTS.observable_units == {"C": "kbar"}
+    notes = VASP_ELASTIC_CONSTANTS.notes
+    assert "kBar" in notes  # the OUTCAR header
+    assert "IBRION=6" in notes
+    assert "EXPECTED_AGREE" in notes
+    assert "elastic.py:518-519" in notes  # the distinct stress-fit route
+
+
+def test_vasp_thermal_response_tensors_are_the_lepsilon_producers():
+    """The thermal vasp specs: BornCharges and the STATIC DielectricTensor from
+    LEPSILON (dimensionless), the direct DFT-domain producers, with the
+    frequency-dependent LOPTICS spectrum flagged as a deferred distinct node."""
+    from omai.thermal_transport.representation.vasp import (
+        VASP_BORN_CHARGES,
+        VASP_DIELECTRIC_TENSOR,
+    )
+
+    assert VASP_BORN_CHARGES.observable_units == {"Z_star": "dimensionless"}
+    assert VASP_DIELECTRIC_TENSOR.observable_units == {
+        "epsilon_infinity": "dimensionless"}
+    assert "LEPSILON" in VASP_BORN_CHARGES.notes
+    assert "LOPTICS" in VASP_DIELECTRIC_TENSOR.notes  # the deferred spectrum
 
 
 # --------------------------------------------------------------------------
@@ -478,6 +614,39 @@ def test_dft_contribution_is_records_102_to_108_after_the_symbol_edit():
     rec_109 = json.loads(lines[108])
     assert rec_109["op"] == "add_edge"
     assert rec_109["payload"]["uid"] == edge_id(fd_edge, node_id)
+
+
+def test_band_gap_contribution_is_records_132_133():
+    """The atomate2/VASP scan's single node landed as records 132-133 (log
+    positions 131-132): the BandGap add_node then the compute_band_gap
+    add_edge, in NODES / EDGES order, authored through sync --apply on
+    2026-07-09. Positions are history and never move."""
+    import json
+    from pathlib import Path
+
+    from omai.operator.identity import edge_id
+    from omai.dft_ground_state.operator.edges import compute_band_gap
+    from omai.dft_ground_state.operator.nodes import BAND_GAP
+
+    lines = (Path(__file__).resolve().parents[1] / "map" / "log.jsonl") \
+        .read_text().splitlines()
+    assert len(lines) >= 133, "the band-gap contribution has not landed"
+
+    rec_132 = json.loads(lines[131])
+    assert rec_132["op"] == "add_node"
+    assert rec_132["payload"]["uid"] == node_id(BAND_GAP)
+    assert rec_132["payload"]["meta"]["name"] == "BandGap"
+
+    rec_133 = json.loads(lines[132])
+    assert rec_133["op"] == "add_edge"
+    assert rec_133["payload"]["uid"] == edge_id(compute_band_gap, node_id)
+    assert rec_133["payload"]["meta"]["name"] == "compute_band_gap"
+
+    for r in (rec_132, rec_133):
+        assert r["author"] == "gbarbalinardo"
+        assert r["date"] == "2026-07-09"
+        assert "atomate2/VASP scan" in r["reason"]
+        assert "2605.24002" in r["reason"]
 
 
 # --------------------------------------------------------------------------

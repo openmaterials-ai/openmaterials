@@ -1,13 +1,15 @@
 r"""Operators (edges) of the DFT ground-state domain.
 
-Five edges, all implicit (is_executable_in_sympy_override=False): the
+Six edges, all implicit (is_executable_in_sympy_override=False): the
 Kohn-Sham SCF solve, the two response derivatives (Hellmann-Feynman forces,
 cell stress) a DFT engine reports alongside the energy, the
 finite-displacement route from Forces to the second-order force constants
 (Pattern C alternative producer, knitting the ground-state tier into the
-thermal-transport chain), and the spin-polarized per-site magnetic moments
+thermal-transport chain), the spin-polarized per-site magnetic moments
 (added 2026-07-09 from the pymatgen scan, the same (Structure, Potential)
-signature as the SCF solve).
+signature as the SCF solve), and the electronic band gap (added 2026-07-09
+from the atomate2/VASP scan, the same (Structure, Potential) signature: one
+more response read off a band-structure run).
 
 Symbol choices are deliberately distinct from the thermal domain's globals to
 avoid collisions in the shared dimension / vocabulary registries: E_{tot} and
@@ -22,6 +24,7 @@ import sympy as sp
 
 from omai.operator.operator import Operator
 from omai.dft_ground_state.operator.nodes import (
+    BAND_GAP,
     FORCES,
     MAGNETIC_MOMENT_STATE,
     STRESS,
@@ -57,6 +60,10 @@ _u_i0 = sp.Symbol("u_i(0)")
 # functional producing it.
 _m_spin = sp.IndexedBase(r"m^{spin}")
 _m_KS = sp.Function(r"m^{KS}")
+# Electronic band gap (E_{gap}) and the opaque band-structure functional that
+# produces it, the same (S, V) signature as the SCF solve.
+_E_gap = sp.Symbol("E_{gap}")
+_E_gap_KS = sp.Function(r"E^{gap}_{KS}")
 
 
 # ---------------------------------------------------------------------------
@@ -157,10 +164,32 @@ compute_magnetic_moments = Operator(
     ),
 )
 
+compute_band_gap = Operator(
+    name="compute_band_gap",
+    inputs=(STRUCTURE, POTENTIAL),
+    outputs=(BAND_GAP,),
+    schemes={"quantity": "ks_gap"},
+    formula=sp.Eq(_E_gap, _E_gap_KS(_S, _V_sym)),
+    is_executable_in_sympy_override=False,
+    description=(
+        "Electronic band gap E_gap = E^gap_KS[S, V]: the Kohn-Sham "
+        "eigenvalue gap (valence-band maximum to conduction-band minimum) of "
+        "the Structure S under the Potential V, read from a band-structure "
+        "run. The scheme records quantity=ks_gap: this is the KS gap, opaque "
+        "like solve_ground_state (an external band-structure solve reading "
+        "the eigenvalues), so not sympy-executable. It is NOT the fundamental "
+        "quasiparticle gap (they differ by the derivative discontinuity), and "
+        "it is strongly exchange-correlation-functional dependent, so two "
+        "runs differing in the functional realize different Potentials and "
+        "different gaps, exactly as for the energy."
+    ),
+)
+
 EDGES: tuple[Operator, ...] = (
     solve_ground_state,
     compute_forces_hf,
     compute_stress_cell,
     compute_fc2_finite_displacement,
     compute_magnetic_moments,
+    compute_band_gap,
 )

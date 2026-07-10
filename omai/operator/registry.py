@@ -90,6 +90,7 @@ QUANTITY_TAGS: dict[str, str] = {
     "surface_energy": "Surface energy per unit area of a crystal facet, from the slab-bulk energy difference over twice the slab area.",
     "voltage": "Average intercalation (open-circuit) voltage: the Nernst energy difference over the transferred charge.",
     "magnetic_moment": "Per-site magnetic moment of the spin-polarized ground state, in Bohr magnetons.",
+    "band_gap": "Electronic band gap of the ground state, the Kohn-Sham eigenvalue gap (eV).",
     "pressure": "Mechanical pressure P = trace(stress)/3, positive under compression (the stress pressure convention).",
     "temperature": "Thermodynamic temperature at which the calculation is evaluated.",
     "force_constants": "Real-space interatomic force constants (harmonic or higher order).",

@@ -122,12 +122,12 @@ def test_all_six_mechanics_edges_are_dimensionally_ok():
     ), report["violation"]
 
 
-def test_no_node_uid_collisions_at_66_nodes():
+def test_no_node_uid_collisions_at_67_nodes():
     # 59 with the original mechanics four; 61 with YoungsModulus and
-    # PoissonRatio; 66 with the stability four plus MagneticMoment
-    # (2026-07-09).
+    # PoissonRatio; 66 with the stability four plus MagneticMoment; 67 with
+    # BandGap (2026-07-09, atomate2/VASP scan).
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 66
+    assert len(g["nodes"]) == 67
     uids = [n["uid"] for n in g["nodes"]]
     assert len(set(uids)) == len(uids), "node uid collision"
 
@@ -254,7 +254,9 @@ def test_mechanics_representation_package_discovery_finds_the_specs():
     (ElasticConstants, Pressure) and one operator spec; mat-elasticity five
     space specs (tensor, both moduli, Young's, Poisson); pymatgen five space
     specs (same five observables, native units) and three operator specs
-    (the finite-strain fit and the two isotropic contractions)."""
+    (the finite-strain fit and the two isotropic contractions); vasp
+    (2026-07-09, atomate2/VASP scan) one space spec (ElasticConstants, the
+    OUTCAR IBRION=6 kbar route) and one operator spec (compute_elastic_constants)."""
     import importlib
     import pkgutil
 
@@ -276,8 +278,8 @@ def test_mechanics_representation_package_discovery_finds_the_specs():
                 space_specs.append((attr, obj))
             elif isinstance(obj, OperatorRepresentationSpec):
                 op_specs.append((attr, obj))
-    assert len(space_specs) == 12, [a for a, _ in space_specs]
-    assert len(op_specs) == 4, [a for a, _ in op_specs]
+    assert len(space_specs) == 13, [a for a, _ in space_specs]
+    assert len(op_specs) == 5, [a for a, _ in op_specs]
     assert sorted({s.operator.name for _, s in op_specs}) == [
         "compute_elastic_constants", "contract_poisson_ratio",
         "contract_youngs_modulus"]

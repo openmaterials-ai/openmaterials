@@ -15,6 +15,7 @@ Node table:
   Forces         force            FORCE (M L T^-2)           (i, alpha)     per-atom Cartesian
   Stress         stress           ENERGY_PER_LENGTH_CUBED    (alpha, beta)  cell-averaged Cauchy
   MagneticMoment magnetic_moment  MAGNETIC_MOMENT (L^2 I)    (i,)           per-site, mu_B
+  BandGap        band_gap         ENERGY                     ()             KS eigenvalue gap, eV
 
 Deferred v1 candidates (from the QE scan's seven new-node set), each with why:
 
@@ -25,6 +26,30 @@ Deferred v1 candidates (from the QE scan's seven new-node set), each with why:
     for gauge discipline in a later slice, not needed for energy/forces/stress.
   * dvscf (the self-consistent potential response): EPW territory, with the
     normalization left open in the scan; defer until the EPW chain lands.
+
+Deferred candidates from the atomate2/VASP scan (arXiv 2605.24002), each with
+why (BandGap being the ONE node that scan lands here):
+
+  * charged defect formation energy (FormationEnergyMaker): a new node that
+    depends on elemental chemical potentials, the charge state, the Fermi
+    reference, and Freysoldt/Kumagai finite-size corrections. It needs the
+    chemical-potential machinery the map does not yet carry; defer to a
+    dedicated defect slice. (The stability domain's neutral MLIP formation
+    energy is a different, per-atom quantity.)
+  * frequency-dependent dielectric function eps(omega) and Raman / XRD
+    intensities (OpticsMaker LOPTICS): function-valued spectra over a photon
+    energy / scattering axis. They need a spectrum-valued space type the map
+    does not yet have; defer until that type lands. Distinct from the static
+    clamped-ion DielectricTensor already on the map.
+  * the electronic transport trio (electrical conductivity, Seebeck
+    coefficient, electronic thermal conductivity; VaspAmsetMaker): a new
+    thermoelectrics domain hanging off a Boltzmann-transport scattering model.
+    Queued for the amset parse. The electronic kappa is physically distinct
+    from the map's lattice ThermalConductivity.
+  * spontaneous polarization P_s (FerroelectricMaker, LCALCPOL Berry phase):
+    defined only modulo a polarization quantum resolved by branch continuity
+    along a distortion path, a genuine lattice-gauge structure. It deserves
+    its own slice as the gauge-quantum showcase, not a hurried add here.
 
 Follow-up edges beyond the v1 leaves:
 
@@ -106,10 +131,30 @@ MAGNETIC_MOMENT_STATE = ObservableSpace(
     ),
 )
 
+BAND_GAP = ObservableSpace(
+    name="BandGap",
+    fields=(Field("E_gap", ENERGY, indices=()),),
+    tier="Ground state",
+    description=(
+        "Electronic band gap E_gap of the ground state: the Kohn-Sham "
+        "eigenvalue gap between the valence-band maximum and the "
+        "conduction-band minimum a band-structure run reports (zero for a "
+        "metal), a single scalar in eV alongside the energy, forces, and "
+        "stress. It is the KS gap, NOT the fundamental (quasiparticle) gap: "
+        "the two differ by the derivative discontinuity, and semilocal "
+        "functionals underestimate the gap, so the value is strongly "
+        "exchange-correlation-functional dependent and rides with the "
+        "Potential provenance. The direct/indirect character and the Fermi "
+        "level are downstream labels over the same band structure, not part "
+        "of this scalar node."
+    ),
+)
+
 NODES: tuple[Space, ...] = (
     STRUCTURE,
     TOTAL_ENERGY,
     FORCES,
     STRESS,
     MAGNETIC_MOMENT_STATE,
+    BAND_GAP,
 )

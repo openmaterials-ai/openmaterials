@@ -415,7 +415,7 @@ def test_stability_and_magnetism_instances_pin_the_live_node_uids():
     assert h["node_uid"] == node_id(ENERGY_ABOVE_HULL)
 
 
-def test_store_head_at_131_records_genesis_frozen():
+def test_store_head_at_133_records_genesis_frozen():
     import json
     from pathlib import Path
 
@@ -423,7 +423,9 @@ def test_store_head_at_131_records_genesis_frozen():
 
     root = Path(__file__).resolve().parents[1] / "map"
     lines = root.joinpath("log.jsonl").read_text().splitlines()
-    assert len(lines) == 131
+    # 131 after the stability/electrochemistry/magnetism landing; 133 after the
+    # atomate2/VASP scan's BandGap node + compute_band_gap edge (records 132-133).
+    assert len(lines) == 133
     assert Store(root).verify() == []
     # Genesis stays the frozen prefix, byte-identical.
     assert root.joinpath("GENESIS").read_text().strip() == \

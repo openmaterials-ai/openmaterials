@@ -46,6 +46,18 @@ from omai.dft_ground_state.representation.fairchem import (
     FAIRCHEM_STRESS,
     FAIRCHEM_TOTAL_ENERGY,
 )
+from omai.dft_ground_state.representation.vasp import (
+    VASP_BAND_GAP,
+    VASP_COMPUTE_BAND_GAP,
+    VASP_COMPUTE_FORCES_HF,
+    VASP_COMPUTE_STRESS_CELL,
+    VASP_FORCES,
+    VASP_MAGNETIC_MOMENT,
+    VASP_SOLVE_GROUND_STATE,
+    VASP_STRESS,
+    VASP_STRUCTURE,
+    VASP_TOTAL_ENERGY,
+)
 
 __all__ = [
     "QE_FORCES",
@@ -74,4 +86,14 @@ __all__ = [
     "FAIRCHEM_SOLVE_GROUND_STATE",
     "FAIRCHEM_STRESS",
     "FAIRCHEM_TOTAL_ENERGY",
+    "VASP_BAND_GAP",
+    "VASP_COMPUTE_BAND_GAP",
+    "VASP_COMPUTE_FORCES_HF",
+    "VASP_COMPUTE_STRESS_CELL",
+    "VASP_FORCES",
+    "VASP_MAGNETIC_MOMENT",
+    "VASP_SOLVE_GROUND_STATE",
+    "VASP_STRESS",
+    "VASP_STRUCTURE",
+    "VASP_TOTAL_ENERGY",
 ]
