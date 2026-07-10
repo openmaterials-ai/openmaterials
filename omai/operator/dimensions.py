@@ -143,6 +143,19 @@ MAGNETIC_MOMENT = Dimension("magnetic_moment", (0, 2, 0, 0, 0, 1, 0))
 # ThermalConductivity (1,1,-3,-1,0,0,0): different L and T signs, an I axis
 # instead of a Theta axis; they share only the English word "conductivity".
 ELECTRICAL_CONDUCTIVITY = Dimension("electrical_conductivity", (-1, -3, 3, 0, 0, 2, 0))
+# Seebeck (thermopower) coefficient: volts per kelvin, V/K =
+# M L^2 T^-3 I^-1 Th^-1. Built from VOLTAGE (M L^2 T^-3 I^-1, the volt) by
+# dividing a temperature (adding Th^-1): S = V/K. The first dimension to carry
+# BOTH the electric-current axis (I=-1, inherited from the volt) AND the
+# temperature axis (Th=-1); amset serves it in microvolts per kelvin (the raw
+# V/K multiplied by 1e6, transport.py:191).
+SEEBECK = Dimension("seebeck", (1, 2, -3, -1, 0, -1, 0))
+# Carrier mobility: metre squared per volt-second, m^2/(V.s) = L^2/(V.s) =
+# M^-1 T^2 I. Derived: V.s = (M L^2 T^-3 I^-1)(T) = M L^2 T^-2 I^-1, so
+# mu = L^2 / (M L^2 T^-2 I^-1) = M^-1 T^2 I. amset serves it in cm^2/(V.s)
+# (transport.py:133-135); cm^2 -> m^2 is x1e-4. Third electric-current-axis
+# dimension (I=+1, the sign MagneticMoment also carries), distinct exponents.
+MOBILITY = Dimension("mobility", (-1, 0, 2, 0, 0, 1, 0))
 
 
 DIMENSIONS: dict[str, Dimension] = {
@@ -174,5 +187,7 @@ DIMENSIONS: dict[str, Dimension] = {
         VOLTAGE,
         MAGNETIC_MOMENT,
         ELECTRICAL_CONDUCTIVITY,
+        SEEBECK,
+        MOBILITY,
     ]
 }

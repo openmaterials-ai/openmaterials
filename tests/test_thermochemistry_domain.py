@@ -43,7 +43,7 @@ def test_thermochemistry_domain_between_stability_and_materials():
     names = [d.name for d in DOMAINS]
     assert names == [
         "thermal_transport", "dft_ground_state", "mechanics", "stability",
-        "thermochemistry", "materials"]
+        "thermochemistry", "electronic_transport", "materials"]
 
 
 def test_thermochemistry_declares_the_single_tier():
@@ -289,13 +289,15 @@ def test_new_nodes_validate_against_the_registries():
 # The unified graph: tier order and node placement.
 # --------------------------------------------------------------------------
 
-def test_thermochemistry_tier_after_stability_before_diffusion():
+def test_thermochemistry_tier_after_stability_before_electronic_transport():
     g = build_graph_dict(DOMAINS)
     tier_names = [t["name"] for t in g["tiers"]]
     assert "Thermochemistry" in tier_names
     i = tier_names.index("Thermochemistry")
     assert tier_names[i - 1] == "Stability"
-    assert tier_names[i + 1] == "Diffusion"
+    # The amset scan inserted the Electronic transport tier after
+    # Thermochemistry, before the materials Diffusion tier.
+    assert tier_names[i + 1] == "Electronic transport"
 
 
 def test_thermochemistry_nodes_carry_the_tier():
@@ -307,15 +309,17 @@ def test_thermochemistry_nodes_carry_the_tier():
         assert tier_of[name] == "Thermochemistry"
 
 
-def test_map_has_seventy_seven_nodes_and_eleven_tiers():
+def test_map_has_eighty_two_nodes_and_twelve_tiers():
     # 73 through the pycalphad scan; 74 with AdsorptionEnergy (2026-07-10,
     # matcalc/ASE scan); 77 with the config-thermo scan's
     # ElectricalConductivity[carrier=ionic] + ConfigurationalEnergy (joining the
-    # existing Diffusion tier) and ReactionEnergy (joining Stability). No new
-    # tier.
+    # existing Diffusion tier) and ReactionEnergy (joining Stability); 82 with
+    # the amset scan's electronic-transport five (StaticDielectricTensor joins
+    # Sources, the four transport tensors add the new Electronic transport tier,
+    # 2026-07-10).
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 77
-    assert len(g["tiers"]) == 11
+    assert len(g["nodes"]) == 82
+    assert len(g["tiers"]) == 12
 
 
 # --------------------------------------------------------------------------
@@ -364,8 +368,9 @@ def test_pycalphad_is_a_rail_and_the_config_thermo_scan_added_three_rails():
     # (2026-07-10) added mat-equation-of-state and mat-surface-adsorption
     # (matcalc itself is NOT a rail, the atomate2 ruling), reaching 19; the
     # config-thermo scan (2026-07-10) added three more: smol, rxn-network, and
-    # pymatgen-analysis-diffusion, reaching 22.
-    assert len(codes) == 22
+    # pymatgen-analysis-diffusion, reaching 22; the amset scan (2026-07-10)
+    # added the amset rail, reaching 23.
+    assert len(codes) == 23
     assert "pycalphad" in codes
     assert "mat-equation-of-state" in codes
     assert "mat-surface-adsorption" in codes
@@ -373,6 +378,7 @@ def test_pycalphad_is_a_rail_and_the_config_thermo_scan_added_three_rails():
     assert "smol" in codes
     assert "rxn-network" in codes
     assert "pymatgen-analysis-diffusion" in codes
+    assert "amset" in codes
 
 
 # --------------------------------------------------------------------------

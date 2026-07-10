@@ -32,6 +32,8 @@ from omai.operator.dimensions import (
     LENGTH,
     LENGTH_TIMES_FREQUENCY,
     MAGNETIC_MOMENT,
+    MOBILITY,
+    SEEBECK,
     TEMPERATURE,
     THERMAL_CONDUCTIVITY,
     VOLTAGE,
@@ -194,6 +196,22 @@ S_PER_M = Unit("s_per_m", ELECTRICAL_CONDUCTIVITY, 1.0, si_scale=1.0)
 MS_PER_CM = Unit("ms_per_cm", ELECTRICAL_CONDUCTIVITY, 0.1)
 
 
+# Canonical Seebeck unit: volt per kelvin (V/K). amset serializes the Seebeck
+# coefficient in microvolts per kelvin (the raw V/K multiplied by 1e6,
+# transport.py:191; header 'S [muV/K]', the micro-sign U+00B5 in the source
+# rendered ASCII here), so muv_per_k carries to_operator 1e-6 to the canonical
+# V/K.
+V_PER_K = Unit("v_per_k", SEEBECK, 1.0, si_scale=1.0)
+MUV_PER_K = Unit("muv_per_k", SEEBECK, 1e-6)
+
+
+# Canonical mobility unit: metre squared per volt-second (m^2/(V.s)). amset
+# serves carrier mobility in cm^2/(V.s) (transport.py:133-135); 1 cm^2 = 1e-4
+# m^2, so cm2_per_v_s carries to_operator 1e-4 to the canonical m^2/(V.s).
+M2_PER_V_S = Unit("m2_per_v_s", MOBILITY, 1.0, si_scale=1.0)
+CM2_PER_V_S = Unit("cm2_per_v_s", MOBILITY, 1e-4)
+
+
 UNITS: dict[str, Unit] = {
     u.name: u
     for u in [
@@ -231,6 +249,10 @@ UNITS: dict[str, Unit] = {
         MU_B,
         S_PER_M,
         MS_PER_CM,
+        V_PER_K,
+        MUV_PER_K,
+        M2_PER_V_S,
+        CM2_PER_V_S,
     ]
 }
 

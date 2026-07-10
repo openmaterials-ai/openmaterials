@@ -1,0 +1,13 @@
+"""Electronic-transport operator DAG: re-exports the domain's NODES and EDGES.
+
+Importing this package registers the domain's formula-symbol vocabulary and its
+symbol-dimension bindings as side effects (mirroring the dft / mechanics /
+stability / thermochemistry / materials packages), so validate_dag and the
+dimensional gate see the electronic-transport symbols.
+"""
+from omai.electronic_transport.operator import vocabulary as _vocabulary  # registers formula symbols
+from omai.electronic_transport.operator import dimensions_registry as _dimensions_registry  # registers symbol dimensions
+from omai.electronic_transport.operator.edges import EDGES
+from omai.electronic_transport.operator.nodes import NODES
+
+__all__ = ["NODES", "EDGES"]

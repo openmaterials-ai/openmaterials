@@ -40,7 +40,7 @@ def test_mechanics_domain_in_domains_between_ground_state_and_stability():
     names = [d.name for d in DOMAINS]
     assert names == [
         "thermal_transport", "dft_ground_state", "mechanics", "stability",
-        "thermochemistry", "materials"]
+        "thermochemistry", "electronic_transport", "materials"]
 
 
 def test_mechanics_domain_declares_mechanics_tier():
@@ -123,16 +123,18 @@ def test_all_six_mechanics_edges_are_dimensionally_ok():
     ), report["violation"]
 
 
-def test_no_node_uid_collisions_at_77_nodes():
+def test_no_node_uid_collisions_at_82_nodes():
     # 59 with the original mechanics four; 61 with YoungsModulus and
     # PoissonRatio; 66 with the stability four plus MagneticMoment; 67 with
     # BandGap (2026-07-09, atomate2/VASP scan); 73 with the six
     # thermochemistry nodes (2026-07-09, pycalphad scan); 74 with
     # AdsorptionEnergy (2026-07-10, matcalc/ASE scan); 77 with the config-thermo
     # scan's ElectricalConductivity[carrier=ionic] + ConfigurationalEnergy
-    # (materials) and ReactionEnergy (stability).
+    # (materials) and ReactionEnergy (stability); 82 with the amset scan's
+    # electronic-transport five (StaticDielectricTensor plus the four transport
+    # tensors, 2026-07-10).
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 77
+    assert len(g["nodes"]) == 82
     uids = [n["uid"] for n in g["nodes"]]
     assert len(set(uids)) == len(uids), "node uid collision"
 

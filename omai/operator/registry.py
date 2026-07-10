@@ -145,6 +145,10 @@ QUANTITY_TAGS: dict[str, str] = {
     "chemical_potential": "Equilibrium partial molar Gibbs energy per component: the common-tangent hyperplane of the Gibbs minimization.",
     "phase_fraction": "Equilibrium molar amount (fraction) of each stable phase in the assemblage (the lever rule), dimensionless.",
     "transition_temperature": "Computed phase-transition temperature (liquidus / solidus / solvus / invariant point), an equilibrium output distinct from the input Temperature.",
+    "seebeck_coefficient": "Seebeck (thermopower) coefficient S from the ab-initio scattering transport tensor; V/K, sign carries the carrier type.",
+    "electronic_thermal_conductivity": "Electronic contribution to the thermal conductivity kappa_e from carrier transport; W/(m K), the additive electronic partner of the lattice thermal_conductivity (kappa_total = lattice + electronic), kept apart by an own tag.",
+    "carrier_mobility": "Charge-carrier mobility mu from the ab-initio scattering transport; m^2/(V s), computed for non-metals only.",
+    "static_dielectric_tensor": "Static (zero-frequency) macroscopic dielectric tensor eps_0 = eps_inf + ionic contribution; distinct from the high-frequency electronic dielectric_tensor eps_inf.",
 }
 
 
