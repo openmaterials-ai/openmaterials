@@ -73,6 +73,55 @@ By code: **XRD 6** (1 spectrum, 2 scalar-reduction, 2 representation-only, 1
 already-mapped), **lobsterpy 3** (all representation-only), **fipy 3** (2
 deferred continuum fields + 1 new-node-candidate that is NOT fipy but adjacent).
 
+## Review verdicts (2026-07-10)
+
+Deep review of the FINAL scan group (commit b3d002a), default-distrust and
+adversarial against the pip-downloaded sources and the vendored AtomisticSkills.
+**11 CONFIRMED, 1 CONFIRMED-WITH-CORRECTION, 0 OVERTURNED.**
+
+Verified directly:
+
+- **WAVELENGTHS** cross-checked in the importable `/Users/juicy/miniconda3/bin/python`
+  (pymatgen 2025.6.14 there; the source-of-record `/tmp/pmgsrc` is 2026.5.4 as the
+  scan claims). **CuKa = 1.54184** (weighted Ka1/Ka2 average), **CuKa1 = 1.54056**,
+  CuKa2 = 1.54439, CuKb1 = 1.39222, MoKa = 0.71073, MoKa1 = 0.70930, CrKa = 2.29100,
+  FeKa = 1.93735, CoKa = 1.79026, AgKa = 0.560885 (Angstrom). The two dicts are
+  IDENTICAL across both versions; the CuKa vs CuKa1 distinction is real
+  (`xrd.py:24,26,27`).
+- **Intensity formula** read at `xrd.py`: `I = |F|^2 x LP` via
+  `i_hkl = (f_hkl*f_hkl.conjugate()).real` (`:244`), `LP = (1+cos^2 2theta)/(sin^2 theta cos theta)`
+  (`:241`), Bragg `theta = asin(wavelength*g_hkl/2)` (`:207`), `d_hkl = 1/g_hkl`
+  (`:259`), no Debye-Waller by default (docstring `:67`). No absorption / no
+  preferred orientation. All verified.
+- **lobsterpy 0.6.1**: ICOHP negative = bonding (example `-1.85`/`-11.09` eV,
+  `analyze.py:1284-1285`); the `|ICOHP_sum| != (bonding-antibonding)` integral
+  warning verbatim at `:1144` / `warnings.warn :1153-1157`; `analyze_lobster.py`
+  is **plots-only** (imports `PlainCohpPlotter` `:16` + `Cohpcar` `:14`, no
+  `Analysis`/condensed-bonding call anywhere: grep empty); charge-spilling
+  basis-dependence grounded (`GaAs/README.md:5-11`).
+- **fipy**: `run_grain_growth.py` M=1 (`:57`), epsilon=2 (`:58`), W=1 (`:59`),
+  dx=dy=1 (`:44`) all dimensionless demonstration constants; no-map-shaped-scalar
+  verdict holds.
+- **Graph state**: 82 nodes / 198 links / 12 tiers / 163 log records (unchanged;
+  QHA 164-174 had not landed, no race). **Em-dash grep zero** over both files.
+
+**The one correction** is the grain-boundary entry: committed real gamma_GB
+values exist (see the fipy honesty section below and the JSON
+`committed_example_values`), which the scan understated. All other entries stand
+exactly as scanned. Full per-entry verdicts and the orchestrator-decision list
+are in the JSON (`review_verdicts_2026_07_10`, `orchestrator_decisions_2026_07_10`).
+
+**Orchestrator decisions.** (1) **gamma_GB: MINT (strong), mint-ready** with the
+three Cu-001-tilt-TensorNet instances as seed (HIGH evidence: real MLIP calc,
+full provenance, EAM/DFT-validated). (2) **XRD canonical axis: d_hkl** (Angstrom,
+wavelength-independent), Q derived, 2theta served with the wavelength as a
+required condition. (3) **Radiation vocabulary: register the WAVELENGTHS table**
+with a free-float synchrotron escape, keeping CuKa (weighted) and CuKa1 as
+distinct entries. (4) **XRDPattern: DEFER** (a geometric Structure representation,
+mint only when a characterization domain opens). (5) **ICOHP/lobsterpy:
+representation-only**, no node. (6) **fipy fields: deferred**, map boundary stays
+at per-material scalars.
+
 ## XRD: the spectrum-layer proposal (this scan owns the deeper look)
 
 The pymatgen scan deferred `xrd-pattern` as a function-valued new-node
@@ -190,6 +239,20 @@ index). It is catalogued as this group's single new-node candidate, a sibling of
 misorientation angle, rotation axis, GB plane) rides in the instance conditions
 and the producing edge scheme, exactly as the facet (hkl) does for
 `SurfaceEnergy`.
+
+**REVIEW CORRECTION (2026-07-10): committed gamma_GB values exist.** The scan
+cited only the SKILL.md literature comparison (Cu Sigma5 ~0.8-1.0 J/m^2 from MD).
+It MISSED the committed real example
+`mat-grain-boundary/examples/Cu-001-tilt-TensorNet/`, which ships
+`gb_energy_results.json` + `gb_summary_table.csv` + `README.md` with THREE honest
+MLIP-computed gamma_GB values (not literature): **Sigma5 (36.87 deg) 0.9768,
+Sigma13 (22.62 deg) 0.7759, Sigma25 (16.26 deg) 0.7196 J/m^2**. Full provenance:
+Cu FCC (MP mp-30), TensorNet-MatPES-r2SCAN-v2025.1-PES, bulk E/atom -10.825556
+eV (relax_cell=True), GB relax `relax_cell=False` fmax 0.02 vacuum 0.0, formula
+(E_GB - N E_bulk)/(2A), validated against EAM-Mishin (0.99/0.92) and DFT-PBE
+(~0.74/~0.72), all in the 0.7-1.0 J/m^2 experimental range. This makes the
+gamma_GB node **mint-ready with real seed instances**, not merely a candidate:
+the encode wants these three values.
 
 ## Traps found (full list in JSON `traps`)
 
