@@ -9,6 +9,7 @@ SYMBOLS: dict[str, str] = {
     "HOMOLUMOGap": r"E_{gap}^{mol}",
     "ReactionBarrier[construction=neb_mep]": r"E_{barrier}",
     "BondDissociationEnergy": r"E_{BDE}",
+    "MolecularFrequency": r"\nu_{\mathrm{mol}}",
 }
 
 MOLECULAR = Domain(

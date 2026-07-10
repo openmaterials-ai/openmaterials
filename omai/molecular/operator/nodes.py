@@ -16,8 +16,17 @@ Node table:
   ReactionBarrier[construction=  reaction_barrier          ENERGY     ()
     neb_mep]
   BondDissociationEnergy        bond_dissociation_energy  ENERGY     ()
+  MolecularFrequency            molecular_frequency       FREQUENCY  (m)
 
-All three REUSE the plain ENERGY exponent vector (1,2,-2,0,0,0,0) shared with
+MolecularFrequency arrives from the physics review (2026-07-10): the molecular
+normal-mode axis, FREQUENCY dimension, indexed by mode number m (the registered
+`mode` index kind, the named hook this slice's deferral pointed to). Its
+imaginary-mode-negative serialization and n_imaginary saddle-order diagnostic
+are the convention the deferral was waiting to fix; explicitly NOT the periodic
+phonon (q, nu) Frequency.
+
+The three energy nodes REUSE the plain ENERGY exponent vector (1,2,-2,0,0,0,0)
+shared with
 TotalEnergy, FormationEnergy, ReactionEnergy, and the other energy-difference
 nodes: the dimension does NO separating work. Node identity is NAME-based
 (omai/operator/space.py Space.__hash__/__eq__ hash on the node NAME, and the
@@ -55,26 +64,27 @@ the rail notes, not in a composite identity key.
     the eV->kcal/mol factor to 23.0605; record the exact 23.060547830619 on the
     encode side).
 
-Deferred this slice (each with a named hook, so minting later is a clean add):
+MolecularFrequency LANDED (physics review, 2026-07-10): the molecular
+normal-mode axis is now a node (FREQUENCY, index m = the registered `mode`
+kind), with the imaginary-mode convention fixed (imaginary modes serialized
+NEGATIVE cm^-1, n_imaginary the saddle-order diagnostic). It is produced by
+compute_molecular_frequencies (the mass-weighted-Hessian normal modes).
 
-  * MolecularFrequency (the molecular normal-mode axis, index kind `mode` now
-    registered): a molecule's 3N-6 discrete vibrational modes have no q and no
-    branch. Minting it means deciding the imaginary-mode convention (imaginary
-    modes are printed NEGATIVE cm^-1; a transition state wants exactly 1); the
-    molecular frequencies enter THIS slice as representation-level artifacts on
-    the orca rail. Defer the node until the convention is fixed.
+Deferred still (each with a named hook, so minting later is a clean add):
+
   * The molecular thermochemistry family (ZeroPointEnergy, MolecularEnthalpy,
     MolecularGibbsEnergy, the T*S entropy correction): per-molecule gas-phase RRHO
     ENERGY scalars, kept apart from the CALPHAD per-mole-of-atoms and phonon
-    per-mole-of-cells nodes. Deferred; the RRHO bundle needs the MolecularFrequency
-    node first (the modes drive the partition function).
+    per-mole-of-cells nodes. This RRHO bundle is the NEXT named hook, now
+    UNBLOCKED: it needed the MolecularFrequency node first (the modes drive the
+    partition function), which this slice landed.
   * SolvationFreeEnergy, DipoleMoment, NMRShift: not surfaced by any parser today
     (the skills tag solvation on/off and read dipole/NMR from the property file
     manually), so deferred. Solvated single points ride TotalEnergy provenance.
 """
 from __future__ import annotations
 
-from omai.operator.dimensions import ENERGY
+from omai.operator.dimensions import ENERGY, FREQUENCY
 from omai.operator.space import Field, ObservableSpace, Space
 
 HOMO_LUMO_GAP = ObservableSpace(
@@ -159,8 +169,37 @@ BOND_DISSOCIATION_ENERGY = ObservableSpace(
     ),
 )
 
+MOLECULAR_FREQUENCY = ObservableSpace(
+    name="MolecularFrequency",
+    fields=(Field("nu_mol", FREQUENCY, indices=("m",)),),
+    tier="Molecular",
+    description=(
+        "Molecular normal-mode vibrational frequencies of a finite molecule: "
+        "the 3N-6 (or 3N-5 for a linear molecule) discrete modes obtained by "
+        "diagonalizing the mass-weighted Hessian, indexed by mode number m "
+        "(the registered `mode` index kind). Dimension FREQUENCY "
+        "(0,0,-1,0,0,0,0), served in wavenumbers cm^-1 native (the ORCA / "
+        "quantum-chemistry convention). IMAGINARY modes are serialized as "
+        "NEGATIVE frequencies (a mode whose Hessian eigenvalue is negative, an "
+        "unstable direction); n_imaginary, the count of imaginary modes, is the "
+        "SADDLE-ORDER diagnostic (a minimum has 0, a first-order transition "
+        "state exactly 1). EXPLICITLY NOT the periodic phonon Frequency node "
+        "(the (q, nu) = (qpoint, branch) dispersion omega_qnu over the "
+        "Brillouin zone): a molecule has NO q and NO phonon branch (no "
+        "periodicity, only the discrete mode index m), so the two never alias, "
+        "kept apart by the molecular_frequency tag and the mode-index signature "
+        "vs the phonon (qpoint, branch). CONVENTION CAVEAT: cm^-1 is a linear "
+        "wavenumber (1 cm^-1 = c . 100 m^-1 = 0.0299792458 linear THz), NOT an "
+        "angular frequency; the angular-vs-wavenumber factor 2 pi c is a "
+        "representation-layer convention, recorded on the rail. The molecular "
+        "thermochemistry (RRHO) bundle that consumes these modes for the "
+        "partition function is the next named hook, now unblocked."
+    ),
+)
+
 NODES: tuple[Space, ...] = (
     HOMO_LUMO_GAP,
     REACTION_BARRIER,
     BOND_DISSOCIATION_ENERGY,
+    MOLECULAR_FREQUENCY,
 )

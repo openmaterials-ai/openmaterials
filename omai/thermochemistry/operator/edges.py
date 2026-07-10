@@ -1,18 +1,31 @@
 r"""Operators (edges) of the thermochemistry domain.
 
-Five edges, all implicit (is_executable_in_sympy_override=False): a Gibbs
+Seven edges. Six are implicit (is_executable_in_sympy_override=False): a Gibbs
 minimization over an assessed database and the T-derivative / equilibrium
 quantities read off it. Each carries an opaque applied function of its inputs
-(the global free-energy minimization, the Legendre derivative, the
-composition derivative, the lever rule, the boundary locus) with the
-selection recorded as schemes, exactly like the stability domain's
-energy-difference edges:
+(the global free-energy minimization, the Legendre derivative, the composition
+derivative, the lever rule, the boundary locus, the entropy T-derivative) with
+the selection recorded as schemes, exactly like the stability domain's
+energy-difference edges. The seventh, contract_gibbs_hts, is EXECUTABLE sympy
+the dimensional gate PROVES: the exact Gibbs identity G_m = H_m - T S_m.
 
   solve_equilibrium            : (AssessedDatabase, Temperature) -> MolarGibbsEnergy
   compute_molar_enthalpy       : (AssessedDatabase, Temperature) -> MolarEnthalpy
   compute_chemical_potentials  : (MolarGibbsEnergy,)             -> ChemicalPotential
   compute_phase_fractions      : (AssessedDatabase, Temperature) -> PhaseFraction
   compute_transition_temperature : (PhaseFraction, Temperature)  -> TransitionTemperature
+  compute_calphad_entropy      : (AssessedDatabase, Temperature) -> CalphadMolarEntropy
+  contract_gibbs_hts           : (MolarEnthalpy, Temperature, CalphadMolarEntropy)
+                                     -> MolarGibbsEnergy  (EXECUTABLE; second producer)
+
+contract_gibbs_hts is the SECOND producer (Pattern C) of MolarGibbsEnergy,
+alongside solve_equilibrium: the direct Gibbs minimization and the H - T S
+identity are two routes to the SAME assessed G_m that must agree numerically,
+the redundant-route pattern the map already blesses (BulkModulus has three
+producers, PhononDOS two). The dimensional gate PROVES it: T S_m is
+TEMPERATURE (0,0,0,1,0,0,0) times ENERGY_PER_TEMPERATURE_PER_MOLE
+(1,2,-2,-1,-1,0,0) = ENERGY_PER_MOLE (1,2,-2,0,-1,0,0), so H_m - T S_m is an
+Add of two equal ENERGY_PER_MOLE dimensions, matching G_m.
 
 Connectivity. Temperature (the thermal-transport Sources node) is
 pre-existing in the store; AssessedDatabase arrives in this contribution.
@@ -40,6 +53,7 @@ import sympy as sp
 from omai.operator.operator import Operator
 from omai.thermochemistry.operator.nodes import (
     ASSESSED_DATABASE,
+    CALPHAD_MOLAR_ENTROPY,
     CHEMICAL_POTENTIAL,
     MOLAR_ENTHALPY,
     MOLAR_GIBBS_ENERGY,
@@ -55,6 +69,7 @@ from omai.thermal_transport.operator.nodes import TEMPERATURE_STATE
 
 _G_m = sp.Symbol("G_m")
 _H_m = sp.Symbol("H_m")
+_S_m = sp.Symbol("S_m")
 _mu = sp.Symbol(r"\mu")
 _NP = sp.Symbol("NP")
 _T_trans = sp.Symbol(r"T_{\mathrm{trans}}")
@@ -63,6 +78,7 @@ _T = sp.Symbol("T")
 # Opaque solver functions (applied functions, not free symbols).
 _G_min = sp.Function(r"G^{\min}")
 _H_eq = sp.Function(r"H^{eq}")
+_S_eq = sp.Function(r"S^{eq}")
 _mu_eq = sp.Function(r"\mu^{eq}")
 _f_eq = sp.Function(r"f^{eq}")
 _T_trans_f = sp.Function(r"T^{trans}")
@@ -175,10 +191,58 @@ compute_transition_temperature = Operator(
     ),
 )
 
+compute_calphad_entropy = Operator(
+    name="compute_calphad_entropy",
+    inputs=(ASSESSED_DATABASE, TEMPERATURE_STATE),
+    outputs=(CALPHAD_MOLAR_ENTROPY,),
+    schemes={"method": "gibbs_temperature_derivative"},
+    formula=sp.Eq(_S_m, _S_eq(_D_tdb, _T)),
+    is_executable_in_sympy_override=False,
+    description=(
+        "Molar entropy S_m = S^{eq}[D, T]: the assessed entropy channel of "
+        "the equilibrium, pycalphad's SM = -dGM/dT (the constant-P Gibbs "
+        "temperature derivative), per mole of atoms at constant pressure, SER "
+        "reference. S^{eq} is an opaque function over the assessed database D "
+        "and temperature T (evaluated through the same Model that carries the "
+        "Gibbs energy); the method scheme records the "
+        "gibbs_temperature_derivative construction. The entropy factor of the "
+        "executable Gibbs identity contract_gibbs_hts (G_m = H_m - T S_m). "
+        "Implicit (a T-derivative of the assessed model at equilibrium), so "
+        "not sympy-executable."
+    ),
+)
+
+contract_gibbs_hts = Operator(
+    name="contract_gibbs_hts",
+    inputs=(MOLAR_ENTHALPY, TEMPERATURE_STATE, CALPHAD_MOLAR_ENTROPY),
+    outputs=(MOLAR_GIBBS_ENERGY,),
+    formula=sp.Eq(_G_m, _H_m - _T * _S_m),
+    description=(
+        "The executable Gibbs identity G_m = H_m - T S_m: the assessed molar "
+        "Gibbs energy from the molar enthalpy, the temperature, and the "
+        "constant-P assessed molar entropy, the exact thermodynamic definition "
+        "of the Gibbs free energy the CALPHAD model itself carries "
+        "(H_m = G_m + T S_m, so G_m = H_m - T S_m). SECOND PRODUCER (Pattern C) "
+        "of MolarGibbsEnergy alongside solve_equilibrium (the direct global "
+        "Gibbs minimization that returns GM): two routes to the SAME assessed "
+        "G_m that MUST agree numerically (H_m and S_m are themselves GM's "
+        "Legendre transform and T-derivative), the redundant-route pattern "
+        "BulkModulus (three producers) and PhononDOS (two) already bless. The "
+        "gate PROVES it: T S_m = (0,0,0,1,0,0,0) . (1,2,-2,-1,-1,0,0) = "
+        "(1,2,-2,0,-1,0,0) = ENERGY_PER_MOLE, so H_m - T S_m is an Add of two "
+        "equal ENERGY_PER_MOLE dimensions, matching G_m. All three "
+        "energy-side quantities are on the SAME CALPHAD basis (per mole of "
+        "atoms, constant P, SER), so the identity is basis-honest. Closed-form "
+        "and sympy-executable."
+    ),
+)
+
 EDGES: tuple[Operator, ...] = (
     solve_equilibrium,
     compute_molar_enthalpy,
     compute_chemical_potentials,
     compute_phase_fractions,
     compute_transition_temperature,
+    compute_calphad_entropy,
+    contract_gibbs_hts,
 )

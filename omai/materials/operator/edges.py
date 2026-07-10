@@ -1,30 +1,43 @@
 """Operators (edges) for the materials domain (grown from AtomisticSkills).
 
-Four edges. The diffusion pair (contract_diffusivity, fit_arrhenius) is the
-original slice; compute_ionic_conductivity and compute_configurational_energy
-arrive from the config-thermo scan (AtomisticSkills arXiv 2605.24002).
+Five edges. The diffusion pair (contract_diffusivity, fit_arrhenius) is the
+original slice; compute_configurational_energy arrives from the config-thermo
+scan (AtomisticSkills arXiv 2605.24002); compute_carrier_density and the
+EXECUTABLE compute_ionic_conductivity arrive from the physics review (the
+second supersede, 2026-07-10).
 
   contract_diffusivity           : (MeanSquaredDisplacement,)         -> Diffusivity
   fit_arrhenius                  : (Diffusivity, Temperature)         -> ActivationEnergy
-  compute_ionic_conductivity     : (Diffusivity, Temperature, Structure)
-                                       -> ElectricalConductivity[carrier=ionic]
+  compute_carrier_density        : (Structure,)                       -> CarrierDensity
+  compute_ionic_conductivity     : (CarrierDensity, Diffusivity, Temperature)
+                                       -> ElectricalConductivity[carrier=ionic]  (EXECUTABLE)
   compute_configurational_energy : (Potential, Structure)            -> ConfigurationalEnergy
 
-The two new edges are implicit (is_executable_in_sympy_override=False), each an
-opaque applied function of its inputs, exactly like the thermochemistry Gibbs
-edges: the Nernst-Einstein conversion factor needs the number density and the
-ionic charge z read off the Structure (n/V and z^2 are Structure-derived, not
-free symbols), and the configurational energy is a dot product against a fitted
-cluster-expansion Potential. The Structure and Potential inputs are the shared
-Sources leaves already in the store, so both edges touch pre-existing nodes.
+compute_carrier_density and compute_configurational_energy are implicit
+(is_executable_in_sympy_override=False), each an opaque applied function of its
+inputs: the carrier density is a mobile-species count over the cell volume (an
+opaque Structure selector), the configurational energy a dot product against a
+fitted cluster-expansion Potential. compute_ionic_conductivity is now
+EXECUTABLE: the Nernst-Einstein relation sigma = n_c z^2 e^2 D / (k_B T) is a
+closed-form sympy Eq the dimensional gate PROVES, because the number density is
+the first-class CarrierDensity input n_c and the charge number z a dimensionless
+symbol (the elementary charge e a per-edge parameter carrying ENERGY/VOLTAGE).
+This is the SECOND SUPERSEDE: the executable v2 replaces the opaque v1
+(Diffusivity, Temperature, Structure) -> ... whose formula was the opaque
+sigma^{NE}[D, T, Structure]; the formula fingerprint changed, so the edge id
+changed, a genuine re-mint routed through the store's supersede machinery. The
+Structure / Diffusivity / Temperature inputs are pre-existing store nodes, so
+every edge touches the store.
 """
 from __future__ import annotations
 
 import sympy as sp
 
-from omai.operator.operator import Operator
+from omai.operator.dimensions import ENERGY, VOLTAGE
+from omai.operator.operator import Operator, Parameter
 from omai.materials.operator.nodes import (
     ACTIVATION_ENERGY,
+    CARRIER_DENSITY,
     CONFIGURATIONAL_ENERGY,
     DIFFUSIVITY_STATE,
     ELECTRICAL_CONDUCTIVITY_IONIC,
@@ -50,8 +63,14 @@ _sigma = sp.Symbol(r"\sigma_{ion}", positive=True)
 _E_cfg = sp.Symbol("E_{cfg}")
 _S = sp.Symbol(r"\mathcal{S}")   # Structure (registered source symbol)
 _V_pot = sp.Symbol("V")          # Potential (registered source symbol)
+# Carrier density and Nernst-Einstein executable symbols (second supersede).
+_n_c = sp.Symbol("n_c", positive=True)   # CarrierDensity, NUMBER_DENSITY
+_z = sp.Symbol("z")                      # charge number (dimensionless integer)
+_e_c = sp.Symbol("e_c", positive=True)   # elementary charge (TIME . CURRENT)
+_kB = sp.Symbol("k_B", positive=True)
+_T_ne = sp.Symbol("T", positive=True)
 # Opaque solver functions (applied functions, not free symbols).
-_sigma_NE = sp.Function(r"\sigma^{NE}")   # Nernst-Einstein conversion
+_n_c_fn = sp.Function("n^{c}")            # carrier-count-over-volume selector
 _E_ce = sp.Function("E^{ce}")             # cluster-expansion prediction
 
 # Einstein relation: D = slope of MSD(t) / (2 d). Closed-form in the slope.
@@ -74,28 +93,64 @@ fit_arrhenius = Operator(
     description="Weighted Arrhenius fit of D(T) = D0 exp(-E_a/k_B T) over temperatures.",
 )
 
-# Nernst-Einstein ionic conductivity from the tracer diffusivity. The
-# conversion factor needs the number density n/V and the ionic charge z^2 read
-# off the Structure, so it is an opaque function over (D, T, Structure) rather
-# than a closed form in free symbols: implicit, not sympy-executable.
-compute_ionic_conductivity = Operator(
-    name="compute_ionic_conductivity",
-    inputs=(DIFFUSIVITY_STATE, TEMPERATURE, STRUCTURE),
-    outputs=(ELECTRICAL_CONDUCTIVITY_IONIC,),
-    schemes={"method": "nernst_einstein", "haven_ratio": "1"},
-    formula=sp.Eq(_sigma, _sigma_NE(_D, _T, _S)),
+# Carrier density from the Structure: count the mobile species over the cell
+# volume. An opaque selector (which species are mobile) over the Structure, so
+# implicit, not sympy-executable.
+compute_carrier_density = Operator(
+    name="compute_carrier_density",
+    inputs=(STRUCTURE,),
+    outputs=(CARRIER_DENSITY,),
+    formula=sp.Eq(_n_c, _n_c_fn(_S)),
     is_executable_in_sympy_override=False,
     description=(
-        "Ionic conductivity sigma = sigma^{NE}[D, T, Structure]: the "
-        "Nernst-Einstein conversion sigma = (n/V) z^2 e^2 D / (k_B T) applied "
-        "to the tracer diffusivity D at temperature T, with the number density "
-        "n/V and the ionic charge z^2 (oxidation state, else valence-electron "
-        "count) read off the Structure. sigma^{NE} is opaque over the Structure "
-        "context; the method scheme records the Nernst-Einstein relation and "
-        "the haven_ratio=1 assumption (the tracer, not the collective charge, "
-        "diffusivity). pymatgen-analysis-diffusion's "
+        "Carrier density n_c = n^{c}[Structure]: the mobile-carrier number "
+        "density, the count of mobile charge carriers (the diffusing species) "
+        "per unit cell volume. n^{c} is an opaque selector over the Structure "
+        "(which species count as mobile is the opaque choice; the count over "
+        "the cell volume is the density), the same reason FormationEnergy's "
+        "reference chemical potentials stay opaque. Surfaces the L^-3 factor "
+        "the executable Nernst-Einstein conductivity needs as a first-class "
+        "node. Implicit (a Structure-dependent species count), so not "
+        "sympy-executable."
+    ),
+)
+
+# Nernst-Einstein ionic conductivity, EXECUTABLE form (the second supersede,
+# physics review 2026-07-10). The number density is now the first-class
+# CarrierDensity input n_c and the charge number z a dimensionless symbol, so
+# the conversion is a closed-form sympy Eq the dimensional gate PROVES rather
+# than an opaque function over the Structure. This changes the formula
+# fingerprint, so the edge id changes: a genuine re-mint routed through the
+# store's supersede machinery, superseding the opaque v1.
+compute_ionic_conductivity = Operator(
+    name="compute_ionic_conductivity",
+    inputs=(CARRIER_DENSITY, DIFFUSIVITY_STATE, TEMPERATURE),
+    outputs=(ELECTRICAL_CONDUCTIVITY_IONIC,),
+    parameters=(Parameter("e_c", ENERGY / VOLTAGE),),
+    schemes={"method": "nernst_einstein", "haven_ratio": "1"},
+    formula=sp.Eq(_sigma, _n_c * _z**2 * _e_c**2 * _D / (_kB * _T_ne)),
+    description=(
+        "Ionic conductivity sigma = n_c z^2 e^2 D / (k_B T): the executable "
+        "Nernst-Einstein relation from the mobile-carrier number density n_c, "
+        "the squared charge number z^2 (dimensionless: the oxidation state, "
+        "else valence-electron count, the numeric value riding conditions at "
+        "evidence time), the squared elementary charge e^2, the tracer "
+        "diffusivity D, over the thermal energy k_B T. The physics review's "
+        "second supersede: n_c is now the first-class CarrierDensity node and "
+        "z a dimensionless symbol, so the relation is a closed-form sympy Eq "
+        "the dimensional gate PROVES, not an opaque Structure-derived function. "
+        "The gate derives the chain: n_c (0,-3,0,0,0,0,0) . z^2 (dimensionless) "
+        ". e^2 (0,0,2,0,0,2,0) . D (0,2,-1,0,0,0,0) / (k_B T) (energy, "
+        "1,2,-2,0,0,0,0) = (-1,-3,3,0,0,2,0) = ELECTRICAL_CONDUCTIVITY (S/m). "
+        "e is the elementary charge (TIME . CURRENT = ENERGY / VOLTAGE, so "
+        "e^2 carries T^2 I^2); it enters as a per-edge parameter bound to that "
+        "dimension so it never collides with the phonon eigenvector e. The "
+        "method scheme keeps the Nernst-Einstein relation and the haven_ratio=1 "
+        "assumption (the tracer, not the collective charge, diffusivity drives "
+        "it; the tracer-D caveat stands). pymatgen-analysis-diffusion's "
         "DiffusionAnalyzer.conductivity / get_extrapolated_conductivity. "
-        "Implicit (a Structure-dependent conversion), so not sympy-executable."
+        "SUPERSEDES the opaque v1 (formula fingerprint changed, so the edge id "
+        "changed). Closed-form and sympy-executable."
     ),
 )
 
@@ -126,6 +181,7 @@ compute_configurational_energy = Operator(
 EDGES: tuple[Operator, ...] = (
     contract_diffusivity,
     fit_arrhenius,
+    compute_carrier_density,
     compute_ionic_conductivity,
     compute_configurational_energy,
 )

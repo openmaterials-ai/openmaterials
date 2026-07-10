@@ -54,6 +54,7 @@ from __future__ import annotations
 from omai.operator.dimensions import (
     DIMENSIONLESS,
     ENERGY_PER_MOLE,
+    ENERGY_PER_TEMPERATURE_PER_MOLE,
     OPAQUE,
     TEMPERATURE,
 )
@@ -155,6 +156,35 @@ PHASE_FRACTION = ObservableSpace(
     ),
 )
 
+CALPHAD_MOLAR_ENTROPY = ObservableSpace(
+    name="CalphadMolarEntropy",
+    fields=(Field("S_m", ENERGY_PER_TEMPERATURE_PER_MOLE, indices=()),),
+    tier="Thermochemistry",
+    description=(
+        "Assessed molar entropy S_m of a phase (or of the equilibrium "
+        "assemblage): the constant-P entropy the CALPHAD model carries as "
+        "S_m = -dG_m/dT, pycalphad's SM. PER MOLE OF ATOMS (the v.N:1 "
+        "system-moles normalization), at CONSTANT PRESSURE, with the SER "
+        "(Stable Element Reference) as the entropy zero. J/(K mol), dimension "
+        "ENERGY_PER_TEMPERATURE_PER_MOLE (1,2,-2,-1,-1,0,0). It is the "
+        "entropy factor of the executable Gibbs identity G_m = H_m - T S_m "
+        "(contract_gibbs_hts), the second producer of MolarGibbsEnergy. "
+        "EXPLICITLY DISTINCT from the phonon-side MolarEntropy "
+        "(molar_entropy tag): that node is the phonon-gas vibrational entropy "
+        "S_mol = (N_A/N_q) sum_qnu s_qnu(T), a CONSTANT-VOLUME (Helmholtz-side) "
+        "entropy PER MOLE OF PRIMITIVE CELLS, whereas this is a CONSTANT-P "
+        "assessed entropy PER MOLE OF ATOMS from a Gibbs model; same "
+        "ENERGY_PER_TEMPERATURE_PER_MOLE exponent vector, different "
+        "thermodynamic ensemble, basis, and producer, kept apart by the "
+        "calphad_molar_entropy quantity tag (the Molar* false-merge guardrail, "
+        "exactly as MolarGibbsEnergy is kept apart from the phonon "
+        "MolarHelmholtzFreeEnergy). To cross-code to the phonon per-cell basis, "
+        "reconcile atoms-per-cell AND the constant-P vs constant-V ensemble; "
+        "not an EXPECTED_AGREE pair with the phonon MolarEntropy. Served in "
+        "J/(K mol) (canonical J_per_K_per_mol)."
+    ),
+)
+
 TRANSITION_TEMPERATURE = ObservableSpace(
     name="TransitionTemperature",
     fields=(Field("T_trans", TEMPERATURE, indices=()),),
@@ -180,4 +210,5 @@ NODES: tuple[Space, ...] = (
     CHEMICAL_POTENTIAL,
     PHASE_FRACTION,
     TRANSITION_TEMPERATURE,
+    CALPHAD_MOLAR_ENTROPY,
 )

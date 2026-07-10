@@ -1,30 +1,30 @@
 r"""Operators (edges) of the molecular domain.
 
-Three edges, all implicit (is_executable_in_sympy_override=False): each an opaque
+Four edges, all implicit (is_executable_in_sympy_override=False): each an opaque
 applied function of its inputs with the molecular method recorded as a scheme,
 exactly like the electronic-transport, thermochemistry, and quasi-harmonic edges.
 
-  compute_homo_lumo_gap    : (Structure, Potential) -> HOMOLUMOGap
-  compute_reaction_barrier : (TotalEnergy, Structure) -> ReactionBarrier[construction=neb_mep]
-  compute_bond_dissociation: (TotalEnergy, Structure) -> BondDissociationEnergy
+  compute_homo_lumo_gap        : (Structure, Potential) -> HOMOLUMOGap
+  compute_reaction_barrier     : (TotalEnergy, Structure) -> ReactionBarrier[construction=neb_mep]
+  compute_bond_dissociation    : (TotalEnergy, Structure) -> BondDissociationEnergy
+  compute_molecular_frequencies: (Structure, Potential) -> MolecularFrequency
 
-Connectivity. The three new nodes plus three edges form ONE weakly connected
-component through the pre-existing Structure / TotalEnergy / Potential source
-nodes: compute_homo_lumo_gap consumes Structure + Potential (the molecular SCF
-runs a structure under a chosen functional/basis, the Potential-provenance
-analog); compute_reaction_barrier and compute_bond_dissociation both consume
-TotalEnergy + Structure (a barrier and a BDE are total-energy differences over
-molecular configurations). All three inputs are pre-existing store nodes, so the
-additions touch the store and are weakly connected. The barrier and BDE edges
-share TotalEnergy and Structure; the HOMO-LUMO edge shares Structure, so the
-component is single.
+Connectivity. The four nodes plus four edges form ONE weakly connected component
+through the pre-existing Structure / TotalEnergy / Potential source nodes:
+compute_homo_lumo_gap and compute_molecular_frequencies consume Structure +
+Potential (a molecular SCF / Hessian runs a structure under a chosen
+functional/basis, the Potential-provenance analog); compute_reaction_barrier and
+compute_bond_dissociation both consume TotalEnergy + Structure (a barrier and a
+BDE are total-energy differences over molecular configurations). All inputs are
+pre-existing store nodes, so the additions touch the store and are weakly
+connected; every edge shares Structure.
 
-Symbols. The output field symbols (E_{gap}^{mol}, E_{barrier}, E_{BDE}) are new
-and collision-checked; the input arguments \mathcal{S} (Structure), V
-(Potential), E_{tot} (TotalEnergy) are existing registered symbols reused as
-opaque-function arguments. The opaque solver functions (\Delta_{HL}, \Delta_{NEB},
-\Delta_{BDE}) are applied functions, invisible to the free-symbol check, so they
-need no vocabulary entries.
+Symbols. The output field symbols (E_{gap}^{mol}, E_{barrier}, E_{BDE}, and the
+indexed nu_mol) are new and collision-checked; the input arguments \mathcal{S}
+(Structure), V (Potential), E_{tot} (TotalEnergy) are existing registered symbols
+reused as opaque-function arguments. The opaque solver functions (\Delta_{HL},
+\Delta_{NEB}, \Delta_{BDE}, \nu^{H}) are applied functions, invisible to the
+free-symbol check, so they need no vocabulary entries.
 """
 from __future__ import annotations
 
@@ -34,6 +34,7 @@ from omai.operator.operator import Operator
 from omai.molecular.operator.nodes import (
     BOND_DISSOCIATION_ENERGY,
     HOMO_LUMO_GAP,
+    MOLECULAR_FREQUENCY,
     REACTION_BARRIER,
 )
 from omai.dft_ground_state.operator.nodes import TOTAL_ENERGY
@@ -49,6 +50,8 @@ from omai.thermal_transport.operator.nodes import POTENTIAL
 _E_gap_mol = sp.Symbol(r"E_{gap}^{mol}")
 _E_barrier = sp.Symbol(r"E_{barrier}")
 _E_BDE = sp.Symbol(r"E_{BDE}")
+_nu_mol = sp.IndexedBase("nu_mol")     # MolecularFrequency (indexed by mode m)
+_m = sp.Symbol("m", integer=True)      # molecular normal-mode index
 # Input arguments (existing registered symbols).
 _S_struct = sp.Symbol(r"\mathcal{S}")  # Structure
 _V_pot = sp.Symbol("V")                # Potential
@@ -57,6 +60,7 @@ _E_tot = sp.Symbol("E_{tot}")          # TotalEnergy
 _gap_fn = sp.Function(r"\Delta_{HL}")
 _neb_fn = sp.Function(r"\Delta_{NEB}")
 _bde_fn = sp.Function(r"\Delta_{BDE}")
+_hess_fn = sp.Function(r"\nu^{H}")     # mass-weighted-Hessian normal modes
 
 
 # ---------------------------------------------------------------------------
@@ -132,8 +136,35 @@ compute_bond_dissociation = Operator(
     ),
 )
 
+compute_molecular_frequencies = Operator(
+    name="compute_molecular_frequencies",
+    inputs=(STRUCTURE, POTENTIAL),
+    outputs=(MOLECULAR_FREQUENCY,),
+    schemes={"method": "hessian_normal_modes"},
+    formula=sp.Eq(_nu_mol[_m], _hess_fn(_S_struct, _V_pot)),
+    is_executable_in_sympy_override=False,
+    description=(
+        "Molecular normal-mode frequencies nu_mol,m = nu^{H}[Structure, "
+        "Potential]: the 3N-6 (or 3N-5) discrete vibrational frequencies from "
+        "diagonalizing the mass-weighted Hessian of the molecular potential at "
+        "a stationary structure, cm^-1 native. nu^{H} is opaque over the "
+        "molecular Structure and the chosen functional / basis (the "
+        "Potential-provenance analog; the Hessian is the second derivative of "
+        "that energy surface); the method scheme records the "
+        "hessian_normal_modes construction. Imaginary modes serialize NEGATIVE "
+        "(a negative Hessian eigenvalue), and n_imaginary (their count) is the "
+        "saddle-order diagnostic (0 for a minimum, 1 for a transition state). "
+        "Indexed by mode m (the registered `mode` kind), NOT the periodic "
+        "phonon (q, nu) axis. Unblocks the RRHO molecular-thermochemistry "
+        "bundle (the modes drive the partition function). Implicit (a Hessian "
+        "diagonalization, an opaque quantum-chemistry / MLIP solve), so not "
+        "sympy-executable."
+    ),
+)
+
 EDGES: tuple[Operator, ...] = (
     compute_homo_lumo_gap,
     compute_reaction_barrier,
     compute_bond_dissociation,
+    compute_molecular_frequencies,
 )

@@ -184,8 +184,12 @@ def test_config_thermo_edges_wiring_and_schemes():
     from omai.stability.operator.edges import compute_reaction_energy
 
     wiring = {
+        # The Nernst-Einstein edge was superseded to the EXECUTABLE form
+        # (physics review 2026-07-10, second supersede): inputs are now
+        # (CarrierDensity, Diffusivity, Temperature), not the opaque-v1
+        # (Diffusivity, Temperature, Structure). Schemes unchanged.
         compute_ionic_conductivity: (
-            ["Diffusivity", "Temperature", "Structure"],
+            ["CarrierDensity", "Diffusivity", "Temperature"],
             ["ElectricalConductivity[carrier=ionic]"],
             {"method": "nernst_einstein", "haven_ratio": "1"}),
         compute_configurational_energy: (
@@ -202,20 +206,24 @@ def test_config_thermo_edges_wiring_and_schemes():
 
 
 def test_config_thermo_edges_are_implicit_and_skipped():
-    """The Nernst-Einstein and cluster-expansion edges carry opaque solver
-    functions, so the dimensional gate classifies them SKIPPED. The reaction-
-    energy edge, opaque when this scan landed, was later reformulated to the
-    closed-form stoichiometric sum (2026-07-10 physics-review supersede) and is
-    now PROVEN (ok), not skipped. None is a violation; the two pinned schematic
-    violations stay the only ones."""
+    """The cluster-expansion edge carries an opaque solver function, so the
+    dimensional gate classifies it SKIPPED. The reaction-energy edge, opaque
+    when this scan landed, was reformulated to the closed-form stoichiometric
+    sum (2026-07-10 physics-review supersede) and is now PROVEN (ok). The
+    Nernst-Einstein edge, opaque when this scan landed, was likewise superseded
+    to the EXECUTABLE form sigma = n_c z^2 e^2 D / (k_B T) (physics review, the
+    SECOND supersede) and is now PROVEN (ok), not skipped. None is a violation;
+    the two pinned schematic violations stay the only ones."""
     nodes, edges = _all_nodes_edges()
     report = dimensional_report(nodes, edges)
-    for name in ("compute_ionic_conductivity",
-                 "compute_configurational_energy"):
-        assert name in report["skipped"], (name, report)
-    # The reaction-energy edge is now closed-form and PROVEN.
+    # The cluster-expansion edge stays opaque-implicit / skipped.
+    assert "compute_configurational_energy" in report["skipped"], report
+    # The reaction-energy and ionic-conductivity edges are now closed-form and
+    # PROVEN (both superseded from opaque v1 to executable v2).
     assert "compute_reaction_energy" in report["ok"], report
     assert "compute_reaction_energy" not in report["skipped"], report
+    assert "compute_ionic_conductivity" in report["ok"], report
+    assert "compute_ionic_conductivity" not in report["skipped"], report
     assert report["violation"] == [] or all(
         "compute_gruneisen" in v or "compute_phase_space_3phonon" in v
         for v in report["violation"]
@@ -229,14 +237,17 @@ def test_config_thermo_edges_are_not_sympy_executable():
     )
     from omai.stability.operator.edges import compute_reaction_energy
 
-    # The Nernst-Einstein and cluster-expansion edges stay opaque-implicit.
-    for op in (compute_ionic_conductivity, compute_configurational_energy):
-        assert op.is_executable_in_sympy_override is False
-        assert not op.is_executable_in_sympy
+    # The cluster-expansion edge stays opaque-implicit.
+    assert compute_configurational_energy.is_executable_in_sympy_override is False
+    assert not compute_configurational_energy.is_executable_in_sympy
     # The reaction-energy edge was superseded to a closed-form sum (2026-07-10),
     # so it is now sympy-executable (override None, heuristic True).
     assert compute_reaction_energy.is_executable_in_sympy_override is None
     assert compute_reaction_energy.is_executable_in_sympy
+    # The ionic-conductivity edge was superseded to the executable Nernst-Einstein
+    # (physics review, the second supersede), so it is now sympy-executable too.
+    assert compute_ionic_conductivity.is_executable_in_sympy_override is None
+    assert compute_ionic_conductivity.is_executable_in_sympy
 
 
 def test_unified_validate_dag_is_clean():
@@ -250,9 +261,12 @@ def test_unified_validate_dag_is_clean():
 # --------------------------------------------------------------------------
 
 def test_contribution_a_is_connected_through_pre_existing_nodes():
-    """Contribution A (2 nodes + 2 edges) is one weakly connected component and
-    touches the pre-existing Diffusivity / Temperature / Structure / Potential
-    Sources of the store."""
+    """The materials contribution is one weakly connected component and touches
+    the pre-existing Diffusivity / Temperature / Structure / Potential Sources
+    of the store. NOTE the ionic-conductivity edge is now the EXECUTABLE v2
+    (physics review, second supersede): it consumes CarrierDensity (added here)
+    alongside the pre-existing Diffusivity and Temperature, so the connectivity
+    set adds CarrierDensity as a produced node."""
     from omai.gates import validate_contribution
     from omai.operator.identity import (
         edge_id as _eid,
@@ -261,10 +275,12 @@ def test_contribution_a_is_connected_through_pre_existing_nodes():
         node_identity,
     )
     from omai.materials.operator.edges import (
+        compute_carrier_density,
         compute_configurational_energy,
         compute_ionic_conductivity,
     )
     from omai.materials.operator.nodes import (
+        CARRIER_DENSITY,
         CONFIGURATIONAL_ENERGY,
         DIFFUSIVITY_STATE,
         ELECTRICAL_CONDUCTIVITY_IONIC,
@@ -276,13 +292,15 @@ def test_contribution_a_is_connected_through_pre_existing_nodes():
     )
 
     records = []
-    for s in (ELECTRICAL_CONDUCTIVITY_IONIC, CONFIGURATIONAL_ENERGY):
+    for s in (ELECTRICAL_CONDUCTIVITY_IONIC, CONFIGURATIONAL_ENERGY,
+              CARRIER_DENSITY):
         records.append({
             "op": "add_node",
             "payload": {"uid": _nid(s), "identity": node_identity(s),
                         "meta": {"name": s.name}},
         })
-    for op in (compute_ionic_conductivity, compute_configurational_energy):
+    for op in (compute_carrier_density, compute_ionic_conductivity,
+               compute_configurational_energy):
         records.append({
             "op": "add_edge",
             "payload": {"uid": _eid(op, _nid),
@@ -330,14 +348,17 @@ def test_contribution_b_is_connected_through_formation_energy():
 # The rails: three new representations.
 # --------------------------------------------------------------------------
 
-def test_pymatgen_analysis_diffusion_rail_covers_four_nodes():
+def test_pymatgen_analysis_diffusion_rail_covers_five_nodes():
     codes = build_codes(DOMAINS)
     pad = codes["pymatgen-analysis-diffusion"]
+    # Four from the config-thermo scan; CarrierDensity added by the physics
+    # review (2026-07-10, the executable Nernst-Einstein input).
     assert set(pad) == {
         "Diffusivity", "MeanSquaredDisplacement", "ActivationEnergy",
-        "ElectricalConductivity[carrier=ionic]"}
+        "ElectricalConductivity[carrier=ionic]", "CarrierDensity"}
     assert pad["ElectricalConductivity[carrier=ionic]"]["unit"] == "ms_per_cm"
     assert pad["Diffusivity"]["unit"] == "cm^2/s"
+    assert pad["CarrierDensity"]["unit"] == "per_cm3"
 
 
 def test_smol_rail_covers_configurational_energy_and_the_potential_analog():
@@ -416,9 +437,15 @@ def test_config_thermo_is_records_148_to_153_two_contributions():
         .read_text().splitlines()
     assert len(lines) >= 153, "the config-thermo contribution has not landed"
 
+    # Record 150 is the ORIGINAL v1 ionic-conductivity edge. Its uid is frozen
+    # history: the 2026-07-10 physics-review SECOND supersede reformulated the
+    # edge to the executable Nernst-Einstein form (changing the LIVE edge_id),
+    # but record 150 itself never moves and still carries the opaque-v1 uid.
+    OLD_V1_IONIC_EDGE_UID = ("504b2deeec3553dc90f91bdc0b4136feaf52abcbc585edd6"
+                             "5500d5cab9f27cb2")
     a_uids = [
         node_id(ELECTRICAL_CONDUCTIVITY_IONIC), node_id(CONFIGURATIONAL_ENERGY),
-        edge_id(compute_ionic_conductivity, node_id),
+        OLD_V1_IONIC_EDGE_UID,
         edge_id(compute_configurational_energy, node_id),
     ]
     # Record 153 is the ORIGINAL v1 reaction-energy edge. Its uid is frozen

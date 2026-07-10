@@ -14,6 +14,7 @@ ORCA .out files. This is the map's FIRST molecular rail.
   Forces              -gradient (run_singlepoint.py:135-143)               Hartree/bohr -> eV/A
   HOMOLUMOGap         homo_lumo_gap_eV (parse_orca_output.py:86-93)        eV
   ReactionBarrier     E(TS)-E(reactant), ORCA static-TS (Hartree -> eV)    (construction=static_ts_dft; deferred)
+  MolecularFrequency  frequencies_cm1 (parse_orca_output.py:102)           cm^-1
 
 The per-MOLECULE basis (the ruling). ORCA's TotalEnergy is the EXACT SAME
 TotalEnergy node the periodic codes ground, distinct only by a required
@@ -56,22 +57,28 @@ CODATA):
     for S). The molecular RRHO thermochemistry BUNDLE is deferred (it needs the
     MolecularFrequency node first).
 
-Molecular frequencies (representation artifacts THIS slice). ORCA emits the
-3N-6 normal-mode wavenumbers in cm^-1 (parse_orca_output.py:102, key
+Molecular frequencies (a NODE this slice, physics review 2026-07-10). ORCA emits
+the 3N-6 normal-mode wavenumbers in cm^-1 (parse_orca_output.py:102, key
 frequencies_cm1; imaginary modes printed NEGATIVE cm^-1; n_imaginary 0=min,
 1=transition state) with per-mode IR intensities in km/mol (a predicted IR stick
-spectrum, consumed by chem-spectrum-matcher). These enter as REPRESENTATION-LEVEL
-artifacts on this rail, NOT as a node: the MolecularFrequency node (index kind
-`m`/`mode`, now registered) is DEFERRED because minting it means deciding the
-imaginary-mode convention (the named hook). cm^-1 is a spectroscopic WAVENUMBER
-(nu-tilde = nu/c), the same FREQUENCY dimension as the periodic Frequency only
-after the omega = 2*pi*c*nu_tilde bridge.
+spectrum, consumed by chem-spectrum-matcher). These now ground the
+MolecularFrequency node (index kind `m`/`mode`), with the imaginary-mode
+convention fixed (imaginary serialized negative, n_imaginary the saddle-order
+diagnostic). cm^-1 is a spectroscopic WAVENUMBER (nu-tilde = nu/c), the same
+FREQUENCY dimension as the periodic Frequency only after the
+omega = 2*pi*c*nu_tilde bridge: the map's canonical inverse_cm unit carries the
+wavenumber directly (1 cm^-1 = 0.0299792458 linear THz), and the
+angular-vs-wavenumber factor 2*pi*c stays a representation caveat, NOT a
+dimension change.
 
-Deferred with reasons: the molecular RRHO thermochemistry bundle (needs the
-MolecularFrequency node first, named hook); DipoleMoment (Debye, a new
-charge*length dimension) and NMRShift (ppm), neither surfaced by any parser (the
-agent reads calculation.property.txt manually); SolvationFreeEnergy (rides
-TotalEnergy provenance until a skill computes G_solv).
+Now UNBLOCKED: the molecular RRHO thermochemistry bundle (ZeroPointEnergy,
+MolecularEnthalpy, MolecularGibbsEnergy, the T*S entropy correction) is the NEXT
+named hook, freed because it needed the MolecularFrequency node first (the modes
+drive the RRHO partition function). Still deferred with reasons: that RRHO bundle
+itself (the next slice); DipoleMoment (Debye, a new charge*length dimension) and
+NMRShift (ppm), neither surfaced by any parser (the agent reads
+calculation.property.txt manually); SolvationFreeEnergy (rides TotalEnergy
+provenance until a skill computes G_solv).
 """
 
 from __future__ import annotations
@@ -84,9 +91,14 @@ from omai.dft_ground_state.operator.nodes import FORCES, TOTAL_ENERGY
 from omai.molecular.operator.edges import (
     compute_bond_dissociation,
     compute_homo_lumo_gap,
+    compute_molecular_frequencies,
     compute_reaction_barrier,
 )
-from omai.molecular.operator.nodes import HOMO_LUMO_GAP, REACTION_BARRIER
+from omai.molecular.operator.nodes import (
+    HOMO_LUMO_GAP,
+    MOLECULAR_FREQUENCY,
+    REACTION_BARRIER,
+)
 
 
 ORCA_TOTAL_ENERGY = SpaceRepresentationSpec(
@@ -179,6 +191,32 @@ ORCA_REACTION_BARRIER = SpaceRepresentationSpec(
 )
 
 
+ORCA_MOLECULAR_FREQUENCY = SpaceRepresentationSpec(
+    space=MOLECULAR_FREQUENCY,
+    representation_name="orca",
+    observable_units={"nu_mol": "inverse_cm"},
+    code_api={"nu_mol": "parse_orca_output.py:102 frequencies_cm1 (with n_imaginary; IR intensities km/mol)"},
+    notes=(
+        "The 3N-6 (or 3N-5) molecular normal-mode wavenumbers frequencies_cm1 "
+        "(parse_orca_output.py:102), the eigenfrequencies of the mass-weighted "
+        "Hessian. Native cm^-1, served in the canonical inverse_cm unit (1 cm^-1 "
+        "= 0.0299792458 linear THz). IMAGINARY modes are printed NEGATIVE cm^-1 "
+        "(a negative Hessian eigenvalue) and n_imaginary is the saddle-order "
+        "diagnostic: 0 for a minimum, EXACTLY 1 for a first-order transition "
+        "state (the same check the TS optimization verifies). CONVENTION CAVEAT: "
+        "cm^-1 is a spectroscopic WAVENUMBER nu-tilde = nu/c, NOT an angular "
+        "frequency omega; the two share the FREQUENCY dimension only after the "
+        "omega = 2*pi*c*nu-tilde bridge (the 2*pi*c factor is a representation "
+        "convention on this rail, not a dimension change). Indexed by mode m (the "
+        "`mode` kind), EXPLICITLY NOT the periodic phonon (q, nu) Frequency (a "
+        "molecule has no Brillouin zone). Per-mode IR intensities in km/mol are a "
+        "companion spectrum artifact (chem-spectrum-matcher), not this node. "
+        "These modes drive the molecular RRHO thermochemistry bundle, now the "
+        "next unblocked named hook."
+    ),
+)
+
+
 # ---------------------------------------------------------------------------
 # Operator-level specs. ORCA is driven two ways: SCINE
 # (su.core.get_calculator('dft','orca') for single-point / optimization) and the
@@ -231,6 +269,22 @@ ORCA_COMPUTE_REACTION_BARRIER = OperatorRepresentationSpec(
         "minted node). A single-ended saddle optimization plus the agent-level "
         "E(TS)-E(reactant) difference in Hartree->eV. Bordered by the MLIP NEB "
         "route (chem-neb-barrier); cross-construction subtraction forbidden."
+    ),
+)
+
+
+ORCA_COMPUTE_MOLECULAR_FREQUENCIES = OperatorRepresentationSpec(
+    operator=compute_molecular_frequencies,
+    representation_name="orca",
+    discretization_choices=_ORCA_METHOD_CHOICES,
+    notes=(
+        "An ORCA analytical / numerical frequency job: diagonalize the "
+        "mass-weighted Hessian at a stationary geometry, emit frequencies_cm1 "
+        "(imaginary modes negative, n_imaginary the saddle order) and per-mode IR "
+        "intensities. The method scheme is hessian_normal_modes; the functional / "
+        "basis string is the Potential-provenance analog. The wavenumber-vs-"
+        "angular caveat rides the served inverse_cm unit; the modes feed the "
+        "now-unblocked RRHO thermochemistry bundle."
     ),
 )
 

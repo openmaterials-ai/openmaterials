@@ -175,6 +175,13 @@ MASS_DENSITY = Dimension("mass_density", (1, -3, 0, 0, 0, 0, 0))
 # whole-map physics review (2026-07-10) found the map one node short of. Canonical
 # unit m3_per_mol; cm3_per_mol carries 1e-6 (1 cm^3/mol = 1e-6 m^3/mol).
 VOLUME_PER_MOLE = Dimension("volume_per_mole", (0, 3, 0, 0, -1, 0, 0))
+# Number density: count per unit volume, 1/m^3 = L^-3 (0,-3,0,0,0,0,0). The
+# CarrierDensity node (mobile-carrier number density n_c, the Nernst-Einstein
+# input) carries it: a pure inverse-volume, the count being dimensionless. It is
+# the L^-3 factor that closes the executable Nernst-Einstein conductivity
+# sigma = n_c z^2 e^2 D / (k_B T) (physics review, second supersede 2026-07-10).
+# Canonical unit per_m3; per_cm3 carries 1e6 (1 cm^-3 = 1e6 m^-3).
+NUMBER_DENSITY = Dimension("number_density", (0, -3, 0, 0, 0, 0, 0))
 # Thermoelectric power factor: W m^-1 K^-2 = M L T^-3 Th^-2 (1,1,-3,-2,0,0,0). The
 # PowerFactor node (PF = sigma_e S^2, ELECTRICAL_CONDUCTIVITY times SEEBECK squared)
 # carries it: (-1,-3,3,0,0,2,0) + 2*(1,2,-3,-1,0,-1,0) = (1,1,-3,-2,0,0,0). Canonical
@@ -217,6 +224,7 @@ DIMENSIONS: dict[str, Dimension] = {
         THERMAL_EXPANSIVITY,
         MASS_DENSITY,
         VOLUME_PER_MOLE,
+        NUMBER_DENSITY,
         POWER_FACTOR,
     ]
 }

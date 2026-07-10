@@ -84,12 +84,14 @@ def test_molecular_domain_declares_the_single_tier_after_quasiharmonic():
 def test_molecular_nodes_and_edges():
     from omai.molecular.operator import EDGES, NODES
 
+    # Three from the ORCA + MD/chem scan; MolecularFrequency added by the
+    # physics review (2026-07-10, the deferred normal-mode hook now landed).
     assert [s.name for s in NODES] == [
         "HOMOLUMOGap", "ReactionBarrier[construction=neb_mep]",
-        "BondDissociationEnergy"]
+        "BondDissociationEnergy", "MolecularFrequency"]
     assert [op.name for op in EDGES] == [
         "compute_homo_lumo_gap", "compute_reaction_barrier",
-        "compute_bond_dissociation"]
+        "compute_bond_dissociation", "compute_molecular_frequencies"]
 
 
 def test_molecular_edges_wiring_and_schemes():

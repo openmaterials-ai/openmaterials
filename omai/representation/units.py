@@ -34,6 +34,7 @@ from omai.operator.dimensions import (
     MAGNETIC_MOMENT,
     MASS_DENSITY,
     MOBILITY,
+    NUMBER_DENSITY,
     SEEBECK,
     TEMPERATURE,
     THERMAL_CONDUCTIVITY,
@@ -252,6 +253,15 @@ CM3_PER_MOL = Unit("cm3_per_mol", VOLUME_PER_MOLE, 1e-6)
 W_PER_M_K2 = Unit("w_per_m_k2", POWER_FACTOR, 1.0, si_scale=1.0)
 
 
+# Canonical number-density unit: reciprocal cubic metre (1/m^3), the SI carrier
+# number density n_c = (mobile count) / cell volume feeding the Nernst-Einstein
+# conductivity. The common per-cubic-centimetre convention 1/cm^3 is 1e6 m^-3
+# (1 cm^-3 = 1e6 m^-3), so per_cm3 carries to_operator 1e6 to the canonical
+# per_m3.
+PER_M3 = Unit("per_m3", NUMBER_DENSITY, 1.0, si_scale=1.0)
+PER_CM3 = Unit("per_cm3", NUMBER_DENSITY, 1e6)
+
+
 UNITS: dict[str, Unit] = {
     u.name: u
     for u in [
@@ -300,6 +310,8 @@ UNITS: dict[str, Unit] = {
         M3_PER_MOL,
         CM3_PER_MOL,
         W_PER_M_K2,
+        PER_M3,
+        PER_CM3,
     ]
 }
 

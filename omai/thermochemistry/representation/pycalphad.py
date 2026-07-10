@@ -18,6 +18,7 @@ with no version, so a live install could differ (open question).
   ChemicalPotential      equilibrium(...).MU (variables.py:830-836)     J/mol
   PhaseFraction          equilibrium(...).NP (variables.py:488-505)     fraction
   TransitionTemperature  binplot(...) boundary loci (compat_api.py)     K
+  CalphadMolarEntropy    equilibrium/calculate(..., output='SM')        J/(mol K)
 
 Convention traps this module pins down (all review-verified):
 
@@ -51,6 +52,7 @@ from omai.representation.adapter import (
     SpaceRepresentationSpec,
 )
 from omai.thermochemistry.operator.edges import (
+    compute_calphad_entropy,
     compute_chemical_potentials,
     compute_molar_enthalpy,
     compute_phase_fractions,
@@ -59,6 +61,7 @@ from omai.thermochemistry.operator.edges import (
 )
 from omai.thermochemistry.operator.nodes import (
     ASSESSED_DATABASE,
+    CALPHAD_MOLAR_ENTROPY,
     CHEMICAL_POTENTIAL,
     MOLAR_ENTHALPY,
     MOLAR_GIBBS_ENERGY,
@@ -209,6 +212,34 @@ PYCALPHAD_TRANSITION_TEMPERATURE = SpaceRepresentationSpec(
 )
 
 
+PYCALPHAD_CALPHAD_MOLAR_ENTROPY = SpaceRepresentationSpec(
+    space=CALPHAD_MOLAR_ENTROPY,
+    representation_name="pycalphad",
+    observable_units={"S_m": "J_per_K_per_mol"},
+    code_api={
+        "S_m": "pycalphad.equilibrium/calculate(..., output='SM').SM, J/(mol K) per mole of atoms; SM = -dGM/dT",
+    },
+    notes=(
+        "Molar entropy SM = -dGM/dT (the constant-P Gibbs temperature "
+        "derivative): units.py SM_implementation_units = 'J / K / mol', "
+        "display name 'Entropy'; model.py entropy = SM. PER MOLE OF ATOMS, "
+        "constant P, SER reference; canonical J_per_K_per_mol. J/(K mol) maps "
+        "to ENERGY_PER_TEMPERATURE_PER_MOLE (1,2,-2,-1,-1,0,0). It is the "
+        "entropy factor of the executable Gibbs identity G_m = H_m - T S_m "
+        "(contract_gibbs_hts), the second producer of MolarGibbsEnergy; the "
+        "three energy-side quantities (G_m, H_m, S_m) are all on the SAME "
+        "per-mole-of-atoms constant-P SER basis, so the identity is "
+        "basis-honest. EXPLICITLY DISTINCT from the phonopy MolarEntropy "
+        "(constant-V per-mole-of-cells vibrational entropy, kJ/mol per K "
+        "phonopy convention): same J/(K mol) exponent vector, different "
+        "ensemble and basis, kept apart by the calphad_molar_entropy tag. Not "
+        "read directly by the two calphad-agent skills (they consume "
+        "NP/Phase); a standard equilibrium / calculate output, cataloged for "
+        "the domain's entropy channel and the Gibbs-identity cross-check."
+    ),
+)
+
+
 # ---------------------------------------------------------------------------
 # Operator-level specs (diagnostic: how pycalphad realizes the edges)
 # ---------------------------------------------------------------------------
@@ -252,6 +283,27 @@ PYCALPHAD_COMPUTE_MOLAR_ENTHALPY = OperatorRepresentationSpec(
         "Realized by pycalphad's Model enthalpy channel: HM = GM - "
         "T dGM/dT, requested as a named output of equilibrium / calculate. "
         "The method scheme is legendre_derivative."
+    ),
+)
+
+PYCALPHAD_COMPUTE_CALPHAD_ENTROPY = OperatorRepresentationSpec(
+    operator=compute_calphad_entropy,
+    representation_name="pycalphad",
+    discretization_choices={
+        "output_channel": (
+            "SM is requested as an output of equilibrium / calculate "
+            "(output='SM'); it is the constant-P temperature derivative "
+            "SM = -dGM/dT evaluated through the same assessed Model"
+        ),
+    },
+    notes=(
+        "Realized by pycalphad's Model entropy channel: SM = -dGM/dT, "
+        "requested as a named output of equilibrium / calculate. The method "
+        "scheme is gibbs_temperature_derivative. Feeds the executable Gibbs "
+        "identity contract_gibbs_hts (G_m = H_m - T S_m): pycalphad's own "
+        "GM = HM - T SM (model.py) is exactly the identity the map now wires "
+        "as a second, sympy-executable producer of MolarGibbsEnergy, so the "
+        "direct GM and the H - T S route are the redundant cross-check."
     ),
 )
 

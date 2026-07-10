@@ -124,7 +124,7 @@ def test_all_six_mechanics_edges_are_dimensionally_ok():
     ), report["violation"]
 
 
-def test_no_node_uid_collisions_at_91_nodes():
+def test_no_node_uid_collisions_at_98_nodes():
     # 59 with the original mechanics four; 61 with YoungsModulus and
     # PoissonRatio; 66 with the stability four plus MagneticMoment; 67 with
     # BandGap (2026-07-09, atomate2/VASP scan); 73 with the six
@@ -139,9 +139,12 @@ def test_no_node_uid_collisions_at_91_nodes():
     # BondDissociationEnergy, 2026-07-10); 91 with the characterization scan's
     # GrainBoundaryEnergy (2026-07-10); 95 with the whole-map physics review's
     # four thermodynamic-identity nodes (ThermalConductivity[contribution=total],
-    # MolarVolume, PowerFactor, ZT) in the new Thermoelectric tier (2026-07-10).
+    # MolarVolume, PowerFactor, ZT) in the new Thermoelectric tier (2026-07-10);
+    # 98 with the physics review's three follow-on nodes (CalphadMolarEntropy,
+    # CarrierDensity, MolecularFrequency), each joining an existing tier
+    # (2026-07-10).
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 95
+    assert len(g["nodes"]) == 98
     uids = [n["uid"] for n in g["nodes"]]
     assert len(set(uids)) == len(uids), "node uid collision"
 

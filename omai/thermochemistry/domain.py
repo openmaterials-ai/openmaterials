@@ -12,6 +12,7 @@ SYMBOLS: dict[str, str] = {
     "ChemicalPotential": r"\mu",
     "PhaseFraction": r"f_{\mathrm{p}}",
     "TransitionTemperature": r"T_{\mathrm{trans}}",
+    "CalphadMolarEntropy": r"S_{\mathrm{m}}",
 }
 
 THERMOCHEMISTRY = Domain(

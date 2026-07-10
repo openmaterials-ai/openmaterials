@@ -59,21 +59,27 @@ def test_thermochemistry_declares_the_single_tier():
     assert THERMOCHEMISTRY.param_promotions == ()
 
 
-def test_thermochemistry_nodes_are_the_six_observables():
+def test_thermochemistry_nodes_are_the_seven_observables():
     from omai.thermochemistry.operator import NODES
 
+    # Six from the pycalphad scan; CalphadMolarEntropy added by the physics
+    # review (2026-07-10) for the executable Gibbs identity.
     assert [s.name for s in NODES] == [
         "AssessedDatabase", "MolarGibbsEnergy", "MolarEnthalpy",
-        "ChemicalPotential", "PhaseFraction", "TransitionTemperature"]
+        "ChemicalPotential", "PhaseFraction", "TransitionTemperature",
+        "CalphadMolarEntropy"]
 
 
-def test_thermochemistry_edges_are_the_five_operators():
+def test_thermochemistry_edges_are_the_seven_operators():
     from omai.thermochemistry.operator import EDGES
 
+    # Five from the pycalphad scan; compute_calphad_entropy and the executable
+    # contract_gibbs_hts added by the physics review (2026-07-10).
     assert [op.name for op in EDGES] == [
         "solve_equilibrium", "compute_molar_enthalpy",
         "compute_chemical_potentials", "compute_phase_fractions",
-        "compute_transition_temperature"]
+        "compute_transition_temperature", "compute_calphad_entropy",
+        "contract_gibbs_hts"]
 
 
 # --------------------------------------------------------------------------
@@ -175,29 +181,40 @@ def test_unified_validate_dag_is_clean():
 
 
 def test_thermochemistry_edges_are_implicit_and_skipped_not_violating():
-    """All five edges carry opaque solver functions (the Gibbs minimization,
-    the Legendre derivative, the composition derivative, the lever rule, the
-    boundary locus), so the dimensional gate classifies them SKIPPED, exactly
-    like solve_ground_state and the stability edges; none may be a violation,
-    and the two pinned schematic violations stay the only ones."""
+    """The six implicit edges carry opaque solver functions (the Gibbs
+    minimization, the Legendre derivative, the composition derivative, the
+    lever rule, the boundary locus, the entropy T-derivative), so the
+    dimensional gate classifies them SKIPPED. The seventh, contract_gibbs_hts,
+    is the executable Gibbs identity G_m = H_m - T S_m and is PROVEN (ok). None
+    may be a violation; the two pinned schematic violations stay the only ones."""
     nodes, edges = _all_nodes_edges()
     report = dimensional_report(nodes, edges)
     for name in ("solve_equilibrium", "compute_molar_enthalpy",
                  "compute_chemical_potentials", "compute_phase_fractions",
-                 "compute_transition_temperature"):
+                 "compute_transition_temperature", "compute_calphad_entropy"):
         assert name in report["skipped"], (name, report)
+    # The executable Gibbs identity is proven, not skipped.
+    assert "contract_gibbs_hts" in report["ok"], report
+    assert "contract_gibbs_hts" not in report["skipped"], report
     assert report["violation"] == [] or all(
         "compute_gruneisen" in v or "compute_phase_space_3phonon" in v
         for v in report["violation"]
     ), report["violation"]
 
 
-def test_thermochemistry_edges_are_not_sympy_executable():
+def test_thermochemistry_edges_executability():
     from omai.thermochemistry.operator import EDGES
+    from omai.thermochemistry.operator.edges import contract_gibbs_hts
 
+    # The six implicit edges stay opaque-implicit; contract_gibbs_hts is the
+    # one executable closed form (the Gibbs identity), the second producer.
     for op in EDGES:
-        assert op.is_executable_in_sympy_override is False
-        assert not op.is_executable_in_sympy
+        if op is contract_gibbs_hts:
+            assert op.is_executable_in_sympy_override is None
+            assert op.is_executable_in_sympy
+        else:
+            assert op.is_executable_in_sympy_override is False
+            assert not op.is_executable_in_sympy
 
 
 def test_edge_wiring_and_schemes():
@@ -314,7 +331,7 @@ def test_thermochemistry_nodes_carry_the_tier():
         assert tier_of[name] == "Thermochemistry"
 
 
-def test_map_has_eighty_seven_nodes_and_thirteen_tiers():
+def test_map_has_ninety_eight_nodes_and_fifteen_tiers():
     # 73 through the pycalphad scan; 74 with AdsorptionEnergy (2026-07-10,
     # matcalc/ASE scan); 77 with the config-thermo scan's
     # ElectricalConductivity[carrier=ionic] + ConfigurationalEnergy (joining the
@@ -331,8 +348,12 @@ def test_map_has_eighty_seven_nodes_and_thirteen_tiers():
     # tier), 2026-07-10; 95 nodes and 15 tiers with the whole-map physics
     # review's four thermodynamic-identity nodes in the new Thermoelectric tier
     # (2026-07-10).
+    # 98 nodes (still 15 tiers) with the physics review's three follow-on
+    # recommendations (2026-07-10): CalphadMolarEntropy (Thermochemistry),
+    # CarrierDensity (Diffusion), MolecularFrequency (Molecular), each joining
+    # an existing tier, no new tier.
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 95
+    assert len(g["nodes"]) == 98
     assert len(g["tiers"]) == 15
 
 
@@ -358,18 +379,21 @@ def test_molar_energy_units_and_the_ev_atom_basis_factor():
 # The pycalphad representation rail.
 # --------------------------------------------------------------------------
 
-def test_pycalphad_rail_covers_the_six_nodes():
+def test_pycalphad_rail_covers_the_seven_nodes():
     from omai.map_data import build_codes
 
     pc = build_codes(DOMAINS)["pycalphad"]
     assert set(pc) == {
         "AssessedDatabase", "MolarGibbsEnergy", "MolarEnthalpy",
-        "ChemicalPotential", "PhaseFraction", "TransitionTemperature"}
+        "ChemicalPotential", "PhaseFraction", "TransitionTemperature",
+        "CalphadMolarEntropy"}
     assert pc["MolarGibbsEnergy"]["unit"] == "J_per_mol"
     assert pc["MolarEnthalpy"]["unit"] == "J_per_mol"
     assert pc["ChemicalPotential"]["unit"] == "J_per_mol"
     assert pc["PhaseFraction"]["unit"] == "dimensionless"
     assert pc["TransitionTemperature"]["unit"] == "kelvin"
+    # The assessed molar entropy SM, the Gibbs-identity entropy factor.
+    assert pc["CalphadMolarEntropy"]["unit"] == "J_per_K_per_mol"
     # AssessedDatabase is the opaque model artifact: no unit declared.
     assert pc["AssessedDatabase"]["unit"] is None
 
@@ -437,9 +461,13 @@ def test_thermochemistry_is_records_134_to_144():
         .read_text().splitlines()
     assert len(lines) >= 144, "the thermochemistry contribution has not landed"
 
+    # The pycalphad scan landed the FIRST six nodes and FIRST five edges; the
+    # physics review (2026-07-10) later appended CalphadMolarEntropy and the two
+    # entropy/Gibbs-identity edges (records 195+), which never touch records
+    # 134-144. Slice to the original contribution.
     contribution_uids = (
-        [node_id(s) for s in NODES]
-        + [edge_id(op, node_id) for op in EDGES]
+        [node_id(s) for s in NODES[:6]]
+        + [edge_id(op, node_id) for op in EDGES[:5]]
     )
     recs = [json.loads(line) for line in lines[133:144]]
     assert [r["payload"]["uid"] for r in recs] == contribution_uids

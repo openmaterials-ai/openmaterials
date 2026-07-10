@@ -10,6 +10,7 @@ SYMBOLS: dict[str, str] = {
     "ActivationEnergy": r"E_a",
     "ElectricalConductivity[carrier=ionic]": r"\sigma_{ion}",
     "ConfigurationalEnergy": r"E_{\mathrm{cfg}}",
+    "CarrierDensity": r"n_c",
 }
 
 MATERIALS = Domain(

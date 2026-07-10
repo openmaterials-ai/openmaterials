@@ -16,16 +16,24 @@ molar_enthalpy quantity tags (fresh, never molar_helmholtz_free_energy) keep
 the two sides distinct in identity; the basis lives in the descriptions and
 representation notes.
 
-Deferred candidates from the pycalphad scan, each with why:
+The assessed-entropy slice (LANDED, physics-review recommendation, 2026-07-10):
+CalphadMolarEntropy S_m (the constant-P assessed molar entropy per mole of
+atoms, SER-referenced, tag calphad_molar_entropy) is now a node, produced
+implicitly by compute_calphad_entropy (SM = -dG_m/dT) and consumed by the
+EXECUTABLE contract_gibbs_hts edge G_m = H_m - T S_m, the second producer of
+MolarGibbsEnergy (Pattern C, must agree with solve_equilibrium's direct GM).
+The dimensional gate PROVES the identity (T S_m = ENERGY_PER_MOLE). The map's
+existing phonon-side MolarEntropy (constant-V, per-cell) stays a distinct
+cousin, kept apart by the calphad_molar_entropy vs molar_entropy tags.
 
-  * CALPHAD-side MolarEntropy S_m and MolarHeatCapacity C_P,m as separate
-    source/basis/ensemble-labeled nodes, PLUS the executable contract edge
-    G = H - T S that ties MolarGibbsEnergy, MolarEnthalpy, and a CALPHAD
-    MolarEntropy: the second slice. It needs the S_m node minted first (this
-    hook is named explicitly so the next contribution can land the closed-form
-    G = H - T S edge over the three nodes); the map's existing MolarEntropy /
-    MolarHeatCapacity are the phonon (constant-V, per-cell) cousins and must
-    NOT be reused for the CALPHAD (constant-P, per-atom) quantities.
+Deferred candidates still open from the pycalphad scan, each with why:
+
+  * CALPHAD-side MolarHeatCapacity C_P,m as a separate source/basis/ensemble-
+    labeled node: the constant-P assessed heat capacity SM's T-derivative
+    partner. Deferred until a skill reads it (the calphad-agent skills consume
+    NP/Phase, not C_P,m); the phonon-side MolarHeatCapacity /
+    HeatCapacityConstantP are the constant-V / per-cell cousins and must NOT be
+    reused for the CALPHAD constant-P per-atom quantity.
   * Activity a_i = exp((mu_i - mu_i_ref)/RT): dimensionless, per component,
     reachable from ChemicalPotential via a ReferenceState. No calphad-agent
     skill reads it (they consume NP/Phase and the binplot boundaries), so it

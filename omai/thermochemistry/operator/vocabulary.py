@@ -24,4 +24,5 @@ register_space_symbols({
     "ChemicalPotential": {r"\mu"},
     "PhaseFraction": {"NP"},
     "TransitionTemperature": {r"T_{\mathrm{trans}}"},
+    "CalphadMolarEntropy": {"S_m"},
 })

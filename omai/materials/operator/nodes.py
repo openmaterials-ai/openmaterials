@@ -8,6 +8,13 @@ Node table:
   ActivationEnergy                       activation_energy        ENERGY                   ()
   ElectricalConductivity[carrier=ionic]  electrical_conductivity  ELECTRICAL_CONDUCTIVITY  ()
   ConfigurationalEnergy                  configurational_energy   ENERGY                   ()
+  CarrierDensity                         carrier_density          NUMBER_DENSITY           ()
+
+CarrierDensity arrives from the physics review (2026-07-10, second supersede):
+the L^-3 mobile-carrier number density n_c that makes the Nernst-Einstein ionic
+conductivity executable (sigma = n_c z^2 e^2 D / (k_B T)). NEW dimension
+NUMBER_DENSITY (0,-3,0,0,0,0,0) = 1/m^3, a pure inverse-volume. In the Diffusion
+tier alongside Diffusivity and the ionic conductivity it feeds.
 
 ElectricalConductivity[carrier=ionic] and ConfigurationalEnergy arrive from the
 config-thermo scan (AtomisticSkills arXiv 2605.24002: pymatgen-analysis-diffusion
@@ -49,7 +56,12 @@ recorded on the producing edge, not minted as a node here.
 """
 from __future__ import annotations
 
-from omai.operator.dimensions import DIFFUSIVITY, ELECTRICAL_CONDUCTIVITY, ENERGY
+from omai.operator.dimensions import (
+    DIFFUSIVITY,
+    ELECTRICAL_CONDUCTIVITY,
+    ENERGY,
+    NUMBER_DENSITY,
+)
 from omai.operator.space import Field, ObservableSpace, Space
 
 DIFFUSIVITY_STATE = ObservableSpace(
@@ -100,6 +112,28 @@ ELECTRICAL_CONDUCTIVITY_IONIC = ObservableSpace(
     tier="Diffusion",
 )
 
+CARRIER_DENSITY = ObservableSpace(
+    name="CarrierDensity",
+    fields=(Field("n_c", NUMBER_DENSITY, indices=()),),
+    description=(
+        "Mobile-carrier number density n_c: the count of mobile charge "
+        "carriers (the diffusing ionic species) per unit volume, the L^-3 "
+        "quantity n/V that the Nernst-Einstein conductivity multiplies. NEW "
+        "dimension NUMBER_DENSITY (0,-3,0,0,0,0,0) = 1/m^3, a pure "
+        "inverse-volume (the count is dimensionless). It is the input the "
+        "physics review found the map needed to make the Nernst-Einstein "
+        "ionic conductivity EXECUTABLE: sigma = n_c z^2 e^2 D / (k_B T), with "
+        "n_c now a first-class node rather than a Structure-derived opaque "
+        "factor. Counted as (mobile species per cell) / (cell volume), so it "
+        "rides the same Structure the diffusivity does; which species count as "
+        "mobile is an opaque selector recorded on the producing edge, not in "
+        "this scalar node. Served in per_m3 (canonical) or per_cm3 (1e6 "
+        "factor). In the Diffusion tier alongside Diffusivity and the ionic "
+        "conductivity it feeds."
+    ),
+    tier="Diffusion",
+)
+
 CONFIGURATIONAL_ENERGY = ObservableSpace(
     name="ConfigurationalEnergy",
     fields=(Field("E_cfg", ENERGY, indices=()),),
@@ -129,4 +163,5 @@ NODES: tuple[Space, ...] = (
     ACTIVATION_ENERGY,
     ELECTRICAL_CONDUCTIVITY_IONIC,
     CONFIGURATIONAL_ENERGY,
+    CARRIER_DENSITY,
 )

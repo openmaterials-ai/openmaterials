@@ -20,4 +20,7 @@ register_space_symbols({
     "HOMOLUMOGap": {r"E_{gap}^{mol}"},
     "ReactionBarrier[construction=neb_mep]": {r"E_{barrier}"},
     "BondDissociationEnergy": {r"E_{BDE}"},
+    # The molecular normal-mode frequencies (indexed by mode m); the \nu^{H}
+    # Hessian solver function is an applied function, needing no entry.
+    "MolecularFrequency": {"nu_mol"},
 })

@@ -16,15 +16,20 @@ references, not a live import.
   ActivationEnergy                       fit_arrhenius (analyzer.py:877-897)                 eV
   ElectricalConductivity[carrier=ionic]  DiffusionAnalyzer.conductivity /                    mS/cm
                                          get_extrapolated_conductivity (analyzer.py:338,846)
+  CarrierDensity                         n / structure.volume (analyzer.py:846-869)         1/cm^3
 
 Convention traps this module pins (all review-verified):
 
-  * The Nernst-Einstein conductivity is served in mS/cm; 1 S/m = 10 mS/cm, so
-    the ms_per_cm -> s_per_m registration factor is x0.1 (the canonical S/m
-    carries to_operator 1.0). get_conversion_factor (analyzer.py:846-869):
+  * The Nernst-Einstein conductivity is now the EXECUTABLE form (second
+    supersede, physics review 2026-07-10): sigma = n_c z^2 e^2 D / (k_B T), a
+    closed-form the dimensional gate proves, with the carrier density n_c a
+    first-class node. It is served in mS/cm; 1 S/m = 10 mS/cm, so the
+    ms_per_cm -> s_per_m registration factor is x0.1 (the canonical S/m carries
+    to_operator 1.0). get_conversion_factor (analyzer.py:846-869):
     sigma[mS/cm] = convf * D[cm^2/s], convf = 1000 * n/(vol_cm3 * N_A) * z^2 *
     (N_A*e)^2 / (R*T); self.conductivity = self.diffusivity * conv_factor
-    (analyzer.py:338).
+    (analyzer.py:338). The n/vol_cm3 factor of convf IS the carrier density n_c
+    (analyzer.py:864, self.n over the cell volume).
   * sigma uses the TRACER diffusivity (Haven ratio 1); the collective charge
     diffusivity would give chg_conductivity instead (analyzer.py:340). z is the
     oxidation state, else the valence-electron count (analyzer.py:864).
@@ -39,6 +44,7 @@ from __future__ import annotations
 from omai.representation.adapter import SpaceRepresentationSpec
 from omai.materials.operator.nodes import (
     ACTIVATION_ENERGY,
+    CARRIER_DENSITY,
     DIFFUSIVITY_STATE,
     ELECTRICAL_CONDUCTIVITY_IONIC,
 )
@@ -104,6 +110,30 @@ PYMATGEN_DIFFUSION_IONIC_CONDUCTIVITY = SpaceRepresentationSpec(
         "The skill reports sigma_RT at 300 K in mS/cm "
         "(calculate_activation_energy.py:236,241). Companion of Diffusivity "
         "(differ only by conv_factor); the conductivity_components a/b/c are a "
-        "tensor packing the node serves as a scalar."
+        "tensor packing the node serves as a scalar. Now the EXECUTABLE producer "
+        "(second supersede): sigma = n_c z^2 e^2 D / (k_B T) with the carrier "
+        "density n_c a first-class input, not the opaque v1 factor. The "
+        "TRACER-diffusivity (Haven ratio 1) caveat STANDS: the collective charge "
+        "diffusivity would give chg_conductivity instead (analyzer.py:340)."
+    ),
+)
+
+PYMATGEN_DIFFUSION_CARRIER_DENSITY = SpaceRepresentationSpec(
+    space=CARRIER_DENSITY,
+    representation_name="pymatgen-analysis-diffusion",
+    observable_units={"n_c": "per_cm3"},
+    code_api={"n_c": "self.n / structure.volume, the n/vol factor of get_conversion_factor (analyzer.py:846-869)"},
+    notes=(
+        "Carrier number density n_c: the mobile-species count self.n "
+        "(analyzer.py:864; the number of the diffusing specie in the structure) "
+        "over the cell volume, the n/vol_cm3 factor inside "
+        "get_conversion_factor. Served in 1/cm^3 (per_cm3, carrying to_operator "
+        "1e6 to the canonical per_m3). It is the first-class L^-3 input the "
+        "executable Nernst-Einstein conductivity multiplies (sigma = n_c z^2 e^2 "
+        "D / (k_B T)); pymatgen folds it into convf, but the map surfaces it as "
+        "the CarrierDensity node so the conductivity edge is a closed-form the "
+        "dimensional gate proves. The mobile-species selection is the opaque "
+        "choice (which specie diffuses), recorded as the producing edge's "
+        "provenance, not in this scalar node."
     ),
 )
