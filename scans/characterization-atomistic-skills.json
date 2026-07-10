@@ -1,0 +1,322 @@
+{
+  "scan": "characterization-atomistic-skills",
+  "title": "Characterization and mesoscale (XRD, lobsterpy, fipy) as used by AtomisticSkills",
+  "arxiv": "2605.24002",
+  "date": "2026-07-10",
+  "scanner_note": "SCAN stage only: catalog, not map code. This is the FINAL scan group of the AtomisticSkills parse loop, covering three distinct substrates: (a) XRD (pymatgen XRDCalculator + DARA phase-ID/refinement, xrd-agent) is FUNCTION-VALUED (intensity vs 2theta) with scalar reductions (peak positions d_hkl, lattice params, weight fractions); (b) lobsterpy (COHP bonding, atomate2-agent) produces FITTED/ANALYSIS quantities (ICOHP integrals, bonding fractions) that sit on the representation side of the physics line; (c) fipy (phase-field, phasefield-agent) evolves continuum PDE fields (dimensionless order parameters, concentration) on a different substrate than the map's per-material scalars. The one map-shaped scalar that surfaces in this group is grain-boundary energy gamma_GB (J/m^2) from mat-grain-boundary, which is NOT a fipy skill: it is an MLIP slab-energy calc, kin to SurfaceEnergy.",
+  "graph_snapshot": {
+    "node_count": 82,
+    "links_count": 198,
+    "log_records": 163,
+    "edges_key": "links (NOT edges; two earlier scanners misread this; graph.json ships nodes/links/tiers)",
+    "note": "The amset tail (records 154-163) has FULLY landed at this HEAD: ElectricalConductivity[carrier=electronic], ElectricalConductivity[carrier=ionic], SeebeckCoefficient, ElectronicThermalConductivity, CarrierMobility, StaticDielectricTensor are all graph nodes now, and graph.json carries 198 links (no longer an empty edges array). Re-read graph.json at encode time.",
+    "nodes_relevant_to_this_scan_present": ["Structure", "SurfaceEnergy", "AdsorptionEnergy", "TotalEnergy", "BandGap", "PhaseFraction", "MagneticMoment"],
+    "nodes_relevant_absent": ["XRDPattern", "PeakPosition/d_hkl", "GrainBoundaryEnergy", "ICOHP/BondStrength", "BondingFraction", "OrderParameter(phi)", "ConcentrationField(c)", "InterfaceMobility", "GradientEnergyCoefficient"]
+  },
+  "sources": {
+    "provenance": "Every quantity claim is anchored to a committed AtomisticSkills file:line and, where the code is importable, to the pip-downloaded package source. pymatgen 2026.5.4 (pip download --no-deps pymatgen -> pymatgen-2026.5.4-py3-none-any.whl -> /tmp/pmgsrc/pmg_pkg): XRDCalculator source read directly. lobsterpy 0.6.1 (pip download --no-deps lobsterpy -> /tmp/charsrc/lobster_pkg): coxx/analyze.py read directly. fipy: NOT downloaded; its behaviour is read from the phase-field skill scripts that drive it (fipy is a general PDE solver, the physical content lives in the skill scripts, not in fipy).",
+    "xrd": {
+      "skills": [
+        "mat-xrd-calculator (base-agent, pymatgen): theoretical pattern from a Structure via XRDCalculator.get_pattern; Caglioti pseudo-Voigt broadening downstream (xrd_utils.py)",
+        "mat-xrd-phase-analysis (xrd-agent, DARA/BGMN Ray tree search): PHASE ID from an experimental pattern; search_phases over candidate CIFs; output best Rwp + phase file list",
+        "mat-xrd-refinement (xrd-agent, DARA/BGMN Rietveld): quantitative refinement given phases; output Rwp, refined lattice params, weight fractions (gewicht), simulated peak_data (2theta, I, h,k,l)",
+        "mat-xrd-digitizer (base-agent): VLM turns an image of an XRD plot into an .xy peak list (2theta, normalized intensity, fwhm) -> pseudo-Voigt .xy for the phase/refine skills"
+      ],
+      "env": "xrd-agent (conda-envs/xrd-agent: python 3.11/3.10, pip dara-xrd, pymatgen, kaleido<0.3; DARA drives BGMN; Ray for the parallel phase-search tree). mat-xrd-calculator and mat-xrd-digitizer run in base-agent (pymatgen only).",
+      "pymatgen_xrd_version": "pymatgen 2026.5.4 (downloaded); the AtomisticSkills envs pin pymatgen unversioned via pip"
+    },
+    "lobsterpy": {
+      "skill": "mat-dft-lobster (atomate2-agent): atomate2 VaspLobsterMaker builds Relax -> Static -> Lobster; LOBSTER projects the VASP WAVECAR onto a local atomic-orbital basis to recover COHP/ICOHP/atomic charges/pDOS. The skill's own analyze_lobster.py ONLY plots the COHP curves via lobsterpy.plotting.PlainCohpPlotter (a spectrum plot); it does NOT call the lobsterpy Analysis condensed-bonding summary. The condensed scalar summary (ICOHP_sum/mean, bonding/antibonding percents) lives in lobsterpy.cohp.analyze.Analysis, reachable via `lobsterpy automatic-plot` / the Python Analysis API the SKILL.md references.",
+      "env": "atomate2-agent (lobsterpy, ijson provided; LOBSTER binary from cohp.de deployed on the remote HPC worker; WAVECAR is huge so LOBSTER runs on the same node as VASP static, then WAVECAR is deleted).",
+      "lobsterpy_version": "lobsterpy 0.6.1 (downloaded)"
+    },
+    "fipy": {
+      "skills": [
+        "mat-phase-field-conservative (phasefield-agent, fipy): Cahn-Hilliard, 4th-order PDE, evolves a CONSERVED concentration/order field c(r,t); spinodal decomposition; output GIF/PNG of the field, dimensionless params (mobility M, gradient energy gamma/kappa, double-well a)",
+        "mat-phase-field-non-conservative (phasefield-agent, fipy): Allen-Cahn (TDGL), evolves a NON-CONSERVED order parameter phi(r,t) in [0,1] (solid vs liquid); grain growth / dendrite; output GIF/PNG + a scalar time series (grain area vs time), dimensionless params (M, epsilon, W)"
+      ],
+      "env": "phasefield-agent (conda-envs/phasefield-agent: fipy, scipy, numpy, imageio; NO MCP server, scripts only).",
+      "not_fipy": "mat-grain-boundary is listed near the phase-field skills but is NOT a fipy skill: it computes gamma_GB (J/m^2) from MLIP-relaxed CSL grain-boundary slab supercells (E_GB - N*E_bulk)/(2A), the phase-field/kMC INPUT, not a phase-field OUTPUT. It IS map-shaped (a per-configuration scalar) and is catalogued below as the one new-node candidate of this group.",
+      "fipy_version": "not pinned in the env yaml; fipy is a general finite-volume PDE solver, the physical model is entirely in the skill scripts"
+    }
+  },
+  "spectrum_layer_proposal_xrd": {
+    "the_function_valued_object": "An XRD pattern is I(2theta): a function of the diffraction angle. pymatgen XRDCalculator.get_pattern returns a DiffractionPattern with .x (2theta, degrees), .y (intensity, scaled so max=100), .hkls (Miller triplets + multiplicity per peak), .d_hkls (d-spacing, Angstrom). This is a LINE SPECTRUM (a sparse list of Bragg peaks), which xrd_utils.py then convolves with a Caglioti pseudo-Voigt profile into a DENSE continuous curve on a 2theta grid (arange(5,90,bin)). Both the sparse peak list and the dense broadened curve are function-valued (intensity vs a spectral axis), the same family as the amset transport (doping,T) grid and the phonon DOS g(omega): ingest through the map's representation/spectrum layer, NOT as a scalar node.",
+    "spectral_axis_choice": "The natural spectral axis is 2theta (degrees) at a GIVEN WAVELENGTH, OR the wavelength-independent d_hkl (Angstrom) / scattering vector Q=4pi sin(theta)/lambda (Angstrom^-1). 2theta is what the skills serve and what experiments record, BUT 2theta is only meaningful with the wavelength as a required condition (Bragg: 2 d sin(theta) = lambda; a Cu-Ka peak and a Mo-Ka peak of the SAME plane sit at different 2theta). Recommend: store the pattern on the wavelength-independent d_hkl (or Q) axis as the CANONICAL representation, with 2theta(deg) a derived representation carrying the wavelength as a required condition. This lets a Cu and a Mo pattern of the same phase be compared without re-indexing.",
+    "wavelength_as_required_condition": "The wavelength is NOT an internal gauge; it is a physical measurement condition that changes the observable (2theta positions and, via the Lorentz-polarization factor and s=sin(theta)/lambda in the atomic form factor, the relative intensities). It must ride as a REQUIRED condition on any XRD representation, drawn from a controlled radiation vocabulary (pymatgen WAVELENGTHS table: CuKa=1.54184, CuKa1=1.54056, CuKa2=1.54439, CuKb1=1.39222, MoKa=0.71073, MoKa1/2, CrKa=2.29100, FeKa, CoKa, AgKa, ... in Angstrom), plus a free-float escape for arbitrary synchrotron wavelengths.",
+    "scalar_reductions_that_the_skills_actually_compare": "Phase ID and refinement do NOT compare the raw curve pointwise as the primary science; they compare REDUCTIONS: (1) PEAK POSITIONS d_hkl (Angstrom) / their 2theta, indexed by (hkl); the fingerprint that identifies a phase (mat-xrd-phase-analysis matches candidate-CIF calculated patterns to the experimental peak set). (2) RELATIVE PEAK INTENSITIES (scaled, dimensionless, max=100), the second half of the fingerprint. (3) refined LATTICE PARAMETERS a,b,c,alpha,beta,gamma (Angstrom / degrees) from Rietveld, a per-phase Structure property. (4) per-phase WEIGHT FRACTIONS (gewicht, dimensionless), the quantitative phase composition. (5) the goodness-of-fit Rwp (%, dimensionless). Of these, (3) lattice params ARE map-shaped Structure metadata, and (4) weight fractions parallel PhaseFraction (dimensionless), but they are fitted/analysis outputs of the refinement, not per-material first-principles observables.",
+    "proposal": "TWO tiers. (A) SPECTRUM-LAYER entry: XRDPattern as a function-valued representation, canonical axis d_hkl (Angstrom) or Q (Angstrom^-1), served-as 2theta(deg) with a REQUIRED wavelength condition from the radiation vocabulary; intensities scaled dimensionless (max=100) with the kinematic Lorentz-polarization convention flagged (no absorption / no preferred orientation / no Debye-Waller by default). (B) SCALAR-REDUCTION entries: peak positions d_hkl (Angstrom, indexed by hkl reflection) and relative intensities as the phase-ID fingerprint; refined lattice params as Structure metadata; weight fractions (dimensionless) parallel to PhaseFraction; Rwp as a fit-quality diagnostic (representation-only). The pattern is a PURELY GEOMETRIC property of the Structure (SKILL.md: 'XRD is a purely geometric property of the crystal structure'), so it grounds a Structure representation, not a new physics node in the per-material scalar sense; mint XRDPattern only if a characterization domain is opened."
+  },
+  "lobsterpy_physics_line_verdict": {
+    "what_lobster_produces": "COHP(E) = the crystal orbital Hamilton population, an ENERGY-resolved projection of the DFT band energy onto atom-pair orbital overlaps: a SPECTRUM (bonding/antibonding contribution vs energy E, eV). ICOHP = the integral of -COHP(E) up to the Fermi level: a per-bond SCALAR in eV, a proxy for covalent bond strength. lobsterpy.cohp.analyze.Analysis condenses this to a summary dict: per cation-anion pair {ICOHP_mean (eV), ICOHP_sum (eV), has_antibdg_states_below_Efermi (bool), number_of_bonds (int)}, plus per-orbital bonding/antibonding INTEGRALS and PERCENTAGES (dimensionless fractions).",
+    "the_physics_line": "These are FITTED / BASIS-DEPENDENT ANALYSIS quantities, on the REPRESENTATION side of the physics line, NOT per-material physics observables like a total energy or a phonon frequency. Three reasons: (1) COHP/ICOHP is a PROJECTION onto an arbitrarily chosen local atomic-orbital basis; the number depends on the basis and the projection (charge-spilling), so it is a post-hoc interpretive quantity, not a gauge-invariant observable. (2) It is a decomposition of an energy the map ALREADY carries (the DFT band structure / TotalEnergy): ICOHP re-partitions the same converged ground state into bonds, it does not add a new measurable. (3) The bonding/antibonding PERCENTAGES are analysis constructs (integrals over an energy window relative to E_Fermi), explicitly fitted-and-summarized, not physical scalars. Verdict: lobsterpy quantities are REPRESENTATION-ONLY (bonding-analysis views over the DFT ground state), with ICOHP a candidate DERIVED per-bond scalar (eV, edge-indexed by atom pair) ONLY if a bonding-analysis domain is ever opened, kept explicitly on the fitted side. They are NOT new physics nodes.",
+    "sign_convention": "LOBSTER/lobsterpy plot -COHP so that a POSITIVE plotted region is BONDING and negative is ANTIBONDING. ICOHP itself is NEGATIVE for a bonding interaction (the example in analyze.py: ICOHP_mean '-1.85', ICOHP_sum '-11.09' eV; more negative = stronger bond). The lobsterpy Analysis stores the raw (negative) ICOHP in eV. A trap: some workflows report -ICOHP (positive = strong bond); the sign MUST be recorded with any ICOHP value."
+  },
+  "fipy_honesty_verdict": {
+    "what_fipy_evolves": "The phase-field skills evolve CONTINUUM PDE FIELDS on a finite-volume mesh (fipy Grid2D + CellVariable): (a) Allen-Cahn: a NON-CONSERVED order parameter phi(r,t) in [0,1], dimensionless, distinguishing phases (1=solid grain, 0=liquid); (b) Cahn-Hilliard: a CONSERVED concentration/order field c(r,t), dimensionless, plus its chemical-potential field mu(r,t). The model PARAMETERS are dimensionless in the skills as written: mobility M=1.0, gradient-energy coefficient epsilon/gamma/kappa, double-well height W/a, mesh dx=dy=1.0, dt. The OUTPUTS are a GIF/PNG of the evolving field and, for grain growth, a scalar TIME SERIES (grain area vs time, in grid-unit^2), demonstrating the v = M gamma K curvature law.",
+    "the_substrate_difference": "This is a DIFFERENT SUBSTRATE from the map's per-material scalars. The map's nodes are per-material observables (one scalar or tensor per material/configuration) grounded in the Structure and its Born-Oppenheimer potential. A phase-field field is a mesoscale continuum degree of freedom c(r,t)/phi(r,t) defined over real space and time, NOT a property OF a material but a spatiotemporal STATE of a microstructure. Its parameters (M, epsilon, W) are, in the skills as written, dimensionless demonstration constants, not physical J/m^2 interface energies or m^2/s mobilities parameterized from a real material.",
+    "honest_answer_map_shaped_scalars": "The fipy phase-field skills produce NO map-shaped per-material scalar as written: the order parameters and concentration are dimensionless fields, the mobility and gradient-energy coefficients are dimensionless model constants, and there is no interface-energy or interface-velocity output in physical units. Verdict: REPRESENTATION-ONLY / DEFERRED. A continuum field is a different substrate; do not map it. IF a phase-field model were parameterized from real materials (interface energy gamma in J/m^2, interface mobility M in m^4/(J s) or m/s per driving force, gradient-energy coefficient kappa in J/m), THOSE parameters would be map-shaped scalars, but the AtomisticSkills phase-field skills do not compute them. The ONE map-shaped scalar in this group's neighbourhood is grain-boundary energy gamma_GB (J/m^2) from mat-grain-boundary, which is an MLIP calc, NOT a fipy output; it is the phase-field/kMC INPUT and is catalogued as a new-node candidate below."
+  },
+  "unit_factors": {
+    "xrd": {
+      "two_theta": "degrees (pymatgen converts internally from radians via math.degrees; get_pattern two_theta_range default (0,90))",
+      "d_hkl": "Angstrom (d_hkl = 1/|g_hkl|, xrd.py:259)",
+      "intensity": "dimensionless, scaled so max peak = 100 (DiffractionPattern.normalize(mode='max', value=100), xrd.py:278-279); raw I_hkl = |F_hkl|^2 * Lorentz-polarization",
+      "wavelength": "Angstrom (WAVELENGTHS table, xrd.py:23-48). CuKa (weighted Ka1/Ka2 average) = 1.54184; CuKa1 = 1.54056; CuKa2 = 1.54439",
+      "Q_scattering_vector": "Q = 4 pi sin(theta) / lambda, Angstrom^-1 (wavelength-independent; s = sin(theta)/lambda = |g_hkl|/2 in pymatgen, xrd.py:209-211)",
+      "lattice_params": "a,b,c in Angstrom; alpha,beta,gamma in degrees (DARA refinement gewicht/lattice output)",
+      "weight_fraction_gewicht": "dimensionless (BGMN 'gewicht'); Rwp in percent"
+    },
+    "lobsterpy": {
+      "ICOHP": "eV (ICOHP_mean, ICOHP_sum; analyze.py docstring lines 1278-1285). Negative = bonding.",
+      "COHP": "dimensionless population per energy (states-like); COHP(E) is plotted vs E in eV with E_Fermi at 0 (PlainCohpPlotter zero_at_efermi=True)",
+      "bonding_antibonding_perc": "dimensionless fraction (perc), integral of the bonding vs antibonding COHP area below E_Fermi",
+      "ICOBI": "dimensionless (bond index); ICOOP: dimensionless (overlap population). Same Icohplist container, are_cobis/are_coops flags select which."
+    },
+    "fipy": {
+      "order_parameter_phi": "dimensionless, [0,1] (Allen-Cahn)",
+      "concentration_c": "dimensionless (Cahn-Hilliard)",
+      "mobility_M": "dimensionless in the skills (=1.0); physically m^4/(J s) for Cahn-Hilliard or m^2/(J s)-like for Allen-Cahn if parameterized",
+      "gradient_energy_coeff": "epsilon (Allen-Cahn) / gamma or kappa (Cahn-Hilliard), dimensionless in the skills; physically J/m or (energy*length)",
+      "grain_area_timeseries": "grid-unit^2 vs time (dimensionless demonstration units)",
+      "gamma_GB_from_grain_boundary_skill": "J/m^2 = ENERGY_PER_LENGTH_SQUARED (M=1,L=0,T=-2), the SAME dimension as SurfaceEnergy"
+    }
+  },
+  "entry_counts_by_status": {
+    "spectrum-layer-candidate": 1,
+    "scalar-reduction-candidate": 2,
+    "representation-only": 5,
+    "new-node-candidate": 1,
+    "already-mapped": 1,
+    "deferred": 2,
+    "total": 12,
+    "by_code": {
+      "xrd": {"spectrum-layer-candidate": 1, "scalar-reduction-candidate": 2, "representation-only": 2, "already-mapped": 1, "note": "6 entries: xrd-pattern (spectrum), peak-positions-d-hkl (scalar reduction), relative-intensities (scalar reduction), refined-lattice-params (rep), weight-fraction-Rwp (rep), structure-input (already-mapped Structure)"},
+      "lobsterpy": {"representation-only": 3, "note": "3 entries: cohp-spectrum (rep), icohp-integral (rep, candidate derived scalar), bonding-antibonding-fraction (rep)"},
+      "fipy": {"deferred": 2, "new-node-candidate": 1, "note": "3 entries: phase-field-order-parameter (deferred, continuum field), phase-field-concentration (deferred, continuum field), grain-boundary-energy (new-node-candidate, NOT fipy but adjacent, J/m^2 kin to SurfaceEnergy)"}
+    }
+  },
+  "entries": [
+    {
+      "id": "xrd-pattern-spectrum",
+      "code": "pymatgen XRDCalculator (mat-xrd-calculator)",
+      "quantity": "Kinematic X-ray powder diffraction pattern I(2theta): the function-valued spectrum",
+      "symbol": "I(2theta); I(d_hkl); I(Q)",
+      "status": "spectrum-layer-candidate",
+      "dimension": {"note": "function-valued: intensity (dimensionless, scaled max=100) vs a spectral axis (2theta degrees, or d_hkl Angstrom = L, or Q Angstrom^-1 = L^-1)"},
+      "index_structure": ["spectral-axis point (2theta / d_hkl / Q)", "OR sparse: reflection index -> (hkl multiplicity)"],
+      "units": "2theta degrees; d_hkl Angstrom; intensity dimensionless (scaled max=100); wavelength Angstrom",
+      "producing_api": "XRDCalculator(wavelength='CuKa', symprec=0.1).get_pattern(structure, scaled=True, two_theta_range=(0,90)) -> DiffractionPattern(.x 2theta, .y intensity, .hkls, .d_hkls); xrd_utils.get_sim_xrd_from_pattern broadens to a dense Caglioti pseudo-Voigt curve on arange(5,90,bin)",
+      "wavelength_condition": "REQUIRED condition, from the radiation vocabulary (WAVELENGTHS: CuKa 1.54184, CuKa1 1.54056, CuKa2 1.54439, CuKb1 1.39222, MoKa 0.71073, MoKa1 0.70930, MoKa2 0.71359, CrKa 2.29100, FeKa 1.93735, CoKa 1.79026, AgKa 0.560885, all Angstrom) plus a free-float escape; changes 2theta positions AND relative intensities (via LP factor and s=sin(theta)/lambda)",
+      "anchors": {
+        "usage": ["mat-xrd-calculator/scripts/calculate_xrd.py:30-49 (XRDCalculator, get_pattern, pattern.x/y/hkls/d_hkls -> JSON x/y/hkls/d_spacings)", "mat-xrd-calculator/scripts/xrd_utils.py:4-78 (Caglioti FWHM = sqrt(U tan^2 + V tan + W); pseudo-Voigt eta*Lorentz + (1-eta)*Gauss; dense grid arange(5,90,bin))", "mat-xrd-refinement peak_data.csv (2theta, intensity, h,k,l per phase)"],
+        "source": ["pymatgen/analysis/diffraction/xrd.py:23-48 (WAVELENGTHS Angstrom)", "xrd.py:103-129 (wavelength resolution: str->table or float), :131-280 (get_pattern)", "xrd.py:207 (theta=asin(wavelength*g_hkl/2), Bragg), :209-211 (s=g_hkl/2), :228-231 (atomic form factor f(s)=Z-41.78214*s^2*sum a_i exp(-b_i s^2)), :238 (F_hkl structure factor), :241 (Lorentz-polarization (1+cos^2 2theta)/(sin^2 theta cos theta)), :244 (I=|F|^2), :259 (d_hkl=1/g_hkl), :278-279 (normalize max=100)"]
+      },
+      "spectrum_layer_role": "Canonical axis d_hkl (Angstrom) or Q (Angstrom^-1), wavelength-independent; served-as 2theta(deg) with the wavelength as a required condition. A LINE spectrum (sparse Bragg peaks) broadened to a dense curve. Same function-valued family as PhononDOS g(omega) and the amset (doping,T) transport grid: ingest via the representation/spectrum layer.",
+      "maps_to": {"node": null, "quantity_tag": "xrd_pattern (proposed, characterization domain)", "notes": "No diffraction node on the current 82-node map. A purely GEOMETRIC property of the Structure (SKILL.md), kinematic (no absorption / preferred orientation / Debye-Waller by default). Grounds a Structure representation; mint XRDPattern only if a characterization domain opens."}
+    },
+    {
+      "id": "xrd-peak-positions-d-hkl",
+      "code": "pymatgen XRDCalculator + DARA (mat-xrd-phase-analysis)",
+      "quantity": "Bragg peak positions d_hkl (and their 2theta), indexed by (hkl): the phase-ID fingerprint",
+      "symbol": "d_hkl; 2theta_hkl; (hkl)",
+      "status": "scalar-reduction-candidate",
+      "dimension": {"note": "d_hkl: L (Angstrom); 2theta: dimensionless angle (degrees); hkl: integer Miller triplet"},
+      "index_structure": ["reflection index (peak)", "(h,k,l) triplet + multiplicity per peak"],
+      "units": "d_hkl Angstrom; 2theta degrees",
+      "producing_api": "pattern.d_hkls (Angstrom), pattern.hkls ([{hkl, multiplicity}]); DARA search_phases matches calculated candidate-CIF peak sets to the experimental pattern",
+      "anchors": {
+        "usage": ["mat-xrd-phase-analysis/scripts/phase_search.py (search_phases(pattern, phases, wavelength, instrument_profile))", "mat-xrd-phase-analysis/examples/GeO2-ZnO/.../results_summary.json (best_rwp 12.11, phase_files list -> the phases identified)", "mat-xrd-calculator/scripts/calculate_xrd.py:47-48 (hkls, d_spacings to JSON)"],
+        "source": ["pymatgen/analysis/diffraction/xrd.py:259 (d_hkl=1/g_hkl), :271-276 (get_unique_families -> hkl multiplicities)"]
+      },
+      "reduction_role": "The peak POSITIONS (d_hkl / 2theta) + their (hkl) are the wavelength-independent fingerprint the phase-ID skill actually compares (peak matching for phase identification). d_hkl is a Structure-geometry reduction (a function of the lattice), not a new physics observable.",
+      "maps_to": {"node": null, "quantity_tag": "reflection_d_spacing (proposed)", "notes": "A per-reflection scalar reduction of the XRD spectrum; edge-indexed by (hkl). Structure metadata (derived from the lattice), the identity currency for phase matching. Not a per-material physics node on its own."}
+    },
+    {
+      "id": "xrd-relative-intensities",
+      "code": "pymatgen XRDCalculator (mat-xrd-calculator)",
+      "quantity": "Relative peak intensities (scaled, max=100): the second half of the phase fingerprint",
+      "symbol": "I_hkl / I_max",
+      "status": "scalar-reduction-candidate",
+      "dimension": {"note": "dimensionless (scaled so max=100)"},
+      "index_structure": ["reflection index (peak)"],
+      "units": "dimensionless, scaled max=100 (or absolute |F|^2*LP if scaled=False)",
+      "producing_api": "pattern.y (scaled intensities); raw I_hkl = |F_hkl|^2 * Lorentz-polarization",
+      "anchors": {"source": ["pymatgen/analysis/diffraction/xrd.py:238-244 (F_hkl, I=|F|^2), :241 (LP factor), :278-279 (normalize max=100)"]},
+      "reduction_role": "Relative intensities complete the phase fingerprint (position + intensity). Kinematic-only: NO absorption, NO preferred orientation, NO Debye-Waller by default; the LP factor IS applied. A fitted/geometric reduction, not an independent observable.",
+      "maps_to": {"node": null, "quantity_tag": "relative_intensity (proposed representation field)", "notes": "Representation-tier fingerprint field paired with the peak positions; carries the kinematic-LP convention flag. Not a physics node."}
+    },
+    {
+      "id": "xrd-refined-lattice-params",
+      "code": "DARA/BGMN Rietveld (mat-xrd-refinement)",
+      "quantity": "Refined lattice parameters a,b,c,alpha,beta,gamma per phase",
+      "symbol": "a,b,c (A); alpha,beta,gamma (deg)",
+      "status": "representation-only",
+      "dimension": {"note": "a,b,c: L (Angstrom); angles: dimensionless (degrees); each with an uncertainty"},
+      "index_structure": ["phase index", "lattice parameter (a/b/c/alpha/beta/gamma)"],
+      "units": "Angstrom / degrees, each as [value, esd]",
+      "producing_api": "do_refinement_no_saving -> result.lst_data.phases_results[phase].{a,b,c,alpha,beta,gamma,gewicht}; refine.py writes refinement_result.json",
+      "anchors": {"usage": ["mat-xrd-refinement/scripts/refine.py:186-202 (phases_summary: gewicht, lattice a/b/c/alpha/beta/gamma with [value,esd])", "mat-xrd-refinement/examples/LiFePO4/.../refinement_result.json (LiFePO4 a=1.0235[0.0036] etc, Rwp 32.32)"]},
+      "physics_vs_map": "Refined lattice params ARE Structure metadata (the cell of the identified phase), a fitted refinement output. They belong to the Structure node's provenance/representation, not a new node.",
+      "maps_to": {"node": "Structure (refined-cell metadata)", "quantity_tag": "structure", "notes": "Rietveld-refined cell parameters + esd's for each identified phase; representation-tier provenance on the Structure, not a physics observable."}
+    },
+    {
+      "id": "xrd-weight-fraction-rwp",
+      "code": "DARA/BGMN Rietveld (mat-xrd-refinement, mat-xrd-phase-analysis)",
+      "quantity": "Per-phase weight fractions (gewicht) and goodness-of-fit Rwp",
+      "symbol": "w_phase (gewicht); Rwp",
+      "status": "representation-only",
+      "dimension": {"note": "gewicht: dimensionless fraction; Rwp: percent (dimensionless)"},
+      "index_structure": ["phase index (for gewicht)"],
+      "units": "gewicht dimensionless; Rwp percent",
+      "producing_api": "result.lst_data.phases_results[phase].gewicht; result.lst_data.rwp",
+      "anchors": {"usage": ["mat-xrd-refinement/scripts/refine.py:192-201 (gewicht), :205,225 (rwp)", "mat-xrd-phase-analysis/.../results_summary.json (best_rwp, solutions[].rwp)"]},
+      "physics_vs_map": "Weight fractions parallel PhaseFraction (dimensionless) BUT are a REFINEMENT-fitted quantity (BGMN least-squares on an experimental pattern), not the CALPHAD equilibrium PhaseFraction (a Gibbs-minimization output). Rwp is a pure fit diagnostic. Both are analysis-side.",
+      "maps_to": {"node": null, "quantity_tag": "refined_weight_fraction / rwp (representation-only)", "notes": "Weight fraction is dimensionally like PhaseFraction but is a fitted characterization output, NOT the equilibrium phase fraction node; keep apart. Rwp is representation-only fit quality."}
+    },
+    {
+      "id": "xrd-structure-input",
+      "code": "pymatgen Structure (mat-xrd-calculator)",
+      "quantity": "The input crystal structure the XRD pattern is computed from",
+      "symbol": "Structure",
+      "status": "already-mapped",
+      "dimension": {"note": "container: lattice (L), species (N), positions"},
+      "index_structure": ["site index", "cartesian/fractional component"],
+      "units": "lattice/coords Angstrom; fractional dimensionless",
+      "producing_api": "Structure.from_file(structure_path) (calculate_xrd.py:26)",
+      "anchors": {"usage": ["mat-xrd-calculator/scripts/calculate_xrd.py:26 (Structure.from_file)"], "source": ["pymatgen/core/structure.py Structure"]},
+      "maps_to": {"node": "Structure", "quantity_tag": "structure", "notes": "Exact match to the opaque Phase-1 Structure node; the XRD pattern is a geometric function OF this Structure. Already mapped."}
+    },
+    {
+      "id": "lobster-cohp-spectrum",
+      "code": "lobsterpy PlainCohpPlotter / pymatgen Cohpcar (mat-dft-lobster)",
+      "quantity": "COHP(E): energy-resolved crystal orbital Hamilton population per bond (the bonding spectrum)",
+      "symbol": "COHP(E); -COHP(E)",
+      "status": "representation-only",
+      "dimension": {"note": "function-valued: population contribution (states-like, dimensionless) vs energy E (eV), E_Fermi at 0"},
+      "index_structure": ["energy grid point E (eV)", "bond label (atom pair)", "spin channel"],
+      "units": "energy eV (E_Fermi=0); COHP dimensionless per energy",
+      "producing_api": "pymatgen.io.lobster.Cohpcar(filename).get_all_cohps() -> {label: Cohp}; lobsterpy.plotting.PlainCohpPlotter(zero_at_efermi=True).add_cohp(label, cohp).get_plot()",
+      "anchors": {"usage": ["mat-dft-lobster/scripts/analyze_lobster.py:14,50,62-75 (Cohpcar, get_all_cohps, PlainCohpPlotter, zero_at_efermi=True, plots first 5 bonds)"], "source": ["lobsterpy/plotting/__init__.py PlainCohpPlotter"]},
+      "physics_line": "A SPECTRUM (bonding/antibonding vs E) that is a PROJECTION of the DFT ground state onto a local orbital basis: a fitted/basis-dependent analysis view, NOT a new physical observable. Sign: plotted -COHP so positive=bonding, negative=antibonding.",
+      "maps_to": {"node": null, "quantity_tag": null, "notes": "Representation-only bonding-analysis spectrum over the DFT ground state the map already carries. The skill's analyze_lobster.py only PLOTS this; it does not surface a scalar. Not a node."}
+    },
+    {
+      "id": "lobster-icohp-integral",
+      "code": "lobsterpy Analysis (mat-dft-lobster, via `lobsterpy automatic-plot` / Analysis API)",
+      "quantity": "ICOHP: integrated COHP to the Fermi level, a per-bond covalent bond-strength proxy",
+      "symbol": "ICOHP_sum; ICOHP_mean",
+      "status": "representation-only",
+      "dimension": {"note": "eV per bond (energy); a scalar per atom-pair bond. NOT a base-SI physics observable: a projected/fitted integral"},
+      "index_structure": ["bond label (cation-anion atom pair)"],
+      "units": "eV (ICOHP_sum = sum over bonds, ICOHP_mean = mean per bond). Negative = bonding",
+      "producing_api": "lobsterpy.cohp.analyze.Analysis(...).condensed_bonding_analysis / final_dict_bonds -> per-pair {ICOHP_mean, ICOHP_sum, has_antibdg_states_below_Efermi, number_of_bonds}",
+      "anchors": {"source": ["lobsterpy/coxx/analyze.py:1278-1285 (ICOHP_mean/ICOHP_sum in eV, example -1.85/-11.09), :1300-1313 (_get_bond_dict), :488-560 (get_information_all_bonds), :1378+ (set_condensed_bonding_analysis)"]},
+      "physics_line": "ON THE FITTED/ANALYSIS SIDE of the physics line. (1) A projection onto an arbitrary local-orbital basis (basis- and spilling-dependent, not gauge-invariant). (2) A re-partition of the SAME DFT ground state (TotalEnergy/band energy) the map already carries into bonds; adds no new measurable. (3) An interpretive bond-strength proxy, not a physical scalar. TRAP: sign convention (ICOHP<0 bonding; some report -ICOHP).",
+      "maps_to": {"node": null, "quantity_tag": "icohp (candidate derived scalar, fitted side, ONLY if a bonding-analysis domain opens)", "notes": "If ever mapped, an edge-indexed (atom-pair) derived scalar in eV on the fitted side, explicitly flagged basis-dependent, with the sign convention recorded. NOT a new physics node; representation-only for now. Note the skill's own script does not compute this (only plots COHP)."}
+    },
+    {
+      "id": "lobster-bonding-antibonding-fraction",
+      "code": "lobsterpy Analysis (mat-dft-lobster)",
+      "quantity": "Bonding / antibonding percentages and per-orbital contributions",
+      "symbol": "bonding.perc; antibonding.perc",
+      "status": "representation-only",
+      "dimension": {"note": "dimensionless fraction (0..1); integral of bonding vs antibonding COHP area below E_Fermi"},
+      "index_structure": ["bond label", "orbital pair (e.g. Ga-4s -- As-4p)"],
+      "units": "dimensionless fraction; per-orbital integrals in eV",
+      "producing_api": "Analysis condensed_bonding_analysis -> per-bond {bonding:{integral,perc}, antibonding:{integral,perc}}, per-orbital contributions >5%",
+      "anchors": {"source": ["lobsterpy/coxx/analyze.py:658-830 (orbital-resolved bonding/antibonding integrals+percentages), :1108-1128 (bonding/antibonding {integral,perc}), :1144-1157 (note: |ICOHP_sum| not equal to bonding-antibonding integral)"]},
+      "physics_line": "Analysis constructs (integrals over an energy window relative to E_Fermi, expressed as fractions), explicitly fitted-and-summarized. Fully on the representation side.",
+      "maps_to": {"node": null, "quantity_tag": null, "notes": "Representation-only bonding-analysis fractions; not a node."}
+    },
+    {
+      "id": "phase-field-order-parameter",
+      "code": "fipy Allen-Cahn (mat-phase-field-non-conservative)",
+      "quantity": "Non-conserved order parameter field phi(r,t) (grain / solidification)",
+      "symbol": "phi(r,t)",
+      "status": "deferred",
+      "dimension": {"note": "dimensionless field in [0,1] over a 2D mesh and time; NOT a per-material scalar"},
+      "index_structure": ["mesh cell (r)", "time step (t)"],
+      "units": "dimensionless; mesh dx=dy=1.0, dt dimensionless; params M=1, epsilon=2, W=1 all dimensionless in the skill",
+      "producing_api": "fipy CellVariable(phi) on Grid2D; eq = TransientTerm == DiffusionTerm(M*epsilon^2) + source(-2 M W phi(1-phi)(1-2phi)); eq.sweep(dt); output GIF + grain-area-vs-time PNG",
+      "anchors": {"usage": ["mat-phase-field-non-conservative/scripts/run_grain_growth.py:45-86 (Grid2D, CellVariable phi, Allen-Cahn eq, sweep), :109-111 (area = sum(phi)*dx*dy vs time), :113-135 (GIF frames)", "mat-phase-field-non-conservative/SKILL.md:14-19 (dphi/dt = M(epsilon^2 lap phi - f'(phi)), f=W phi^2(1-phi)^2)"]},
+      "substrate_verdict": "CONTINUUM PDE FIELD on a mesh: a different substrate from the map's per-material scalars. Not a property OF a material but a spatiotemporal microstructure STATE. Dimensionless demonstration constants, no physical-unit output. DEFERRED (do not map a continuum field).",
+      "maps_to": {"node": null, "quantity_tag": null, "notes": "Deferred: mesoscale continuum field, different substrate. IF parameterized from a real material, the interface mobility (m^4/(J s)) and gradient-energy coefficient (J/m) would be map-shaped, but the skill computes neither."}
+    },
+    {
+      "id": "phase-field-concentration",
+      "code": "fipy Cahn-Hilliard (mat-phase-field-conservative)",
+      "quantity": "Conserved concentration/order field c(r,t) and chemical-potential field mu(r,t) (spinodal decomposition)",
+      "symbol": "c(r,t); mu(r,t)",
+      "status": "deferred",
+      "dimension": {"note": "dimensionless field over a 2D mesh and time; 4th-order PDE conserves the global integral of c"},
+      "index_structure": ["mesh cell (r)", "time step (t)"],
+      "units": "dimensionless; params mobility M, gradient energy gamma/kappa, double-well a all dimensionless in the skill",
+      "producing_api": "fipy CellVariable(c) + CellVariable(mu) on Grid2D; coupled Cahn-Hilliard (dc/dt = div(M grad mu), mu = f'(c) - kappa lap c); output GIF/PNG",
+      "anchors": {"usage": ["mat-phase-field-conservative/scripts/run_spinodal_decomposition.py:23,51,59-64 (CellVariable phi/c, mu, gamma=1, free energy f=0.25(phi^2-1)^2)", "mat-phase-field-conservative/SKILL.md:15-17 (dc/dt = div(M grad dF/dc), f(c)=a c^2(1-c)^2, kappa/2 |grad c|^2)"]},
+      "substrate_verdict": "Same as the order-parameter field: continuum PDE state, different substrate, dimensionless demonstration constants. DEFERRED.",
+      "maps_to": {"node": null, "quantity_tag": null, "notes": "Deferred: conserved continuum field. No map-shaped scalar output."}
+    },
+    {
+      "id": "grain-boundary-energy",
+      "code": "pymatgen GrainBoundaryGenerator + MLIP (mat-grain-boundary; NOT fipy)",
+      "quantity": "Specific grain-boundary energy gamma_GB per CSL boundary (the phase-field/kMC INPUT)",
+      "symbol": "gamma_GB",
+      "status": "new-node-candidate",
+      "dimension": {"note": "ENERGY_PER_LENGTH_SQUARED (M=1, L=0, T=-2, ...) = J/m^2; the SAME dimension as SurfaceEnergy"},
+      "index_structure": ["boundary configuration (Sigma, misorientation angle, rotation axis, GB plane)"],
+      "units": "J/m^2 (gamma_GB = (E_GB - N*E_bulk)/(2A); E in eV, A in Angstrom^2 -> converted to J/m^2)",
+      "producing_api": "pymatgen.analysis.gb.grain.GrainBoundaryGenerator -> CSL slab supercells; MLIP relax (relax_cell=False); calculate_gb_energy.py applies (E_GB - N E_bulk)/(2A); output gb_energy_results.json (Sigma, angle, area, gamma_GB), gamma_vs_angle plot, summary CSV",
+      "anchors": {"usage": ["mat-grain-boundary/SKILL.md:10,15-19 (gamma_GB = (E_GB - N E_bulk)/(2A), J/m^2, factor 2 for two GBs), :96-116 (calculate_gb_energy.py -> gb_energy_results.json Sigma/angle/area/gamma_GB), :145 (Cu Sigma5 ~0.8-1.0 J/m^2, Sigma3 twin <0.05)"], "map_side": ["omai/stability/operator/nodes.py:13,98-99 (SurfaceEnergy, ENERGY_PER_LENGTH_SQUARED, ())", "omai/operator/dimensions.py:108 (ENERGY_PER_LENGTH_SQUARED (1,0,-2,0,0,0,0))"]},
+      "physics_vs_map": "A genuine per-configuration scalar (one gamma_GB per grain boundary), MLIP slab-energy difference, EXACTLY the SurfaceEnergy construction pattern (energy per area from a slab-bulk difference over 2A). Same dimension and same 'scalar per interface configuration, config in the conditions not the index' shape as SurfaceEnergy/AdsorptionEnergy. This is the ONE map-shaped observable of the characterization+mesoscale group.",
+      "maps_to": {"node": null, "quantity_tag": "grain_boundary_energy (proposed)", "notes": "New node candidate: gamma_GB (J/m^2), ENERGY_PER_LENGTH_SQUARED, scalar (), sibling of SurfaceEnergy/AdsorptionEnergy in the stability domain. The (Sigma, angle, axis, GB plane) configuration rides in instance conditions + the producing edge scheme, exactly as the facet (hkl) does for SurfaceEnergy (no registered hkl/Sigma index kind). Shares M T^-2 with ForceConstants[order=2]/SurfaceEnergy; kept apart by the quantity tag. NOT a fipy output; it is the phase-field/kMC input."}
+    }
+  ],
+  "traps": [
+    {"trap": "CuKa is the Ka1/Ka2 WEIGHTED AVERAGE (1.54184 A), NOT CuKa1 (1.54056) alone", "detail": "pymatgen WAVELENGTHS['CuKa']=1.54184 is the intensity-weighted (2:1) Ka1+Ka2 average; the skills default to 'CuKa'. CuKa1=1.54056, CuKa2=1.54439 are separate keys. A high-resolution monochromated experiment uses CuKa1 only; a lab diffractometer sees the Ka1/Ka2 doublet. Mixing them shifts 2theta. Record WHICH wavelength as the required condition.", "anchor": "pymatgen/analysis/diffraction/xrd.py:23-27"},
+    {"trap": "pymatgen intensities carry the Lorentz-POLARIZATION factor but NO absorption, NO preferred orientation, NO Debye-Waller by default", "detail": "I_hkl = |F_hkl|^2 * (1+cos^2 2theta)/(sin^2 theta cos theta). This is KINEMATIC single-crystal-powder intensity. Real experimental intensities differ (texture, absorption, thermal). Do not treat pymatgen relative intensities as experiment-ready; the LP convention and the missing corrections must be flagged on the representation.", "anchor": "pymatgen/analysis/diffraction/xrd.py:66-97 (docstring: LP factor yes, Debye-Waller no), :241 (LP), :190,233 (dw only if user supplies debye_waller_factors)"},
+    {"trap": "2theta is wavelength-dependent; d_hkl / Q are not", "detail": "The SAME plane diffracts at different 2theta for Cu vs Mo radiation (Bragg 2 d sin theta = lambda). For cross-wavelength phase matching, compare on d_hkl (Angstrom) or Q (Angstrom^-1), not 2theta. Store the canonical spectrum on the wavelength-independent axis.", "anchor": "pymatgen/analysis/diffraction/xrd.py:207,259 (theta=asin(wavelength g/2), d=1/g)"},
+    {"trap": "ICOHP SIGN convention: NEGATIVE = bonding", "detail": "lobsterpy stores raw ICOHP in eV; a bonding interaction is NEGATIVE (example -1.85/-11.09 eV). LOBSTER plots -COHP so positive plotted = bonding. Some downstream reports use -ICOHP (positive = strong bond). Any ICOHP value MUST carry its sign convention or bond strength inverts.", "anchor": "lobsterpy/coxx/analyze.py:1284-1285 (example ICOHP_mean -1.85, ICOHP_sum -11.09), :1196-1207 (-1*summedcohp)"},
+    {"trap": "|ICOHP_sum| is NOT equal to (bonding - antibonding) integral", "detail": "lobsterpy explicitly warns that the absolute ICOHP_sum may not equal the difference of the separately-integrated bonding and antibonding areas (different integration windows / orbital resolution). Do not derive one from the other.", "anchor": "lobsterpy/coxx/analyze.py:1144-1157 (explicit warning)"},
+    {"trap": "COHP/ICOHP are BASIS-DEPENDENT projections, not gauge-invariant observables", "detail": "The number depends on the chosen local atomic-orbital basis and the projection quality (charge spilling, should be <1-2%). This is why lobsterpy quantities sit on the fitted/representation side of the physics line. Record the basis and the spilling.", "anchor": "mat-dft-lobster/examples/GaAs/README.md:5-11 (charge spilling metric)"},
+    {"trap": "fipy phase-field parameters are DIMENSIONLESS demonstration constants, not physical material parameters", "detail": "M=1, epsilon=2, W=1, dx=1, dt are dimensionless in the skills. There is no J/m^2 interface energy or m^2/s mobility output. Do not read a physical interface energy or velocity off these runs. The v = M gamma K curvature law is demonstrated in grid units.", "anchor": "run_grain_growth.py:57-59 (M=1.0, epsilon=2.0, W=1.0), :44 (dx=dy=1.0)"},
+    {"trap": "mat-grain-boundary is NOT a fipy skill and IS map-shaped", "detail": "Listed near the phase-field skills but computes gamma_GB (J/m^2) from MLIP slab energies, the phase-field/kMC INPUT. It is the one per-material scalar of this group, kin to SurfaceEnergy. Do not misfile it as a continuum-field skill.", "anchor": "mat-grain-boundary/SKILL.md:10-19,96-116"},
+    {"trap": "weight fraction (refinement gewicht) is NOT the equilibrium PhaseFraction node", "detail": "DARA/BGMN gewicht is a least-squares fit of an experimental pattern; the map's PhaseFraction is a CALPHAD Gibbs-minimization output. Same dimension (dimensionless), different provenance and physics. Keep apart; do not false-merge.", "anchor": "refine.py:192 (gewicht); omai PhaseFraction (CALPHAD lever rule)"},
+    {"trap": "the lobster skill script only PLOTS COHP; the scalar summary is a separate API", "detail": "analyze_lobster.py calls PlainCohpPlotter (spectrum plot) only. ICOHP_sum/mean and bonding fractions come from lobsterpy.cohp.analyze.Analysis / `lobsterpy automatic-plot`, which the SKILL.md references but the committed script does not invoke. The scalar quantities are one level deeper than the committed code.", "anchor": "analyze_lobster.py:62-75 (PlainCohpPlotter only); SKILL.md:39-48 (Analysis/automatic-plot)"}
+  ],
+  "open_questions": [
+    "XRD spectrum layer: canonical axis d_hkl (Angstrom) or Q (Angstrom^-1)? Recommend wavelength-independent d_hkl canonical, 2theta(deg) served with wavelength as a required condition.",
+    "Radiation vocabulary: register the pymatgen WAVELENGTHS table (CuKa/CuKa1/CuKa2/MoKa/CrKa/FeKa/CoKa/AgKa, Angstrom) as a controlled condition set with a free-float escape for synchrotron wavelengths? The CuKa weighted-average vs CuKa1 distinction must be explicit.",
+    "Peak positions d_hkl: a per-reflection scalar-reduction representation (edge-indexed by hkl) vs pure Structure geometry metadata? They are a function of the lattice; likely Structure-derived, not an independent node.",
+    "XRDPattern node: mint only if a characterization domain opens? The pattern is a geometric function OF the Structure (kinematic), so it grounds a Structure representation rather than a per-material physics node.",
+    "ICOHP: representation-only (recommended) vs a candidate derived per-bond scalar (eV, atom-pair edge) on the explicit fitted side if a bonding-analysis domain opens? It re-partitions an energy the map already carries; basis-dependent.",
+    "grain-boundary energy gamma_GB: mint as a new stability-domain node (ENERGY_PER_LENGTH_SQUARED, sibling of SurfaceEnergy/AdsorptionEnergy)? Strong recommend YES; same construction (slab-bulk energy over 2A), same dimension, (Sigma,angle,axis,plane) in conditions not indices.",
+    "fipy phase-field fields: confirmed DEFERRED (continuum substrate, dimensionless). Should the map ever carry mesoscale continuum fields, or is the boundary drawn at per-material scalars? Recommend the boundary at per-material scalars; phase-field is a different substrate.",
+    "Version pins: pymatgen 2026.5.4 (downloaded), lobsterpy 0.6.1 (downloaded); the AtomisticSkills envs pin pymatgen/lobsterpy unversioned. fipy unpinned in phasefield-agent. Pin before an encode relies on the XRDCalculator WAVELENGTHS table or the lobsterpy Analysis schema."
+  ],
+  "source_anchors": {
+    "skills": [
+      "mat-xrd-calculator/SKILL.md:1-59, scripts/calculate_xrd.py:6-49, scripts/xrd_utils.py:1-78",
+      "mat-xrd-phase-analysis/SKILL.md:1-147, scripts/phase_search.py, examples/GeO2-ZnO/.../results_summary.json (best_rwp 12.11)",
+      "mat-xrd-refinement/SKILL.md:1-148, scripts/refine.py:56-231, examples/LiFePO4/.../refinement_result.json (Rwp 32.32, gewicht, lattice)",
+      "mat-xrd-digitizer/SKILL.md:1-84 (VLM peak extraction -> pseudo-Voigt .xy)",
+      "mat-dft-lobster/SKILL.md:1-76, scripts/analyze_lobster.py:14-84 (Cohpcar, PlainCohpPlotter), scripts/generate_inputs.py:5,32-35 (VaspLobsterMaker), examples/GaAs/README.md:5-13 (charge spilling, ICOHP bond strength)",
+      "mat-phase-field-conservative/SKILL.md:1-62, scripts/run_spinodal_decomposition.py:23,51,59-64 (Cahn-Hilliard, c, mu)",
+      "mat-phase-field-non-conservative/SKILL.md:1-64, scripts/run_grain_growth.py:45-149 (Allen-Cahn, phi, grain area), scripts/run_dendrite_growth.py",
+      "mat-grain-boundary/SKILL.md:1-166 (gamma_GB J/m^2, MLIP, NOT fipy)"
+    ],
+    "package_source": [
+      "pymatgen 2026.5.4 /tmp/pmgsrc/pmg_pkg/pymatgen/analysis/diffraction/xrd.py:23-48 (WAVELENGTHS), :57-98 (XRDCalculator docstring, LP factor, no Debye-Waller), :103-129 (wavelength resolution), :131-280 (get_pattern; :207 Bragg, :209-211 s, :228-231 form factor, :238 F_hkl, :241 LP, :244 I=|F|^2, :259 d_hkl, :278-279 normalize max=100)",
+      "lobsterpy 0.6.1 /tmp/charsrc/lobster_pkg/lobsterpy/coxx/analyze.py:51-82 (Analysis params, cutoff_icohp, are_cobis/are_coops), :488-560 (get_information_all_bonds), :658-830 (orbital-resolved bonding/antibonding integrals+perc), :1108-1157 (bonding/antibonding {integral,perc}; ICOHP_sum!=b-ab warning), :1278-1315 (_get_bond_dict, ICOHP_mean/sum eV example -1.85/-11.09), :1378+ (set_condensed_bonding_analysis); lobsterpy/plotting PlainCohpPlotter",
+      "fipy: not downloaded (general PDE solver; physical model in the skill scripts)"
+    ],
+    "map_side": [
+      "docs/data/graph.json (82 nodes, 198 links, key 'links' NOT 'edges'; amset tail fully landed)",
+      "map/log.jsonl (163 records)",
+      "omai/stability/operator/nodes.py:13,98-99,145 (SurfaceEnergy/AdsorptionEnergy, ENERGY_PER_LENGTH_SQUARED, scalar, config in conditions not index)",
+      "omai/operator/dimensions.py:108 (ENERGY_PER_LENGTH_SQUARED (1,0,-2,0,0,0,0))",
+      "omai/operator/registry.py:84-152 (QUANTITY_TAGS: surface_energy present; no xrd/cohp/grain_boundary tag), :218-235 (LABEL_KEYS)",
+      "scans/pymatgen-atomistic-skills.json (xrd-pattern entry deferred to this scan as function-valued new-node-candidate)"
+    ]
+  }
+}
