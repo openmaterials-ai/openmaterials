@@ -1676,6 +1676,29 @@
   },
   "uid": "b15ffc57501399eb9f1a0081d34ec1e16b579134c884d6dcf0b05434924e02eb"
  },
+ "bb3f3ca8c5f842995d1e84cb06a7ebfc7073b0963abff93daba9352b5fe505ec": {
+  "identity": {
+   "formula": "Equality(Symbol('G_m'), Add(Symbol('H_m'), Mul(Integer(-1), Symbol('S_m'), Symbol('T'))))",
+   "inputs": [
+    "600d0860290d3326202768db7249339c34ac675deb2ee8528a92207d3878b00c",
+    "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0",
+    "b11c4ec0ddbfa4483cc0a65d6a8fb2cefa9687b9a86ebd11bfb968d4253ec022"
+   ],
+   "output": "b048bc7569d568e2201557761eb758817674dd3a38b6f2379c5474f4cf91c66f",
+   "outputs": [
+    "b048bc7569d568e2201557761eb758817674dd3a38b6f2379c5474f4cf91c66f"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "The executable Gibbs identity G_m = H_m - T S_m: the assessed molar Gibbs energy from the molar enthalpy, the temperature, and the constant-P assessed molar entropy, the exact thermodynamic definition of the Gibbs free energy the CALPHAD model itself carries (H_m = G_m + T S_m, so G_m = H_m - T S_m). SECOND PRODUCER (Pattern C) of MolarGibbsEnergy alongside solve_equilibrium (the direct global Gibbs minimization that returns GM): two routes to the SAME assessed G_m that MUST agree numerically (H_m and S_m are themselves GM's Legendre transform and T-derivative), the redundant-route pattern BulkModulus (three producers) and PhononDOS (two) already bless. The gate PROVES it: T S_m = (0,0,0,1,0,0,0) . (1,2,-2,-1,-1,0,0) = (1,2,-2,0,-1,0,0) = ENERGY_PER_MOLE, so H_m - T S_m is an Add of two equal ENERGY_PER_MOLE dimensions, matching G_m. All three energy-side quantities are on the SAME CALPHAD basis (per mole of atoms, constant P, SER), so the identity is basis-honest. Closed-form and sympy-executable.",
+   "formula_latex": "G_{m} = H_{m} - S_{m} T",
+   "formula_srepr": "Equality(Symbol('G_m'), Add(Symbol('H_m'), Mul(Integer(-1), Symbol('S_m'), Symbol('T'))))",
+   "name": "contract_gibbs_hts",
+   "schemes": {}
+  },
+  "uid": "bb3f3ca8c5f842995d1e84cb06a7ebfc7073b0963abff93daba9352b5fe505ec"
+ },
  "c0093343fed48c5cc30a81368be68ddd6000b7ecab4d816c2a1601a01f35163e": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('J')), Symbol('\\\\alpha', integer=True), Symbol('t', integer=True)), Mul(Pow(Symbol('V_{cell}', positive=True), Integer(-1)), Add(Sum(Mul(Indexed(IndexedBase(Symbol('E')), Symbol('i', integer=True), Symbol('t', integer=True)), Indexed(IndexedBase(Symbol('v')), Symbol('i', integer=True), Symbol('\\\\alpha', integer=True), Symbol('t', integer=True))), Tuple(Symbol('i', integer=True), Integer(1), Symbol('N_{atoms}', positive=True, integer=True))), Mul(Rational(1, 2), Sum(Mul(Indexed(IndexedBase(Symbol('F^{md}')), Symbol('i', integer=True), Symbol('\\\\alpha', integer=True), Symbol('t', integer=True)), Indexed(IndexedBase(Symbol('r')), Symbol('i', integer=True), Symbol('\\\\alpha', integer=True), Symbol('t', integer=True)), Indexed(IndexedBase(Symbol('v')), Symbol('i', integer=True), Symbol('\\\\alpha', integer=True), Symbol('t', integer=True))), Tuple(Symbol('i', integer=True), Integer(1), Symbol('N_{atoms}', positive=True, integer=True)))))))",
@@ -1732,6 +1755,32 @@
    }
   },
   "uid": "c168368c90fa77e7b76a5668757de7f74d5fbb02b07c73544307cd48aa42d8e9"
+ },
+ "c1a786957352c7a02efab90d3815c83156bbae53976932e51dec1a9f0df62f2b": {
+  "identity": {
+   "formula": "Equality(Symbol('S_m'), Function('S^{eq}')(Symbol('\\\\mathcal{D}'), Symbol('T')))",
+   "inputs": [
+    "3618484d27f4d34e4a8abf7db7b62201c5aefe00de89933375f082a883513bbd",
+    "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0"
+   ],
+   "output": "b11c4ec0ddbfa4483cc0a65d6a8fb2cefa9687b9a86ebd11bfb968d4253ec022",
+   "outputs": [
+    "b11c4ec0ddbfa4483cc0a65d6a8fb2cefa9687b9a86ebd11bfb968d4253ec022"
+   ],
+   "schemes": {
+    "method": "gibbs_temperature_derivative"
+   }
+  },
+  "meta": {
+   "description": "Molar entropy S_m = S^{eq}[D, T]: the assessed entropy channel of the equilibrium, pycalphad's SM = -dGM/dT (the constant-P Gibbs temperature derivative), per mole of atoms at constant pressure, SER reference. S^{eq} is an opaque function over the assessed database D and temperature T (evaluated through the same Model that carries the Gibbs energy); the method scheme records the gibbs_temperature_derivative construction. The entropy factor of the executable Gibbs identity contract_gibbs_hts (G_m = H_m - T S_m). Implicit (a T-derivative of the assessed model at equilibrium), so not sympy-executable.",
+   "formula_latex": "S_{m} = S^{eq}{\\left(\\mathcal{D},T \\right)}",
+   "formula_srepr": "Equality(Symbol('S_m'), Function('S^{eq}')(Symbol('\\\\mathcal{D}'), Symbol('T')))",
+   "name": "compute_calphad_entropy",
+   "schemes": {
+    "method": "gibbs_temperature_derivative"
+   }
+  },
+  "uid": "c1a786957352c7a02efab90d3815c83156bbae53976932e51dec1a9f0df62f2b"
  },
  "c3e43a0416eba1abf7d4cfa1467761af3b7aa7003df592db3a3599c635d58073": {
   "identity": {

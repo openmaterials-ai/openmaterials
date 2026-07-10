@@ -1524,6 +1524,26 @@
   },
   "uid": "b048bc7569d568e2201557761eb758817674dd3a38b6f2379c5474f4cf91c66f"
  },
+ "b11c4ec0ddbfa4483cc0a65d6a8fb2cefa9687b9a86ebd11bfb968d4253ec022": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2 Th^-1 N^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "calphad_molar_entropy"
+  },
+  "meta": {
+   "description": "Assessed molar entropy S_m of a phase (or of the equilibrium assemblage): the constant-P entropy the CALPHAD model carries as S_m = -dG_m/dT, pycalphad's SM. PER MOLE OF ATOMS (the v.N:1 system-moles normalization), at CONSTANT PRESSURE, with the SER (Stable Element Reference) as the entropy zero. J/(K mol), dimension ENERGY_PER_TEMPERATURE_PER_MOLE (1,2,-2,-1,-1,0,0). It is the entropy factor of the executable Gibbs identity G_m = H_m - T S_m (contract_gibbs_hts), the second producer of MolarGibbsEnergy. EXPLICITLY DISTINCT from the phonon-side MolarEntropy (molar_entropy tag): that node is the phonon-gas vibrational entropy S_mol = (N_A/N_q) sum_qnu s_qnu(T), a CONSTANT-VOLUME (Helmholtz-side) entropy PER MOLE OF PRIMITIVE CELLS, whereas this is a CONSTANT-P assessed entropy PER MOLE OF ATOMS from a Gibbs model; same ENERGY_PER_TEMPERATURE_PER_MOLE exponent vector, different thermodynamic ensemble, basis, and producer, kept apart by the calphad_molar_entropy quantity tag (the Molar* false-merge guardrail, exactly as MolarGibbsEnergy is kept apart from the phonon MolarHelmholtzFreeEnergy). To cross-code to the phonon per-cell basis, reconcile atoms-per-cell AND the constant-P vs constant-V ensemble; not an EXPECTED_AGREE pair with the phonon MolarEntropy. Served in J/(K mol) (canonical J_per_K_per_mol).",
+   "name": "CalphadMolarEntropy",
+   "symbol": "S_{\\mathrm{m}}",
+   "tier": "Thermochemistry"
+  },
+  "uid": "b11c4ec0ddbfa4483cc0a65d6a8fb2cefa9687b9a86ebd11bfb968d4253ec022"
+ },
  "b24a26725f5641ffb16720514a7fdb23bf03304ce0d51c9f39501d1c8c009b6c": {
   "identity": {
    "fields": [
