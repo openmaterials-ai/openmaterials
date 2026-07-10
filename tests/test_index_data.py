@@ -80,9 +80,10 @@ def test_write_index_emits_one_file_per_representation(tmp_path):
     # mat-equation-of-state and mat-surface-adsorption, 18th-19th (matcalc
     # itself is NOT a rail, the atomate2 ruling); the config-thermo scan added
     # smol, rxn-network, and pymatgen-analysis-diffusion, 20th-22nd; the amset
-    # scan added the amset rail, 23rd.
+    # scan added the amset rail, 23rd; the molecular scan added the orca and
+    # openmm rails, 24th-25th.
     assert len(files) == len(reps)
-    assert len(files) == 23
+    assert len(files) == 25
 
 
 def test_each_index_entry_uid_matches_live_node_id(tmp_path):

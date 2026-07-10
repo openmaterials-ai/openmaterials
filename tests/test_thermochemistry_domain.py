@@ -43,8 +43,8 @@ def test_thermochemistry_domain_between_stability_and_materials():
     names = [d.name for d in DOMAINS]
     assert names == [
         "thermal_transport", "dft_ground_state", "mechanics", "stability",
-        "thermochemistry", "quasiharmonic", "electronic_transport",
-        "materials"]
+        "thermochemistry", "quasiharmonic", "molecular",
+        "electronic_transport", "materials"]
 
 
 def test_thermochemistry_declares_the_single_tier():
@@ -299,7 +299,10 @@ def test_thermochemistry_tier_after_stability_before_quasi_harmonic():
     # The phonopy/LAMMPS delta scan inserted the Quasi-harmonic tier after
     # Thermochemistry (before the amset Electronic transport tier), 2026-07-10.
     assert tier_names[i + 1] == "Quasi-harmonic"
-    assert tier_names[i + 2] == "Electronic transport"
+    # The molecular scan (ORCA + MD/chem) inserted the Molecular tier after
+    # Quasi-harmonic (before the amset Electronic transport tier), 2026-07-10.
+    assert tier_names[i + 2] == "Molecular"
+    assert tier_names[i + 3] == "Electronic transport"
 
 
 def test_thermochemistry_nodes_carry_the_tier():
@@ -321,9 +324,12 @@ def test_map_has_eighty_seven_nodes_and_thirteen_tiers():
     # 2026-07-10); 87 with the phonopy/LAMMPS delta scan's four quasi-harmonic
     # nodes (the new Quasi-harmonic tier) plus MassDensity (joining Mechanics),
     # 2026-07-10.
+    # 90 with the molecular scan's three nodes (HOMOLUMOGap,
+    # ReactionBarrier[construction=neb_mep], BondDissociationEnergy) in the new
+    # Molecular tier (ORCA + MD/chem, 2026-07-10).
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 87
-    assert len(g["tiers"]) == 13
+    assert len(g["nodes"]) == 90
+    assert len(g["tiers"]) == 14
 
 
 # --------------------------------------------------------------------------
@@ -373,8 +379,9 @@ def test_pycalphad_is_a_rail_and_the_config_thermo_scan_added_three_rails():
     # (matcalc itself is NOT a rail, the atomate2 ruling), reaching 19; the
     # config-thermo scan (2026-07-10) added three more: smol, rxn-network, and
     # pymatgen-analysis-diffusion, reaching 22; the amset scan (2026-07-10)
-    # added the amset rail, reaching 23.
-    assert len(codes) == 23
+    # added the amset rail, reaching 23; the molecular scan (2026-07-10) added
+    # the orca and openmm rails, reaching 25.
+    assert len(codes) == 25
     assert "pycalphad" in codes
     assert "mat-equation-of-state" in codes
     assert "mat-surface-adsorption" in codes

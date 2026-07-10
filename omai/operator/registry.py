@@ -54,6 +54,16 @@ INDEX_KINDS: dict[str, str] = {
     # component / phase semantics of a Gibbs-minimization output.
     "c": "component",
     "p": "phase",
+    # The molecular normal-mode axis: the 3N-6 (or 3N-5) discrete vibrational
+    # modes of a finite molecule, indexed by mode number. The map's FIRST
+    # non-periodic frequency axis: a molecule has NO qpoint and NO phonon branch
+    # (no Brillouin zone, only the gamma point), so the (q, nu) = (qpoint, branch)
+    # signature of the periodic Frequency node does not fit. A distinct kind so a
+    # molecular normal-mode index never aliases a phonon (q, nu) axis. Registered
+    # for the ORCA / sella molecular vibrational frequencies; the MolecularFrequency
+    # node that will carry it is deferred this slice (minting it means deciding the
+    # imaginary-mode convention), so no field uses `m` yet.
+    "m": "mode",
 }
 
 
@@ -154,6 +164,9 @@ QUANTITY_TAGS: dict[str, str] = {
     "heat_capacity_constant_p": "Constant-pressure molar heat capacity C_P(T) along the QHA equilibrium path, per mole of the phonopy cell; the constant-pressure partner of the harmonic constant-volume molar_heat_capacity (C_P - C_V = alpha^2 B V T).",
     "thermal_gruneisen": "Macroscopic (thermal) Gruneisen parameter gamma(T), a single scalar per temperature: the heat-capacity-weighted contraction of the mode gruneisen, distinct from the (q,nu)-indexed mode node.",
     "mass_density": "Mass density rho = total cell mass over cell volume, the LAMMPS metal-unit MD thermo output; g/cm^3.",
+    "homolumo_gap": "Kohn-Sham HOMO-LUMO gap of a MOLECULE: the eV difference between the two discrete frontier molecular orbitals (highest occupied, lowest unoccupied) of a finite system with no bands; a cousin of the periodic band_gap (same ENERGY dimension, same KS-eigenvalue-gap family and caveats) but never equated (a molecule has no Brillouin zone, so no VBM/CBM). Tag derived from the node name HOMOLUMOGap (the HOMOLUMO acronym stays one token, exactly as PhononDOS -> phonon_dos).",
+    "reaction_barrier": "Energy barrier of a reaction or migration: the peak-minus-reactant energy along a path (NEB minimum-energy path) or from a static saddle point (sella / ORCA transition state); one construction per label {neb_mep, static_ts_mlip, static_ts_dft}, cross-construction subtraction forbidden. Distinct from the Arrhenius activation_energy (a diffusivity-slope, not a PES barrier).",
+    "bond_dissociation_energy": "Energy to cleave one chemical bond of a molecule: a difference of relaxed fragment total energies (homolytic radicals, or heterolytic charged fragments) on the per-molecule basis; a labeled sibling of the solid-state reaction_energy, kcal/mol native in the chemist's convention.",
 }
 
 
@@ -237,4 +250,16 @@ LABEL_KEYS: dict[str, frozenset[str]] = {
     # against the other label keys (order, bte_solver, transport_model,
     # channel, wrt): no value or key overlaps.
     "carrier": frozenset({"ionic", "electronic"}),
+    # The construction of a reaction barrier: neb_mep (a CI-NEB minimum-energy-path
+    # barrier, chem-neb-barrier via ase.mep, eV, MLIP), static_ts_mlip (a static
+    # saddle-point barrier from an MLIP transition state, chem-ts-optimization via
+    # sella, eV), static_ts_dft (a static saddle from molecular DFT, chem-dft-orca,
+    # Hartree->eV, all-electron zero). Same reaction_barrier tag and ENERGY
+    # dimension, kept apart as distinct nodes ONLY by this construction label, so
+    # the sella and ORCA routes join the ReactionBarrier family later WITHOUT a
+    # re-mint (the carrier-label pattern). Cross-construction numeric comparison is
+    # forbidden by the energy-zero split (MLIP eV vs all-electron Hartree->eV).
+    # Collision-free against the other label keys (order, bte_solver,
+    # transport_model, channel, wrt, carrier): no value or key overlaps.
+    "construction": frozenset({"neb_mep", "static_ts_mlip", "static_ts_dft"}),
 }

@@ -166,6 +166,12 @@ GPA = Unit("GPa", ENERGY_PER_LENGTH_CUBED, 6.241509074460763e-3)
 # Young's modulus in SI pascal (elastic.py:199-204, a 9.0e9 factor over its
 # eV/A^3 moduli), a 1e9 trap against the GPa the mat-* skills report.
 PA = Unit("Pa", ENERGY_PER_LENGTH_CUBED, 6.241509074460763e-12)
+# 1 atm = 101325 Pa (exact, standard atmosphere), so to eV/Å³ it is
+# 101325 * 6.241509074460763e-12 = 6.32521456782392e-7. The OpenMM MD barostat
+# pressure SETPOINT is in atmospheres (drug-protein-ligand-md/run_md.py:234,
+# MonteCarloBarostat(pressure*atmosphere, ...)); registered so that setpoint can
+# be stated in its native unit rather than converted by hand.
+ATM = Unit("atm", ENERGY_PER_LENGTH_CUBED, 101325.0 * 6.241509074460763e-12)
 
 
 # Canonical length unit: Å (angstrom). Canonical volume unit: Å³.
@@ -259,6 +265,7 @@ UNITS: dict[str, Unit] = {
         KBAR,
         GPA,
         PA,
+        ATM,
         ANGSTROM,
         ANGSTROM_CUBED,
         DIMENSIONLESS_UNIT,
