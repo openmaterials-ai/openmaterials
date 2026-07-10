@@ -1,0 +1,416 @@
+{
+  "scan": {
+    "code": "mp-api / Materials Project (a DATABASE, not an engine)",
+    "slice": "as-used-by-AtomisticSkills",
+    "source_root": "AtomisticSkills/.agents/skills/mat-db-mp/ (query_mp.py, get_elasticity.py, get_magnetism.py, get_structure_by_id.py, find_similar_structures.py), plus mat-stability/query_mp_hull.py, mat-electronic-structure/get_mp_electronic_structure.py, mat-phonon/get_mp_phonon.py, mat-phase-diagram/get_phase_diagram.py, mat-elemental-energies/query_elements.py, mat-structure-novelty/match_structure.py, mat-ionic-substitution/find_structures_for_composition.py",
+    "paper": "arXiv 2605.24002 (AtomisticSkills)",
+    "entry_count": "18 entry objects (9 already-mapped, 7 new-node-candidate, 2 representation-only). Counted by enumeration of the entries array; trust the per-entry status fields.",
+    "code_versions": "mp-api 0.41.2, emmet-core 0.85.1 (both importable in miniconda base: /Users/juicy/miniconda3/lib/python3.12/site-packages/{mp_api/client, emmet/core}). Document models read directly from emmet/core/summary.py, elasticity.py, magnetism.py, electrode.py, structure.py, thermo.py, types/enums.py. MPRester routes verified present in mp_api/client/mprester.py: summary, thermo, elasticity, magnetism, phonon, electronic_structure_bandstructure, electronic_structure_dos, tasks, insertion_electrodes. MP-served example docs elsewhere in the repo carry pymatgen_version 2024.11.13.",
+    "role_in_software": "Materials Project is NOT an engine; it is a DATABASE, i.e. a representation whose artifacts are database RECORDS carrying already-computed values for mapped quantities. Those values were themselves computed by VASP DFT workflows (MP's provenance is the atomate2/VASP stack the atomate2-vasp scan catalogs), so the VASP catalog's conventions apply to MP fields: energy is a VASP e_0_energy-family variant with MP2020 corrections, stress (in the trajectory endpoint) is kbar, and elastic/magnetic values are the pymatgen post-processing outputs (bulk_modulus.vrh in GPa, total_magnetization in mu_B). AtomisticSkills reaches MP through mp_api.client.MPRester (mpr.materials.<endpoint>.search / .get_*_by_id). MP fills two distinct roles for the map: (a) a RETRIEVAL representation of quantities the map already has (Structure, ElasticConstants/BulkModulus/ShearModulus, ForceConstants, Frequency/PhononDOS, and per-atom energetics), and (b) an INSTANCE SOURCE: each (material_id, value) record is a piece of evidence (kind 'simulation', ref 'materials-project' + mp-id) with the MP functional / mixing-scheme as conditions provenance.",
+    "canonical_units_note": "The openmaterials map's canonical units (omai/operator/registry.py QUANTITY_TAGS + the QE/VASP/pymatgen scans) are the reference. PRECISION DUTY for MP specifically: MP's elasticity is served in GPa (NOT eV/A^3 like raw pymatgen ElasticTensor), and MP's young_modulus is served in SI Pa (NOT GPa); MP's total_magnetization is TOTAL mu_B (per cell), with separate per-formula-unit (mu_B/f.u.) and per-volume (mu_B/A^3) normalized fields. These normalization/unit differences are the traps this scan exists to catch.",
+    "instance_source_design_pointer": "See the dedicated 'instance_source_design' object at the end of this file for how MP records enter docs/data/instances/ as evidence (variable, conditions carrying functional/mixing-scheme, source.ref format with mp-id)."
+  },
+  "entries": [
+    {
+      "name": "mp-structure-record",
+      "quantity": "The crystal structure of an MP material (lowest-energy relaxed structure), as a database record",
+      "symbol": "Structure (SummaryDoc.structure)",
+      "dimension": {"note": "container; L (lattice, angstrom), N (species/counts), M (masses)"},
+      "index_structure": ["site index i", "cartesian/fractional component"],
+      "units": "Lattice vectors and cartesian coordinates in ANGSTROM; fractional coordinates dimensionless. SummaryDoc.structure is a pymatgen Structure; mpr.materials.get_structure_by_material_id returns it directly.",
+      "producing_api": "mpr.materials.summary.search(fields=['structure']) -> SummaryDoc.structure; mpr.materials.get_structure_by_material_id(material_id); serialized to CIF via pymatgen CifWriter",
+      "conversion_to_canonical": "angstrom is the map's length unit; opaque Structure node. Same realization as the pymatgen crystal-structure entry (MP hands back a pymatgen Structure). NO conversion.",
+      "anchors": {
+        "usage": [
+          "mat-db-mp/scripts/query_mp.py:104-105,152-158 (fields include 'structure'; CifWriter(structure); structure.as_dict())",
+          "mat-db-mp/scripts/get_structure_by_id.py:43 (mprester.materials.get_structure_by_material_id(material_id))"
+        ],
+        "source": [
+          "emmet/core/summary.py:422-426 (SummaryDoc.structure: 'The lowest energy structure for this material.')"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "Structure", "quantity_tag": "structure", "notes": "Direct match to the opaque Structure node. MP is a RETRIEVAL representation: the record carries a relaxed VASP structure. As an instance source, an MP structure is not a scalar 'value' and is not ingested as a docs/data/instances record (the instance store holds scalar physical values); it is provenance/context for the scalar records that share its material_id."}
+    },
+    {
+      "name": "mp-cell-volume-and-density",
+      "quantity": "Unit-cell volume, mass density, and atomic packing density of an MP material",
+      "symbol": "V (volume), rho (density), rho_atomic",
+      "dimension": {"volume": {"M": 0, "L": 3, "T": 0}, "density": {"M": 1, "L": -3, "T": 0}, "density_atomic": {"note": "A^3 per atom in emmet (volume/num_sites), despite the field description saying atoms per cm^3"}},
+      "index_structure": [],
+      "units": "volume ANGSTROM^3 (StructureMetadata.volume 'Total volume ... in Angstroms^3'); density g/cm^3 (structure.py:67-68 'Density in grams per cm^3'); density_atomic is actually volume/num_sites = A^3/atom in emmet's populator (structure.py:157), contradicting its own 'atoms per cm^3' description string (a known emmet doc/impl mismatch).",
+      "producing_api": "mpr.materials.summary.search(fields=['volume','density','density_atomic','nsites']) -> SummaryDoc (inherits StructureMetadata)",
+      "conversion_to_canonical": "volume A^3 matches CellVolume (QE bohr^3 needs the 0.14818471117057203 factor; MP is already A^3). density g/cm^3 has NO map node (candidate below). nsites -> AtomCount (dimensionless).",
+      "anchors": {
+        "usage": [
+          "mat-db-mp/scripts/query_mp.py:10 ('Structural properties (density, volume, nsites)'), :194 (doc.nsites used in force-count validation)"
+        ],
+        "source": [
+          "emmet/core/structure.py:61-64 (volume A^3), :67-68 (density g/cm^3), :71-74,155-157 (density_atomic; populated as volume/num_sites = A^3/atom, description string 'atoms per cm^3' is inconsistent with impl)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "CellVolume / AtomCount", "quantity_tag": "cell_volume / atom_count", "notes": "volume -> CellVolume (A^3, direct), nsites -> AtomCount. density (g/cm^3) is a NEW candidate (see mp-mass-density entry). density_atomic in emmet is A^3/atom (impl) not atoms/cm^3 (its description); if ever ingested, trust the impl, not the string."}
+    },
+    {
+      "name": "mp-total-energy-and-per-atom",
+      "quantity": "MP DFT total energy per atom (corrected and uncorrected), and the raw per-cell VASP total energy from the trajectory endpoint, used for stability and MLIP training",
+      "symbol": "E/atom (energy_per_atom), E_uncorr/atom (uncorrected_energy_per_atom), E_tot (trajectory e_wo_entrp)",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": [],
+      "units": "energy_per_atom and uncorrected_energy_per_atom: eV/ATOM (summary.py:157-165). Trajectory endpoint gives PER-CELL raw VASP energy in eV (e_wo_entrp, 'energy without entropy'), which the skill divides by nsites for eV/atom. THREE distinct energy quantities live here: (1) uncorrected_energy_per_atom = raw DFT eV/atom; (2) energy_per_atom = MP2020-corrected eV/atom; (3) trajectory e_wo_entrp = raw per-cell eV (a DIFFERENT VASP variant than pymatgen final_energy's e_0_energy).",
+      "producing_api": "mpr.materials.summary.search(fields=['energy_per_atom','uncorrected_energy_per_atom','nsites']) -> SummaryDoc; mpr.materials.tasks.get_trajectory(material_id) -> frames with e_wo_entrp / forces / stress (raw VASP, MP2020-uncorrected)",
+      "conversion_to_canonical": "The map's TotalEnergy node is PER-CELL / extensive (registry tag total_energy 'per simulation cell'; per the pymatgen+VASP scans). So MP's PER-CELL trajectory e_wo_entrp maps to TotalEnergy (eV); but energy_per_atom / uncorrected_energy_per_atom are PER-ATOM and do NOT map to TotalEnergy (candidate FormationEnergy/per-atom-energy nodes, cf. pymatgen scan). VASP TotalEnergy is e_0_energy (VASP scan) whereas the MP trajectory route here harvests e_wo_entrp: a DIFFERENT smearing variant, so a cross-code EXPECTED_AGREE with a QE/VASP TotalEnergy must match the SAME variant. MP2020 CORRECTION TRAP: energy_per_atom (corrected) != uncorrected_energy_per_atom (raw); the skill explicitly uses the raw trajectory e_wo_entrp for MLIP training BECAUSE summary energy_per_atom includes MP2020 anion/+U corrections (query_mp.py:141-142).",
+      "anchors": {
+        "usage": [
+          "mat-db-mp/scripts/query_mp.py:8 ('energy_above_hull, formation_energy_per_atom, energy_per_atom'), :114-127 (fields energy_per_atom, uncorrected_energy_per_atom, nsites), :141-142 (comment: 'Use trajectory e_wo_entrp (raw VASP energy) instead of summary energy_per_atom which includes MP2020 corrections'), :146-159 (get_trajectory; frame['e_wo_entrp'][-1]), :209 (energy_per_atom = traj_energy / doc.nsites)"
+        ],
+        "source": [
+          "emmet/core/summary.py:157-160 (uncorrected_energy_per_atom eV/atom 'total DFT energy per atom'), :162-165 (energy_per_atom eV/atom 'total corrected DFT energy per atom'), :480-482 (thermo field list)",
+          "emmet/core/thermo.py:62,68 (uncorrected vs corrected energy_per_atom)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "TotalEnergy (per-cell trajectory route only)", "quantity_tag": "total_energy", "notes": "Only the PER-CELL trajectory e_wo_entrp maps to TotalEnergy (eV). energy_per_atom / uncorrected_energy_per_atom are per-atom and belong to the same FormationEnergy/EnergyAboveHull family the pymatgen scan flagged for separate nodes. RECORD the MP2020-correction provenance (corrected vs uncorrected) and the e_wo_entrp vs e_0_energy VASP-variant distinction as conditions. As an instance source: energy_per_atom is a cleaner per-material scalar than the per-cell trajectory energy for evidence purposes, but there is no per-atom-TotalEnergy node yet, so ingest it only once FormationEnergy/per-atom nodes land."}
+    },
+    {
+      "name": "mp-formation-energy",
+      "quantity": "MP formation energy per atom relative to elemental reference phases",
+      "symbol": "E_form/atom (formation_energy_per_atom)",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "energy per atom"},
+      "index_structure": [],
+      "units": "eV/ATOM (summary.py:167-170 'The formation energy per atom in eV/atom.')",
+      "producing_api": "mpr.materials.summary.search(fields=['formation_energy_per_atom']) -> SummaryDoc; also available on the thermo endpoint; filterable via criteria['formation_energy_per_atom'] = (None, max)",
+      "conversion_to_canonical": "eV/atom. Matches the map's IN-FLIGHT FormationEnergy candidate exactly: registry tag 'formation_energy' = 'Formation energy per atom relative to elemental reference phases (intensive, eV/atom; distinct from the per-cell total energy)'. MP GROUNDS THIS DIRECTLY with a served field (no in-skill computation needed).",
+      "anchors": {
+        "usage": [
+          "mat-db-mp/scripts/query_mp.py:8,99 (default properties include formation_energy_per_atom), :127-128 (criteria filter formation_energy_max)"
+        ],
+        "source": [
+          "emmet/core/summary.py:167-170 (formation_energy_per_atom eV/atom), :482 (thermo field list)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "formation_energy (in the registry; node not yet in graph.json)", "notes": "The registry ALREADY has the quantity tag 'formation_energy' (eV/atom, intensive) and the pymatgen scan flagged FormationEnergy as an in-flight encode node. MP grounds it DIRECTLY via SummaryDoc.formation_energy_per_atom (a served field, eV/atom). This is the cleanest MP-as-instance-source candidate: (material, formation_energy_per_atom) with conditions = {functional/thermo_type, MP2020-correction on/off}. Trap: MP's formation energy uses the MP-fitted elemental references + MP2020 corrections, distinct from the AtomisticSkills MLIP mat-* formation energies; an EXPECTED_AGREE across the two must account for the reference-state and correction-scheme difference."}
+    },
+    {
+      "name": "mp-energy-above-hull",
+      "quantity": "MP thermodynamic stability: energy above the convex hull of formation energies",
+      "symbol": "E_hull (energy_above_hull); is_stable flag",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "energy per atom"},
+      "index_structure": [],
+      "units": "eV/ATOM (summary.py:172-175 'The energy above the hull in eV/Atom.'). is_stable is boolean (on-hull). AtomisticSkills' own mat-stability skill reports meV/atom after *1000 (pymatgen scan).",
+      "producing_api": "mpr.materials.summary.search(fields=['energy_above_hull','is_stable']) -> SummaryDoc; mpr.materials.thermo.search(additional_criteria={'is_stable': True, 'thermo_types': [thermo_type]}) (mat-stability); filterable via criteria['energy_above_hull'] = (None, e_above_hull_max)",
+      "conversion_to_canonical": "eV/atom. Matches the map's IN-FLIGHT EnergyAboveHull candidate: registry tag 'energy_above_hull' = 'Per-atom distance above the convex hull of formation energies; zero means thermodynamically stable.' MP GROUNDS THIS DIRECTLY.",
+      "anchors": {
+        "usage": [
+          "mat-db-mp/scripts/query_mp.py:8,99 (default property energy_above_hull), :125-126 (criteria filter e_above_hull_max)",
+          "mat-stability/scripts/query_mp_hull.py:27,57 (thermo_type default 'R2SCAN'; additional_criteria is_stable + thermo_types)"
+        ],
+        "source": [
+          "emmet/core/summary.py:172-175 (energy_above_hull eV/Atom), :177-180 (is_stable), :483-484 (thermo field list)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "energy_above_hull (in the registry; node not yet in graph.json)", "notes": "The registry ALREADY has the tag 'energy_above_hull'; the pymatgen scan flagged EnergyAboveHull as a high-value in-flight node (single most-used stability output). MP grounds it DIRECTLY (served field, eV/atom). Its provenance is a SET of competing-phase energies (the whole hull), so the record carries the thermo_type / functional of the ENTIRE hull, not one material; conditions must record thermo_type (GGA_GGA+U, GGA_GGA+U_R2SCAN, or R2SCAN). Excellent instance-source candidate once the node lands."}
+    },
+    {
+      "name": "mp-bulk-modulus",
+      "quantity": "MP bulk modulus, Voigt/Reuss/Voigt-Reuss-Hill averages of the DFT elastic tensor",
+      "symbol": "K (bulk_modulus.{voigt,reuss,vrh})",
+      "dimension": {"M": 1, "L": -1, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": [],
+      "units": "GPa. CRITICAL: MP serves bulk_modulus as a NESTED DICT {voigt, reuss, vrh} in GPa (elasticity.py:45-51 'Bulk modulus Voigt/Reuss/Voigt-Reuss-Hill average (GPa)'). This is ALREADY GPa, UNLIKE raw pymatgen ElasticTensor.k_vrh which is eV/A^3. NO 160.2176634 factor applies to MP fields.",
+      "producing_api": "mpr.materials.elasticity.search(k_vrh=(min,max)) -> ElasticityDoc.bulk_modulus (BulkModulus model: .voigt/.reuss/.vrh); also SummaryDoc.bulk_modulus (dict). AtomisticSkills reads doc.bulk_modulus.vrh (get_elasticity.py:105-107).",
+      "conversion_to_canonical": "GPa is the map's BulkModulus canonical unit. NO conversion (unlike the pymatgen MLIP route which multiplies eV/A^3 by 160.2176634). The MP value is pymatgen's post-processed k_vrh already CONVERTED to GPa by emmet (elasticity.py:616-618 rounds k_voigt/k_reuss/k_vrh; the ElasticityDoc pipeline assumes the elastic tensor is in GPa, elasticity.py:248,316).",
+      "anchors": {
+        "usage": [
+          "mat-db-mp/scripts/get_elasticity.py:77-82 (k_vrh filter tuple, GPa), :102-107 (doc.bulk_modulus.vrh), :112 ('Bulk modulus (VRH): {bulk_vrh} GPa')"
+        ],
+        "source": [
+          "emmet/core/elasticity.py:45-51 (class BulkModulus: voigt/reuss/vrh in GPa), :322-325 (SummaryDoc.bulk_modulus dict GPa), :616-618 (k_voigt/k_reuss/k_vrh populated), :24-30 (elastic_tensor 'GPa')"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "BulkModulus", "quantity_tag": "bulk_modulus", "notes": "Direct match to BulkModulus (GPa). TRAP CAUGHT: MP serves GPa directly (nested dict .vrh), whereas raw pymatgen ElasticTensor.k_vrh is eV/A^3 (pymatgen scan, needs *160.2176634). A consumer must NOT apply the 160x factor to MP fields. Declare the VRH averaging scheme + the DFT functional as provenance. Excellent instance source: (material, bulk_modulus.vrh, GPa) with conditions = {average: VRH, functional}. There is already a real instance record of this shape: docs/data/instances/cu-bulkmodulus-atomisticskills-mat-elasticity-cu.json (MLIP route); an MP record would be the DFT-database sibling."}
+    },
+    {
+      "name": "mp-shear-modulus",
+      "quantity": "MP shear modulus, Voigt/Reuss/Voigt-Reuss-Hill averages of the DFT elastic tensor",
+      "symbol": "G (shear_modulus.{voigt,reuss,vrh})",
+      "dimension": {"M": 1, "L": -1, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": [],
+      "units": "GPa. NESTED DICT {voigt, reuss, vrh} in GPa (elasticity.py:53-58). Already GPa, no eV/A^3 factor (contrast raw pymatgen g_vrh).",
+      "producing_api": "mpr.materials.elasticity.search(g_vrh=(min,max)) -> ElasticityDoc.shear_modulus (ShearModulus model); SummaryDoc.shear_modulus (dict). AtomisticSkills reads doc.shear_modulus.vrh (get_elasticity.py:108-110).",
+      "conversion_to_canonical": "GPa is the map's ShearModulus canonical unit. NO conversion (same GPa-not-eV/A^3 trap as bulk modulus).",
+      "anchors": {
+        "usage": [
+          "mat-db-mp/scripts/get_elasticity.py:84-89 (g_vrh filter tuple, GPa), :108-110 (doc.shear_modulus.vrh), :113 ('Shear modulus (VRH): {shear_vrh} GPa')"
+        ],
+        "source": [
+          "emmet/core/elasticity.py:53-58 (class ShearModulus voigt/reuss/vrh GPa), :327-330 (SummaryDoc.shear_modulus dict GPa), :621-623 (g_voigt/g_reuss/g_vrh populated)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "ShearModulus", "quantity_tag": "shear_modulus", "notes": "Direct match to ShearModulus (GPa, .vrh). Same GPa-vs-eV/A^3 trap as bulk modulus. Instance source: (material, shear_modulus.vrh, GPa), conditions {average: VRH, functional}. Real sibling record exists: docs/data/instances/cu-shearmodulus-atomisticskills-mat-elasticity-cu.json (MLIP)."}
+    },
+    {
+      "name": "mp-elastic-tensor",
+      "quantity": "MP full elastic (stiffness) tensor C_ij in structure and IEEE orientations",
+      "symbol": "C_ij (ElasticityDoc.elastic_tensor.{raw, ieee_format})",
+      "dimension": {"M": 1, "L": -1, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": ["Voigt i 1..6", "Voigt j 1..6 (6x6)"],
+      "units": "GPa. elastic_tensor.raw / .ieee_format are Voigt 6x6 in GPa (elasticity.py:24-30 'Elastic tensor corresponding to structure/IEEE orientation (GPa)'). Compliance is served in 1/GPa*1000 = 1/TPa (elasticity.py:316-319 compliance*1000, 'assuming elastic tensor in units of GPa').",
+      "producing_api": "mpr.materials.elasticity.search() -> ElasticityDoc.elastic_tensor (ElasticTensorDoc: raw, ieee_format); compliance_tensor also served (1/TPa)",
+      "conversion_to_canonical": "GPa is the map's ElasticConstants canonical unit. NO 160.2176634 factor (contrast raw pymatgen ElasticTensor.voigt in eV/A^3). Voigt packing is the reverse_voigt_map [[0,5,4],[5,1,3],[4,3,2]] (tensors.py, pymatgen scan). MP's ieee_format applies a standardized orientation (a representation choice) distinct from raw (structure orientation).",
+      "anchors": {
+        "usage": [
+          "mat-db-mp/scripts/get_elasticity.py (elasticity endpoint; full doc.model_dump() saved, elastic_tensor included)"
+        ],
+        "source": [
+          "emmet/core/elasticity.py:24-30 (elastic_tensor raw/ieee GPa), :297-319 (populate raw/ieee_format/compliance)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "ElasticConstants", "quantity_tag": "elastic_constants", "notes": "Direct match to ElasticConstants (rank-4, GPa). TRAP: MP serves GPa (raw + ieee_format 6x6), NOT eV/A^3. Two Voigt-orientation representations (structure vs IEEE); declare which. NOT a natural instance-source scalar (it is a tensor); the scalar VRH moduli above are the instance-friendly summaries."}
+    },
+    {
+      "name": "mp-youngs-modulus-and-poisson",
+      "quantity": "MP Young's modulus, Poisson ratio, and universal elastic anisotropy",
+      "symbol": "E_Y (young_modulus), nu (homogeneous_poisson), A_U (universal_anisotropy)",
+      "dimension": {"young_modulus": {"M": 1, "L": -1, "T": -2}, "poisson": {"note": "dimensionless"}, "anisotropy": {"note": "dimensionless"}},
+      "index_structure": [],
+      "units": "TRAP: young_modulus is served in SI PASCAL, not GPa (elasticity.py:188-189 'Young's modulus (SI units)'; :706 comment 'young's modulus (note it is in Pa, not GPa)', and elasticity.py y_mod uses pymatgen's 9.0e9 factor). homogeneous_poisson dimensionless (elasticity.py:194, summary.py:334). universal_anisotropy dimensionless (elasticity.py:191, summary.py:332).",
+      "producing_api": "mpr.materials.elasticity.search() -> ElasticityDoc.young_modulus (Pa!), .homogeneous_poisson, .universal_anisotropy; SummaryDoc.homogeneous_poisson / .universal_anisotropy",
+      "conversion_to_canonical": "young_modulus: MP serves Pa; the registry's youngs_modulus tag (proposed) is GPa in the AtomisticSkills mat-elasticity convention (pymatgen scan). CONVERT MP Pa -> GPa by /1e9. poisson and anisotropy are dimensionless. E_Y = 9KG/(3K+G), nu = (3K-2G)/(2(3K+G)) are the closed forms (registry youngs_modulus / poisson_ratio descriptions).",
+      "anchors": {
+        "usage": [
+          "mat-db-mp/scripts/get_elasticity.py (full doc.model_dump() saved; young_modulus/homogeneous_poisson/universal_anisotropy included)"
+        ],
+        "source": [
+          "emmet/core/elasticity.py:188-189 (young_modulus 'SI units', alias youngs_modulus), :191-194 (universal_anisotropy, homogeneous_poisson), :625-627 (young_modulus/homogeneous_poisson/universal_anisotropy populated), :706-708 ('note it is in Pa, not GPa')",
+          "emmet/core/summary.py:332,334 (universal_anisotropy, homogeneous_poisson)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "youngs_modulus / poisson_ratio (both in the registry; nodes not yet in graph.json); universal_anisotropy has no tag", "notes": "The registry already carries youngs_modulus and poisson_ratio tags (deterministic functions of K, G; contract-tier per the pymatgen scan). MP grounds them directly. UNIT TRAP: MP young_modulus is SI Pa; the map/AtomisticSkills convention is GPa -> divide by 1e9 (the same 1e9 mismatch the pymatgen scan caught in pymatgen's y_mod, but here MP actually SERVES the Pa value). universal_anisotropy (A_U, dimensionless) is a quantity the map lacks ENTIRELY (no tag) -> genuine new-node candidate if the elastic-anisotropy domain is ingested."}
+    },
+    {
+      "name": "mp-magnetic-moment",
+      "quantity": "MP per-site magnetic moments and total/normalized magnetization of the spin-polarized ground state",
+      "symbol": "m_i (magmoms), M_total (total_magnetization), M/f.u., M/vol",
+      "dimension": {"note": "magnetic moment in Bohr magnetons mu_B; normalized variants mu_B/f.u. and mu_B/A^3"},
+      "index_structure": ["site i (magmoms per-site list)"],
+      "units": "PRECISION-DUTY TRAP (multiple normalizations): (1) magmoms = PER-SITE list in mu_B (magnetism.py:52-55). (2) total_magnetization = TOTAL mu_B, i.e. PER CELL, and it is abs()-ed so SIGN IS LOST (magnetism.py:57-59 'Total magnetization in μB', :81-82 abs()). (3) total_magnetization_normalized_formula_units = mu_B/f.u. (magnetism.py:67-69). (4) total_magnetization_normalized_vol = mu_B/A^3 (magnetism.py:62-64). The primary field total_magnetization is PER-CELL total, NOT per formula unit; the per-f.u. value is the SEPARATE _normalized_formula_units field.",
+      "producing_api": "mpr.materials.magnetism.search(total_magnetization=(min,max), ordering=Ordering(...)) -> MagnetismDoc (.magmoms, .total_magnetization, .total_magnetization_normalized_formula_units, .total_magnetization_normalized_vol, .ordering, .num_magnetic_sites); SummaryDoc carries the same total_* fields",
+      "conversion_to_canonical": "The map's registry tag 'magnetic_moment' = 'Per-site magnetic moment ... in Bohr magnetons' -> matches MP magmoms (per-site mu_B) DIRECTLY. total_magnetization (per-cell mu_B) is a DIFFERENT normalization: it is a sum over sites, not the per-site node. If a per-cell or per-f.u. magnetization node is ever added, use the correctly-normalized MP field; do NOT feed per-cell total_magnetization to a per-site MagneticMoment node.",
+      "anchors": {
+        "usage": [
+          "mat-db-mp/scripts/get_magnetism.py:70,79-92 (Ordering enum; total_magnetization filter tuple mu_B), :105-113 (doc.ordering, doc.total_magnetization 'μB'), :44 (FM/AFM/FiM/NM ordering)"
+        ],
+        "source": [
+          "emmet/core/magnetism.py:52-55 (magmoms per-site), :57-59 (total_magnetization TOTAL mu_B), :62-69 (normalized_vol mu_B/A^3, normalized_formula_units mu_B/f.u.), :81-82 (abs()), :98-104 (populate)",
+          "emmet/core/summary.py:278-291 (total_magnetization + two normalized variants), :268-276 (is_magnetic, ordering)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "magnetic_moment (in the registry; per-site; node not yet in graph.json)", "notes": "The registry tag 'magnetic_moment' is PER-SITE (mu_B). MP grounds it via magmoms (per-site list). NORMALIZATION TRAP (this scan's headline for magnetism): total_magnetization is PER-CELL total mu_B (and abs()-ed, sign lost), NOT per-site and NOT per-f.u.; the per-f.u. value is total_magnetization_normalized_formula_units. Map the PER-SITE magmoms to a per-site MagneticMoment node; treat total/normalized magnetization as distinct (per-cell / per-f.u. / per-vol) quantities needing their own nodes if ingested. ordering (FM/AFM/FiM/NM) is a discrete label. Same node the pymatgen + VASP scans propose; MP is the DFT-database retrieval producer."}
+    },
+    {
+      "name": "mp-band-gap-and-electronic-structure",
+      "quantity": "MP electronic band gap, Fermi level, metal/direct-gap classification, and band-structure/DOS records",
+      "symbol": "E_gap (band_gap), E_fermi (efermi), is_metal, is_gap_direct",
+      "dimension": {"M": 1, "L": 2, "T": -2, "note": "band_gap/efermi in eV; is_metal/is_gap_direct boolean"},
+      "index_structure": ["(bands) kpoint, band, spin", "(DOS) energy bin (eV)"],
+      "units": "eV (band_gap summary.py:209-211 'Band gap energy in eV'; efermi summary.py:224-226 'Fermi energy in eV'). is_metal / is_gap_direct boolean (summary.py:229-237). cbm/vbm in eV.",
+      "producing_api": "mpr.materials.summary.search(fields=['band_gap','is_metal','efermi']) -> SummaryDoc; mpr.materials.electronic_structure_bandstructure.get_bandstructure_from_material_id / electronic_structure_dos.get_dos_from_material_id -> pymatgen BandStructure/DOS; bs.get_band_gap()['energy'], bs.is_metal(), bs.efermi (get_mp_electronic_structure.py:57-84)",
+      "conversion_to_canonical": "eV; NO map node. Electronic structure is below the map's thermal/mechanical DAG floor (analogous to the deferred Kohn-Sham wavefunctions). Same candidate the pymatgen + VASP scans flagged (band_gap eV); MP is the DFT-database retrieval producer.",
+      "anchors": {
+        "usage": [
+          "mat-electronic-structure/scripts/get_mp_electronic_structure.py:57-84 (electronic_structure_bandstructure / _dos endpoints; bs.get_band_gap()['energy'], is_metal, efermi, is_gap_direct)",
+          "mat-db-mp/scripts/query_mp.py:9 ('Electronic properties (band_gap, is_metal)')"
+        ],
+        "source": [
+          "emmet/core/summary.py:209-237 (band_gap, cbm, vbm, efermi, is_gap_direct, is_metal), :244-252 (bandstructure, dos), :497-502 (electronic_structure field list)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "band_gap (proposed; NOT in the registry)", "notes": "No electronic-structure node on the map, and band_gap is a quantity the map lacks ENTIRELY (no registry tag) -> a genuine new-node candidate, high-value (most-used MP electronic field across mat-db-mp, mat-electronic-structure). Same candidate the pymatgen + VASP scans propose; MP is the retrieval producer (served band_gap eV). Excellent instance source once the node lands: (material, band_gap, eV), conditions {functional, is_gap_direct, method}. band structure E(k) / DOS are hidden electronic intermediates."}
+    },
+    {
+      "name": "mp-phonon-bandstructure-dos-forceconstants",
+      "quantity": "MP phonon band structure, phonon DOS, and interatomic force constants, retrieved as DFPT/phonopy records",
+      "symbol": "omega(q,nu), g(omega), Phi (ph_force_constants)",
+      "dimension": {"frequency": {"note": "T^-1, THz linear"}, "force_constants": {"M": 1, "L": 0, "T": -2, "note": "eV/A^2"}},
+      "index_structure": ["qpoint q", "branch nu", "(DOS) frequency bin", "(FC) atom a, atom b, cartesian i, j, lattice vector R"],
+      "units": "phonon frequencies in LINEAR THz (pymatgen PhononBandStructure/PhononDos, MP DFPT reference; pymatgen scan). ph_force_constants in phonopy-convention eV/ANGSTROM^2 (pymatgen scan). phonon_method selects dfpt / phonopy / pheasy.",
+      "producing_api": "mpr.materials.phonon.get_bandstructure_from_material_id(material_id, phonon_method) -> PhononBandStructureSymmLine; .get_dos_from_material_id -> PhononDos; .get_data_by_id(fields=['ph_force_constants']) -> FC array",
+      "conversion_to_canonical": "frequency: the map's canonical Frequency unit is LINEAR THz (SETTLED in the pymatgen review); MP/pymatgen also store linear THz -> CONSISTENT, no 2pi correction. 1 THz = 33.3564095198152 cm^-1 to the INVERSE_CM adapter. ph_force_constants eV/A^2 matches ForceConstants[order=2] (phonopy convention); QE grounds the same node in Ry/bohr^2 (factor 48.58681221205054).",
+      "anchors": {
+        "usage": [
+          "mat-phonon/scripts/get_mp_phonon.py:62-68 (get_bandstructure_from_material_id / get_dos_from_material_id, phonon_method dfpt/phonopy/pheasy), :75-77 (get_data_by_id fields=['ph_force_constants'])"
+        ],
+        "source": [
+          "mp_api materials.phonon endpoint; pymatgen/phonon/{bandstructure,dos}.py (THz-based); pymatgen MontyEncoder serialization"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "Frequency / PhononDOS / ForceConstants[order=2]", "quantity_tag": "frequency / phonon_dos / force_constants", "notes": "MP is a RETRIEVAL representation of nodes already on the map (Frequency, PhononDOS, ForceConstants[order=2]; all present in graph.json). Same as the pymatgen scan's phonon + force-constants entries; here the producer is the MP phonon endpoint directly. NO 2pi trap (linear THz, settled). phonon_method (dfpt/phonopy/pheasy) is a scheme/provenance field. Frequency is per-mode indexed (q, nu), not a single scalar; the instance store holds scalars, so phonon fields enter as spectra/arrays via the representation layer, not as scalar docs/data/instances records (cf. si-frequency-qe.json which is a spectrum instance)."}
+    },
+    {
+      "name": "mp-mass-density",
+      "quantity": "MP mass density of the crystal (a quantity the map lacks entirely)",
+      "symbol": "rho (density)",
+      "dimension": {"M": 1, "L": -3, "T": 0, "Theta": 0, "N": 0, "I": 0, "J": 0},
+      "index_structure": [],
+      "units": "g/cm^3 (structure.py:67-68 'Density in grams per cm^3')",
+      "producing_api": "mpr.materials.summary.search(fields=['density']) -> SummaryDoc.density",
+      "conversion_to_canonical": "NO map node and NO registry tag: mass density is a quantity the map lacks ENTIRELY. It is derivable from CellVolume + AtomicMass + AtomCount (rho = sum(m_i)/V), so it is a contract candidate rather than a fundamental source node. Would need a density dimension {M:1,L:-3} on the map.",
+      "anchors": {
+        "usage": [
+          "mat-db-mp/scripts/query_mp.py:10 ('Structural properties (density, volume, nsites)')"
+        ],
+        "source": [
+          "emmet/core/structure.py:67-68 (density g/cm^3)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "density (proposed; NOT in the registry)", "notes": "Mass density (g/cm^3) is a quantity the map lacks entirely. Low priority: fully derivable from CellVolume, AtomicMass, AtomCount (rho = total_mass/V), so a contract-tier node, not a new source observable. Listed as a new-node-candidate only for completeness of MP field coverage."}
+    },
+    {
+      "name": "mp-surface-energy",
+      "quantity": "MP Wulff-weighted surface energy and surface anisotropy (served by MP, NOT queried by AtomisticSkills)",
+      "symbol": "gamma_weighted (weighted_surface_energy), surface_anisotropy, shape_factor",
+      "dimension": {"M": 1, "L": 0, "T": -2, "note": "surface energy J/m^2 or eV/A^2"},
+      "index_structure": ["(implicit) Miller facets aggregated by Wulff construction"],
+      "units": "weighted_surface_energy in J/m^2 (summary.py:370-373); weighted_surface_energy_EV_PER_ANG2 in eV/A^2 (summary.py:365-368); weighted_work_function in eV; surface_anisotropy, shape_factor dimensionless.",
+      "producing_api": "mpr.materials.summary.search(fields=['weighted_surface_energy','surface_anisotropy','shape_factor']) -> SummaryDoc; mpr.materials.surface_properties (endpoint). NOTE: AtomisticSkills does NOT query these MP fields; it computes surface energy in-skill via MLIP slabs (mat-surface-energy, pymatgen scan).",
+      "conversion_to_canonical": "NO map node (matches the pymatgen scan's surface-energy new-node-candidate). 1 eV/A^2 = 16.021766339999996 J/m^2 (CODATA). MP serves BOTH units directly (weighted_surface_energy J/m^2 and weighted_surface_energy_EV_PER_ANG2 eV/A^2).",
+      "anchors": {
+        "usage": [
+          "(none in AtomisticSkills: MP surface fields are available but the skills compute surface energy via MLIP; listed for MP field coverage)"
+        ],
+        "source": [
+          "emmet/core/summary.py:363-393 (weighted_surface_energy_EV_PER_ANG2 eV/A^2, weighted_surface_energy J/m^2, weighted_work_function eV, surface_anisotropy, shape_factor, has_reconstructed)"
+        ]
+      },
+      "status": "new-node-candidate",
+      "maps_to": {"node": null, "quantity_tag": "surface_energy (in the registry; node not yet in graph.json)", "notes": "The registry has a 'surface_energy' tag (J/m^2 per facet); the pymatgen scan flagged SurfaceEnergy as an in-flight encode node. MP serves a Wulff-WEIGHTED surface energy (J/m^2 AND eV/A^2 fields) plus anisotropy/shape_factor. MP-HAS-IT-BUT-UNUSED: AtomisticSkills computes surface energy via MLIP slabs, not MP. If the surface node lands, MP is a DFT-database instance source for the weighted value; note it is the Wulff-weighted aggregate, not a single (hkl) facet gamma."}
+    },
+    {
+      "name": "mp-intercalation-voltage",
+      "quantity": "MP average intercalation (electrode) voltage from the insertion_electrodes endpoint (served by MP, NOT queried by AtomisticSkills)",
+      "symbol": "V_avg (average_voltage)",
+      "dimension": {"M": 1, "L": 2, "T": -3, "I": -1, "Theta": 0, "N": 0, "J": 0, "note": "volts"},
+      "index_structure": ["voltage step (charge/discharge pair)"],
+      "units": "VOLTS (electrode.py:62-64 'The average voltage in V for a particular voltage step.'). Companion fields: capacity_grav mAh/g, capacity_vol mAh/cc, energy_grav Wh/kg, energy_vol Wh/l, working_ion (Element).",
+      "producing_api": "mpr.materials.insertion_electrodes.search(working_ion=...) -> InsertionElectrodeDoc.average_voltage (V). NOTE: AtomisticSkills does NOT query this; it computes voltage in-skill via MLIP full/empty/metal cell energies (mat-intercalation-voltage, pymatgen scan).",
+      "conversion_to_canonical": "V is the map's Voltage canonical unit. Matches the map's IN-FLIGHT Voltage candidate: registry tag 'voltage' = 'Average intercalation (open-circuit) voltage: the Nernst energy difference over the transferred charge.' eV/e = 1 V exactly. MP GROUNDS THIS DIRECTLY via average_voltage.",
+      "anchors": {
+        "usage": [
+          "(none in AtomisticSkills: the insertion_electrodes endpoint is available but mat-intercalation-voltage computes V via MLIP; listed for MP field coverage)"
+        ],
+        "source": [
+          "emmet/core/electrode.py:62-64 (average_voltage V), :66-80 (capacity_grav mAh/g, capacity_vol mAh/cc, energy_grav Wh/kg, energy_vol Wh/l), :209 (working_ion), :261,388-397 (InsertionElectrodeDoc populate)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": null, "quantity_tag": "voltage (in the registry; node not yet in graph.json)", "notes": "The registry has a 'voltage' tag; the pymatgen scan flagged Voltage as an in-flight encode node (in-skill MLIP route). MP serves average_voltage (V) directly via insertion_electrodes. MP-HAS-IT-BUT-UNUSED by AtomisticSkills (which computes voltage from MLIP energies). If the Voltage node lands, MP is a DFT-database instance source: (material=electrode couple, average_voltage, V), conditions {working_ion, functional, voltage_step}. An EXPECTED_AGREE with the MLIP mat-intercalation-voltage route. Status 'already-mapped' because the map has the tag; the graph node is in-flight."}
+    },
+    {
+      "name": "mp-dielectric-constants",
+      "quantity": "MP static dielectric constants (total, ionic, electronic) and refractive index",
+      "symbol": "eps_total (e_total), eps_ionic (e_ionic), eps_electronic (e_electronic), n",
+      "dimension": {"note": "dielectric constants dimensionless (relative permittivity); refractive index dimensionless"},
+      "index_structure": [],
+      "units": "dimensionless (summary.py:338-356: e_total, e_ionic, e_electronic total/ionic/electronic dielectric constants; n refractive index). e_ij_max is the piezoelectric modulus.",
+      "producing_api": "mpr.materials.summary.search(fields=['e_total','e_ionic','e_electronic','n']) -> SummaryDoc; mpr.materials.dielectric (endpoint)",
+      "conversion_to_canonical": "The map's DielectricTensor node is the ELECTRONIC clamped-ion eps_inf (dimensionless). MP's e_electronic is the electronic contribution (~ eps_inf scalar); e_total = e_electronic + e_ionic. Matches DielectricTensor for the electronic part (as a scalar/isotropic reduction of the tensor).",
+      "anchors": {
+        "usage": [
+          "(mat-db-mp SKILL.md lists dielectric among computed properties; primary AtomisticSkills dielectric path is VASP LEPSILON/LOPTICS, atomate2-vasp scan)"
+        ],
+        "source": [
+          "emmet/core/summary.py:338-361 (e_total, e_ionic, e_electronic, n refractive index, e_ij_max piezoelectric)"
+        ]
+      },
+      "status": "already-mapped",
+      "maps_to": {"node": "DielectricTensor", "quantity_tag": "dielectric_tensor", "notes": "MP's e_electronic (electronic dielectric constant, dimensionless) is a scalar reduction of the map's DielectricTensor (clamped-ion eps_inf, present in graph.json). e_ionic (ionic contribution) and e_total are DISTINCT quantities (the map's node is electronic-only); do not conflate e_total with eps_inf. n (refractive index) = sqrt(e_electronic) roughly. The frequency-dependent dielectric FUNCTION is the separate VASP-scan new-node-candidate. As an instance source, e_electronic could ground a scalar isotropic DielectricTensor value with conditions {functional}."}
+    },
+    {
+      "name": "mp-material-provenance",
+      "quantity": "The MP material_id, task_ids, thermo_type/functional, and MP2020 correction scheme: the provenance layer, not a physical quantity",
+      "symbol": "material_id (mp-NNN), task_ids, thermo_type, deprecated, theoretical",
+      "dimension": {"note": "not a physical quantity; database provenance"},
+      "index_structure": [],
+      "units": "n/a. material_id string 'mp-<int>'. thermo_type in {GGA_GGA+U, GGA_GGA+U_R2SCAN, R2SCAN} (types/enums.py:154-159 ThermoType). MP2020 corrections toggle energy_per_atom (corrected) vs uncorrected_energy_per_atom (raw). theoretical bool; deprecated flag on materials.",
+      "producing_api": "SummaryDoc.material_id / .task_ids / .theoretical; ThermoDoc.thermo_type; MPRester materials.summary/thermo endpoints; ThermoType enum (emmet/core/types/enums.py)",
+      "conversion_to_canonical": "no unit. This is the DATABASE PROVENANCE layer, the analog of the VASP scan's atomate2-workflow-framework OperatorRepresentationSpec: the functional (thermo_type / XC), the MP2020 correction scheme, and the mp-id are the provenance every MP-served value carries. A record's identity as evidence depends on this provenance.",
+      "anchors": {
+        "usage": [
+          "mat-db-mp/scripts/query_mp.py:57 (thermo_type 'GGA_GGA+U' / 'R2SCAN'), :141-142 (MP2020 correction distinction)",
+          "mat-stability/scripts/query_mp_hull.py:27,57 (thermo_type 'R2SCAN', thermo_types criterion)"
+        ],
+        "source": [
+          "emmet/core/types/enums.py:154-159 (ThermoType: GGA_GGA+U, GGA_GGA+U_R2SCAN, R2SCAN)",
+          "emmet/core/summary.py:149-153 (task_ids), :409-414 (theoretical)"
+        ]
+      },
+      "status": "representation-only",
+      "maps_to": {"node": "instance-source provenance (not a node)", "notes": "This is the provenance every MP value carries into a docs/data/instances record: source.ref = 'materials-project' + mp-id, and conditions carrying the functional / mixing-scheme (thermo_type) and correction scheme (MP2020 corrected vs uncorrected). See the instance_source_design object. Analogous to the atomate2-workflow-framework representation-only entry in the VASP scan, but for a DATABASE rather than an engine: MP's 'operator' is 'look up a precomputed VASP result', so its representation is a retrieval provenance, not a discretization."}
+    },
+    {
+      "name": "mp-structure-similarity",
+      "quantity": "CrystalNN-fingerprint structural similarity search over MP (a representation/retrieval operation, not a physical quantity)",
+      "symbol": "similarity distance, matched material_ids",
+      "dimension": {"note": "similarity metric (dimensionless); not a physical observable"},
+      "index_structure": [],
+      "units": "dimensionless fingerprint distance; StructureMatcher tolerances (pymatgen scan).",
+      "producing_api": "mat-db-mp/scripts/find_similar_structures.py (CrystalNN fingerprint over MP summary structures); pymatgen SpacegroupAnalyzer.get_space_group_info; StructureMatcher",
+      "conversion_to_canonical": "no physical node; a similarity/identity operation on the Structure node (same status as the pymatgen scan's structure-match-and-novelty entry).",
+      "anchors": {
+        "usage": [
+          "mat-db-mp/scripts/find_similar_structures.py:126 (get_space_group_info); mat-structure-novelty/scripts/match_structure.py (StructureMatcher over MP)"
+        ],
+        "source": [
+          "pymatgen/analysis/structure_matcher.py; pymatgen CrystalNN"
+        ]
+      },
+      "status": "representation-only",
+      "maps_to": {"node": "Structure", "quantity_tag": "structure", "notes": "Similarity/identity operation on Structure (retrieval over the MP database), not a physical observable. Same verdict as the pymatgen scan's structure-match-and-novelty. Belongs in the Structure node's compare()/identity semantics, not a new node."}
+    }
+  ],
+  "instance_source_design": {
+    "headline": "Materials Project is the map's canonical DATABASE instance source: every MP record is a (material, value) pair = one piece of simulation evidence. Unlike an engine (which produces a value when run), MP hands back a value that a VASP workflow already computed, so the instance is a RETRIEVAL of precomputed evidence. This section specifies exactly how an MP record enters docs/data/instances/.",
+    "instance_schema_recap": "One JSON file per record (docs/data/instances/README.md): {variable, material, conditions, value, units, uncertainty, source:{kind, ref, detail}}. variable must be an exact id from docs/data/graph.json; source.kind is 'simulation' (MP values are DFT) or 'measurement'. Existing real records confirm the shape: cu-bulkmodulus-atomisticskills-mat-elasticity-cu.json (BulkModulus, GPa, MLIP), si-totalenergy-qe.json (TotalEnergy, Ry, QE).",
+    "kind": "simulation. MP values are DFT (VASP) results; kind is always 'simulation', never 'measurement'.",
+    "source_ref_format": "source.ref = 'materials-project'. Put the mp-id in source.detail (and/or a structured provenance) so the ref stays a stable code identifier like the existing 'qe' / 'atomisticskills-mat-elasticity-Cu' refs. RECOMMENDED: source = {\"kind\": \"simulation\", \"ref\": \"materials-project\", \"detail\": \"<mp-id> <endpoint> (<thermo_type>); MP2020-corrected|uncorrected\"}. Example detail: 'mp-149 elasticity (R2SCAN)'. The mp-id (mp-149, ...) is the primary provenance handle; the endpoint (summary/elasticity/magnetism/thermo) records which document served the value.",
+    "conditions_carry_functional_and_scheme": "conditions is where the MP calculation provenance lives, mirroring how si-totalenergy-qe.json carries {pseudo, ecutwfc, k_mesh, code} and cu-bulkmodulus carries {average: VRH, model}. For MP, conditions MUST carry: (1) functional / mixing-scheme = thermo_type, one of {GGA_GGA+U, GGA_GGA+U_R2SCAN, R2SCAN} (ThermoType enum, emmet/core/types/enums.py:154-159); (2) for energetics, the MP2020 correction state (corrected vs uncorrected, since energy_per_atom != uncorrected_energy_per_atom); (3) the averaging/orientation scheme where relevant (average: VRH for moduli). Example conditions: {\"functional\": \"R2SCAN\", \"average\": \"VRH\"} for a bulk modulus; {\"functional\": \"GGA_GGA+U\", \"correction\": \"MP2020\"} for a formation energy.",
+    "per_field_mapping": {
+      "FormationEnergy": {"variable": "FormationEnergy (once node lands; registry tag formation_energy)", "value": "SummaryDoc.formation_energy_per_atom", "units": "eV/atom", "conditions": {"functional": "<thermo_type>", "correction": "MP2020|none"}, "note": "MP-fitted elemental references + MP2020 corrections; distinct reference state from the MLIP mat-* route."},
+      "EnergyAboveHull": {"variable": "EnergyAboveHull (once node lands; registry tag energy_above_hull)", "value": "SummaryDoc.energy_above_hull", "units": "eV/atom", "conditions": {"functional": "<thermo_type>"}, "note": "provenance is the WHOLE hull (a set of phases), all at the same thermo_type."},
+      "BulkModulus": {"variable": "BulkModulus", "value": "ElasticityDoc.bulk_modulus.vrh", "units": "GPa", "conditions": {"average": "VRH", "functional": "<thermo_type>"}, "note": "GPa DIRECTLY (no 160.2176634 factor). Real MLIP sibling record: cu-bulkmodulus-atomisticskills-mat-elasticity-cu.json."},
+      "ShearModulus": {"variable": "ShearModulus", "value": "ElasticityDoc.shear_modulus.vrh", "units": "GPa", "conditions": {"average": "VRH", "functional": "<thermo_type>"}, "note": "GPa directly. Real MLIP sibling: cu-shearmodulus-atomisticskills-mat-elasticity-cu.json."},
+      "YoungsModulus": {"variable": "YoungsModulus (once node lands; registry tag youngs_modulus)", "value": "ElasticityDoc.young_modulus / 1e9", "units": "GPa", "conditions": {"functional": "<thermo_type>"}, "note": "MP serves young_modulus in SI Pa; DIVIDE BY 1e9 for GPa."},
+      "PoissonRatio": {"variable": "PoissonRatio (once node lands; registry tag poisson_ratio)", "value": "ElasticityDoc.homogeneous_poisson", "units": "dimensionless", "conditions": {"functional": "<thermo_type>"}},
+      "MagneticMoment": {"variable": "MagneticMoment (once node lands; registry tag magnetic_moment, PER-SITE)", "value": "MagnetismDoc.magmoms[i]", "units": "mu_B", "conditions": {"functional": "<thermo_type>", "ordering": "FM|AFM|FiM|NM"}, "note": "use PER-SITE magmoms, NOT the per-cell total_magnetization (which is abs()-ed, sign lost) and NOT total_magnetization_normalized_formula_units (mu_B/f.u.)."},
+      "CellVolume": {"variable": "CellVolume", "value": "SummaryDoc.volume", "units": "angstrom^3", "conditions": {"functional": "<thermo_type>"}},
+      "TotalEnergy": {"variable": "TotalEnergy (per-cell)", "value": "trajectory frame e_wo_entrp (per cell)", "units": "eV", "conditions": {"functional": "<thermo_type>", "energy_variant": "e_wo_entrp", "correction": "uncorrected"}, "note": "per-atom energy_per_atom does NOT map to the per-cell TotalEnergy node; e_wo_entrp is a different VASP variant than the VASP scan's e_0_energy."},
+      "Voltage": {"variable": "Voltage (once node lands; registry tag voltage)", "value": "InsertionElectrodeDoc.average_voltage", "units": "V", "conditions": {"working_ion": "<Li/Na/...>", "functional": "<thermo_type>"}, "note": "MP-has-it-but-unused by AtomisticSkills; EXPECTED_AGREE with the MLIP mat-intercalation-voltage route."}
+    },
+    "not_ingested_as_instances": "Structure (not a scalar), phonon band structure / DOS / force constants (spectra/tensors, enter via the representation layer like si-frequency-qe.json rather than a scalar value), and full elastic/dielectric TENSORS. Scalar reductions (VRH moduli, band gap, formation energy, e_above_hull, average voltage, e_electronic) are the instance-friendly fields.",
+    "uncertainty": "MP does not serve a per-value stochastic uncertainty for these DFT fields; uncertainty is typically null for MP records (unlike the MLIP MD records, e.g. lgps-activationenergy which carries a fit uncertainty). Systematic functional error is captured by the thermo_type in conditions, not by the uncertainty field.",
+    "expected_agree_partners": "MP records are natural EXPECTED_AGREE partners for the AtomisticSkills MLIP records already in the store: MP BulkModulus (DFT, GPa) vs cu-bulkmodulus (MACE-OMAT MLIP, GPa); MP FormationEnergy/EnergyAboveHull (DFT) vs mat-stability MLIP; MP Voltage (DFT) vs mat-intercalation-voltage MLIP. The cross-source agreement check is exactly what makes MP valuable as an independent DFT-database witness alongside the MLIP and QE/VASP producers."
+  },
+  "open_questions": [
+    "[NORMALIZATION - magnetization, headline] MagnetismDoc/SummaryDoc.total_magnetization is TOTAL mu_B (per cell) and is abs()-ed (magnetism.py:81-82), so SIGN IS LOST; the per-formula-unit value is the SEPARATE field total_magnetization_normalized_formula_units (mu_B/f.u.), and per-volume is total_magnetization_normalized_vol (mu_B/A^3). The registry's magnetic_moment tag is PER-SITE. Map PER-SITE magmoms to a per-site MagneticMoment node; do NOT feed per-cell total_magnetization to it. Decide whether the map wants per-site, per-f.u., and/or per-cell magnetization as distinct nodes.",
+    "[UNIT - elasticity, headline] MP serves elastic moduli in GPa directly (bulk_modulus.vrh, shear_modulus.vrh, elastic_tensor raw/ieee 6x6), UNLIKE raw pymatgen ElasticTensor (eV/A^3). Do NOT apply the 160.2176634 factor to MP fields. But MP young_modulus is SI PASCAL (elasticity.py:706 'note it is in Pa, not GPa'); DIVIDE by 1e9 for GPa. Two different unit conventions inside one MP elasticity document.",
+    "[ENERGY VARIANT + CORRECTION] MP exposes THREE energy quantities: uncorrected_energy_per_atom (raw DFT eV/atom), energy_per_atom (MP2020-corrected eV/atom), and the trajectory e_wo_entrp (raw per-cell eV). e_wo_entrp is a DIFFERENT VASP variant than the VASP scan's e_0_energy (pymatgen final_energy). AtomisticSkills deliberately uses raw trajectory e_wo_entrp for MLIP training to avoid MP2020 corrections (query_mp.py:141-142). A cross-code EXPECTED_AGREE with a QE/VASP TotalEnergy must match the SAME energy variant AND the correction state.",
+    "[FUNCTIONAL / MIXING-SCHEME PROVENANCE] thermo_type is one of {GGA_GGA+U, GGA_GGA+U_R2SCAN, R2SCAN} (ThermoType enum). GGA_GGA+U_R2SCAN is a MIXING scheme (r2SCAN energies referenced onto the GGA/GGA+U hull). Every MP-as-instance record MUST carry the thermo_type in conditions; a GGA hull and an R2SCAN hull give different energy_above_hull for the same material.",
+    "[MP-HAS-IT-BUT-UNUSED] MP serves several fields AtomisticSkills does NOT query but which ground in-flight/registry nodes: average_voltage (V, insertion_electrodes endpoint) grounds the registry voltage tag; weighted_surface_energy (J/m^2 AND eV/A^2) grounds the registry surface_energy tag; e_electronic (dimensionless) grounds DielectricTensor. These are ready DFT-database instance sources even though the skills compute the same quantities via MLIP. EXPECTED_AGREE partners for the MLIP routes.",
+    "[QUANTITIES THE MAP LACKS ENTIRELY] band_gap (eV) and universal_anisotropy (dimensionless) have NO registry tag: genuine new-node candidates if the electronic-structure / elastic-anisotropy domains are ingested. density (g/cm^3) also lacks a tag but is derivable (contract-tier). e_ionic / e_total (dielectric), refractive index n, and the electrode capacity/energy-density fields (mAh/g, Wh/kg, ...) are further MP quantities with no map analog.",
+    "[DENSITY_ATOMIC IMPL/DOC MISMATCH] emmet SummaryDoc.density_atomic is populated as volume/num_sites = A^3/atom (structure.py:157) but its description string says 'atoms per cm^3' (structure.py:74). If ever ingested, trust the implementation (A^3/atom), not the description.",
+    "[mp-id AS SOURCE.REF] Recommend source.ref = 'materials-project' (stable code identifier) with the mp-id in source.detail, matching the existing 'qe' / 'atomisticskills-*' ref convention, rather than baking the mp-id into ref. Confirm this with the encode-stage instance-schema owner (the ENCODING procedure lives in Appendix C of docs/openmaterials.tex; this scan does not touch omai/ or docs/data).",
+    "[emmet-core version] mp-api 0.41.2 / emmet-core 0.85.1 (miniconda base). Field names/units read from these installed versions; a future emmet could rename or re-normalize (e.g. change a normalization default), so pin emmet-core when an encode relies on a specific field's units. All MPRester routes used by AtomisticSkills verified present in mp_api 0.41.2."
+  ]
+}
