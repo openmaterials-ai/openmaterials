@@ -11,6 +11,7 @@ and of the two moduli) into isotropic scalars:
   contract_youngs_modulus   : (BulkModulus, ShearModulus)  -> YoungsModulus
   contract_poisson_ratio    : (BulkModulus, ShearModulus)  -> PoissonRatio
   compute_bulk_modulus_eos  : (TotalEnergy, Structure)     -> BulkModulus
+  contract_density          : (Structure,)                 -> MassDensity
 
 compute_bulk_modulus_eos (added 2026-07-10 from the matcalc/ASE scan) is a
 Pattern C ALTERNATIVE PRODUCER of the existing BulkModulus node, the second
@@ -45,6 +46,7 @@ from omai.operator.operator import Operator
 from omai.mechanics.operator.nodes import (
     BULK_MODULUS,
     ELASTIC_CONSTANTS,
+    MASS_DENSITY_STATE,
     POISSON_RATIO,
     PRESSURE,
     SHEAR_MODULUS,
@@ -73,6 +75,13 @@ _a, _b, _g, _d = sp.symbols(r"\alpha \beta \gamma \delta", integer=True)
 _E_tot = sp.Symbol("E_{tot}")
 _V_cell = sp.Symbol("V_{cell}", positive=True)
 _V0 = sp.Symbol("V_0", positive=True)
+# Mass density route: rho = total cell mass / cell volume, a contraction of the
+# Structure. rho is a new bare field symbol; \mathcal{S} is the registered
+# Structure label reused as the opaque-function argument; rho^{cell} is the
+# applied (opaque) mass-over-volume function.
+_rho = sp.Symbol(r"\rho", positive=True)
+_S_struct = sp.Symbol(r"\mathcal{S}")
+_rho_cell = sp.Function(r"\rho^{cell}")
 
 
 # ---------------------------------------------------------------------------
@@ -278,6 +287,32 @@ compute_bulk_modulus_eos = Operator(
     ),
 )
 
+# ---------------------------------------------------------------------------
+# Mass density: a contraction of the Structure (added 2026-07-10, phonopy/LAMMPS
+# delta scan). rho = total cell mass / cell volume, the LAMMPS metal-unit MD
+# thermo 'density' column. Implicit (Structure is opaque, so mass and volume are
+# read from it by an applied function), so SKIPPED by the dimensional gate.
+# ---------------------------------------------------------------------------
+
+contract_density = Operator(
+    name="contract_density",
+    inputs=(STRUCTURE,),
+    outputs=(MASS_DENSITY_STATE,),
+    formula=sp.Eq(_rho, _rho_cell(_S_struct)),
+    is_executable_in_sympy_override=False,
+    description=(
+        "Mass density rho = rho^{cell}[Structure]: the total cell mass divided "
+        "by the cell volume, both read from the Structure (cell + species + "
+        "positions). rho^{cell} is an opaque contraction over the Structure (in "
+        "Phase 1 the Structure is opaque, so the mass sum over species and the "
+        "cell volume are not surfaced as separate symbols). The LAMMPS metal-unit "
+        "MD thermo 'density' column (g/cm^3) mat-lammps-md tracks as the physical "
+        "signal of a quench densification. Distinct from the phonon density of "
+        "states. Implicit (a readout over the opaque Structure), so not "
+        "sympy-executable."
+    ),
+)
+
 EDGES: tuple[Operator, ...] = (
     compute_elastic_constants,
     contract_pressure,
@@ -286,4 +321,5 @@ EDGES: tuple[Operator, ...] = (
     contract_youngs_modulus,
     contract_poisson_ratio,
     compute_bulk_modulus_eos,
+    contract_density,
 )

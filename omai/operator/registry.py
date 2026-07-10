@@ -149,6 +149,11 @@ QUANTITY_TAGS: dict[str, str] = {
     "electronic_thermal_conductivity": "Electronic contribution to the thermal conductivity kappa_e from carrier transport; W/(m K), the additive electronic partner of the lattice thermal_conductivity (kappa_total = lattice + electronic), kept apart by an own tag.",
     "carrier_mobility": "Charge-carrier mobility mu from the ab-initio scattering transport; m^2/(V s), computed for non-metals only.",
     "static_dielectric_tensor": "Static (zero-frequency) macroscopic dielectric tensor eps_0 = eps_inf + ionic contribution; distinct from the high-frequency electronic dielectric_tensor eps_inf.",
+    "qha_gibbs_energy": "Quasi-harmonic Gibbs energy G(V,T) at constant pressure from the QHA F(V,T) surface minimized over volume plus pV, per mole of the phonopy cell (phonon-gas + EOS producer); distinct from the CALPHAD molar_gibbs_energy (per mole of atoms, assessed) and the constant-volume molar_helmholtz_free_energy.",
+    "thermal_expansion": "Volumetric thermal expansion coefficient alpha(T) = (1/V)(dV/dT)_P from the temperature dependence of the QHA equilibrium volume; 1/K.",
+    "heat_capacity_constant_p": "Constant-pressure molar heat capacity C_P(T) along the QHA equilibrium path, per mole of the phonopy cell; the constant-pressure partner of the harmonic constant-volume molar_heat_capacity (C_P - C_V = alpha^2 B V T).",
+    "thermal_gruneisen": "Macroscopic (thermal) Gruneisen parameter gamma(T), a single scalar per temperature: the heat-capacity-weighted contraction of the mode gruneisen, distinct from the (q,nu)-indexed mode node.",
+    "mass_density": "Mass density rho = total cell mass over cell volume, the LAMMPS metal-unit MD thermo output; g/cm^3.",
 }
 
 

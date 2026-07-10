@@ -40,7 +40,8 @@ def test_mechanics_domain_in_domains_between_ground_state_and_stability():
     names = [d.name for d in DOMAINS]
     assert names == [
         "thermal_transport", "dft_ground_state", "mechanics", "stability",
-        "thermochemistry", "electronic_transport", "materials"]
+        "thermochemistry", "quasiharmonic", "electronic_transport",
+        "materials"]
 
 
 def test_mechanics_domain_declares_mechanics_tier():
@@ -55,17 +56,17 @@ def test_mechanics_nodes_are_the_elastic_tensor_moduli_and_pressure():
 
     assert [s.name for s in NODES] == [
         "ElasticConstants", "BulkModulus", "ShearModulus", "Pressure",
-        "YoungsModulus", "PoissonRatio"]
+        "YoungsModulus", "PoissonRatio", "MassDensity"]
 
 
-def test_mechanics_edges_are_the_seven_operators():
+def test_mechanics_edges_are_the_eight_operators():
     from omai.mechanics.operator import EDGES
 
     assert [op.name for op in EDGES] == [
         "compute_elastic_constants", "contract_pressure",
         "contract_bulk_modulus", "contract_shear_modulus",
         "contract_youngs_modulus", "contract_poisson_ratio",
-        "compute_bulk_modulus_eos"]
+        "compute_bulk_modulus_eos", "contract_density"]
 
 
 def test_elastic_constants_is_the_full_rank4_tensor():
@@ -123,7 +124,7 @@ def test_all_six_mechanics_edges_are_dimensionally_ok():
     ), report["violation"]
 
 
-def test_no_node_uid_collisions_at_82_nodes():
+def test_no_node_uid_collisions_at_87_nodes():
     # 59 with the original mechanics four; 61 with YoungsModulus and
     # PoissonRatio; 66 with the stability four plus MagneticMoment; 67 with
     # BandGap (2026-07-09, atomate2/VASP scan); 73 with the six
@@ -132,9 +133,10 @@ def test_no_node_uid_collisions_at_82_nodes():
     # scan's ElectricalConductivity[carrier=ionic] + ConfigurationalEnergy
     # (materials) and ReactionEnergy (stability); 82 with the amset scan's
     # electronic-transport five (StaticDielectricTensor plus the four transport
-    # tensors, 2026-07-10).
+    # tensors, 2026-07-10); 87 with the phonopy/LAMMPS delta scan's four
+    # quasi-harmonic nodes plus MassDensity (2026-07-10).
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 82
+    assert len(g["nodes"]) == 87
     uids = [n["uid"] for n in g["nodes"]]
     assert len(set(uids)) == len(uids), "node uid collision"
 
@@ -232,12 +234,12 @@ def test_the_shear_reduction_uses_the_full_sum_form():
 # Task 2: the representations (LAMMPS ELASTIC + mat-elasticity).
 # --------------------------------------------------------------------------
 
-def test_build_codes_lammps_grows_to_11_including_elastic_and_pressure():
+def test_build_codes_lammps_grows_to_12_including_elastic_pressure_density():
     from omai.map_data import build_codes
 
     lammps = build_codes(DOMAINS)["lammps"]
-    assert len(lammps) == 11
-    for name in ("ElasticConstants", "Pressure"):
+    assert len(lammps) == 12
+    for name in ("ElasticConstants", "Pressure", "MassDensity"):
         assert name in lammps, f"lammps coverage missing {name}"
 
 
@@ -268,7 +270,9 @@ def test_mechanics_representation_package_discovery_finds_the_specs():
     four scalar reductions, GPa moduli and SI-Pa Young's) and no operator specs;
     mat_equation_of_state (2026-07-10, matcalc/ASE scan) one space spec
     (BulkModulus, the EOS Birch-Murnaghan route) and one operator spec
-    (compute_bulk_modulus_eos, the Pattern C alternative producer)."""
+    (compute_bulk_modulus_eos, the Pattern C alternative producer); the lammps
+    module gains a MassDensity space spec and a contract_density operator spec
+    (2026-07-10, phonopy/LAMMPS delta scan)."""
     import importlib
     import pkgutil
 
@@ -290,14 +294,15 @@ def test_mechanics_representation_package_discovery_finds_the_specs():
                 space_specs.append((attr, obj))
             elif isinstance(obj, OperatorRepresentationSpec):
                 op_specs.append((attr, obj))
-    # 2 lammps + 5 mat-elasticity + 5 pymatgen + 1 vasp + 5 mp-api
-    # + 1 mat_equation_of_state = 19 space specs; the operator specs gain the
-    # EOS Pattern C producer (compute_bulk_modulus_eos).
-    assert len(space_specs) == 19, [a for a, _ in space_specs]
-    assert len(op_specs) == 6, [a for a, _ in op_specs]
+    # 3 lammps (ElasticConstants, Pressure, MassDensity) + 5 mat-elasticity
+    # + 5 pymatgen + 1 vasp + 5 mp-api + 1 mat_equation_of_state = 20 space
+    # specs; the operator specs gain the EOS Pattern C producer
+    # (compute_bulk_modulus_eos) and the density contraction (contract_density).
+    assert len(space_specs) == 20, [a for a, _ in space_specs]
+    assert len(op_specs) == 7, [a for a, _ in op_specs]
     assert sorted({s.operator.name for _, s in op_specs}) == [
         "compute_bulk_modulus_eos", "compute_elastic_constants",
-        "contract_poisson_ratio", "contract_youngs_modulus"]
+        "contract_density", "contract_poisson_ratio", "contract_youngs_modulus"]
 
 
 def test_lammps_elastic_and_pressure_units_are_the_declared_ones():

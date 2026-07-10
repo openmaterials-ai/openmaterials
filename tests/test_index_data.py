@@ -120,7 +120,7 @@ def test_qe_and_lammps_coverage_counts(tmp_path):
         assert len(doc["covers"]) == len(codes[rep]), \
             f"{rep} covers {len(doc['covers'])}, live build_codes says {len(codes[rep])}"
     assert len(codes["qe"]) == 13
-    assert len(codes["lammps"]) == 11
+    assert len(codes["lammps"]) == 12
 
 
 def test_index_covers_sorted_by_node(tmp_path):

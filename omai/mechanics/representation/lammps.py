@@ -36,8 +36,12 @@ from omai.representation.adapter import (
     OperatorRepresentationSpec,
     SpaceRepresentationSpec,
 )
-from omai.mechanics.operator.edges import compute_elastic_constants
-from omai.mechanics.operator.nodes import ELASTIC_CONSTANTS, PRESSURE
+from omai.mechanics.operator.edges import compute_elastic_constants, contract_density
+from omai.mechanics.operator.nodes import (
+    ELASTIC_CONSTANTS,
+    MASS_DENSITY_STATE,
+    PRESSURE,
+)
 
 
 LAMMPS_ELASTIC_CONSTANTS = SpaceRepresentationSpec(
@@ -90,6 +94,29 @@ LAMMPS_PRESSURE = SpaceRepresentationSpec(
 )
 
 
+LAMMPS_MASS_DENSITY = SpaceRepresentationSpec(
+    space=MASS_DENSITY_STATE,
+    representation_name="lammps",
+    observable_units={"rho": "gram_per_cm3"},
+    code_api={
+        "rho": "thermo 'density' column (thermo_style custom ... density)",
+    },
+    notes=(
+        "The MD thermo 'density' column = total cell mass / cell volume, printed "
+        "in g/cm^3 under UNIT STYLE metal (the style of all three mat-lammps-md "
+        "examples: eV, bar, K, ps, g/cm^3). mat-lammps-md tracks it across a melt "
+        "/ quench / hold to read glass densification "
+        "(examples/mace/in.na2si3o7_quench_mace:23) and across the Cu phase "
+        "transition (examples/matgl/in.cu_phase_transition_matgl:25); the fairchem "
+        "adsorption-relax example (in.relax_adsorption_fairchem:22) omits the "
+        "density column, so the g/cm^3 claim is scoped to the mace + matgl runs. "
+        "In lj units 'density' is reduced (number density * sigma^-3), so the "
+        "g/cm^3 unit is metal-specific. Native metal thermo, not a separate "
+        "compute."
+    ),
+)
+
+
 # ---------------------------------------------------------------------------
 # Operator-level spec (diagnostic: how the ELASTIC workflow fits the tensor)
 # ---------------------------------------------------------------------------
@@ -129,5 +156,17 @@ LAMMPS_COMPUTE_ELASTIC_CONSTANTS = OperatorRepresentationSpec(
         "store's stress. The strain magnitude and the up/down averaging are "
         "discretization choices of the estimator; they change how accurately "
         "-d(sigma)/d(strain) is resolved, not what the elastic tensor is."
+    ),
+)
+
+
+LAMMPS_CONTRACT_DENSITY = OperatorRepresentationSpec(
+    operator=contract_density,
+    representation_name="lammps",
+    notes=(
+        "The metal-unit 'density' thermo keyword: LAMMPS computes mass / volume "
+        "of the current box each thermo step and prints it in g/cm^3, the "
+        "realization of contract_density (rho = total cell mass / cell volume). "
+        "Native to the thermo output, no compute or fix required."
     ),
 )

@@ -156,6 +156,18 @@ SEEBECK = Dimension("seebeck", (1, 2, -3, -1, 0, -1, 0))
 # (transport.py:133-135); cm^2 -> m^2 is x1e-4. Third electric-current-axis
 # dimension (I=+1, the sign MagneticMoment also carries), distinct exponents.
 MOBILITY = Dimension("mobility", (-1, 0, 2, 0, 0, 1, 0))
+# Thermal expansivity: the volumetric thermal expansion coefficient
+# alpha = (1/V)(dV/dT)_P, reciprocal kelvin, 1/K = Th^-1
+# (0,0,0,-1,0,0,0). The map's first pure inverse-temperature dimension; the
+# quasi-harmonic ThermalExpansion node carries it. phonopy / matcalc serve it
+# in 1/K (QHACalc key thermal_expansion_coefficients, _qha.py:298), so the
+# canonical unit per_kelvin carries to_operator 1.0.
+THERMAL_EXPANSIVITY = Dimension("thermal_expansivity", (0, 0, 0, -1, 0, 0, 0))
+# Mass density: mass per unit volume, kg/m^3 = M L^-3 (1,-3,0,0,0,0,0). The
+# LAMMPS metal-unit MD thermo 'density' column; the mechanics MassDensity node
+# carries it. Canonical unit g/cm^3 (the metal serving unit), so the SI
+# kg/m^3 carries to_operator 1e-3 (1 kg/m^3 = 1e-3 g/cm^3).
+MASS_DENSITY = Dimension("mass_density", (1, -3, 0, 0, 0, 0, 0))
 
 
 DIMENSIONS: dict[str, Dimension] = {
@@ -189,5 +201,7 @@ DIMENSIONS: dict[str, Dimension] = {
         ELECTRICAL_CONDUCTIVITY,
         SEEBECK,
         MOBILITY,
+        THERMAL_EXPANSIVITY,
+        MASS_DENSITY,
     ]
 }

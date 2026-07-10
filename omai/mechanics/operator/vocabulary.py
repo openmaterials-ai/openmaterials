@@ -41,4 +41,8 @@ register_space_symbols({
     "PoissonRatio": {"nu"},
     # The stress the pressure contracts (already registered by the dft domain).
     "Stress": {r"\sigma"},
+    # Mass density (2026-07-10): the density field rho, a contraction of the
+    # Structure (whose \mathcal{S} label is registered by the dft domain and
+    # reused as the opaque-function argument, not re-registered here).
+    "MassDensity": {r"\rho"},
 })

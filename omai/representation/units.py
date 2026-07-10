@@ -32,10 +32,12 @@ from omai.operator.dimensions import (
     LENGTH,
     LENGTH_TIMES_FREQUENCY,
     MAGNETIC_MOMENT,
+    MASS_DENSITY,
     MOBILITY,
     SEEBECK,
     TEMPERATURE,
     THERMAL_CONDUCTIVITY,
+    THERMAL_EXPANSIVITY,
     VOLTAGE,
     VOLUME,
 )
@@ -212,6 +214,21 @@ M2_PER_V_S = Unit("m2_per_v_s", MOBILITY, 1.0, si_scale=1.0)
 CM2_PER_V_S = Unit("cm2_per_v_s", MOBILITY, 1e-4)
 
 
+# Canonical thermal-expansivity unit: reciprocal kelvin (1/K). The volumetric
+# thermal expansion coefficient alpha = (1/V)(dV/dT)_P; phonopy / matcalc QHACalc
+# serve it directly in 1/K (thermal_expansion_coefficients, _qha.py:298), so
+# per_kelvin is canonical with to_operator 1.0.
+PER_KELVIN = Unit("per_kelvin", THERMAL_EXPANSIVITY, 1.0, si_scale=1.0)
+
+
+# Canonical mass-density unit: gram per cubic centimetre (g/cm^3), the LAMMPS
+# metal-unit MD thermo 'density' column. The SI kg/m^3 is 1e-3 g/cm^3
+# (1000 g / 1e6 cm^3 = 1e-3 g/cm^3), so kg_per_m3 carries to_operator 1e-3 to
+# the canonical g/cm^3. Absolute SI scale of g/cm^3 is 1000 kg/m^3.
+GRAM_PER_CM3 = Unit("gram_per_cm3", MASS_DENSITY, 1.0, si_scale=1000.0)
+KG_PER_M3 = Unit("kg_per_m3", MASS_DENSITY, 1e-3)
+
+
 UNITS: dict[str, Unit] = {
     u.name: u
     for u in [
@@ -253,6 +270,9 @@ UNITS: dict[str, Unit] = {
         MUV_PER_K,
         M2_PER_V_S,
         CM2_PER_V_S,
+        PER_KELVIN,
+        GRAM_PER_CM3,
+        KG_PER_M3,
     ]
 }
 

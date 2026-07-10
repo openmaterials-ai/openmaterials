@@ -18,6 +18,7 @@ Node table:
   Pressure         pressure           ENERGY_PER_LENGTH_CUBED  ()
   YoungsModulus    youngs_modulus     ENERGY_PER_LENGTH_CUBED  ()
   PoissonRatio     poisson_ratio      DIMENSIONLESS            ()
+  MassDensity      mass_density       MASS_DENSITY             ()
 
 ElasticConstants is the FULL rank-4 Cartesian tensor C_{alpha,beta,gamma,delta}.
 The Voigt 6x6 matrix C_ij that codes and papers print is a representation-layer
@@ -30,10 +31,22 @@ two remaining isotropic combinations of K and G, produced by the executable
 contract edges E_Y = 9KG/(3K+G) and nu = (3K-2G)/(2(3K+G)). Deferred
 candidates: the Reuss and Hill averages (they arrive as scheme overrides on the
 contraction representations, not as new nodes).
+
+MassDensity (added 2026-07-10 from the phonopy/LAMMPS delta scan) is the mass
+density rho = total cell mass / cell volume, the LAMMPS metal-unit MD thermo
+'density' column the mat-lammps-md skill tracks (glass densification on a quench).
+A minor scalar readout, carrying the fresh MASS_DENSITY dimension (M L^-3); it is
+a derived contraction of the Structure (contract_density), NOT the phonon
+density of states. It sits in the Mechanics tier as a bulk-material property
+alongside the moduli and pressure.
 """
 from __future__ import annotations
 
-from omai.operator.dimensions import DIMENSIONLESS, ENERGY_PER_LENGTH_CUBED
+from omai.operator.dimensions import (
+    DIMENSIONLESS,
+    ENERGY_PER_LENGTH_CUBED,
+    MASS_DENSITY,
+)
 from omai.operator.space import Field, ObservableSpace, Space
 
 ELASTIC_CONSTANTS = ObservableSpace(
@@ -125,6 +138,24 @@ POISSON_RATIO = ObservableSpace(
     ),
 )
 
+MASS_DENSITY_STATE = ObservableSpace(
+    name="MassDensity",
+    fields=(Field("rho", MASS_DENSITY, indices=()),),
+    tier="Mechanics",
+    description=(
+        "Mass density rho = total cell mass / cell volume, the LAMMPS metal-unit "
+        "MD thermo 'density' column (mat-lammps-md tracks it across a melt / "
+        "quench / hold to read glass densification, and across the Cu phase "
+        "transition). Dimension MASS_DENSITY (1,-3,0,0,0,0,0) = M L^-3, served in "
+        "g/cm^3 (the metal serving unit; the SI kg/m^3 = 1e-3 g/cm^3). A derived "
+        "contraction of the Structure (contract_density: total mass over cell "
+        "volume), NOT a phonon density of states and NOT a first-principles "
+        "response: a scalar readout of quantities the Structure already carries, "
+        "admitted because the skills track it as a first-class MD output. Scalar, "
+        "in the Mechanics tier."
+    ),
+)
+
 NODES: tuple[Space, ...] = (
     ELASTIC_CONSTANTS,
     BULK_MODULUS,
@@ -132,4 +163,5 @@ NODES: tuple[Space, ...] = (
     PRESSURE,
     YOUNGS_MODULUS,
     POISSON_RATIO,
+    MASS_DENSITY_STATE,
 )

@@ -17,6 +17,15 @@ References to the phonopy API (https://phonopy.github.io/phonopy/):
       yields heat_capacity in J/(K·mol), one value per temperature.
   * Phonopy.get_frequencies / get_band_structure / get_mesh_dict —
       phonon frequencies in THz (linear).
+
+The QUASI-HARMONIC (constant-pressure) side of phonopy, PhonopyQHA (driven by
+matcalc QHACalc, mat-qha-thermal-expansion), lives on this same 'phonopy' code
+rail but is declared in the quasi-harmonic domain's representation package
+(omai/quasiharmonic/representation/phonopy.py): the QHA Gibbs energy, thermal
+expansion (1/K), constant-pressure heat capacity, thermal Gruneisen, and the QHA
+route to BulkModulus (B(T), GPa). Those specs carry the kJ/mol per-phonopy-cell
+basis note and the divide_by_Z caveat (per-cell natom, NOT per formula unit).
+This module stays scoped to the harmonic constant-volume chain.
 """
 
 from __future__ import annotations

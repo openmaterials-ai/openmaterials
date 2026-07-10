@@ -43,7 +43,8 @@ def test_thermochemistry_domain_between_stability_and_materials():
     names = [d.name for d in DOMAINS]
     assert names == [
         "thermal_transport", "dft_ground_state", "mechanics", "stability",
-        "thermochemistry", "electronic_transport", "materials"]
+        "thermochemistry", "quasiharmonic", "electronic_transport",
+        "materials"]
 
 
 def test_thermochemistry_declares_the_single_tier():
@@ -289,15 +290,16 @@ def test_new_nodes_validate_against_the_registries():
 # The unified graph: tier order and node placement.
 # --------------------------------------------------------------------------
 
-def test_thermochemistry_tier_after_stability_before_electronic_transport():
+def test_thermochemistry_tier_after_stability_before_quasi_harmonic():
     g = build_graph_dict(DOMAINS)
     tier_names = [t["name"] for t in g["tiers"]]
     assert "Thermochemistry" in tier_names
     i = tier_names.index("Thermochemistry")
     assert tier_names[i - 1] == "Stability"
-    # The amset scan inserted the Electronic transport tier after
-    # Thermochemistry, before the materials Diffusion tier.
-    assert tier_names[i + 1] == "Electronic transport"
+    # The phonopy/LAMMPS delta scan inserted the Quasi-harmonic tier after
+    # Thermochemistry (before the amset Electronic transport tier), 2026-07-10.
+    assert tier_names[i + 1] == "Quasi-harmonic"
+    assert tier_names[i + 2] == "Electronic transport"
 
 
 def test_thermochemistry_nodes_carry_the_tier():
@@ -309,17 +311,19 @@ def test_thermochemistry_nodes_carry_the_tier():
         assert tier_of[name] == "Thermochemistry"
 
 
-def test_map_has_eighty_two_nodes_and_twelve_tiers():
+def test_map_has_eighty_seven_nodes_and_thirteen_tiers():
     # 73 through the pycalphad scan; 74 with AdsorptionEnergy (2026-07-10,
     # matcalc/ASE scan); 77 with the config-thermo scan's
     # ElectricalConductivity[carrier=ionic] + ConfigurationalEnergy (joining the
     # existing Diffusion tier) and ReactionEnergy (joining Stability); 82 with
     # the amset scan's electronic-transport five (StaticDielectricTensor joins
     # Sources, the four transport tensors add the new Electronic transport tier,
-    # 2026-07-10).
+    # 2026-07-10); 87 with the phonopy/LAMMPS delta scan's four quasi-harmonic
+    # nodes (the new Quasi-harmonic tier) plus MassDensity (joining Mechanics),
+    # 2026-07-10.
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 82
-    assert len(g["tiers"]) == 12
+    assert len(g["nodes"]) == 87
+    assert len(g["tiers"]) == 13
 
 
 # --------------------------------------------------------------------------
