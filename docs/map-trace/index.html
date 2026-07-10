@@ -182,7 +182,7 @@
 <script>
 const svg=document.getElementById('svg'), vp=document.getElementById('vp'), measure=document.getElementById('measure');
 let VB={x:0,y:0,w:1000,h:1000}, GW=1000, GH=1000;
-let nodeById={}, parents={}, children={}, pos={}, symHtml={}, opByEdge={}, byVar={};
+let nodeById={}, parents={}, children={}, pos={}, symHtml={}, opByEdge={};
 function setVB(){ svg.setAttribute('viewBox', VB.x+' '+VB.y+' '+VB.w+' '+VB.h); syncLabels(); }
 function syncLabels(){
   const inner=document.getElementById('labelsInner'); if(!inner) return;
@@ -198,13 +198,10 @@ function err(m){ var e=document.getElementById('err'); e.style.display='block'; 
 function esc(s){ return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
 if(typeof dagre==='undefined'){ err('dagre failed to load (no internet?)'); }
-else Promise.all([
-  fetch('../data/graph.json?v='+Date.now()).then(r=>r.json()),
-  fetch('../data/instances.json?v='+Date.now()).then(r=>r.json()).catch(()=>[])
-]).then(build).catch(e=> err('data: '+e));
+else fetch('../data/graph.json?v='+Date.now()).then(r=>r.json())
+  .then(build).catch(e=> err('data: '+e));
 
-function build([graph, insts]){
-  insts.forEach(it=>{ (byVar[it.variable]=byVar[it.variable]||[]).push(it); });
+function build(graph){
   graph.nodes.forEach(n=>{ nodeById[n.id]=n; symHtml[n.id]=tex(n.symbol); });
   const seen=new Set(), edges=[];
   graph.links.forEach(l=>{ const k=l.source+'>>'+l.target; if(!seen.has(k)&&l.source!==l.target){ seen.add(k); edges.push(l); opByEdge[k]=l.op||''; (children[l.source]=children[l.source]||[]).push(l.target); (parents[l.target]=parents[l.target]||[]).push(l.source); } });
