@@ -64,3 +64,7 @@ experiments/*/__pycache__/
 log.lammps
 experiments/*/log.lammps
 AtomisticSkills/
+
+# local secrets (API keys), never commit
+.env
+.env.*
