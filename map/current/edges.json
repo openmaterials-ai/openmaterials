@@ -20,6 +20,25 @@
   },
   "uid": "00bbc32d579215c8ada01de36f6d5db89d0cd23ccd1e392bc4bc085e9c96fc8e"
  },
+ "0438b30a3ed499df2f925e42d7b0ffc9bcff837ab8fdaa3f83985ce27c29421c": {
+  "identity": {
+   "formula": "Equality(Symbol('V_m'), Mul(Symbol('N_A'), Symbol('V_{cell}', positive=True)))",
+   "inputs": [],
+   "output": "e4ae49aad73336225c26fd3cf5d8dc2f4477b02b7d8bad22c9c74fd40a2482b2",
+   "outputs": [
+    "e4ae49aad73336225c26fd3cf5d8dc2f4477b02b7d8bad22c9c74fd40a2482b2"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Molar volume V_m = N_A V_cell: the CellVolume promoted parameter scaled to a per-mole-of-cells volume by Avogadro's number N_A (a registered formula constant carrying dimension N^-1, exactly as k_B carries ENERGY_PER_TEMPERATURE in the dimcheck registry, so N_A is honest in the gate). The gate proves it: N_A (0,0,0,0,-1,0,0) . V_cell (0,3,0,0,0,0,0) = (0,3,0,0,-1,0,0) = VOLUME_PER_MOLE, matching MolarVolume. Encoded as a nullary producer that reads the promoted V_{cell} parameter (the map wires CellVolume to every consumer through its symbol in the formula, the provide_CellVolume link, since CellVolume is a promoted parameter and not an ObservableSpace node). ON THE PHONON MOLAR BASIS (per mole of primitive cells, the same cells as the molar C_V / C_P); to cross-code to per mole of ATOMS, divide by atoms-per-cell. The one node the review found the map needed to make the molar Gruneisen and C_P - C_V identities executable. Closed-form and sympy-executable.",
+   "formula_latex": "V_{m} = N_{A} V_{cell}",
+   "formula_srepr": "Equality(Symbol('V_m'), Mul(Symbol('N_A'), Symbol('V_{cell}', positive=True)))",
+   "name": "contract_molar_volume",
+   "schemes": {}
+  },
+  "uid": "0438b30a3ed499df2f925e42d7b0ffc9bcff837ab8fdaa3f83985ce27c29421c"
+ },
  "0547586f6514cf3d00afe174e20fb0222f1a645a124957664f7de6dd7b232941": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('\\\\kappa^{cum}_\\\\omega')), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True), Symbol('\\\\omega_c', positive=True)), Mul(Pow(Symbol('N_q', positive=True, integer=True), Integer(-1)), Pow(Symbol('V_{cell}', positive=True), Integer(-1)), Sum(Mul(Function('\\\\theta')(Add(Symbol('\\\\omega_c', positive=True), Mul(Integer(-1), Indexed(IndexedBase(Symbol('\\\\omega')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True))))), Indexed(IndexedBase(Symbol('F')), Symbol('\\\\beta', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Indexed(IndexedBase(Symbol('c')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Indexed(IndexedBase(Symbol('v')), Symbol('\\\\alpha', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True))), Tuple(Symbol('\\\\mathbf{q}'), Integer(1), Symbol('N_q', positive=True, integer=True)), Tuple(Symbol('\\\\nu', integer=True), Integer(1), Mul(Integer(3), Symbol('N', positive=True, integer=True))))))",
@@ -116,6 +135,29 @@
    "schemes": {}
   },
   "uid": "1038d2249c062baff931bbc06138496d90157bb4365334cae8c5092866e9b6a4"
+ },
+ "1348e12defce337587f9c2b152a3a1c88f9d27ec8cc48fc30167aebadd907043": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\gamma_{th}'), Mul(Pow(Symbol('C_V^{vol}'), Integer(-1)), Symbol('K'), Symbol('\\\\alpha_V')))",
+   "inputs": [
+    "29e324b97f31cdb7d3cd8ef6aec5668fff111fd7ee96bd19dd0426b8728c1d47",
+    "9b42f8aebb6099cdcd910a272a92208881b598688bac7830c3ae0a412152473e",
+    "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced"
+   ],
+   "output": "22b1bd519d50d93fd24a919e021bab85aff246464a66a08f8274558834983985",
+   "outputs": [
+    "22b1bd519d50d93fd24a919e021bab85aff246464a66a08f8274558834983985"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Thermodynamic Gruneisen identity gamma_th = alpha_V B / C_V^vol: the macroscopic (thermodynamic) Gruneisen parameter from the volumetric thermal expansion, the bulk modulus, and the INTENSIVE volumetric heat capacity. The whole-map physics review proved this is the ONLY combination of the map's actual nodes that closes dimensionally: alpha_V (0,0,0,-1) . B (1,-1,-2,0) / C_V^vol (1,-1,-2,-1) = (0,0,0,0,0,0,0), exactly dimensionless. Using CellVolume x MolarHeatCapacity instead leaves a residual N (mole) axis, and a per-unit-volume C_V with a V factor double-counts the volume, so the volumetric C_V (which needs NO volume factor) is the clean route. SECOND PRODUCER (Pattern C) of ThermalGruneisen alongside contract_thermal_gruneisen (the QHA heat-capacity-weighted mode-average): two genuinely different estimators of the SAME thermal Gruneisen that MUST agree numerically, mirroring BulkModulus's three producers. Closed-form and sympy-executable; the dimensional gate proves the dimensionless output.",
+   "formula_latex": "\\gamma_{th} = \\frac{K \\alpha_{V}}{C_V^{vol}}",
+   "formula_srepr": "Equality(Symbol('\\\\gamma_{th}'), Mul(Pow(Symbol('C_V^{vol}'), Integer(-1)), Symbol('K'), Symbol('\\\\alpha_V')))",
+   "name": "contract_thermal_gruneisen_identity",
+   "schemes": {}
+  },
+  "uid": "1348e12defce337587f9c2b152a3a1c88f9d27ec8cc48fc30167aebadd907043"
  },
  "1374919bed5b2ab25f700faf12ff8dc32b6fa3296fe92dd12092e3b9edd39e54": {
   "identity": {
@@ -810,6 +852,28 @@
   },
   "uid": "67d4d9c1ad01e2aa1705e54ed9edb2d1a0ce601aa0e7c9929a7ba7cbd7259f28"
  },
+ "692d823ec06a56ba59453ff8650d602fc72d1aac991aae3e572b236e5a269306": {
+  "identity": {
+   "formula": "Equality(Symbol('PF'), Mul(Pow(Symbol('S'), Integer(2)), Symbol('\\\\sigma_{el}')))",
+   "inputs": [
+    "80778c5d6cb9f0d1dd23d5c6cd6059acea161892532ce7c581c7477257debf02",
+    "c4a81f649b3964aed4d4b3c48dfec4f252958c9560332286e2105b175794144b"
+   ],
+   "output": "6c2382614be093f934d4f830419db9d60d32610041a8c213b677efc42f6a98ee",
+   "outputs": [
+    "6c2382614be093f934d4f830419db9d60d32610041a8c213b677efc42f6a98ee"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Thermoelectric power factor PF = sigma_e S^2: the electronic electrical conductivity times the Seebeck coefficient squared, a closed-form contraction of two existing electronic-transport nodes. The gate proves the new dimension: sigma_e (-1,-3,3,0,0,2,0) + 2 S (1,2,-3,-1,0,-1,0) = (1,1,-3,-2,0,0,0) = POWER_FACTOR = W/(m K^2). S is the registered Seebeck symbol (V/K), NOT entropy; sigma_e is the electronic conductivity, NOT the stress or ionic sigma. The sole non-temperature input to ZT. Closed-form and sympy-executable.",
+   "formula_latex": "PF = S^{2} \\sigma_{el}",
+   "formula_srepr": "Equality(Symbol('PF'), Mul(Pow(Symbol('S'), Integer(2)), Symbol('\\\\sigma_{el}')))",
+   "name": "contract_power_factor",
+   "schemes": {}
+  },
+  "uid": "692d823ec06a56ba59453ff8650d602fc72d1aac991aae3e572b236e5a269306"
+ },
  "6b7443f91473aedb777319f94c644d0f6832223bd64dd3338d22300045d62de2": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('\\\\Gamma^{bnd}')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Mul(Pow(Symbol('L', positive=True), Integer(-1)), Pow(Sum(Pow(Indexed(IndexedBase(Symbol('v')), Symbol('\\\\alpha', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Integer(2)), Tuple(Symbol('\\\\alpha', integer=True), Integer(1), Integer(3))), Rational(1, 2))))",
@@ -999,6 +1063,31 @@
    }
   },
   "uid": "785759ece87a293204a322aa5c662467cc649f6a0b69b641542aba0fa6ddfff4"
+ },
+ "79a11e58595c8b262c104330dcfc622f13a787da6bae856cf4f40b57a6a93639": {
+  "identity": {
+   "formula": "Equality(Symbol('C_P'), Add(Symbol('C_V^{mol}'), Mul(Symbol('K'), Symbol('T'), Symbol('V_m'), Pow(Symbol('\\\\alpha_V'), Integer(2)))))",
+   "inputs": [
+    "4fa2d8e16bde42f794f150f5d149e5d645d63f7ddaac59cef79bd41771b13c17",
+    "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0",
+    "9b42f8aebb6099cdcd910a272a92208881b598688bac7830c3ae0a412152473e",
+    "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced",
+    "e4ae49aad73336225c26fd3cf5d8dc2f4477b02b7d8bad22c9c74fd40a2482b2"
+   ],
+   "output": "08057e4554a3420c933329b3821de9295e2b5950191e23cafe310b0a15adc7b6",
+   "outputs": [
+    "08057e4554a3420c933329b3821de9295e2b5950191e23cafe310b0a15adc7b6"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Constant-pressure heat capacity identity C_P = C_V + T V_m alpha^2 B: the exact thermodynamic difference C_P - C_V = T V_m alpha^2 B_T that the HeatCapacityConstantP node's own description already states, now EXECUTABLE because MolarVolume (this slice) supplies the molar V on the SAME per-mole-of-cells basis as the molar C_V and C_P. The gate proves it: T V_m alpha^2 B = (0,0,0,1) . (0,3,0,0,-1) . (0,0,0,-2) . (1,-1,-2,0) = (1,2,-2,-1,-1,0,0) = ENERGY_PER_TEMPERATURE_PER_MOLE, matching both the molar C_V it adds to and the C_P it produces (an Add of two equal known dimensions). SECOND PRODUCER (Pattern C) of HeatCapacityConstantP alongside compute_heat_capacity_p (the QHA polyfit-enthalpy-derivative): the identity route and the direct QHA route must agree. Closed-form and sympy-executable.",
+   "formula_latex": "C_{P} = C_V^{mol} + K T V_{m} \\alpha_{V}^{2}",
+   "formula_srepr": "Equality(Symbol('C_P'), Add(Symbol('C_V^{mol}'), Mul(Symbol('K'), Symbol('T'), Symbol('V_m'), Pow(Symbol('\\\\alpha_V'), Integer(2)))))",
+   "name": "contract_heat_capacity_p_identity",
+   "schemes": {}
+  },
+  "uid": "79a11e58595c8b262c104330dcfc622f13a787da6bae856cf4f40b57a6a93639"
  },
  "7b9e21caad74ed2be7cf49af55b1e745bb8a2606b035bee37c46c37a09cf58fc": {
   "identity": {
@@ -2050,6 +2139,28 @@
   },
   "uid": "dee3e5f2230cae44c646c62985260fc103745cc44d0b1c2a87fe0a72ca675a97"
  },
+ "e5d0388c6c18b3fb6cb08647ddaf431bfb39e60f33e0abd1ecdd2cb0c05575ee": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\kappa_{tot}'), Add(Symbol('\\\\kappa'), Symbol('\\\\kappa_e')))",
+   "inputs": [
+    "960b38ae04ecc9fbaacb02d9ae832f15e84b8cac0563e7f6a62ddf32c61d725c",
+    "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9"
+   ],
+   "output": "2931c0e41adb40b9ce80f5169881f3a266a2e85d5b280223914fb3b61628aea9",
+   "outputs": [
+    "2931c0e41adb40b9ce80f5169881f3a266a2e85d5b280223914fb3b61628aea9"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Total thermal conductivity kappa_total = kappa_lattice + kappa_electronic: the exact additive sum of the lattice and electronic heat channels (parallel heat conductors add), discharging the claim the ElectronicThermalConductivity node already makes in prose. Both inputs carry THERMAL_CONDUCTIVITY (1,1,-3,-1), so the sum is dimensionally trivial and the gate proves it (an Add of two equal known dimensions). Mirrors the existing sum_linewidths Matthiessen edge (also a same-dimension additive contraction). The lattice input here NAMES the full-solution ThermalConductivity[bte_solver=direct_inverse] variant; the other lattice producers (the Wigner / Green-Kubo / QHGK / RTA transport_model variants) sum with kappa_electronic ANALOGOUSLY into the same contribution=total node (one representative producer is wired; the physics is identical for each lattice route, which one fired riding the provenance). Closed-form and sympy-executable.",
+   "formula_latex": "\\kappa_{tot} = \\kappa + \\kappa_{e}",
+   "formula_srepr": "Equality(Symbol('\\\\kappa_{tot}'), Add(Symbol('\\\\kappa'), Symbol('\\\\kappa_e')))",
+   "name": "sum_thermal_conductivity",
+   "schemes": {}
+  },
+  "uid": "e5d0388c6c18b3fb6cb08647ddaf431bfb39e60f33e0abd1ecdd2cb0c05575ee"
+ },
  "e78d5769e8a4718966dee70a82eb5ac9622b35e20edf471ee1d8dc88ab40868c": {
   "identity": {
    "formula": "Equality(Symbol('K'), Mul(Symbol('V_0', positive=True), Derivative(Symbol('E_{tot}'), Tuple(Symbol('V_{cell}', positive=True), Integer(2)))))",
@@ -2236,5 +2347,28 @@
    }
   },
   "uid": "fe7f863a4325b44bf1f15e1b1f2521d7ec03c5c3bd0efa796998b12b6975f1e3"
+ },
+ "ff8a1d876f02c91d2c28a2ebecd11217c9496adc0b928b06ff13847bb6ac427b": {
+  "identity": {
+   "formula": "Equality(Symbol('ZT'), Mul(Symbol('PF'), Symbol('T'), Pow(Symbol('\\\\kappa_{tot}'), Integer(-1))))",
+   "inputs": [
+    "2931c0e41adb40b9ce80f5169881f3a266a2e85d5b280223914fb3b61628aea9",
+    "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0",
+    "6c2382614be093f934d4f830419db9d60d32610041a8c213b677efc42f6a98ee"
+   ],
+   "output": "cf5879d2e17024fb396d83e19e71852f6cedf446fcf9d2feb81eb994e3e66e3a",
+   "outputs": [
+    "cf5879d2e17024fb396d83e19e71852f6cedf446fcf9d2feb81eb994e3e66e3a"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Dimensionless thermoelectric figure of merit ZT = PF T / kappa_total = sigma_e S^2 T / (kappa_lattice + kappa_electronic): the single number a thermoelectrics colleague reads. The gate proves it dimensionless: PF (1,1,-3,-2) . T (0,0,0,1) / kappa_total (1,1,-3,-1) = (0,0,0,0,0,0,0). Its kappa_total input is the ThermalConductivity[contribution=total] node (itself lattice + electronic via sum_thermal_conductivity), so ZT is the ONE relation that stitches the lattice and electronic thermal-transport halves of the map into a single thermoelectrics story. Closed-form and sympy-executable.",
+   "formula_latex": "ZT = \\frac{PF T}{\\kappa_{tot}}",
+   "formula_srepr": "Equality(Symbol('ZT'), Mul(Symbol('PF'), Symbol('T'), Pow(Symbol('\\\\kappa_{tot}'), Integer(-1))))",
+   "name": "contract_zt",
+   "schemes": {}
+  },
+  "uid": "ff8a1d876f02c91d2c28a2ebecd11217c9496adc0b928b06ff13847bb6ac427b"
  }
 }

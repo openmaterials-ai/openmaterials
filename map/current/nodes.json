@@ -372,6 +372,28 @@
   },
   "uid": "28ebe96bc049a92e4318fd5242778f30e5647531d0a2b39c5891546329c8bca0"
  },
+ "2931c0e41adb40b9ce80f5169881f3a266a2e85d5b280223914fb3b61628aea9": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "contribution": "total"
+   },
+   "quantity": "thermal_conductivity"
+  },
+  "meta": {
+   "description": "Total thermal conductivity kappa_total = kappa_lattice + kappa_electronic: the additive sum of the lattice and electronic heat-transport channels, the two carriers of heat conducting in PARALLEL, so their conductivities add exactly (the Matthiessen-like additivity the map already uses for sum_linewidths). Dimension THERMAL_CONDUCTIVITY (1,1,-3,-1,0,0,0) = W/(m K). It JOINS the thermal_conductivity family (the SAME thermal_conductivity tag and THERMAL_CONDUCTIVITY dimension as the nine lattice ThermalConductivity[*] nodes and the ElectronicThermalConductivity sibling) and is kept a DISTINCT node ONLY by the contribution=total LABEL_KEY (a registered value). The contribution key is deliberately SEPARATE from transport_model: transport_model distinguishes the lattice SOLVER routes (wigner, green_kubo, qhgk, ...) that all produce a lattice-only kappa, whereas contribution=total names a different axis (which heat channels are summed), so it never collides with a lattice-solver value. Discharges the claim the ElectronicThermalConductivity node already makes in prose (kappa_total = kappa_lattice + kappa_electronic) but that no edge summed. Scalar; a function of T (and, for the electronic part, doping).",
+   "name": "ThermalConductivity[contribution=total]",
+   "symbol": "\\kappa_{tot}",
+   "tier": "Thermoelectric"
+  },
+  "uid": "2931c0e41adb40b9ce80f5169881f3a266a2e85d5b280223914fb3b61628aea9"
+ },
  "29e324b97f31cdb7d3cd8ef6aec5668fff111fd7ee96bd19dd0426b8728c1d47": {
   "identity": {
    "fields": [
@@ -876,6 +898,26 @@
    "tier": "Sources"
   },
   "uid": "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0"
+ },
+ "6c2382614be093f934d4f830419db9d60d32610041a8c213b677efc42f6a98ee": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "power_factor"
+  },
+  "meta": {
+   "description": "Thermoelectric power factor PF = sigma_e S^2: the electronic electrical conductivity times the Seebeck coefficient squared, a closed-form contraction of two existing electronic-transport nodes (ElectricalConductivity[carrier=electronic] and SeebeckCoefficient). NEW dimension POWER_FACTOR (1,1,-3,-2,0,0,0) = W/(m K^2), which the dimensional gate proves from ELECTRICAL_CONDUCTIVITY (-1,-3,3,0,0,2,0) + 2*SEEBECK (1,2,-3,-1,0,-1,0). The numerator of the thermoelectric figure of merit: ZT = PF T / kappa_total. The first fruit of the thermoelectric slice the whole-map physics review scoped. Scalar; a function of temperature and doping (carried in conditions of the sigma_e and S inputs).",
+   "name": "PowerFactor",
+   "symbol": "PF",
+   "tier": "Thermoelectric"
+  },
+  "uid": "6c2382614be093f934d4f830419db9d60d32610041a8c213b677efc42f6a98ee"
  },
  "6cbd3322c5b6eb0105f9ca22d9ddc88334206ec9c115a31e6fb87409cc374c45": {
   "identity": {
@@ -1658,6 +1700,26 @@
   },
   "uid": "cd81fd8a1d62a1484f3057647d23aa780500de44175ae4e686e189a3ca5b36b2"
  },
+ "cf5879d2e17024fb396d83e19e71852f6cedf446fcf9d2feb81eb994e3e66e3a": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "zt"
+  },
+  "meta": {
+   "description": "The dimensionless thermoelectric figure of merit ZT = PF T / kappa_total = sigma_e S^2 T / (kappa_lattice + kappa_electronic): the single number a thermoelectrics colleague reads to judge a material, the power factor times temperature over the total thermal conductivity. DIMENSIONLESS (the gate proves POWER_FACTOR * TEMPERATURE / THERMAL_CONDUCTIVITY cancels to the all-zero tuple). It is the ONE relation that stitches the lattice and electronic thermal-transport halves of the map into a single thermoelectrics story: its kappa_total input is the ThermalConductivity[contribution=total] node, itself the lattice + electronic sum, so ZT transitively depends on both transport families. Kept a distinct node from the other dimensionless scalars (ThermalGruneisen, PoissonRatio, PhaseSpace3Phonon) by its zt tag (derived from the node name ZT, the acronym one token as HOMOLUMOGap -> homolumo_gap), as those are kept apart from each other. Scalar; a function of temperature and doping recorded in conditions.",
+   "name": "ZT",
+   "symbol": "ZT",
+   "tier": "Thermoelectric"
+  },
+  "uid": "cf5879d2e17024fb396d83e19e71852f6cedf446fcf9d2feb81eb994e3e66e3a"
+ },
  "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e": {
   "identity": {
    "fields": [
@@ -1795,6 +1857,26 @@
    "tier": "Sources"
   },
   "uid": "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+ },
+ "e4ae49aad73336225c26fd3cf5d8dc2f4477b02b7d8bad22c9c74fd40a2482b2": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "L^3 N^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "molar_volume"
+  },
+  "meta": {
+   "description": "Molar volume V_m = N_A V_cell: the volume PER MOLE OF PRIMITIVE CELLS, a promoted-parameter-style contraction of the CellVolume by Avogadro's number N_A. NEW dimension VOLUME_PER_MOLE (0,3,0,0,-1,0,0) = m^3/mol, exactly CellVolume's VOLUME (0,3,0,0,0,0,0) times N_A's N^-1. ON THE PHONON MOLAR BASIS: per mole of the SAME primitive / unit cells as the phonopy Molar* thermodynamics (MolarHeatCapacity, HeatCapacityConstantP, the QHA G, all per mole of the phonopy cell), NOT the CALPHAD per-mole-of-ATOMS basis. This basis guardrail is LOAD-BEARING: MolarVolume is the input that closes C_P - C_V = T V_m alpha^2 B against the molar MolarHeatCapacity and HeatCapacityConstantP (both per mole of cells), so a per-atom V_m would silently break that identity by a factor of atoms-per-cell. To cross-code to a per-mole-of-ATOMS molar volume, divide by atoms-per-cell. The whole-map physics review's single cleanest addition: the one node that makes BOTH the molar Gruneisen form and C_P - C_V executable and mutually cross-checking. Served in m^3/mol (canonical) or cm^3/mol (1e-6 factor). Scalar; a function of T (V_cell expands with temperature) recorded in conditions.",
+   "name": "MolarVolume",
+   "symbol": "V_m",
+   "tier": "Thermoelectric"
+  },
+  "uid": "e4ae49aad73336225c26fd3cf5d8dc2f4477b02b7d8bad22c9c74fd40a2482b2"
  },
  "e62e58716111fdc1dff24d18e75c70904cbb07ce6e0025e24fcdac8c4ed0a53d": {
   "identity": {
