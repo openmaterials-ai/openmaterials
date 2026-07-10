@@ -352,6 +352,13 @@ material, the conditions, and a citation. Evidence never creates structure: a
 simulation cannot invent a formula, it can only put a number on a node that
 already exists.
 
+The split is also a separation of concerns in the app. The map view renders the
+structure alone (nodes, edges, formulas, and the code representations that map
+onto them); instances and spectra are a distinct evidence layer that consumers
+load against node uids and attach locally, never carried on the map page itself.
+The test suite and the contribution gates exercise that layer directly, so its
+correctness is checked against the same uids the view is drawn from.
+
 The two relate through a small type hierarchy. A code is a \textbf{representation}: a
 named mapping of part of the map onto a concrete tool, with its units, gauge,
 and conventions. A single run of that code is an \textbf{instance}, and the kappa it
