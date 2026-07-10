@@ -1,0 +1,380 @@
+{
+  "scan": {
+    "code": "smol (cluster expansion + lattice Monte Carlo), reaction-network / rxn_network (reaction energetics + synthesis pathways), pymatgen-analysis-diffusion (MSD / diffusivity / ionic conductivity)",
+    "slice": "as-used-by-AtomisticSkills",
+    "source_root": "AtomisticSkills/.agents/skills/ml-cluster-expansion/, mat-disorder/, mat-grand-canonical-mc/ (smol); mat-reaction-network/ (rxn_network); mat-diffusion-analysis/, mat-md-probability-density/ (pymatgen.analysis.diffusion)",
+    "paper": "arXiv 2605.24002 (AtomisticSkills)",
+    "trio_framing": "The configurational-thermodynamics trio. All three sit downstream of a lattice or an ensemble average, not a single ab-initio call: (a) smol is a lattice-model Hamiltonian (an ECI-parameterized cluster expansion) sampled by Metropolis / semigrand MC; the CE is to configurational energetics what an MLIP checkpoint is to the PES: a fitted Potential-representation analog. (b) rxn_network consumes MP-derived (Bartel-SISSO Gibbs) formation energies to score and path-find reactions; its dimensioned outputs are reaction energies (eV/atom, total eV), its costs are dimensionless graph-algorithm artifacts. (c) pymatgen-analysis-diffusion extends the already-mapped diffusion slice (Diffusivity / ActivationEnergy / MeanSquaredDisplacement) with ionic conductivity (Nernst-Einstein), charge diffusivity, Haven ratio, and a probability-density field.",
+    "importability": "NONE of the three are importable in the miniconda base env (`No module named smol` / `rxn_network` / `pymatgen.analysis.diffusion`). Anchors read from pip-downloaded artifacts into /tmp/cfgsrc: smol-0.5.7.tar.gz (sdist, read from source), reaction_network-8.3.0-py3-none-any.whl, pymatgen_analysis_diffusion-2025.11.15-py3-none-any.whl. smol lives in conda-envs/smol-agent (python=3.10, pins `smol`, `pymatgen`, no versions); rxn_network + pymatgen-analysis-diffusion live in conda-envs/base-agent (pins `reaction-network`, `pymatgen-analysis-diffusion`, no versions). Pin versions at encode time.",
+    "graph_snapshot": "docs/data/graph.json has 67 nodes at scan time (git HEAD f16f913, the mp-api rail regeneration; the map was regrown past the 66-node snapshot the pycalphad and mp-api scans recorded). VERIFIED present: Diffusivity, ActivationEnergy, MeanSquaredDisplacement (the mapped diffusion slice). VERIFIED absent: IonicConductivity, ChargeDiffusivity, HavenRatio, ProbabilityDensity, ChemicalPotential, ReactionEnergy, ClusterExpansion, MolarGibbsEnergy. registry.py carries diffusivity, activation_energy, mean_squared_displacement tags and NONE of the trio's new candidates.",
+    "diffusion_slice_context": "The mapped diffusion slice is the mat-diffusion-analysis rail: omai/materials/representation/mat_diffusion_analysis.py binds DIFFUSIVITY_STATE (D, cm^2/s, scripts/analyze_diffusion.py) and ACTIVATION_ENERGY (E_a, eV, scripts/calculate_activation_energy.py). MeanSquaredDisplacement (M, A^2 vs dt in fs) is the pymatgen-representation node (omai/materials/representation/pymatgen.py). This scan does NOT contradict those wheel-verified units (D cm^2/s, MSD A^2, dt fs); it builds on them and adds ionic conductivity and the AIMD-pathway family.",
+    "thermochemistry_domain_state": "omai/thermochemistry/{operator,representation}/ dirs EXIST but are EMPTY (the pycalphad encode has not landed). rxn_network's ChemicalPotential and reaction free-energy touch the same in-flight configurational/phase-thermo territory the pycalphad scan opened, but neither has a live node yet.",
+    "entry_count": "17 entry objects. By package: smol 6 (0 already-mapped, 3 new-node-candidate, 3 representation-only); rxn_network 6 (0 already-mapped, 3 new-node-candidate, 3 representation-only); pymatgen-analysis-diffusion 5 (3 already-mapped, 1 new-node-candidate [ionic conductivity], 1 representation-only [probability density]; plus charge-diffusivity + Haven ratio flagged inside the conductivity and MSD entries). Aggregate status split: 3 already-mapped, 7 new-node-candidate, 7 representation-only."
+  },
+
+  "ce_as_potential_analog": {
+    "claim": "smol's ClusterExpansion is a fitted parameter-state, the configurational-energetics analog of an MLIP checkpoint (map's opaque `Potential` node), NOT an observable value.",
+    "evidence": "A ClusterExpansion = ClusterSubspace (the orbit/cluster basis) + a coefficient vector `coefs` (smol/cofe/expansion.py:159); the ECI are `coefs / function_total_multiplicities` (expansion.py:172-183). Predicting energy is `np.dot(self.coefs, corrs)` (expansion.py:288) exactly as an MLIP evaluates a checkpoint on a structure. The CE is serialized to cluster_expansion.json (ClusterExpansion.load / .save; SKILL.md mat-grand-canonical-mc:32-34) and re-loaded to drive MC, just as an MLIP checkpoint file is loaded to drive MD. It is fitted to DFT/MLIP-labelled ordered structures (LassoCV / Sparse-Group-Lasso; ml-cluster-expansion SKILL.md:104-119, iterative_ce_training.py:382-386).",
+    "what_it_computes": "Energies: extensive per-supercell by default; `predict(structure, normalized=True)` returns per-primitive-cell (expansion.py:259-267). In MC, ensemble.processor.compute_property(occu) = dot(coefs, feature_vector) is extensive (per supercell); the GCMC skill divides by total sites to report eV/atom (run_gcmc_sweep.py:153). Training uses TOTAL supercell energy; smol normalizes internally via get_property_vector('energy', normalize=True) = per-prim-cell (ml-cluster-expansion SKILL.md:151-162; iterative_ce_training.py:160). CV-RMSE is reported in eV/prim (iterative_ce_training.py:393), target LOOCV < 10 meV/atom (SKILL.md:169).",
+    "what_MC_produces": "Sublattice occupancies (encoded int arrays -> structures via processor.structure_from_occupancy), mole-fraction compositions x (run_gcmc_sweep.py:145-149), energies per atom (eV/atom), and swept phase-transition observables: T-x and T-mu phase diagrams, miscibility gaps, spinodal inflection points (mat-grand-canonical-mc SKILL.md:11,146-155). Semigrand ensemble: composition fluctuates under a controlled chemical-potential difference Delta-mu (eV).",
+    "verdict": "The ClusterExpansion node is representation-only / parameter-state (OPAQUE), cross-referenced to the map's `Potential` node. Its energy PREDICTION and its MC composition/occupancy outputs are the candidate observables."
+  },
+
+  "nernst_einstein_conductivity_check": {
+    "claim": "get_extrapolated_conductivity (used by mat-diffusion-analysis/scripts/calculate_activation_energy.py:236) computes IONIC (electrical) conductivity via the Nernst-Einstein relation. This is a genuine NEW node on the current diffusion axis, dimensionally distinct from the map's thermal conductivity.",
+    "formula": "get_conversion_factor (analyzer.py:846-869): sigma[mS/cm] = convf * D[cm^2/s], convf = 1000 * n/(vol_cm3 * N_A) * z^2 * (N_A*e)^2 / (R*T). This is Nernst-Einstein sigma = (n/V) z^2 e^2 D / (k_B T): number density (n/V), squared ionic charge z^2 (from oxidation state, else valence-electron count, analyzer.py:864), electron charge, over thermal energy k_B T. self.conductivity = self.diffusivity * conv_factor (analyzer.py:338).",
+    "dimension_check": "Electrical conductivity is S/m = A^2 s^3 kg^-1 m^-3. In the map's (M,L,T,Theta,N,I,J) base-exponent convention (omai/operator/dimensions.py:87-90): ELECTRICAL/IONIC CONDUCTIVITY = (M=-1, L=-3, T=3, Theta=0, N=0, I=2, J=0). VERIFIED by hand: n/V [L^-3] * z^2 e^2 [I^2 T^2] * D [L^2 T^-1] / (k_B T) [M L^2 T^-2] = M^-1 L^-3 T^3 I^2. This carries the electric-current axis I=2, which NO current map node has (the closest, Voltage, is (1,2,-3,0,0,-1,0), I=-1). It is EMPHATICALLY NOT the map's THERMAL_CONDUCTIVITY (1,1,-3,-1,0,0,0): different sign of L and T, a Theta axis instead of an I axis. Ionic conductivity and thermal conductivity share only the English word 'conductivity'.",
+    "units_served": "mS/cm (millisiemens per centimetre). Skill reports sigma_RT at 300 K in mS/cm (calculate_activation_energy.py:241, 107). 1 S/m = 10 mS/cm. Reference constants: N_A*e = F = 96485.33212331 C/mol (SI-exact); R = 8.31446261815324 J/mol/K (CODATA, used by the code, not the k_B=8.617333262e-5 eV/K the Arrhenius plot uses at line 59/209). The two constants are consistent (R = N_A * k_B).",
+    "verdict": "IonicConductivity is a NEW node candidate (dimension (-1,-3,3,0,0,2,0), units mS/cm). It opens the electric-current base axis on the materials side for the first time in the diffusion slice. Do not conflate with ThermalConductivity."
+  },
+
+  "entries": [
+    {
+      "name": "smol-cluster-expansion-model",
+      "package": "smol",
+      "quantity": "The trained Cluster Expansion: a lattice-model Hamiltonian parameterized by ECI (effective cluster interactions). A fitted parameter-state, not an observable.",
+      "symbol": "ClusterExpansion (ce.coefs, ce.eci)",
+      "dimension": {"note": "OPAQUE parameter-state (like the map's Potential). Its coefs carry the units of the fitted property (eV, extensive/per-prim), but the object itself is not a dimensioned observable."},
+      "index_structure": ["orbit / cluster index (function_total_multiplicities)"],
+      "units": "coefs and ECI are in the units of the fitted energy: eV (extensive per-supercell correlation, or per-prim-cell when normalized). expansion.py:159 `self.coefs = coefficients`; :172-183 `eci = coefs / function_total_multiplicities`; :288 `predict = np.dot(self.coefs, corrs)`.",
+      "producing_api": "smol.cofe.ClusterSubspace + StructureWrangler + ClusterExpansion (fit via LassoCV / Sparse-Group-Lasso). Serialized to cluster_expansion.json (ClusterExpansion.load/.save). AtomisticSkills: ml-cluster-expansion (train), mat-disorder/iterative_ce_training.py (active-learning loop), mat-grand-canonical-mc (load + sample).",
+      "conversion_to_canonical": "Maps to the map's Potential node as a configurational-energetics analog (MLIP checkpoint <-> CE checkpoint). Not a scalar instance. The instance-bearing observables are its energy PREDICTION and the MC composition/occupancy outputs.",
+      "anchors": [
+        "AtomisticSkills/.agents/skills/ml-cluster-expansion/SKILL.md:18,89-95,151-162",
+        "AtomisticSkills/.agents/skills/ml-cluster-expansion/scripts/extract_mc_structures.py:5,70-72",
+        "AtomisticSkills/.agents/skills/mat-grand-canonical-mc/SKILL.md:32-35",
+        "AtomisticSkills/.agents/skills/mat-grand-canonical-mc/scripts/run_gcmc_sweep.py:38,245",
+        "AtomisticSkills/.agents/skills/mat-disorder/scripts/iterative_ce_training.py:304-305,382-386",
+        "/tmp/cfgsrc smol-0.5.7 smol/cofe/expansion.py:159,172-183,259-288"
+      ],
+      "status": "representation-only",
+      "maps_to": "Potential (cross-domain analog; parameter-state)"
+    },
+    {
+      "name": "smol-ce-predicted-energy",
+      "package": "smol",
+      "quantity": "Configurational energy of a lattice occupancy predicted by the CE (and its MC ensemble average). The lattice-model equivalent of an MLIP potential energy.",
+      "symbol": "E (processor.compute_property; ce.predict)",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "ENERGY, exponents match map ENERGY (1,2,-2,0,0,0,0). Reported per-atom (eV/atom) after dividing by site count."},
+      "index_structure": [],
+      "units": "eV. Extensive (per supercell) by default: processor.compute_property(occu) = dot(coefs, compute_feature_vector) and the feature vector is 'correlation vector x system size' (moca/processor/base.py:155-164; moca/processor/expansion.py:162-166,180). predict(normalized=True) = per prim cell (expansion.py:259-267). GCMC skill reports mean energy per atom in eV/atom (run_gcmc_sweep.py:153,296). Training CV-RMSE in eV/prim, target LOOCV < 10 meV/atom (iterative_ce_training.py:393; ml-cluster-expansion SKILL.md:169).",
+      "producing_api": "ClusterExpansion.predict(structure, normalized=...); ExpansionProcessor.compute_property(occupancy); Sampler ensemble averages over MC.",
+      "conversion_to_canonical": "ENERGY dimension. BUT this is a CONFIGURATIONAL / lattice-model energy on a fixed lattice with fixed cell (relax_cell=False, SKILL.md:67-68), reference-shifted by the training set (can be total or formation energy; SKILL.md:162). It is NOT a DFT/MLIP TotalEnergy of a relaxed structure and NOT a formation energy per the map's FormationEnergy convention. Basis: per-atom (eV/atom) as reported, per-prim when normalized, per-supercell raw. A cross-code equate needs the training-energy convention (total vs formation) AND the normalization basis recorded.",
+      "anchors": [
+        "/tmp/cfgsrc smol-0.5.7 smol/cofe/expansion.py:259-288",
+        "/tmp/cfgsrc smol-0.5.7 smol/moca/processor/base.py:155-164",
+        "/tmp/cfgsrc smol-0.5.7 smol/moca/processor/expansion.py:162-166,180",
+        "AtomisticSkills/.agents/skills/mat-grand-canonical-mc/scripts/run_gcmc_sweep.py:152-153,296",
+        "AtomisticSkills/.agents/skills/mat-disorder/scripts/iterative_ce_training.py:160,393",
+        "AtomisticSkills/.agents/skills/ml-cluster-expansion/SKILL.md:151-169"
+      ],
+      "status": "new-node-candidate",
+      "maps_to": "null (no ConfigurationalEnergy / CE-energy node; ENERGY dimension shared with TotalEnergy but different physics/basis/reference)"
+    },
+    {
+      "name": "smol-mc-composition-and-occupancy",
+      "package": "smol",
+      "quantity": "Equilibrium mole-fraction composition x (and its fluctuation) sampled by lattice MC; the sublattice occupancy encoding it comes from.",
+      "symbol": "x (mole fraction); occupancy array",
+      "dimension": {"note": "DIMENSIONLESS (mole fraction / site fraction), exponents all zero."},
+      "index_structure": ["species", "sublattice / site (for the occupancy array)"],
+      "units": "dimensionless. mole fraction = element_count / total_sites (run_gcmc_sweep.py:147-149). Occupancy is an encoded int array over sites; structure recovered via processor.structure_from_occupancy (extract_mc_structures.py:138; run_gcmc_sweep.py:134). std_composition reports the equilibrium fluctuation (run_gcmc_sweep.py:156).",
+      "producing_api": "Sampler.from_ensemble(ensemble, temperature, step_type='flip'); sampler.run(steps); samples.get_occupancies(); processor.structure_from_occupancy(occu). Semigrand (flip) ensemble varies composition at fixed sites.",
+      "conversion_to_canonical": "Dimensionless composition. No current map node carries a lattice-MC equilibrium mole fraction. This is the natural companion of the (in-flight, pycalphad-side) PhaseFraction / SiteFraction quantities the thermochemistry domain opened but has not landed: x(T,mu) from semigrand MC is the atomistic-lattice analog of CALPHAD's composition output. The occupancy array itself is a representation coordinate (like CALPHAD's site fraction Y), not an observable.",
+      "anchors": [
+        "AtomisticSkills/.agents/skills/mat-grand-canonical-mc/scripts/run_gcmc_sweep.py:93-94,130-134,145-149,155-156",
+        "AtomisticSkills/.agents/skills/ml-cluster-expansion/scripts/extract_mc_structures.py:95-100,133,138",
+        "/tmp/cfgsrc smol-0.5.7 smol/moca/sampler/sampler.py, smol/moca/ensemble.py:113-134"
+      ],
+      "status": "new-node-candidate",
+      "maps_to": "null (dimensionless equilibrium composition; companion to in-flight thermochemistry PhaseFraction/SiteFraction, not yet a live node)"
+    },
+    {
+      "name": "smol-semigrand-chemical-potential",
+      "package": "smol",
+      "quantity": "The controlled chemical potential (difference) that drives the semigrand-canonical ensemble; the MC input conjugate to composition.",
+      "symbol": "mu (Delta-mu = mu_A - mu_B)",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "ENERGY per particle: eV, exponents (1,2,-2,0,0,0,0). NOT per mole: smol works per-atom in eV, so N=0, distinct from CALPHAD/pycalphad MU which is J/mol (N=-1)."},
+      "index_structure": ["species"],
+      "units": "eV (per atom). Chemical-potential dict {species: mu_eV}; the controlled element set to mu, reference set to 0 (run_gcmc_sweep.py:80-91). The semigrand feature vector appends a 'chemical work' term sum(mu[site][species]) making the sampled exponent a generalized enthalpy E - sum(mu N) (ensemble.py:333-338; mat-grand-canonical-mc SKILL.md:142). Swept over an eV range (--mu_min/--mu_max, e.g. +/-0.3 eV).",
+      "producing_api": "Ensemble.from_cluster_expansion(ce, supercell_matrix, chemical_potentials=chem_pots); ChemicalPotentialManager (ensemble.py:111).",
+      "conversion_to_canonical": "ENERGY per particle (eV), an INPUT/condition (like the map's Temperature Source), not a computed observable. Dimension-shares ENERGY. This is the eV/atom sibling of CALPHAD's per-mole ChemicalPotential MU (pycalphad scan, J/mol, N=-1) and of rxn_network's open-element chempot: three chemical-potential quantities, one per-atom (smol), two per-formula/mole; a unit trap if merged. Record the per-atom vs per-mole basis.",
+      "anchors": [
+        "AtomisticSkills/.agents/skills/mat-grand-canonical-mc/scripts/run_gcmc_sweep.py:80-91,254-255",
+        "AtomisticSkills/.agents/skills/mat-grand-canonical-mc/SKILL.md:22,61,142-149",
+        "/tmp/cfgsrc smol-0.5.7 smol/moca/ensemble.py:111-134,304-340"
+      ],
+      "status": "new-node-candidate",
+      "maps_to": "null (per-atom eV chemical potential; sibling of in-flight thermochemistry ChemicalPotential [J/mol] and rxn_network open-element chempot)"
+    },
+    {
+      "name": "smol-mc-phase-diagram",
+      "package": "smol",
+      "quantity": "The swept-MC T-x and T-mu phase diagrams, miscibility gaps and spinodal points: aggregate representations built from many (T, mu) MC runs.",
+      "symbol": "T-x / T-mu diagram",
+      "dimension": {"note": "Aggregate PLOT product (matplotlib figure), not a scalar. Its axes carry dimensioned quantities (T in K, x dimensionless, mu in eV) that are already separate entries."},
+      "index_structure": ["temperature grid", "chemical-potential grid"],
+      "units": "n/a (representation). analyze_gcmc_results.py draws phase_diagram.png (T vs x), mu_vs_composition.png, contour_phase_diagram.png (T-mu with composition contours). Phase boundaries are read as discontinuous jumps in x vs mu (mat-grand-canonical-mc SKILL.md:151-155).",
+      "producing_api": "run_gcmc_sweep.py (sweep) + analyze_gcmc_results.py (plot_phase_diagram, plot_contour_phase_diagram).",
+      "conversion_to_canonical": "Representation-only, exactly the verdict the pycalphad scan gave its `phase-diagram` (binplot product). This is the lattice-MC analog of the CALPHAD T-x diagram: same product type, different producer (semigrand MC over a CE vs Gibbs minimization over a TDB). Transition temperatures / spinodal points, if extracted as scalars, would be separate instances (as the pycalphad scan flagged for invariant points).",
+      "anchors": [
+        "AtomisticSkills/.agents/skills/mat-grand-canonical-mc/scripts/analyze_gcmc_results.py:91-158,161-226",
+        "AtomisticSkills/.agents/skills/mat-grand-canonical-mc/SKILL.md:11,146-155"
+      ],
+      "status": "representation-only",
+      "maps_to": "n/a (plot product; axes map to Temperature + composition + chemical-potential entries)"
+    },
+    {
+      "name": "smol-mc-temperature-condition",
+      "package": "smol",
+      "quantity": "The MC sampling temperature (input Source) and the Boltzmann constant that enters beta = 1/(kB T).",
+      "symbol": "T; kB",
+      "dimension": {"M": 0, "L": 0, "T": 0, "Theta": 1, "N": 0, "I": 0, "J": 0, "note": "TEMPERATURE (0,0,0,1,0,0,0). Matches map TEMPERATURE."},
+      "index_structure": [],
+      "units": "K. smol works entirely in eV: kB = 8.617333262145e-5 eV/K (smol/constants.py); beta = 1/(kB*temperature) (moca/kernel/base.py:398, metropolis.py:166). Sampler.from_ensemble(..., temperature=T) (run_gcmc_sweep.py:94).",
+      "producing_api": "Sampler.from_ensemble(ensemble, temperature=...); MetropolisKernel.beta.",
+      "conversion_to_canonical": "TEMPERATURE input Source, same node the map already carries (Temperature). Representation-only. Cataloged for the kB-in-eV/K provenance (smol's kB matches the diffusion slice's k_B = 8.617333262e-5 eV/K and the map's activation-energy anchor: consistent).",
+      "anchors": [
+        "/tmp/cfgsrc smol-0.5.7 smol/constants.py",
+        "/tmp/cfgsrc smol-0.5.7 smol/moca/kernel/base.py:378,398,411; smol/moca/kernel/metropolis.py:166",
+        "AtomisticSkills/.agents/skills/mat-grand-canonical-mc/scripts/run_gcmc_sweep.py:94"
+      ],
+      "status": "representation-only",
+      "maps_to": "Temperature (input Source)"
+    },
+
+    {
+      "name": "rxn-reaction-energy-per-atom",
+      "package": "rxn_network",
+      "quantity": "Reaction (free) energy dG of a balanced solid-state reaction, per atom. The dimensioned thermodynamic driving force the network scores.",
+      "symbol": "energy_per_atom (dG, eV/atom); energy (total eV)",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "ENERGY (1,2,-2,0,0,0,0). Per-atom form is energy/num_atoms, still ENERGY dimension (num_atoms dimensionless)."},
+      "index_structure": ["reaction"],
+      "units": "eV/atom (reported dG) and total eV. ComputedReaction.energy = 'energy of this reaction in total eV' (reactions/base.py:37-38; computed.py:104-114, summed over reduced-composition entry energies weighted by balancing coefficients). energy_per_atom = energy / num_atoms, docstring 'reaction energy in eV, divided by the total number of atoms' (computed.py:117-122). Skills print `dG = ... eV/atom` (enumerate_reactions.py:163-164) and record `dG_eV_per_atom` (find_pathways.py:241).",
+      "producing_api": "rxn_network.reactions.computed.ComputedReaction (.energy, .energy_per_atom, .energy_uncertainty[_per_atom]). Entries are GibbsComputedEntry (Bartel-SISSO). BasicEnumerator / MinimizeGibbsEnumerator / MinimizeGrandPotentialEnumerator enumerate balanced reactions.",
+      "conversion_to_canonical": "ENERGY dimension. This is a REACTION energy (difference between product and reactant free energies), NOT a per-structure TotalEnergy or FormationEnergy. Two normalizations coexist: total eV (as-balanced, coefficient-dependent) and eV/atom (energy/num_atoms). The eV/atom form is the map-friendly one but is per-reaction-atom, a different basis than per-formula-unit or per-primitive-cell. No current map node is a reaction energy. Sibling of the in-flight thermochemistry (pycalphad) energetics but computed from MP + SISSO-Gibbs, not an assessed TDB.",
+      "anchors": [
+        "/tmp/cfgsrc reaction_network-8.3.0 rxn_network/reactions/base.py:37-38",
+        "/tmp/cfgsrc reaction_network-8.3.0 rxn_network/reactions/computed.py:104-145",
+        "AtomisticSkills/.agents/skills/mat-reaction-network/scripts/enumerate_reactions.py:163-164",
+        "AtomisticSkills/.agents/skills/mat-reaction-network/scripts/find_pathways.py:241"
+      ],
+      "status": "new-node-candidate",
+      "maps_to": "null (reaction energy eV/atom; no ReactionEnergy node; ENERGY-dimensioned but reaction-difference physics)"
+    },
+    {
+      "name": "rxn-gibbs-entry-formation-energy",
+      "package": "rxn_network",
+      "quantity": "Temperature-dependent Gibbs formation energy per atom of each solid entry (the Bartel-SISSO descriptor applied to MP DFT formation enthalpies). The input energetics the reactions are built from.",
+      "symbol": "formation_energy_per_atom (dGf(T))",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "ENERGY (1,2,-2,0,0,0,0), per atom (eV/atom)."},
+      "index_structure": ["entry (material)"],
+      "units": "eV/atom. GibbsComputedEntry adds a machine-learned SISSO correction dGf(T) - dHf(298 K) to the MP formation enthalpy (entries/gibbs.py:27-41,48-118). Inputs: formation_energy_per_atom (dHf at 298 K, eV/atom), volume_per_atom (A^3/atom), temperature in [300, 2000] K. Descriptor MAD ~50 meV/atom, encoded as uncertainty = 0.05 * num_atoms (gibbs.py:97). Solids only (nist.NISTReferenceEntry for gases).",
+      "producing_api": "GibbsEntrySet.from_computed_entries(entries, temperature) wrapping MP ComputedStructureEntry into GibbsComputedEntry; filter_by_stability(tol eV/atom) (enumerate_reactions.py:112-118).",
+      "conversion_to_canonical": "eV/atom formation energy: same dimension AND per-atom basis as the map's FormationEnergy node. BUT it is a SISSO-Gibbs FINITE-TEMPERATURE formation energy (dGf(T)), whereas the map's FormationEnergy (MP / MLIP) is a 0 K / 298 K DFT formation energy. The T-dependence (300-2000 K), the ~50 meV/atom SISSO MAD, and the MP-derived reference are the caveats; a naive equate to FormationEnergy would drop the temperature and the descriptor error. This is the rxn_network side of the mp-api scan's observation that rxn_network CONSUMES MP energies.",
+      "anchors": [
+        "/tmp/cfgsrc reaction_network-8.3.0 rxn_network/entries/gibbs.py:27-118",
+        "AtomisticSkills/.agents/skills/mat-reaction-network/scripts/enumerate_reactions.py:104-118",
+        "AtomisticSkills/.agents/skills/mat-reaction-network/scripts/find_pathways.py:104-118"
+      ],
+      "status": "new-node-candidate",
+      "maps_to": "FormationEnergy (dimension + per-atom basis match; DIFFERENT physics: SISSO finite-T Gibbs vs 0 K DFT; treat as cousin, never a naive equate)"
+    },
+    {
+      "name": "rxn-open-element-chemical-potential",
+      "package": "rxn_network",
+      "quantity": "The chemical potential of an open element (e.g. O in air) that shifts the grand-potential reaction energetics.",
+      "symbol": "mu (chempot); GrandPotential",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "ENERGY per particle (eV), exponents (1,2,-2,0,0,0,0). Per-atom eV (like smol's semigrand mu), NOT per-mole."},
+      "index_structure": ["open element"],
+      "units": "eV. --chempot (float, default 0.0) for MinimizeGrandPotentialEnumerator(open_elem, mu); chempots dict {open_elem: mu} (enumerate_reactions.py:85-89,145-151; enumerators/minimize.py:221; reactions/open.py:32,52). BasicOpenEnumerator instead uses open PHASES (e.g. O2) as infinite reservoirs (enumerate_reactions.py:132-137). Grand-potential = energy - sum(mu * n_open) shifts reaction energies to open-system driving forces.",
+      "producing_api": "MinimizeGrandPotentialEnumerator(open_elem=Element, mu=chempot); OpenComputedReaction(chempots) (reactions/open.py); GrandPotPDEntry.",
+      "conversion_to_canonical": "ENERGY per particle (eV), an INPUT/condition (synthesis atmosphere). Same dimension and basis as smol's semigrand chemical potential; both are per-atom eV, distinct from CALPHAD's per-mole MU (J/mol). A ChemicalPotential map node (in-flight on the thermochemistry side, not yet landed) must carry the per-atom-vs-per-mole basis to avoid a false-merge across smol / rxn_network (eV) and pycalphad (J/mol).",
+      "anchors": [
+        "/tmp/cfgsrc reaction_network-8.3.0 rxn_network/enumerators/minimize.py:221,236; rxn_network/reactions/open.py:32,52-53,200-213",
+        "AtomisticSkills/.agents/skills/mat-reaction-network/scripts/enumerate_reactions.py:80-89,132-151"
+      ],
+      "status": "new-node-candidate",
+      "maps_to": "null (open-element eV chemical potential; sibling of smol semigrand mu and in-flight thermochemistry ChemicalPotential)"
+    },
+    {
+      "name": "rxn-pathway-cost",
+      "package": "rxn_network",
+      "quantity": "The Softplus cost assigned to a reaction and the summed cost of a synthesis pathway: graph-algorithm ranking artifacts, NOT physical quantities.",
+      "symbol": "cost (Softplus); average_cost / total_cost",
+      "dimension": {"note": "DIMENSIONLESS (all exponents zero). A softplus-transformed, temperature-scaled score, not a thermodynamic observable."},
+      "index_structure": ["reaction", "pathway"],
+      "units": "dimensionless. Softplus.evaluate = log(1 + (273/T) exp(sum(param*weight))) with default param energy_per_atom, so the eV/atom driving force is squashed through a log into a unitless cost; T is a scale factor in K (costs/functions.py:15-77). Pathway total_cost / average_cost aggregate step costs (find_pathways.py:230-232). Lower cost = more favorable.",
+      "producing_api": "rxn_network.costs.functions.Softplus(temp); ReactionNetwork(rxns, cost_function).build(); rn.find_pathways(targets, k); PathwaySolver.solve (find_pathways.py:126-179).",
+      "conversion_to_canonical": "NOT a physical dimension: it is the graph-algorithm objective that ranks and path-finds reactions. Representation-only. This is the reaction-network analog of the pycalphad scan's distinction between a dimensioned equilibrium output and a plot/algorithm artifact. The number of shortest paths (k) and pathway multiplicities are likewise graph combinatorics, not observables.",
+      "anchors": [
+        "/tmp/cfgsrc reaction_network-8.3.0 rxn_network/costs/functions.py:15-77",
+        "AtomisticSkills/.agents/skills/mat-reaction-network/scripts/find_pathways.py:126-127,150,230-232"
+      ],
+      "status": "representation-only",
+      "maps_to": "n/a (dimensionless graph-algorithm cost)"
+    },
+    {
+      "name": "rxn-reaction-network-graph",
+      "package": "rxn_network",
+      "quantity": "The reaction network itself (nodes = entries/reactions, edges weighted by cost) and the enumerated balanced-reaction set: the combinatorial representation the pathfinder runs on.",
+      "symbol": "ReactionNetwork; ReactionSet; BalancedPathway",
+      "dimension": {"note": "Combinatorial graph / balanced stoichiometry object, not a dimensioned observable. Balancing coefficients are dimensionless."},
+      "index_structure": ["reactions", "entries", "pathways"],
+      "units": "n/a. BasicEnumerator.enumerate(entries) -> balanced ComputedReactions; ReactionNetwork(rxns, cost_fn).build(); set_precursors/set_target; find_pathways -> PathwaySet; PathwaySolver.balance/solve -> BalancedPathway with balancing multiplicities (find_pathways.py:121-206). Net reaction is a balanced-stoichiometry string.",
+      "producing_api": "rxn_network.enumerators.* , rxn_network.network.network.ReactionNetwork, rxn_network.pathways.{solver.PathwaySolver, balanced.BalancedPathway, pathway_set.PathwaySet}.",
+      "conversion_to_canonical": "Representation-only: the graph and its balanced-reaction inventory are the substrate over which the dimensioned reaction energies and dimensionless costs live. Analogous to how the map treats a structure/graph artifact vs the scalar observables on it. Enters via the representation layer, not as a scalar instance.",
+      "anchors": [
+        "/tmp/cfgsrc reaction_network-8.3.0 rxn_network/network/network.py, rxn_network/enumerators/basic.py, rxn_network/pathways/solver.py, rxn_network/reactions/computed.py:160-182 (normalize/balance)",
+        "AtomisticSkills/.agents/skills/mat-reaction-network/scripts/find_pathways.py:120-206",
+        "AtomisticSkills/.agents/skills/mat-reaction-network/scripts/enumerate_reactions.py:120-156"
+      ],
+      "status": "representation-only",
+      "maps_to": "n/a (combinatorial reaction-graph representation)"
+    },
+    {
+      "name": "rxn-synthesis-temperature-condition",
+      "package": "rxn_network",
+      "quantity": "The synthesis temperature (input Source) that sets the SISSO-Gibbs adjustments and the Softplus cost scale.",
+      "symbol": "temperature (T)",
+      "dimension": {"M": 0, "L": 0, "T": 0, "Theta": 1, "N": 0, "I": 0, "J": 0, "note": "TEMPERATURE (0,0,0,1,0,0,0). Matches map TEMPERATURE."},
+      "index_structure": [],
+      "units": "K. --temperature (default 1000 K), passed to GibbsEntrySet.from_computed_entries(temperature=T) (gibbs range [300, 2000] K) and to Softplus(temp=T) as the cost scale (enumerate_reactions.py:36-39,113; find_pathways.py:57-61,126).",
+      "producing_api": "GibbsEntrySet.from_computed_entries(temperature); Softplus(temp).",
+      "conversion_to_canonical": "TEMPERATURE input Source, same node the map already carries. Representation-only. Cataloged because it enters BOTH the dimensioned Gibbs energetics AND the dimensionless cost, so a reaction instance must record it as a condition.",
+      "anchors": [
+        "AtomisticSkills/.agents/skills/mat-reaction-network/scripts/enumerate_reactions.py:36-39,113",
+        "AtomisticSkills/.agents/skills/mat-reaction-network/scripts/find_pathways.py:57-61,126",
+        "/tmp/cfgsrc reaction_network-8.3.0 rxn_network/entries/gibbs.py:68-74; rxn_network/costs/functions.py:25-46"
+      ],
+      "status": "representation-only",
+      "maps_to": "Temperature (input Source)"
+    },
+
+    {
+      "name": "diffusion-diffusivity",
+      "package": "pymatgen-analysis-diffusion",
+      "quantity": "Self-diffusion coefficient D of the mobile species from the Einstein slope of the MSD. Already on the map.",
+      "symbol": "D (analyzer.diffusivity)",
+      "dimension": {"M": 0, "L": 2, "T": -1, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "DIFFUSIVITY (0,2,-1,0,0,0,0), length^2/time. Matches omai/operator/dimensions.py:129."},
+      "index_structure": [],
+      "units": "cm^2/s (WHEEL-VERIFIED, analyzer.py:55; and get_diffusivity_from_msd:'factor of 10 to convert Angstrom^2/fs to cm^2/s'). D_RT extrapolated at 300 K also cm^2/s (calculate_activation_energy.py:226,247). 1 cm^2/s = 1e16 A^2/s. Skill JSON records unit 'cm^2/s' explicitly (analyze_diffusion.py:175).",
+      "producing_api": "DiffusionAnalyzer.from_structures(...).diffusivity (analyze_diffusion.py:123-132); fit_arrhenius / get_extrapolated_diffusivity (calculate_activation_energy.py:197,226).",
+      "conversion_to_canonical": "Maps directly to the map's Diffusivity node (DIFFUSIVITY_STATE, omai/materials/operator/nodes.py:7; mat-diffusion-analysis rail observable_units D=cm^2/s). Already-mapped. Do not contradict the wheel-verified cm^2/s.",
+      "anchors": [
+        "/tmp/cfgsrc pymatgen_analysis_diffusion-2025.11.15 pymatgen/analysis/diffusion/analyzer.py:55,323,338",
+        "AtomisticSkills/.agents/skills/mat-diffusion-analysis/scripts/analyze_diffusion.py:123-135,175",
+        "omai/materials/representation/mat_diffusion_analysis.py:7-13; omai/materials/operator/nodes.py:7-16"
+      ],
+      "status": "already-mapped",
+      "maps_to": "Diffusivity"
+    },
+    {
+      "name": "diffusion-activation-energy",
+      "package": "pymatgen-analysis-diffusion",
+      "quantity": "Arrhenius activation energy E_a from the temperature dependence of D. Already on the map.",
+      "symbol": "E_a (fit_arrhenius); D0 (pre-exponential)",
+      "dimension": {"M": 1, "L": 2, "T": -2, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "ENERGY (1,2,-2,0,0,0,0), eV. D0 is DIFFUSIVITY (cm^2/s)."},
+      "index_structure": [],
+      "units": "eV (E_a), cm^2/s (D0). fit_arrhenius returns Ea (eV), c/D0 (cm^2/s), std_Ea (eV) from D = c*exp(-Ea/kT), k_B = 8.617333262e-5 eV/K (analyzer.py:877-897; calculate_activation_energy.py:59,197-202,209,245).",
+      "producing_api": "pymatgen.analysis.diffusion.analyzer.fit_arrhenius(temps, diffusivities, mode='linear', diffusivity_errors=...) (calculate_activation_energy.py:24,197).",
+      "conversion_to_canonical": "Maps directly to the map's ActivationEnergy node (ACTIVATION_ENERGY, nodes.py:18; mat-diffusion-analysis rail E_a=eV). Already-mapped. The pre-exponential D0 (cm^2/s) is a fit companion, a DIFFUSIVITY-dimensioned parameter, not currently its own node (low-priority candidate).",
+      "anchors": [
+        "/tmp/cfgsrc pymatgen_analysis_diffusion-2025.11.15 pymatgen/analysis/diffusion/analyzer.py:877-897",
+        "AtomisticSkills/.agents/skills/mat-diffusion-analysis/scripts/calculate_activation_energy.py:24,59,197-202,245",
+        "omai/materials/representation/mat_diffusion_analysis.py:15-21; omai/materials/operator/nodes.py:18-26"
+      ],
+      "status": "already-mapped",
+      "maps_to": "ActivationEnergy"
+    },
+    {
+      "name": "diffusion-mean-squared-displacement",
+      "package": "pymatgen-analysis-diffusion",
+      "quantity": "The atom-and-time-averaged mean squared displacement MSD(t), the raw diffusion probe D is fit from; plus its charge-weighted variant (mscd) and the Haven ratio.",
+      "symbol": "MSD (analyzer.msd) vs dt; MSCD (mscd); Haven ratio H_r",
+      "dimension": {"M": 0, "L": 2, "T": 0, "Theta": 0, "N": 0, "I": 0, "J": 0, "note": "LENGTH_SQUARED (0,2,0,0,0,0,0) for MSD; Haven ratio is DIMENSIONLESS (ratio of two diffusivities)."},
+      "index_structure": ["time (dt axis)"],
+      "units": "A^2 (msd) against dt in fs (WHEEL-VERIFIED: get_diffusivity_from_msd 'msd units: A^2', 'dt units: fs'; analyze_diffusion.py:143,157 plots MSD in A^2 vs times_ps = dt/1000). Mean square charge displacement mscd same A^2 (analyzer.py:96,118,276). Haven ratio = diffusivity / chg_diffusivity, dimensionless (analyzer.py:134,446).",
+      "producing_api": "DiffusionAnalyzer.msd / .dt / .mscd / .haven_ratio; get_diffusivity_from_msd (analyzer.py:920+).",
+      "conversion_to_canonical": "MSD maps directly to the map's MeanSquaredDisplacement node (registry mean_squared_displacement; omai/materials/representation/pymatgen.py:13,69, A^2 vs fs). Already-mapped, wheel-verified units unchanged. The Haven ratio H_r (diffusivity/chg_diffusivity, dimensionless) and the charge diffusivity chg_diffusivity (cm^2/s) are NOT mapped: H_r is a distinct dimensionless correlation measure, chg_diffusivity a distinct cm^2/s quantity (collective vs tracer). Flagged as low-priority candidates the skills expose but do not print in these two scripts.",
+      "anchors": [
+        "/tmp/cfgsrc pymatgen_analysis_diffusion-2025.11.15 pymatgen/analysis/diffusion/analyzer.py:96,118,134,276,446,920+",
+        "AtomisticSkills/.agents/skills/mat-diffusion-analysis/scripts/analyze_diffusion.py:143-157",
+        "omai/materials/representation/pymatgen.py:13,69-71"
+      ],
+      "status": "already-mapped",
+      "maps_to": "MeanSquaredDisplacement (MSD); Haven ratio + charge diffusivity are unmapped low-priority candidates"
+    },
+    {
+      "name": "diffusion-ionic-conductivity",
+      "package": "pymatgen-analysis-diffusion",
+      "quantity": "Ionic (electrical) conductivity sigma from the Nernst-Einstein relation on the diffusivity. The headline NEW node of the diffusion extension.",
+      "symbol": "sigma (analyzer.conductivity; get_extrapolated_conductivity)",
+      "dimension": {"M": -1, "L": -3, "T": 3, "Theta": 0, "N": 0, "I": 2, "J": 0, "note": "ELECTRICAL/IONIC CONDUCTIVITY S/m = (M=-1,L=-3,T=3,I=2). Carries the electric-current axis I=2, absent from every current diffusion-slice node. EMPHATICALLY NOT ThermalConductivity (1,1,-3,-1,0,0,0)."},
+      "index_structure": ["(optionally a/b/c components)"],
+      "units": "mS/cm. get_conversion_factor: sigma[mS/cm] = convf * D[cm^2/s], convf = 1000 * n/(vol_cm3 * N_A) * z^2 * (N_A*e)^2/(R*T) (analyzer.py:846-869). self.conductivity = self.diffusivity * conv_factor (analyzer.py:338). Skill reports sigma_RT at 300 K in mS/cm (calculate_activation_energy.py:236,241). z = oxidation state, else valence-electron count (analyzer.py:864). 1 S/m = 10 mS/cm; N_A*e = F = 96485.33212331 C/mol (SI-exact); R = 8.31446261815324 J/mol/K.",
+      "producing_api": "DiffusionAnalyzer.conductivity / .conductivity_components / .chg_conductivity; get_extrapolated_conductivity(temps, diffusivities, new_temp, structure, species) (calculate_activation_energy.py:24,236).",
+      "conversion_to_canonical": "NEW node candidate: IonicConductivity, dimension (M=-1,L=-3,T=3,Theta=0,N=0,I=2,J=0), units mS/cm. Opens the electric-current (I) base axis on the materials side, which no diffusion-slice node currently has. Nernst-Einstein DIMENSION VERIFIED by hand: (n/V)[L^-3] * z^2 e^2[I^2 T^2] * D[L^2 T^-1] / (k_B T)[M L^2 T^-2] = M^-1 L^-3 T^3 I^2. Companion of the already-mapped Diffusivity (they differ only by the conversion factor). Do NOT merge with the map's ThermalConductivity (different axes entirely; shared English word only).",
+      "anchors": [
+        "/tmp/cfgsrc pymatgen_analysis_diffusion-2025.11.15 pymatgen/analysis/diffusion/analyzer.py:63,338,846-869,1003",
+        "AtomisticSkills/.agents/skills/mat-diffusion-analysis/scripts/calculate_activation_energy.py:24,236,241,107",
+        "omai/operator/dimensions.py:115 (THERMAL_CONDUCTIVITY contrast),129 (DIFFUSIVITY)"
+      ],
+      "status": "new-node-candidate",
+      "maps_to": "null (IonicConductivity; new electric-current axis; companion to Diffusivity; NOT ThermalConductivity)"
+    },
+    {
+      "name": "diffusion-probability-density",
+      "package": "pymatgen-analysis-diffusion",
+      "quantity": "The time-averaged spatial probability density of the mobile ion over the MD trajectory: a volumetric field visualizing conduction pathways.",
+      "symbol": "Pr (ProbabilityDensityAnalysis); CHGCAR",
+      "dimension": {"note": "Volumetric FIELD on a real-space grid (probability per grid cell / per A^3), not a scalar observable. Written as a CHGCAR volumetric object for VESTA."},
+      "index_structure": ["real-space grid (a,b,c fractional -> Cartesian, interval in Angstrom)"],
+      "units": "n/a (field). Grid interval in Angstrom (aimd/pathway.py:41,53-54,146-147); Pr is a time-averaged occupation probability normalized over the grid; serialized via to_chgcar (pathway.py:242). Skill applies Gaussian smoothing and writes CHGCAR_proba for VESTA (calculate_probability_density.py; mat-md-probability-density SKILL.md).",
+      "producing_api": "pymatgen.analysis.diffusion.aimd.pathway.ProbabilityDensityAnalysis.from_diffusion_analyzer(diffusion_analyzer, interval) .to_chgcar(...) (calculate_probability_density.py:6).",
+      "conversion_to_canonical": "Representation-only: a real-space volumetric field, not a scalar instance, exactly like the map treats spectra / tensors (enters the representation layer, not as a value). Distinct AIMD-pathway product beyond the mapped scalar diffusion trio. get_full_structure / get_sites (low-energy site clustering) are downstream representation products, not observables.",
+      "anchors": [
+        "/tmp/cfgsrc pymatgen_analysis_diffusion-2025.11.15 pymatgen/analysis/diffusion/aimd/pathway.py:22-158,242",
+        "AtomisticSkills/.agents/skills/mat-md-probability-density/scripts/calculate_probability_density.py:6,43-60",
+        "AtomisticSkills/.agents/skills/mat-md-probability-density/SKILL.md:9-24"
+      ],
+      "status": "representation-only",
+      "maps_to": "n/a (volumetric probability-density field / CHGCAR product)"
+    }
+  ],
+
+  "unit_factors": {
+    "eV_atom_to_J_mol": "1 eV/atom = 96485.33212331 J/mol (= e*N_A = Faraday, SI-exact). Load-bearing for reconciling smol/rxn_network per-atom eV chemical potentials with CALPHAD per-mole J/mol MU (pycalphad scan).",
+    "kB_eV_per_K": "8.617333262(145)e-5 eV/K. Identical in smol (constants.py), the diffusion Arrhenius plot (calculate_activation_energy.py:59,209), and the map's activation-energy anchor. Consistent.",
+    "R_J_per_mol_K": "8.31446261815324 (CODATA). Used inside get_conversion_factor (analyzer.py:869). R = N_A * k_B, consistent with the kB above.",
+    "F_C_per_mol": "N_A*e = 96485.33212331 C/mol (SI-exact); appears as (N_A*e)^2 in the Nernst-Einstein conversion factor.",
+    "diffusivity_cm2s_to_A2s": "1 cm^2/s = 1e16 A^2/s (wheel-verified; do not confuse cm^2/s with A^2/ps or SI m^2/s).",
+    "conductivity_Sm_to_mScm": "1 S/m = 10 mS/cm; 1 S/cm = 1000 mS/cm. Skill reports mS/cm."
+  },
+
+  "traps": [
+    "smol energy basis triple: extensive per-supercell (default processor.compute_property / ce.predict), per-primitive-cell (predict(normalized=True), get_property_vector('energy', normalize=True), CV-RMSE in eV/prim), and per-atom (eV/atom, what the GCMC skill divides to report). Record which basis a CE-energy instance uses.",
+    "smol vs CALPHAD chemical potential: smol semigrand mu and rxn_network open-element mu are per-ATOM eV (N=0); CALPHAD/pycalphad MU is per-MOLE J/mol (N=-1). Same ENERGY-family idea, different basis; factor 96485.33212331 (eV/atom<->J/mol). A shared ChemicalPotential node MUST carry the basis or the three false-merge.",
+    "rxn reaction energy dual normalization: ComputedReaction.energy is TOTAL eV for the as-balanced reaction (coefficient-dependent); energy_per_atom = energy/num_atoms eV/atom. The skills print eV/atom. Both are ENERGY-dimensioned but per-reaction-atom, not per-formula-unit or per-cell.",
+    "rxn GibbsEntry formation energy is FINITE-TEMPERATURE SISSO-Gibbs (dGf(T), 300-2000 K, ~50 meV/atom MAD, MP-derived), NOT the map's 0 K/298 K DFT FormationEnergy. Same dimension + per-atom basis, different physics; cousin, never a naive equate. Solids only (gases via NISTReferenceEntry).",
+    "rxn pathway cost is DIMENSIONLESS (Softplus: log(1 + (273/T) exp(dG_per_atom)) squashes eV/atom to a unitless score). It is a graph-algorithm artifact, not a thermodynamic observable. k (num shortest paths) and pathway multiplicities are combinatorics.",
+    "IONIC conductivity is NOT thermal conductivity. Ionic sigma = S/m = (M=-1,L=-3,T=3,I=2), carrying the electric-current axis; ThermalConductivity = (1,1,-3,-1). They share only the word 'conductivity'. Never merge.",
+    "diffusivity units: cm^2/s (wheel-verified), not A^2/ps and not SI m^2/s (1 cm^2/s = 1e16 A^2/s). MSD is A^2 vs dt in fs. Conductivity is mS/cm (1 S/m = 10 mS/cm).",
+    "Haven ratio (diffusivity/chg_diffusivity, dimensionless) and charge diffusivity (cm^2/s, collective vs tracer) are separate from the tracer diffusivity; do not conflate self-diffusivity with charge diffusivity when comparing to Nernst-Einstein conductivity (the Nernst-Einstein sigma above uses the TRACER diffusivity times conv_factor, i.e. assumes Haven ratio 1).",
+    "smol CE energies are on a FIXED lattice, FIXED cell (relax_cell=False); they are configurational lattice-model energies, not relaxed-structure DFT/MLIP total energies. Reference set by training data (total vs formation energy).",
+    "importability: none of the three import in base; anchors from smol-0.5.7 sdist, reaction_network-8.3.0 wheel, pymatgen_analysis_diffusion-2025.11.15 wheel. Conda-env pins carry no versions; pin at encode."
+  ],
+
+  "open_questions": [
+    "IonicConductivity (mS/cm, I=2 axis) is the clearest new node. Confirm minting it on the diffusion slice as a companion to Diffusivity; it introduces the electric-current base axis to the materials domain. Charge diffusivity + Haven ratio: open now or defer? (skills expose but do not print them in analyze_diffusion.py / calculate_activation_energy.py).",
+    "smol CE-predicted energy: mint a ConfigurationalEnergy node (ENERGY dimension, fixed-lattice, training-referenced) or route through the existing energy family with a basis/reference label? It is NOT TotalEnergy and NOT FormationEnergy despite sharing the ENERGY dimension.",
+    "ClusterExpansion as a Potential-analog parameter-state: confirm it maps to the map's opaque Potential node (like an MLIP checkpoint), with the instance schema recording {ce_file, cutoffs, fit_method (ls/lasso/ridge/sgl), LOOCV eV/prim, training-energy convention}.",
+    "smol semigrand mu, rxn open-element mu, and pycalphad MU: one ChemicalPotential node with a basis label (per-atom eV vs per-mole J/mol) or separate nodes? The thermochemistry domain dirs exist but are empty; this decision spans the in-flight pycalphad encode.",
+    "rxn reaction energy: mint ReactionEnergy (eV/atom, per-reaction-atom basis)? And whether GibbsEntry dGf(T) is a FormationEnergy[source=sisso,T=...] variant (cousin) vs a distinct node.",
+    "rxn GibbsEntrySet consumes MP energies (the mp-api scan's observation); a rxn reaction-energy instance should record the MP provenance (thermo_type / functional) plus the SISSO temperature and ~50 meV/atom descriptor error as conditions/uncertainty.",
+    "smol MC composition x (dimensionless) is the atomistic-lattice companion of the in-flight thermochemistry PhaseFraction/SiteFraction (pycalphad). Decide whether the semigrand x(T,mu) enters as a scalar-per-(T,mu) instance or a spectrum; the T-x/T-mu diagrams are representation-only plots.",
+    "probability-density CHGCAR field: confirm representation-only (volumetric field, not a scalar), like the phonon spectra / elastic tensors the map ingests via the representation layer.",
+    "version pinning: smol 0.5.7, reaction-network 8.3.0, pymatgen-analysis-diffusion 2025.11.15 (from downloaded artifacts; conda-env yamls pin no version). Pin at encode.",
+    "graph snapshot moved to 67 nodes (HEAD f16f913) past the 66-node snapshot the pycalphad/mp-api scans recorded; statuses here are read against the 67-node graph. Record that scan statuses are snapshot-dated and re-read from graph.json at encode time (the cross-scan reconciliation the mp-api review flagged)."
+  ]
+}
