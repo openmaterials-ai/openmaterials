@@ -2608,40 +2608,151 @@ The map is at store head version
 \end{itemize}
 
 \begin{center}
-\begin{tabular}{lr}
+\begin{tabular}{lrl}
 \toprule
-Code & Variables mapped \\
+Code & Variables mapped & License \\
 \midrule
-kaldo                        & 32 \\
-phono3py                     & 31 \\
-phonopy                      & 22 \\
-pymatgen                     & 22 \\
-ShengBTE                     & 20 \\
-mp-api                       & 13 \\
-Quantum ESPRESSO             & 13 \\
-LAMMPS                       & 12 \\
-VASP                         & 9 \\
-GPUMD                        & 8 \\
-pycalphad                    & 6 \\
-matgl                        & 5 \\
-mat-elasticity               & 5 \\
-amset                        & 5 \\
-fairchem                     & 4 \\
-MACE                         & 4 \\
-OpenMM                       & 4 \\
-ORCA                         & 4 \\
-pymatgen-analysis-diffusion  & 4 \\
-ASE                          & 3 \\
-mat-diffusion-analysis       & 2 \\
-smol                         & 2 \\
-mat-equation-of-state        & 1 \\
-mat-surface-adsorption       & 1 \\
-rxn-network                  & 1 \\
-diffcsp                      & 1 \\
-mattergen                    & 1 \\
+kaldo                        & 32 & BSD-3-Clause \\
+phono3py                     & 31 & BSD-3-Clause \\
+phonopy                      & 22 & BSD-3-Clause \\
+pymatgen                     & 22 & MIT \\
+ShengBTE                     & 20 & GPL-3.0 \\
+mp-api                       & 13 & BSD-3-Clause \\
+Quantum ESPRESSO             & 13 & GPL-2.0 \\
+LAMMPS                       & 12 & GPL-2.0 \\
+VASP                         & 9  & Proprietary \\
+GPUMD                        & 8  & GPL-3.0 \\
+pycalphad                    & 6  & MIT \\
+matgl                        & 5  & BSD-3-Clause \\
+mat-elasticity               & 5  & MIT \\
+amset                        & 5  & BSD-3-Clause \\
+fairchem                     & 4  & MIT \\
+MACE                         & 4  & MIT \\
+OpenMM                       & 4  & MIT \\
+ORCA                         & 4  & Proprietary \\
+pymatgen-analysis-diffusion  & 4  & BSD-3-Clause \\
+ASE                          & 3  & LGPL-2.1 \\
+mat-diffusion-analysis       & 2  & MIT \\
+smol                         & 2  & BSD-3-Clause \\
+mat-equation-of-state        & 1  & MIT \\
+mat-surface-adsorption       & 1  & MIT \\
+rxn-network                  & 1  & BSD-3-Clause \\
+diffcsp                      & 1  & MIT \\
+mattergen                    & 1  & MIT \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+Every code we represent must be cited and must carry its license. The License
+column above is read from the actual license text (the vendored LICENSE files
+for kaldo, LAMMPS, Quantum ESPRESSO, phonopy, phono3py, ShengBTE, and the
+AtomisticSkills skills; package metadata for the pip-distributed codes; the
+project's GitHub LICENSE for GPUMD, MatterGen, DiffCSP, and OpenMM). VASP and
+ORCA are proprietary: VASP under the commercial license at vasp.at, ORCA free
+for academic use with commercial licensing through FACCTs. The mat-* rows are
+AtomisticSkills skills and carry that project's MIT license. The single source
+of truth is \texttt{omai/representation/credits.py}, and an enforcement test
+(\texttt{tests/test\_code\_credits.py}) fails if any mapped rail lacks a
+citation or a license, so no future rail can land uncredited.
+
+\subsection{Code citations}
+\label{sec:code-citations}
+
+Each code rail on the map is cited below. References were taken from each code's
+own citation guidance where it exists (kaldo, LAMMPS, phonopy, phono3py, and the
+AtomisticSkills paper were read this way) and otherwise from the canonical method
+paper, verified against the project's citation page.
+
+\begin{itemize}[leftmargin=1.4em, itemsep=0.25em]
+  \item \textbf{kaldo}: G. Barbalinardo, Z. Chen, N. W. Lundgren, D. Donadio,
+        \emph{Efficient anharmonic lattice dynamics calculations of thermal
+        transport in crystalline and disordered solids}, J. Appl. Phys.
+        \textbf{128}, 135104 (2020). doi:10.1063/5.0020443.
+  \item \textbf{ShengBTE}: W. Li, J. Carrete, N. A. Katcho, N. Mingo,
+        \emph{ShengBTE: A solver of the Boltzmann transport equation for
+        phonons}, Comput. Phys. Commun. \textbf{185}, 1747 (2014).
+        doi:10.1016/j.cpc.2014.02.015.
+  \item \textbf{phonopy}: A. Togo, L. Chaput, T. Tadano, I. Tanaka,
+        \emph{Implementation strategies in phonopy and phono3py}, J. Phys.
+        Condens. Matter \textbf{35}, 353001 (2023).
+        doi:10.1088/1361-648X/acd831.
+  \item \textbf{phono3py}: A. Togo, L. Chaput, I. Tanaka, \emph{Distributions of
+        phonon lifetimes in Brillouin zones}, Phys. Rev. B \textbf{91}, 094306
+        (2015). doi:10.1103/PhysRevB.91.094306.
+  \item \textbf{GPUMD}: Z. Fan, W. Chen, V. Vierimaa, A. Harju, \emph{Efficient
+        molecular dynamics simulations with many-body potentials on graphics
+        processing units}, Comput. Phys. Commun. \textbf{218}, 10 (2017).
+        doi:10.1016/j.cpc.2017.05.003.
+  \item \textbf{LAMMPS}: A. P. Thompson, H. M. Aktulga, R. Berger, et al.,
+        \emph{LAMMPS: a flexible simulation tool for particle-based materials
+        modeling at the atomic, meso, and continuum scales}, Comput. Phys.
+        Commun. \textbf{271}, 108171 (2022). doi:10.1016/j.cpc.2021.108171.
+  \item \textbf{Quantum ESPRESSO}: P. Giannozzi, S. Baroni, N. Bonini, et al.,
+        \emph{QUANTUM ESPRESSO: a modular and open-source software project for
+        quantum simulations of materials}, J. Phys. Condens. Matter \textbf{21},
+        395502 (2009). doi:10.1088/0953-8984/21/39/395502.
+  \item \textbf{VASP}: G. Kresse, J. Furthm\"uller, \emph{Efficient iterative
+        schemes for ab initio total-energy calculations using a plane-wave basis
+        set}, Phys. Rev. B \textbf{54}, 11169 (1996).
+        doi:10.1103/PhysRevB.54.11169.
+  \item \textbf{MACE}: I. Batatia, D. P. Kov\'acs, G. N. C. Simm, C. Ortner,
+        G. Cs\'anyi, \emph{MACE: Higher order equivariant message passing neural
+        networks for fast and accurate force fields}, NeurIPS 35 (2022),
+        arXiv:2206.07697.
+  \item \textbf{matgl (M3GNet)}: C. Chen, S. P. Ong, \emph{A universal graph deep
+        learning interatomic potential for the periodic table}, Nat. Comput.
+        Sci. \textbf{2}, 718 (2022). doi:10.1038/s43588-022-00349-3.
+  \item \textbf{fairchem (UMA)}: B. M. Wood, M. Dzamba, X. Fu, et al.,
+        \emph{UMA: A Family of Universal Models for Atoms} (2025),
+        arXiv:2506.23971.
+  \item \textbf{amset}: A. M. Ganose, J. Park, A. Faghaninia, R. Woods-Robinson,
+        K. A. Persson, A. Jain, \emph{Efficient calculation of carrier
+        scattering rates from first principles}, Nat. Commun. \textbf{12}, 2222
+        (2021). doi:10.1038/s41467-021-22440-5.
+  \item \textbf{pymatgen}: S. P. Ong, W. D. Richards, A. Jain, et al.,
+        \emph{Python Materials Genomics (pymatgen): A robust, open-source python
+        library for materials analysis}, Comput. Mater. Sci. \textbf{68}, 314
+        (2013). doi:10.1016/j.commatsci.2012.10.028.
+  \item \textbf{mp-api (Materials Project)}: A. Jain, S. P. Ong, G. Hautier, et
+        al., \emph{Commentary: The Materials Project: A materials genome approach
+        to accelerating materials innovation}, APL Mater. \textbf{1}, 011002
+        (2013). doi:10.1063/1.4812323.
+  \item \textbf{smol}: L. Barroso-Luque, J. H. Yang, F. Xie, et al.,
+        \emph{smol: A Python package for cluster expansions and beyond}, J. Open
+        Source Softw. \textbf{7}, 4504 (2022). doi:10.21105/joss.04504.
+  \item \textbf{pymatgen-analysis-diffusion}: Z. Deng, Z. Zhu, I.-H. Chu,
+        S. P. Ong, \emph{Data-driven first-principles methods for the study of
+        ionic conductivity}, Chem. Mater. \textbf{29}, 281 (2017).
+        doi:10.1021/acs.chemmater.6b02648.
+  \item \textbf{rxn-network}: M. J. McDermott, S. S. Dwaraknath, K. A. Persson,
+        \emph{A graph-based network for predicting inorganic reaction pathways},
+        Nat. Commun. \textbf{12}, 3097 (2021). doi:10.1038/s41467-021-23339-x.
+  \item \textbf{DiffCSP}: R. Jiao, W. Huang, P. Lin, J. Han, P. Chen, Y. Lu,
+        Y. Liu, \emph{Crystal Structure Prediction by Joint Equivariant
+        Diffusion}, NeurIPS 36 (2023), arXiv:2309.04475 (the map uses the
+        space-group-constrained variant DiffCSP++, arXiv:2402.03992).
+  \item \textbf{MatterGen}: C. Zeni, R. Pinsler, D. Z\"ugner, et al.,
+        \emph{A generative model for inorganic materials design}, Nature
+        \textbf{639}, 624 (2025). doi:10.1038/s41586-025-08628-5.
+  \item \textbf{pycalphad}: R. Otis, Z.-K. Liu, \emph{pycalphad: CALPHAD-based
+        Computational Thermodynamics in Python}, J. Open Res. Softw. \textbf{5},
+        1 (2017). doi:10.5334/jors.140.
+  \item \textbf{OpenMM}: P. Eastman, J. Swails, J. D. Chodera, et al.,
+        \emph{OpenMM 7: Rapid development of high performance algorithms for
+        molecular dynamics}, PLoS Comput. Biol. \textbf{13}, e1005659 (2017).
+        doi:10.1371/journal.pcbi.1005659.
+  \item \textbf{ORCA}: F. Neese, \emph{Software update: The ORCA program system,
+        Version 6.0}, WIREs Comput. Mol. Sci. \textbf{15}, e70019 (2025).
+        doi:10.1002/wcms.70019.
+  \item \textbf{ASE}: A. H. Larsen, J. J. Mortensen, J. Blomqvist, et al.,
+        \emph{The atomic simulation environment: a Python library for working
+        with atoms}, J. Phys. Condens. Matter \textbf{29}, 273002 (2017).
+        doi:10.1088/1361-648X/aa680e.
+  \item \textbf{mat-elasticity, mat-diffusion-analysis, mat-equation-of-state,
+        mat-surface-adsorption} (AtomisticSkills skills): B. Deng, B. Li,
+        M. Cox, et al., \emph{Harnessing AtomisticSkills for Agentic Atomistic
+        Research} (2025), arXiv:2605.24002. doi:10.48550/arXiv.2605.24002.
+\end{itemize}
 
 \section{The build order ahead}
 \label{sec:status-buildorder}
