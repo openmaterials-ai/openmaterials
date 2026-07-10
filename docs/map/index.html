@@ -656,7 +656,8 @@ svg.addEventListener('mousemove', e=>{ const ed=e.target.closest('.edge'); if(!e
 svg.addEventListener('mouseleave', ()=>{ tip.style.display='none'; });
 
 // ---- interaction: code rails -----------------------------------------------
-function renderCodeBar(){ const el=document.getElementById('codes'); Object.keys(codesData).sort().forEach(code=>{ const c=document.createElement('span'); c.className='om-chip'; c.dataset.code=code; c.innerHTML=esc(code)+'<span class="n">'+Object.keys(codesData[code]||{}).length+'</span>'; c.onclick=()=>toggleCode(code); el.appendChild(c); }); }
+function codeCredit(code){ const sp=codesData[code]||{}; const any=Object.values(sp).find(e=>e && (e.citation||e.license)); if(!any) return ''; const cit=(any.citation||'').trim(); const lic=(any.license||'').trim(); return cit&&lic?(cit+' - '+lic):(cit||lic); }
+function renderCodeBar(){ const el=document.getElementById('codes'); Object.keys(codesData).sort().forEach(code=>{ const c=document.createElement('span'); c.className='om-chip'; c.dataset.code=code; const cr=codeCredit(code); if(cr) c.title=cr; c.innerHTML=esc(code)+'<span class="n">'+Object.keys(codesData[code]||{}).length+'</span>'; c.onclick=()=>toggleCode(code); el.appendChild(c); }); }
 function toggleCode(code){
   if(activeCode===code){ activeCode=null; document.querySelectorAll('.codes .om-chip').forEach(e=>e.classList.remove('on')); depth=priorDepth; applyDepth(); return; }
   activeCode=code; document.querySelectorAll('.codes .om-chip').forEach(e=> e.classList.toggle('on', e.dataset.code===code));
