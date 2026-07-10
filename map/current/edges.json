@@ -556,6 +556,27 @@
   },
   "uid": "37f84c36a5360843374288b336337844eb07c6ca843d1ede38645404f0dde768"
  },
+ "3aa782c1767f3b70762cd54c7414e42f2e59193946d05c8ad8dcb565747a7600": {
+  "identity": {
+   "formula": "Equality(Symbol('n_c', positive=True), Function('n^{c}')(Symbol('\\\\mathcal{S}')))",
+   "inputs": [
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "e3ba3f3522daaaa0a91c35e0302be3bc11c00c176a6090863c45b3c2664fed37",
+   "outputs": [
+    "e3ba3f3522daaaa0a91c35e0302be3bc11c00c176a6090863c45b3c2664fed37"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Carrier density n_c = n^{c}[Structure]: the mobile-carrier number density, the count of mobile charge carriers (the diffusing species) per unit cell volume. n^{c} is an opaque selector over the Structure (which species count as mobile is the opaque choice; the count over the cell volume is the density), the same reason FormationEnergy's reference chemical potentials stay opaque. Surfaces the L^-3 factor the executable Nernst-Einstein conductivity needs as a first-class node. Implicit (a Structure-dependent species count), so not sympy-executable.",
+   "formula_latex": "n_{c} = n^{c}{\\left(\\mathcal{S} \\right)}",
+   "formula_srepr": "Equality(Symbol('n_c', positive=True), Function('n^{c}')(Symbol('\\\\mathcal{S}')))",
+   "name": "compute_carrier_density",
+   "schemes": {}
+  },
+  "uid": "3aa782c1767f3b70762cd54c7414e42f2e59193946d05c8ad8dcb565747a7600"
+ },
  "3cf7b8aa48dca910c062ce17738ede9cb609bacd7bd685bae23ac698897e38c3": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('v')), Symbol('\\\\alpha', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Mul(Rational(1, 2), Pow(Indexed(IndexedBase(Symbol('\\\\omega')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Integer(-1)), Sum(Mul(conjugate(Indexed(IndexedBase(Symbol('e')), Symbol('i', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True))), Indexed(IndexedBase(Symbol('\\\\partial D/\\\\partial q')), Symbol('i', integer=True), Symbol('j', integer=True), Symbol('\\\\alpha', integer=True), Symbol('\\\\mathbf{q}')), Indexed(IndexedBase(Symbol('e')), Symbol('j', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True))), Tuple(Symbol('j', integer=True), Integer(1), Mul(Integer(3), Symbol('N', positive=True, integer=True))), Tuple(Symbol('i', integer=True), Integer(1), Mul(Integer(3), Symbol('N', positive=True, integer=True))))))",
@@ -734,6 +755,9 @@
     "method": "nernst_einstein"
    }
   },
+  "superseded_by": [
+   "d4303ca638ffb5ca529f8c681909d728647149d1b79fd02ec8a18c9270afc05c"
+  ],
   "uid": "504b2deeec3553dc90f91bdc0b4136feaf52abcbc585edd65500d5cab9f27cb2"
  },
  "59ae54527b2e735e5408e66eadb81c9f1fa29720ea39207564e388a44cd1b04c": {
@@ -2067,6 +2091,35 @@
    }
   },
   "uid": "d3cc1efc62bc2eaeca95cbd9c0cc10a3f0bbdf850d7ef3c4991d437cdef4f084"
+ },
+ "d4303ca638ffb5ca529f8c681909d728647149d1b79fd02ec8a18c9270afc05c": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\sigma_{ion}', positive=True), Mul(Symbol('D', positive=True), Pow(Symbol('T', positive=True), Integer(-1)), Pow(Symbol('e_c', positive=True), Integer(2)), Pow(Symbol('k_B', positive=True), Integer(-1)), Symbol('n_c', positive=True), Pow(Symbol('z'), Integer(2))))",
+   "inputs": [
+    "37eb727e4cf5e46c3ca04ff4bea4fe9dbb3f7f3c3fad8a1681c7e9d04bafd34f",
+    "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0",
+    "e3ba3f3522daaaa0a91c35e0302be3bc11c00c176a6090863c45b3c2664fed37"
+   ],
+   "output": "3f5753096d30cc6741fe9c6fd5e247e9afbb87b94f5844ec233f9243345d3712",
+   "outputs": [
+    "3f5753096d30cc6741fe9c6fd5e247e9afbb87b94f5844ec233f9243345d3712"
+   ],
+   "schemes": {
+    "haven_ratio": "1",
+    "method": "nernst_einstein"
+   }
+  },
+  "meta": {
+   "description": "Ionic conductivity sigma = n_c z^2 e^2 D / (k_B T): the executable Nernst-Einstein relation from the mobile-carrier number density n_c, the squared charge number z^2 (dimensionless: the oxidation state, else valence-electron count, the numeric value riding conditions at evidence time), the squared elementary charge e^2, the tracer diffusivity D, over the thermal energy k_B T. The physics review's second supersede: n_c is now the first-class CarrierDensity node and z a dimensionless symbol, so the relation is a closed-form sympy Eq the dimensional gate PROVES, not an opaque Structure-derived function. The gate derives the chain: n_c (0,-3,0,0,0,0,0) . z^2 (dimensionless) . e^2 (0,0,2,0,0,2,0) . D (0,2,-1,0,0,0,0) / (k_B T) (energy, 1,2,-2,0,0,0,0) = (-1,-3,3,0,0,2,0) = ELECTRICAL_CONDUCTIVITY (S/m). e is the elementary charge (TIME . CURRENT = ENERGY / VOLTAGE, so e^2 carries T^2 I^2); it enters as a per-edge parameter bound to that dimension so it never collides with the phonon eigenvector e. The method scheme keeps the Nernst-Einstein relation and the haven_ratio=1 assumption (the tracer, not the collective charge, diffusivity drives it; the tracer-D caveat stands). pymatgen-analysis-diffusion's DiffusionAnalyzer.conductivity / get_extrapolated_conductivity. SUPERSEDES the opaque v1 (formula fingerprint changed, so the edge id changed). Closed-form and sympy-executable.",
+   "formula_latex": "\\sigma_{ion} = \\frac{D e_{c}^{2} n_{c} z^{2}}{T k_{B}}",
+   "formula_srepr": "Equality(Symbol('\\\\sigma_{ion}', positive=True), Mul(Symbol('D', positive=True), Pow(Symbol('T', positive=True), Integer(-1)), Pow(Symbol('e_c', positive=True), Integer(2)), Pow(Symbol('k_B', positive=True), Integer(-1)), Symbol('n_c', positive=True), Pow(Symbol('z'), Integer(2))))",
+   "name": "compute_ionic_conductivity",
+   "schemes": {
+    "haven_ratio": "1",
+    "method": "nernst_einstein"
+   }
+  },
+  "uid": "d4303ca638ffb5ca529f8c681909d728647149d1b79fd02ec8a18c9270afc05c"
  },
  "d5a6a4d1c789d427aecbc40998ec2b7d32240c2850ac5d9ed226e268b6ed09f8": {
   "identity": {

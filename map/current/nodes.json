@@ -1878,6 +1878,26 @@
   },
   "uid": "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
  },
+ "e3ba3f3522daaaa0a91c35e0302be3bc11c00c176a6090863c45b3c2664fed37": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "L^-3",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "carrier_density"
+  },
+  "meta": {
+   "description": "Mobile-carrier number density n_c: the count of mobile charge carriers (the diffusing ionic species) per unit volume, the L^-3 quantity n/V that the Nernst-Einstein conductivity multiplies. NEW dimension NUMBER_DENSITY (0,-3,0,0,0,0,0) = 1/m^3, a pure inverse-volume (the count is dimensionless). It is the input the physics review found the map needed to make the Nernst-Einstein ionic conductivity EXECUTABLE: sigma = n_c z^2 e^2 D / (k_B T), with n_c now a first-class node rather than a Structure-derived opaque factor. Counted as (mobile species per cell) / (cell volume), so it rides the same Structure the diffusivity does; which species count as mobile is an opaque selector recorded on the producing edge, not in this scalar node. Served in per_m3 (canonical) or per_cm3 (1e6 factor). In the Diffusion tier alongside Diffusivity and the ionic conductivity it feeds.",
+   "name": "CarrierDensity",
+   "symbol": "n_c",
+   "tier": "Diffusion"
+  },
+  "uid": "e3ba3f3522daaaa0a91c35e0302be3bc11c00c176a6090863c45b3c2664fed37"
+ },
  "e4ae49aad73336225c26fd3cf5d8dc2f4477b02b7d8bad22c9c74fd40a2482b2": {
   "identity": {
    "fields": [
