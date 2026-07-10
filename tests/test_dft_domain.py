@@ -677,11 +677,16 @@ def test_instances_bundle_32_records_all_uid_pinned():
     # (the LGPS Nernst-Einstein RT ionic conductivity and the LiZnPO4 reaction
     # energy, both committed AtomisticSkills examples), 33 with the phonopy/LAMMPS
     # delta scan's Li BCC thermal-expansion value at 300 K (the committed
-    # mat-qha-thermal-expansion TensorNet example).
+    # mat-qha-thermal-expansion TensorNet example). 45 after the
+    # characterization-scan encode (2026-07-10): three committed Cu [001]-tilt
+    # grain-boundary energies, the butane gauche->anti NEB forward barrier, and
+    # the eight ethanol per-bond dissociation energies, all committed
+    # AtomisticSkills *_results.json values (the molecular slice's missed
+    # instances).
     from omai.map_data import build_instances
 
     insts = build_instances()
-    assert len(insts) == 33
+    assert len(insts) == 45
     for it in insts:
         assert it.get("node_uid"), f"instance for {it['variable']} lacks node_uid"
 

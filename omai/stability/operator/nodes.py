@@ -14,6 +14,18 @@ Node table:
   Voltage          voltage            VOLTAGE (M L^2 T^-3 I^-1)  ()
   AdsorptionEnergy adsorption_energy  ENERGY                     ()
   ReactionEnergy   reaction_energy    ENERGY                     ()
+  GrainBoundaryEnergy grain_boundary_energy ENERGY_PER_LENGTH_SQUARED ()
+
+GrainBoundaryEnergy (added 2026-07-10 from the characterization scan) is the
+excess energy per boundary area of a crystalline grain boundary, gamma_GB, the
+sibling of SurfaceEnergy: the same ENERGY_PER_LENGTH_SQUARED dimension and the
+same slab-energy-difference construction, kept a distinct node by the
+grain_boundary_energy tag. The boundary configuration (CSL Sigma, misorientation
+tilt angle, rotation axis, GB plane) rides in the instance conditions and the
+producing edge's scheme, not in the node's index signature, exactly as the facet
+(hkl) does for SurfaceEnergy. Driven by mat-grain-boundary (pymatgen
+GrainBoundaryGenerator CSL slabs plus an MLIP relax), NOT a fipy phase-field
+output: it is the phase-field / kMC INPUT.
 
 AdsorptionEnergy (added 2026-07-10 from the matcalc/ASE scan) is surface
 energetics kin to SurfaceEnergy: a scalar ENERGY per adsorbate-surface
@@ -59,7 +71,7 @@ from omai.operator.dimensions import (
     ENERGY,
     ENERGY_PER_LENGTH_SQUARED,
     VOLTAGE,
-)
+)  # noqa: F401  (ENERGY_PER_LENGTH_SQUARED reused by GrainBoundaryEnergy)
 from omai.operator.space import Field, ObservableSpace, Space
 
 FORMATION_ENERGY = ObservableSpace(
@@ -178,6 +190,33 @@ REACTION_ENERGY = ObservableSpace(
     ),
 )
 
+GRAIN_BOUNDARY_ENERGY = ObservableSpace(
+    name="GrainBoundaryEnergy",
+    fields=(Field("gamma_GB", ENERGY_PER_LENGTH_SQUARED, indices=()),),
+    tier="Stability",
+    description=(
+        "Grain-boundary energy gamma_GB: the excess energy per unit boundary "
+        "area of a crystalline grain boundary, gamma_GB = (E_GB - N E_bulk)/"
+        "(2 A) for a coincidence-site-lattice (CSL) slab supercell exposing "
+        "the boundary on both periodic faces (the factor 2 for the two "
+        "boundaries). The SIBLING of SurfaceEnergy: the same "
+        "ENERGY_PER_LENGTH_SQUARED dimension (M T^-2) and the same "
+        "slab-energy-difference construction over the ground-state "
+        "TotalEnergy, kept a distinct node by the grain_boundary_energy tag "
+        "(it also shares M T^-2 with ForceConstants[order=2] and "
+        "SurfaceEnergy, all three held apart by their tags). Scalar per "
+        "boundary configuration: the CSL Sigma, the misorientation tilt "
+        "angle, the rotation axis, and the GB plane ride in the instance "
+        "conditions and the producing edge's scheme, not in the node's index "
+        "signature (no registered Sigma / tilt index kind, deliberately: "
+        "distinct boundaries are distinct configurations, distinct "
+        "instances). Canonical eV/A^2, conventionally quoted in J/m^2. "
+        "Produced by mat-grain-boundary (pymatgen GrainBoundaryGenerator CSL "
+        "slabs relaxed by an MLIP), the phase-field / kMC INPUT, NOT a fipy "
+        "phase-field output."
+    ),
+)
+
 NODES: tuple[Space, ...] = (
     FORMATION_ENERGY,
     ENERGY_ABOVE_HULL,
@@ -185,4 +224,5 @@ NODES: tuple[Space, ...] = (
     VOLTAGE_STATE,
     ADSORPTION_ENERGY,
     REACTION_ENERGY,
+    GRAIN_BOUNDARY_ENERGY,
 )

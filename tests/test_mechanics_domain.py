@@ -124,7 +124,7 @@ def test_all_six_mechanics_edges_are_dimensionally_ok():
     ), report["violation"]
 
 
-def test_no_node_uid_collisions_at_90_nodes():
+def test_no_node_uid_collisions_at_91_nodes():
     # 59 with the original mechanics four; 61 with YoungsModulus and
     # PoissonRatio; 66 with the stability four plus MagneticMoment; 67 with
     # BandGap (2026-07-09, atomate2/VASP scan); 73 with the six
@@ -136,9 +136,10 @@ def test_no_node_uid_collisions_at_90_nodes():
     # tensors, 2026-07-10); 87 with the phonopy/LAMMPS delta scan's four
     # quasi-harmonic nodes plus MassDensity (2026-07-10); 90 with the molecular
     # scan's three nodes (HOMOLUMOGap, ReactionBarrier[construction=neb_mep],
-    # BondDissociationEnergy, 2026-07-10).
+    # BondDissociationEnergy, 2026-07-10); 91 with the characterization scan's
+    # GrainBoundaryEnergy (2026-07-10).
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 90
+    assert len(g["nodes"]) == 91
     uids = [n["uid"] for n in g["nodes"]]
     assert len(set(uids)) == len(uids), "node uid collision"
 

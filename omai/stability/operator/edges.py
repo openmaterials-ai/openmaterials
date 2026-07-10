@@ -39,6 +39,7 @@ from omai.stability.operator.nodes import (
     ADSORPTION_ENERGY,
     ENERGY_ABOVE_HULL,
     FORMATION_ENERGY,
+    GRAIN_BOUNDARY_ENERGY,
     REACTION_ENERGY,
     SURFACE_ENERGY,
     VOLTAGE_STATE,
@@ -78,6 +79,13 @@ _E_adsorbate = sp.Function(r"E^{adsorbate}")
 # Reaction energy: the stoichiometric combination of formation energies.
 _dE_rxn = sp.Symbol(r"\Delta E_{rxn}")
 _E_rxn = sp.Function(r"E^{rxn}")
+# Grain-boundary energy: the CSL slab / bulk selectors and boundary area,
+# the same slab-difference bookkeeping as the surface energy.
+_gamma_GB = sp.Symbol(r"\gamma_{GB}")
+_N_GB = sp.Symbol(r"N_{GB}", positive=True)
+_A_GB = sp.Symbol(r"A_{GB}", positive=True)
+_E_GB = sp.Function(r"E^{GB}")
+_E_bulk_GB = sp.Function(r"E^{bulk}_{GB}")
 
 
 # ---------------------------------------------------------------------------
@@ -238,6 +246,37 @@ compute_reaction_energy = Operator(
     ),
 )
 
+compute_grain_boundary_energy = Operator(
+    name="compute_grain_boundary_energy",
+    inputs=(TOTAL_ENERGY, STRUCTURE),
+    outputs=(GRAIN_BOUNDARY_ENERGY,),
+    schemes={"method": "slab_energy_difference"},
+    formula=sp.Eq(
+        _gamma_GB,
+        (_E_GB(_E_tot, _S) - _N_GB * _E_bulk_GB(_E_tot, _S))
+        / (2 * _A_GB),
+    ),
+    is_executable_in_sympy_override=False,
+    description=(
+        "Grain-boundary energy gamma_GB = (E_GB - N_GB E_bulk)/(2 A_GB): the "
+        "CSL-slab-minus-bulk energy difference per unit boundary area, the "
+        "factor 2 because a periodic slab exposes the boundary on BOTH faces, "
+        "the SAME slab_energy_difference construction as compute_surface_energy "
+        "(a labeled sibling on the same ENERGY_PER_LENGTH_SQUARED node family, "
+        "kept apart by the grain_boundary_energy tag). E^{GB} and E^{bulk}_{GB} "
+        "are opaque selectors over the TotalEnergy family (the coincidence-"
+        "site-lattice grain-boundary supercell built by pymatgen "
+        "GrainBoundaryGenerator for the chosen Sigma / tilt / axis / GB plane, "
+        "and the bulk reference per atom, N_GB counting the atoms; the "
+        "committed Cu example uses the per-atom bulk energy -10.825556 eV); "
+        "A_GB is the boundary in-plane area. Computed in eV/A^2 and quoted in "
+        "J/m^2. Realized by mat-grain-boundary over an MLIP relax (relax_cell="
+        "False), NOT a fipy phase-field output; the method scheme records the "
+        "slab_energy_difference. Implicit (CSL slab construction plus "
+        "relaxations), so not sympy-executable."
+    ),
+)
+
 EDGES: tuple[Operator, ...] = (
     compute_formation_energy,
     compute_energy_above_hull,
@@ -245,4 +284,5 @@ EDGES: tuple[Operator, ...] = (
     compute_intercalation_voltage,
     compute_adsorption_energy,
     compute_reaction_energy,
+    compute_grain_boundary_energy,
 )

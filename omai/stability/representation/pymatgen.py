@@ -38,12 +38,14 @@ from omai.representation.adapter import (
 from omai.stability.operator.edges import (
     compute_energy_above_hull,
     compute_formation_energy,
+    compute_grain_boundary_energy,
     compute_intercalation_voltage,
     compute_surface_energy,
 )
 from omai.stability.operator.nodes import (
     ENERGY_ABOVE_HULL,
     FORMATION_ENERGY,
+    GRAIN_BOUNDARY_ENERGY,
     SURFACE_ENERGY,
     VOLTAGE_STATE,
 )
@@ -217,3 +219,97 @@ PYMATGEN_COMPUTE_INTERCALATION_VOLTAGE = OperatorRepresentationSpec(
         "reference couple (Li/Li+)."
     ),
 )
+
+
+PYMATGEN_GRAIN_BOUNDARY_ENERGY = SpaceRepresentationSpec(
+    space=GRAIN_BOUNDARY_ENERGY,
+    representation_name="pymatgen",
+    observable_units={"gamma_GB": "J_per_m2"},
+    code_api={
+        "gamma_GB": "pymatgen.analysis.gb.grain.GrainBoundaryGenerator CSL slabs; in-skill gamma_GB = (E_GB - N E_bulk)/(2A), J/m^2",
+    },
+    notes=(
+        "Grain-boundary energy per CSL boundary: pymatgen "
+        "GrainBoundaryGenerator builds the coincidence-site-lattice slab "
+        "supercells (mat-grain-boundary), an MLIP relaxes them (relax_cell="
+        "False), and the gamma_GB is the in-skill slab-bulk difference "
+        "(calculate_gb_energy.py, (E_GB - N E_bulk)/(2A)), computed in "
+        "eV/A^2 and quoted in J/m^2. The SIBLING of the pymatgen "
+        "SurfaceEnergy spec (same construction, same J/m^2 unit); the "
+        "boundary configuration (Sigma, tilt angle, rotation axis, GB plane) "
+        "rides in conditions. Committed Cu [001]-tilt example "
+        "(examples/Cu-001-tilt-TensorNet/gb_energy_results.json): "
+        "Sigma5 0.9768, Sigma13 0.7759, Sigma25 0.7196 J/m^2, "
+        "TensorNet-MatPES-r2SCAN-v2025.1-PES, Cu mp-30, bulk energy "
+        "-10.825556 eV/atom, validated against EAM-Mishin (0.99, 0.92) and "
+        "DFT-PBE (~0.74, ~0.72). NOT a fipy phase-field output: the "
+        "phase-field / kMC INPUT."
+    ),
+)
+
+
+PYMATGEN_COMPUTE_GRAIN_BOUNDARY_ENERGY = OperatorRepresentationSpec(
+    operator=compute_grain_boundary_energy,
+    representation_name="pymatgen",
+    discretization_choices={
+        "gb_geometry": (
+            "GrainBoundaryGenerator Sigma / rotation axis / GB plane and the "
+            "min-slab / vacuum sizes (the committed Cu example: rotation axis "
+            "[001], vacuum 0.0, min-slab-size 10 A); convergence of gamma_GB "
+            "with slab thickness is the estimator's discretization"
+        ),
+        "relaxation": (
+            "the MLIP relax of the GB slab (relax_cell=False, fmax 0.02 in the "
+            "committed example) against the separately relaxed bulk reference "
+            "(relax_cell=True, fmax 0.005)"
+        ),
+    },
+    notes=(
+        "Realized by pymatgen GrainBoundaryGenerator CSL slabs plus the "
+        "in-skill difference over an MLIP relax; the method scheme "
+        "(slab_energy_difference) is the same slab-bulk-over-2A construction "
+        "compute_surface_energy uses (the factor 2 for the two periodic "
+        "boundaries). The MLIP-checkpoint provenance (which model produced "
+        "the energies, TensorNet-MatPES-r2SCAN in the committed example) "
+        "lives on the Potential specs; mat-grain-boundary is the driving "
+        "skill."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# XRD note (pymatgen rail extension, representation-only; no XRDPattern node)
+# ---------------------------------------------------------------------------
+#
+# The characterization scan (scans/characterization-atomistic-skills.json)
+# catalogs pymatgen's XRDCalculator (mat-xrd-calculator) as a FUNCTION-VALUED
+# kinematic diffraction pattern I(2theta), DEFERRED to the spectrum layer (no
+# XRDPattern node is minted this slice, per orchestrator decision "XRDPattern
+# deferral"). Rather than open a new xrd rail for a deferred quantity, the
+# XRDCalculator design is recorded here as an extension NOTE on the existing
+# pymatgen rail (the calculator IS pymatgen), so no new representation_name and
+# no new rail are added:
+#
+#   * CANONICAL AXIS. Store the pattern on the wavelength-independent d_hkl
+#     (Angstrom, d_hkl = 1/g_hkl, xrd.py:259) or Q = 4 pi sin(theta)/lambda
+#     (Angstrom^-1); 2theta (degrees) is a DERIVED / served axis that carries
+#     the wavelength as a REQUIRED condition (Bragg 2 d sin theta = lambda, so
+#     the same plane sits at different 2theta for Cu vs Mo radiation).
+#   * WAVELENGTH is a required physical condition, not an internal gauge: it
+#     changes 2theta AND the relative intensities (via the LP factor and
+#     s = sin theta / lambda). Drawn from the pymatgen WAVELENGTHS vocabulary
+#     (CuKa 1.54184 the Ka1/Ka2 WEIGHTED AVERAGE, distinct from CuKa1 1.54056:
+#     mixing them shifts 2theta, the headline trap), with a free-float escape
+#     for synchrotron wavelengths.
+#   * INTENSITIES are kinematic |F_hkl|^2 x Lorentz-polarization, scaled so the
+#     max peak is 100, with NO absorption, NO preferred orientation, and NO
+#     Debye-Waller by default (a convention flag on any XRD representation).
+#   * XRDPattern is DEFERRED to the spectrum layer (the named hook): mint it
+#     only when a characterization domain opens; it grounds a Structure
+#     representation (the pattern is a purely GEOMETRIC function of the
+#     Structure), not a per-material scalar node. Peak positions d_hkl and
+#     relative intensities ride as scalar-reduction fingerprint fields, refined
+#     lattice params as Structure metadata, refinement weight fractions as a
+#     fitted characterization output kept DISTINCT from the equilibrium
+#     PhaseFraction node (a CALPHAD Gibbs-minimization output, different
+#     provenance).

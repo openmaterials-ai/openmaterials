@@ -81,9 +81,12 @@ def test_write_index_emits_one_file_per_representation(tmp_path):
     # itself is NOT a rail, the atomate2 ruling); the config-thermo scan added
     # smol, rxn-network, and pymatgen-analysis-diffusion, 20th-22nd; the amset
     # scan added the amset rail, 23rd; the molecular scan added the orca and
-    # openmm rails, 24th-25th.
+    # openmm rails, 24th-25th; the characterization scan added the mattergen and
+    # diffcsp Structure-provenance rails, 26th-27th (the XRDCalculator note
+    # extended the existing pymatgen rail rather than opening a new one, and
+    # lobsterpy / smact deliberately earned no rail).
     assert len(files) == len(reps)
-    assert len(files) == 25
+    assert len(files) == 27
 
 
 def test_each_index_entry_uid_matches_live_node_id(tmp_path):

@@ -405,3 +405,50 @@ def test_molecular_is_records_175_to_180():
         assert r["author"] == "gbarbalinardo"
         assert r["date"] == "2026-07-10"
         assert "molecular" in r["reason"]
+
+
+# --------------------------------------------------------------------------
+# Instances (2026-07-10 encode tail): the real committed molecular values the
+# earlier molecular slice's false absent-repo skip missed. The AtomisticSkills
+# repo IS present (vendored); these ride the ReactionBarrier / BDE nodes.
+# --------------------------------------------------------------------------
+
+def test_reaction_barrier_instance_pins_the_live_node_uid():
+    """Evidence: the butane gauche->anti forward NEB barrier from the committed
+    chem-neb-barrier example (MACE-OFF23-small, 7 images, converged)."""
+    from omai.map_data import build_instances
+    from omai.molecular.operator.nodes import REACTION_BARRIER
+
+    insts = build_instances()
+    by_key = {(it["variable"], it["material"]): it for it in insts}
+
+    it = by_key[("ReactionBarrier[construction=neb_mep]", "C4H10 (butane)")]
+    assert it["value"] == 0.12280791644116062
+    assert it["units"] == "eV"
+    assert it["source"]["kind"] == "simulation"
+    assert it["conditions"]["reaction"] == "butane_gauche_to_anti"
+    assert it["conditions"]["model"] == "MACE-OFF23-small"
+    assert it["node_uid"] == node_id(REACTION_BARRIER)
+
+
+def test_bond_dissociation_energy_instances_pin_the_live_node_uid():
+    """Evidence: the eight committed per-bond BDEs of ethanol (CCO) from the
+    chem-bond-dissociation example (MACE-OFF23-small); one instance per bond."""
+    from omai.map_data import build_instances
+    from omai.molecular.operator.nodes import BOND_DISSOCIATION_ENERGY
+
+    insts = build_instances()
+    bdes = [it for it in insts
+            if it["variable"] == "BondDissociationEnergy"]
+    # Eight bonds in the committed ethanol file.
+    assert len(bdes) == 8, [it["material"] for it in bdes]
+    for it in bdes:
+        assert it["units"] == "eV"
+        assert it["source"]["kind"] == "simulation"
+        assert it["conditions"]["smiles"] == "CCO"
+        assert it["conditions"]["model"] == "MACE-OFF23-small"
+        assert it["node_uid"] == node_id(BOND_DISSOCIATION_ENERGY)
+    # The weakest bond (C-O) is the committed 3.6396048158576377 eV value.
+    by_bond = {it["conditions"]["bond"]: it["value"] for it in bdes}
+    assert by_bond["C(1)-O(2)"] == 3.6396048158576377
+    assert by_bond["C(0)-H(5)"] == 5.100016565212172

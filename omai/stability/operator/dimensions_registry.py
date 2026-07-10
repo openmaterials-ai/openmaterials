@@ -44,4 +44,10 @@ register_symbol_dimensions({
     # Reaction energy: plain ENERGY (the per-reaction-atom vs total-eV
     # normalization belongs to the quantity, not the dimension).
     r"\Delta E_{rxn}": ENERGY,
+    # Grain-boundary energy: ENERGY_PER_LENGTH_SQUARED (M T^-2), the same
+    # dimension as the surface energy it is a sibling of, kept apart by tag.
+    r"\gamma_{GB}": ENERGY_PER_LENGTH_SQUARED,
+    # CSL slab-difference bookkeeping (mirroring the surface-energy entries).
+    r"N_{GB}": DIMENSIONLESS,
+    r"A_{GB}": LENGTH_SQUARED,
 })

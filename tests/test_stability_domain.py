@@ -63,7 +63,7 @@ def test_stability_nodes_are_the_five_energy_difference_observables():
 
     assert [s.name for s in NODES] == [
         "FormationEnergy", "EnergyAboveHull", "SurfaceEnergy", "Voltage",
-        "AdsorptionEnergy", "ReactionEnergy"]
+        "AdsorptionEnergy", "ReactionEnergy", "GrainBoundaryEnergy"]
 
 
 def test_stability_edges_are_the_five_operators():
@@ -72,7 +72,8 @@ def test_stability_edges_are_the_five_operators():
     assert [op.name for op in EDGES] == [
         "compute_formation_energy", "compute_energy_above_hull",
         "compute_surface_energy", "compute_intercalation_voltage",
-        "compute_adsorption_energy", "compute_reaction_energy"]
+        "compute_adsorption_energy", "compute_reaction_energy",
+        "compute_grain_boundary_energy"]
 
 
 # --------------------------------------------------------------------------
@@ -310,6 +311,9 @@ def test_pymatgen_rail_spans_the_catalogs_already_mapped_spaces():
         "YoungsModulus", "PoissonRatio",
         "FormationEnergy", "EnergyAboveHull", "SurfaceEnergy", "Voltage",
         "MagneticMoment",
+        # the characterization scan's GrainBoundaryEnergy (pymatgen
+        # GrainBoundaryGenerator, sibling of SurfaceEnergy)
+        "GrainBoundaryEnergy",
     }
     assert set(pmg) == expected, sorted(set(pmg) ^ expected)
 
@@ -584,3 +588,164 @@ def test_adsorption_energy_instance_pins_the_live_node_uid():
     assert it["units"] == "eV"
     assert it["source"]["kind"] == "simulation"
     assert it["node_uid"] == node_id(ADSORPTION_ENERGY)
+
+
+# --------------------------------------------------------------------------
+# The characterization scan: GrainBoundaryEnergy (2026-07-10), gamma_GB
+# (J/m^2), the sibling of SurfaceEnergy, driven by mat-grain-boundary over an
+# MLIP CSL slab (NOT a fipy phase-field output).
+# --------------------------------------------------------------------------
+
+def test_grain_boundary_energy_shares_surface_energy_dimension_distinct_tag():
+    """gamma_GB is ENERGY_PER_LENGTH_SQUARED, the SAME dimension as
+    SurfaceEnergy (and, transitively, ForceConstants[order=2]), kept a
+    DISTINCT node from all of them by the grain_boundary_energy tag alone."""
+    from omai.operator.dimensions import ENERGY_PER_LENGTH_SQUARED
+    from omai.stability.operator.nodes import (
+        ADSORPTION_ENERGY,
+        GRAIN_BOUNDARY_ENERGY,
+        SURFACE_ENERGY,
+    )
+    from omai.thermal_transport.operator.nodes import FORCE_CONSTANTS_2
+
+    gb = GRAIN_BOUNDARY_ENERGY.field("gamma_GB")
+    assert gb.dimension == ENERGY_PER_LENGTH_SQUARED
+    assert gb.indices == ()
+    # Same dimension as SurfaceEnergy and FC2, distinct node identities.
+    assert gb.dimension == SURFACE_ENERGY.field("gamma").dimension
+    assert gb.dimension == FORCE_CONSTANTS_2.field("phi").dimension
+    assert node_id(GRAIN_BOUNDARY_ENERGY) != node_id(SURFACE_ENERGY)
+    assert node_id(GRAIN_BOUNDARY_ENERGY) != node_id(FORCE_CONSTANTS_2)
+    # Distinct from AdsorptionEnergy (an ENERGY node) too.
+    assert node_id(GRAIN_BOUNDARY_ENERGY) != node_id(ADSORPTION_ENERGY)
+    assert "sibling of SurfaceEnergy".lower() in \
+        GRAIN_BOUNDARY_ENERGY.description.lower() or \
+        "SIBLING of SurfaceEnergy".lower() in \
+        GRAIN_BOUNDARY_ENERGY.description.lower()
+
+
+def test_compute_grain_boundary_energy_wiring_and_scheme():
+    from omai.stability.operator.edges import compute_grain_boundary_energy
+
+    assert [s.name for s in compute_grain_boundary_energy.inputs] == [
+        "TotalEnergy", "Structure"]
+    assert [o.name for o in compute_grain_boundary_energy.outputs] == [
+        "GrainBoundaryEnergy"]
+    assert compute_grain_boundary_energy.schemes == {
+        "method": "slab_energy_difference"}
+    # Implicit (CSL slab selectors over the energy family), not executable.
+    assert compute_grain_boundary_energy.is_executable_in_sympy_override is False
+    assert not compute_grain_boundary_energy.is_executable_in_sympy
+
+
+def test_grain_boundary_edge_is_skipped_not_a_violation():
+    """The CSL-slab / bulk selectors are opaque applied functions, so the
+    dimensional gate classifies the edge SKIPPED, never a violation."""
+    nodes, edges = _all_nodes_edges()
+    report = dimensional_report(nodes, edges)
+    assert "compute_grain_boundary_energy" in report["skipped"], report
+    assert report["violation"] == [] or all(
+        "compute_gruneisen" in v or "compute_phase_space_3phonon" in v
+        for v in report["violation"]
+    ), report["violation"]
+
+
+def test_grain_boundary_energy_on_the_pymatgen_rail():
+    from omai.map_data import build_codes
+
+    codes = build_codes(DOMAINS)
+    assert codes["pymatgen"]["GrainBoundaryEnergy"]["unit"] == "J_per_m2"
+
+
+def test_grain_boundary_energy_landed_in_the_committed_store():
+    from pathlib import Path
+
+    from omai.operator.identity import edge_id
+    from omai.store import Store
+    from omai.stability.operator.edges import compute_grain_boundary_energy
+    from omai.stability.operator.nodes import GRAIN_BOUNDARY_ENERGY
+
+    m = Store(Path(__file__).resolve().parents[1] / "map").read()
+    assert node_id(GRAIN_BOUNDARY_ENERGY) in m["nodes"]
+    assert edge_id(compute_grain_boundary_energy, node_id) in m["edges"]
+
+
+def test_grain_boundary_contribution_is_records_181_to_182():
+    """The frozen log positions of the characterization-scan contribution: the
+    GrainBoundaryEnergy add_node then the compute_grain_boundary_energy
+    add_edge, records 181-182, authored through sync --apply on 2026-07-10.
+    Positions are history and never move."""
+    import json
+    from pathlib import Path
+
+    from omai.operator.identity import edge_id
+    from omai.stability.operator.edges import compute_grain_boundary_energy
+    from omai.stability.operator.nodes import GRAIN_BOUNDARY_ENERGY
+
+    lines = (Path(__file__).resolve().parents[1] / "map" / "log.jsonl") \
+        .read_text().splitlines()
+    assert len(lines) >= 182, "the grain-boundary contribution has not landed"
+
+    rec_181 = json.loads(lines[180])
+    assert rec_181["op"] == "add_node"
+    assert rec_181["payload"]["uid"] == node_id(GRAIN_BOUNDARY_ENERGY)
+    assert rec_181["payload"]["meta"]["name"] == "GrainBoundaryEnergy"
+
+    rec_182 = json.loads(lines[181])
+    assert rec_182["op"] == "add_edge"
+    assert rec_182["payload"]["uid"] == edge_id(
+        compute_grain_boundary_energy, node_id)
+    assert rec_182["payload"]["meta"]["name"] == "compute_grain_boundary_energy"
+
+    for r in (rec_181, rec_182):
+        assert r["author"] == "gbarbalinardo"
+        assert r["date"] == "2026-07-10"
+        assert "grain-boundary energetics" in r["reason"]
+        assert "2605.24002" in r["reason"]
+
+
+def test_grain_boundary_energy_instances_pin_the_live_node_uid():
+    """Evidence: the three committed Cu [001]-tilt gamma_GB values from the
+    mat-grain-boundary Cu-001-tilt-TensorNet example."""
+    from omai.map_data import build_instances
+    from omai.stability.operator.nodes import GRAIN_BOUNDARY_ENERGY
+
+    insts = build_instances()
+    by_key = {(it["variable"], it["material"]): it for it in insts}
+
+    gammas = {
+        "Cu Sigma5 [001] tilt": 0.9768,
+        "Cu Sigma13 [001] tilt": 0.7759,
+        "Cu Sigma25 [001] tilt": 0.7196,
+    }
+    for mat, val in gammas.items():
+        it = by_key[("GrainBoundaryEnergy", mat)]
+        assert it["value"] == val
+        assert it["units"] == "J/m^2"
+        assert it["source"]["kind"] == "simulation"
+        assert it["node_uid"] == node_id(GRAIN_BOUNDARY_ENERGY)
+    # The Sigma / tilt configuration rides in the conditions, not the index.
+    s5 = by_key[("GrainBoundaryEnergy", "Cu Sigma5 [001] tilt")]
+    assert s5["conditions"]["sigma"] == 5
+    assert "TensorNet" in s5["conditions"]["model"]
+
+
+def test_mattergen_and_diffcsp_are_structure_provenance_rails():
+    """The two structure-generation rails: each represents the Structure SOURCE
+    node as a generator-provenance annotation, NOT a producing edge (Structure
+    keeps zero inbound links)."""
+    from omai.map_data import build_codes, build_graph_dict
+
+    codes = build_codes(DOMAINS)
+    assert set(codes["mattergen"]) == {"Structure"}
+    assert set(codes["diffcsp"]) == {"Structure"}
+    # smact earns no rail (env-only, zero call sites).
+    assert "smact" not in codes
+    # Structure stays a pure source: no link targets it.
+    g = build_graph_dict(DOMAINS)
+    struct_uid = next(n["uid"] for n in g["nodes"] if n["id"] == "Structure")
+    assert all(l["target"] != struct_uid for l in g["links"])
+    from omai.materials.representation.diffcsp import DIFFCSP_STRUCTURE
+    assert "pyxtal" in DIFFCSP_STRUCTURE.notes
+    assert "ENV-ONLY" in DIFFCSP_STRUCTURE.notes or \
+        "env-only" in DIFFCSP_STRUCTURE.notes.lower()

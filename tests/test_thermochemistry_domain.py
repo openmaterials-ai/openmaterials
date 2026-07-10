@@ -326,9 +326,11 @@ def test_map_has_eighty_seven_nodes_and_thirteen_tiers():
     # 2026-07-10.
     # 90 with the molecular scan's three nodes (HOMOLUMOGap,
     # ReactionBarrier[construction=neb_mep], BondDissociationEnergy) in the new
-    # Molecular tier (ORCA + MD/chem, 2026-07-10).
+    # Molecular tier (ORCA + MD/chem, 2026-07-10); 91 with the characterization
+    # scan's GrainBoundaryEnergy joining the existing Stability tier (no new
+    # tier), 2026-07-10.
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 90
+    assert len(g["nodes"]) == 91
     assert len(g["tiers"]) == 14
 
 
@@ -380,8 +382,11 @@ def test_pycalphad_is_a_rail_and_the_config_thermo_scan_added_three_rails():
     # config-thermo scan (2026-07-10) added three more: smol, rxn-network, and
     # pymatgen-analysis-diffusion, reaching 22; the amset scan (2026-07-10)
     # added the amset rail, reaching 23; the molecular scan (2026-07-10) added
-    # the orca and openmm rails, reaching 25.
-    assert len(codes) == 25
+    # the orca and openmm rails, reaching 25; the characterization scan
+    # (2026-07-10) added the mattergen and diffcsp Structure-provenance rails,
+    # reaching 27 (the XRDCalculator note extended the pymatgen rail, and
+    # lobsterpy / smact deliberately earned no rail).
+    assert len(codes) == 27
     assert "pycalphad" in codes
     assert "mat-equation-of-state" in codes
     assert "mat-surface-adsorption" in codes
@@ -390,6 +395,10 @@ def test_pycalphad_is_a_rail_and_the_config_thermo_scan_added_three_rails():
     assert "rxn-network" in codes
     assert "pymatgen-analysis-diffusion" in codes
     assert "amset" in codes
+    assert "mattergen" in codes
+    assert "diffcsp" in codes
+    assert "lobsterpy" not in codes
+    assert "smact" not in codes
 
 
 # --------------------------------------------------------------------------

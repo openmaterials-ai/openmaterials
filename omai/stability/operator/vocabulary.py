@@ -36,4 +36,9 @@ register_space_symbols({
     # selector E^{rxn} is an applied function over the FormationEnergy family,
     # invisible to the free-symbol check).
     "ReactionEnergy": {r"\Delta E_{rxn}"},
+    # Grain-boundary energy with the CSL slab-difference bookkeeping: the
+    # atom count and the boundary area (the E^{GB} / E^{bulk}_{GB} selectors
+    # are applied functions, invisible to the free-symbol check), mirroring
+    # the surface-energy vocabulary.
+    "GrainBoundaryEnergy": {r"\gamma_{GB}", r"N_{GB}", r"A_{GB}"},
 })
