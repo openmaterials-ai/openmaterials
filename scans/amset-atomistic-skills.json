@@ -1,0 +1,274 @@
+{
+  "scan": {
+    "target": "amset (Ab-initio Scattering and Transport): electronic transport from first principles, as used by AtomisticSkills (arXiv 2605.24002)",
+    "date": "2026-07-10",
+    "stage": "SCAN (catalog only; an encode agent owns omai/, docs/data, map/)",
+    "purpose": "Seed a future electronic-transport domain. Catalog the transport quantities amset produces (electronic conductivity, Seebeck, electronic thermal conductivity, mobility, per-mechanism scattering rates), the cross-domain DFT inputs it consumes, dimensions with exponent vectors, and the lattice-vs-electronic thermal-conductivity distinction.",
+    "source_package": "amset 0.5.1 (pip download --no-deps; wheel unzipped to /tmp/amsetsrc/amset_pkg). amset is NOT importable in the miniconda base env (No module named 'amset'). AtomisticSkills runs it in the atomate2-agent env with both atomate2 and amset installed.",
+    "atomistic_skills_usage": "Single skill: mat-dft-electronic-transport. It reaches amset ONLY through atomate2's VaspAmsetMaker (atomate2.vasp.flows.amset). No direct amset API is invoked by the skill; the skill builds the VASP+AMSET DAG and jobflow-remote submits it. amset outputs are parsed 'natively using standard amset.plot utilities' (SKILL.md), so the amset transport JSON is the true output contract.",
+    "graph_snapshot": "docs/data/graph.json read at scan time: 73 nodes. NONE of amset's transport quantities is present (no ElectricalConductivity, Seebeck, Mobility, ScatteringRate, ElectronicThermalConductivity). Three cross-domain INPUTS amset needs ARE already on the map: DielectricTensor, BornCharges, Frequency (phonon). The map's ThermalConductivity[*] family is LATTICE thermal conductivity; amset's kappa_e is the ELECTRONIC contribution: same dimension, different carrier. The task noted matcalc/ASE encode may land records 145-147 while running; at my read the graph is 73 nodes and no electronic-transport node had landed.",
+    "boltztrap2_note": "amset's transport tensors (sigma, seebeck, kappa) come from BoltzTraP2's calc_Onsager_coefficients over the Fermi integrals (transport.py:6,123,186); band interpolation is BoltzTraP2's smoothed-Fourier fite/sphere (bandstructure.py:10,53 class Interpolator; boltztrap.py:4 FFTc/FFTev). amset's contribution over bare BoltzTraP2 is the momentum-relaxation-time scattering (ADP/IMP/PIE/POP) replacing the constant relaxation time."
+  },
+
+  "transport_tensor_structure": {
+    "grid": "Every transport quantity is a function of (doping, temperature). amset stores each as a full (n_doping, n_temperature, 3, 3) tensor (data.py: seebeck/kappa/sigma np.zeros(n_t_size + (3,3)); to_data() writes the upper triangle xx,xy,xz,yy,yz,zz per (n,t) row, data.py:464-489).",
+    "spectrum_layer_answer": "The transport tensors are FULL ARRAYS over the (doping, T) grid, not scalars. This is the same spectrum-layer question the thermal domain answered for kappa(T): ingest the (doping, T, 3, 3) tensor via the representation/discretization layer, with doping and T as the grid axes. Scalar reduction is ONLY a reporting convenience: _log_results_summary uses tensor_average (isotropic trace/3) for the log table (run.py:588-590). The GaAs example quotes a single scalar mobility per carrier at 300 K, but that is a reduction of the tensor at one (doping, T) point.",
+    "doping_sign_convention": "defaults.yaml:8 'positive doping concentrations indicate p-type doping, negative is n-type'. Doping is a carrier concentration in cm^-3 (input) internally converted to bohr^-3 (data.py:467 * cm_to_bohr**3; log converts back * (1/bohr_to_cm)**3, run.py:576). The GaAs skill sets doping=(1e16,1e17,1e18) cm^-3 and temperatures=(300.,400.) K (generate_inputs.py:45-46)."
+  },
+
+  "dimension_derivations": {
+    "base_axis_order": "(M, L, T, Th, N, I, J) per omai/operator/dimensions.py:26 _BASE = ('M','L','T','Th','N','I','J'). Verified programmatically against the map's own Dimension objects.",
+    "seebeck": {
+      "quantity": "Seebeck coefficient S",
+      "serving_unit": "microvolt per kelvin (muV/K); source multiplies raw V/K by 1e6 (transport.py:191 'seebeck *= 1e6'), log header 'S [uV/K]' (run.py:583)",
+      "canonical_unit": "V/K",
+      "derivation": "S = V/K. Volt (VOLTAGE node) = M L^2 T^-3 I^-1. Per kelvin adds Th^-1. So S = (M=1, L=2, T=-3, Th=-1, N=0, I=-1, J=0).",
+      "exponents": [1, 2, -3, -1, 0, -1, 0],
+      "verified": "TRUE (matches task-supplied (1,2,-3,-1,0,-1,0); confirmed by hand and programmatically from dimensions.VOLTAGE)."
+    },
+    "mobility": {
+      "quantity": "Carrier mobility mu",
+      "serving_unit": "cm^2/(V.s); conversion in source: uc = 0.01/(e_si*carrier_conc*(1/bohr_to_cm)**3); mobility = sigma * uc (transport.py:133-135), log header 'mu [cm^2/Vs]' (run.py:583)",
+      "canonical_unit": "m^2/(V.s) (SI); cm^2 -> m^2 is x1e-4",
+      "derivation": "mu = L^2 / (V.s). V.s = (M L^2 T^-3 I^-1)(T) = M L^2 T^-2 I^-1. mu = L^2 / (M L^2 T^-2 I^-1) = L^2 * M^-1 L^-2 T^2 I = M^-1 T^2 I. So mu = (M=-1, L=0, T=2, Th=0, N=0, I=1, J=0).",
+      "exponents": [-1, 0, 2, 0, 0, 1, 0],
+      "verified": "TRUE. The task's alternative guess (0,0,1,0,0,1,-1) is WRONG (it is not L T^-1 I J^-1); the correct answer is (M=-1, T=2, I=1), confirmed by hand and programmatically."
+    },
+    "electrical_conductivity_electronic": {
+      "quantity": "Electronic electrical conductivity sigma (electronic carriers)",
+      "serving_unit": "S/m (siemens per metre); log header 'sigma [S/m]' (run.py:583), to_data unit 'S/m' (data.py:484). NOT S/cm.",
+      "canonical_unit": "S/m",
+      "derivation": "S/m. Siemens = A/V = I/(M L^2 T^-3 I^-1) = I^2 M^-1 L^-2 T^3. S/m = M^-1 L^-3 T^3 I^2. So sigma = (M=-1, L=-3, T=3, Th=0, N=0, I=2, J=0).",
+      "exponents": [-1, -3, 3, 0, 0, 2, 0],
+      "verified": "TRUE. IDENTICAL DIMENSION to the config-thermo scan's IonicConductivity (M=-1,L=-3,T=3,I=2). This is the conductivity-family finding: electronic sigma and ionic sigma share the exponent vector exactly."
+    },
+    "electronic_thermal_conductivity": {
+      "quantity": "Electronic thermal conductivity kappa_e",
+      "serving_unit": "W/(m.K). Source field name electronic_thermal_conductivity (data.py:80,419,473); NOTE amset source itself flags the unit as unconfirmed: data.py:483 '# TODO: confirm unit of kappa' with header unit '?' (data.py:484). It comes from BoltzTraP2 calc_Onsager_coefficients (transport.py:186), whose kappa is W/(m.K).",
+      "canonical_unit": "W/(m.K)",
+      "derivation": "W/(m.K) = (M L^2 T^-3)/(L K) = M L T^-3 Th^-1. So kappa_e = (M=1, L=1, T=-3, Th=-1, 0, 0, 0).",
+      "exponents": [1, 1, -3, -1, 0, 0, 0],
+      "verified": "TRUE. IDENTICAL DIMENSION to the map's lattice ThermalConductivity (dimensions.py:115 THERMAL_CONDUCTIVITY = (1,1,-3,-1,0,0,0)). The lattice-vs-electronic distinction is by carrier/label, NOT by dimension (see lattice_vs_electronic_kappa)."
+    },
+    "scattering_rate": {
+      "quantity": "Per-mechanism scattering rate 1/tau",
+      "serving_unit": "s^-1 (plot/rates.py:22-26 label tau^-1, unit 's$^{-1}$'; lifetime is s)",
+      "canonical_unit": "1/s = FREQUENCY",
+      "derivation": "1/s = T^-1.",
+      "exponents": [0, 0, -1, 0, 0, 0, 0],
+      "verified": "TRUE (= dimensions.FREQUENCY). The rate is decomposed per mechanism (ADP, IMP, PIE, POP, ...); each mechanism has the same dimension. Rates add by Matthiessen (total lifetime = 1/sum_mechanisms rate, transport.py:101,163)."
+    }
+  },
+
+  "scattering_mechanisms": {
+    "note": "amset's momentum-relaxation-time mechanisms (each a class with a two/three-letter name). Per-mechanism scattering rates 1/s are the resolved spectrum; separate_mobility (defaults.yaml:56) additionally gives a per-mechanism mobility breakdown (run.py:615-624, 'Mobility breakdown by scattering mechanism, in cm^2/Vs').",
+    "mechanisms": [
+      {"name": "ADP", "full": "Acoustic Deformation Potential", "kind": "elastic", "required_properties": ["deformation_potential (eV)", "elastic_constant (GPa)"], "anchor": "scattering/elastic.py:84-85"},
+      {"name": "IMP", "full": "Ionized Impurity", "kind": "elastic", "required_properties": ["defect_charge", "static_dielectric", "compensation_factor"], "anchor": "scattering/elastic.py:280-281"},
+      {"name": "PIE", "full": "Piezoelectric", "kind": "elastic", "required_properties": ["piezoelectric_constant (C/m^2)", "elastic_constant (GPa)", "high_frequency_dielectric", "free_carrier_screening"], "anchor": "scattering/elastic.py:369-374"},
+      {"name": "POP", "full": "Polar Optical Phonon", "kind": "inelastic", "required_properties": ["pop_frequency (THz)", "static_dielectric", "high_frequency_dielectric", "free_carrier_screening"], "anchor": "scattering/inelastic.py:60-65"},
+      {"name": "CRT", "full": "Constant Relaxation Time", "kind": "basic", "required_properties": ["constant_relaxation_time (s)"], "anchor": "scattering/basic.py:54-55"},
+      {"name": "MFP", "full": "Constant Mean Free Path", "kind": "basic", "required_properties": ["mean_free_path (nm)"], "anchor": "scattering/basic.py:85-86"},
+      {"name": "SRT", "full": "Constant (base) Relaxation Time", "kind": "basic", "required_properties": ["base_relaxation_time (s)"], "anchor": "scattering/basic.py:125-126"}
+    ],
+    "auto": "scattering_type: auto (defaults.yaml:6) picks the physical mechanisms (ADP/PIE/IMP/POP) from the supplied materials parameters. The GaAs example targets ADP + POP (README objective; POP + piezoelectric-limited)."
+  },
+
+  "cross_domain_inputs": {
+    "finding": "amset's compute_electronic_transport operator is genuinely CROSS-DOMAIN: three of its required material properties are quantities the map ALREADY carries as nodes, produced by the phonon/DFT-ground-state domains. This is the strongest cross-domain edge candidate seen: an electronic-transport operator whose scattering inputs come from the phonon and dielectric domains.",
+    "already_on_map": [
+      {"amset_input": "static_dielectric + high_frequency_dielectric", "map_node": "DielectricTensor", "note": "amset needs BOTH the static (eps_0) and high-frequency (eps_inf) dielectric constants for POP and PIE screening. The map's DielectricTensor is the clamped-ion eps_inf (high-frequency). The STATIC eps_0 (ion-clamped + ionic contribution) is a DISTINCT quantity amset also needs and the map does not yet carry separately: candidate note.", "anchor": "inelastic.py:62-64; elastic.py:372"},
+      {"amset_input": "pop_frequency (THz)", "map_node": "Frequency (phonon)", "note": "The polar optical phonon frequency omega_LO. amset takes a single effective POP frequency in THz (defaults.yaml:41; inelastic.py:92 *1e12*2pi). The map's phonon Frequency node (per-mode omega_qnu) is the source; the effective POP frequency is a reduction of the phonon spectrum. CROSS-DOMAIN edge: phonon-domain Frequency -> electronic-transport scattering input.", "anchor": "inelastic.py:60-63,91-92"},
+      {"amset_input": "(Born effective charges, implicit)", "map_node": "BornCharges", "note": "Born charges drive the LO-TO splitting that sets omega_LO and the polar (Frohlich) coupling underlying POP. amset takes omega_LO and the two dielectrics as scalars rather than Z* directly, so BornCharges feed amset UPSTREAM (through the phonon calc that yields omega_LO and eps_0), not as a direct amset argument. Cross-domain provenance, not a direct input slot.", "anchor": "map node BornCharges; QE/VASP scans ground it"}
+    ],
+    "not_yet_on_map": [
+      {"amset_input": "deformation_potential (eV, VBM and CBM)", "note": "Acoustic deformation potential, computed by VaspAmsetMaker's strained-band step (SKILL.md: 'deformation potential calculation'). Candidate new source node (DeformationPotential).", "anchor": "elastic.py:85,113-135; defaults.yaml:37"},
+      {"amset_input": "elastic_constant (GPa)", "map_node": "ElasticConstants", "note": "The map HAS ElasticConstants (from the pymatgen/matcalc/VASP scans). amset takes a single elastic constant in GPa (the longitudinal average) for the ADP and PIE rates; it is a reduction of the rank-4 elastic tensor. Cross-domain: mechanical-domain ElasticConstants -> transport scattering input.", "anchor": "elastic.py:85,198; defaults.yaml:36"},
+      {"amset_input": "piezoelectric_constant (C/m^2)", "note": "Piezoelectric stress tensor for PIE scattering. Candidate new source node (PiezoelectricConstant, dim C/m^2 = (L^-2, T, I) like SpontaneousPolarization).", "anchor": "elastic.py:370,400; defaults.yaml:38"},
+      {"amset_input": "band structure / wavefunction (VASP)", "note": "The dense uniform band structure + wavefunction coefficients (wavefunction.h5) that amset interpolates (BoltzTraP2). Produced by VaspAmsetMaker's dense-uniform step. The map has no electronic band-structure node (BandGap is present, the full bands are not).", "anchor": "bandstructure.py:53; defaults.yaml:26"}
+    ]
+  },
+
+  "entries": [
+    {
+      "name": "amset-electrical-conductivity-electronic",
+      "package": "amset",
+      "quantity": "Electronic electrical conductivity sigma: the Onsager L0 coefficient. Full (doping, T, 3, 3) tensor.",
+      "symbol": "sigma (amset_data.conductivity)",
+      "dimension": {"exponents": [-1, -3, 3, 0, 0, 2, 0], "name": "electrical_conductivity"},
+      "index_structure": ["doping (cm^-3)", "temperature (K)", "cartesian alpha (3)", "cartesian beta (3)"],
+      "units": "S/m (run.py:583 header, data.py:484 to_data unit 'S/m'). NOT S/cm.",
+      "producing_api": "solve_boltzman_transport_equation -> _calculate_transport_properties -> BoltzTraP2 calc_Onsager_coefficients (transport.py:36-39,186). Via VaspAmsetMaker in AtomisticSkills.",
+      "conversion_to_canonical": "Native S/m is the map canonical for conductivity. Trap: much AMSET literature and the GaAs README quote S/cm implicitly via mobility; 1 S/cm = 100 S/m. Register serving unit S/m explicitly.",
+      "anchors": [
+        "AtomisticSkills/.agents/skills/mat-dft-electronic-transport/SKILL.md:1-40",
+        "AtomisticSkills/.agents/skills/mat-dft-electronic-transport/scripts/generate_inputs.py:14,43-50",
+        "/tmp/amsetsrc amset-0.5.1 amset/core/transport.py:36-39,186; amset/core/run.py:583; amset/core/data.py:417,471,484"
+      ],
+      "status": "new-node-candidate",
+      "maps_to": "none (new: ElectricalConductivity[carrier=electronic]). Shares the EXACT dimension of the config-thermo scan's IonicConductivity (M=-1,L=-3,T=3,I=2). See conductivity_family_proposal."
+    },
+    {
+      "name": "amset-seebeck-coefficient",
+      "package": "amset",
+      "quantity": "Seebeck coefficient S (thermopower): Onsager L1/L0 ratio. Full (doping, T, 3, 3) tensor.",
+      "symbol": "S (amset_data.seebeck)",
+      "dimension": {"exponents": [1, 2, -3, -1, 0, -1, 0], "name": "seebeck_coefficient"},
+      "index_structure": ["doping (cm^-3)", "temperature (K)", "cartesian alpha (3)", "cartesian beta (3)"],
+      "units": "microvolt per kelvin (muV/K); source multiplies raw V/K by 1e6 (transport.py:191), header 'S [uV/K]' (run.py:583).",
+      "producing_api": "calc_Onsager_coefficients seebeck (transport.py:186,191). Via VaspAmsetMaker.",
+      "conversion_to_canonical": "muV/K -> V/K is x1e-6. Sign carries the carrier type (n vs p). Register serving unit muV/K.",
+      "anchors": [
+        "AtomisticSkills/.agents/skills/mat-dft-electronic-transport/SKILL.md:6",
+        "/tmp/amsetsrc amset-0.5.1 amset/core/transport.py:186,191; amset/core/run.py:583; amset/core/data.py:418,472,484"
+      ],
+      "status": "new-node-candidate",
+      "maps_to": "none (new: SeebeckCoefficient). First map node with I=-1 that is not Voltage; dimension (1,2,-3,-1,0,-1,0) VERIFIED."
+    },
+    {
+      "name": "amset-electronic-thermal-conductivity",
+      "package": "amset",
+      "quantity": "Electronic thermal conductivity kappa_e: the electronic contribution to heat transport (Onsager L2 minus Peltier feedback). Full (doping, T, 3, 3) tensor.",
+      "symbol": "kappa_e (amset_data.electronic_thermal_conductivity)",
+      "dimension": {"exponents": [1, 1, -3, -1, 0, 0, 0], "name": "thermal_conductivity"},
+      "index_structure": ["doping (cm^-3)", "temperature (K)", "cartesian alpha (3)", "cartesian beta (3)"],
+      "units": "W/(m.K) (BoltzTraP2 Onsager). CAVEAT: amset source itself flags this: data.py:483 '# TODO: confirm unit of kappa', header unit '?' (data.py:484). W/(m.K) is the BoltzTraP2 convention; treat as unconfirmed-by-amset-doc but standard.",
+      "producing_api": "calc_Onsager_coefficients kappa (transport.py:186). Via VaspAmsetMaker.",
+      "conversion_to_canonical": "W/(m.K) is the map canonical for thermal conductivity. MANDATORY: this is the ELECTRONIC contribution, distinct-by-carrier from the map's lattice ThermalConductivity[*] family; see lattice_vs_electronic_kappa. Same dimension, must NOT merge.",
+      "anchors": [
+        "/tmp/amsetsrc amset-0.5.1 amset/core/transport.py:186; amset/core/data.py:80,404,419,473,483-484"
+      ],
+      "status": "new-node-candidate",
+      "maps_to": "none (new: ThermalConductivity[carrier=electronic] or ElectronicThermalConductivity). Dimension identical to lattice ThermalConductivity (1,1,-3,-1,0,0,0); the distinction is the carrier label, MANDATORY to keep (see lattice_vs_electronic_kappa)."
+    },
+    {
+      "name": "amset-carrier-mobility",
+      "package": "amset",
+      "quantity": "Carrier mobility mu: sigma normalized by carrier charge density. Full (doping, T, 3, 3) tensor per mechanism, plus 'overall'.",
+      "symbol": "mu (amset_data.mobility['overall'] and per-mechanism)",
+      "dimension": {"exponents": [-1, 0, 2, 0, 0, 1, 0], "name": "mobility"},
+      "index_structure": ["scattering-mechanism key (overall + ADP/IMP/PIE/POP...)", "doping (cm^-3)", "temperature (K)", "cartesian alpha (3)", "cartesian beta (3)"],
+      "units": "cm^2/(V.s) (transport.py:133-135 uc conversion; run.py:583,617 headers).",
+      "producing_api": "_calculate_mobility (transport.py:73-137); separate_mobility gives per-mechanism breakdown (run.py:615-624). Only computed for non-metals (transport.py:47-49). Via VaspAmsetMaker.",
+      "conversion_to_canonical": "cm^2/(V.s) -> m^2/(V.s) is x1e-4. The per-mechanism decomposition is the resolved spectrum (which scattering channel limits mobility).",
+      "anchors": [
+        "AtomisticSkills/.agents/skills/mat-dft-electronic-transport/examples/GaAs/README.md (300K electron mu ~8500, hole ~400 cm^2/Vs)",
+        "/tmp/amsetsrc amset-0.5.1 amset/core/transport.py:55-70,73-137; amset/core/run.py:583,615-624"
+      ],
+      "status": "new-node-candidate",
+      "maps_to": "none (new: CarrierMobility). Dimension (M=-1,T=2,I=1) VERIFIED. Related to ElectricalConductivity by sigma = n e mu."
+    },
+    {
+      "name": "amset-scattering-rates",
+      "package": "amset",
+      "quantity": "Per-mechanism carrier scattering rates 1/tau (momentum relaxation): the microscopic quantity amset adds over bare BoltzTraP2. Resolved per (spin, doping, T, band, k) and per mechanism (ADP/IMP/PIE/POP...).",
+      "symbol": "1/tau (amset_data.scattering_rates, scattering_labels)",
+      "dimension": {"exponents": [0, 0, -1, 0, 0, 0, 0], "name": "frequency"},
+      "index_structure": ["scattering mechanism", "doping", "temperature", "band", "k-point"],
+      "units": "s^-1 (plot/rates.py:22-26).",
+      "producing_api": "amset.scattering.calculate; mechanisms ADP/IMP/PIE/POP/CRT/MFP/SRT (scattering/{elastic,inelastic,basic}.py). Matthiessen sum: total lifetime = 1/sum(rates) (transport.py:101,163).",
+      "conversion_to_canonical": "s^-1 is the map FREQUENCY canonical. Per-mechanism decomposition is the resolved spectrum layer; likely representation-only detail feeding the mobility/conductivity nodes rather than a top-level observable.",
+      "anchors": [
+        "/tmp/amsetsrc amset-0.5.1 amset/plot/rates.py:22-26; amset/scattering/elastic.py:84,280,369; amset/scattering/inelastic.py:60; amset/scattering/basic.py:54,85,125; amset/core/transport.py:101,163"
+      ],
+      "status": "representation-only",
+      "maps_to": "none. Microscopic scattering rates (per band/k) are the spectrum feeding the transport tensors; ingest via the representation/discretization layer, not as a standalone scalar node. Dimension = FREQUENCY (1/s)."
+    },
+    {
+      "name": "amset-deformation-potential",
+      "package": "amset (input; produced by VaspAmsetMaker strained-band step)",
+      "quantity": "Acoustic deformation potential (VBM and CBM band-edge shift per unit strain): an amset scattering INPUT, computed by the VASP strained-supercell step of VaspAmsetMaker.",
+      "symbol": "D_ADP (deformation_potential)",
+      "dimension": {"exponents": [1, 2, -2, 0, 0, 0, 0], "name": "energy"},
+      "index_structure": ["band edge (VBM/CBM)", "cartesian (strain direction)"],
+      "units": "eV (defaults.yaml:37; elastic.py:113-135 scale ev_to_hartree).",
+      "producing_api": "VaspAmsetMaker deformation-potential job (SKILL.md 'deformation potential calculation'); amset.deformation.* interpolator (deformation/potentials.py).",
+      "conversion_to_canonical": "eV -> J is ev_to_hartree*hartree_to_joule (amset works in Hartree atomic units internally). ENERGY-dimensioned.",
+      "anchors": [
+        "AtomisticSkills/.agents/skills/mat-dft-electronic-transport/scripts/generate_inputs.py:37-42 (comment: deformation potential calculation)",
+        "/tmp/amsetsrc amset-0.5.1 amset/scattering/elastic.py:85,113-135; amset/defaults.yaml:37"
+      ],
+      "status": "new-node-candidate",
+      "maps_to": "none (new: DeformationPotential, a source/input node; ENERGY dimension, but band-edge-strain-derivative physics distinct from TotalEnergy/FormationEnergy)."
+    },
+    {
+      "name": "amset-piezoelectric-constant",
+      "package": "amset (input)",
+      "quantity": "Piezoelectric stress constant for PIE scattering: an amset scattering INPUT.",
+      "symbol": "e_piezo (piezoelectric_constant)",
+      "dimension": {"exponents": [0, -2, 1, 0, 0, 1, 0], "name": "surface_charge_density"},
+      "index_structure": ["cartesian (rank-3 stress tensor legs)"],
+      "units": "C/m^2 (defaults.yaml:38).",
+      "producing_api": "amset input; PIE mechanism (elastic.py:369-406). Contracted with inverse dielectric (elastic.py:406).",
+      "conversion_to_canonical": "C/m^2 = A.s/m^2 = (L^-2, T, I). Same dimension as spontaneous polarization P_s (the VASP-scan ferroelectric candidate). Cross-domain overlap.",
+      "anchors": [
+        "/tmp/amsetsrc amset-0.5.1 amset/scattering/elastic.py:369-406; amset/defaults.yaml:38"
+      ],
+      "status": "new-node-candidate",
+      "maps_to": "none (new: PiezoelectricConstant). Dimension C/m^2 = (0,-2,1,0,0,1,0), same as SpontaneousPolarization from the VASP scan; sibling in the polarization family."
+    }
+  ],
+
+  "conductivity_family_proposal": {
+    "task": "State whether ElectricalConductivity[carrier=electronic] vs IonicConductivity should be siblings, one labeled family, or distinct tags. Gather facts, propose, do not decide.",
+    "facts": [
+      "amset's electronic sigma has dimension (M=-1, L=-3, T=3, I=2), VERIFIED from S/m (run.py:583, data.py:484).",
+      "The config-thermo scan's IonicConductivity (Nernst-Einstein, pymatgen-analysis-diffusion) has the IDENTICAL dimension (M=-1,L=-3,T=3,I=2), VERIFIED there by two hand derivations.",
+      "So electronic and ionic conductivity share the exponent vector EXACTLY: both are electrical conductivity S/m.",
+      "But the physics differs: electronic sigma is carried by band electrons/holes (Onsager L0 over a DFT band structure with scattering rates); ionic sigma is carried by mobile ions (Nernst-Einstein from tracer diffusivity, assuming Haven ratio 1). Different carrier, different producing operator, different domain (electronic-transport vs diffusion).",
+      "amset serves S/m; pymatgen-analysis-diffusion serves mS/cm. Unit disagreement within the family (1 S/m = 10 mS/cm).",
+      "PRECEDENT on the map: ThermalConductivity is ALREADY a labeled family carrying carrier/route distinctions via labels (bte_solver=rta, transport_model=wigner|green_kubo|nemd|..., registry.py LABEL_KEYS 'transport_model'). The map already distinguishes same-dimension conductivities by a label, not by separate quantity tags."
+    ],
+    "proposal": "Recommend ONE quantity tag 'electrical_conductivity' carrying a carrier label: ElectricalConductivity[carrier=electronic] (amset) and ElectricalConductivity[carrier=ionic] (the config-thermo IonicConductivity). Rationale: they share the exact dimension AND the physical quantity (charge transport, S/m); they differ only in which particle carries the charge, which is exactly what a label key exists for (mirroring the ThermalConductivity[transport_model=...] pattern). This would RENAME the config-thermo scan's proposed IonicConductivity to ElectricalConductivity[carrier=ionic]. ALTERNATIVE (weaker): keep IonicConductivity as its own tag and mint ElectricalConductivity for the electronic one as siblings-by-tag; this loses the shared-quantity insight and risks a false non-merge. DECISION DEFERRED to the orchestrator. A new LABEL_KEY 'carrier' with values {electronic, ionic} (and later {hole, electron} refinements) would be the registry change. Note the serving-unit split (S/m vs mS/cm) must be recorded per-representation regardless of which topology wins."
+  },
+
+  "lattice_vs_electronic_kappa": {
+    "mandate": "The atomate2-vasp scan verdict and this task both mark the lattice-vs-electronic thermal-conductivity distinction MANDATORY to keep.",
+    "facts": [
+      "amset's kappa_e (electronic_thermal_conductivity, data.py:80,419,473) is the ELECTRONIC contribution to thermal conductivity, from the Onsager coefficients over the electron/hole band structure.",
+      "The map's ThermalConductivity[*] family (11 nodes: bte_solver=rta|direct_inverse, transport_model=wigner*|qhgk|green_kubo|nemd|hnemd) is the LATTICE (phonon) thermal conductivity, from the phonon BTE / MD heat current.",
+      "Both have dimension (M=1, L=1, T=-3, Th=-1, 0, 0, 0) = W/(m.K), IDENTICAL (dimensions.py:115).",
+      "The total measured thermal conductivity of a material is kappa_total = kappa_lattice + kappa_electronic; they are ADDITIVE contributions from different carriers. Merging them (or letting them false-merge on shared dimension) would be a physics error: they are produced by different operators in different domains and answer different questions.",
+      "amset source itself is unsure of kappa's unit (data.py:483 TODO), so the electronic kappa should be registered with an explicit W/(m.K) unit assertion and a 'confirm against BoltzTraP2' provenance note."
+    ],
+    "conclusion": "Register the electronic thermal conductivity with a carrier label that keeps it distinct from the lattice family: either ThermalConductivity[carrier=electronic] (parallel to the proposed carrier label on electrical conductivity) OR a distinct ElectronicThermalConductivity tag. The map's existing ThermalConductivity family is implicitly carrier=lattice; if a carrier label is introduced, the existing 11 nodes gain carrier=lattice for symmetry. Same dimension, MANDATORY distinct identity. Same structural pattern as the conductivity_family_proposal above (a carrier label over a shared dimension)."
+  },
+
+  "unit_factors": {
+    "conductivity_S_per_m_vs_S_per_cm": "amset serves sigma in S/m (run.py:583, data.py:484). Common AMSET usage and the config-thermo IonicConductivity serve S/cm and mS/cm respectively. 1 S/cm = 100 S/m; 1 mS/cm = 0.1 S/m. Register amset's S/m explicitly to avoid a 100x (or 1000x vs mS/cm) trap.",
+    "seebeck_muV_per_K": "amset multiplies the raw V/K by 1e6 to serve muV/K (transport.py:191). 1 muV/K = 1e-6 V/K.",
+    "mobility_cm2_per_Vs": "cm^2/(V.s) -> m^2/(V.s) x1e-4.",
+    "pop_frequency_THz": "pop_frequency input in THz (defaults.yaml:41); internally *1e12*2pi/s_to_au to angular frequency in atomic units (inelastic.py:92). THz is linear frequency nu, the 2pi makes omega.",
+    "elastic_constant_GPa": "elastic_constant input in GPa (defaults.yaml:36); a single longitudinal-average scalar, a reduction of the rank-4 elastic tensor.",
+    "deformation_potential_eV": "eV (defaults.yaml:37), scaled to Hartree internally (ev_to_hartree).",
+    "piezoelectric_C_per_m2": "C/m^2 (defaults.yaml:38).",
+    "internal_atomic_units": "amset works internally in Hartree atomic units (constants.py: bohr, hartree, au_to_s); all serving-unit conversions happen at output. Cross-code EXPECTED_AGREE must use the serving units above."
+  },
+
+  "traps": [
+    "CONDUCTIVITY UNIT: amset serves sigma in S/m, NOT S/cm. Header 'sigma [S/m]' (run.py:583), to_data 'S/m' (data.py:484). 1 S/cm = 100 S/m. The config-thermo IonicConductivity serves mS/cm. Same family, three different serving units in the wild (S/m, S/cm, mS/cm).",
+    "KAPPA UNIT UNCONFIRMED BY AMSET: data.py:483 '# TODO: confirm unit of kappa', header unit '?' (data.py:484). The electronic thermal conductivity is W/(m.K) by BoltzTraP2 convention, but amset's own output does not assert it. Flag on the representation.",
+    "LATTICE vs ELECTRONIC KAPPA: kappa_e (amset) and kappa_lattice (phonon domain) share the exact dimension W/(m.K) = (1,1,-3,-1,0,0,0). MANDATORY distinct identity by carrier; total kappa is their sum. Never merge on shared dimension.",
+    "ELECTRONIC vs IONIC CONDUCTIVITY: share the exact dimension (M=-1,L=-3,T=3,I=2) = S/m. Different carrier, different domain. Propose carrier label; do not false-merge, do not false-split.",
+    "SEEBECK muV/K: amset multiplies by 1e6 (transport.py:191). Sign carries carrier type.",
+    "MOBILITY only for non-metals: _calculate_mobility refuses on metals (transport.py:47-49); sigma/seebeck/kappa are still computed. Per-mechanism mobility breakdown requires separate_mobility (default True).",
+    "PER-MECHANISM RATE DECOMPOSITION: total scattering is the Matthiessen sum 1/tau_total = sum_mech 1/tau_mech (transport.py:101,163). Per-mechanism rates and per-mechanism mobilities are the resolved spectrum; the transport tensors are the sum. Do not double-count.",
+    "DOPING SIGN: positive = p-type, negative = n-type (defaults.yaml:8). Opposite of the naive 'negative charge = electrons = negative' intuition. Input in cm^-3, internally bohr^-3.",
+    "TRANSPORT TENSORS ARE (doping, T, 3, 3): not scalars. The GaAs single-number mobility is a tensor_average at one (doping, T). Ingest the full grid via the representation layer.",
+    "eps_0 vs eps_inf: amset needs BOTH static_dielectric (eps_0, ion-clamped + ionic) AND high_frequency_dielectric (eps_inf). The map's DielectricTensor is eps_inf only. The static eps_0 is a distinct quantity amset requires (POP/PIE/IMP screening).",
+    "VERSION: amset 0.5.1 (pip download 2026-07-10); AtomisticSkills atomate2-agent env pins amset with no version (SKILL.md constraints). Pin at encode; the '# TODO confirm kappa unit' may be fixed upstream in a later version.",
+    "INDIRECT USE: AtomisticSkills never calls the amset Python API directly; it goes through atomate2 VaspAmsetMaker and reads the amset JSON output. The output contract (amset transport JSON: doping, T, Fermi_level, then sigma/seebeck/kappa/mobility tensors) is the ground truth, anchored to amset/core/data.py:to_data."
+  ],
+
+  "open_questions": [
+    "Conductivity family topology: ElectricalConductivity[carrier=electronic|ionic] as ONE labeled family (recommended, mirrors ThermalConductivity[transport_model=...]), vs distinct IonicConductivity/ElectricalConductivity tags. Would rename the config-thermo IonicConductivity. Needs a 'carrier' LABEL_KEY. DECISION DEFERRED.",
+    "Electronic thermal conductivity identity: ThermalConductivity[carrier=electronic] (adds carrier=lattice to the existing 11 nodes) vs a distinct ElectronicThermalConductivity tag. Same dimension as lattice kappa, MANDATORY distinct.",
+    "Seebeck as a standalone node vs part of a thermoelectric bundle (sigma, S, kappa_e, and derived power factor S^2 sigma / figure of merit ZT). amset computes sigma, S, kappa_e; power factor and ZT are downstream. Mint Seebeck now (dimension verified), ZT later.",
+    "Scattering rates: representation-only (per band/k spectrum feeding the tensors) confirmed, or a top-level ScatteringRate node? Recommend representation-only.",
+    "compute_electronic_transport edge: a genuinely cross-domain operator whose inputs are DielectricTensor (eps_inf) + a new static-eps_0 node + Frequency-derived pop_frequency + ElasticConstants (reduced) + new DeformationPotential + new PiezoelectricConstant + a VASP dense band structure. Which inputs are edges from existing nodes vs new source nodes? DielectricTensor, Frequency (->pop_frequency), ElasticConstants, BornCharges (provenance) already on map; deformation_potential, piezoelectric_constant, static eps_0, band structure are new.",
+    "static dielectric eps_0 vs the map's DielectricTensor (eps_inf): mint a StaticDielectricTensor (ionic + electronic) distinct from the electronic eps_inf, since amset needs both. The VASP scan already separated eps_inf (LEPSILON) from the frequency-dependent eps(omega) (LOPTICS); eps_0 is a third distinct dielectric quantity.",
+    "PiezoelectricConstant (C/m^2) shares the dimension of SpontaneousPolarization (VASP-scan candidate); one polarization family or distinct?",
+    "kappa unit: amset's '# TODO: confirm unit of kappa' (data.py:483) - confirm W/(m.K) against BoltzTraP2 bandlib source before EXPECTED_AGREE.",
+    "amset version pin: 0.5.1 downloaded; atomate2-agent env unpinned. Pin before an encode relies on the to_data output schema."
+  ]
+}
