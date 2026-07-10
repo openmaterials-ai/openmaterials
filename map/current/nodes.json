@@ -1113,6 +1113,26 @@
   },
   "uid": "8932e3cbadef74a82802b43fd1d25328cb40e6136c90df3b6a4a998e77f9567b"
  },
+ "8998dd04e7ff8c51679a06f9c40bffb8923fc6d9b8b1f5b3b955999c029a5c5e": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "homolumo_gap"
+  },
+  "meta": {
+   "description": "Kohn-Sham HOMO-LUMO gap of a MOLECULE: the eV difference E_LUMO - E_HOMO between the two discrete frontier molecular orbitals (highest occupied, lowest unoccupied) of a finite system, ORCA's orbital-energy block reduced to homo_lumo_gap_eV (parse_orca_output.py:86-93). Dimension ENERGY (1,2,-2,0,0,0,0), served in eV. A COUSIN of the periodic BandGap (a distinct uid by the homo_lumo_gap tag): same ENERGY dimension, the same KS-eigenvalue-gap family, the same caveats (both are KS gaps NOT quasiparticle gaps, both underestimated by semilocal functionals, both ride the Potential / method provenance). But NEVER the same node: BandGap is the gap between the valence-band MAXIMUM and the conduction-band MINIMUM over the Brillouin zone, whereas a MOLECULE has NO bands (no periodicity, no BZ, no VBM/CBM), only two discrete MOs. Calling a molecular HOMO-LUMO gap a band gap is a category error; this is the discrete-orbital / band split, mirroring the per-molecule / per-cell TotalEnergy basis split. The functional / basis-set string (def2-SVP default, low accuracy) is method provenance, recorded on the producing edge, not in this scalar node.",
+   "name": "HOMOLUMOGap",
+   "symbol": "E_{gap}^{mol}",
+   "tier": "Molecular"
+  },
+  "uid": "8998dd04e7ff8c51679a06f9c40bffb8923fc6d9b8b1f5b3b955999c029a5c5e"
+ },
  "8b9dd2a79db11c01e15d37f64a7bd0d9c95f09ea080a67f7912d9b8aabd7b132": {
   "identity": {
    "fields": [
@@ -1534,6 +1554,26 @@
   },
   "uid": "bb10912780eb22d45beff551be14f7f4216f3aae26161e8bfd60cdc051f63f58"
  },
+ "bf0f65e5f725c4d82321504f06db3610ce8e9d4d2041bf01dbcc9a1a02cfd191": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "bond_dissociation_energy"
+  },
+  "meta": {
+   "description": "Bond dissociation energy: the energy to cleave one chemical bond of a molecule, a difference of relaxed fragment total energies, BDE_homolytic = E(A.) + E(B.) - E(A-B) from chem-bond-dissociation (calculate_bde.py:8, bde_eV:486; rdkit enumerates and fragments the bonds, the MLIP supplies the fragment energies). A single ENERGY scalar per bond in eV; dimension ENERGY (1,2,-2,0,0,0,0). A LABELED SIBLING of the solid-state ReactionEnergy (both are stoichiometric total-energy differences), kept a distinct node by the bond_dissociation_energy tag: ReactionEnergy is a balanced solid-state reaction combined from per-atom formation energies, whereas a BDE is a molecule-fragment energy difference on the per-MOLECULE basis (molecular fragments, not a periodic cell). Homolytic cleavage needs open-shell radical fragments (charge / spin set per fragment, calculate_bde.py:162); heterolytic needs charged fragments; which cleavage is an instance condition, not the node. kcal/mol is the chemist's native convention (1 eV = 23.060547830619 kcal/mol; the script hardcodes the TRUNCATED 23.0605, so record the exact factor on the encode side); served here in the canonical eV. rdkit is catalog-only (fragmentation); only the MLIP energy difference is the physics.",
+   "name": "BondDissociationEnergy",
+   "symbol": "E_{BDE}",
+   "tier": "Molecular"
+  },
+  "uid": "bf0f65e5f725c4d82321504f06db3610ce8e9d4d2041bf01dbcc9a1a02cfd191"
+ },
  "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced": {
   "identity": {
    "fields": [
@@ -1575,6 +1615,28 @@
    "tier": "Electronic transport"
   },
   "uid": "c4a81f649b3964aed4d4b3c48dfec4f252958c9560332286e2105b175794144b"
+ },
+ "c922f2cfe105ec7d7fc5afd8eabcc0cc2e7adde25e2231272a4dd34493b4bd98": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "construction": "neb_mep"
+   },
+   "quantity": "reaction_barrier"
+  },
+  "meta": {
+   "description": "Reaction / migration barrier energy: the peak-minus-reactant energy along a reaction path. Minted this slice as the neb_mep construction: the CI-NEB minimum-energy-path barrier from chem-neb-barrier via ase.mep NEBTools.get_barrier()[0] (calculate_barrier.py:126-127, results['barrier_eV']:144; idpp interpolation, 7 images, an MLIP calculator), a single ENERGY scalar per reaction in eV. Dimension ENERGY (1,2,-2,0,0,0,0). It JOINS one reaction_barrier family through the construction LABEL_KEY (a registered value): the sella static-TS route (construction=static_ts_mlip, chem-ts-optimization, the barrier a downstream reactant/product/TS MLIP-energy difference) and the ORCA static-TS route (construction=static_ts_dft, chem-dft-orca molecular DFT, Hartree->eV, all-electron zero) join the SAME node family LATER with the SAME reaction_barrier tag and ENERGY dimension, distinct nodes only by the construction label, NO re-mint (the carrier-label pattern). CROSS-CONSTRUCTION SUBTRACTION IS FORBIDDEN: an MLIP-eV NEB barrier and an ORCA all-electron Hartree->eV barrier sit on different energy zeros and must never be differenced. EMPHATICALLY DISTINCT from the Arrhenius ActivationEnergy (activation_energy tag, E_a from the temperature dependence of diffusivity D(T) = D0 exp(-E_a/k_B T)): that is a diffusivity SLOPE, NOT a PES barrier, and the shared word is a trap.",
+   "name": "ReactionBarrier[construction=neb_mep]",
+   "symbol": "E_{barrier}",
+   "tier": "Molecular"
+  },
+  "uid": "c922f2cfe105ec7d7fc5afd8eabcc0cc2e7adde25e2231272a4dd34493b4bd98"
  },
  "cd81fd8a1d62a1484f3057647d23aa780500de44175ae4e686e189a3ca5b36b2": {
   "identity": {

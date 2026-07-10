@@ -139,6 +139,58 @@
   },
   "uid": "1374919bed5b2ab25f700faf12ff8dc32b6fa3296fe92dd12092e3b9edd39e54"
  },
+ "15a6a24bb6b4ad6d1c1b44ef4d56407bd37565a4fa21a97efb99b763d75f3771": {
+  "identity": {
+   "formula": "Equality(Symbol('E_{barrier}'), Function('\\\\Delta_{NEB}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}')))",
+   "inputs": [
+    "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "c922f2cfe105ec7d7fc5afd8eabcc0cc2e7adde25e2231272a4dd34493b4bd98",
+   "outputs": [
+    "c922f2cfe105ec7d7fc5afd8eabcc0cc2e7adde25e2231272a4dd34493b4bd98"
+   ],
+   "schemes": {
+    "method": "ci_neb"
+   }
+  },
+  "meta": {
+   "description": "Reaction barrier E_barrier = Delta_NEB[E_tot, Structure] for the neb_mep construction: the peak-minus-reactant energy along the climbing-image nudged-elastic-band minimum-energy path, chem-neb-barrier via ase.mep NEBTools.get_barrier()[0] (calculate_barrier.py:126-127), results['barrier_eV']. Delta_NEB is opaque over the per-image TotalEnergy family (the E along the band) and the Structure endpoints; eV, MLIP. The scheme records the ci_neb method (idpp interpolation, 7 images, the MLIP checkpoint the discretization). This is the ONE construction minted this slice; the sella static-TS (construction=static_ts_mlip) and ORCA static-TS (construction=static_ts_dft) routes join the SAME reaction_barrier family later, distinct nodes only by the construction label, no re-mint. Distinct from the Arrhenius-slope ActivationEnergy. Implicit (a NEB path optimization), so not sympy-executable.",
+   "formula_latex": "E_{barrier} = \\Delta_{NEB}{\\left(E_{tot},\\mathcal{S} \\right)}",
+   "formula_srepr": "Equality(Symbol('E_{barrier}'), Function('\\\\Delta_{NEB}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}')))",
+   "name": "compute_reaction_barrier",
+   "schemes": {
+    "method": "ci_neb"
+   }
+  },
+  "uid": "15a6a24bb6b4ad6d1c1b44ef4d56407bd37565a4fa21a97efb99b763d75f3771"
+ },
+ "1795d2610a857e1ab6d3fff4c3fa60712330c92f6e370899bcf63813a417f805": {
+  "identity": {
+   "formula": "Equality(Symbol('E_{BDE}'), Function('\\\\Delta_{BDE}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}')))",
+   "inputs": [
+    "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "bf0f65e5f725c4d82321504f06db3610ce8e9d4d2041bf01dbcc9a1a02cfd191",
+   "outputs": [
+    "bf0f65e5f725c4d82321504f06db3610ce8e9d4d2041bf01dbcc9a1a02cfd191"
+   ],
+   "schemes": {
+    "method": "homolytic_fragment_difference"
+   }
+  },
+  "meta": {
+   "description": "Bond dissociation energy E_BDE = Delta_BDE[E_tot, Structure]: the relaxed fragment total-energy difference E(A.) + E(B.) - E(A-B) of homolytic cleavage, chem-bond-dissociation (calculate_bde.py:8, bde_eV:486; rdkit fragments the bond, the MLIP supplies the energies). Delta_BDE is opaque over the intact-molecule and fragment TotalEnergy values and the molecular Structure; eV native (kcal/mol the chemist's convention, the script's 23.0605 factor truncated). The scheme records the homolytic_fragment_difference method (heterolytic charged-fragment cleavage is the sibling method, an instance condition). A labeled sibling of the solid-state reaction-energy producer, on the per-molecule basis. Implicit (relaxed-fragment MLIP energy differences with open-shell radicals), so not sympy-executable.",
+   "formula_latex": "E_{BDE} = \\Delta_{BDE}{\\left(E_{tot},\\mathcal{S} \\right)}",
+   "formula_srepr": "Equality(Symbol('E_{BDE}'), Function('\\\\Delta_{BDE}')(Symbol('E_{tot}'), Symbol('\\\\mathcal{S}')))",
+   "name": "compute_bond_dissociation",
+   "schemes": {
+    "method": "homolytic_fragment_difference"
+   }
+  },
+  "uid": "1795d2610a857e1ab6d3fff4c3fa60712330c92f6e370899bcf63813a417f805"
+ },
  "1ab7a3aee9b25b786739afcd517b909e4fdf091c768ab4ecbea007e53633be92": {
   "identity": {
    "formula": "Equality(Sum(Mul(Indexed(IndexedBase(Symbol('D')), Symbol('i', integer=True), Symbol('j', integer=True), Symbol('\\\\mathbf{q}')), Indexed(IndexedBase(Symbol('e')), Symbol('j', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True))), Tuple(Symbol('j', integer=True), Integer(1), Mul(Integer(3), Symbol('N', positive=True, integer=True)))), Mul(Pow(Indexed(IndexedBase(Symbol('\\\\omega')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Integer(2)), Indexed(IndexedBase(Symbol('e')), Symbol('i', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True))))",
@@ -895,6 +947,32 @@
    "schemes": {}
   },
   "uid": "77d1268cd072ac2acfbf95872ae6a8acc0a20ac9e196dfe7256048ad9f5f8f2d"
+ },
+ "785759ece87a293204a322aa5c662467cc649f6a0b69b641542aba0fa6ddfff4": {
+  "identity": {
+   "formula": "Equality(Symbol('E_{gap}^{mol}'), Function('\\\\Delta_{HL}')(Symbol('\\\\mathcal{S}'), Symbol('V')))",
+   "inputs": [
+    "80a4273845e09207860e06db18d1f1ee5670a9b9c8b1020a99928c872878f901",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "8998dd04e7ff8c51679a06f9c40bffb8923fc6d9b8b1f5b3b955999c029a5c5e",
+   "outputs": [
+    "8998dd04e7ff8c51679a06f9c40bffb8923fc6d9b8b1f5b3b955999c029a5c5e"
+   ],
+   "schemes": {
+    "method": "scf_orbital_gap"
+   }
+  },
+  "meta": {
+   "description": "Molecular HOMO-LUMO gap E_gap = Delta_HL[Structure, Potential]: the eV difference of the two discrete frontier KS molecular orbitals of a converged SCF, ORCA's homo_lumo_gap_eV (parse_orca_output.py:86-93). Delta_HL is opaque over the molecular Structure and the chosen functional / basis (the Potential-provenance analog, the def2-SVP default and the wB97M-V hyphenated-functional hack ride the scheme). The scheme records the scf_orbital_gap method. A COUSIN of the periodic band-gap producer, never equated (a molecule has no bands). Implicit (a molecular SCF, an opaque quantum-chemistry solve), so not sympy-executable.",
+   "formula_latex": "E_{gap}^{mol} = \\Delta_{HL}{\\left(\\mathcal{S},V \\right)}",
+   "formula_srepr": "Equality(Symbol('E_{gap}^{mol}'), Function('\\\\Delta_{HL}')(Symbol('\\\\mathcal{S}'), Symbol('V')))",
+   "name": "compute_homo_lumo_gap",
+   "schemes": {
+    "method": "scf_orbital_gap"
+   }
+  },
+  "uid": "785759ece87a293204a322aa5c662467cc649f6a0b69b641542aba0fa6ddfff4"
  },
  "7b9e21caad74ed2be7cf49af55b1e745bb8a2606b035bee37c46c37a09cf58fc": {
   "identity": {
