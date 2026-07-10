@@ -505,6 +505,49 @@ evaluated (with \texttt{conditions} carrying the rest of the evaluation
 point). A value record never introduces structure; that is a separate,
 reviewed contribution through the gates.
 
+\paragraph{Spectrum record (function-valued evidence).} Some nodes are
+function-valued in practice (a phonon density of states, a diffraction pattern,
+a dielectric function): the evidence is not one scalar but an array of ordinates
+against a monotonic axis. A spectrum record is the value record with the scalar
+replaced by an axis and an array, attached to the same nodes and pinned the same
+way (\texttt{node\_uid} at bundle time). Each spectrum-capable node's
+representation declares a \emph{canonical axis} (a registered unit and its
+dimension) so the axis and value units can be validated against a fixed
+convention; the axis must be strictly monotonic and the arrays equal-length.
+The implemented schema, shown as a real committed record with the long arrays
+elided
+(\texttt{docs/data/spectra/li-phonondos-mat-phonon.json}):
+
+\begin{verbatim}
+{
+  "variable": "PhononDOS",
+  "material": "Li",
+  "conditions": {"structure": "BCC",
+                 "model": "TensorNet-MatPES-r2SCAN-v2025.1-PES",
+                 "supercell": "3x3x3",
+                 "normalization": "states/THz per unit cell"},
+  "axis": {"name": "omega", "units": "linear_THz",
+           "values": [-0.771482, -0.724914, ..., 8.542130]},
+  "values": [0.0, 0.0, ..., 0.0],
+  "units": "states/THz",
+  "uncertainty": null,
+  "source": {
+    "kind": "simulation",
+    "ref": "mat-phonon",
+    "detail": "AtomisticSkills mat-phonon Li BCC example, total_dos.dat
+               verbatim (201 bins, linear THz axis) ..."
+  }
+}
+\end{verbatim}
+
+The DOS density carries no registered unit: its normalization (per cell versus
+per formula unit) rides in \texttt{conditions}, so the canonical axis pins the
+frequency axis and leaves the ordinate unit open. Diffraction is deferred: the
+XRD pattern's canonical axis (the wavelength-free plane spacing $d_{hkl}$, with
+the radiation wavelength a required condition of any served $2\theta$ axis) is
+recorded as a representation note, and a spectrum against it becomes admissible
+only when an \texttt{XRDPattern} node is minted.
+
 \paragraph{Parser contract.} Input: one artifact (a codebase, a paper, a run). Output:
 proposed structure and value records. Every proposal must pass validation below
 before a human confirms it into the index.
