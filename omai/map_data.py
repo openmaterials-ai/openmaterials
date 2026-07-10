@@ -357,6 +357,9 @@ def build_spectra(spectra_dir: Path | None = None) -> list[dict]:
             rec, name_to_uid=name_to_uid,
             axis_by_var=lambda v: _canonical_axis(domains, v), where=f.name)
         rec["node_uid"] = name_to_uid[rec["variable"]]
+        # The record's own file, so the site can link the panel line to the raw
+        # per-spectrum JSON under docs/data/spectra/.
+        rec["file"] = f.name
         out.append(rec)
     return out
 

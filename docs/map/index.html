@@ -122,6 +122,8 @@
   .exp .mat-h{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.78rem;font-weight:600;padding:7px 12px;background:#f6f4f0;color:var(--ink-2);}
   .exp .row{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;font-size:.83rem;border-top:1px solid var(--line);}
   .exp .row .src{color:#6b7078;line-height:1.45;} .exp .row b{white-space:nowrap;}
+  .exp .row:first-child{border-top:none;}   /* a lone spectrum row carries no header, so no orphan top rule */
+  .speclink{align-self:center;font-family:var(--font-mono);font-size:.72rem;font-weight:700;color:var(--obs);text-decoration:none;white-space:nowrap;} .speclink:hover{text-decoration:underline;}
   .recon{font-size:.79rem;color:#475569;background:var(--accent-soft);border:1px solid #e0e4fb;border-radius:11px;padding:9px 11px;}
   /* the "mapped by code" provenance list is the shared .om-kv; the code name
      (key) keeps its indigo accent, page-specific. */
@@ -260,7 +262,7 @@ const HAS_KATEX = (typeof katex!=='undefined');
 const HAS_DAGRE = (typeof dagre!=='undefined');
 
 let VB={x:0,y:0,w:1000,h:1000}, GW=1000, GH=1000;
-let nodeById={}, parents={}, children={}, byVar={}, symHtml={}, pos={},
+let nodeById={}, parents={}, children={}, byVar={}, bySpec={}, symHtml={}, pos={},
     codesData={}, activeCode=null, tierList=[], tierIndex={}, edgeList=[],
     depth='overview';   // 'overview' | 'expanded' | 'focused'
 let priorDepth='overview';  // level to restore when leaving 'focused'
@@ -294,10 +296,11 @@ Promise.all([
   fetch('../data/graph.json?v='+Date.now()).then(r=>r.json()),
   fetch('../data/instances.json?v='+Date.now()).then(r=>r.json()).catch(()=>[]),
   fetch('../data/codes.json?v='+Date.now()).then(r=>r.json()).catch(()=>({})),
-  fetch('../data/version.json?v='+Date.now()).then(r=>r.json()).catch(()=>null)
+  fetch('../data/version.json?v='+Date.now()).then(r=>r.json()).catch(()=>null),
+  fetch('../data/spectra.json?v='+Date.now()).then(r=>r.json()).catch(()=>[])
 ]).then(build).catch(e=> err('data: '+e));
 
-function build([graph, insts, codes, version]){
+function build([graph, insts, codes, version, spectra]){
   codesData = codes || {};
   if(version && version.version){
     const vh=document.getElementById('mapverhash');
@@ -307,6 +310,7 @@ function build([graph, insts, codes, version]){
     document.getElementById('versep').style.display='';
   }
   (insts||[]).forEach(it=>{ (byVar[it.variable]=byVar[it.variable]||[]).push(it); });
+  (spectra||[]).forEach(sp=>{ (bySpec[sp.variable]=bySpec[sp.variable]||[]).push(sp); });
   graph.nodes.forEach(n=>{ nodeById[n.id]=n; symHtml[n.id]=tex(n.symbol); });
 
   const seen=new Set();
@@ -573,6 +577,24 @@ function expHtml(id){
   h+='<div class="recon">'+list.length+' value'+(list.length>1?'s':'')+' across '+mats.length+' material'+(mats.length>1?'s':'')+'; comparisons are per material, at matching conditions.</div>';
   return h;
 }
+function specHtml(id){
+  // Function-valued evidence attached at this node: rendered ONLY when a
+  // spectrum exists (the canvas stays structure-pure; this is panel-only). Each
+  // line names the material, its axis, source ref, and links to the raw JSON.
+  const list=bySpec[id]||[]; if(!list.length) return '';
+  let h='<div class="om-panel-label">spectra attached here</div>';
+  list.forEach(sp=>{
+    const meas=sp.source&&sp.source.kind==='measurement';
+    const col=meas?'#d98a14':'#0f9d6b';
+    const ax=(sp.axis&&sp.axis.name?esc(sp.axis.name):'axis')+(sp.axis&&sp.axis.units?(' ('+esc(sp.axis.units)+')'):'');
+    const src=(sp.source&&sp.source.ref)?esc(sp.source.ref):'';
+    const n=(sp.values&&sp.values.length)||0;
+    const link=sp.file?('../data/spectra/'+attr(sp.file)):'';
+    h+='<div class="exp"><div class="row"><span class="src"><b style="color:'+col+'">'+esc(sp.material||'?')+'</b><br>'+n+' pts vs '+ax+(src?(' · '+src):'')+'</span>'+
+       (link?('<a class="speclink" href="'+link+'" target="_blank" rel="noopener">JSON</a>'):'')+'</div></div>';
+  });
+  return h;
+}
 function mappedByHtml(id){
   const rows=Object.keys(codesData).filter(c=> codesData[c] && codesData[c][id]).sort().map(c=>{ const m=codesData[c][id]; return '<div class="om-kv-row"><span class="om-kv-k">'+esc(c)+'</span><span class="om-kv-v">'+esc((m.api||''))+(m.unit?(' · '+esc(m.unit)):'')+'</span></div>'; });
   return rows.length? ('<div class="om-panel-label">mapped by '+rows.length+' code'+(rows.length>1?'s':'')+'</div><div class="mapby om-kv">'+rows.join('')+'</div>') : '';
@@ -594,6 +616,7 @@ function selectNode(node){
   if(outs.length){ h+='<div class="om-panel-label">produces &rarr;</div><div class="chips">'+outs.map(chip).join('')+'</div>'; }
   if(ins.length){ h+='<div class="om-panel-label">&larr; from</div><div class="chips">'+ins.map(chip).join('')+'</div>'; }
   h+=expHtml(id);
+  h+=specHtml(id);
   h+=mappedByHtml(id);
   panelEl.innerHTML=h; panelEl.style.display='block';
 }
