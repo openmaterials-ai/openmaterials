@@ -68,9 +68,10 @@ def test_write_index_emits_one_file_per_representation(tmp_path):
     assert files == [f"{r}.json" for r in reps]
     # One file per representation; the count grows as domains add codes /
     # skills (the mechanics domain added the mat-elasticity skill, 10th rep;
-    # the pymatgen scan added the pymatgen rail, 11th).
+    # the pymatgen scan added the pymatgen rail, 11th; the MLIP-family scan
+    # added the mace / matgl / fairchem rails, 12th-14th).
     assert len(files) == len(reps)
-    assert len(files) == 11
+    assert len(files) == 14
 
 
 def test_each_index_entry_uid_matches_live_node_id(tmp_path):

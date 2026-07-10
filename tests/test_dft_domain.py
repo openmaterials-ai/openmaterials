@@ -182,7 +182,9 @@ def test_dft_representation_package_discovery_finds_the_specs():
     modules and collect spec instances by introspection. QE contributes four
     space specs and one operator spec; pymatgen (2026-07-09) four space specs
     (Structure, TotalEnergy, Stress, MagneticMoment) and one operator spec
-    (compute_magnetic_moments)."""
+    (compute_magnetic_moments); the three MLIP rails (2026-07-09) ground the
+    shared Potential plus the ground-state E/F/S, matgl additionally the CHGNet
+    MagneticMoment head, each with one solve_ground_state operator spec."""
     import importlib
     import pkgutil
 
@@ -215,8 +217,20 @@ def test_dft_representation_package_discovery_finds_the_specs():
     assert by_rep_space["pymatgen"] == {
         "Structure", "TotalEnergy", "Stress", "MagneticMoment"}
     assert by_rep_op["pymatgen"] == {"compute_magnetic_moments"}
-    assert len(space_specs) == 8, [a for a, _ in space_specs]
-    assert len(op_specs) == 2, [a for a, _ in op_specs]
+    # The three MLIP rails: each grounds Potential + TotalEnergy/Forces/Stress;
+    # matgl additionally carries the CHGNet MagneticMoment head.
+    assert by_rep_space["mace"] == {
+        "Potential", "TotalEnergy", "Forces", "Stress"}
+    assert by_rep_space["fairchem"] == {
+        "Potential", "TotalEnergy", "Forces", "Stress"}
+    assert by_rep_space["matgl"] == {
+        "Potential", "TotalEnergy", "Forces", "Stress", "MagneticMoment"}
+    for rep in ("mace", "matgl", "fairchem"):
+        assert by_rep_op[rep] == {"solve_ground_state"}, rep
+    # 8 (qe 4 + pymatgen 4) + mace 4 + matgl 5 + fairchem 4 = 21 space specs;
+    # 2 (qe, pymatgen operator) + 3 MLIP operator specs = 5 operator specs.
+    assert len(space_specs) == 21, [a for a, _ in space_specs]
+    assert len(op_specs) == 5, [a for a, _ in op_specs]
 
 
 def test_qe_ground_state_units_are_the_declared_ones():
@@ -253,6 +267,154 @@ def test_qe_solve_ground_state_declares_the_scf_discretizations():
     for key in ("ecutwfc", "k_mesh", "smearing", "conv_thr",
                 "pseudopotentials"):
         assert key in QE_SOLVE_GROUND_STATE.discretization_choices, key
+
+
+# --------------------------------------------------------------------------
+# The MLIP rails (mace / matgl / fairchem): representation-only, grounding the
+# shared Potential plus the ground-state E/F/S (matgl also MagneticMoment).
+# --------------------------------------------------------------------------
+
+def test_build_codes_has_the_three_mlip_rails_with_node_coverage():
+    from omai.map_data import build_codes
+
+    codes = build_codes(DOMAINS)
+    assert set(codes["mace"]) == {"Potential", "TotalEnergy", "Forces", "Stress"}
+    assert set(codes["fairchem"]) == {
+        "Potential", "TotalEnergy", "Forces", "Stress"}
+    assert set(codes["matgl"]) == {
+        "Potential", "TotalEnergy", "Forces", "Stress", "MagneticMoment"}
+
+
+def test_mlip_efs_units_are_ase_ev_not_gpa():
+    """All three rails emit the ASE native units: eV per cell, eV/A, eV/A^3 -
+    the stress is eV/A^3, NOT GPa (the matgl native GPa default is overridden
+    in the wrapper). Potential is opaque and carries no unit."""
+    from omai.dft_ground_state.representation.mace import (
+        MACE_FORCES, MACE_POTENTIAL, MACE_STRESS, MACE_TOTAL_ENERGY,
+    )
+    from omai.dft_ground_state.representation.matgl import (
+        MATGL_FORCES, MATGL_MAGNETIC_MOMENT, MATGL_POTENTIAL, MATGL_STRESS,
+        MATGL_TOTAL_ENERGY,
+    )
+    from omai.dft_ground_state.representation.fairchem import (
+        FAIRCHEM_FORCES, FAIRCHEM_POTENTIAL, FAIRCHEM_STRESS,
+        FAIRCHEM_TOTAL_ENERGY,
+    )
+
+    for energy in (MACE_TOTAL_ENERGY, MATGL_TOTAL_ENERGY, FAIRCHEM_TOTAL_ENERGY):
+        assert energy.observable_units == {"E_tot": "ev"}
+    for forces in (MACE_FORCES, MATGL_FORCES, FAIRCHEM_FORCES):
+        assert forces.observable_units == {"F": "eV_per_A"}
+    for stress in (MACE_STRESS, MATGL_STRESS, FAIRCHEM_STRESS):
+        assert stress.observable_units == {"sigma": "eV_per_A3"}
+        assert "GPa" not in stress.observable_units.values()
+    # matgl's CHGNet magmom head is mu_B per site.
+    assert MATGL_MAGNETIC_MOMENT.observable_units == {"m": "mu_B"}
+    # Potential is opaque: an artifact (the checkpoint), never a numeric unit.
+    for potential in (MACE_POTENTIAL, MATGL_POTENTIAL, FAIRCHEM_POTENTIAL):
+        assert potential.observable_units == {}
+
+
+def test_mlip_stress_notes_record_ase_voigt_order_and_the_store_sign_factor():
+    """The stress notes must record the ASE Voigt order (xx,yy,zz,yz,xz,xy),
+    that ASE is tensile-positive, and that the store convention is the OPPOSITE
+    sign (factor -1) so a consumer knows how to reach sigma_store."""
+    from omai.dft_ground_state.representation.mace import MACE_STRESS
+    from omai.dft_ground_state.representation.matgl import MATGL_STRESS
+    from omai.dft_ground_state.representation.fairchem import FAIRCHEM_STRESS
+
+    for stress in (MACE_STRESS, MATGL_STRESS, FAIRCHEM_STRESS):
+        notes = stress.notes
+        assert "xx, yy, zz, yz, xz, xy" in notes
+        assert "tensile-positive" in notes.lower()
+        assert "-1" in notes
+        assert "store" in notes.lower()
+
+
+def test_matgl_stress_notes_record_the_gpa_default_override_and_use_voigt():
+    """matgl's PESCalculator native stress default IS GPa (overridden in the
+    wrapper to eV/A3) and use_voigt defaults False (a 3x3 the get_stress()
+    reduces): both source-verified facts belong in the notes."""
+    from omai.dft_ground_state.representation.matgl import MATGL_STRESS
+
+    notes = MATGL_STRESS.notes
+    assert "GPa" in notes
+    assert "eV/A3" in notes or "eV/A^3" in notes
+    assert "use_voigt" in notes
+
+
+def test_matgl_magmom_notes_record_the_chgnet_head_and_the_charges_mislabel():
+    """The CHGNet sitewise magmom head surfaced as results['magmoms'] under
+    calc_magmom, and the wrapper's 'charges' capability mislabel, are the two
+    source-verified facts the orchestrator required on this spec."""
+    from omai.dft_ground_state.representation.matgl import MATGL_MAGNETIC_MOMENT
+
+    notes = MATGL_MAGNETIC_MOMENT.notes
+    assert "magmoms" in notes
+    assert "_chgnet.py:437" in notes
+    assert "matgl_wrapper.py:288" in notes
+    assert "mislabel" in notes.lower()
+
+
+def test_fairchem_notes_record_force_type_and_nve_conservation():
+    """fairchem ships conservative and direct heads; force_type {conservative,
+    direct} and the NVE non-conservation of a direct head must be in the notes
+    (on the Potential spec and the Forces spec)."""
+    from omai.dft_ground_state.representation.fairchem import (
+        FAIRCHEM_FORCES, FAIRCHEM_POTENTIAL,
+    )
+
+    for spec in (FAIRCHEM_POTENTIAL, FAIRCHEM_FORCES):
+        notes = spec.notes
+        assert "conservative" in notes
+        assert "direct" in notes
+        assert "NVE" in notes
+
+
+def test_mace_notes_record_committee_uncertainty_as_a_deferred_candidate():
+    """The committee-uncertainty availability (energy_var / forces_var when
+    num_models>1) is recorded as a deferred node candidate, NOT encoded."""
+    from omai.dft_ground_state.representation.mace import MACE_POTENTIAL
+
+    notes = MACE_POTENTIAL.notes
+    assert "energy_var" in notes and "forces_var" in notes
+    assert "mace.py:704-717" in notes
+    assert "num_models>1" in notes or "num_models > 1" in notes
+
+
+def test_mace_notes_record_the_cross_engine_lammps_agreement_candidate():
+    """mat-lammps-md compiles the same MACE checkpoint into a LAMMPS pair style:
+    the notes flag the same-PES-two-engines EXPECTED_AGREE candidate and the
+    ~1e-8 CODATA-generation tolerance."""
+    from omai.dft_ground_state.representation.mace import MACE_POTENTIAL
+
+    notes = MACE_POTENTIAL.notes
+    assert "mat-lammps-md" in notes
+    assert "EXPECTED_AGREE" in notes
+    assert "1e-8" in notes
+
+
+def test_mace_notes_record_the_mat_elasticity_matcalc_provenance_chain():
+    """The mat-elasticity Cu instances were computed with a MACE checkpoint via
+    matcalc; that provenance chain lives in the mace notes until a future
+    instance-schema slice (committed instances are NOT retro-edited)."""
+    from omai.dft_ground_state.representation.mace import MACE_POTENTIAL
+
+    notes = MACE_POTENTIAL.notes
+    assert "mat-elasticity" in notes
+    assert "matcalc" in notes
+
+
+def test_mlip_potentials_ground_the_shared_potential_node():
+    """The three rails ground the SAME shared Potential node the thermal-transport
+    graph uses (imported via materials.shared_primitives), not a duplicate."""
+    from omai.materials.operator.shared_primitives import POTENTIAL as SHARED
+    from omai.dft_ground_state.representation.mace import MACE_POTENTIAL
+    from omai.dft_ground_state.representation.matgl import MATGL_POTENTIAL
+    from omai.dft_ground_state.representation.fairchem import FAIRCHEM_POTENTIAL
+
+    for spec in (MACE_POTENTIAL, MATGL_POTENTIAL, FAIRCHEM_POTENTIAL):
+        assert spec.space is SHARED
 
 
 # --------------------------------------------------------------------------
