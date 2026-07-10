@@ -155,6 +155,26 @@ a:focus-visible{outline-offset:3px;}
   .om-nav{gap:16px;}
   .om-nav .om-hide-sm{display:none;}
 }
+/* small screens: keep the header on one line and let the nav scroll rather than
+   push the page wider (which used to bleed prose off the right edge). The brand
+   never shrinks; the nav takes the remaining width and scrolls horizontally. */
+@media (max-width:560px){
+  .om-header{gap:10px;padding:0 14px;}
+  .om-brand{flex:none;}
+  .om-nav{
+    margin-left:auto;gap:14px;min-width:0;flex:1;justify-content:flex-end;
+    overflow-x:auto;-webkit-overflow-scrolling:touch;
+    scrollbar-width:none;-ms-overflow-style:none;
+  }
+  .om-nav::-webkit-scrollbar{display:none;}
+  .om-nav a{padding-top:9px;padding-bottom:9px;}
+}
+@media (max-width:410px){
+  /* tighten so all four links clear the wordmark without tucking under it */
+  .om-header{gap:8px;}
+  .om-nav{gap:11px;}
+  .om-nav a{font-size:.8rem;}
+}
 
 /* ---- buttons -------------------------------------------------------------- */
 .om-btn{

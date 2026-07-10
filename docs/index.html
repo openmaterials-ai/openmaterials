@@ -30,6 +30,11 @@
     .hero .two{grid-template-columns:1fr;gap:26px;}
     .hero .fig-wrap{order:2;max-width:440px;}
   }
+  @media (max-width:430px){
+    /* phone: hold the display head to the measure and keep the lede on-page */
+    .hero h1{font-size:clamp(2.1rem,9vw,2.6rem);}
+    .hero .lede{font-size:1.06rem;}
+  }
 
   /* stats band: one hairline-framed strip */
   .stats{border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
