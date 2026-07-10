@@ -1,0 +1,205 @@
+{
+  "scan": "matcalc-ase-atomistic-skills",
+  "target": "matcalc (the property-calculator layer that drives MLIPs) and the ASE delta beyond Potential-hosting, as exercised by AtomisticSkills (arXiv 2605.24002).",
+  "companion_md": "scans/matcalc-ase-atomistic-skills.md",
+  "packages": {
+    "matcalc": {
+      "version_downloaded": "0.5.1",
+      "importable_in_base_env": false,
+      "source_read_from": "/tmp/mcsrc/matcalc-0.5.1/src/matcalc (pip download --no-deps, sdist)",
+      "public_api": ["AdsorptionCalc", "ChainedCalc", "EOSCalc", "ElasticityCalc", "EnergeticsCalc", "GBCalc", "InterfaceCalc", "LAMMPSMDCalc", "MDCalc", "NEBCalc", "MEP", "Phonon3Calc", "PhononCalc", "PropCalc", "QHACalc", "RelaxCalc", "SurfaceCalc", "PESCalculator"]
+    },
+    "ase": {
+      "version": "3.26.0",
+      "importable_in_base_env": true,
+      "source_read_from": "/Users/juicy/miniconda3/lib/python3.12/site-packages/ase"
+    }
+  },
+  "anchoring_caveat": "matcalc is NOT importable in the miniconda base env; its sources were pip-downloaded (matcalc-0.5.1 sdist) and read directly, so matcalc claims are package-source-backed. ASE 3.26.0 IS importable and every ASE unit / class claim was checked live. The AtomisticSkills repository is NOT present on this machine (searched Development/, Development/science/; not found). AtomisticSkills usage of matcalc and ASE is therefore anchored to the three prior committed scans that DID read it directly (scans/mlip-family-atomistic-skills, scans/pymatgen-atomistic-skills, scans/atomate2-vasp-atomistic-skills) plus docs/data/codes.json, NOT to a live read of the skill sources in this scan. A future re-run with the AtomisticSkills repo mounted should confirm the exact matcalc kwargs (units_GPa, fmax, ensemble) each mat-* skill passes.",
+  "rail_vs_schemes_recommendation": {
+    "verdict": "schemes-on-operators, NOT a separate rail (same treatment as atomate2).",
+    "one_line": "matcalc is to MLIPs what atomate2 is to VASP: a workflow / discretization layer. atomate2 got NO separate rail (its makers live in operator-spec schemes); matcalc should get the same. But matcalc is a HARDER case than atomate2 because its fitting steps ARE physics, not mere orchestration.",
+    "evidence_for_schemes": [
+      "matcalc never transforms a value into a NEW physical unit basis of its own: E/F/S come straight from the ASE calculator (atoms.get_potential_energy / get_forces / get_stress), phonons come straight from phonopy, kappa straight from phono3py, EOS bulk modulus straight from pymatgen BirchMurnaghan.b0_GPa, elastic VRH straight from pymatgen ElasticTensor. Every mapped node it 'produces' is already grounded by a rail (MLIP Potential/E/F/S, phonopy, phono3py, pymatgen).",
+      "the calculators are thin ASE/phonopy/pymatgen orchestrators: RelaxCalc wraps ase.optimize + FrechetCellFilter; MDCalc wraps ase.md integrators + TrajectoryWriter; PhononCalc wraps phonopy.Phonopy; Phonon3Calc wraps phono3py.Phono3py; EOSCalc wraps pymatgen BirchMurnaghan; ElasticityCalc wraps pymatgen DeformedStructureSet + ElasticTensor.",
+      "atomate2 precedent: the orchestrator already decided the VASP-workflow layer is an OperatorRepresentationSpec on solve_ground_state, not a rail. matcalc is the exact structural analog for the MLIP side."
+    ],
+    "evidence_that_complicates_it": [
+      "matcalc's strain-stress fit is NOT pure pass-through. ElasticityCalc._elastic_tensor_from_strains does the np.polyfit(strain, stress, 1) itself (matcalc _elasticity.py:182-224), building C_ij from a linear fit over its OWN DeformedStructureSet (norm_strains (-0.01,-0.005,0.005,0.01), shear_strains (-0.06,-0.03,0.03,0.06)). That discretization (which strains, whether to relax deformed cells, use_equilibrium) IS the compute_elastic_constants operator's discretization scheme, not pymatgen's and not the MLIP's.",
+      "EOSCalc runs its OWN volume scan (n_points=11 over +/-0.1 max_abs_strain, apply_strain per point, fixed-volume relaxation each point) before handing E(V) to pymatgen's BM fit. The scan grid is a matcalc scheme.",
+      "So: matcalc carries genuine discretization schemes (strain grid, EOS volume grid, supercell/mesh/displacement, optimizer/fmax/cell-filter) that belong ON the operator representation, exactly as atomate2's INCAR flags do. This REINFORCES schemes-on-operators (the schemes are real and matcalc-owned) rather than arguing for a rail."
+    ],
+    "recommended_encoding": "Encode matcalc as an OperatorRepresentationSpec (a discretization/scheme layer) on the relevant operators: compute_elastic_constants (ElasticityCalc: strain grid + relax_deformed + use_equilibrium schemes), an EOS/bulk_modulus operator (EOSCalc: volume-scan grid + BM eos-model scheme), the phonon operators (PhononCalc: atom_disp + supercell min_length + symprec schemes, driving the already-mapped phonopy rail), thermal conductivity (Phonon3Calc: fc2/fc3 supercell + mesh schemes, driving phono3py), and relax/MD (RelaxCalc/MDCalc: optimizer + fmax + cell_filter + ensemble schemes). Provenance of every derived node must record BOTH the matcalc driver+scheme AND the MLIP checkpoint (the same double-provenance the mlip scan flagged: 'matcalc is the true producer' via the MLIP PES)."
+  },
+  "ase_delta_summary": "ASE has ONE minimal entry on the map today: {ase: {Potential: {api: ase.Atoms.calc}}}. AtomisticSkills (and matcalc) exercise far more of ASE than Potential-hosting. The delta candidates below are what ASE ITSELF produces beyond hosting a calculator: a relaxed Structure (via ase.optimize + FrechetCellFilter), an MD Trajectory (via ase.md integrators + TrajectoryWriter), and the raw E/F/S the calculator exposes through ASE's get_potential_energy/get_forces/get_stress interface (already mapped as the MLIP nodes, but the ASE interface is the actual production API).",
+  "canonical_units_note": "matcalc emits ASE units at its PES boundary (E eV/cell, F eV/A, S eV/A^3) and pymatgen/phonopy units at its analysis boundary. Elastic tensor + moduli default to eV/A^3 (units_GPa=False); GPa mode uses pymatgen's ElasticTensor.GPa_to_eV_A3 = 160.21766339999996 (CODATA-2018/2019-exact). matcalc.units.eVA3ToGPa = scipy.constants.e/(A^3*giga) = 160.21766339999996 (SAME CODATA-2018 generation as pymatgen). ase.units.GPa = 160.21766208 (CODATA-2014). So matcalc sits on the pymatgen/CODATA-2018 side of the ~1e-8 in-repo constant split, and ASE (which matcalc's raw stress rides on) sits on the CODATA-2014 side. EOS bulk modulus is bm.b0_GPa (pymatgen, GPa). Phonopy under matcalc: frequencies linear THz; thermal_properties are MOLAR (free_energy kJ/mol, entropy J/K/mol, heat_capacity J/K/mol). Phono3py under matcalc: kappa W/(m*K), spatially averaged over the 3 diagonal components.",
+  "entry_counts": {
+    "total": 12,
+    "already_mapped": 6,
+    "scheme_on_operator": 3,
+    "new_node_candidate": 2,
+    "representation_only": 1
+  },
+  "entries": [
+    {
+      "tag": "matcalc-relax-structure",
+      "status": "already-mapped",
+      "maps_to": {"node": "Structure", "quantity_tag": "structure"},
+      "producer": "matcalc.RelaxCalc",
+      "api": "RelaxCalc(calc, optimizer='FIRE', fmax=0.1, relax_atoms=True, relax_cell=True, cell_filter=FrechetCellFilter).calc(struct)['final_structure']",
+      "physics_route": "ASE geometry optimization: ase.optimize optimizer (default FIRE) drives atoms (wrapped in FrechetCellFilter for cell relaxation) to force convergence fmax=0.1 eV/A; returns a relaxed pymatgen Structure plus energy/forces/stress/max_force/is_converged and lattice params.",
+      "units": {"final_structure": "angstrom (opaque)", "energy": "eV", "forces": "eV/A", "stress": "eV/A^3", "max_force": "eV/A", "a,b,c": "A", "alpha,beta,gamma": "degree", "volume": "A^3"},
+      "source": ["/tmp/mcsrc/matcalc-0.5.1/src/matcalc/_relaxation.py:51-186", "/tmp/mcsrc/matcalc-0.5.1/src/matcalc/backend/_ase.py:86-163"],
+      "notes": "The equilibrium-structure producer that EVERY other matcalc calc runs first (_prerelax in _base.py:91-145 aborts the chain if the pre-relaxation does not converge). Its final_structure is the Structure node; the relaxed cell is what elastic/EOS/phonon then deform. relax_cell uses FrechetCellFilter (an ASE filter). This is a Structure-producing OPERATION (relax operator), distinct from the opaque input Structure."
+    },
+    {
+      "tag": "matcalc-relax-energy-forces-stress",
+      "status": "already-mapped",
+      "maps_to": {"nodes": ["TotalEnergy", "Forces", "Stress"], "quantity_tags": ["total_energy", "forces", "stress"]},
+      "producer": "matcalc.RelaxCalc / matcalc.backend.run_ase -> ASE calculator",
+      "api": "run_ase(...) -> SimulationResult(structure, potential_energy, kinetic_energy, energy, forces, stress); atoms.get_potential_energy()/get_forces()/get_stress(voigt=False)",
+      "physics_route": "matcalc reads the SAME three PES quantities off the ASE calculator that the MLIP wrappers expose: E (eV/cell), F (eV/A), S (eV/A^3). run_ase calls get_stress(voigt=False), i.e. a 3x3 tensor (NOT a Voigt-6), which is what ElasticityCalc feeds to pymatgen's strain-stress fitter.",
+      "units": {"energy": "eV per cell", "forces": "eV/A", "stress": "eV/A^3"},
+      "source": ["/tmp/mcsrc/matcalc-0.5.1/src/matcalc/backend/_ase.py:147-163", "/tmp/mcsrc/matcalc-0.5.1/src/matcalc/backend/_base.py:10-19"],
+      "notes": "Same nodes the MLIP scan already grounds (mlip-total-energy/forces/stress). matcalc is a CONSUMER of these, not a new producer, but it is the API surface through which the mat-* skills obtain them for the derived quantities. Stress is ASE tension-positive here (3x3), the ASE convention; the MLIP scan verified all three MLIP calculators emit tension-positive stress. The map store Stress is compression-positive (QE/VASP convention), so a sign flip lives between the ASE stress and the map store, as the pymatgen and VASP scans both noted."
+    },
+    {
+      "tag": "matcalc-elastic-tensor-and-moduli",
+      "status": "scheme-on-operator",
+      "maps_to": {"nodes": ["ElasticConstants", "BulkModulus", "ShearModulus", "YoungsModulus"], "quantity_tags": ["elastic_constants", "bulk_modulus", "shear_modulus", "youngs_modulus"], "operator": "compute_elastic_constants"},
+      "producer": "matcalc.ElasticityCalc",
+      "api": "ElasticityCalc(calc, norm_strains=(-0.01,-0.005,0.005,0.01), shear_strains=(-0.06,-0.03,0.03,0.06), fmax=0.1, use_equilibrium=True, units_GPa=False).calc(struct) -> {elastic_tensor, bulk_modulus_vrh, shear_modulus_vrh, youngs_modulus, residuals_sum, r2_score_mean}",
+      "physics_route": "strain-stress fitting. matcalc builds a pymatgen DeformedStructureSet over its own strain grid, evaluates the ASE-calculator stress (eV/A^3) on each deformation, and does the linear fit ITSELF: _elastic_tensor_from_strains runs np.polyfit(strain, stress, 1) component-by-component to build C_ij, then ElasticTensor.from_voigt. VRH moduli (k_vrh, g_vrh) come from pymatgen; Young's E = 9KG/(3K+G) is computed in-matcalc from the VRH averages (matcalc bypasses pymatgen's y_mod because y_mod hardcodes a 9e9 GPa->Pa factor that is wrong for eV/A^3 storage, Issue #85).",
+      "units": {"default": "eV/A^3 (units_GPa=False)", "units_GPa_true": "GPa via 1/ElasticTensor.GPa_to_eV_A3 = 160.21766339999996 (CODATA-2018)"},
+      "schemes": {"strain_grid": "norm_strains + shear_strains (the discretization)", "relax_deformed_structures": "bool (default False)", "use_equilibrium": "bool (forced True if only one strain type)", "relax_structure": "bool (default True, pre-relax the parent cell)", "r2_min": "0.95 fit-quality gate (RuntimeWarning below)"},
+      "source": ["/tmp/mcsrc/matcalc-0.5.1/src/matcalc/_elasticity.py:47-224"],
+      "notes": "THE central rail-vs-schemes exhibit. matcalc's fit IS physics (its strain grid is the operator discretization), but every OUTPUT node is already mapped (pymatgen scan grounds ElasticConstants/BulkModulus/ShearModulus; YoungsModulus is a pymatgen new-node-candidate). So encode matcalc as a scheme layer (OperatorRepresentationSpec) on compute_elastic_constants, carrying the strain grid + relax + equilibrium schemes, NOT as a rail. AtomisticSkills mat-elasticity: codes.json shows BulkModulus/ElasticConstants in GPa; the mlip scan says calculate_elasticity.py multiplies by 160.2176634 (CODATA-2018), consistent with matcalc's units_GPa=False default + skill-side conversion. DOUBLE the number of distinct strain conventions vs pymatgen: matcalc feeds ASE tension-positive eV/A^3 (no vasp=True -0.1 branch), resolving pymatgen open-question 5."
+    },
+    {
+      "tag": "matcalc-eos-bulk-modulus",
+      "status": "scheme-on-operator",
+      "maps_to": {"nodes": ["TotalEnergy (as E(V) curve)", "BulkModulus (BM route)"], "quantity_tags": ["total_energy", "bulk_modulus"], "operator": "equation_of_state / birch_murnaghan"},
+      "producer": "matcalc.EOSCalc",
+      "api": "EOSCalc(calc, optimizer='FIRE', max_abs_strain=0.1, n_points=11, fmax=0.1, allow_shape_change=True).calc(struct) -> {eos: {volumes[A^3], energies[eV]}, bulk_modulus_bm[GPa], r2_score_bm}",
+      "physics_route": "Birch-Murnaghan E(V). matcalc runs its OWN symmetric volumetric strain scan (n_points=11 over +/-max_abs_strain, apply_strain per point, fixed-VOLUME relaxation at each point via RelaxCalc with cell_filter_kwargs constant_volume=True), collects (V, E), then hands them to pymatgen BirchMurnaghan; bulk modulus is bm.b0_GPa.",
+      "units": {"volumes": "A^3", "energies": "eV per cell", "bulk_modulus_bm": "GPa (pymatgen BM b0_GPa)"},
+      "schemes": {"volume_scan_grid": "max_abs_strain=0.1, n_points=11 (the discretization)", "allow_shape_change": "relax cell shape at fixed volume", "optimizer": "FIRE", "relax_structure": "True"},
+      "source": ["/tmp/mcsrc/matcalc-0.5.1/src/matcalc/_eos.py:28-167"],
+      "notes": "The E(V) energies are a TotalEnergy curve (per-cell eV); the BM bulk modulus is a SECOND bulk modulus distinct from the elastic-tensor VRH K (pymatgen scan already flags birch-murnaghan-eos as already-mapped, E0->per-cell TotalEnergy). matcalc's volume-scan grid is the operator scheme. AtomisticSkills mat-equation-of-state drives this (mlip scan)."
+    },
+    {
+      "tag": "matcalc-phonon-thermal",
+      "status": "scheme-on-operator",
+      "maps_to": {"nodes": ["Frequency", "PhononDOS", "MolarHelmholtzFreeEnergy", "MolarEntropy", "MolarHeatCapacity", "ForceConstants[order=2]"], "quantity_tags": ["frequency", "phonon_dos", "molar_helmholtz_free_energy", "molar_entropy", "molar_heat_capacity", "force_constants"], "operator": "phonopy (already-mapped rail)"},
+      "producer": "matcalc.PhononCalc (drives phonopy.Phonopy)",
+      "api": "PhononCalc(calc, atom_disp=0.015, min_length=20.0, t_step=10, t_max=1000, fmax=1e-5).calc(struct) -> {phonon: Phonopy, thermal_properties, frequencies[THz], disp_supercells}",
+      "physics_route": "finite-difference phonons under phonopy. matcalc builds phonopy.Phonopy (supercell from min_length or supercell_matrix, primitive_matrix='auto'), generates displacements (atom_disp=0.015 A), evaluates ASE-calculator FORCES on each displaced supercell, produce_force_constants, run_mesh, run_thermal_properties. Frequencies are phonopy's mesh frequencies in linear THz; thermal_properties are phonopy's molar quantities.",
+      "units": {"frequencies": "THz (linear, phonopy)", "thermal_properties.free_energy": "kJ/mol", "thermal_properties.entropy": "J/(K*mol)", "thermal_properties.heat_capacity": "J/(K*mol)", "temperatures": "K"},
+      "schemes": {"atom_disp": "0.015 A finite-difference displacement", "supercell": "min_length=20.0 A (or explicit supercell_matrix)", "symprec": "1e-5", "imaginary_freq_tol": "-0.01 THz + on_imaginary_modes warn/error + fix_imaginary_attempts", "fmax": "1e-5 (tight pre-relax for phonons)"},
+      "source": ["/tmp/mcsrc/matcalc-0.5.1/src/matcalc/_phonon.py:30-329"],
+      "notes": "matcalc DRIVES an ALREADY-MAPPED code (phonopy is a codes.json rail). The Frequency (linear THz) matches the map canonical linear-THz Frequency (pymatgen scan RESOLVED the linear-vs-angular question: canonical is linear THz). The molar thermal properties map to the existing MolarHelmholtzFreeEnergy/MolarEntropy/MolarHeatCapacity nodes (phonopy already grounds these). ForceConstants[order=2] via phonon.force_constants (write_force_constants). So no NEW nodes; matcalc's atom_disp/supercell/symprec are phonopy-representation schemes. AtomisticSkills mat-phonon + mat-solid-free-energy drive this."
+    },
+    {
+      "tag": "matcalc-phonon3-thermal-conductivity",
+      "status": "already-mapped",
+      "maps_to": {"nodes": ["ThermalConductivity[bte_solver=rta]", "ForceConstants[order=3]"], "quantity_tags": ["thermal_conductivity", "force_constants"], "operator": "phono3py (already-mapped rail)"},
+      "producer": "matcalc.Phonon3Calc (drives phono3py.Phono3py)",
+      "api": "Phonon3Calc(calc, fc2_supercell=2x2x2, fc3_supercell=2x2x2, mesh_numbers=(20,20,20), fmax=0.1).calc(struct) -> {phonon3: Phono3py, temperatures[K], thermal_conductivity[W/(m*K)]}",
+      "physics_route": "three-phonon BTE (RTA) under phono3py. matcalc builds Phono3py, generates FC2 + FC3 displacements, evaluates ASE-calculator FORCES on each phonon and fc3 supercell, produce_fc2/produce_fc3, init_phph_interaction, run_thermal_conductivity. kappa is spatially averaged over the 3 diagonal components (kappa[..., :3].mean).",
+      "units": {"thermal_conductivity": "W/(m*K)", "temperatures": "K"},
+      "schemes": {"fc2_supercell": "2x2x2", "fc3_supercell": "2x2x2", "mesh_numbers": "(20,20,20) q-mesh", "thermal_conductivity_kwargs": "passthrough (is_LBTE etc.)"},
+      "source": ["/tmp/mcsrc/matcalc-0.5.1/src/matcalc/_phonon3.py:29-218"],
+      "notes": "Drives ALREADY-MAPPED phono3py (codes.json rail grounds ThermalConductivity[bte_solver=rta] and ForceConstants[order=3] eV/A^3). Default RTA; is_LBTE=True (direct_inverse) reachable via thermal_conductivity_kwargs. AtomisticSkills mat-lattice-thermal-conductivity drives this. matcalc squeezes kappa to a scalar-per-T (loses the tensor the map's ThermalConductivity node carries) but the phono3py object retains the full tensor. Supercell/mesh are phono3py-representation schemes."
+    },
+    {
+      "tag": "matcalc-md-trajectory",
+      "status": "already-mapped",
+      "maps_to": {"node": "Trajectory", "quantity_tag": "trajectory", "operator": "ase.md (the ASE delta)"},
+      "producer": "matcalc.MDCalc (drives ase.md integrators + ase.io TrajectoryWriter)",
+      "api": "MDCalc(calc, ensemble='nvt', temperature=300, timestep=1.0, steps=100, loginterval=1, trajfile=...).calc(struct) -> {trajectory: [ase.Atoms], potential_energy, kinetic_energy, total_energy, final_structure}",
+      "physics_route": "ASE molecular dynamics. matcalc initializes velocities (MaxwellBoltzmannDistribution), selects an ase.md integrator by ensemble (VelocityVerlet for nve; NoseHooverChainNVT/NVTBerendsen/Langevin/Andersen/Bussi for nvt*; NPT/NPTBerendsen/MTKNPT/... for npt*), attaches an ase.io.trajectory.TrajectoryWriter observer at loginterval, runs, reads all frames back. The trajectory is a list of ASE Atoms (positions + velocities per frame).",
+      "units": {"positions": "A", "velocities": "A/(ASE time unit)", "timestep": "fs (via units.fs)", "temperature": "K", "energies": "eV"},
+      "schemes": {"ensemble": "nve|nvt*|npt* (13 variants, integrator selection)", "thermostat": "Langevin/Andersen/Bussi/Berendsen/Nose-Hoover (per ensemble)", "timestep": "1.0 fs", "loginterval": "trajectory write interval", "relax_structure": "True (atoms-only, fixed cell pre-relax)"},
+      "source": ["/tmp/mcsrc/matcalc-0.5.1/src/matcalc/_md.py:31-443", "/Users/juicy/miniconda3/lib/python3.12/site-packages/ase/md", "/Users/juicy/miniconda3/lib/python3.12/site-packages/ase/io/trajectory.py"],
+      "notes": "THE ASE-delta headline: ASE MD (via matcalc MDCalc) PRODUCES the map's Trajectory node (already in the MD tier, grounded by gpumd/lammps). ASE is the third engine that writes a Trajectory. The MD gauge (integrator, ensemble, thermostat, initial-condition noise) is the map's md_ensemble_noise gauge group. AtomisticSkills mat-sample-pes-by-md drives this (mlip scan). MDCalc also averages potential/kinetic/total energy over the trailing frames window."
+    },
+    {
+      "tag": "matcalc-formation-cohesive-energy",
+      "status": "already-mapped",
+      "maps_to": {"node": "FormationEnergy", "quantity_tag": "formation_energy"},
+      "producer": "matcalc.EnergeticsCalc",
+      "api": "EnergeticsCalc(calc, elemental_refs='MatPES-PBE', use_gs_reference=False).calc(struct) -> {formation_energy_per_atom[eV/atom], cohesive_energy_per_atom[eV/atom or None]}",
+      "physics_route": "E_form = (E_relaxed - sum_el n_el * E_ref_per_atom(el)) / nsites. Reference per-atom energies come from a bundled elemental-refs library (MP-PBE / MatPES-PBE / MatPES-r2SCAN) either tabulated (use_gs_reference=True) or recomputed by relaxing the reference elemental structures with the SAME calculator (use_gs_reference=False, default). Cohesive energy uses per-atom isolated-atom references (energy_atomic).",
+      "units": {"formation_energy_per_atom": "eV/atom", "cohesive_energy_per_atom": "eV/atom"},
+      "schemes": {"elemental_refs": "MP-PBE|MatPES-PBE (default)|MatPES-r2SCAN|custom dict", "use_gs_reference": "tabulated vs recomputed refs"},
+      "source": ["/tmp/mcsrc/matcalc-0.5.1/src/matcalc/_stability.py:25-146"],
+      "notes": "Maps to the FormationEnergy node the pymatgen scan minted (per-atom eV/atom, intensive; NOT the per-cell TotalEnergy). matcalc computes it directly from MLIP energies + a functional-specific elemental reference set. The elemental_refs choice is a required PROVENANCE field (ties the formation energy to a functional generation). cohesive_energy_per_atom has no map node today (cohesive energy vs isolated atoms) but is a close relative; noted as a minor candidate."
+    },
+    {
+      "tag": "matcalc-surface-energy",
+      "status": "already-mapped",
+      "maps_to": {"node": "SurfaceEnergy", "quantity_tag": "surface_energy"},
+      "producer": "matcalc.SurfaceCalc",
+      "api": "SurfaceCalc(calc, relax_bulk=True, relax_slab=True, fmax=0.1, optimizer='BFGS').calc_slabs(bulk, miller_index) -> per-slab {surface_energy}",
+      "physics_route": "gamma = (E_slab - N_slab * E_bulk_per_atom) / (2 * area), the slab-bulk energy difference over twice the slab area. matcalc generates slabs with pymatgen SlabGenerator, relaxes bulk (with cell) and slab (fixed cell), and forms the difference. In-matcalc gamma is in eV/A^2 (NO explicit J/m^2 conversion in SurfaceCalc; the skill converts).",
+      "units": {"surface_energy": "eV/A^2 (matcalc native); skill converts to J/m^2 via 16.0218 per pymatgen scan"},
+      "schemes": {"miller_index": "facet", "min_slab_size": "10.0 A", "min_vacuum_size": "20.0 A", "symmetrize": "True", "optimizer": "BFGS"},
+      "source": ["/tmp/mcsrc/matcalc-0.5.1/src/matcalc/_surface.py:19-203"],
+      "notes": "Maps to the SurfaceEnergy node the pymatgen scan minted (J/m^2). matcalc SurfaceCalc returns eV/A^2 (no unit conversion in the calc); the J/m^2 = 16.021766339999996 * eV/A^2 conversion (CODATA-2018) lives in the AtomisticSkills mat-surface-energy skill (pymatgen scan trap #7). Default optimizer here is BFGS (not FIRE)."
+    },
+    {
+      "tag": "matcalc-neb-barrier",
+      "status": "new-node-candidate",
+      "maps_to": {"proposed_node": "MigrationBarrier / NEBBarrier", "quantity_tag": "activation_energy (related, distinct)"},
+      "producer": "matcalc.NEBCalc",
+      "api": "NEBCalc(calc, optimizer='BFGS', climb=True, method='improvedtangent', fmax=0.1).calc_images(start, end, n_images=7) -> {barrier[eV], force[eV/A], mep: MEP, converged}",
+      "physics_route": "nudged elastic band (CI-NEB). matcalc interpolates n_images between start and end structures, builds an ase.mep.NEB, optimizes with an ASE optimizer (default BFGS), and reads the barrier off ase NEBTools.get_barrier(); the MEP dataclass stores the per-image structures + energies.",
+      "units": {"barrier": "eV", "force": "eV/A", "energies": "eV"},
+      "schemes": {"n_images": "7", "climb": "True (CI-NEB)", "method": "improvedtangent", "optimizer": "BFGS"},
+      "source": ["/tmp/mcsrc/matcalc-0.5.1/src/matcalc/_neb.py:165-296"],
+      "notes": "The NEB migration barrier (eV) has NO dedicated node on the map today. It is the transition-state energy of a diffusion/migration path, related to but distinct from the Arrhenius ActivationEnergy (which the map has, fitted from D(T)). NEW-NODE candidate: a migration/NEB barrier. Not confirmed to be driven by a specific AtomisticSkills mat-* skill in the prior scans (mat-diffusion-analysis fits Arrhenius, not NEB); low priority, flag as an open question."
+    },
+    {
+      "tag": "matcalc-qha-thermodynamics",
+      "status": "new-node-candidate",
+      "maps_to": {"proposed_nodes": ["GibbsFreeEnergy", "ThermalExpansion", "BulkModulus(T)", "Gruneisen(T)"], "quantity_tags": ["gruneisen (partial overlap)"]},
+      "producer": "matcalc.QHACalc (drives phonopy.PhonopyQHA over a volume scan)",
+      "api": "QHACalc(calc, scale_factors=(0.95..1.05), eos='vinet', t_max=1000).calc(struct) -> {gibbs_free_energies[kJ/mol], thermal_expansion_coefficients[1/K], bulk_modulus_P[GPa], heat_capacity_P[J/(K*mol)], gruneisen_parameters}",
+      "physics_route": "quasi-harmonic approximation. matcalc runs PhononCalc at each of ~11 volume scale factors, feeds F(V,T)+Cv+S to phonopy.PhonopyQHA with an EOS model (vinet default), and reads Gibbs G(T), thermal expansion alpha(T), constant-P bulk modulus B(T), Cp(T), and macroscopic Gruneisen gamma(T).",
+      "units": {"gibbs_free_energies": "kJ/mol", "thermal_expansion_coefficients": "1/K", "bulk_modulus_P": "GPa", "heat_capacity_P": "J/(K*mol)", "gruneisen_parameters": "dimensionless"},
+      "schemes": {"scale_factors": "11-point volume grid", "eos": "vinet|birch_murnaghan|murnaghan", "pressure": "GPa (Gibbs)"},
+      "source": ["/tmp/mcsrc/matcalc-0.5.1/src/matcalc/_qha.py:28-467"],
+      "notes": "QHA thermodynamics (Gibbs G(T), thermal expansion alpha(T), B(T), Cp(T)) are NOT on the map today; the map's mode-Gruneisen node is the per-mode harmonic quantity, whereas QHACalc's gruneisen_parameters is the macroscopic thermodynamic gamma(T) (a different, temperature-dependent quantity, distinct node). NEW-NODE domain (finite-T thermodynamics). Not confirmed driven by a specific mat-* skill in the prior scans; medium priority, flag as open question. The molar Cp(T) is a constant-PRESSURE analog of the map's constant-volume molar heat capacity."
+    },
+    {
+      "tag": "ase-optimizers-filters-md-interface",
+      "status": "representation-only",
+      "maps_to": {"note": "the ASE machinery matcalc rides on (representation detail, not a physics node)"},
+      "producer": "ase.optimize (FIRE/BFGS), ase.filters (FrechetCellFilter), ase.constraints (FixAtoms/FixSymmetry), ase.md (integrators), ase.units (CODATA-2014), ase.io (Trajectory)",
+      "api": "ase.optimize.{FIRE,BFGS}; ase.filters.FrechetCellFilter; ase.constraints.{FixAtoms,FixSymmetry}; ase.md.{verlet,langevin,npt,nose_hoover_chain,...}; ase.units; ase.io.Trajectory",
+      "physics_route": "N/A: these are the ASE algorithm/representation surfaces (optimizer choice, cell filter, constraints, integrator, unit constants) that become SCHEMES on the matcalc operators, not independent physics-DAG nodes.",
+      "units": {"ase.units.GPa": "160.21766208 (CODATA-2014, _e=1.6021766208e-19)", "ase.units.fs": "0.09822694788464063"},
+      "source": ["/Users/juicy/miniconda3/lib/python3.12/site-packages/ase/units.py", "/Users/juicy/miniconda3/lib/python3.12/site-packages/ase/optimize", "/Users/juicy/miniconda3/lib/python3.12/site-packages/ase/filters.py", "/Users/juicy/miniconda3/lib/python3.12/site-packages/ase/md"],
+      "notes": "The ASE delta beyond Potential-hosting is REALIZED through these: FrechetCellFilter is how RelaxCalc relaxes the cell (the Structure producer); ase.md integrators + ase.io.Trajectory are how MDCalc produces the Trajectory; ase.units.GPa (CODATA-2014) is the unit generation matcalc's RAW stress rides on (vs matcalc/pymatgen CODATA-2018 at the analysis boundary). Representation-only: these are scheme/gauge inputs, not nodes. The map's single ase Potential entry should GAIN scheme vocabulary (optimizer in {FIRE, BFGS, ...}, cell_filter in {FrechetCellFilter, ...}, ensemble in the 13 MD variants) rather than new ase code entries."
+    }
+  ],
+  "unit_traps": [
+    "matcalc elastic default is eV/A^3 (units_GPa=False), NOT GPa. A consumer treating ElasticityCalc's elastic_tensor / bulk_modulus_vrh as GPa without checking units_GPa is off by 160x. AtomisticSkills mat-elasticity converts skill-side (*160.2176634, CODATA-2018), consistent with the default.",
+    "THREE CODATA generations at matcalc boundaries: (a) raw stress rides ase.units.GPa = CODATA-2014 (160.21766208); (b) matcalc.units.eVA3ToGPa = scipy CODATA-2018 (160.21766339999996); (c) ElasticityCalc GPa mode uses pymatgen ElasticTensor.GPa_to_eV_A3 = CODATA-2018 (160.21766339999996). matcalc's analysis boundary is CODATA-2018 (pymatgen side); its PES boundary is CODATA-2014 (ASE side). ~1e-8 relative, physically negligible, but a real provenance split.",
+    "matcalc EOS bulk_modulus_bm (pymatgen BM b0_GPa, GPa) is a DIFFERENT bulk modulus from ElasticityCalc bulk_modulus_vrh (elastic-tensor VRH, eV/A^3 default). Same node tag bulk_modulus but two distinct physics routes (EOS curvature vs elastic tensor average).",
+    "matcalc run_ase calls atoms.get_stress(voigt=False), returning a 3x3 tensor (NOT ASE Voigt-6). ElasticityCalc feeds the 3x3 to pymatgen's fitter. Any consumer expecting a Voigt-6 off SimulationResult.stress gets a 3x3.",
+    "phonopy under matcalc: frequencies are LINEAR THz (matches map canonical). thermal_properties are MOLAR (free_energy kJ/mol, entropy/Cv J/K/mol), matching the existing Molar* nodes, NOT the per-mode nodes.",
+    "matcalc fmax conventions differ by calculator: RelaxCalc/ElasticityCalc/EOSCalc/Phonon3Calc/EnergeticsCalc/SurfaceCalc fmax=0.1 eV/A; PhononCalc/QHACalc fmax=1e-5 eV/A (tight pre-relax, phonons need a near-perfect equilibrium). SurfaceCalc/NEBCalc default optimizer BFGS; the rest default FIRE.",
+    "surface energy: SurfaceCalc.calc returns gamma in eV/A^2 (no J/m^2 conversion inside matcalc); the J/m^2 factor 16.021766339999996 (CODATA-2018) lives in the mat-surface-energy skill.",
+    "matcalc pressure inputs are in eV/A^3 for MDCalc (pressure = 1.01325*units.bar) but GPa for QHACalc (pressure kwarg documented GPa). Mixed pressure-unit conventions across calculators."
+  ],
+  "open_questions": [
+    "AtomisticSkills repo is NOT on this machine. The exact matcalc kwargs each mat-* skill passes (units_GPa, fmax, ensemble, elemental_refs, strain grids) are anchored to the three prior scans + codes.json, not a live read. Re-run with the repo mounted to confirm.",
+    "Rail vs schemes for matcalc: recommendation is schemes-on-operators (OperatorRepresentationSpec, same as atomate2), because every matcalc output node is already rail-grounded (MLIP/phonopy/phono3py/pymatgen) even though matcalc's strain/EOS fits are genuine discretization physics. Orchestrator to confirm and decide WHERE the matcalc scheme + MLIP-checkpoint double-provenance lands.",
+    "ASE delta placement: the map's single ase Potential entry should gain scheme vocabulary (optimizer, cell_filter, ensemble) rather than new ase code entries. The Structure-via-relax and Trajectory-via-MD productions are ASE operations already grounded by other rails; confirm no new ase code entry is needed.",
+    "matcalc NEB barrier (eV) and QHA thermodynamics (Gibbs, thermal expansion, Cp(T), macroscopic Gruneisen(T)) are NEW-NODE candidates NOT confirmed driven by a specific mat-* skill in the prior scans. Decide whether to ingest these domains or leave them as matcalc-capability-only.",
+    "cohesive_energy_per_atom (EnergeticsCalc, eV/atom vs isolated atoms) has no map node; minor candidate distinct from FormationEnergy.",
+    "matcalc squeezes phono3py kappa to a scalar-per-T (diagonal mean), losing the tensor the map's ThermalConductivity node carries. Confirm the encode reads the full tensor off the phono3py object, not matcalc's squeezed scalar.",
+    "ase.units.GPa CODATA-2014 vs matcalc/pymatgen CODATA-2018 at the matcalc boundary: the same ~1e-8 in-repo constant split the pymatgen and VASP scans flagged, now with matcalc explicitly on the CODATA-2018 side. Record on the elastic/EOS/surface representations."
+  ]
+}
