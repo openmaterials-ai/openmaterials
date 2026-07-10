@@ -205,48 +205,6 @@ def _find_input_scalar_symbol(
 
 
 # ---------------------------------------------------------------------------
-# Multi-channel state-name disambiguation
-# ---------------------------------------------------------------------------
-#
-# Sum_linewidths has three Linewidth inputs (anharmonic, isotope, boundary)
-# and the formula RHS uses three distinct IndexedBases (\Gamma^{anh},
-# \Gamma^{iso}, \Gamma^{bnd}). The shared `_STATE_SYMBOLS` registry on the
-# TOTAL channel state lists all four names; the *per-channel* states each
-# list a single distinguishing name. We rely on that distinguishing name
-# to wire each input to its formula symbol.
-
-
-def _identify_single_indexed_for_input(
-    formula_rhs: sp.Basic,
-    input_space: Space,
-) -> sp.Indexed:
-    """Return the unique Indexed atom on RHS belonging to ``input_space``.
-
-    Raises NotImplementedError if zero or multiple atoms match — both cases
-    fall outside the closed-form subset the executor handles.
-    """
-    matches = _find_input_indexed_atoms(formula_rhs, input_space)
-    if not matches:
-        raise NotImplementedError(
-            f"executor: no Indexed atom matches input space "
-            f"{input_space.name!r} (primary symbols: "
-            f"{sorted(_space_primary_symbols(input_space))}); "
-            f"this edge may not be in the closed-form subset."
-        )
-    # Multiple Indexed expressions sharing the same IndexedBase (e.g. the
-    # same Γ appearing twice in a sum at different (q, ν) tuples) are OK —
-    # they all bind to the same input array. Pick one representative.
-    bases_seen = {m.base.name for m in matches}
-    if len(bases_seen) > 1:
-        raise NotImplementedError(
-            f"executor: input space {input_space.name!r} matches multiple "
-            f"distinct IndexedBases {sorted(bases_seen)!r} in the RHS; "
-            f"this is ambiguous in the current executor."
-        )
-    return matches[0]
-
-
-# ---------------------------------------------------------------------------
 # apply_edge
 # ---------------------------------------------------------------------------
 

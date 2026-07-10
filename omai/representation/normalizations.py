@@ -63,8 +63,3 @@ NORMALIZATIONS: dict[str, Normalization] = {
         LINEWIDTH_2X_IMAG_SELF_ENERGY,
     ]
 }
-
-
-def normalization_factor(name: str) -> float:
-    """Return the to_operator multiplier for a normalization by name."""
-    return NORMALIZATIONS[name].to_operator

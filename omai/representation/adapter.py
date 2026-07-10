@@ -114,14 +114,6 @@ class OperatorRepresentationSpec:
 # ---------------------------------------------------------------------------
 
 
-def _require_same_space(a: SpaceRepresentationSpec, b: SpaceRepresentationSpec) -> None:
-    if a.space != b.space:
-        raise ValueError(
-            f"adapters wrap different spaces: "
-            f"{a.space.name!r} vs {b.space.name!r}"
-        )
-
-
 def representation_to_operator(
     spec: SpaceRepresentationSpec, observable_name: str
 ) -> float:
