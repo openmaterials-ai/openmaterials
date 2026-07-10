@@ -1,0 +1,60 @@
+{
+ "representation": "vasp",
+ "map_version": "10bfc37c633898ed51c0a789fd161bf05f42bd45d8426ac0c091ba59073f5157",
+ "covers": [
+  {
+   "node": "BandGap",
+   "uid": "7164425d1695208e46171b5030c938c3545c180b57018d51748d0507f9f08135",
+   "api": "pymatgen BSVasprun.get_band_structure().get_band_gap()['energy'] / Vasprun / TaskDoc, eV",
+   "unit": "ev"
+  },
+  {
+   "node": "BornCharges",
+   "uid": "438f0314dee5f9e98d88e4a7ba4425ef0edd207605338b318340da27bf28b2a4",
+   "api": "pymatgen Outcar.born (VASP LEPSILON, 'BORN EFFECTIVE CHARGES' section), shape (n_atoms, 3, 3), units of e",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "DielectricTensor",
+   "uid": "a84077d8f12cf490f370b5cd0b98a47e3e31b7ec75fc8763699763f8b2313db4",
+   "api": "pymatgen Outcar.dielectric_tensor (VASP LEPSILON, static clamped-ion 3x3), dimensionless",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "ElasticConstants",
+   "uid": "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e",
+   "api": "pymatgen Outcar.elastic_modulus (VASP IBRION=6 'TOTAL ELASTIC MODULI (kBar)'), kbar; atomate2 ElasticMaker",
+   "unit": "kbar"
+  },
+  {
+   "node": "Forces",
+   "uid": "9c5a2fdedab6b668ccf5f2043fb4c29a982bcde5063fd6ac8633ee2c7858ecbf",
+   "api": "atomate2 TaskDoc.output.forces; pymatgen Vasprun.forces[-1] (final ionic step), eV/A",
+   "unit": "eV_per_A"
+  },
+  {
+   "node": "MagneticMoment",
+   "uid": "1423a9b16e18881e4388fee44f536891a6295aaa6e0fc3775bbbe89ee480847a",
+   "api": "pymatgen Outcar.magnetization (per site) / Outcar.total_magnetization (cell), mu_B; ISPIN=2 collinear",
+   "unit": "mu_B"
+  },
+  {
+   "node": "Stress",
+   "uid": "183e66d4e443326d2c346a0327cdb125026bd8f6a91a9bb97b61265fcade7e85",
+   "api": "atomate2 TaskDoc.output.stress (emmet OutputDoc, kbar) / pymatgen Vasprun.stress[-1] (kbar)",
+   "unit": "kbar"
+  },
+  {
+   "node": "Structure",
+   "uid": "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239",
+   "api": "VASP POSCAR (input) / CONTCAR (relaxed); atomate2 TaskDoc.structure, pymatgen Vasprun.final_structure",
+   "unit": null
+  },
+  {
+   "node": "TotalEnergy",
+   "uid": "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+   "api": "atomate2 TaskDoc.output.energy (e_0_energy); pymatgen Vasprun.final_energy, eV",
+   "unit": "ev"
+  }
+ ]
+}
