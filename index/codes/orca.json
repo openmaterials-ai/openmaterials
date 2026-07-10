@@ -1,6 +1,6 @@
 {
  "representation": "orca",
- "map_version": "8328dda37d4a7349d9165de96a409d3f675278248716bf60226d727a6c433017",
+ "map_version": "b505d9421136e70bfa21d89dd6f81ba6a765c0d00b4f7e6226220ed5743a111e",
  "covers": [
   {
    "node": "Forces",
@@ -13,6 +13,12 @@
    "uid": "8998dd04e7ff8c51679a06f9c40bffb8923fc6d9b8b1f5b3b955999c029a5c5e",
    "api": "parse_orca_output.py homo_lumo_gap_eV",
    "unit": "ev"
+  },
+  {
+   "node": "MolecularFrequency",
+   "uid": "e1270ea9a293c9107226bf831f60985f5525a0c386dca70841743bdc5d082c26",
+   "api": "parse_orca_output.py:102 frequencies_cm1 (with n_imaginary; IR intensities km/mol)",
+   "unit": "inverse_cm"
   },
   {
    "node": "ReactionBarrier[construction=neb_mep]",

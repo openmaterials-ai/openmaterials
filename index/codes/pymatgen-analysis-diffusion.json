@@ -1,12 +1,18 @@
 {
  "representation": "pymatgen-analysis-diffusion",
- "map_version": "8328dda37d4a7349d9165de96a409d3f675278248716bf60226d727a6c433017",
+ "map_version": "b505d9421136e70bfa21d89dd6f81ba6a765c0d00b4f7e6226220ed5743a111e",
  "covers": [
   {
    "node": "ActivationEnergy",
    "uid": "5d35f8f6975629291c51d432d3b137fb5bd92165706d37dbab71366a4714b71d",
    "api": "fit_arrhenius (analyzer.py:877-897)",
    "unit": "ev"
+  },
+  {
+   "node": "CarrierDensity",
+   "uid": "e3ba3f3522daaaa0a91c35e0302be3bc11c00c176a6090863c45b3c2664fed37",
+   "api": "self.n / structure.volume, the n/vol factor of get_conversion_factor (analyzer.py:846-869)",
+   "unit": "per_cm3"
   },
   {
    "node": "Diffusivity",
