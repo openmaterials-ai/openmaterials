@@ -1,0 +1,42 @@
+{
+ "representation": "pycalphad",
+ "map_version": "ef54998e173fc13d6f0599393eb97dc93204237732bff6964df2c17e11e583cc",
+ "covers": [
+  {
+   "node": "AssessedDatabase",
+   "uid": "3618484d27f4d34e4a8abf7db7b62201c5aefe00de89933375f082a883513bbd",
+   "api": "pycalphad.Database(tdb) (io/database.py; io/tdb.py TDB format hook); dbf.phases / dbf.elements / dbf.symbols",
+   "unit": null
+  },
+  {
+   "node": "ChemicalPotential",
+   "uid": "e707090e106994d3718f0afe5a20f2e60037f543334fa79b4a00360b7962d527",
+   "api": "pycalphad.equilibrium(...).MU (variables.py:830-836, v.MU), J/mol, one per component",
+   "unit": "J_per_mol"
+  },
+  {
+   "node": "MolarEnthalpy",
+   "uid": "600d0860290d3326202768db7249339c34ac675deb2ee8528a92207d3878b00c",
+   "api": "pycalphad.equilibrium/calculate(..., output='HM').HM, J/mol per mole of atoms",
+   "unit": "J_per_mol"
+  },
+  {
+   "node": "MolarGibbsEnergy",
+   "uid": "b048bc7569d568e2201557761eb758817674dd3a38b6f2379c5474f4cf91c66f",
+   "api": "pycalphad.equilibrium(dbf, comps, phases, conds).GM, J/mol per mole of atoms; also calculate(..., output='GM')",
+   "unit": "J_per_mol"
+  },
+  {
+   "node": "PhaseFraction",
+   "uid": "7b55b11531084dcb2d5fd95100d62b2d68b787596e7c9712e06c011817ab5b8c",
+   "api": "pycalphad.equilibrium(...).NP (variables.py:488-505, v.NP), fraction, per stable phase; paired with eq.Phase",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "TransitionTemperature",
+   "uid": "8b9dd2a79db11c01e15d37f64a7bd0d9c95f09ea080a67f7912d9b8aabd7b132",
+   "api": "pycalphad.binplot(dbf, comps, phases, conds) boundary loci (compat_api.py:6-42), K; drawn, not returned as scalars",
+   "unit": "kelvin"
+  }
+ ]
+}

@@ -426,8 +426,11 @@ def test_store_head_at_133_records_genesis_frozen():
     root = Path(__file__).resolve().parents[1] / "map"
     lines = root.joinpath("log.jsonl").read_text().splitlines()
     # 131 after the stability/electrochemistry/magnetism landing; 133 after the
-    # atomate2/VASP scan's BandGap node + compute_band_gap edge (records 132-133).
-    assert len(lines) == 133
+    # atomate2/VASP scan's BandGap node + compute_band_gap edge (records
+    # 132-133). The log only grows past 133 as later contributions land (the
+    # pycalphad scan added records 134-144); this test pins the floor and the
+    # frozen genesis, not the exact head.
+    assert len(lines) >= 133
     assert Store(root).verify() == []
     # Genesis stays the frozen prefix, byte-identical.
     assert root.joinpath("GENESIS").read_text().strip() == \
