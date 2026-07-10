@@ -364,14 +364,20 @@ def test_mechanics_contribution_is_records_110_to_117():
 
 def test_mat_elasticity_cu_instances_pin_the_live_node_uids():
     from omai.map_data import build_instances
-    from omai.mechanics.operator.nodes import BULK_MODULUS, SHEAR_MODULUS
+    from omai.mechanics.operator.nodes import (
+        BULK_MODULUS,
+        POISSON_RATIO,
+        SHEAR_MODULUS,
+        YOUNGS_MODULUS,
+    )
 
     insts = build_instances()
     cu = [it for it in insts
           if it["material"] == "Cu"
           and it["source"]["ref"] == "atomisticskills-mat-elasticity-Cu"]
     by_var = {it["variable"]: it for it in cu}
-    assert set(by_var) == {"BulkModulus", "ShearModulus"}
+    assert set(by_var) == {"BulkModulus", "ShearModulus",
+                           "YoungsModulus", "PoissonRatio"}
 
     k = by_var["BulkModulus"]
     assert k["value"] == 145.85
@@ -383,6 +389,19 @@ def test_mat_elasticity_cu_instances_pin_the_live_node_uids():
     assert g["value"] == 51.45
     assert g["units"] == "GPa"
     assert g["node_uid"] == node_id(SHEAR_MODULUS)
+
+    # The two contract outputs, verbatim from the same committed example:
+    # E is exactly the 9KG/(3K+G) of the recorded K and G; nu is the
+    # catalog's full-precision value from the unrounded moduli.
+    e = by_var["YoungsModulus"]
+    assert e["value"] == 138.11
+    assert e["units"] == "GPa"
+    assert e["node_uid"] == node_id(YOUNGS_MODULUS)
+
+    nu = by_var["PoissonRatio"]
+    assert nu["value"] == 0.34217507884737186
+    assert nu["units"] == "dimensionless"
+    assert nu["node_uid"] == node_id(POISSON_RATIO)
 
 
 # --------------------------------------------------------------------------

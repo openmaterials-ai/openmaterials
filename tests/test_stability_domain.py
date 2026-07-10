@@ -369,6 +369,52 @@ def test_stability_and_magnetism_are_records_122_to_131():
         assert r["date"] == "2026-07-09"
 
 
+def test_stability_and_magnetism_instances_pin_the_live_node_uids():
+    """Evidence: the seven stability/magnetism values recorded verbatim from
+    the committed omai/materials/skills_catalog.json example_instances (the
+    upstream example paths are cited in each instance's source detail)."""
+    from omai.map_data import build_instances
+    from omai.dft_ground_state.operator.nodes import MAGNETIC_MOMENT_STATE
+    from omai.stability.operator.nodes import (
+        ENERGY_ABOVE_HULL,
+        FORMATION_ENERGY,
+        SURFACE_ENERGY,
+        VOLTAGE_STATE,
+    )
+
+    insts = build_instances()
+    by_key = {(it["variable"], it["material"]): it for it in insts}
+
+    gammas = {"Cu (111)": 1.3, "Cu (100)": 1.45, "Cu (110)": 1.55}
+    for mat, val in gammas.items():
+        it = by_key[("SurfaceEnergy", mat)]
+        assert it["value"] == val
+        assert it["units"] == "J/m^2"
+        assert it["source"]["kind"] == "simulation"
+        assert it["node_uid"] == node_id(SURFACE_ENERGY)
+
+    v = by_key[("Voltage", "LiFePO4")]
+    assert v["value"] == 3.260441522078377
+    assert v["units"] == "V"
+    assert v["conditions"]["working_ion"] == "Li"
+    assert v["node_uid"] == node_id(VOLTAGE_STATE)
+
+    m = by_key[("MagneticMoment", "Fe (bcc)")]
+    assert m["value"] == 2.15
+    assert m["units"] == "mu_B"
+    assert m["node_uid"] == node_id(MAGNETIC_MOMENT_STATE)
+
+    f = by_key[("FormationEnergy", "Li2O (mp-1960)")]
+    assert f["value"] == -2.061597913888889
+    assert f["units"] == "eV/atom"
+    assert f["node_uid"] == node_id(FORMATION_ENERGY)
+
+    h = by_key[("EnergyAboveHull", "Li2O (mp-1960)")]
+    assert h["value"] == 0.0
+    assert h["units"] == "eV/atom"
+    assert h["node_uid"] == node_id(ENERGY_ABOVE_HULL)
+
+
 def test_store_head_at_131_records_genesis_frozen():
     import json
     from pathlib import Path

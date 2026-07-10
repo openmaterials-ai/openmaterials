@@ -1,0 +1,132 @@
+{
+ "representation": "pymatgen",
+ "map_version": "d623176ffc5b43942d01dbfc06af80550f0032906807d4c18d65c859eb5e7ecf",
+ "covers": [
+  {
+   "node": "ActivationEnergy",
+   "uid": "5d35f8f6975629291c51d432d3b137fb5bd92165706d37dbab71366a4714b71d",
+   "api": "pymatgen.analysis.diffusion.analyzer fit_arrhenius / get_arrhenius_plot over D(T), eV",
+   "unit": "ev"
+  },
+  {
+   "node": "BornCharges",
+   "uid": "438f0314dee5f9e98d88e4a7ba4425ef0edd207605338b318340da27bf28b2a4",
+   "api": "pymatgen.io.vasp.outputs.Outcar.born (shape (n_atoms, 3, 3)), units of e",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "BulkModulus",
+   "uid": "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced",
+   "api": "pymatgen ElasticTensor.k_vrh (= 0.5*(k_voigt + k_reuss)), eV/A^3",
+   "unit": "eV_per_A3"
+  },
+  {
+   "node": "DielectricTensor",
+   "uid": "a84077d8f12cf490f370b5cd0b98a47e3e31b7ec75fc8763699763f8b2313db4",
+   "api": "pymatgen.io.vasp.outputs.Outcar.dielectric_tensor (3x3), dimensionless",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "Diffusivity",
+   "uid": "37eb727e4cf5e46c3ca04ff4bea4fe9dbb3f7f3c3fad8a1681c7e9d04bafd34f",
+   "api": "pymatgen.analysis.diffusion.analyzer.DiffusionAnalyzer.diffusivity, cm^2/s (add-on distribution)",
+   "unit": "cm^2/s"
+  },
+  {
+   "node": "ElasticConstants",
+   "uid": "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e",
+   "api": "pymatgen.analysis.elasticity.elastic.ElasticTensor (.voigt 6x6), eV/A^3",
+   "unit": "eV_per_A3"
+  },
+  {
+   "node": "EnergyAboveHull",
+   "uid": "910d47d67a7308728e2f7d211a08c1590239c7b802cd75128f00cd103a719b84",
+   "api": "pymatgen PhaseDiagram.get_e_above_hull / get_decomp_and_e_above_hull, eV/atom (skills report meV/atom)",
+   "unit": "ev_per_atom"
+  },
+  {
+   "node": "ForceConstants[order=2]",
+   "uid": "78d005a949ff56a526a1911f0b24e766daecad0a7f5ce9c1cc15222f2ed73551",
+   "api": "MP field ph_force_constants via mpr.materials.phonon.get_data_by_id; pymatgen MontyEncoder serialization, eV/A^2",
+   "unit": "eV_per_A2"
+  },
+  {
+   "node": "FormationEnergy",
+   "uid": "a385b7ca981904ab5d82176557d453cea4995164adfa22a6ca195e1dfcd815d5",
+   "api": "pymatgen PhaseDiagram.get_form_energy_per_atom / ComputedEntry.formation_energy_per_atom, eV/atom",
+   "unit": "ev_per_atom"
+  },
+  {
+   "node": "Frequency",
+   "uid": "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8",
+   "api": "pymatgen.phonon.bandstructure.PhononBandStructureSymmLine (mp_api retrieval), linear THz",
+   "unit": "linear_THz"
+  },
+  {
+   "node": "MagneticMoment",
+   "uid": "1423a9b16e18881e4388fee44f536891a6295aaa6e0fc3775bbbe89ee480847a",
+   "api": "site moments parsed from calculator output; pymatgen.analysis.magnetism Ordering / CollinearMagneticStructureAnalyzer, mu_B",
+   "unit": "mu_B"
+  },
+  {
+   "node": "MeanSquaredDisplacement",
+   "uid": "28ebe96bc049a92e4318fd5242778f30e5647531d0a2b39c5891546329c8bca0",
+   "api": "pymatgen DiffusionAnalyzer.msd (A^2) against .dt (fs; skill divides by 1000 for ps)",
+   "unit": "A^2"
+  },
+  {
+   "node": "PhononDOS",
+   "uid": "9b0af04f9828cfb02e19d5e41ab2c61fbe4759f049258b85c650baf22e43ebf1",
+   "api": "pymatgen.phonon.dos.PhononDos (mp_api retrieval), densities against a linear-THz axis",
+   "unit": null
+  },
+  {
+   "node": "PoissonRatio",
+   "uid": "e95ba3f5810f8554656c148dae26520cf3258cace0b951dd75e69ee8c552c132",
+   "api": "pymatgen ElasticTensor.homogeneous_poisson, dimensionless",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "ShearModulus",
+   "uid": "1ab85488c90143e38b94e27f93ab96571f381e7b09d507fa7a38216ffd34c5ec",
+   "api": "pymatgen ElasticTensor.g_vrh (= 0.5*(g_voigt + g_reuss)), eV/A^3",
+   "unit": "eV_per_A3"
+  },
+  {
+   "node": "Stress",
+   "uid": "183e66d4e443326d2c346a0327cdb125026bd8f6a91a9bb97b61265fcade7e85",
+   "api": "stresses consumed by ElasticTensor.from_independent_strains (ASE/MLIP Voigt, eV/A^3)",
+   "unit": "eV_per_A3"
+  },
+  {
+   "node": "Structure",
+   "uid": "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239",
+   "api": "pymatgen.core.Structure (from_file / from_str; AseAtomsAdaptor bridge)",
+   "unit": null
+  },
+  {
+   "node": "SurfaceEnergy",
+   "uid": "306384aed4a1204fb7ca2347729de8d1816fa5fc32f4855a5d5f56a4d0fc1ddf",
+   "api": "pymatgen SlabGenerator slabs; in-skill gamma = (E_slab - N E_bulk)/(2A), J/m^2; WulffShape aggregation",
+   "unit": "J_per_m2"
+  },
+  {
+   "node": "TotalEnergy",
+   "uid": "cf5a36298543de2027b173b757d38d80b38b66a85d2d3a56f55097e3da0e9a5e",
+   "api": "pymatgen.entries.computed_entries.ComputedEntry.energy (per cell), eV",
+   "unit": "ev"
+  },
+  {
+   "node": "Voltage",
+   "uid": "26831a0aabc3508a944405ec2fd763a0637abeeac1ed3d87df64c27392d638f4",
+   "api": "in-skill V = -(E_full - E_empty - n mu_metal)/n over pymatgen Structure.remove_species cells, volts",
+   "unit": "volt"
+  },
+  {
+   "node": "YoungsModulus",
+   "uid": "022d18213f7d63713ef4fddb484e1ae6d898873ce20377176013f620225637d8",
+   "api": "pymatgen ElasticTensor.y_mod (= 9.0e9 * k_vrh*g_vrh/(3k+g)), SI Pa",
+   "unit": "Pa"
+  }
+ ]
+}

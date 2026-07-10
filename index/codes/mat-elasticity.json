@@ -1,6 +1,6 @@
 {
  "representation": "mat-elasticity",
- "map_version": "3e87f5c723d351c17227ad0e1920facda0b07a79e9b085b9a8423327de30b889",
+ "map_version": "d623176ffc5b43942d01dbfc06af80550f0032906807d4c18d65c859eb5e7ecf",
  "covers": [
   {
    "node": "BulkModulus",
@@ -15,9 +15,21 @@
    "unit": "GPa"
   },
   {
+   "node": "PoissonRatio",
+   "uid": "e95ba3f5810f8554656c148dae26520cf3258cace0b951dd75e69ee8c552c132",
+   "api": "calculate_elasticity.py nu = (3B-2G)/(6B+2G) over the VRH moduli",
+   "unit": "dimensionless"
+  },
+  {
    "node": "ShearModulus",
    "uid": "1ab85488c90143e38b94e27f93ab96571f381e7b09d507fa7a38216ffd34c5ec",
    "api": "matcalc ElasticityCalc shear_modulus_vrh (G_VRH), GPa",
+   "unit": "GPa"
+  },
+  {
+   "node": "YoungsModulus",
+   "uid": "022d18213f7d63713ef4fddb484e1ae6d898873ce20377176013f620225637d8",
+   "api": "calculate_elasticity.py E = 9BG/(3B+G) over the VRH moduli, GPa",
    "unit": "GPa"
   }
  ]
