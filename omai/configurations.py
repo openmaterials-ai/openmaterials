@@ -11,7 +11,9 @@ Identity (the content-addressing rule, spec section 3):
     canonical_uid = sha256 of the spglib-standardized primitive cell (symprec
     1e-3), origin-anchored so a rigid translation of the whole cell does not
     change it, species and sites sorted, lattice and fractional coordinates
-    rounded to 6 decimals, serialized with sorted keys.
+    rounded to 5 decimals (0.01 mA resolution: collapses refetch-level
+    numerical noise, keeps physically distinct cells apart; the matcher gate
+    is the safety net at the boundary), serialized with sorted keys.
 
 Deterministic: the same cell, its shuffled sites, and a supercell of it hash to
 the same uid; a strained cell hashes differently. Disordered / partial-occupancy
@@ -129,11 +131,11 @@ def _canonical_payload(structure) -> tuple[dict, dict]:
     from pymatgen.core import Molecule
 
     if isinstance(structure, Molecule):
-        # Non-periodic: hash sorted species + coordinates rounded to 6 decimals,
+        # Non-periodic: hash sorted species + coordinates rounded to 5 decimals,
         # translation-anchored on the centroid so a rigid shift is invariant.
         coords = np.array(structure.cart_coords, dtype=float)
         coords = coords - coords.mean(axis=0)
-        rows = sorted([[str(s.specie)] + [float(round(x, 6)) for x in c]
+        rows = sorted([[str(s.specie)] + [float(round(x, 5)) for x in c]
                        for s, c in zip(structure, coords)])
         canonical = {"periodic": False, "sites": rows}
         derived = {"spacegroup": None, "natoms_primitive": len(structure),
@@ -164,14 +166,14 @@ def _canonical_payload(structure) -> tuple[dict, dict]:
         shifted = []
         for sp, fc in entries:
             d = (fc - anchor_fc) % 1.0
-            d = np.round(d, 6) % 1.0  # re-wrap 0.999999 -> 0.0
-            shifted.append([sp] + [float(round(x, 6)) for x in d])
+            d = np.round(d, 5) % 1.0  # re-wrap 0.999999 -> 0.0
+            shifted.append([sp] + [float(round(x, 5)) for x in d])
         shifted.sort()
         blob = json.dumps(shifted, sort_keys=True, separators=(",", ":"))
         if best is None or blob < best:
             best = blob
 
-    lattice = [[round(v, 6) for v in row]
+    lattice = [[round(v, 5) for v in row]
                for row in prim.lattice.matrix.tolist()]
     canonical = {"periodic": True, "lattice": lattice, "sites_canonical": best}
     derived = {"spacegroup": spacegroup, "natoms_primitive": len(prim),

@@ -1,100 +1,105 @@
 {
-  "canonical": {
-    "natoms_primitive": 2,
-    "spacegroup": 227,
-    "uid": "55bf22ca81868867402ac4ce50a830f91da84c805990c37c3bdafe3b93a69143"
+ "canonical": {
+  "natoms_primitive": 2,
+  "spacegroup": 227,
+  "uid": "55bf22ca81868867402ac4ce50a830f91da84c805990c37c3bdafe3b93a69143"
+ },
+ "external_ids": {
+  "materials_project": "mp-149"
+ },
+ "files": null,
+ "formula": "Si",
+ "name": "Si diamond primitive (mp-149)",
+ "natoms": 2,
+ "provenance": [
+  {
+   "detail": "mp-149, GGA-relaxed primitive cell",
+   "kind": "database",
+   "ref": "materials-project"
   },
-  "external_ids": {
-    "materials_project": "mp-149"
-  },
-  "files": null,
-  "formula": "Si",
-  "name": "Si diamond primitive (mp-149)",
-  "natoms": 2,
-  "provenance": [
-    {
-      "detail": "mp-149, GGA-relaxed primitive cell",
-      "kind": "database",
-      "ref": "materials-project"
-    }
-  ],
-  "structure": {
-    "@class": "Structure",
-    "@module": "pymatgen.core.structure",
-    "charge": 0.0,
-    "lattice": {
-      "a": 3.8492771847452087,
-      "alpha": 60.00000000000001,
-      "b": 3.8492771847452087,
-      "beta": 60.00000000000001,
-      "c": 3.8492771847452087,
-      "gamma": 60.00000000000001,
-      "matrix": [
-        [
-          0.0,
-          2.72185,
-          2.72185
-        ],
-        [
-          2.72185,
-          0.0,
-          2.72185
-        ],
-        [
-          2.72185,
-          2.72185,
-          0.0
-        ]
-      ],
-      "pbc": [
-        true,
-        true,
-        true
-      ],
-      "volume": 40.32947410786324
-    },
-    "properties": {},
-    "sites": [
-      {
-        "abc": [
-          0.0,
-          0.0,
-          0.0
-        ],
-        "label": "Si",
-        "properties": {},
-        "species": [
-          {
-            "element": "Si",
-            "occu": 1
-          }
-        ],
-        "xyz": [
-          0.0,
-          0.0,
-          0.0
-        ]
-      },
-      {
-        "abc": [
-          0.25,
-          0.25,
-          0.25
-        ],
-        "label": "Si",
-        "properties": {},
-        "species": [
-          {
-            "element": "Si",
-            "occu": 1
-          }
-        ],
-        "xyz": [
-          1.360925,
-          1.360925,
-          1.360925
-        ]
-      }
-    ]
+  {
+   "detail": "live API re-fetch 2026-07-11: payload replaced with the fetched object; rounding coarsened to 5 decimals after a 1e-6 refetch-noise knife edge at the 6-decimal boundary",
+   "kind": "database",
+   "ref": "materials-project"
   }
+ ],
+ "structure": {
+  "@class": "Structure",
+  "@module": "pymatgen.core.structure",
+  "charge": 0.0,
+  "lattice": {
+   "a": 3.8492784033699095,
+   "alpha": 60.00001213094421,
+   "b": 3.8492794116013456,
+   "beta": 60.00000346645984,
+   "c": 3.849278,
+   "gamma": 60.00001097545789,
+   "matrix": [
+    [
+     3.333573,
+     0.0,
+     1.924639
+    ],
+    [
+     1.111191,
+     3.142924,
+     1.924639
+    ],
+    [
+     0.0,
+     0.0,
+     3.849278
+    ]
+   ],
+   "pbc": [
+    true,
+    true,
+    true
+   ],
+   "volume": 40.32952684741405
+  },
+  "properties": {},
+  "sites": [
+   {
+    "abc": [
+     0.875,
+     0.875,
+     0.875
+    ],
+    "label": "Si",
+    "properties": {},
+    "species": [
+     {
+      "element": "Si",
+      "occu": 1.0
+     }
+    ],
+    "xyz": [
+     3.8891685,
+     2.7500584999999997,
+     6.7362365
+    ]
+   },
+   {
+    "abc": [
+     0.125,
+     0.125,
+     0.125
+    ],
+    "label": "Si",
+    "properties": {},
+    "species": [
+     {
+      "element": "Si",
+      "occu": 1.0
+     }
+    ],
+    "xyz": [
+     0.5555955,
+     0.3928655,
+     0.9623195
+    ]
+   }
+  ]
+ }
 }

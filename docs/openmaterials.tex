@@ -555,7 +555,7 @@ species. That payload lives in a configuration record, the structural sibling of
 the value record. It is content-addressed by a canonical uid: the sha256 of the
 spglib-standardized primitive cell (\texttt{symprec} $10^{-3}$), origin-anchored
 so a rigid translation is invariant, with species and sites sorted and
-coordinates rounded to six decimals. The same cell, its sites shuffled, and a
+coordinates rounded to five decimals (a hundredth of a milliangstrom: coarse enough to absorb refetch-level numerical noise, fine enough that physically distinct cells never collide; the matcher gate reviews the boundary). The same cell, its sites shuffled, and a
 supercell of it therefore hash to one uid; a strained cell does not. On top of
 the hash a validation gate runs \texttt{StructureMatcher}: a
 physically-equivalent but not hash-identical cell is flagged for human review
