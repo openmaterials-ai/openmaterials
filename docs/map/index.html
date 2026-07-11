@@ -176,6 +176,19 @@
     /* tier band headings shrink so columns stay legible when zoomed out */
     .band .h{letter-spacing:0;}
   }
+  /* very narrow screens: the wordmark, a usable search, and three control
+     buttons cannot all fit on one 56px row, and the search was collapsing to
+     its icon while Fit ran off the right edge. Drop the wordmark to just its
+     home-linking dot so the search stays usable and every control stays on
+     screen. (The tracer keeps its wordmark: it has a single control button.) */
+  @media (max-width:480px){
+    .top .brand span:not(.om-dot){display:none;}
+    .top .brand{gap:0;}
+    .top .brand .om-dot{width:9px;height:9px;margin-bottom:0;}
+    .top .om-search{margin-left:0;}
+    .top .controls{gap:7px;}
+    .top .controls .om-btn{padding:11px 11px;}
+  }
   /* focus-visible ring consistent with the rest of the site */
   a:focus-visible,button:focus-visible,input:focus-visible,.node:focus-visible{outline:2px solid var(--obs);outline-offset:2px;}
   @media (prefers-reduced-motion: reduce){

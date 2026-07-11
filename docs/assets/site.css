@@ -204,7 +204,10 @@ a:focus-visible{outline-offset:3px;}
 .om-input:focus{border-color:var(--accent);background:var(--surface);box-shadow:0 0 0 3px rgba(79,70,229,.13);}
 /* a search field is an input with room for a leading icon */
 .om-search{position:relative;display:flex;align-items:center;}
-.om-search .om-search-ic{position:absolute;left:11px;color:var(--faint);pointer-events:none;display:inline-flex;}
+/* the icon is the leading <svg> itself; pin it to its intrinsic 15px so
+   display:inline-flex cannot stretch it to fill the field (which pushed the
+   glyph into the middle of the input on narrow widths). */
+.om-search .om-search-ic{position:absolute;left:11px;color:var(--faint);pointer-events:none;display:inline-flex;width:15px;height:15px;flex:none;}
 .om-search .om-input{padding-left:34px;}
 
 /* chip: the code-rail pill. hairline pill; active = accent solid white text;

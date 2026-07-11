@@ -63,8 +63,11 @@
     /* controls stay >=40px tall for reliable touch targets */
     .top .om-btn{padding:11px 14px;min-height:40px;} .top .om-input{padding-top:11px;padding-bottom:11px;min-height:40px;}
     /* the derivation panel becomes a scrollable bottom sheet; the path bar and
-       legend crowd the sheet, so they step aside on small screens */
-    .om-panel{top:auto;left:0;right:0;bottom:0;width:auto;max-height:55vh;
+       legend crowd the sheet, so they step aside on small screens. body-scoped
+       so it beats the base .om-panel rule (top/right/width/max-height) that
+       follows later in source order at equal (class) specificity: without this
+       the sheet fell back to a full-height right-anchored floating card. */
+    body .om-panel{top:auto;left:0;right:0;bottom:0;width:auto;max-height:55vh;
       border-radius:16px 16px 0 0;box-shadow:0 -12px 36px rgba(22,24,29,.20);padding:18px;}
     /* body-scoped so these win over the base .legend/.pathbar rules that follow
        later in source order at equal (class) specificity */
