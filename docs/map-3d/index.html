@@ -140,14 +140,12 @@
   <span class="sub">the map in 3D</span>
   <span class="om-search"><svg class="om-search-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input class="om-input" id="q" placeholder="Find a quantity" aria-label="Find a quantity and fly to it"></span>
   <nav class="nav" aria-label="Primary">
-    <a href="../map/">Map</a>
-    <a href="../map-3d/" class="active" aria-current="page">3D</a>
+    <a href="../map/" class="active" aria-current="page">Map</a>
     <a href="../learn/">Learn</a>
     <a href="../openmaterials.pdf">Document</a>
     <a href="https://github.com/gbarbalinardo/openmaterials" target="_blank" rel="noopener">Source</a>
   </nav>
   <span class="controls">
-    <button class="om-btn om-btn-sm" id="rotBtn" onclick="toggleRotate()" aria-label="Pause or resume the gentle rotation">Pause</button>
     <span class="om-seg" role="group" aria-label="Map view">
       <a href="../map/" aria-label="Switch to the 2D view">2D</a>
       <a class="on" href="./" aria-current="page">3D</a>
@@ -275,7 +273,7 @@ function renderGraph(graph, links){
     links: links.map(l=>({ source:l.source, target:l.target, op:l.op||'', kind:l.kind||'' }))
   };
 
-  Graph = ForceGraph3D(sceneEl)
+  Graph = new ForceGraph3D(sceneEl)
     .graphData(gData)
     .backgroundColor('rgba(0,0,0,0)')
     .showNavInfo(false)
@@ -298,8 +296,8 @@ function renderGraph(graph, links){
 
   // Force layout: x/z are free (force cloud within each tier plane); y is fixed.
   // A gentle charge keeps the tiers readable; the link force sets spacing.
-  Graph.d3Force('charge').strength(-140);
-  const lf = Graph.d3Force('link'); if(lf) lf.distance(38);
+  Graph.d3Force('charge').strength(-260);
+  const lf = Graph.d3Force('link'); if(lf) lf.distance(55);
 
   sizeToViewport();
   window.addEventListener('resize', sizeToViewport);
@@ -370,8 +368,7 @@ function currentOrbitRadius(){
   return Math.hypot(p.x||0, p.z||0) || 260;
 }
 function stopAutoRotate(){ autoRotate=false; if(rotTimer){ clearInterval(rotTimer); rotTimer=null; } syncRotBtn(); }
-function toggleRotate(){ if(autoRotate) stopAutoRotate(); else startAutoRotate(); }
-function syncRotBtn(){ const b=document.getElementById('rotBtn'); if(b) b.textContent = autoRotate ? 'Pause' : 'Rotate'; }
+function syncRotBtn(){ }
 function interact(){ if(!interacted){ interacted=true; restHint.style.opacity=0; } if(autoRotate) stopAutoRotate(); }
 
 // ---- interaction: fit / fly ------------------------------------------------
