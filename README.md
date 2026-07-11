@@ -22,8 +22,11 @@ and the ingest/extend/encode procedures) is
 The database is just files in this repo: the versioned map lives in `map/`
 (log-first, content-addressed); the site reads `docs/data/graph.json`
 (variables + formulas), `docs/data/catalog.json` (per-node grounding: symbol,
-dimension, description), `docs/data/codes.json` (per-code variable coverage), and
-`docs/data/instances/` (one file per value). Rebuild the generated files with:
+dimension, description), `docs/data/codes.json` (per-code variable coverage),
+`docs/data/instances/` (one file per value), and `docs/data/configurations/`
+(one file per atomic structure: the content-addressed home of a `Structure`
+value, bundled to `docs/data/configurations.json`). Rebuild the generated files
+with:
 
 ```bash
 CUDA_VISIBLE_DEVICES="" PYTHONPATH=. python -m omai.map_data
@@ -94,6 +97,7 @@ omai/
   thermodynamic_identities/ # six executable relations closing the map's formulas
                      #   together (Gruneisen, kappa_total, molar volume, C_P-C_V, PF, ZT)
   paper_parser/      # P1 paper parser: PDF -> gated evidence proposal (six stages)
+  configurations.py  # structure-valued evidence: content-addressed atomic cells
   map_data.py        # unified multi-domain export -> docs/data/*.json
   store.py           # log-first store: push/read/diff/verify
 infra/

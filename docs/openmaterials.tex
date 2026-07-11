@@ -548,6 +548,54 @@ evaluated (with \texttt{conditions} carrying the rest of the evaluation
 point). A value record never introduces structure; that is a separate,
 reviewed contribution through the gates.
 
+\paragraph{Configuration record (structure-valued evidence).} The
+\texttt{Structure} node is one opaque node on the map, but a value of it is a
+periodic atomic configuration: lattice vectors, fractional coordinates, and
+species. That payload lives in a configuration record, the structural sibling of
+the value record. It is content-addressed by a canonical uid: the sha256 of the
+spglib-standardized primitive cell (\texttt{symprec} $10^{-3}$), origin-anchored
+so a rigid translation is invariant, with species and sites sorted and
+coordinates rounded to six decimals. The same cell, its sites shuffled, and a
+supercell of it therefore hash to one uid; a strained cell does not. On top of
+the hash a validation gate runs \texttt{StructureMatcher}: a
+physically-equivalent but not hash-identical cell is flagged for human review
+rather than silently merged, and provenance appends to the one record on a
+confirmed duplicate. The implemented schema, shown as the first committed record
+with the site list elided
+(\texttt{docs/data/configurations/si-diamond-primitive-mp-149.json}):
+
+\begin{verbatim}
+{
+  "name": "Si diamond primitive (mp-149)",
+  "formula": "Si",
+  "natoms": 2,
+  "structure": { ...pymatgen Structure.as_dict()... },
+  "canonical": {
+    "uid": "55bf22ca8186...",
+    "spacegroup": 227,
+    "natoms_primitive": 2
+  },
+  "external_ids": {"materials_project": "mp-149"},
+  "provenance": [
+    {"kind": "database", "ref": "materials-project",
+     "detail": "mp-149, GGA-relaxed primitive cell"}
+  ],
+  "files": null
+}
+\end{verbatim}
+
+The record is pinned at bundle time to the \texttt{Structure} node's content uid,
+the same \texttt{node\_uid} discipline a value record follows, so a configuration
+travels with the node through supersede chains. Cells at or below 1000 atoms
+embed the full structure dict inline; larger cells (a 17k-atom amorphous cell)
+point to a committed structure file and keep only reduced metadata inline so the
+record stays searchable. A value record may now carry an optional
+\texttt{configuration} key naming this uid; \texttt{material} stays the display
+string, so the addition is backward compatible and the existing instances are
+untouched. This is where the structure-ish numbers a run reports (atom count,
+cell volume) belong: not as scalar evidence on their own nodes, but as derived
+views of a configuration.
+
 \paragraph{Spectrum record (function-valued evidence).} Some nodes are
 function-valued in practice (a phonon density of states, a diffraction pattern,
 a dielectric function): the evidence is not one scalar but an array of ordinates
@@ -605,7 +653,14 @@ three independent passes with diverse prompts (a broad sweep, a table/caption
 sweep, a prose sweep) are unioned, two claims counting as one finding when they
 share a normalized value, a compatible quantity name, and an overlapping quote or
 adjacent page. MAP aligns each detected value against the node catalog via
-structured outputs. VALIDATE runs deterministically over the kernel, killing any
+structured outputs; a claim that lands on a source or parameter node
+(\texttt{Structure}, \texttt{Temperature}, \texttt{AtomCount}, and the rest of
+the input set, flagged \texttt{evidence\_target: false} in one place in the
+catalog builder) is classified as a run \emph{condition}, not a value. Such
+claims survive into the proposal as context and are counted separately, but are
+excluded from instance minting at apply time: an atom count or a temperature is a
+condition of a run, whose structural home is the configuration record and the
+\texttt{conditions} field, never a scalar instance on its own node. VALIDATE runs deterministically over the kernel, killing any
 claim whose quote is not found verbatim in the document (the hallucination gate)
 and flagging values that duplicate a committed instance. REVIEW is an adversarial
 model pass. PROPOSE emits a proposal file that a human confirms with
