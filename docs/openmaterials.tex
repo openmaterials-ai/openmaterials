@@ -436,19 +436,22 @@ on the map, simply unconfirmed.
 \section{The parsers}
 
 A parser is an assisted on-ramp, one per artifact type. Each proposes
-structure, values, or both; the map validates them; a human confirms.
+structure, values, or both; the map validates them; a human confirms. One of the
+three exists today; the other two are designed and not yet built.
 
 \begin{itemize}[leftmargin=2em]
-  \item The code parser imports a codebase as a representation: it maps the code's
-  input, output, and intermediate files and key lines onto the nodes and edges
-  the code implements (structure), and it lets a run of the code be recorded as
-  an instance (values).
-  \item The paper parser turns a paper's formulas into edges (structure) and its
-  measured or computed numbers into values on nodes; its first version
-  (\texttt{omai/paper\_parser}, extracting values as gated evidence) is
-  implemented, detailed under the parser contract below.
-  \item The run parser reads a concrete run and records its inputs (from the input
-  file) and its outputs as values on the nodes they belong to.
+  \item The paper parser turns a paper's measured or computed numbers into values
+  on nodes (and, in its eventual full form, its formulas into edges). Its
+  value-extraction half is built (\texttt{omai/paper\_parser}, gated evidence),
+  detailed under the parser contract below.
+  \item The code parser will import a codebase as a representation: mapping the
+  code's input, output, and intermediate files and key lines onto the nodes and
+  edges the code implements (structure), and letting a run of the code be recorded
+  as an instance (values). The 27 representations on today's map were authored by
+  hand against this contract; the parser that automates the mapping is not yet
+  built.
+  \item The run parser will read a concrete run and record its inputs (from the
+  input file) and its outputs as values on the nodes they belong to.
 \end{itemize}
 
 Proposals must pass the map's types as continuous integration: dimensional
@@ -572,20 +575,27 @@ only when an \texttt{XRDPattern} node is minted.
 proposed structure and value records. Every proposal must pass validation below
 before a human confirms it into the index.
 
-\paragraph{The paper parser (P1), implemented.} The first parser now exists:
+\paragraph{The paper parser, implemented.} The first parser exists:
 \texttt{omai/paper\_parser} turns a PDF into a gated evidence proposal in six
-stages. INGEST extracts the text with page offsets; DETECT enumerates every
-reported value with a verbatim, page-located quote (a citations-enabled model
-pass); MAP aligns each detected value against the node catalog via structured
-outputs; VALIDATE runs deterministically over the kernel, killing any claim whose
-quote is not found verbatim in the document (the hallucination gate) and flagging
-values that duplicate a committed instance; REVIEW is an adversarial model pass;
-and PROPOSE emits a proposal file that a human confirms with \texttt{--apply}
-before any instance is written. The pipeline never prints or logs the API key.
-It is golden-evaluated against this very document: on the eight expected values it
-recovers seven (recall 0.875), no hallucinated quote survives validation, and
-every recovered known is correctly flagged as a duplicate of its committed
-instance.
+stages. INGEST extracts the text with page offsets. DETECT enumerates every
+reported value with a verbatim, page-located quote through a citations-enabled
+model pass, run as an ensemble: a single pass is unreliable (its recall swung
+between $0.375$ and $0.875$ across runs because one pass can miss values), so
+three independent passes with diverse prompts (a broad sweep, a table/caption
+sweep, a prose sweep) are unioned, two claims counting as one finding when they
+share a normalized value, a compatible quantity name, and an overlapping quote or
+adjacent page. MAP aligns each detected value against the node catalog via
+structured outputs. VALIDATE runs deterministically over the kernel, killing any
+claim whose quote is not found verbatim in the document (the hallucination gate)
+and flagging values that duplicate a committed instance. REVIEW is an adversarial
+model pass. PROPOSE emits a proposal file that a human confirms with
+\texttt{--apply} before any instance is written. The pipeline never prints or logs
+the API key. It is golden-evaluated against this very document, against a
+committed expected set of eight values: the acceptance bar is recall $\ge 0.8$
+with the worst of the ensemble runs still clearing it, no hallucinated quote
+surviving validation, and every recovered known correctly flagged as a duplicate
+of its committed instance. The ensemble was built to hold that recall bar against
+the single-pass variance, which is the honest edge of a model-driven extractor.
 
 \paragraph{Index schema.} Registry: \texttt{index/papers/}, \texttt{index/codes/},
 \texttt{index/experiments/}, each entry pinned to (element hash at map version).
@@ -668,7 +678,7 @@ their alternatives or justifications; supporting definitions follow in later sec
         representation and is declared by the adapter that produced it; the framework
         normalizes to a canonical unit before any cross-representation comparison.
 
-  \item \textbf{The atom is a operator operation.} The atomic unit of meaning is a typed
+  \item \textbf{The atom is an operator operation.} The atomic unit of meaning is a typed
         transformation between operator states, not an instruction in an input file or an
         algorithm. Every operation carries a \emph{operator formula}---a sympy expression
         (closed-form output) or sympy.Eq (implicit equation defining the output)---stating
@@ -676,7 +686,7 @@ their alternatives or justifications; supporting definitions follow in later sec
         Lean-projectable, against which adapter conformance can be checked.
 
   \item \textbf{States are typed witnesses; nodes are ObservableSpaces or HiddenSpaces.}
-        A state is the typed claim that a operator physics object exists with a
+        A state is the typed claim that an operator physics object exists with a
         particular history. The operator layer splits states into two structural kinds:
         \emph{ObservableSpaces} (gauge-invariant, first-class, required to agree across
         adapters) and \emph{HiddenSpaces} (gauge-dependent intermediate scaffolding
@@ -708,7 +718,7 @@ their alternatives or justifications; supporting definitions follow in later sec
 
   \item \textbf{Discretization belongs to representation.} Mesh densities, supercell
         sizes, displacement steps, and broadenings live on the representation, not on
-        the operator state. Convergence is a relationship between a operator state and
+        the operator state. Convergence is a relationship between an operator state and
         a family of its representations.
 
   \item \textbf{Cross-code agreement is required at ObservableSpace nodes only.} Two
@@ -820,7 +830,7 @@ The single most important design decision is a strict separation between two typ
 \end{itemize}
 
 The two worlds are connected by exactly one bridge, the \emph{representation functor}, which
-takes (i) a operator state and (ii) a discretization scheme and produces a numeric
+takes (i) an operator state and (ii) a discretization scheme and produces a numeric
 representation. Approximation errors compose in the operator world along provenance chains;
 discretization errors compose in the numeric world along execution graphs; the two combine only
 at representation time, where the total error of a numerical result decomposes into its operator
@@ -1018,7 +1028,7 @@ answerable without confusion with the other.
 \paragraph{Read in this light:}
 the operator states described elsewhere in this document are all witnesses: they assert the
 existence of a particular physics object derived in a particular way. The numerical content,
-when present, lives in the representation, separated from the witness by the operator/represented
+when present, lives in the representation, separated from the witness by the operator/representation
 boundary. Operations between operator states are operations between witnesses, with no numerics
 involved; they are essentially structural moves on a graph of typed assertions.
 
@@ -1036,7 +1046,7 @@ equipped with three pieces of metadata:
         implicit ones (eigenvalue equations, linear systems). \emph{Every} operation
         carries a formula---source operations have identity formulas (e.g.,
         \texttt{provide\_temperature}: $T = T_{\text{provided}}$);
-  \item an \emph{approximation error formula} $\epsilon_{\mathcal{O}}$, a operator
+  \item an \emph{approximation error formula} $\epsilon_{\mathcal{O}}$, an operator
         expression in physical small parameters (e.g., $\lambda$ for the strength of a
         perturbation, $T/T^*$ for a Sommerfeld expansion). Exact operations have
         $\epsilon_{\mathcal{O}} = 0$; approximating operations have
@@ -1386,7 +1396,7 @@ degenerate-subspace), and data-dependent gauges (e.g.\ degenerate-
 subspace rotation that only acts at degenerate $\omega$). For those,
 the operator layer falls back to the Level 1 named-gauge declarations.
 
-\paragraph{Crystal symmetry as a operator declaration.} Crystal symmetry
+\paragraph{Crystal symmetry as an operator declaration.} Crystal symmetry
 at the operator layer level is purely a \emph{declaration}: a
 \texttt{SymmetryGroup} carries a Hermann-Mauguin / Schoenflies name
 (\texttt{Oh}, \texttt{D6h}, \texttt{Ci}, \ldots) and an order $|G|$.
@@ -1407,13 +1417,13 @@ to compare two representations whose declared symmetry groups disagree.
 This is the same pattern \texttt{Potential} follows: declared symbolically
 as a labelled source state without the operator layer modeling its functional
 form. ``How $\Phi^{(2)}$ is computed under crystal symmetry'' is a code
-concern; ``which symmetry group was assumed'' is a operator-level
+concern; ``which symmetry group was assumed'' is an operator-level
 declaration.
 
 \subsection{Representation functor}
 
 A representation functor $\mathcal{F}$ is associated with a particular code (kaldo, phono3py,
-ShengBTE). Given a operator workflow $W$ and a discretization scheme $\Sigma$,
+ShengBTE). Given an operator workflow $W$ and a discretization scheme $\Sigma$,
 \begin{equation}
   \mathcal{F}(W, \Sigma)
 \end{equation}
@@ -1425,7 +1435,7 @@ operator template.
 
 \subsection{Total error}
 
-The total error on the representation $m$ of a operator state $s$ is
+The total error on the representation $m$ of an operator state $s$ is
 \begin{equation}
   \epsilon_{\text{total}}(m)
   = \mathrm{compose}\bigl(\epsilon_{\text{approx}}(s),\, \epsilon_{\text{disc}}(m)\bigr).
@@ -1881,7 +1891,7 @@ spec-load time.
 \subsection{Verification on silicon (Tersoff potential)}
 \label{ssec:silicon-verification}
 
-The operator layer's operator predictions have been verified end-to-end against numerical
+The operator layer's predictions have been verified end-to-end against numerical
 runs of kaldo and phono3py on silicon at the Tersoff potential, $8\times 8\times 8$
 q-mesh, $T = 300\,\text{K}$, broadening stdev $0.1\,\text{THz}$:
 
@@ -1953,16 +1963,18 @@ oriented but is deferred to Phase 2.
         identifies where two codes do something different, regardless of the magnitude of the
         difference.
   \item \textbf{A unified framework for theory-experiment comparison.} The same operator DAG
-        accepts experimental measurements as additional representations of parameter states,
-        with the same alignment machinery as for cross-code comparison. Phase 1 demonstrates the
-        framework on at least one experimental dataset (e.g., a measured $\kappa(T)$ curve for
-        silicon).
+        accepts experimental measurements as additional evidence on the same nodes,
+        with the same alignment machinery as for cross-code comparison. The two
+        Glassbrenner--Slack 1964 steady-state thermal conductivities of bulk
+        single-crystal silicon and germanium (Part~\ref{part:status}) are the map's
+        first measurement instances, sitting on the same $\kappa$ node as the
+        computed values.
 \end{itemize}
 
 \noindent\textbf{Deferred to Phase 2:}
 \begin{itemize}[leftmargin=2em]
   \item \textbf{Decomposed error bounds on $\kappa$.} The operator layer is designed to eventually
-        produce the central value of $\kappa$ together with a operator decomposition of its
+        produce the central value of $\kappa$ together with an operator decomposition of its
         total error into the truncation error of the perturbation series and the discretization
         error of the chosen mesh. The architecture supports this; the implementation of the
         composition algebra is a research problem reserved for Phase 2.
@@ -2046,8 +2058,8 @@ plus one per domain:
     \end{itemize}
 \end{itemize}
 
-\noindent The split mirrors the operator layer's architectural commitment: \texttt{abstract}
-is the operator world; \texttt{representation} is the bridge to the numeric world;
+\noindent The split mirrors the operator layer's architectural commitment: \texttt{omai.operator}
+is the operator world; \texttt{omai.representation} is the bridge to the numeric world;
 \texttt{thermal\_transport} is the first domain instantiated against them. Future
 domains (electronic transport, optical response, …) follow the same pattern in their
 own folder; no change to the operator-level packages is required to add one.
