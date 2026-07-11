@@ -22,7 +22,10 @@ _FIX = Path(__file__).resolve().parent / "fixtures" / "configurations"
 def _primitive_si():
     from pymatgen.core import Lattice, Structure
 
-    a = 5.468
+    # mp-149 GGA-relaxed conventional lattice constant (5.4437 Ang), so the
+    # builder cell, the committed POSCAR/CIF fixtures, and from_mp("mp-149")
+    # all canonicalize to the SAME uid (the acceptance identity).
+    a = 5.4437
     lat = Lattice([[0, a / 2, a / 2], [a / 2, 0, a / 2], [a / 2, a / 2, 0]])
     return Structure(lat, ["Si", "Si"], [[0, 0, 0], [0.25, 0.25, 0.25]])
 
@@ -50,7 +53,7 @@ def test_strained_cell_hashes_differently():
     from pymatgen.core import Lattice, Structure
 
     si = _primitive_si()
-    a = 5.468 * 1.02
+    a = 5.4437 * 1.02
     lat = Lattice([[0, a / 2, a / 2], [a / 2, 0, a / 2], [a / 2, a / 2, 0]])
     strained = Structure(lat, ["Si", "Si"], [[0, 0, 0], [0.25, 0.25, 0.25]])
     assert cfg.canonical_uid(si) != cfg.canonical_uid(strained)
@@ -163,7 +166,7 @@ def test_matcher_equivalent_but_not_hash_identical_flags_duplicate(tmp_path):
     # it accepts the scaled cell as equivalent, but the lattice constant differs
     # at 6 decimals so the canonical hash differs. Matcher-equivalent, different
     # uid: the human-review path.
-    a = 5.468 * 1.005
+    a = 5.4437 * 1.005
     lat = Lattice([[0, a / 2, a / 2], [a / 2, 0, a / 2], [a / 2, a / 2, 0]])
     scaled = Structure(lat, ["Si", "Si"], [[0, 0, 0], [0.25, 0.25, 0.25]])
     assert cfg.canonical_uid(scaled) != cfg.canonical_uid(si)

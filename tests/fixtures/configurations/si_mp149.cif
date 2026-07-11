@@ -1,16 +1,16 @@
 # generated using pymatgen
 data_Si
 _symmetry_space_group_name_H-M   'P 1'
-_cell_length_a   3.86645988
-_cell_length_b   3.86645988
-_cell_length_c   3.86645988
+_cell_length_a   3.84927718
+_cell_length_b   3.84927718
+_cell_length_c   3.84927718
 _cell_angle_alpha   60.00000000
 _cell_angle_beta   60.00000000
 _cell_angle_gamma   60.00000000
 _symmetry_Int_Tables_number   1
 _chemical_formula_structural   Si
 _chemical_formula_sum   Si2
-_cell_volume   40.87196581
+_cell_volume   40.32947411
 _cell_formula_units_Z   2
 loop_
  _symmetry_equiv_pos_site_id
