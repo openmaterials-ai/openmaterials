@@ -10,6 +10,7 @@ Google Fonts at build time.
 | --- | --- | --- | --- |
 | KaTeX | 0.16.9 | `katex/dist/katex.min.js`, `katex/dist/katex.min.css`, `katex/dist/contrib/auto-render.min.js`, `katex/dist/fonts/*.woff2` (20) | `cdn.jsdelivr.net/npm/katex@0.16.9/dist/` |
 | dagre | 0.8.5 | `dagre.min.js` | `cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js` |
+| 3d-force-graph | 1.80.0 | `3d-force-graph/3d-force-graph.min.js` (~1.28 MB) | `cdn.jsdelivr.net/npm/3d-force-graph@1.80.0/dist/3d-force-graph.min.js` |
 | reveal.js | 5.1.0 | `reveal/reveal.js`, `reveal/reveal.css`, `reveal/theme-white.css`, `reveal/math.js` | `cdn.jsdelivr.net/npm/reveal.js@5.1.0/` |
 | pdf.js (pdfjs-dist) | 4.10.38 | `pdfjs/pdf.min.mjs`, `pdfjs/pdf.worker.min.mjs` | `cdn.jsdelivr.net/npm/pdfjs-dist@4/build/` |
 | @anthropic-ai/sdk | 0.110.0 | `anthropic/sdk.mjs` | `cdn.jsdelivr.net/npm/@anthropic-ai/sdk/+esm` |
@@ -51,4 +52,13 @@ Google Fonts at build time.
   by default, so the `font-feature-settings:"zero" 1` on the mono token is a
   no-op passthrough rather than a functional glyph toggle.
 
-Total committed vendored size: ~3.6 MB (the three new font files add ~104 KB).
+- **3d-force-graph**: the official jsDelivr `dist/3d-force-graph.min.js` UMD
+  bundle. It embeds its own copy of three.js (the WebGL renderer, cameras, and
+  sprite/canvas-texture classes are all inside), so the 3D map page needs only
+  this one file, no separate three vendoring. The bundle exposes a single
+  `ForceGraph3D` global and does not re-export `THREE`; the 3D map page therefore
+  encodes node symbols with the library's built-in `nodeLabel` hover overlay
+  (plain-string, KaTeX-free) rather than custom three text sprites, keeping the
+  page to this one script with zero external fetches.
+
+Total committed vendored size: ~4.9 MB (3d-force-graph adds ~1.28 MB).
