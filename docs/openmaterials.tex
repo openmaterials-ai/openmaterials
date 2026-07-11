@@ -499,8 +499,9 @@ One clone gets you the map and the world's evidence together.
 \section{Contracts (for builders)}
 
 These are the interfaces the protocol defines. The store, index, and identity
-contracts below are implemented (Part~\ref{part:kernel}); the parsers remain the
-eventual on-ramp, each its own spec, plan, and build cycle.
+contracts below are implemented (Part~\ref{part:kernel}); of the parsers, the
+paper parser's value-extraction half is built and the code and run parsers remain
+the eventual on-ramp, each its own spec, plan, and build cycle.
 
 \paragraph{Store operations.} \texttt{push(change)} appends a change record (op, target, date,
 reason, author) and advances the version hash. \texttt{read()} returns the
@@ -653,9 +654,10 @@ maintainer list; the silicon values above arrived that way. The genesis
 version hash is now frozen and the log-first store and the index exist, so the
 map's source of truth is data (an append-only log plus a materialized view) and
 the Python operator layer is an authoring client that emits change records;
-Part~\ref{part:kernel} documents all three. The parsers are the eventual
-automated on-ramp, not the day-one one, and remain the next build after the
-store and index.
+Part~\ref{part:kernel} documents all three. The parsers are the automated
+on-ramp, not the day-one one: the paper parser's value-extraction half now
+exists, and the code and run parsers remain the next build after the store and
+index.
 
 \section*{See also}
 
@@ -2640,8 +2642,9 @@ worked example the kernel was built for, validated by the Si cross-check per the
 code against a trusted one on the same material before any single-code result is
 trusted). What remains, in order:
 \begin{itemize}[leftmargin=2em, itemsep=0.2em]
-  \item \textbf{The parsers}, the automated on-ramp (code, paper, run), each its
-        own spec, plan, and build cycle.
+  \item \textbf{The parsers}, the automated on-ramp. The paper parser's
+        value-extraction half is built (Part~\ref{part:product}); the code and run
+        parsers remain, each its own spec, plan, and build cycle.
   \item \textbf{Further domains through the same gates}: the deferred
         ground-state quantities (ChargeDensity, Wavefunctions, dvscf) and the
         \texttt{mat-*} bulk encode. The finite-displacement Forces $\to$
@@ -2878,8 +2881,9 @@ order from here:
         contribution through the gates (records 102-108), validated by the Si
         cross-check (\texttt{experiments/qe\_si\_crosscheck}), with the first QE
         instances attached to the map.
-  \item \textbf{The parsers}, the eventual automated on-ramp (code, paper, run),
-        each its own spec, plan, and build cycle.
+  \item \textbf{The parsers}, the automated on-ramp. The paper parser's
+        value-extraction half is built (Part~\ref{part:product}); the code and run
+        parsers remain to build, each its own spec, plan, and build cycle.
   \item \textbf{Further domains and the \texttt{mat-*} bulk encode}, growing the
         map through the same gates. Mechanics landed 2026-07-08 as records
         110-117 (the elastic tensor, its Voigt moduli, and the pressure, via
