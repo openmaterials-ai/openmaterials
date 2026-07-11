@@ -54,6 +54,13 @@
   .top .nav a:hover{color:var(--ink);}
   .top .nav a.active{color:var(--ink);border-bottom-color:var(--obs);}
   .top .controls{margin-left:auto;display:flex;gap:9px;align-items:center;}
+  @media (max-width:480px){
+    .top .brand span:not(.om-dot){display:none;}
+    .top .brand{gap:0;}
+    .top .brand .om-dot{width:9px;height:9px;margin-bottom:0;}
+    .top .controls{gap:7px;}
+    .top .controls .om-btn{padding:11px 10px;}
+  }
   /* the WebGL viewport fills everything under the header */
   #scene{position:fixed;top:56px;left:0;right:0;bottom:0;
     background:radial-gradient(circle at 50% 30%,#ffffff,#f2efe9 78%);touch-action:none;}
@@ -141,7 +148,6 @@
   </nav>
   <span class="controls">
     <button class="om-btn om-btn-sm" id="rotBtn" onclick="toggleRotate()" aria-label="Pause or resume the gentle rotation">Pause</button>
-    <button class="om-btn om-btn-sm" onclick="fitAll()" aria-label="Frame the whole graph">Fit</button>
     <a class="om-btn om-btn-sm" href="../map/" aria-label="Open the flat 2D map">2D map</a>
   </span>
 </div>

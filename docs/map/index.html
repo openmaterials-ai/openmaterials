@@ -19,7 +19,7 @@
      search input, the code-rail chips, the floating panel, its section labels,
      and the provenance kv rows are all .om-* classes now. This block keeps only
      the map's page-specific layout (the warm-paper canvas, tier bands, the SVG
-     edge/node encoding, the tour, the fallback). The semantic node colors are
+     edge/node encoding, the fallback). The semantic node colors are
      load-bearing and unchanged; the canvas is warmed to the site's paper. */
   :root{--ink:#16181d;--ink2:#3d4149;--muted:#6b7078;--faint:#9aa0a8;--line:#e8e6e1;
         --obs:#4f46e5;--obs2:#4338ca;--hidbd:#dde4ee;--gold:#d98a14;--green:#0f9d6b;
@@ -129,20 +129,6 @@
   #tip .fx code{font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;font-size:.78rem;color:#e2e8f0;white-space:pre-wrap;}
   /* offline banner */
   #banner{position:fixed;top:60px;left:0;right:0;background:#fef3c7;color:#8a5a09;font:13px/1.4 'Inter',sans-serif;font-weight:600;padding:8px 14px;z-index:15;display:none;border-bottom:1px solid #f4dfa0;}
-  /* guided tour caption */
-  #tour{position:fixed;left:50%;bottom:78px;transform:translateX(-50%);width:min(90vw,620px);background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 48px rgba(16,24,40,.22);padding:18px 22px;z-index:19;display:none;}
-  #tour .step{font-size:.62rem;text-transform:uppercase;letter-spacing:.09em;color:#a3aec0;font-weight:800;}
-  #tour .tname{font-size:1.5rem;font-weight:800;letter-spacing:-.01em;color:#312e81;margin:.15em 0 .35em;}
-  #tour .tdesc{color:#475569;font-size:.96rem;line-height:1.5;}
-  #tour .nav{display:flex;align-items:center;gap:10px;margin-top:15px;}
-  #tour .nav .dots{display:flex;gap:6px;flex:1;}
-  #tour .nav .dot{width:8px;height:8px;border-radius:50%;background:#dbe3f2;}
-  #tour .nav .dot.on{background:var(--obs);}
-  #tour .nav button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:7px 13px;font-size:.82rem;font-weight:600;cursor:pointer;color:var(--ink2);transition:.12s;font-family:inherit;}
-  #tour .nav button:hover,#tour .nav button:active{background:#f1f4fb;}
-  #tour .nav button.primary{background:var(--obs);color:#fff;border-color:var(--obs);}
-  #tour .nav button.primary:hover{background:var(--obs2);}
-  #tour .hint{font-size:.7rem;color:#a3aec0;margin-top:9px;}
   /* static fallback outline (dagre missing) */
   #fallback{position:fixed;top:100px;left:0;right:0;bottom:0;overflow:auto;padding:20px 26px 60px;display:none;}
   #fallback .ft{font-size:1.15rem;font-weight:800;color:#312e81;margin:22px 0 4px;}
@@ -170,9 +156,6 @@
     /* code rail: keep it a single horizontally scrollable strip above the sheet */
     .codes{left:8px;right:8px;transform:none;max-width:none;bottom:12px;}
     .legend{display:none;}            /* the legend crowds small screens; encoding is shown in-panel */
-    /* tour caption fits the viewport */
-    #tour{width:calc(100vw - 24px);bottom:70px;padding:15px 17px;}
-    #tour .tname{font-size:1.25rem;}
     /* tier band headings shrink so columns stay legible when zoomed out */
     .band .h{letter-spacing:0;}
   }
@@ -193,7 +176,7 @@
   a:focus-visible,button:focus-visible,input:focus-visible,.node:focus-visible{outline:2px solid var(--obs);outline-offset:2px;}
   @media (prefers-reduced-motion: reduce){
     *{transition-duration:.001ms !important;}
-    /* the tour flight uses viewBox writes, not CSS animation; the panel/tip
+    /* viewBox writes are not CSS animation; the panel/tip
        transitions are the only motion, and they are disabled above. */
   }
 </style>
@@ -212,9 +195,6 @@
     <a href="https://github.com/gbarbalinardo/openmaterials" target="_blank" rel="noopener">Source</a>
   </nav>
   <span class="controls">
-    <button class="om-btn om-btn-sm" id="depthBtn" onclick="cycleDepth()" aria-label="Toggle overview and expanded depth">Expand</button>
-    <button class="om-btn om-btn-sm" id="tourBtn" onclick="startTour()" aria-label="Start the guided tour">Tour</button>
-    <button class="om-btn om-btn-sm" onclick="fitAll()" aria-label="Fit the whole graph in view">Fit</button>
   </span>
 </div>
 <div id="banner"></div>
@@ -238,7 +218,6 @@
 <div class="codes" id="codes"><span class="lab2">codes</span></div>
 <div class="om-panel" id="panel"></div>
 <div id="tip"></div>
-<div id="tour"></div>
 <div id="fallback"></div>
 
 <script>window.onerror=function(m){var e=document.getElementById('err');e.style.display='block';e.textContent='Error: '+m;};</script>
@@ -254,7 +233,6 @@
 //    - layout    : dagre for vertical spacing, tier-band x-override for columns
 //    - render    : bands, nodes (structure only)
 //    - interaction: pan/zoom, depth levels, provenance panel, code rails, search
-//    - presentation: guided tour, big-screen fit
 //    - fallback  : static readable outline when dagre is missing
 //  KaTeX and dagre both degrade: no code path throws when either is undefined.
 // ============================================================================
@@ -270,7 +248,6 @@ let VB={x:0,y:0,w:1000,h:1000}, GW=1000, GH=1000;
 let nodeById={}, parents={}, children={}, symHtml={}, pos={},
     codesData={}, activeCode=null, tierList=[], tierIndex={}, edgeList=[],
     depth='overview';   // 'overview' | 'expanded' | 'focused'
-let priorDepth='overview';  // level to restore when leaving 'focused'
 
 function err(m){ const e=document.getElementById('err'); e.style.display='block'; e.textContent='Error: '+m; }
 function banner(m){ const b=document.getElementById('banner'); b.style.display='block'; b.textContent=m; }
@@ -508,37 +485,22 @@ svg.addEventListener('touchmove', e=>{
 }, {passive:false});
 svg.addEventListener('touchend', e=>{
   if(e.touches.length===0){
-    if(tPan && !tMoved && tStart && !tourActive){
+    if(tPan && !tMoved && tStart){
       const nd=tStart.target.closest && tStart.target.closest('.node');
       const ed=tStart.target.closest && tStart.target.closest('.edge');
       if(nd){ selectNode(nodeById[nd.dataset.id]); }
       else if(ed){ selectEdge(ed.dataset.edge, ed.dataset.op); }
       else { clearSel(); }
-    } else if(tPan && !tMoved && tStart && tourActive){ tourNext(); }
+    }
     tPan=null; tPinch=null; tStart=null;
   }
 }, {passive:false});
 
-// ---- interaction: depth levels ---------------------------------------------
-// overview: hidden-type nodes (+their edges) dimmed so observables
-//           read first. expanded: full DAG at strength. focused: node select
-//           dims all but a node's closed neighborhood.
+// ---- interaction: dimming --------------------------------------------------
+// expanded: full DAG at strength. focused: node select dims all but the
+// node's closed neighborhood.
 function clearDim(){ vp.querySelectorAll('.dim').forEach(el=>el.classList.remove('dim')); vp.querySelectorAll('.hot').forEach(el=>el.classList.remove('hot')); vp.querySelectorAll('.sel').forEach(el=>el.classList.remove('sel')); }
-function applyDepth(){
-  clearDim();
-  if(depth==='overview'){
-    vp.querySelectorAll('.node').forEach(el=>{ if(el.dataset.type==='hidden') el.classList.add('dim'); });
-    vp.querySelectorAll('.edge').forEach(el=>{ const ab=el.dataset.edge.split('>>'); const h=(nodeById[ab[0]]&&nodeById[ab[0]].type==='hidden')||(nodeById[ab[1]]&&nodeById[ab[1]].type==='hidden'); if(h) el.classList.add('dim'); });
-  }
-  syncDepthBtn();
-}
-function syncDepthBtn(){ const b=document.getElementById('depthBtn'); b.textContent = (depth==='overview') ? 'Expand' : 'Overview'; }
-function cycleDepth(){
-  if(depth==='focused'){ depth=priorDepth; panelEl.style.display='none'; }
-  else { depth = (depth==='overview') ? 'expanded' : 'overview'; }
-  activeCode=null; document.querySelectorAll('.codes .om-chip.on').forEach(e=>e.classList.remove('on'));
-  applyDepth();
-}
+function applyDepth(){ clearDim(); }
 
 // ---- interaction: focus + selection ----------------------------------------
 function focusNode(id){
@@ -547,10 +509,9 @@ function focusNode(id){
   clearDim();
   vp.querySelectorAll('.node').forEach(el=>{ el.classList.toggle('dim', !keep.has(el.dataset.id)); el.classList.toggle('sel', el.dataset.id===id); });
   vp.querySelectorAll('.edge').forEach(el=>{ const ab=el.dataset.edge.split('>>'); const inc=(ab[0]===id||ab[1]===id); el.classList.toggle('dim', !inc); el.classList.toggle('hot', inc); });
-  syncDepthBtn();
 }
 function clearSel(){
-  depth=priorDepth; panelEl.style.display='none';
+  depth='expanded'; panelEl.style.display='none';
   activeCode=null; document.querySelectorAll('.codes .om-chip.on').forEach(e=>e.classList.remove('on'));
   applyDepth();
 }
@@ -563,7 +524,7 @@ function mappedByHtml(id){
 }
 function selectNode(node){
   if(!node) return;
-  const id=node.id; priorDepth = (depth==='focused'?priorDepth:depth); focusNode(id);
+  const id=node.id; focusNode(id);
   const ins=parents[id]||[], outs=children[id]||[];
   let h='<span class="x" onclick="clearSel()">×</span>';
   h+='<div><span class="sym">'+tex(node.symbol)+'</span><span class="badge '+node.type+'">'+esc(node.type)+'</span></div>';
@@ -583,11 +544,10 @@ function selectNode(node){
 function opName(op){ return (op||'').replace(/\[.*?\]/g,'').replace(/_/g,' ').trim() || 'operation'; }
 function selectEdge(key, op){
   const [s,t]=key.split('>>'); const tn=nodeById[t], sn=nodeById[s]; if(!tn||!sn) return;
-  priorDepth = (depth==='focused'?priorDepth:depth); depth='focused';
+  depth='focused';
   clearDim();
   vp.querySelectorAll('.node').forEach(el=> el.classList.toggle('dim', !(el.dataset.id===s||el.dataset.id===t)));
   vp.querySelectorAll('.edge').forEach(el=>{ const on=el.dataset.edge===key; el.classList.toggle('dim', !on); el.classList.toggle('hot', on); });
-  syncDepthBtn();
   let h='<span class="x" onclick="clearSel()">×</span><div class="om-panel-label">operator</div><div class="name" style="font-weight:700;color:#312e81;font-size:.95rem">'+esc(opName(op))+'</div>';
   h+='<div class="sym" style="margin-top:8px">'+tex(sn.symbol)+' <span style="color:#a3aec0">&rarr;</span> '+tex(tn.symbol)+'</div>';
   h+='<div class="om-panel-label">computes</div><div class="formula">'+(tn.formula?tex(tn.formula,true):'<span class="muted">source (provided value)</span>')+'</div>';
@@ -595,7 +555,7 @@ function selectEdge(key, op){
 }
 
 // click routing
-svg.addEventListener('click', e=>{ if(moved)return; if(tourActive)return;
+svg.addEventListener('click', e=>{ if(moved)return;
   const nd=e.target.closest('.node'); if(nd){ selectNode(nodeById[nd.dataset.id]); return; }
   const ed=e.target.closest('.edge'); if(ed){ selectEdge(ed.dataset.edge, ed.dataset.op); return; }
   clearSel();
@@ -619,10 +579,10 @@ svg.addEventListener('mouseleave', ()=>{ tip.style.display='none'; });
 function codeCredit(code){ const sp=codesData[code]||{}; const any=Object.values(sp).find(e=>e && (e.citation||e.license)); if(!any) return ''; const cit=(any.citation||'').trim(); const lic=(any.license||'').trim(); return cit&&lic?(cit+' - '+lic):(cit||lic); }
 function renderCodeBar(){ const el=document.getElementById('codes'); Object.keys(codesData).sort().forEach(code=>{ const c=document.createElement('span'); c.className='om-chip'; c.dataset.code=code; const cr=codeCredit(code); if(cr) c.title=cr; c.innerHTML=esc(code)+'<span class="n">'+Object.keys(codesData[code]||{}).length+'</span>'; c.onclick=()=>toggleCode(code); el.appendChild(c); }); }
 function toggleCode(code){
-  if(activeCode===code){ activeCode=null; document.querySelectorAll('.codes .om-chip').forEach(e=>e.classList.remove('on')); depth=priorDepth; applyDepth(); return; }
+  if(activeCode===code){ activeCode=null; document.querySelectorAll('.codes .om-chip').forEach(e=>e.classList.remove('on')); depth='expanded'; applyDepth(); return; }
   activeCode=code; document.querySelectorAll('.codes .om-chip').forEach(e=> e.classList.toggle('on', e.dataset.code===code));
   const set=new Set(Object.keys(codesData[code]||{}));
-  priorDepth = (depth==='focused'?priorDepth:depth); depth='focused'; clearDim(); panelEl.style.display='none'; syncDepthBtn();
+  depth='focused'; clearDim(); panelEl.style.display='none';
   vp.querySelectorAll('.node').forEach(el=> el.classList.toggle('dim', !set.has(el.dataset.id)));
   vp.querySelectorAll('.edge').forEach(el=>{ const ab=el.dataset.edge.split('>>'); el.classList.toggle('dim', !(set.has(ab[0])&&set.has(ab[1]))); });
   if(set.size) fitTo([...set]);
@@ -632,55 +592,16 @@ function toggleCode(code){
 document.getElementById('q').addEventListener('input', function(){
   const v=this.value.trim().toLowerCase(); if(!v){ clearSel(); return; }
   const hits=Object.values(nodeById).filter(n=> (n.id+' '+(n.symbol||'')).toLowerCase().includes(v)).map(n=>n.id);
-  const set=new Set(hits); priorDepth=(depth==='focused'?priorDepth:depth); depth='focused'; clearDim(); panelEl.style.display='none'; syncDepthBtn();
+  const set=new Set(hits); depth='focused'; clearDim(); panelEl.style.display='none';
   vp.querySelectorAll('.node').forEach(el=> el.classList.toggle('dim', !set.has(el.dataset.id)));
   vp.querySelectorAll('.edge').forEach(el=> el.classList.add('dim'));
   if(hits.length) fitTo(hits);
 });
 
-// ---- presentation: guided tour ---------------------------------------------
-// Steps through tiers in manifest order, flying to each band's nodes with a
-// caption. Advance click / ArrowRight; back ArrowLeft; exit Escape (to expanded).
-let tourActive=false, tourStep=0, tierNodes={};
-function buildTierNodeIndex(){ tierNodes={}; Object.keys(nodeById).forEach(id=>{ const n=nodeById[id]; const key=(n.tier in tierIndex)?n.tier:'Other'; (tierNodes[key]=tierNodes[key]||[]).push(id); }); }
-function startTour(){ if(!tierList.length) return; if(!Object.keys(tierNodes).length) buildTierNodeIndex();
-  tourActive=true; tourStep=0; depth='expanded'; applyDepth(); panelEl.style.display='none'; showTourStep(); }
-function showTourStep(){
-  const t=tierList[tourStep]; if(!t){ endTour(); return; }
-  const ids=tierNodes[t.name]||[]; if(ids.length) fitTo(ids);
-  const el=document.getElementById('tour');
-  const dots=tierList.map((_,i)=> '<span class="dot'+(i===tourStep?' on':'')+'"></span>').join('');
-  const last=tourStep===tierList.length-1;
-  el.innerHTML='<div class="step">Tier '+(tourStep+1)+' of '+tierList.length+'</div>'+
-    '<div class="tname">'+esc(t.name)+'</div>'+
-    '<div class="tdesc">'+esc(t.description||'')+'</div>'+
-    '<div class="nav"><div class="dots">'+dots+'</div>'+
-    '<button onclick="tourBack()"'+(tourStep===0?' disabled style="opacity:.4"':'')+'>Back</button>'+
-    '<button class="primary" onclick="tourNext()">'+(last?'Finish':'Next')+'</button>'+
-    '<button onclick="endTour()">Exit</button></div>'+
-    '<div class="hint">Click / Right arrow to advance, Left arrow to go back, Esc to exit.</div>';
-  el.style.display='block';
-  // highlight the current tier's nodes
-  clearDim();
-  vp.querySelectorAll('.node').forEach(e=> e.classList.toggle('dim', !(ids.indexOf(e.dataset.id)>=0)));
-  vp.querySelectorAll('.edge').forEach(e=>{ const ab=e.dataset.edge.split('>>'); e.classList.toggle('dim', !(ids.indexOf(ab[0])>=0 && ids.indexOf(ab[1])>=0)); });
-}
-function tourNext(){ if(!tourActive) return; if(tourStep>=tierList.length-1){ endTour(); return; } tourStep++; showTourStep(); }
-function tourBack(){ if(!tourActive||tourStep<=0) return; tourStep--; showTourStep(); }
-function endTour(){ tourActive=false; document.getElementById('tour').style.display='none'; depth='expanded'; applyDepth(); fitAll(); }
-
-// keyboard: tour navigation, else Escape returns from focus/panel.
+// keyboard: Escape returns from focus/panel.
 window.addEventListener('keydown', e=>{
-  if(tourActive){
-    if(e.key==='ArrowRight'){ e.preventDefault(); tourNext(); }
-    else if(e.key==='ArrowLeft'){ e.preventDefault(); tourBack(); }
-    else if(e.key==='Escape'){ e.preventDefault(); endTour(); }
-    return;
-  }
   if(e.key==='Escape'){ if(panelEl.style.display==='block'||depth==='focused'){ clearSel(); } }
 });
-// during a tour, a plain click on the canvas advances (controls handled separately)
-document.addEventListener('click', e=>{ if(!tourActive) return; if(e.target.closest('#tour')||e.target.closest('.top')||e.target.closest('.codes')) return; tourNext(); }, true);
 
 // ---- fallback: static readable outline (dagre missing) ---------------------
 // Each tier heading + its nodes listed (symbol-or-name) with outgoing edges
