@@ -149,7 +149,7 @@
    "quantity": "atomic_mass"
   },
   "meta": {
-   "description": "",
+   "description": "A derived view of a Structure value (the per-species atomic mass), never standalone evidence.",
    "name": "AtomicMass",
    "symbol": "M",
    "tier": "Sources"
@@ -1713,7 +1713,7 @@
    "quantity": "cell_volume"
   },
   "meta": {
-   "description": "",
+   "description": "A derived view of a Structure value (the cell volume), never standalone evidence.",
    "name": "CellVolume",
    "symbol": "V_{\\mathrm{cell}}",
    "tier": "Sources"
@@ -1871,7 +1871,7 @@
    "quantity": "structure"
   },
   "meta": {
-   "description": "Atomic structure (cell + species + positions); in Phase 1 an opaque label, the shared source node most materials skills consume.",
+   "description": "A value of Structure is a periodic atomic configuration: lattice vectors, fractional coordinates, and species; serialized as a configuration record. The shared source node most materials skills consume.",
    "name": "Structure",
    "symbol": "\\mathcal{S}",
    "tier": "Sources"
@@ -2044,7 +2044,7 @@
    "quantity": "atom_count"
   },
   "meta": {
-   "description": "",
+   "description": "A derived view of a Structure value (the number of atoms in the cell), never standalone evidence.",
    "name": "AtomCount",
    "symbol": "N",
    "tier": "Sources"

@@ -64,9 +64,15 @@ THERMAL_TRANSPORT = Domain(
     edges=EDGES,
     symbols=SYMBOLS,
     param_promotions=(
-        ("CellVolume", r"V_{\mathrm{cell}}", _edges._V_cell, "volume"),
-        ("AtomicMass", r"M", _edges._M, "mass"),
-        ("AtomCount", r"N", _edges._N_atoms, "dimensionless"),
+        ("CellVolume", r"V_{\mathrm{cell}}", _edges._V_cell, "volume",
+         "A derived view of a Structure value (the cell volume), never "
+         "standalone evidence."),
+        ("AtomicMass", r"M", _edges._M, "mass",
+         "A derived view of a Structure value (the per-species atomic mass), "
+         "never standalone evidence."),
+        ("AtomCount", r"N", _edges._N_atoms, "dimensionless",
+         "A derived view of a Structure value (the number of atoms in the "
+         "cell), never standalone evidence."),
     ),
     tiers=(
         ("Sources", "Inputs a calculation is given: the potential, temperature, force constants, and polar-response tensors."),

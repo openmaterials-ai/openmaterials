@@ -477,6 +477,26 @@ def write_spectra(path: Path | None = None) -> Path:
     return path
 
 
+# Source / parameter nodes that carry a value INTO a calculation rather than
+# recording an evidence-worthy result of one. A claim landing on any of these is
+# CONTEXT (a condition), never a minted value instance (spec section 6). Tier is
+# not the discriminator (the Sources tier also holds measured evidence targets
+# like BornCharges); this explicit set is, reviewable in one place. Structure is
+# here because its evidence home is the configuration record, not a scalar
+# instance.
+_NON_EVIDENCE_NODES = frozenset({
+    "Structure",
+    "Temperature",
+    "Potential",
+    "CellVolume",
+    "AtomicMass",
+    "AtomCount",
+    "IsotopeAbundances",
+    "AssessedDatabase",
+    "CarrierDensity",
+})
+
+
 def build_catalog(domains: tuple[Domain, ...]) -> list[dict]:
     g = build_graph_dict(domains)
     space_by_name = {}
@@ -485,11 +505,15 @@ def build_catalog(domains: tuple[Domain, ...]) -> list[dict]:
             space_by_name[s.name] = s
 
     # Build a map of promoted-parameter id -> dimension name (4-tuple entries only)
+    # and -> one-line description (5-tuple entries carry it).
     param_dim: dict[str, str] = {}
+    param_desc: dict[str, str] = {}
     for d in domains:
         for p in d.param_promotions:
             if len(p) >= 4 and p[3]:
                 param_dim[p[0]] = p[3]
+            if len(p) >= 5 and p[4]:
+                param_desc[p[0]] = p[4]
 
     out = []
     for n in g["nodes"]:
@@ -504,12 +528,16 @@ def build_catalog(domains: tuple[Domain, ...]) -> list[dict]:
         # Promoted-parameter dimensions override/fill in the space-derived value
         dim = param_dim.get(n["id"], dim)
         desc = (s.description if s else "") or ""
+        # A promoted parameter carries its own one-liner (the space lookup does
+        # not see it).
+        desc = param_desc.get(n["id"], desc)
         out.append({
             "id": n["id"],
             "symbol": n["symbol"],
             "type": n["type"],
             "dimension": dim,
             "description": desc,
+            "evidence_target": n["id"] not in _NON_EVIDENCE_NODES,
         })
     return out
 

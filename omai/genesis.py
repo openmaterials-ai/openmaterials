@@ -135,6 +135,7 @@ def genesis_records() -> list[tuple[str, dict, str]]:
         # 2. Promoted parameters, in param_promotions order (tier 'Sources').
         for pid, psym, _sobj, *rest in d.param_promotions:
             dim_name = rest[0] if rest else None
+            description = rest[1] if len(rest) > 1 else ""
             uid = parameter_node_id(pid, dim_name)
             if uid in seen_nodes:
                 continue
@@ -145,7 +146,7 @@ def genesis_records() -> list[tuple[str, dict, str]]:
                 "meta": {
                     "name": pid,
                     "symbol": psym,
-                    "description": "",
+                    "description": description,
                     "tier": "Sources",
                 },
             }

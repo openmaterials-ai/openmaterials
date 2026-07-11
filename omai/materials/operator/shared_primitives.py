@@ -20,8 +20,10 @@ STRUCTURE = ObservableSpace(
     name="Structure",
     fields=(Field("structure", OPAQUE, indices=()),),
     description=(
-        "Atomic structure (cell + species + positions); in Phase 1 an opaque "
-        "label, the shared source node most materials skills consume."
+        "A value of Structure is a periodic atomic configuration: lattice "
+        "vectors, fractional coordinates, and species; serialized as a "
+        "configuration record. The shared source node most materials skills "
+        "consume."
     ),
     tier="Sources",
 )
