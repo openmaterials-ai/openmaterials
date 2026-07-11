@@ -65,6 +65,12 @@
   #scene{position:fixed;top:56px;left:0;right:0;bottom:0;
     background:radial-gradient(circle at 50% 30%,#ffffff,#f2efe9 78%);touch-action:none;}
   #scene canvas{display:block;outline:none;}
+  /* The tier ladder: height decoded. Top tier first (highest altitude). */
+  #tiers{position:fixed;left:14px;top:50%;transform:translateY(-50%);z-index:6;display:flex;flex-direction:column;gap:2px;max-height:78vh;overflow-y:auto;}
+  #tiers button{border:0;background:none;text-align:left;font:600 .72rem/1.9 var(--font-ui,Inter,sans-serif);letter-spacing:.02em;color:var(--muted);cursor:pointer;padding:1px 8px;border-radius:8px;white-space:nowrap;}
+  #tiers button:hover,#tiers button:active{color:var(--accent);background:var(--accent-soft);}
+  #tiers .lad{font-size:.6rem;text-transform:uppercase;letter-spacing:.12em;color:var(--faint);padding:0 8px 4px;}
+  @media (max-width:768px){ #tiers{display:none;} }
   /* graph-missing / no-webgl fallback: a static readable outline of the tiers */
   #fallback{position:fixed;top:56px;left:0;right:0;bottom:0;overflow:auto;padding:22px clamp(16px,4vw,40px) 60px;display:none;background:var(--bg);}
   #fallback .ft{font-family:var(--font-serif);font-size:1.2rem;font-weight:700;color:#312e81;margin:22px 0 4px;letter-spacing:-.01em;}
@@ -111,8 +117,6 @@
   .om-panel .traceline .u{color:#a9690f;} .om-panel .traceline .d{color:var(--obs2);}
   .muted{color:#94a3b8;}
   /* rest hint, centered until the first interaction */
-  .rest-hint{position:fixed;left:50%;top:56%;transform:translate(-50%,-50%);text-align:center;color:var(--faint);z-index:6;pointer-events:none;transition:opacity .4s;max-width:80vw;}
-  .rest-hint .big{font-family:var(--font-serif);font-size:1.5rem;color:var(--ink);font-weight:700;letter-spacing:-.01em;margin-bottom:6px;}
   /* mobile: full-viewport canvas, panel as a bottom sheet, >=40px touch targets */
   @media (max-width:768px){
     .top{gap:9px;padding:0 12px;}
@@ -125,7 +129,6 @@
       max-height:55vh;border-radius:var(--r-3) var(--r-3) 0 0;
       box-shadow:0 -12px 36px rgba(22,24,29,.20);border-bottom:none;padding:18px 18px 22px;}
     .legend{display:none;}
-    .rest-hint .big{font-size:1.25rem;}
   }
   a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--obs);outline-offset:2px;}
   @media (prefers-reduced-motion: reduce){ *{transition-duration:.001ms !important;} }
@@ -153,8 +156,8 @@
   </span>
 </div>
 <div id="banner"></div>
+<nav id="tiers" aria-label="Tiers by altitude"><div class="lad">Tiers &darr;</div></nav>
 <div id="scene"></div>
-<div class="rest-hint" id="resthint"><div class="big">The map, lifted off the plane</div>Drag to orbit, scroll to zoom. Height is tier progression. Tap a node to trace everything upstream.</div>
 <div class="legend">
   <span class="legend-title">3D map</span>
   <span class="sep"></span>
@@ -195,7 +198,6 @@ const HAS_KATEX = (typeof katex!=='undefined');
 const HAS_LIB   = (typeof ForceGraph3D!=='undefined');
 const sceneEl = document.getElementById('scene');
 const panelEl = document.getElementById('panel');
-const restHint = document.getElementById('resthint');
 
 let Graph=null, nodeById={}, parents={}, children={}, symHtml={},
     codesData={}, tierList=[], tierIndex={}, degree={}, selId=null,
@@ -294,6 +296,21 @@ function renderGraph(graph, links){
     .onBackgroundClick(()=>{ interact(); clearSel(); })
     .onNodeHover(node=>{ sceneEl.style.cursor = node ? 'pointer' : 'grab'; });
 
+  // The tier ladder: one entry per tier, top altitude first; click flies
+  // the camera to that tier's plane so its nodes (e.g. Sources: Structure,
+  // Potential, Temperature) are in front of you.
+  (function(){
+    const rail=document.getElementById('tiers'); if(!rail) return;
+    tierList.slice().reverse().forEach(t=>{
+      const b=document.createElement('button');
+      b.textContent=t.name; b.setAttribute('aria-label','Fly to the '+t.name+' tier');
+      b.onclick=()=>{ interact(); const ti=tierIndex[t.name];
+        const y=(ti-(nTiers-1)/2)*TIER_STEP;
+        Graph.cameraPosition({x:0,y:y+TIER_STEP*0.6,z:420},{x:0,y:y,z:0},900); };
+      rail.appendChild(b);
+    });
+  })();
+
   // Force layout: x/z are free (force cloud within each tier plane); y is fixed.
   // A gentle charge keeps the tiers readable; the link force sets spacing.
   Graph.d3Force('charge').strength(-260);
@@ -369,7 +386,7 @@ function currentOrbitRadius(){
 }
 function stopAutoRotate(){ autoRotate=false; if(rotTimer){ clearInterval(rotTimer); rotTimer=null; } syncRotBtn(); }
 function syncRotBtn(){ }
-function interact(){ if(!interacted){ interacted=true; restHint.style.opacity=0; } if(autoRotate) stopAutoRotate(); }
+function interact(){ if(!interacted){ interacted=true; } if(autoRotate) stopAutoRotate(); }
 
 // ---- interaction: fit / fly ------------------------------------------------
 function fitAll(){ if(Graph && Graph.zoomToFit) Graph.zoomToFit(600, 40); }
