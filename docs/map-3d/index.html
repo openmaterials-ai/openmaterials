@@ -148,7 +148,10 @@
   </nav>
   <span class="controls">
     <button class="om-btn om-btn-sm" id="rotBtn" onclick="toggleRotate()" aria-label="Pause or resume the gentle rotation">Pause</button>
-    <a class="om-btn om-btn-sm" href="../map/" aria-label="Open the flat 2D map">2D map</a>
+    <span class="om-seg" role="group" aria-label="Map view">
+      <a href="../map/" aria-label="Switch to the 2D view">2D</a>
+      <a class="on" href="./" aria-current="page">3D</a>
+    </span>
   </span>
 </div>
 <div id="banner"></div>

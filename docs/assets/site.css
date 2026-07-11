@@ -190,6 +190,13 @@ a:focus-visible{outline-offset:3px;}
 /* compact variant for the app chrome (map/trace top bars): tighter padding */
 .om-btn-sm{padding:9px 15px;font-size:.85rem;border-radius:var(--r-2);color:var(--ink-2);}
 
+/* Segmented view switcher (the 2D | 3D toggle on the map pages). */
+.om-seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r-2);overflow:hidden;background:var(--surface);}
+.om-seg a{padding:9px 14px;font-size:.85rem;font-weight:600;color:var(--ink-2);text-decoration:none;line-height:1;display:inline-flex;align-items:center;min-height:40px;}
+.om-seg a+a{border-left:1px solid var(--line);}
+.om-seg a.on{background:var(--accent);color:#fff;cursor:default;}
+.om-seg a:not(.on):hover,.om-seg a:not(.on):active{background:var(--accent-soft);}
+
 /* ---- app components (promoted from the map's refined local chrome) --------- */
 /* the single definitions consumed by the map, trace, and learn app surfaces.  */
 
