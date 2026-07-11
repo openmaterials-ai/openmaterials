@@ -24,13 +24,17 @@ def slugify(text: str) -> str:
 
 def build_proposal(*, paper_slug: str, map_version: str | None, mapped, validations,
                    verdicts_by_index: dict, usage, catalog_fingerprint: str,
-                   detect_stop: str, map_stop: str, review_stop: str) -> dict:
+                   detect_stop: str, map_stop: str, review_stop: str,
+                   detect_info: dict | None = None) -> dict:
     """Assemble the full proposal record.
 
     `mapped` and `validations` are index-aligned lists. Each claim's entry carries
     the detected fields, the node decision, the deterministic verdict (with the
-    surviving flag, duplicate flag, and any kills), and the adversarial verdict.
-    The unmappable/new-node feed is collected separately for the P-next node work.
+    surviving flag, duplicate flag, and any kills), the adversarial verdict, and
+    a `support` count (how many ensemble passes found the finding). The
+    unmappable/new-node feed is collected separately for the P-next node work.
+    `detect_info` (from detect.detect_ensemble) records the ensemble pass count
+    and per-pass claim counts in the run metadata; None defaults to a single pass.
     """
     claims_out = []
     new_node_feed = []
@@ -46,6 +50,7 @@ def build_proposal(*, paper_slug: str, map_version: str | None, mapped, validati
             "material": m.material,
             "conditions": m.conditions,
             "provenance": d.provenance,
+            "support": d.support,
             "quote": d.cited_text,
             "pages": d.pages,
             "node_id": m.node_id,
@@ -79,6 +84,7 @@ def build_proposal(*, paper_slug: str, map_version: str | None, mapped, validati
                 "material": m.material,
             })
 
+    info = detect_info or {}
     return {
         "paper_slug": paper_slug,
         "map_version": map_version,
@@ -87,6 +93,11 @@ def build_proposal(*, paper_slug: str, map_version: str | None, mapped, validati
             "detect_stop_reason": detect_stop,
             "map_stop_reason": map_stop,
             "review_stop_reason": review_stop,
+        },
+        "ensemble": {
+            "detect_passes": info.get("passes", 1),
+            "per_pass_claim_counts": info.get("per_pass_claim_counts", []),
+            "detect_stop_reasons": info.get("stop_reasons", []),
         },
         "usage": usage.as_dict(),
         "cost_estimate_usd": usage.cost_estimate_usd(),

@@ -29,16 +29,23 @@ def main(argv: list[str] | None = None) -> int:
                         help="source.kind for applied instances.")
     parser.add_argument("--map-version", default=None,
                         help="Map version to pin the proposal to.")
+    parser.add_argument("--detect-passes", type=int, default=3,
+                        help="Number of independent DETECT passes to union "
+                             "(ensemble size; default 3).")
     args = parser.parse_args(argv)
 
     try:
-        result = run_pipeline(args.pdf, map_version=args.map_version)
+        result = run_pipeline(args.pdf, map_version=args.map_version,
+                              detect_passes=args.detect_passes)
     except Exception as exc:  # redact any key that leaked into the message
         print(redact_key(f"error: {exc}"), file=sys.stderr)
         return 1
 
     k = result.stage_kills
+    ens = result.proposal.get("ensemble", {})
     print(f"proposal: {result.proposal_path}")
+    print(f"ensemble: detect_passes={ens.get('detect_passes')} "
+          f"per_pass_claim_counts={ens.get('per_pass_claim_counts')}")
     print(f"detected={k['detected']} survived_validation={k['survived_validation']} "
           f"duplicates={k['duplicates_flagged']} unmapped={k['unmapped']} "
           f"quote_killed={k['quote_killed']} review_killed={k['review_killed']}")

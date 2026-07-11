@@ -55,13 +55,15 @@ def _make_client():
 
 def run_pipeline(pdf_path: str | Path, *, client=None, map_version: str | None = None,
                  proposals_dir: Path | None = None, write: bool = True,
-                 instances_dir: Path | None = None) -> PipelineResult:
+                 instances_dir: Path | None = None,
+                 detect_passes: int = 3) -> PipelineResult:
     """Run the six-stage pipeline on one PDF and return the proposal + diagnostics.
 
     `client` may be injected (tests, custom config); otherwise a real client is
     built from the env/.env key. `write` controls whether the proposal file is
-    emitted. This function NEVER applies (no instance writes); that is the CLI's
-    --apply path.
+    emitted. `detect_passes` sets the ensemble size for DETECT (default 3; the
+    passes are unioned before mapping, see detect.detect_ensemble). This function
+    NEVER applies (no instance writes); that is the CLI's --apply path.
     """
     import anthropic
 
@@ -83,12 +85,16 @@ def run_pipeline(pdf_path: str | Path, *, client=None, map_version: str | None =
     detect_stop = map_stop = review_stop = "end_turn"
     cache_read = 0
 
-    # DETECT (pass 1)
-    detected, detect_stop = _detect.detect(client, ingested, usage)
+    # DETECT (ensemble: N independent passes, unioned)
+    detected, detect_stop, detect_info = _detect.detect_ensemble(
+        client, ingested, usage, passes=detect_passes)
 
     # MAP (pass 2)
     mapped, map_stop, cache_info = _map.map_claims(client, detected, catalog_text, usage)
-    cache_read = cache_info.get("cache_read_input_tokens", 0)
+    # Total cache reads: the ensemble's cached PDF-document reads (passes 2+) plus
+    # the map catalog-prefix read.
+    cache_read = (detect_info.get("cache_read_input_tokens", 0)
+                  + cache_info.get("cache_read_input_tokens", 0))
 
     # VALIDATE (deterministic)
     validations = []
@@ -116,7 +122,7 @@ def run_pipeline(pdf_path: str | Path, *, client=None, map_version: str | None =
         map_version=map_version, mapped=mapped, validations=validations,
         verdicts_by_index=verdicts_by_index, usage=usage,
         catalog_fingerprint=fingerprint, detect_stop=detect_stop,
-        map_stop=map_stop, review_stop=review_stop)
+        map_stop=map_stop, review_stop=review_stop, detect_info=detect_info)
 
     proposal_path = _propose.write_proposal(proposal, proposals_dir) if write else None
 

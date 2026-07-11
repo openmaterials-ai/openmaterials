@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import math
+import os
 from pathlib import Path
 
 import pytest
@@ -133,19 +134,54 @@ def _key_available() -> bool:
     return has_key()
 
 
+def _golden_runs() -> int:
+    """How many full-pipeline runs the acceptance test performs.
+
+    Defaults to 1 to keep CI cost sane. Set GOLDEN_RUNS=3 (or any N>=1) to enable
+    STABILITY mode: the pipeline runs N times and the test requires the MINIMUM
+    recall across all runs to clear the bar (proving the ensemble killed the
+    run-to-run recall variance, not just that one lucky run passed).
+    """
+    try:
+        n = int(os.environ.get("GOLDEN_RUNS", "1"))
+    except ValueError:
+        n = 1
+    return max(1, n)
+
+
 @pytest.mark.skipif(not _key_available(), reason="no ANTHROPIC_API_KEY; live golden run skipped")
 def test_golden_acceptance(tmp_path):
     expected = load_expected()
-    result = run_pipeline(_PDF, proposals_dir=tmp_path, write=True)
-    scores = score_run(result, expected)
+    recall_min = expected["acceptance"]["recall_min"]
+    runs = _golden_runs()
 
-    # Report (visible with -s)
-    print("\nGOLDEN SCORES:", json.dumps({k: scores[k] for k in (
-        "recall", "n_expected", "n_recovered", "all_recovered_flagged_duplicate",
-        "hallucinated_quotes_surviving", "surviving_total", "stage_kills")}, indent=2))
+    recalls: list[float] = []
+    for run_i in range(runs):
+        result = run_pipeline(_PDF, proposals_dir=tmp_path, write=True)
+        scores = score_run(result, expected)
 
-    assert scores["hallucinated_quotes_surviving"] == 0, "a hallucinated quote survived validation"
-    assert scores["recall"] >= expected["acceptance"]["recall_min"], (
-        f"recall {scores['recall']:.2f} below {expected['acceptance']['recall_min']}")
-    assert scores["all_recovered_flagged_duplicate"], (
-        "a recovered known was not flagged DUPLICATE by stage 4")
+        # Report (visible with -s)
+        ensemble = result.proposal.get("ensemble", {})
+        print(f"\nGOLDEN SCORES (run {run_i + 1}/{runs}):", json.dumps({
+            **{k: scores[k] for k in (
+                "recall", "n_expected", "n_recovered",
+                "all_recovered_flagged_duplicate",
+                "hallucinated_quotes_surviving", "surviving_total", "stage_kills")},
+            "ensemble": ensemble,
+            "cache_read_input_tokens": result.cache_read_input_tokens,
+        }, indent=2))
+
+        # These invariants must hold on EVERY run.
+        assert scores["hallucinated_quotes_surviving"] == 0, (
+            f"run {run_i + 1}: a hallucinated quote survived validation")
+        assert scores["all_recovered_flagged_duplicate"], (
+            f"run {run_i + 1}: a recovered known was not flagged DUPLICATE by stage 4")
+        recalls.append(scores["recall"])
+
+    # STABILITY: the worst run must still clear the bar.
+    min_recall = min(recalls)
+    print(f"\nGOLDEN STABILITY: recalls={recalls} min={min_recall:.3f} "
+          f"threshold={recall_min}")
+    assert min_recall >= recall_min, (
+        f"min recall {min_recall:.2f} across {runs} run(s) below {recall_min} "
+        f"(recalls={recalls})")
