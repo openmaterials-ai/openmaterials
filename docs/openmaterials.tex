@@ -368,6 +368,25 @@ an instance; its measured number is a value on a node. So ``is ShengBTE a tag?''
 resolves cleanly: ShengBTE is a representation, a ShengBTE run is an instance,
 and its result is a value on a node.
 
+One name per concept is enforced throughout this document. The canonical terms,
+and the near-synonyms they subsume:
+
+\begin{center}
+\small
+\begin{tabular}{lll}
+\toprule
+Concept & Canonical term & Notes \\
+\midrule
+A typed quantity on the map    & \textbf{node} & \texttt{Space} is the code class. \\
+A relation producing a node    & \textbf{edge} & \texttt{Operator} is the code class. \\
+A code's mapping onto the map  & \textbf{representation} & its on-map rendering is a \emph{rail}. \\
+One run of a representation     & \textbf{instance} & serialized as a \emph{value record}. \\
+A semantic type parameter       & \textbf{label} & e.g.\ \texttt{bte\_solver=rta}, not a ``variant''. \\
+A content hash                  & \textbf{uid} & sha256; a 12-hex prefix is displayed. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
 \section{The map}
 
 The map is a curated reference graph. Today it holds 98 nodes (95 observable
@@ -2608,13 +2627,9 @@ supersede chains. The scope came from the P1 dimensional gate:
 
 The dimension algebra and gate (P1), the identity module and index-kind registry
 (P2), the store, genesis migration, and \texttt{verify()} (P3), and the
-contribution gates and sync tool (P4) are built. P4 added the six gates
-(registry, identity, reachability, connectivity, gauge, and dimensional) that a
-contribution passes through \texttt{Store.propose} before any record lands, and
-the \texttt{python -m omai.sync} tool that diffs the Python operator layer
-against \texttt{map/current} and proposes change records (dry by default, a
-gated apply for additions and metadata edits, re-mints always routed through an
-explicit supersede). P5 is done in its minimal honest form: the map page shows
+contribution gates and sync tool (P4) are built: the six gates behind
+\texttt{Store.propose} and the \texttt{python -m omai.sync} tool are the
+\emph{Store API} paragraph of \S\ref{sec:kernel-store}. P5 is done in its minimal honest form: the map page shows
 each node's content-hash prefix on the provenance panel and the store head
 version it renders from (a \texttt{docs/data/version.json} stamp written next to
 the graph data), and the index pins every coverage file to the head at
