@@ -481,6 +481,69 @@ def write_spectra(path: Path | None = None) -> Path:
     return path
 
 
+# Above this many atoms a configuration's full structure dict is dropped from
+# the bundle (kept only in the per-record file): the bundle stays light so the
+# site can load every configuration at once.
+_BUNDLE_INLINE_ATOM_LIMIT = 100
+
+
+def build_configurations(config_dir: Path | None = None) -> list[dict]:
+    """The uid-pinned configuration index (docs/data/configurations.json).
+
+    A configuration is structure-valued evidence: the atomic cell that a
+    Structure value names. Each record is pinned to the live Structure node uid
+    (so it follows the node through supersede chains, exactly like an instance)
+    and carries its own content-addressed canonical uid. To keep the bundle
+    light, the full pymatgen structure dict is dropped for cells above
+    ``_BUNDLE_INLINE_ATOM_LIMIT`` atoms (the per-record file under
+    docs/data/configurations/ keeps it); the canonical block, name, formula,
+    provenance, and external ids always ride in the bundle so the site can
+    search and label without opening a file.
+    """
+    config_dir = config_dir or (_DOCS / "data" / "configurations")
+    structure_uid = {n["id"]: n["uid"]
+                     for n in build_graph_dict(_domains())["nodes"]}.get("Structure")
+    out = []
+    if not config_dir.exists():
+        return out
+    for f in sorted(config_dir.glob("*.json")):
+        rec = json.loads(f.read_text())
+        # The as-given cell size decides whether the full dict rides along; fall
+        # back to the primitive count for older records without natoms.
+        natoms = rec.get("natoms")
+        if natoms is None:
+            natoms = rec.get("canonical", {}).get("natoms_primitive")
+        bundle = {
+            "name": rec.get("name"),
+            "formula": rec.get("formula"),
+            "natoms": rec.get("natoms"),
+            "canonical": rec.get("canonical", {}),
+            "external_ids": rec.get("external_ids", {}),
+            "provenance": rec.get("provenance", []),
+            "files": rec.get("files"),
+            "node_uid": structure_uid,
+            "file": f.name,
+        }
+        payload = rec.get("structure")
+        # Keep the full structure dict only for small ordered cells; larger cells
+        # drop it from the bundle (the per-record file keeps it) so the bundle
+        # stays light enough for the site to load every configuration at once.
+        is_full = isinstance(payload, dict) and "@class" in payload
+        if payload is not None and (
+                not is_full or (natoms is not None
+                                and natoms <= _BUNDLE_INLINE_ATOM_LIMIT)):
+            bundle["structure"] = payload
+        out.append(bundle)
+    return out
+
+
+def write_configurations(path: Path | None = None) -> Path:
+    path = path or (_DOCS / "data" / "configurations.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(build_configurations()))
+    return path
+
+
 # Source / parameter nodes that carry a value INTO a calculation rather than
 # recording an evidence-worthy result of one. A claim landing on any of these is
 # CONTEXT (a condition), never a minted value instance (spec section 6). Tier is
@@ -573,6 +636,7 @@ if __name__ == "__main__":
     print("wrote", write_graph())
     print("wrote", write_instances())
     print("wrote", write_spectra())
+    print("wrote", write_configurations())
     print("wrote", write_codes())
     print("wrote", write_catalog())
     print("wrote", write_version())

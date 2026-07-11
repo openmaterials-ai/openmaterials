@@ -261,6 +261,44 @@ def test_molecule_records_non_periodic(tmp_path):
 # Large cell: file-backed reduced metadata inline.
 # --------------------------------------------------------------------------
 
+def test_build_configurations_bundle_pins_structure_uid(tmp_path):
+    from omai.map_data import _domains, build_configurations, build_graph_dict
+
+    si = _primitive_si()
+    uid = cfg.record_configuration(
+        si, name="Si diamond primitive",
+        provenance=[{"kind": "database", "ref": "mp", "detail": "mp-149"}],
+        external_id={"materials_project": "mp-149"},
+        config_dir=tmp_path)
+    bundle = build_configurations(tmp_path)
+    assert len(bundle) == 1
+    entry = bundle[0]
+    structure_uid = {n["id"]: n["uid"]
+                     for n in build_graph_dict(_domains())["nodes"]}["Structure"]
+    assert entry["node_uid"] == structure_uid
+    assert entry["canonical"]["uid"] == uid
+    assert entry["formula"] == "Si"
+    assert entry["external_ids"] == {"materials_project": "mp-149"}
+    # A small cell keeps its full structure dict in the bundle.
+    assert entry["structure"]["@class"] == "Structure"
+
+
+def test_build_configurations_drops_full_dict_for_large_cells(tmp_path):
+    from omai.map_data import build_configurations
+
+    si = _primitive_si()
+    big = si * (5, 5, 5)  # 250 atoms, over the bundle's 100-atom threshold
+    cfg.record_configuration(
+        big, name="Si medium supercell",
+        provenance=[{"kind": "simulation", "ref": "md", "detail": "big"}],
+        config_dir=tmp_path)
+    entry = build_configurations(tmp_path)[0]
+    # The per-record file still holds the full dict; the bundle drops it.
+    assert "structure" not in entry
+    assert entry["natoms"] == len(big)
+    assert entry["file"].endswith(".json")
+
+
 def test_large_cell_stores_reduced_metadata(tmp_path):
     si = _primitive_si()
     big = si * (10, 10, 6)  # 1200 atoms, over INLINE_ATOM_LIMIT

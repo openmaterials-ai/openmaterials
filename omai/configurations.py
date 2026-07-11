@@ -357,6 +357,9 @@ def record_configuration(structure_or_file, name, provenance, *,
         "name": name,
         "formula": structure.composition.reduced_formula
         if structure.is_ordered else structure.composition.formula,
+        # natoms is the as-given cell size (what the embedded dict costs);
+        # natoms_primitive is the standardized primitive's size (identity).
+        "natoms": natoms,
         "structure": structure.as_dict() if inline_full
         else _reduced_metadata(structure),
         "canonical": {
