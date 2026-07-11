@@ -30,6 +30,7 @@
   // icon-less text link "Source".
   var NAV = [
     ['Map', site('map/'), 'map/', false],
+    ['3D', site('map-3d/'), 'map-3d/', false],
     ['Learn', site('learn/'), 'learn/', false],
     ['Document', site('openmaterials.pdf'), 'openmaterials.pdf', false],
     ['Source', REPO, null, true]

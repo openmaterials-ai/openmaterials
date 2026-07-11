@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>openmaterials.ai: the map in 3D</title>
+<meta name="description" content="The whole openmaterials graph as a rotating 3D structure: typed quantities as nodes, dependencies as edges, height for tier progression.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="openmaterials.ai">
+<meta property="og:title" content="openmaterials.ai: the map in 3D">
+<meta property="og:description" content="The whole graph as a rotating structure: nodes by type, edges for dependencies, height for tier. Tap a node to trace everything upstream.">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../assets/vendor/katex/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/vendor/inter/inter.css">
+<link rel="stylesheet" href="../assets/vendor/source-serif-4/source-serif-4.css">
+<link rel="stylesheet" href="../assets/vendor/jetbrains-mono/jetbrains-mono.css">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+  /* The 3D map is the same structure VIEW as the 2D map, lifted off the plane:
+     nodes are the typed quantities, edges are the producing dependencies, and
+     HEIGHT encodes tier progression (Sources lowest, later tiers higher). It
+     reuses the site's semantic hues (observable indigo, hidden slate, parameter
+     gray), the compact header, and the .om-* component library (search input,
+     floating panel, section labels, kv rows, code chips). It is structure-pure:
+     it loads graph.json only, never the instance/spectra evidence layer. */
+  :root{
+    --ink:#16181d; --ink2:#3d4149; --muted:#6b7078; --faint:#9aa0a8; --line:#e8e6e1;
+    --obs:#4f46e5; --obs2:#4338ca;
+    --up:#d98a14;            /* upstream / how it is built (value amber) */
+    --down:#4f46e5;          /* downstream / where it flows (observable indigo) */
+    --font-serif:'Source Serif 4',Georgia,'Times New Roman',serif;
+    --font-sans:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+    --r-3:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;overflow:hidden;
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink);-webkit-font-smoothing:antialiased;
+    /* the canvas owns all gestures: the page itself never scroll-traps */
+    overscroll-behavior:none;touch-action:none;}
+  #err{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;font:13px/1.4 monospace;padding:8px 12px;z-index:60;display:none;white-space:pre-wrap;}
+  /* compact header, the map's treatment: light, hairline, serif wordmark + dot */
+  .top{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;gap:13px;padding:0 clamp(14px,3vw,22px);
+    background:rgba(255,255,255,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);z-index:20;}
+  .top .brand{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-serif);font-weight:700;font-size:1.06rem;letter-spacing:-.01em;white-space:nowrap;color:var(--ink);text-decoration:none;}
+  .top .brand .om-dot{width:6px;height:6px;border-radius:50%;background:var(--obs);flex:none;display:inline-block;margin-bottom:.28em;}
+  .top .sub{color:var(--faint);font-size:.82rem;font-weight:500;white-space:nowrap;}
+  .top .om-search{margin-left:16px;flex:1;max-width:320px;}
+  .top .nav{display:flex;align-items:center;gap:16px;margin-left:6px;}
+  .top .nav a{font-family:'Inter',sans-serif;color:var(--ink2);font-size:.86rem;font-weight:500;white-space:nowrap;text-decoration:none;padding:6px 0;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+  .top .nav a:hover{color:var(--ink);}
+  .top .nav a.active{color:var(--ink);border-bottom-color:var(--obs);}
+  .top .controls{margin-left:auto;display:flex;gap:9px;align-items:center;}
+  /* the WebGL viewport fills everything under the header */
+  #scene{position:fixed;top:56px;left:0;right:0;bottom:0;
+    background:radial-gradient(circle at 50% 30%,#ffffff,#f2efe9 78%);touch-action:none;}
+  #scene canvas{display:block;outline:none;}
+  /* graph-missing / no-webgl fallback: a static readable outline of the tiers */
+  #fallback{position:fixed;top:56px;left:0;right:0;bottom:0;overflow:auto;padding:22px clamp(16px,4vw,40px) 60px;display:none;background:var(--bg);}
+  #fallback .ft{font-family:var(--font-serif);font-size:1.2rem;font-weight:700;color:#312e81;margin:22px 0 4px;letter-spacing:-.01em;}
+  #fallback .fd{color:#6b7796;font-size:.9rem;margin-bottom:12px;}
+  #fallback .fn{border:1px solid var(--line);border-radius:12px;padding:11px 14px;margin:8px 0;background:#fff;}
+  #fallback .fn .fs{font-weight:700;color:#0b1220;}
+  #fallback .fn .fk{font-size:.64rem;text-transform:uppercase;letter-spacing:.05em;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:8px;vertical-align:middle;}
+  #fallback .fn .fk.observable{background:#eef2ff;color:#4338ca;} #fallback .fn .fk.hidden{background:#f1f5f9;color:#64748b;} #fallback .fn .fk.parameter{background:#f1f5f9;color:#64748b;}
+  #fallback .fn .fe{color:#475569;font-size:.83rem;margin-top:6px;}
+  #fallback .fn .fe .arw{color:#a3aec0;}
+  /* offline / status banner */
+  #banner{position:fixed;top:56px;left:0;right:0;background:#fef3c7;color:#8a5a09;font:13px/1.4 'Inter',sans-serif;font-weight:600;padding:8px 14px;z-index:15;display:none;border-bottom:1px solid #f4dfa0;}
+  /* legend */
+  .legend{position:fixed;left:18px;bottom:16px;z-index:8;display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+    background:rgba(255,255,255,.9);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:12px;padding:9px 14px;font-size:.78rem;color:var(--muted);box-shadow:0 4px 18px rgba(16,24,40,.06);}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend .legend-title{font-family:var(--font-serif);font-weight:700;font-size:.92rem;color:var(--ink);letter-spacing:-.005em;}
+  .legend .g{color:var(--ink2);font-weight:700;text-transform:uppercase;font-size:.66rem;letter-spacing:.06em;}
+  .legend .sep{width:1px;height:16px;background:var(--line);}
+  .sw{width:12px;height:12px;border-radius:50%;display:inline-block;}
+  /* provenance panel: the shared .om-panel; placement + content styles here */
+  .om-panel{position:fixed;top:72px;right:18px;width:360px;max-height:calc(100vh - 92px);overflow:auto;z-index:18;display:none;}
+  .om-panel .x{float:right;cursor:pointer;color:#cbd5e1;font-size:1.6rem;line-height:1;padding:2px 8px;margin:-4px -6px 0 0;transition:.12s;} .om-panel .x:hover,.om-panel .x:active{color:#64748b;}
+  .om-panel .sym{font-size:1.8rem;color:#312e81;}
+  .om-panel .badge{display:inline-block;font-size:.58rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;border-radius:999px;padding:3px 9px;margin-left:10px;vertical-align:middle;}
+  .om-panel .badge.observable{background:var(--obs);} .om-panel .badge.hidden{background:#94a3b8;} .om-panel .badge.parameter{background:#64748b;}
+  .om-panel .tiertag{display:inline-block;font-size:.62rem;font-weight:700;color:var(--muted);background:#f4f2ee;border:1px solid #e3ded5;border-radius:999px;padding:3px 9px;margin-left:8px;vertical-align:middle;}
+  .om-panel .name{font-family:var(--font-mono);font-feature-settings:"zero" 1;color:#64748b;font-size:.78rem;margin:.55em 0 .1em;word-break:break-word;}
+  .om-panel .name .tiertag{font-family:var(--font-sans,'Inter',sans-serif);}
+  .om-panel .uid{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.66rem;color:#a3aec0;margin-left:8px;vertical-align:middle;}
+  .formula{background:linear-gradient(180deg,#fbfaf8,#f5f3ef);border:1px solid var(--line);border-radius:12px;padding:13px 12px;overflow-x:auto;}
+  .formula code{font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;font-size:.82rem;color:#334155;white-space:pre-wrap;word-break:break-word;}
+  .fop{font-size:.72rem;font-weight:700;color:#64748b;margin:10px 0 4px;font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;}
+  .fop:first-of-type{margin-top:2px;}
+  .chips{display:flex;flex-wrap:wrap;gap:7px;}
+  .chip{font-size:1.15rem;border:1px solid var(--line);background:#fff;border-radius:10px;padding:4px 11px;color:#312e81;cursor:pointer;transition:.12s;box-shadow:0 1px 2px rgba(16,24,40,.05);}
+  .chip:hover,.chip:active,.chip:focus{border-color:var(--obs);box-shadow:0 2px 9px rgba(79,70,229,.16);outline:none;}
+  .chip.up{border-color:var(--up);color:#a9690f;} .chip.down{border-color:var(--down);}
+  .chip code{font-family:'SFMono-Regular',ui-monospace,Menlo,Consolas,monospace;font-size:.86rem;}
+  .om-panel .mapby .om-kv-k{font-weight:700;color:#312e81;}
+  .om-panel .mapby .om-kv-v{font-size:.76rem;max-width:190px;}
+  .om-panel .traceline{font-size:.8rem;color:var(--ink2);background:#f4f2ee;border:1px solid var(--line);border-radius:11px;padding:9px 12px;margin-top:4px;line-height:1.5;}
+  .om-panel .traceline b{color:var(--ink);}
+  .om-panel .traceline .u{color:#a9690f;} .om-panel .traceline .d{color:var(--obs2);}
+  .muted{color:#94a3b8;}
+  /* rest hint, centered until the first interaction */
+  .rest-hint{position:fixed;left:50%;top:56%;transform:translate(-50%,-50%);text-align:center;color:var(--faint);z-index:6;pointer-events:none;transition:opacity .4s;max-width:80vw;}
+  .rest-hint .big{font-family:var(--font-serif);font-size:1.5rem;color:var(--ink);font-weight:700;letter-spacing:-.01em;margin-bottom:6px;}
+  /* mobile: full-viewport canvas, panel as a bottom sheet, >=40px touch targets */
+  @media (max-width:768px){
+    .top{gap:9px;padding:0 12px;}
+    .top .sub{display:none;}
+    .top .nav{display:none;}
+    .top .om-search{margin-left:10px;max-width:none;}
+    .top .om-btn{padding:11px 13px;font-size:.8rem;min-height:40px;}
+    .top .om-input{padding-top:11px;padding-bottom:11px;min-height:40px;}
+    .om-panel{top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;
+      max-height:55vh;border-radius:var(--r-3) var(--r-3) 0 0;
+      box-shadow:0 -12px 36px rgba(22,24,29,.20);border-bottom:none;padding:18px 18px 22px;}
+    .legend{display:none;}
+    .rest-hint .big{font-size:1.25rem;}
+  }
+  a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--obs);outline-offset:2px;}
+  @media (prefers-reduced-motion: reduce){ *{transition-duration:.001ms !important;} }
+</style>
+</head>
+<body>
+<div id="err"></div>
+<div class="top">
+  <a class="brand" href="../index.html" aria-label="openmaterials home">
+    <span>openmaterials.ai</span><span class="om-dot" aria-hidden="true"></span>
+  </a>
+  <span class="sub">the map in 3D</span>
+  <span class="om-search"><svg class="om-search-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input class="om-input" id="q" placeholder="Find a quantity" aria-label="Find a quantity and fly to it"></span>
+  <nav class="nav" aria-label="Primary">
+    <a href="../map/">Map</a>
+    <a href="../map-3d/" class="active" aria-current="page">3D</a>
+    <a href="../learn/">Learn</a>
+    <a href="../openmaterials.pdf">Document</a>
+    <a href="https://github.com/gbarbalinardo/openmaterials" target="_blank" rel="noopener">Source</a>
+  </nav>
+  <span class="controls">
+    <button class="om-btn om-btn-sm" id="rotBtn" onclick="toggleRotate()" aria-label="Pause or resume the gentle rotation">Pause</button>
+    <button class="om-btn om-btn-sm" onclick="fitAll()" aria-label="Frame the whole graph">Fit</button>
+    <a class="om-btn om-btn-sm" href="../map/" aria-label="Open the flat 2D map">2D map</a>
+  </span>
+</div>
+<div id="banner"></div>
+<div id="scene"></div>
+<div class="rest-hint" id="resthint"><div class="big">The map, lifted off the plane</div>Drag to orbit, scroll to zoom. Height is tier progression. Tap a node to trace everything upstream.</div>
+<div class="legend">
+  <span class="legend-title">3D map</span>
+  <span class="sep"></span>
+  <span class="g">type</span>
+  <span><i class="sw" style="background:var(--obs)"></i>observable</span>
+  <span><i class="sw" style="background:#c3ccdb"></i>hidden</span>
+  <span><i class="sw" style="background:#94a3b8"></i>parameter</span>
+  <span class="sep"></span>
+  <span class="g">trace</span>
+  <span><i class="sw" style="background:var(--up)"></i>upstream</span>
+  <span><i class="sw" style="background:var(--down)"></i>downstream</span>
+</div>
+<div class="om-panel" id="panel"></div>
+<div id="fallback"></div>
+
+<script>window.onerror=function(m){var e=document.getElementById('err');e.style.display='block';e.textContent='Error: '+m;};</script>
+<script src="../assets/vendor/katex/dist/katex.min.js"></script>
+<script src="../assets/vendor/3d-force-graph/3d-force-graph.min.js"></script>
+<script>
+"use strict";
+// ============================================================================
+//  openmaterials 3D map: the structure graph lifted off the plane.
+//  Reading order:
+//    - shared     : DOM handles, helpers (tex fallback, esc)
+//    - data       : fetch graph.json ONLY, build adjacency + tier index
+//    - layout     : force in x/z, tier index FIXES the y (height) coordinate
+//    - encoding    : color by type, size by degree, dashed-ish parameter edges
+//    - interaction: orbit/zoom (lib), auto-rotate, click -> fly + panel +
+//                   ancestry highlight (upstream amber / downstream indigo),
+//                   search -> fly, escape/background clears
+//    - fallback   : static tier outline when WebGL / the lib is unavailable
+//  Structure-pure: graph.json is the only network read; the instance/spectra
+//  evidence layer is never fetched (the standing MVC ruling).
+// ============================================================================
+
+// ---- shared ----------------------------------------------------------------
+const HAS_KATEX = (typeof katex!=='undefined');
+const HAS_LIB   = (typeof ForceGraph3D!=='undefined');
+const sceneEl = document.getElementById('scene');
+const panelEl = document.getElementById('panel');
+const restHint = document.getElementById('resthint');
+
+let Graph=null, nodeById={}, parents={}, children={}, symHtml={},
+    codesData={}, tierList=[], tierIndex={}, degree={}, selId=null,
+    autoRotate=true, interacted=false;
+
+// tier -> vertical height. Sources sit lowest; each later tier is one step up.
+// three.js has +y up, so higher tier index maps to a larger y.
+const TIER_STEP = 60;
+
+// type -> node color (the semantic trio), rest state.
+const TYPE_COLOR = { observable:'#4f46e5', hidden:'#c3ccdb', parameter:'#94a3b8' };
+
+function err(m){ const e=document.getElementById('err'); e.style.display='block'; e.textContent='Error: '+m; }
+function banner(m){ const b=document.getElementById('banner'); b.style.display='block'; b.textContent=m; }
+function esc(s){ return (''+s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function attr(s){ return (''+s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function tex(latex,display){
+  if(latex==null) return '';
+  if(HAS_KATEX){ try{ return katex.renderToString(latex,{throwOnError:false,displayMode:!!display}); }catch(e){ /* fall through */ } }
+  return '<code>'+esc(''+latex)+'</code>';
+}
+function opName(op){ return (op||'').replace(/\[.*?\]/g,'').replace(/_/g,' ').trim() || 'operation'; }
+
+// ---- data ------------------------------------------------------------------
+// The 3D map is the VIEW of the structure MODEL: nodes, edges, formulas, and the
+// code representations mapped onto them. Values, instances, and spectra are a
+// separate evidence layer that consumers load against node uids; this page never
+// fetches or renders them (see the paper's MVC statement).
+Promise.all([
+  fetch('../data/graph.json?v='+Date.now()).then(r=>r.json()),
+  fetch('../data/codes.json?v='+Date.now()).then(r=>r.json()).catch(()=>({}))
+]).then(build).catch(e=> err('data: '+e));
+
+function build([graph, codes]){
+  codesData = codes || {};
+  graph.nodes.forEach(n=>{ nodeById[n.id]=n; symHtml[n.id]=tex(n.symbol); degree[n.id]=0; });
+
+  const seen=new Set(), links=[];
+  graph.links.forEach(l=>{ const k=l.source+'>>'+l.target;
+    if(!seen.has(k) && l.source!==l.target && nodeById[l.source] && nodeById[l.target]){
+      seen.add(k); links.push(l);
+      (children[l.source]=children[l.source]||[]).push(l.target);
+      (parents[l.target]=parents[l.target]||[]).push(l.source);
+      degree[l.source]++; degree[l.target]++;
+    }
+  });
+
+  tierList = (graph.tiers||[]).slice().sort((a,b)=> a.order-b.order);
+  tierList.forEach((t,i)=>{ tierIndex[t.name]=i; });
+  let needsOther=false;
+  graph.nodes.forEach(n=>{ if(!(n.tier in tierIndex)) needsOther=true; });
+  if(needsOther){ tierList.push({name:'Other', order:1e6, description:'Nodes without an assigned tier.'}); tierIndex['Other']=tierList.length-1; }
+
+  if(!HAS_LIB){ renderFallback(graph); return; }
+  try{ renderGraph(graph, links); }
+  catch(e){ renderFallback(graph); banner('The 3D view could not start (WebGL may be unavailable): showing a static outline of the physics tiers.'); }
+}
+
+function tierOf(n){ return (n.tier in tierIndex) ? tierIndex[n.tier] : tierIndex['Other']; }
+
+// ---- layout + encoding -----------------------------------------------------
+function renderGraph(graph, links){
+  const nTiers = tierList.length;
+  const gData = {
+    nodes: graph.nodes.map(n=>{
+      const ti = tierOf(n);
+      return {
+        id:n.id, type:n.type, tier:n.tier||'Other', tierIdx:ti,
+        // FIX the vertical coordinate to the tier (height = progression).
+        // Center the stack about y=0 so the whole graph frames symmetrically.
+        fy: (ti - (nTiers-1)/2) * TIER_STEP,
+        deg: degree[n.id]||0
+      };
+    }),
+    links: links.map(l=>({ source:l.source, target:l.target, op:l.op||'', kind:l.kind||'' }))
+  };
+
+  Graph = ForceGraph3D(sceneEl)
+    .graphData(gData)
+    .backgroundColor('rgba(0,0,0,0)')
+    .showNavInfo(false)
+    .nodeRelSize(4)
+    .nodeVal(n=> 1 + Math.min(6, (n.deg||0))*0.7)          // size modestly by degree
+    .nodeColor(n=> nodeColorFor(n))
+    .nodeOpacity(0.95)
+    .nodeResolution(12)
+    // hover symbol: the plain node symbol string (KaTeX-free, honest, legible)
+    .nodeLabel(n=> nodeLabelHtml(n))
+    .linkColor(l=> linkColorFor(l))
+    .linkWidth(l=> linkWidthFor(l))
+    .linkOpacity(0.5)
+    .linkDirectionalArrowLength(3.2)
+    .linkDirectionalArrowRelPos(1)
+    .linkDirectionalArrowColor(l=> linkColorFor(l))
+    .onNodeClick(node=>{ interact(); selectNode(node.id); })
+    .onBackgroundClick(()=>{ interact(); clearSel(); })
+    .onNodeHover(node=>{ sceneEl.style.cursor = node ? 'pointer' : 'grab'; });
+
+  // Force layout: x/z are free (force cloud within each tier plane); y is fixed.
+  // A gentle charge keeps the tiers readable; the link force sets spacing.
+  Graph.d3Force('charge').strength(-140);
+  const lf = Graph.d3Force('link'); if(lf) lf.distance(38);
+
+  sizeToViewport();
+  window.addEventListener('resize', sizeToViewport);
+
+  // gentle auto-rotate (the Marble vibe) until the first interaction; honor
+  // prefers-reduced-motion (no auto-rotate at all).
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(reduce){ autoRotate=false; syncRotBtn(); }
+  else { startAutoRotate(); }
+
+  // frame the whole graph once the force layout has had a moment to settle.
+  setTimeout(fitAll, 600);
+
+  // stop auto-rotate on any pointer / wheel / key input over the canvas.
+  ['pointerdown','wheel','touchstart'].forEach(ev=>
+    sceneEl.addEventListener(ev, ()=> interact(), {passive:true}));
+}
+
+function sizeToViewport(){
+  if(!Graph) return;
+  Graph.width(sceneEl.clientWidth).height(sceneEl.clientHeight);
+}
+
+function nodeColorFor(n){
+  if(!selId) return TYPE_COLOR[n.type] || '#94a3b8';
+  if(n.id===selId) return '#0b1220';
+  if(ancSet.has(n.id)) return '#d98a14';       // upstream amber
+  if(descSet.has(n.id)) return '#4f46e5';      // downstream indigo
+  return 'rgba(150,155,165,0.22)';             // dimmed
+}
+function linkColorFor(l){
+  const s=(l.source&&l.source.id)||l.source, t=(l.target&&l.target.id)||l.target;
+  if(!selId){ return l.kind==='param' ? 'rgba(160,155,148,0.28)' : 'rgba(120,116,108,0.5)'; }
+  if(upSet.has(s)&&upSet.has(t)) return 'rgba(217,138,20,0.9)';
+  if(dnSet.has(s)&&dnSet.has(t)) return 'rgba(79,70,229,0.85)';
+  return 'rgba(150,155,165,0.06)';
+}
+function linkWidthFor(l){
+  const s=(l.source&&l.source.id)||l.source, t=(l.target&&l.target.id)||l.target;
+  if(selId && ((upSet.has(s)&&upSet.has(t))||(dnSet.has(s)&&dnSet.has(t)))) return 1.4;
+  return l.kind==='param' ? 0.2 : 0.6;   // parameter edges thinner (dashed-ish)
+}
+function nodeLabelHtml(n){
+  const node=nodeById[n.id]||{};
+  const sym = node.symbol ? esc(node.symbol) : esc(n.id);
+  return '<div style="font:600 13px/1.2 Inter,sans-serif;color:#0b1220;background:rgba(255,255,255,.95);'
+       + 'border:1px solid #e8e6e1;border-radius:8px;padding:5px 9px;box-shadow:0 4px 14px rgba(16,24,40,.14)">'
+       + '<span style="font-family:JetBrains Mono,monospace">'+sym+'</span>'
+       + ' <span style="color:#9aa0a8;font-weight:500">'+esc(n.id)+'</span></div>';
+}
+
+// ---- interaction: auto-rotate ----------------------------------------------
+let rotTimer=null, rotAngle=0;
+function startAutoRotate(){
+  if(rotTimer||!Graph) return;
+  autoRotate=true; syncRotBtn();
+  const R0 = currentOrbitRadius();
+  rotTimer=setInterval(()=>{
+    if(!autoRotate||!Graph) return;
+    rotAngle += 0.0025 * (2*Math.PI);
+    const R = currentOrbitRadius() || R0;
+    Graph.cameraPosition({ x: R*Math.sin(rotAngle), z: R*Math.cos(rotAngle) });
+  }, 30);
+}
+function currentOrbitRadius(){
+  if(!Graph) return 260;
+  const p=Graph.cameraPosition();
+  return Math.hypot(p.x||0, p.z||0) || 260;
+}
+function stopAutoRotate(){ autoRotate=false; if(rotTimer){ clearInterval(rotTimer); rotTimer=null; } syncRotBtn(); }
+function toggleRotate(){ if(autoRotate) stopAutoRotate(); else startAutoRotate(); }
+function syncRotBtn(){ const b=document.getElementById('rotBtn'); if(b) b.textContent = autoRotate ? 'Pause' : 'Rotate'; }
+function interact(){ if(!interacted){ interacted=true; restHint.style.opacity=0; } if(autoRotate) stopAutoRotate(); }
+
+// ---- interaction: fit / fly ------------------------------------------------
+function fitAll(){ if(Graph && Graph.zoomToFit) Graph.zoomToFit(600, 40); }
+function flyTo(id){
+  if(!Graph) return;
+  const n=(Graph.graphData().nodes||[]).find(x=>x.id===id);
+  if(!n) return;
+  const dist=90;
+  const r=Math.hypot(n.x||0, n.z||0)||1;
+  const ratio=1+dist/r;
+  Graph.cameraPosition(
+    { x:(n.x||0)*ratio, y:(n.y||0), z:(n.z||0)*ratio },
+    { x:n.x||0, y:n.y||0, z:n.z||0 },
+    900
+  );
+}
+
+// ---- interaction: selection + ancestry (BFS, like the tracer) --------------
+let ancSet=new Set(), descSet=new Set(), upSet=new Set(), dnSet=new Set();
+function reach(id, adj){ const out=new Set(), dq=[id]; while(dq.length){ const x=dq.pop(); (adj[x]||[]).forEach(y=>{ if(!out.has(y)){ out.add(y); dq.push(y);} }); } return out; }
+
+function selectNode(id){
+  const node=nodeById[id]; if(!node) return;
+  selId=id;
+  ancSet=reach(id,parents); descSet=reach(id,children);
+  upSet=new Set([id, ...ancSet]); dnSet=new Set([id, ...descSet]);
+  refreshEncoding();
+  flyTo(id);
+  openPanel(node);
+}
+function clearSel(){
+  selId=null; ancSet=new Set(); descSet=new Set(); upSet=new Set(); dnSet=new Set();
+  refreshEncoding();
+  panelEl.style.display='none';
+}
+// re-evaluate the color/width accessors so the highlight repaints.
+function refreshEncoding(){
+  if(!Graph) return;
+  Graph.nodeColor(Graph.nodeColor())
+       .linkColor(Graph.linkColor())
+       .linkWidth(Graph.linkWidth())
+       .linkDirectionalArrowColor(l=> linkColorFor(l));
+}
+
+window.navTo=function(id){ if(nodeById[id]){ interact(); selectNode(id); } };
+function chip(id, cls){ return '<span class="chip '+(cls||'')+'" onclick="navTo(\''+attr(id).replace(/'/g,"&#39;")+'\')">'+(symHtml[id]||esc(id))+'</span>'; }
+
+function mappedByHtml(id){
+  const rows=Object.keys(codesData).filter(c=> codesData[c] && codesData[c][id]).sort().map(c=>{ const m=codesData[c][id]; return '<div class="om-kv-row"><span class="om-kv-k">'+esc(c)+'</span><span class="om-kv-v">'+esc((m.api||''))+(m.unit?(' · '+esc(m.unit)):'')+'</span></div>'; });
+  return rows.length? ('<div class="om-panel-label">mapped by '+rows.length+' code'+(rows.length>1?'s':'')+'</div><div class="mapby om-kv">'+rows.join('')+'</div>') : '';
+}
+function openPanel(node){
+  const id=node.id;
+  const ins=parents[id]||[], outs=children[id]||[];
+  const nAnc=ancSet.size, nDesc=descSet.size;
+  let h='<span class="x" onclick="clearSel()">×</span>';
+  h+='<div><span class="sym">'+tex(node.symbol)+'</span><span class="badge '+node.type+'">'+esc(node.type)+'</span></div>';
+  h+='<div class="name">'+esc(node.id)+'<span class="tiertag">'+esc(node.tier||'Other')+'</span>'+(node.uid?('<span class="uid" title="'+attr(node.uid)+'">'+esc((''+node.uid).slice(0,12))+'</span>'):'')+'</div>';
+  h+='<div class="traceline">'+(nAnc?('Built from <b class="u">'+nAnc+'</b> upstream quantit'+(nAnc>1?'ies':'y')):'A <b>source</b> quantity')+'. '+(nDesc?('Flows into <b class="d">'+nDesc+'</b> downstream.'):'A terminal observable.')+'</div>';
+  const fl=(node.formulas&&node.formulas.length)?node.formulas:(node.formula?[{op:'',latex:node.formula}]:[]);
+  if(!fl.length){ h+='<div class="om-panel-label">formula on the producing edge</div><div class="formula"><span class="muted">source (provided value)</span></div>'; }
+  else if(fl.length===1){ h+='<div class="om-panel-label">formula on the producing edge</div><div class="formula">'+tex(fl[0].latex,true)+'</div>'; }
+  else{
+    h+='<div class="om-panel-label">'+fl.length+' producing edges (alternative routes)</div>';
+    fl.forEach(f=>{ h+='<div class="fop">'+esc(f.op)+'</div><div class="formula">'+tex(f.latex,true)+'</div>'; });
+  }
+  if(outs.length){ h+='<div class="om-panel-label">produces &rarr;</div><div class="chips">'+outs.map(id=>chip(id,'down')).join('')+'</div>'; }
+  if(ins.length){ h+='<div class="om-panel-label">&larr; from</div><div class="chips">'+ins.map(id=>chip(id,'up')).join('')+'</div>'; }
+  h+=mappedByHtml(id);
+  panelEl.innerHTML=h; panelEl.style.display='block';
+}
+
+// ---- interaction: search (fly to the match) --------------------------------
+document.getElementById('q').addEventListener('input', function(){
+  const v=this.value.trim().toLowerCase(); if(!v){ clearSel(); return; }
+  const hits=Object.values(nodeById).filter(n=> (n.id+' '+(n.symbol||'')).toLowerCase().includes(v));
+  if(!hits.length) return;
+  // exact-ish first: prefer an id/symbol that starts with the query.
+  hits.sort((a,b)=> (a.id.toLowerCase().indexOf(v)) - (b.id.toLowerCase().indexOf(v)));
+  interact(); selectNode(hits[0].id);
+});
+
+// ---- keyboard: Escape clears ----------------------------------------------
+window.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){ if(selId||panelEl.style.display==='block'){ clearSel(); const q=document.getElementById('q'); if(q) q.value=''; } }
+});
+
+// ---- fallback: static readable tier outline --------------------------------
+function renderFallback(graph){
+  banner('The interactive 3D view is unavailable here: showing a static outline of the physics tiers.');
+  sceneEl.style.display='none';
+  document.querySelector('.legend').style.display='none';
+  const fb=document.getElementById('fallback'); fb.style.display='block';
+  const byTier={};
+  graph.nodes.forEach(n=>{ const t=(n.tier in tierIndex)?n.tier:'Other'; (byTier[t]=byTier[t]||[]).push(n); });
+  let s='';
+  tierList.forEach(t=>{
+    const list=byTier[t.name]||[];
+    s+='<div class="ft">'+esc(t.name)+'</div><div class="fd">'+esc(t.description||'')+'</div>';
+    list.forEach(n=>{
+      const outs=(children[n.id]||[]);
+      s+='<div class="fn"><span class="fs">'+(symHtml[n.id]||'')+' '+esc(n.id)+'</span><span class="fk '+n.type+'">'+esc(n.type)+'</span>';
+      if(outs.length){
+        const edg=outs.map(t2=>'<span class="arw">&rarr;</span> '+esc(t2));
+        s+='<div class="fe">'+edg.join('<br>')+'</div>';
+      }
+      s+='</div>';
+    });
+  });
+  fb.innerHTML=s;
+}
+</script>
+</body>
+</html>
