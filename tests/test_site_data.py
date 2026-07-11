@@ -106,6 +106,31 @@ def test_record_instance_roundtrip(tmp_path):
     assert recs[0]["source"]["ref"] == "kaldo"
 
 
+def test_record_instance_carries_optional_configuration(tmp_path):
+    """An instance may carry an optional configuration uid (spec section 5);
+    material stays the display string and the key survives into the bundle."""
+    uid = "a" * 64
+    p = record_instance(
+        variable="ThermalConductivity[bte_solver=rta]", material="Si",
+        value=15.76, units="W/(m K)", source_kind="simulation", source_ref="kaldo",
+        conditions={"T": 300}, configuration=uid, instances_dir=tmp_path,
+    )
+    assert p.exists()
+    recs = build_instances(tmp_path)
+    assert recs[0]["configuration"] == uid
+    assert recs[0]["material"] == "Si"
+
+
+def test_record_instance_without_configuration_omits_the_key(tmp_path):
+    record_instance(
+        variable="ThermalConductivity[bte_solver=rta]", material="Si",
+        value=1.0, units="W/(m K)", source_kind="simulation", source_ref="kaldo",
+        instances_dir=tmp_path,
+    )
+    recs = build_instances(tmp_path)
+    assert "configuration" not in recs[0]
+
+
 def test_record_instance_rejects_unknown_variable(tmp_path):
     with pytest.raises(ValueError):
         record_instance(

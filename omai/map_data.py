@@ -341,7 +341,7 @@ def _validate_spectrum(rec: dict, *, name_to_uid: dict, axis_by_var, where: str)
 
 def record_instance(*, domains, variable, material, value, units, source_kind,
                     source_ref, conditions=None, uncertainty=None, detail=None,
-                    instances_dir=None):
+                    configuration=None, instances_dir=None):
     known = {n["id"] for n in build_graph_dict(domains)["nodes"]}
     if variable not in known:
         raise ValueError(f"unknown variable {variable!r}")
@@ -352,6 +352,10 @@ def record_instance(*, domains, variable, material, value, units, source_kind,
     rec = {"variable": variable, "material": material, "conditions": conditions or {},
            "value": value, "units": units, "uncertainty": uncertainty,
            "source": {"kind": source_kind, "ref": source_ref, "detail": detail}}
+    # Optional link to a configuration record (spec section 5). material stays
+    # the display string; configuration is the canonical uid when known.
+    if configuration is not None:
+        rec["configuration"] = configuration
     path = instances_dir / (_slug(f"{material}-{variable}-{source_ref}") + ".json")
     path.write_text(json.dumps(rec))
     return path
