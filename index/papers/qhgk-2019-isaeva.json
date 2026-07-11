@@ -1,0 +1,59 @@
+{
+ "paper": {
+  "title": "Modeling heat transport in crystals and glasses from a unified lattice-dynamical approach",
+  "authors": [
+   "Leyla Isaeva",
+   "Giuseppe Barbalinardo",
+   "Davide Donadio",
+   "Stefano Baroni"
+  ],
+  "arxiv": "1904.02255",
+  "journal_ref": "Nat. Commun. 10, 3853 (2019)",
+  "doi": "10.1038/s41467-019-11572-4"
+ },
+ "map_version": "7645184eacf9f78fd21be3ff5f765d8617cb60e9bc41a7dd18a7eaa06ba1bba6",
+ "values": [
+  {
+   "instance": "a-si-thermalconductivity-transport-model-green-kubo-qhgk-2019-isaeva-1728.json",
+   "node_id": "ThermalConductivity[transport_model=green_kubo]",
+   "node_uid": "25dc9f7af8aec52efb6be16b7b7c76f8334b03056f8838c3ff432fdad8482fb6",
+   "value": 0.027,
+   "units": "W/(m K)",
+   "quote": "from the 1728-atom model (κ =\n0.027 Wm−1K\n−1\n)",
+   "pages": [
+    6
+   ]
+  },
+  {
+   "instance": "a-si-thermalconductivity-transport-model-green-kubo-qhgk-2019-isaeva-13824.json",
+   "node_id": "ThermalConductivity[transport_model=green_kubo]",
+   "node_uid": "25dc9f7af8aec52efb6be16b7b7c76f8334b03056f8838c3ff432fdad8482fb6",
+   "value": 0.25,
+   "units": "W/(m K)",
+   "quote": "to the 13824 model (κ = 0.25\nWm−1K\n−1",
+   "pages": [
+    6
+   ]
+  },
+  {
+   "instance": "a-si-massdensity-qhgk-2019-isaeva.json",
+   "node_id": "MassDensity",
+   "node_uid": "24749d8ecb8f22bd0931e83ebdc540a6cb0753bd4f3a611f142b31050353d42d",
+   "value": 2.3,
+   "units": "g/cm3",
+   "quote": "a cubic simulation box with a density of 2.3 g/cm3",
+   "pages": [
+    10
+   ]
+  }
+ ],
+ "parsed": {
+  "date": "2026-07-11",
+  "parser": "omai.paper_parser P2",
+  "proposal_stats": {
+   "detected": 39,
+   "survived": 10,
+   "applied": 3
+  }
+ }
+}

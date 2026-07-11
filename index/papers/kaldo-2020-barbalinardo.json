@@ -1,0 +1,114 @@
+{
+ "paper": {
+  "title": "Efficient anharmonic lattice dynamics calculations of thermal transport in crystalline and disordered solids",
+  "authors": [
+   "Giuseppe Barbalinardo",
+   "Zekun Chen",
+   "Nicholas W. Lundgren",
+   "Davide Donadio"
+  ],
+  "arxiv": "2009.01967",
+  "journal_ref": "J. Appl. Phys. 128, 135104 (2020)",
+  "doi": "10.1063/5.0020443"
+ },
+ "map_version": "7645184eacf9f78fd21be3ff5f765d8617cb60e9bc41a7dd18a7eaa06ba1bba6",
+ "values": [
+  {
+   "instance": "si-diamond-thermalconductivity-bte-solver-direct-inverse-kaldo-2020-barbalinardo.json",
+   "node_id": "ThermalConductivity[bte_solver=direct_inverse]",
+   "node_uid": "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9",
+   "value": 147.0,
+   "units": "W/(m K)",
+   "quote": "which gives κQ,Inv = 147 Wm−1K−1",
+   "pages": [
+    6
+   ]
+  },
+  {
+   "instance": "si-diamond-thermalconductivity-bte-solver-rta-kaldo-2020-barbalinardo.json",
+   "node_id": "ThermalConductivity[bte_solver=rta]",
+   "node_uid": "d79d88d53266c147ea8d806cdbd30df309199469351ee13bcc9040a98745ebc4",
+   "value": 140.0,
+   "units": "W/(m K)",
+   "quote": "as we get κQ,RT A = 140\nWm−1K−1",
+   "pages": [
+    6
+   ]
+  },
+  {
+   "instance": "si-thermalconductivity-bte-solver-direct-inverse-kaldo-2020-barbalinardo.json",
+   "node_id": "ThermalConductivity[bte_solver=direct_inverse]",
+   "node_uid": "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9",
+   "value": 123.0,
+   "units": "W/(m K)",
+   "quote": "out κCl,Inv =123 Wm−1K−1 with direct inversion",
+   "pages": [
+    6
+   ]
+  },
+  {
+   "instance": "si-thermalconductivity-bte-solver-rta-kaldo-2020-barbalinardo.json",
+   "node_id": "ThermalConductivity[bte_solver=rta]",
+   "node_uid": "d79d88d53266c147ea8d806cdbd30df309199469351ee13bcc9040a98745ebc4",
+   "value": 118.0,
+   "units": "W/(m K)",
+   "quote": "κCl,RT A =118 Wm−1K−1with RTA",
+   "pages": [
+    6
+   ]
+  },
+  {
+   "instance": "si136-clathrate-thermalconductivity-bte-solver-rta-kaldo-2020-barbalinardo.json",
+   "node_id": "ThermalConductivity[bte_solver=rta]",
+   "node_uid": "d79d88d53266c147ea8d806cdbd30df309199469351ee13bcc9040a98745ebc4",
+   "value": 101.3,
+   "units": "W/(m K)",
+   "quote": "thermal conductivity of Si136 is 101.3 Wm−1K−1",
+   "pages": [
+    8
+   ]
+  },
+  {
+   "instance": "si116ge20-clathrate-thermalconductivity-bte-solver-rta-kaldo-2020-barbalinardo.json",
+   "node_id": "ThermalConductivity[bte_solver=rta]",
+   "node_uid": "d79d88d53266c147ea8d806cdbd30df309199469351ee13bcc9040a98745ebc4",
+   "value": 33.0,
+   "units": "W/(m K)",
+   "quote": "mal conductivity drops to 33.0 Wm−1K−1",
+   "pages": [
+    8
+   ]
+  },
+  {
+   "instance": "si136-clathrate-thermalconductivity-transport-model-qhgk-kaldo-2020-barbalinardo.json",
+   "node_id": "ThermalConductivity[transport_model=qhgk]",
+   "node_uid": "8932e3cbadef74a82802b43fd1d25328cb40e6136c90df3b6a4a998e77f9567b",
+   "value": 31.0,
+   "units": "W/(m K)",
+   "quote": "replicated supercell at the Γ point is 31.0 Wm−1K−1",
+   "pages": [
+    9
+   ]
+  },
+  {
+   "instance": "si116ge20-clathrate-alloy-thermalconductivity-transport-model-qhgk-kaldo-2020-barbalinardo.json",
+   "node_id": "ThermalConductivity[transport_model=qhgk]",
+   "node_uid": "8932e3cbadef74a82802b43fd1d25328cb40e6136c90df3b6a4a998e77f9567b",
+   "value": 1.7,
+   "units": "W/(m K)",
+   "quote": "on the thermal conductivity is striking, as κ drops to 1.7 Wm−1K−1",
+   "pages": [
+    9
+   ]
+  }
+ ],
+ "parsed": {
+  "date": "2026-07-11",
+  "parser": "omai.paper_parser P2",
+  "proposal_stats": {
+   "detected": 24,
+   "survived": 19,
+   "applied": 8
+  }
+ }
+}

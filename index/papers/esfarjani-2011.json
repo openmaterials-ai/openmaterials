@@ -1,0 +1,58 @@
+{
+ "paper": {
+  "title": "Heat transport in silicon from first-principles calculations",
+  "authors": [
+   "Keivan Esfarjani",
+   "Gang Chen",
+   "Harold T. Stokes"
+  ],
+  "arxiv": "1107.5288",
+  "journal_ref": "Phys. Rev. B 84, 085204 (2011)",
+  "doi": "10.1103/PhysRevB.84.085204"
+ },
+ "map_version": "7645184eacf9f78fd21be3ff5f765d8617cb60e9bc41a7dd18a7eaa06ba1bba6",
+ "values": [
+  {
+   "instance": "si-thermalconductivity-bte-solver-rta-esfarjani-2011-7x7x7.json",
+   "node_id": "ThermalConductivity[bte_solver=rta]",
+   "node_uid": "d79d88d53266c147ea8d806cdbd30df309199469351ee13bcc9040a98745ebc4",
+   "value": 32.67,
+   "units": "W/(m K)",
+   "quote": "7x7x7 37 ± 10 32.67 64 ± 3",
+   "pages": [
+    18
+   ]
+  },
+  {
+   "instance": "si-thermalconductivity-bte-solver-rta-esfarjani-2011-10x10x10.json",
+   "node_id": "ThermalConductivity[bte_solver=rta]",
+   "node_uid": "d79d88d53266c147ea8d806cdbd30df309199469351ee13bcc9040a98745ebc4",
+   "value": 47.2,
+   "units": "W/(m K)",
+   "quote": "10x10x10 43 ± 12 47.2 64 ± 3",
+   "pages": [
+    18
+   ]
+  },
+  {
+   "instance": "si-thermalconductivity-bte-solver-rta-esfarjani-2011-extrapolated.json",
+   "node_id": "ThermalConductivity[bte_solver=rta]",
+   "node_uid": "d79d88d53266c147ea8d806cdbd30df309199469351ee13bcc9040a98745ebc4",
+   "value": 166.0,
+   "units": "W/(m K)",
+   "quote": "shown with horizontal lines at 166 and 174 W/mK respectively.",
+   "pages": [
+    23
+   ]
+  }
+ ],
+ "parsed": {
+  "date": "2026-07-11",
+  "parser": "omai.paper_parser P2",
+  "proposal_stats": {
+   "detected": 74,
+   "survived": 9,
+   "applied": 3
+  }
+ }
+}

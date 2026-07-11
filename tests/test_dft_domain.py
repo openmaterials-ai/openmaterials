@@ -682,11 +682,14 @@ def test_instances_bundle_32_records_all_uid_pinned():
     # grain-boundary energies, the butane gauche->anti NEB forward barrier, and
     # the eight ethanol per-bond dissociation energies, all committed
     # AtomisticSkills *_results.json values (the molecular slice's missed
-    # instances).
+    # instances). 59 after the first paper-sourced evidence apply (2026-07-11):
+    # 14 signed-off thermal-conductivity / mass-density values from three parsed
+    # papers (kaldo-2020-barbalinardo 8, qhgk-2019-isaeva 3, esfarjani-2011 3),
+    # each pinned to its node uid and carrying a verbatim, page-located quote.
     from omai.map_data import build_instances
 
     insts = build_instances()
-    assert len(insts) == 45
+    assert len(insts) == 59
     for it in insts:
         assert it.get("node_uid"), f"instance for {it['variable']} lacks node_uid"
 
