@@ -68,6 +68,26 @@ def _output_schema() -> dict:
     }
 
 
+def node_kind(node_id: str | None, catalog_by_id: dict) -> str:
+    """Classify a mapped node as a value target or an input condition (P2.1).
+
+    A claim landing on a source / parameter node (evidence_target: false in the
+    catalog: Structure, Temperature, Potential, CellVolume, AtomicMass,
+    AtomCount, ...) is CONTEXT, not evidence: it names a condition of a run, not
+    a measured result. Such a claim survives into the proposal as context but is
+    excluded from instance minting at apply time. Everything else, and an
+    unmappable claim (node_id None), is a value. The discriminator is the
+    catalog's per-node evidence_target flag, defaulted true, so a node absent
+    from the catalog (or a claim with no node) defaults to "value".
+    """
+    if node_id is None:
+        return "value"
+    row = catalog_by_id.get(node_id)
+    if row is None:
+        return "value"
+    return "value" if row.get("evidence_target", True) else "condition"
+
+
 MAP_SYSTEM_INTRO = (
     "You map reported physical values from a paper onto nodes of the "
     "OpenMaterials map. Each node is a specific physical quantity with a fixed "

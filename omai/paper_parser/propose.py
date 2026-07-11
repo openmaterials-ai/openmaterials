@@ -25,7 +25,8 @@ def slugify(text: str) -> str:
 def build_proposal(*, paper_slug: str, map_version: str | None, mapped, validations,
                    verdicts_by_index: dict, usage, catalog_fingerprint: str,
                    detect_stop: str, map_stop: str, review_stop: str,
-                   detect_info: dict | None = None) -> dict:
+                   detect_info: dict | None = None,
+                   catalog_by_id: dict | None = None) -> dict:
     """Assemble the full proposal record.
 
     `mapped` and `validations` are index-aligned lists. Each claim's entry carries
@@ -36,11 +37,18 @@ def build_proposal(*, paper_slug: str, map_version: str | None, mapped, validati
     `detect_info` (from detect.detect_ensemble) records the ensemble pass count
     and per-pass claim counts in the run metadata; None defaults to a single pass.
     """
+    from .map_nodes import node_kind
+
+    catalog_by_id = catalog_by_id or {}
     claims_out = []
     new_node_feed = []
     for i, (m, v) in enumerate(zip(mapped, validations)):
         d = m.detected
         verdict = verdicts_by_index.get(i)
+        # P2.1: a claim on a source / parameter node is CONTEXT (a run condition),
+        # not evidence. It survives into the proposal but is excluded from
+        # instance minting at apply time (see apply_proposal).
+        kind = node_kind(m.node_id, catalog_by_id)
         entry = {
             "index": i,
             "quantity": d.quantity,
@@ -55,6 +63,7 @@ def build_proposal(*, paper_slug: str, map_version: str | None, mapped, validati
             "pages": d.pages,
             "node_id": m.node_id,
             "node_uid": v.node_uid,
+            "kind": kind,
             "unit_declaration": m.unit_declaration,
             "unmappable_reason": m.unmappable_reason,
             "validation": {
@@ -84,11 +93,22 @@ def build_proposal(*, paper_slug: str, map_version: str | None, mapped, validati
                 "material": m.material,
             })
 
+    # Separated counts (spec section 6): value targets vs. input conditions.
+    # A surviving, non-duplicate, non-killed VALUE claim is what apply would
+    # mint; conditions are context and never minted.
+    value_claims = sum(1 for c in claims_out if c["kind"] == "value")
+    condition_claims = sum(1 for c in claims_out if c["kind"] == "condition")
+
     info = detect_info or {}
     return {
         "paper_slug": paper_slug,
         "map_version": map_version,
         "catalog_fingerprint": catalog_fingerprint,
+        "counts": {
+            "claims_total": len(claims_out),
+            "value_claims": value_claims,
+            "condition_claims": condition_claims,
+        },
         "stages": {
             "detect_stop_reason": detect_stop,
             "map_stop_reason": map_stop,
@@ -131,6 +151,10 @@ def apply_proposal(proposal: dict, *, source_kind: str = "measurement",
     for c in proposal["claims"]:
         v = c["validation"]
         review = c.get("review") or {}
+        # P2.1: a condition claim (a source / parameter node) is context, never
+        # a minted instance. Excluded here regardless of survival.
+        if c.get("kind") == "condition":
+            continue
         if not v["survives"] or v["duplicate"] is not None:
             continue
         if review.get("verdict") == "killed":

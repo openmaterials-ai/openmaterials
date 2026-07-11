@@ -494,3 +494,72 @@ def test_proposal_carries_support_and_ensemble_metadata_and_no_key(monkeypatch):
     assert proposal["ensemble"]["per_pass_claim_counts"] == [5, 4, 6]
     # The serialized artifact never contains the key.
     assert "sk-secret-should-not-appear" not in json.dumps(proposal)
+
+
+# --------------------------------------------------------------------------
+# P2.1: the condition rule (source / parameter nodes are context, not evidence)
+# --------------------------------------------------------------------------
+
+def _catalog_by_id():
+    return {r["id"]: r for r in catalog.build_node_catalog()}
+
+
+def test_node_kind_classifies_condition_vs_value():
+    from omai.paper_parser.map_nodes import node_kind
+
+    cat = _catalog_by_id()
+    # A kappa claim is a value target; a Temperature / AtomCount claim is a
+    # condition (evidence_target: false).
+    assert node_kind("ThermalConductivity[bte_solver=rta]", cat) == "value"
+    assert node_kind("Temperature", cat) == "condition"
+    assert node_kind("AtomCount", cat) == "condition"
+    assert node_kind("Structure", cat) == "condition"
+    # An unmappable claim (no node) defaults to value; an unknown id too.
+    assert node_kind(None, cat) == "value"
+    assert node_kind("NotANode", cat) == "value"
+
+
+def _mapped_and_validation(node_id, value="300", material="Si"):
+    from omai.paper_parser.map_nodes import MappedClaim
+
+    d = _claim(value, quote=f"{value} at conditions", pages=[1], material=material)
+    m = MappedClaim(detected=d, node_id=node_id, unmappable_reason=None,
+                    proposed_quantity=None, unit_declaration="", material=material,
+                    conditions={})
+    v = validate.Validation(node_ok=True, unit={"ok": True, "kind": "match"},
+                            value_ok=True, quote_ok=True, duplicate=None,
+                            node_uid=f"uid-{node_id}", kills=[])
+    return m, v
+
+
+def test_build_proposal_tags_kind_and_separates_counts():
+    cat = _catalog_by_id()
+    m1, v1 = _mapped_and_validation("ThermalConductivity[bte_solver=rta]", "19.46")
+    m2, v2 = _mapped_and_validation("Temperature", "300")
+    m3, v3 = _mapped_and_validation("AtomCount", "2")
+    proposal = propose.build_proposal(
+        paper_slug="p", map_version=None, mapped=[m1, m2, m3],
+        validations=[v1, v2, v3], verdicts_by_index={}, usage=Usage(),
+        catalog_fingerprint="abc", detect_stop="end_turn", map_stop="end_turn",
+        review_stop="end_turn", catalog_by_id=cat)
+    kinds = [c["kind"] for c in proposal["claims"]]
+    assert kinds == ["value", "condition", "condition"]
+    assert proposal["counts"] == {"claims_total": 3, "value_claims": 1,
+                                  "condition_claims": 2}
+
+
+def test_apply_proposal_excludes_condition_claims(tmp_path):
+    cat = _catalog_by_id()
+    m1, v1 = _mapped_and_validation("ThermalConductivity[bte_solver=rta]", "19.46")
+    m2, v2 = _mapped_and_validation("Temperature", "300")
+    proposal = propose.build_proposal(
+        paper_slug="p", map_version=None, mapped=[m1, m2],
+        validations=[v1, v2], verdicts_by_index={}, usage=Usage(),
+        catalog_fingerprint="abc", detect_stop="end_turn", map_stop="end_turn",
+        review_stop="end_turn", catalog_by_id=cat)
+    written = propose.apply_proposal(proposal, source_kind="simulation",
+                                     instances_dir=tmp_path)
+    # Only the kappa value instance is minted; the Temperature condition is not.
+    assert len(written) == 1
+    rec = json.loads(written[0].read_text())
+    assert rec["variable"] == "ThermalConductivity[bte_solver=rta]"

@@ -122,7 +122,8 @@ def run_pipeline(pdf_path: str | Path, *, client=None, map_version: str | None =
         map_version=map_version, mapped=mapped, validations=validations,
         verdicts_by_index=verdicts_by_index, usage=usage,
         catalog_fingerprint=fingerprint, detect_stop=detect_stop,
-        map_stop=map_stop, review_stop=review_stop, detect_info=detect_info)
+        map_stop=map_stop, review_stop=review_stop, detect_info=detect_info,
+        catalog_by_id=catalog_by_id)
 
     proposal_path = _propose.write_proposal(proposal, proposals_dir) if write else None
 
