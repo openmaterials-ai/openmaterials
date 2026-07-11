@@ -197,7 +197,7 @@ runs.
 
 \medskip
 \noindent{\small The live operator graph is at
-\href{https://giuseppe.barbalinardo.com/openmaterials/}{the project page}; the
+\href{https://openmaterials.ai/map}{openmaterials.ai/map}; the
 architecture is Part~\ref{part:architecture} of this document.}
 
 \section{The payoff: knowledge that compounds}
@@ -2199,9 +2199,11 @@ states. Once that commitment is made, much of the rest of the architecture write
 \noindent
 The architecture of Part~\ref{part:architecture} is a design; this part records
 what was built. The kernel is the protocol core of Part~\ref{part:product} made
-real on the 51-node map: composable dimensions with a dimensional gate, content
-identity by hashing, a log-first versioned store with a tamper-evident hash
-chain, a frozen genesis, and the source index. After the kernel landed, the
+real, first on the 51-node genesis map and since grown through its gates to
+today's map (Part~\ref{part:status}): composable dimensions with a dimensional
+gate, content identity by hashing, a log-first versioned store with a
+tamper-evident hash chain, a frozen genesis, and the source index. After the
+kernel landed, the
 map's source of truth is data, an append-only log plus a materialized view; the
 Python operator layer became an authoring client that emits change records; and
 every future scan-derived contribution (Quantum ESPRESSO's DFT ground state,
@@ -2244,10 +2246,10 @@ right-hand side wherever every symbol's dimension is known, drawn from the
 per-space fields and the edge parameters. This is the mechanical form of
 Part~\ref{part:product}'s first validation rule (``dimensional agreement on every
 edge''), and it is the cheapest strong filter for everything the parsers will
-later propose. On the current unified map the gate classifies the 53 edges as
-\textbf{21 ok}, \textbf{2 documented-schematic violations}, and \textbf{30
-skipped} (edges whose formula is not a closed-form \texttt{Eq} the gate can
-check, such as implicit solves and procedural fits). The two violations are
+later propose. The gate partitions every closed-form \texttt{Eq} edge into
+\emph{ok}, \emph{documented-schematic violation}, or \emph{skipped} (a formula the
+gate cannot check: an implicit solve, a procedural fit); the live tally is in
+Part~\ref{part:status}. The only two violations are
 \texttt{compute\_gruneisen} and \texttt{compute\_phase\_space\_3phonon}, kept
 deliberately schematic (see \S\ref{sec:kernel-normalization}).
 
@@ -2278,9 +2280,11 @@ where each ingredient is:
         \texttt{lattice\_vector}, \texttt{timestep}, \texttt{lag},
         \texttt{omega\_bin}, \texttt{mfp\_bin}, \ldots); kinds carry the
         gauge and symmetry semantics Part~\ref{part:product} assigns to indices.
-  \item \textbf{gauge\_class} is one of \texttt{observable},
-        \texttt{hidden/scaffolding}, or \texttt{hidden/approximation}, plus the
-        declared \texttt{gauge\_group} for hidden spaces.
+  \item \textbf{gauge\_class} is \texttt{observable} for an observable node,
+        \texttt{parameter} for a promoted parameter, or the string
+        \texttt{hidden/<kind>/<gauge\_group>} for a hidden node, where
+        \texttt{kind} is \texttt{scaffolding} or \texttt{approximation} and
+        \texttt{gauge\_group} is a registered ascii identifier.
   \item \textbf{labels} are the semantic type parameters
         (\texttt{bte\_solver=direct\_inverse}, \texttt{transport\_model=wigner},
         \texttt{channel=isotope}, \texttt{order=2}). Label keys and values live in
