@@ -92,6 +92,60 @@ def test_instances_bundle_valid():
         assert it["node_uid"] == name_to_uid[it["variable"]]
 
 
+def test_paper_sourced_instances_land_and_pin_the_live_node_uids():
+    # The first paper-sourced evidence apply (2026-07-11): 14 signed-off values
+    # from three parsed papers. Each carries source.ref "paper:<slug>", is a
+    # simulation, and pins the live node uid of its variable.
+    from omai import map_data
+
+    insts = build_instances()
+    name_to_uid = {n["id"]: n["uid"]
+                   for n in map_data.build_graph_dict(map_data.DOMAINS)["nodes"]}
+    paper = [it for it in insts if it["source"]["ref"].startswith("paper:")]
+    assert len(paper) == 14
+    for it in paper:
+        assert it["source"]["kind"] == "simulation"
+        assert it["node_uid"] == name_to_uid[it["variable"]]
+        # Every landed value carries a verbatim, page-located quote in detail.
+        assert "(p. " in it["source"]["detail"]
+
+    by_ref = {}
+    for it in paper:
+        by_ref.setdefault(it["source"]["ref"], []).append(it)
+    assert len(by_ref["paper:kaldo-2020-barbalinardo"]) == 8
+    assert len(by_ref["paper:qhgk-2019-isaeva"]) == 3
+    assert len(by_ref["paper:esfarjani-2011"]) == 3
+
+    # Spot values with their pinned labels.
+    def find(ref, variable, value):
+        hits = [it for it in paper
+                if it["source"]["ref"] == ref
+                and it["variable"] == variable and it["value"] == value]
+        assert len(hits) == 1, (ref, variable, value)
+        return hits[0]
+
+    k147 = find("paper:kaldo-2020-barbalinardo",
+                "ThermalConductivity[bte_solver=direct_inverse]", 147.0)
+    assert k147["material"] == "Si (diamond)"
+    assert k147["units"] == "W/(m K)"
+
+    q027 = find("paper:qhgk-2019-isaeva",
+                "ThermalConductivity[transport_model=green_kubo]", 0.027)
+    assert q027["material"] == "a-Si"
+    assert q027["conditions"]["T"] == 50
+
+    # The a-Si mass density landed on the MassDensity node in g/cm3.
+    dens = find("paper:qhgk-2019-isaeva", "MassDensity", 2.3)
+    assert dens["units"] == "g/cm3"
+
+    # All three esfarjani kappa values pin to the RTA solver (the paper computes
+    # kappa within the relaxation-time approximation), not direct_inverse.
+    esf = by_ref["paper:esfarjani-2011"]
+    assert {it["value"] for it in esf} == {32.67, 47.2, 166.0}
+    for it in esf:
+        assert it["variable"] == "ThermalConductivity[bte_solver=rta]"
+
+
 def test_record_instance_roundtrip(tmp_path):
     p = record_instance(
         variable="ThermalConductivity[bte_solver=rta]", material="Si",
