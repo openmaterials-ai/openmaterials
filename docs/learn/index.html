@@ -415,7 +415,7 @@ function renderResult(papers){
         if(encoded.length<=7000){
           var gh=document.createElement('a'); gh.className='om-btn om-btn-sm';
           gh.textContent='Propose on GitHub';
-          gh.href='https://github.com/gbarbalinardo/openmaterials/new/main?filename='
+          gh.href='https://github.com/openmaterials-ai/openmaterials/new/main?filename='
             +encodeURIComponent('docs/data/instances/'+slug+'.json')+'&value='+encoded;
           gh.target='_blank'; gh.rel='noopener';
           actDiv.appendChild(gh);
