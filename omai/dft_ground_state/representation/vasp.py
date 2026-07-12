@@ -47,9 +47,12 @@ wheels and pymatgen 2025.6.14):
 from __future__ import annotations
 
 from omai.representation.adapter import (
+    CanonicalAxis,
     OperatorRepresentationSpec,
     SpaceRepresentationSpec,
 )
+from omai.electronic_transport.operator.nodes import ELECTRONIC_DOS
+from omai.electronic_transport.operator.edges import compute_electronic_dos
 from omai.dft_ground_state.operator.edges import (
     compute_band_gap,
     compute_forces_hf,
@@ -207,9 +210,32 @@ VASP_BAND_GAP = SpaceRepresentationSpec(
         "(quantity=ks_gap), NOT the fundamental quasiparticle gap; semilocal "
         "functionals underestimate it, so it is strongly XC-functional "
         "dependent and rides with the Potential provenance. The band "
-        "structure E(k) and electronic DOS g(E) are hidden electronic "
-        "intermediates (like the KS wavefunctions), not mapped; the "
+        "structure E(k) is a hidden electronic intermediate (like the KS "
+        "wavefunctions), not mapped, but the electronic DOS g(E) IS now a node "
+        "(ElectronicDOS, produced by compute_electronic_dos); the "
         "direct/indirect character (is_gap_direct) is a downstream label."
+    ),
+)
+
+
+VASP_ELECTRONIC_DOS = SpaceRepresentationSpec(
+    space=ELECTRONIC_DOS,
+    representation_name="vasp",
+    observable_units={"g_E": "per_ev"},
+    canonical_axis=CanonicalAxis(name="E_dos", unit="ev", value_unit="per_ev"),
+    code_api={
+        "g_E": "pymatgen Vasprun.complete_dos.densities (total DOS), states/eV vs energy grid; efermi from CompleteDos",
+    },
+    notes=(
+        "The electronic density of states g(E) from a VASP run: pymatgen "
+        "Vasprun.complete_dos gives the total DOS as states per eV on an "
+        "energy grid (the CanonicalAxis is the electron energy E in eV, the "
+        "value unit states/eV). The Fermi level (complete_dos.efermi) is read "
+        "alongside but is not the node. This is the Kohn-Sham DOS, "
+        "XC-functional dependent (rides the Potential provenance), and "
+        "EMPHATICALLY the electronic g(E), never the phonon PhononDOS "
+        "g(omega): different dimension (inverse energy vs inverse frequency) "
+        "and axis (eV vs THz)."
     ),
 )
 

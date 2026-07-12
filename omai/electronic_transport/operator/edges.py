@@ -59,12 +59,14 @@ from omai.operator.operator import Operator
 from omai.electronic_transport.operator.nodes import (
     CARRIER_MOBILITY,
     ELECTRICAL_CONDUCTIVITY_ELECTRONIC,
+    ELECTRONIC_DOS,
     ELECTRONIC_THERMAL_CONDUCTIVITY,
     SEEBECK_COEFFICIENT,
     STATIC_DIELECTRIC_TENSOR,
 )
 from omai.mechanics.operator.nodes import ELASTIC_CONSTANTS
 from omai.materials.operator.shared_primitives import STRUCTURE
+from omai.thermal_transport.operator.nodes import POTENTIAL
 from omai.thermal_transport.operator.nodes import (
     BORN_CHARGES,
     DIELECTRIC_TENSOR,
@@ -216,8 +218,37 @@ compute_carrier_mobility = Operator(
     ),
 )
 
+# compute_electronic_dos: g(E) = sum_nk delta(E - E_nk[Structure, Potential]),
+# the electronic density of states from a Kohn-Sham calculation (the band
+# eigenvalues, tetrahedron/smearing-binned). Implicit (opaque KS solver +
+# BZ integration), like solve_ground_state and compute_band_gap.
+_g_E = sp.Symbol("g_E")
+_E_dos = sp.Symbol("E")
+_ELECTRONIC_DOS_FORMULA = sp.Eq(
+    _g_E,
+    sp.Function("g_el")(_E_dos, sp.Symbol(r"\mathcal{S}"), sp.Symbol("V")),
+)
+compute_electronic_dos = Operator(
+    name="compute_electronic_dos",
+    inputs=(STRUCTURE, POTENTIAL),
+    outputs=(ELECTRONIC_DOS,),
+    formula=_ELECTRONIC_DOS_FORMULA,
+    schemes={"method": "ks_dos", "integration": "tetrahedron_or_smearing"},
+    is_executable_in_sympy_override=False,
+    description=(
+        "The electronic density of states g(E) from a Kohn-Sham ground-state "
+        "calculation: the band eigenvalues E_nk over the Brillouin zone, "
+        "binned in energy by tetrahedron integration or Gaussian smearing. "
+        "Implicit (opaque KS eigenvalue solver plus BZ integration), like "
+        "solve_ground_state and compute_band_gap. Produces ElectronicDOS, "
+        "distinct from the phonon PhononDOS by dimension and axis."
+    ),
+)
+
+
 EDGES: tuple[Operator, ...] = (
     compute_static_dielectric,
+    compute_electronic_dos,
     compute_electronic_conductivity,
     compute_seebeck,
     compute_electronic_thermal_conductivity,

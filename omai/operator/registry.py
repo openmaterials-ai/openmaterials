@@ -45,6 +45,7 @@ INDEX_KINDS: dict[str, str] = {
     "t": "timestep",
     "tau": "lag",
     "omega": "omega_bin",
+    "E_dos": "energy_bin",
     "omega_bin": "omega_bin",
     "mfp_bin": "mfp_bin",
     # CALPHAD (thermochemistry) axes. `c` is the species/component axis of the
@@ -110,6 +111,7 @@ QUANTITY_TAGS: dict[str, str] = {
     "voltage": "Average intercalation (open-circuit) voltage: the Nernst energy difference over the transferred charge.",
     "magnetic_moment": "Per-site magnetic moment of the spin-polarized ground state, in Bohr magnetons.",
     "band_gap": "Electronic band gap of the ground state, the Kohn-Sham eigenvalue gap (eV).",
+    "electronic_dos": "Electronic density of states g(E) = sum_nk delta(E - E_nk): a 1-D array of states per unit energy, binned in electron energy E. EMPHATICALLY NOT the PhononDOS g(omega): different physics, different axis (electron energy E in eV vs phonon frequency omega in THz), and a different dimension (inverse energy vs inverse frequency); kept apart by the electronic_dos quantity tag and the distinct dimension. Gauge-invariant (a spectral density over Kohn-Sham eigenvalues).",
     "pressure": "Mechanical pressure P = trace(stress)/3, positive under compression (the stress pressure convention).",
     "temperature": "Thermodynamic temperature at which the calculation is evaluated.",
     "force_constants": "Real-space interatomic force constants (harmonic or higher order).",

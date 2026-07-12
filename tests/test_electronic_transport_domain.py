@@ -434,3 +434,25 @@ def test_electronic_transport_is_records_154_to_163():
         assert r["author"] == "gbarbalinardo"
         assert r["date"] == "2026-07-10"
         assert "electronic transport from the amset scan" in r["reason"]
+
+
+def test_electronic_dos_never_false_merges_with_phonon_dos():
+    """ElectronicDOS g(E) and PhononDOS g(omega) share the English word "DOS"
+    but nothing else: different physics, different spectral axis, and
+    crucially a different DIMENSION (inverse energy vs inverse frequency), so
+    the two are kept apart structurally, not merely by name. This guards the
+    Cookbook audit's single highest false-merge hazard.
+    """
+    from omai.electronic_transport.operator.nodes import ELECTRONIC_DOS
+    from omai.thermal_transport.operator.nodes import PHONON_DOS
+
+    edos_dim = ELECTRONIC_DOS.fields[0].dimension
+    pdos_dim = PHONON_DOS.fields[0].dimension
+    assert edos_dim.name == "inverse_energy"
+    assert pdos_dim.name == "frequency"
+    assert edos_dim.exponents != pdos_dim.exponents
+    assert node_id(ELECTRONIC_DOS) != node_id(PHONON_DOS)
+    # distinct quantity tags too
+    g = build_graph_dict(DOMAINS)
+    ids = {n["id"] for n in g["nodes"]}
+    assert "ElectronicDOS" in ids and "PhononDOS" in ids

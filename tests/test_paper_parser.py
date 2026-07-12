@@ -65,7 +65,7 @@ def test_redact_key_noop_without_key(monkeypatch):
 # --------------------------------------------------------------------------
 def test_catalog_is_sorted_and_stable():
     rows = catalog.build_node_catalog()
-    assert len(rows) == 103
+    assert len(rows) == 104
     ids = [r["id"] for r in rows]
     assert ids == sorted(ids)
     # byte-stability: two builds render identically

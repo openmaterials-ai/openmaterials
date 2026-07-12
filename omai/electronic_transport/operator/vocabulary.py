@@ -23,4 +23,8 @@ register_space_symbols({
     "SeebeckCoefficient": {"S"},
     "ElectronicThermalConductivity": {r"\kappa_e"},
     "CarrierMobility": {r"\mu_e"},
+    # ElectronicDOS: the output density g_E and its own energy-binning axis E
+    # (the spectral variable the delta sum runs over), exactly as PhononDOS
+    # owns g and its omega binning.
+    "ElectronicDOS": {"g_E", "E"},
 })

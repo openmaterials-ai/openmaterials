@@ -236,7 +236,7 @@ def test_dft_representation_package_discovery_finds_the_specs():
     # responses read off the same TaskDoc).
     assert by_rep_space["vasp"] == {
         "Structure", "TotalEnergy", "Forces", "Stress", "MagneticMoment",
-        "BandGap"}
+        "BandGap", "ElectronicDOS"}
     assert by_rep_op["vasp"] == {
         "solve_ground_state", "compute_band_gap", "compute_forces_hf",
         "compute_stress_cell"}
@@ -251,10 +251,10 @@ def test_dft_representation_package_discovery_finds_the_specs():
     # Trajectory specs live in the thermal-transport package. No operator spec.
     assert by_rep_space["ase"] == {"Structure"}
     assert "ase" not in by_rep_op
-    # 8 (qe 4 + pymatgen 4) + mace 4 + matgl 5 + fairchem 4 + vasp 6 + mp-api 3
-    # + ase 1 = 31 space specs; 2 (qe, pymatgen operator) + 3 MLIP + 4 vasp = 9
+    # 8 (qe 4 + pymatgen 4) + mace 4 + matgl 5 + fairchem 4 + vasp 7 + mp-api 3
+    # + ase 1 = 32 space specs; 2 (qe, pymatgen operator) + 3 MLIP + 4 vasp = 9
     # operator specs (mp-api and ase add none).
-    assert len(space_specs) == 31, [a for a, _ in space_specs]
+    assert len(space_specs) == 32, [a for a, _ in space_specs]
     assert len(op_specs) == 9, [a for a, _ in op_specs]
 
 
@@ -384,7 +384,8 @@ def test_vasp_rail_spans_three_domains_in_build_codes():
     vasp = build_codes(DOMAINS)["vasp"]
     assert set(vasp) == {
         "Structure", "TotalEnergy", "Forces", "Stress", "MagneticMoment",
-        "BandGap", "ElasticConstants", "BornCharges", "DielectricTensor"}
+        "BandGap", "ElasticConstants", "BornCharges", "DielectricTensor",
+        "ElectronicDOS"}
 
 
 def test_vasp_elastic_constants_is_kbar_outcar_route_expected_agree():

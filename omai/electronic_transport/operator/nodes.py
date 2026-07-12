@@ -68,6 +68,7 @@ from __future__ import annotations
 from omai.operator.dimensions import (
     DIMENSIONLESS,
     ELECTRICAL_CONDUCTIVITY,
+    INVERSE_ENERGY,
     MOBILITY,
     SEEBECK,
     THERMAL_CONDUCTIVITY,
@@ -198,8 +199,30 @@ CARRIER_MOBILITY = ObservableSpace(
     ),
 )
 
+ELECTRONIC_DOS = ObservableSpace(
+    name="ElectronicDOS",
+    fields=(Field("g_E", INVERSE_ENERGY, indices=("E_dos",)),),
+    description=(
+        "Electronic density of states g(E) = sum_nk delta(E - E_nk), the "
+        "number of single-particle electronic states per unit energy at "
+        "energy E. A 1-D array binned in electron energy E (a spectrum, the "
+        "function-valuedness living in the spectrum layer, exactly as "
+        "PhononDOS is one node binned in omega). EMPHATICALLY NOT the "
+        "PhononDOS: that is the phonon g(omega) over vibrational frequencies "
+        "(dimension inverse frequency, axis THz); this is the electronic "
+        "g(E) over Kohn-Sham eigenvalues (dimension inverse ENERGY, axis eV). "
+        "Same English word, different physics, different axis, different "
+        "dimension: the two are kept apart structurally, not merely by name. "
+        "Gauge-invariant (a spectral density over the band eigenvalues). The "
+        "Fermi level and any band gap are readable off it but are separate "
+        "quantities (BandGap is its own node)."
+    ),
+    tier="Electronic transport",
+)
+
 NODES: tuple[Space, ...] = (
     STATIC_DIELECTRIC_TENSOR,
+    ELECTRONIC_DOS,
     ELECTRICAL_CONDUCTIVITY_ELECTRONIC,
     SEEBECK_COEFFICIENT,
     ELECTRONIC_THERMAL_CONDUCTIVITY,

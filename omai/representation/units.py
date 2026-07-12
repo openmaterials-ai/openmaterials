@@ -16,6 +16,7 @@ import math
 from dataclasses import dataclass
 
 from omai.operator.dimensions import (
+    INVERSE_ENERGY,
     Dimension,
     DIFFUSIVITY,
     DIMENSIONLESS,
@@ -148,6 +149,13 @@ RY = Unit("ry", ENERGY, 13.605693122994 * _E)
 # nodes), not to the unit, which measures plain energy. Registered as its own
 # name so specs and instances state the convention explicitly.
 EV_PER_ATOM = Unit("ev_per_atom", ENERGY, _E)
+
+# Inverse-energy units for the electronic density of states g(E), states per
+# unit energy. Canonical: states per joule (to_operator 1.0). Codes serve
+# states/eV; 1 state/eV = 1 state / 1.602176634e-19 J = (1/_E) states/J, so its
+# to_operator to the per-joule canonical is 1/_E.
+PER_JOULE = Unit("per_joule", INVERSE_ENERGY, 1.0, si_scale=1.0)
+PER_EV = Unit("per_ev", INVERSE_ENERGY, 1.0 / _E)
 
 
 # Force units. Canonical: eV/Å (to_operator 1.0); its absolute SI scale is

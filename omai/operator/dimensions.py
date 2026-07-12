@@ -118,6 +118,7 @@ THERMAL_CONDUCTIVITY = Dimension("thermal_conductivity", (1, 1, -3, -1, 0, 0, 0)
 # compare equal by design.
 LENGTH_PER_TIME = Dimension("length_per_time", (0, 1, -1, 0, 0, 0, 0))
 LENGTH_SQUARED = Dimension("length_squared", (0, 2, 0, 0, 0, 0, 0))  # MeanSquaredDisplacement
+INVERSE_ENERGY = Dimension("inverse_energy", (-1, -2, 2, 0, 0, 0, 0))  # ElectronicDOS g(E), states per energy
 # Heat current density carries energy × velocity, i.e. (energy / area) × (length /
 # time). For per-volume J the canonical SI unit is W/m² (= J / (s · m²)); we
 # spell the dimension out as energy × length / time to keep the chain unambiguous.
