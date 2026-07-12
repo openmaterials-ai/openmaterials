@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>openmaterials.ai: playground</title>
+<meta name="description" content="Type a method, trace a derivation, or parse a paper: watch the openmaterials map respond live. Fuzzy language in, checkable identity out.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="openmaterials.ai">
+<meta property="og:title" content="openmaterials.ai: playground">
+<meta property="og:description" content="Type a method, trace a derivation, or parse a paper: the map responds live.">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../assets/vendor/katex/dist/katex.min.css">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+  :root{--obs:#4f46e5;--sim:#0f9d6b;--meas:#d98a14;--hidbd:#dde4ee;}
+  html,body{height:100%;}
+  body{margin:0;display:flex;flex-direction:column;overflow:hidden;max-width:100vw;}
+  .pg-top{flex:0 0 auto;height:56px;display:flex;align-items:center;gap:13px;padding:0 clamp(14px,3vw,22px);background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);z-index:20;}
+  .pg-top .brand{font-family:var(--font-serif);font-weight:700;font-size:1.05rem;color:var(--ink);text-decoration:none;display:flex;align-items:center;gap:7px;}
+  .pg-top .om-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);}
+  .pg-top .sub{font-size:.8rem;color:var(--muted);}
+  .pg-top .controls{margin-left:auto;display:flex;gap:8px;align-items:center;}
+  .pg-main{flex:1 1 auto;display:flex;min-height:0;min-width:0;max-width:100vw;overflow:hidden;}
+  .pg-left{flex:0 0 380px;max-width:42vw;display:flex;flex-direction:column;border-right:1px solid var(--line);background:var(--surface);min-height:0;}
+  .pg-tabs{display:flex;border-bottom:1px solid var(--line);flex:0 0 auto;}
+  .pg-tab{flex:1;padding:12px 8px;font-size:.82rem;font-weight:650;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;}
+  .pg-tab.on{color:var(--accent);border-bottom-color:var(--accent);background:#fff;}
+  .pg-panel{flex:1 1 auto;overflow-y:auto;padding:18px;display:none;min-height:0;}
+  .pg-panel.on{display:block;}
+  .pg-panel h3{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--faint,#9aa0a8);margin:0 0 8px;font-weight:700;}
+  .pg-panel p{font-size:.88rem;line-height:1.6;color:var(--ink-2,#3d4149);margin:0 0 12px;}
+  .pg-input{width:100%;box-sizing:border-box;padding:11px 13px;font-size:.95rem;border:1px solid var(--line);border-radius:9px;font-family:inherit;background:#fff;color:var(--ink);}
+  .pg-input:focus{outline:none;border-color:var(--accent);}
+  .pg-examples{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0;}
+  .pg-chip{font-size:.76rem;padding:4px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--accent);cursor:pointer;}
+  .pg-chip:hover{background:var(--accent-soft);}
+  .pg-results{margin-top:14px;}
+  .pg-hit{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;cursor:pointer;background:#fff;}
+  .pg-hit:hover{border-color:var(--accent);}
+  .pg-hit .k{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--faint,#9aa0a8);flex:0 0 auto;}
+  .pg-hit .id{font-family:var(--font-mono,monospace);font-size:.8rem;color:var(--ink);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pg-hit .sc{font-size:.7rem;color:var(--sim);flex:0 0 auto;}
+  .pg-empty{padding:12px;border:1px dashed var(--line);border-radius:8px;color:var(--muted);font-size:.85rem;text-align:center;}
+  .pg-sel{display:flex;flex-direction:column;gap:8px;margin:8px 0;}
+  .pg-canvas{flex:1 1 auto;position:relative;min-width:0;background:radial-gradient(circle at 50% 34%,#ffffff,#f4f1ea 78%);}
+  #pgsvg{width:100%;height:100%;display:block;touch-action:none;}
+  #pglabels{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+  #pglabelsInner{position:absolute;left:0;top:0;transform-origin:0 0;}
+  .plab{position:absolute;transform:translate(-50%,-50%);font-family:var(--font-mono,monospace);font-size:11px;color:#312e81;white-space:nowrap;pointer-events:none;}
+  .plab.dim{opacity:.16;}
+  .pg-node circle{transition:opacity .15s;}
+  .pg-node.dim{opacity:.16;}
+  .pg-edge{fill:none;stroke:#c9d0dc;stroke-width:1.4;transition:opacity .15s,stroke .15s;}
+  .pg-edge.dim{opacity:.1;}
+  .pg-edge.hot{stroke:var(--accent);stroke-width:2;}
+  .pg-hint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:var(--faint,#9aa0a8);font-size:.9rem;text-align:center;pointer-events:none;max-width:70%;}
+  .pg-node-panel{position:absolute;right:16px;top:16px;width:min(300px,60%);background:rgba(255,255,255,.96);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:0 8px 26px rgba(16,24,40,.12);display:none;z-index:8;}
+  .pg-node-panel .x{position:absolute;right:12px;top:10px;cursor:pointer;color:var(--muted);font-size:1.1rem;line-height:1;}
+  .pg-node-panel .nm{font-family:var(--font-mono,monospace);font-size:.85rem;color:var(--ink);margin-bottom:6px;padding-right:16px;word-break:break-word;}
+  .pg-node-panel .lb{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--faint,#9aa0a8);margin:10px 0 3px;}
+  .pg-node-panel .fm{font-size:.9rem;overflow-x:auto;}
+  .pg-node-panel .uid{font-family:var(--font-mono,monospace);font-size:.68rem;color:var(--muted);word-break:break-all;}
+  @media (max-width:720px){
+    .pg-left{flex-basis:100%;max-width:none;border-right:none;border-bottom:1px solid var(--line);max-height:44vh;}
+    .pg-main{flex-direction:column;}
+    .pg-top{gap:8px;padding:0 12px;}
+    .pg-top .sub{display:none;}
+    .pg-top .controls{gap:6px;}
+    .pg-top .controls .om-btn{padding:9px 9px;font-size:.78rem;}
+  }
+</style>
+</head>
+<body>
+<div class="pg-top">
+  <a class="brand" href="../"><span class="om-dot"></span>openmaterials.ai</a>
+  <span class="sub">playground</span>
+  <span class="controls">
+    <a class="om-btn om-btn-sm" href="../map/">Full map</a>
+    <a class="om-btn om-btn-sm" href="../guide/">Guide</a>
+    <button class="om-btn om-btn-sm" id="shareBtn" type="button">Share</button>
+  </span>
+</div>
+
+<div class="pg-main">
+  <div class="pg-left">
+    <div class="pg-tabs">
+      <button class="pg-tab on" data-tab="query" type="button">Query</button>
+      <button class="pg-tab" data-tab="trace" type="button">Trace</button>
+      <button class="pg-tab" data-tab="parse" type="button">Parse</button>
+    </div>
+
+    <div class="pg-panel on" data-panel="query">
+      <h3>Resolve a method</h3>
+      <p>Type a method or quantity in plain language. The semantic resolver
+        grounds it to typed map nodes, live. Fuzzy language in, checkable
+        identity out.</p>
+      <input class="pg-input" id="qInput" placeholder="quasi-harmonic approximation" autocomplete="off" spellcheck="false">
+      <div class="pg-examples" id="qExamples"></div>
+      <div class="pg-results" id="qResults"></div>
+    </div>
+
+    <div class="pg-panel" data-panel="trace">
+      <h3>Trace a derivation</h3>
+      <p>Pick a source and a target quantity; the canvas draws the derivation
+        path the map knows between them.</p>
+      <div class="pg-sel">
+        <input class="pg-input" id="traceFrom" placeholder="from (e.g. Structure)" list="nodeList" autocomplete="off">
+        <input class="pg-input" id="traceTo" placeholder="to (e.g. ThermalConductivity)" list="nodeList" autocomplete="off">
+      </div>
+      <datalist id="nodeList"></datalist>
+      <div class="pg-results" id="traceResult"></div>
+    </div>
+
+    <div class="pg-panel" data-panel="parse">
+      <h3>Parse a paper</h3>
+      <p>The paper parser reads a PDF and proposes values for the map, each
+        backed by a verbatim quote. The full parser with a drop zone lives on
+        the <a href="../learn/">learn page</a>; it runs on the project's key
+        behind a cost-gated relay.</p>
+      <a class="om-btn om-btn-primary" href="../learn/" style="display:inline-block">Open the parser</a>
+      <p style="margin-top:16px;font-size:.82rem;color:var(--muted)">Values a
+        paper proposes attach to the same nodes you see here; they enter the
+        map only through review, never automatically.</p>
+    </div>
+  </div>
+
+  <div class="pg-canvas">
+    <svg id="pgsvg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="A focused sub-map of the quantities matching the current query or trace."></svg>
+    <div id="pglabels"><div id="pglabelsInner"></div></div>
+    <div class="pg-hint" id="pgHint">Type a method on the left, or trace a derivation, and the matching part of the map appears here.</div>
+    <div class="pg-node-panel" id="pgNodePanel"></div>
+  </div>
+</div>
+
+<script src="../assets/vendor/dagre.min.js"></script>
+<script src="../assets/vendor/katex/dist/katex.min.js"></script>
+<script>
+/* ============================================================================
+   openmaterials playground: a Mermaid-style two-pane shell over the live map.
+   Left: input tabs (query resolves labels, trace draws a path, parse links to
+   the parser). Right: one shared sub-map canvas rendered from graph.json with
+   dagre + KaTeX (both degrade: nothing throws when either is missing). The
+   resolver mirrors omai/semantics.resolve exactly. Structure-pure: query and
+   trace render structure only; values never appear on this canvas.
+   ============================================================================ */
+'use strict';
+var HAS_DAGRE = (typeof dagre !== 'undefined');
+var HAS_KATEX = (typeof katex !== 'undefined');
+var svg = document.getElementById('pgsvg');
+var labelsInner = document.getElementById('pglabelsInner');
+var hint = document.getElementById('pgHint');
+var nodePanel = document.getElementById('pgNodePanel');
+var SVGNS = 'http://www.w3.org/2000/svg';
+
+var GRAPH = null, SEM = [], semById = {}, nodeById = {}, children = {}, parents = {}, symHtml = {};
+var VB = { x: 0, y: 0, w: 1000, h: 700 };
+
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function tex(s, block){ if (!s) return ''; if (!HAS_KATEX) return esc(s); try { return katex.renderToString(String(s), { throwOnError:false, displayMode: !!block }); } catch(e){ return esc(s); } }
+
+/* ---- the resolver (mirror of omai/semantics.resolve) --------------------- */
+function normLabel(s){ return String(s).replace(/([a-z0-9])([A-Z])/g,'$1 $2').replace(/[-_]/g,' ').toLowerCase().replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim(); }
+var STOP = { calculation:1, estimation:1, computation:1, analysis:1, the:1, a:1, an:1, of:1, and:1 };
+function tokset(s){ var out = {}; normLabel(s).split(' ').forEach(function(t){ if (t && !STOP[t]) out[t] = 1; }); return out; }
+function resolveLabel(q){
+  var nq = normLabel(q); if (!nq) return [];
+  var qt = tokset(q), out = [];
+  for (var id in semById){
+    var e = semById[id], score = 0, why = null;
+    if ((e.curated || []).some(function(c){ return normLabel(c) === nq; })) { score = 1.0; why = 'curated alias'; }
+    else if ((e.labels || []).some(function(l){ return normLabel(l) === nq; })) { score = 0.9; why = 'exact label'; }
+    else { var es = tokset((e.labels || []).join(' ') + ' ' + id), all = Object.keys(qt).length > 0;
+           for (var t in qt){ if (!es[t]) { all = false; break; } }
+           if (all) { score = 0.65; why = 'token containment'; } }
+    if (score) out.push({ id: id, kind: e.kind, score: score, why: why });
+  }
+  out.sort(function(a,b){ return b.score - a.score || a.id.localeCompare(b.id); });
+  return out;
+}
+
+/* ---- data load ----------------------------------------------------------- */
+Promise.all([
+  fetch('../data/graph.json?v=' + Date.now()).then(function(r){ return r.json(); }),
+  fetch('../data/semantics.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return []; })
+]).then(function(res){
+  GRAPH = res[0]; SEM = res[1] || [];
+  SEM.forEach(function(e){ semById[e.id] = e; });
+  var seen = {};
+  GRAPH.nodes.forEach(function(n){ nodeById[n.id] = n; symHtml[n.id] = tex(n.symbol); });
+  GRAPH.links.forEach(function(l){
+    if (l.source === l.target || !nodeById[l.source] || !nodeById[l.target]) return;
+    var k = l.source + '>>' + l.target; if (seen[k]) return; seen[k] = 1;
+    (children[l.source] = children[l.source] || []).push(l.target);
+    (parents[l.target] = parents[l.target] || []).push(l.source);
+  });
+  seedUI();
+  applyHash();
+}).catch(function(e){ hint.textContent = 'Could not load the map: ' + e; });
+
+function seedUI(){
+  var ex = ['quasi-harmonic approximation', 'phonon thermal conductivity', 'electronic density of states', 'kappa'];
+  var box = document.getElementById('qExamples');
+  ex.forEach(function(q){ var c = document.createElement('span'); c.className = 'pg-chip'; c.textContent = q;
+    c.addEventListener('click', function(){ document.getElementById('qInput').value = q; runQuery(q); }); box.appendChild(c); });
+  var dl = document.getElementById('nodeList');
+  Object.keys(nodeById).sort().forEach(function(id){ var o = document.createElement('option'); o.value = id; dl.appendChild(o); });
+}
+
+/* ---- rendering a focused sub-map ----------------------------------------- */
+function renderSubmap(nodeIds, hotEdgeOps){
+  var set = {}; nodeIds.forEach(function(id){ set[id] = 1; });
+  hotEdgeOps = hotEdgeOps || {};
+  // the induced neighborhood: the hit nodes plus their direct neighbors, so an
+  // edge has both endpoints to draw against.
+  var show = {}; nodeIds.forEach(function(id){ show[id] = 1;
+    (children[id] || []).forEach(function(c){ show[c] = 1; });
+    (parents[id] || []).forEach(function(p){ show[p] = 1; }); });
+  var ids = Object.keys(show);
+  if (!ids.length) { svg.innerHTML = ''; labelsInner.innerHTML = ''; hint.style.display = 'block'; return; }
+  hint.style.display = 'none';
+
+  var pos = {};
+  if (HAS_DAGRE) {
+    var g = new dagre.graphlib.Graph(); g.setGraph({ rankdir: 'LR', nodesep: 34, ranksep: 70, marginx: 40, marginy: 40 });
+    g.setDefaultEdgeLabel(function(){ return {}; });
+    ids.forEach(function(id){ g.setNode(id, { width: 30, height: 30 }); });
+    GRAPH.links.forEach(function(l){ if (show[l.source] && show[l.target] && l.source !== l.target) g.setEdge(l.source, l.target); });
+    dagre.layout(g);
+    ids.forEach(function(id){ var p = g.node(id); pos[id] = { x: p.x, y: p.y }; });
+  } else {
+    ids.forEach(function(id, i){ pos[id] = { x: 120 + (i % 5) * 160, y: 80 + Math.floor(i / 5) * 110 }; });
+  }
+  var xs = ids.map(function(id){ return pos[id].x; }), ys = ids.map(function(id){ return pos[id].y; });
+  var minx = Math.min.apply(null, xs) - 60, maxx = Math.max.apply(null, xs) + 60;
+  var miny = Math.min.apply(null, ys) - 50, maxy = Math.max.apply(null, ys) + 50;
+  VB = { x: minx, y: miny, w: Math.max(200, maxx - minx), h: Math.max(150, maxy - miny) };
+  svg.setAttribute('viewBox', VB.x + ' ' + VB.y + ' ' + VB.w + ' ' + VB.h);
+
+  var colorOf = function(n){ return n.type === 'observable' ? 'var(--obs)' : (n.type === 'parameter' ? '#94a3b8' : '#7c89a0'); };
+  var eStr = '';
+  GRAPH.links.forEach(function(l){
+    if (!show[l.source] || !show[l.target] || l.source === l.target) return;
+    var a = pos[l.source], b = pos[l.target];
+    var touches = set[l.source] || set[l.target];
+    var named = hotEdgeOps[l.op || ''];
+    var cls = 'pg-edge' + (named ? ' hot' : (touches ? '' : ' dim'));
+    eStr += '<path class="' + cls + '" d="M' + a.x + ' ' + a.y + ' C' + ((a.x + b.x) / 2) + ' ' + a.y + ' ' + ((a.x + b.x) / 2) + ' ' + b.y + ' ' + b.x + ' ' + b.y + '"></path>';
+  });
+  var nStr = '';
+  ids.forEach(function(id){ var n = nodeById[id], p = pos[id];
+    var r = set[id] ? 9 : 6;
+    var cls = 'pg-node' + (set[id] ? '' : ' dim');
+    nStr += '<g class="' + cls + '" data-id="' + esc(id) + '"><circle cx="' + p.x + '" cy="' + p.y + '" r="' + r + '" fill="' + colorOf(n) + '" stroke="#fff" stroke-width="1.5"></circle></g>';
+  });
+  svg.innerHTML = eStr + nStr;
+
+  // label overlay, synced to the viewBox (never foreignObject: Safari bug)
+  syncLabels(ids, pos, set);
+  svg.querySelectorAll('.pg-node').forEach(function(el){ el.addEventListener('click', function(){ openNode(el.getAttribute('data-id')); }); el.style.cursor = 'pointer'; });
+}
+
+function syncLabels(ids, pos, set){
+  var rect = svg.getBoundingClientRect();
+  var sc = Math.min(rect.width / VB.w, rect.height / VB.h);
+  var tx = (rect.width - VB.w * sc) / 2 - VB.x * sc;
+  var ty = (rect.height - VB.h * sc) / 2 - VB.y * sc;
+  labelsInner.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + sc + ')';
+  var h = '';
+  ids.forEach(function(id){ var p = pos[id];
+    h += '<div class="plab' + (set[id] ? '' : ' dim') + '" style="left:' + p.x + 'px;top:' + (p.y - 17) + 'px">' + (symHtml[id] || esc(id)) + '</div>';
+  });
+  labelsInner.innerHTML = h;
+}
+
+function openNode(id){
+  var n = nodeById[id]; if (!n) return;
+  var fam = (semById[id] && (semById[id].curated || [])).join(', ');
+  var h = '<span class="x" id="pgClose">&times;</span>';
+  h += '<div class="nm">' + esc(id) + '</div>';
+  h += '<div class="lb">symbol</div><div class="fm">' + (symHtml[id] || esc(n.symbol)) + '</div>';
+  if (n.formula) h += '<div class="lb">formula</div><div class="fm">' + tex(n.formula, true) + '</div>';
+  if (fam) h += '<div class="lb">also known as</div><div style="font-size:.78rem;color:var(--ink-2,#3d4149)">' + esc(fam) + '</div>';
+  h += '<div class="lb">uid</div><div class="uid">' + esc(n.uid || '') + '</div>';
+  nodePanel.innerHTML = h; nodePanel.style.display = 'block';
+  document.getElementById('pgClose').addEventListener('click', function(){ nodePanel.style.display = 'none'; });
+}
+
+/* ---- query --------------------------------------------------------------- */
+function runQuery(q){
+  nodePanel.style.display = 'none';
+  var box = document.getElementById('qResults');
+  q = (q || '').trim();
+  if (!q) { box.innerHTML = ''; renderSubmap([], {}); hint.style.display = 'block'; hint.textContent = 'Type a method on the left, or trace a derivation, and the matching part of the map appears here.'; return; }
+  var hits = resolveLabel(q);
+  if (!hits.length) {
+    box.innerHTML = '<div class="pg-empty">No home on the map yet. An honest gap: this method would feed the encode queue.</div>';
+    renderSubmap([], {}); hint.style.display = 'block'; hint.textContent = '"' + q + '" resolves to nothing: the map has no node for it (yet).';
+    return;
+  }
+  var nodeHits = hits.filter(function(h){ return h.kind === 'node' && nodeById[h.id]; }).map(function(h){ return h.id; });
+  var edgeOps = {}; hits.filter(function(h){ return h.kind === 'edge'; }).forEach(function(h){ edgeOps[h.id] = 1; });
+  box.innerHTML = hits.slice(0, 8).map(function(h){
+    return '<div class="pg-hit" data-id="' + esc(h.id) + '"><span class="k">' + esc(h.kind) + '</span><span class="id">' + esc(h.id) + '</span><span class="sc">' + h.score.toFixed(2) + '</span></div>';
+  }).join('');
+  box.querySelectorAll('.pg-hit').forEach(function(el){ el.addEventListener('click', function(){
+    var id = el.getAttribute('data-id');
+    if (nodeById[id]) { openNode(id); return; }
+    // an edge hit: focus its endpoints so the click always does something
+    var ep = []; GRAPH.links.forEach(function(l){ if (l.op === id) { ep.push(l.source); ep.push(l.target); } });
+    var uniq = {}; ep.forEach(function(x){ uniq[x] = 1; });
+    var eop = {}; eop[id] = 1;
+    renderSubmap(Object.keys(uniq), eop);
+  }); });
+  renderSubmap(nodeHits, edgeOps);
+}
+
+/* ---- trace (BFS over the DAG, both directions) --------------------------- */
+function bfsPath(src, dst){
+  var prev = {}, dq = [src], seen = {}; seen[src] = 1;
+  while (dq.length) {
+    var x = dq.shift();
+    if (x === dst) { var p = [dst], c = dst; while (c !== src) { c = prev[c]; p.unshift(c); } return p; }
+    (children[x] || []).forEach(function(y){ if (!seen[y]) { seen[y] = 1; prev[y] = x; dq.push(y); } });
+  }
+  return null;
+}
+function runTrace(){
+  nodePanel.style.display = 'none';
+  var from = document.getElementById('traceFrom').value.trim();
+  var to = document.getElementById('traceTo').value.trim();
+  var out = document.getElementById('traceResult');
+  if (!nodeById[from] || !nodeById[to]) { out.innerHTML = '<div class="pg-empty">Pick two nodes that exist on the map.</div>'; renderSubmap([], {}); return; }
+  var path = bfsPath(from, to) || bfsPath(to, from);
+  if (!path) { out.innerHTML = '<div class="pg-empty">No derivation path between these two on the map.</div>'; renderSubmap([from, to], {}); return; }
+  out.innerHTML = '<div style="font-size:.82rem;color:var(--ink-2,#3d4149)">' + path.map(function(id){ return esc(id); }).join(' <span style="color:var(--faint,#9aa0a8)">&rarr;</span> ') + '</div>';
+  var ops = {};
+  for (var i = 0; i < path.length - 1; i++) {
+    var l = GRAPH.links.find(function(x){ return x.source === path[i] && x.target === path[i + 1]; });
+    if (l && l.op) ops[l.op] = 1;
+  }
+  renderSubmap(path, ops);
+}
+
+/* ---- tabs, share, hash --------------------------------------------------- */
+document.querySelectorAll('.pg-tab').forEach(function(t){
+  t.addEventListener('click', function(){
+    document.querySelectorAll('.pg-tab').forEach(function(x){ x.classList.remove('on'); });
+    document.querySelectorAll('.pg-panel').forEach(function(x){ x.classList.remove('on'); });
+    t.classList.add('on');
+    document.querySelector('.pg-panel[data-panel="' + t.getAttribute('data-tab') + '"]').classList.add('on');
+  });
+});
+document.getElementById('qInput').addEventListener('input', function(){ runQuery(this.value); });
+document.getElementById('traceFrom').addEventListener('change', runTrace);
+document.getElementById('traceTo').addEventListener('change', runTrace);
+
+document.getElementById('shareBtn').addEventListener('click', function(){
+  var tab = document.querySelector('.pg-tab.on').getAttribute('data-tab');
+  var hash = '#/play?tab=' + tab;
+  if (tab === 'query') hash += '&q=' + encodeURIComponent(document.getElementById('qInput').value);
+  if (tab === 'trace') hash += '&from=' + encodeURIComponent(document.getElementById('traceFrom').value) + '&to=' + encodeURIComponent(document.getElementById('traceTo').value);
+  var url = location.origin + location.pathname + hash;
+  location.hash = hash;
+  var btn = this;
+  if (navigator.clipboard) navigator.clipboard.writeText(url).then(function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Share'; }, 1200); });
+});
+
+function applyHash(){
+  var m = location.hash.match(/[#&]tab=([a-z]+)/); if (!m) return;
+  var tab = document.querySelector('.pg-tab[data-tab="' + m[1] + '"]'); if (tab) tab.click();
+  var q = location.hash.match(/[#&]q=([^&]*)/);
+  if (q) { var v = decodeURIComponent(q[1]); document.getElementById('qInput').value = v; runQuery(v); }
+  var f = location.hash.match(/[#&]from=([^&]*)/), t = location.hash.match(/[#&]to=([^&]*)/);
+  if (f && t) { document.getElementById('traceFrom').value = decodeURIComponent(f[1]); document.getElementById('traceTo').value = decodeURIComponent(t[1]); runTrace(); }
+}
+window.addEventListener('resize', function(){ if (svg.querySelector('.pg-node')) { var ids = [], pos = {}, set = {};
+  // cheap re-sync: recompute label transform against current viewBox (positions unchanged)
+  var rect = svg.getBoundingClientRect(); var sc = Math.min(rect.width / VB.w, rect.height / VB.h);
+  var tx = (rect.width - VB.w * sc) / 2 - VB.x * sc, ty = (rect.height - VB.h * sc) / 2 - VB.y * sc;
+  labelsInner.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + sc + ')'; } });
+</script>
+</body>
+</html>
