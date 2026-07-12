@@ -645,3 +645,11 @@ def test_ingest_survives_broken_pages(monkeypatch, tmp_path):
     monkeypatch.setattr(pypdf, "PdfReader", MostlyBad)
     with pytest.raises(ValueError):
         read_pdf(f)
+
+
+def test_review_prompt_kills_differences_posing_as_values():
+    """'a 0.6 W/mK drop of kappa' is a delta, not a kappa value; two such
+    claims survived review in the amorphous-alloys parse (caught only by the
+    human adversarial pass, 2026-07-12) before the prompt learned it."""
+    from omai.paper_parser.review import REVIEW_SYSTEM
+    assert "DIFFERENCES POSING AS VALUES" in REVIEW_SYSTEM
