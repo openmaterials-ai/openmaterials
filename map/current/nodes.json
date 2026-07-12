@@ -1408,6 +1408,28 @@
   },
   "uid": "9c5a2fdedab6b668ccf5f2043fb4c29a982bcde5063fd6ac8633ee2c7858ecbf"
  },
+ "a32e08f3d5a147643986f961b701aea560791721df573f09188a557da369fb4f": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^-1 L^-2 T^2",
+     "indices": [
+      "energy_bin"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "electronic_dos"
+  },
+  "meta": {
+   "description": "Electronic density of states g(E) = sum_nk delta(E - E_nk), the number of single-particle electronic states per unit energy at energy E. A 1-D array binned in electron energy E (a spectrum, the function-valuedness living in the spectrum layer, exactly as PhononDOS is one node binned in omega). EMPHATICALLY NOT the PhononDOS: that is the phonon g(omega) over vibrational frequencies (dimension inverse frequency, axis THz); this is the electronic g(E) over Kohn-Sham eigenvalues (dimension inverse ENERGY, axis eV). Same English word, different physics, different axis, different dimension: the two are kept apart structurally, not merely by name. Gauge-invariant (a spectral density over the band eigenvalues). The Fermi level and any band gap are readable off it but are separate quantities (BandGap is its own node).",
+   "name": "ElectronicDOS",
+   "symbol": "ElectronicDOS",
+   "tier": "Electronic transport"
+  },
+  "uid": "a32e08f3d5a147643986f961b701aea560791721df573f09188a557da369fb4f"
+ },
  "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9": {
   "identity": {
    "fields": [

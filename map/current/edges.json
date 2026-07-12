@@ -2026,6 +2026,34 @@
   },
   "uid": "c9322877acc6349a7e18b29646674344b12d39565adf4ee3e23f2b82e1b53ab3"
  },
+ "ca35c6e4d21df105dfe83087ea98e03a5bad951006ada4fe722eea0a06a1cf7f": {
+  "identity": {
+   "formula": "Equality(Symbol('g_E'), Function('g_el')(Symbol('E'), Symbol('\\\\mathcal{S}'), Symbol('V')))",
+   "inputs": [
+    "80a4273845e09207860e06db18d1f1ee5670a9b9c8b1020a99928c872878f901",
+    "db1df71467f5a79440f849704ac20a33573ed4e270b5ebba59549272b2475239"
+   ],
+   "output": "a32e08f3d5a147643986f961b701aea560791721df573f09188a557da369fb4f",
+   "outputs": [
+    "a32e08f3d5a147643986f961b701aea560791721df573f09188a557da369fb4f"
+   ],
+   "schemes": {
+    "integration": "tetrahedron_or_smearing",
+    "method": "ks_dos"
+   }
+  },
+  "meta": {
+   "description": "The electronic density of states g(E) from a Kohn-Sham ground-state calculation: the band eigenvalues E_nk over the Brillouin zone, binned in energy by tetrahedron integration or Gaussian smearing. Implicit (opaque KS eigenvalue solver plus BZ integration), like solve_ground_state and compute_band_gap. Produces ElectronicDOS, distinct from the phonon PhononDOS by dimension and axis.",
+   "formula_latex": "g_{E} = g_{el}{\\left(E,\\mathcal{S},V \\right)}",
+   "formula_srepr": "Equality(Symbol('g_E'), Function('g_el')(Symbol('E'), Symbol('\\\\mathcal{S}'), Symbol('V')))",
+   "name": "compute_electronic_dos",
+   "schemes": {
+    "integration": "tetrahedron_or_smearing",
+    "method": "ks_dos"
+   }
+  },
+  "uid": "ca35c6e4d21df105dfe83087ea98e03a5bad951006ada4fe722eea0a06a1cf7f"
+ },
  "ccd6d5886ed78dc12e752ceb9d573aba2e79cdb99b147ee186abdbf16f4d11a2": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('\\\\kappa^{cum}_\\\\Lambda')), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True), Symbol('\\\\Lambda_c', positive=True)), Mul(Pow(Symbol('N_q', positive=True, integer=True), Integer(-1)), Pow(Symbol('V_{cell}', positive=True), Integer(-1)), Sum(Mul(Function('\\\\theta')(Add(Symbol('\\\\Lambda_c', positive=True), Mul(Integer(-1), Pow(Sum(Pow(Indexed(IndexedBase(Symbol('F')), Symbol('\\\\alpha', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Integer(2)), Tuple(Symbol('\\\\alpha', integer=True), Integer(1), Integer(3))), Rational(1, 2))))), Indexed(IndexedBase(Symbol('F')), Symbol('\\\\beta', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Indexed(IndexedBase(Symbol('c')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Indexed(IndexedBase(Symbol('v')), Symbol('\\\\alpha', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True))), Tuple(Symbol('\\\\mathbf{q}'), Integer(1), Symbol('N_q', positive=True, integer=True)), Tuple(Symbol('\\\\nu', integer=True), Integer(1), Mul(Integer(3), Symbol('N', positive=True, integer=True))))))",
