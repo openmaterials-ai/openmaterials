@@ -1,0 +1,18 @@
+{
+ "representation": "plumed",
+ "map_version": "275d97d38696e29671046eab8db702e80cb42c5879ad189fb18e4f9ce26540d9",
+ "covers": [
+  {
+   "node": "PotentialOfMeanForce",
+   "uid": "7a4fd6ca35f412c375006146204be07210a037901b0e4fb33e1805f243c74b6a",
+   "api": "PLUMED sum_hills reconstructs F(s) from a metadynamics HILLS file (kJ/mol against the collective variable); or a reweighted / WHAM free-energy profile from umbrella sampling",
+   "unit": "kJ_per_mol"
+  },
+  {
+   "node": "Trajectory",
+   "uid": "12cde23e9a333fdd03313c4cdbd82d51033f9bb3bd505466a8db5360faf166b4",
+   "api": "the host MD engine's trajectory (LAMMPS / GROMACS / i-PI), read by PLUMED through its patched interface; PLUMED biases the dynamics along the chosen collective variables rather than dumping its own positions",
+   "unit": null
+  }
+ ]
+}
