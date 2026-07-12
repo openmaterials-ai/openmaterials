@@ -166,4 +166,10 @@ register_space_symbols({
     # registering here.
     "QuantumKineticEnergy": {"E_K"},
     "HeatCapacity[method=pimd]": {"C_V"},
+    # Enhanced-sampling free energy (Cookbook Slice 2, PLUMED, record 216-217).
+    # sample_pmf has LHS F and reads the Trajectory positions (the Trajectory `r`
+    # field) and the Temperature T (both ride in via the input spaces); the
+    # reconstruction applied-function name (F_pmf) is a sympy Function, not a free
+    # symbol, so only the output LHS symbol needs registering here.
+    "PotentialOfMeanForce": {"F"},
 })

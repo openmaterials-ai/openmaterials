@@ -361,7 +361,7 @@ def test_map_has_one_hundred_nodes_and_fifteen_tiers():
     # and HeatCapacity[method=pimd], both thermal_transport, each joining the
     # existing Molecular dynamics tier, no new tier.
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 102
+    assert len(g["nodes"]) == 103
     assert len(g["tiers"]) == 15
 
 
@@ -422,7 +422,7 @@ def test_pycalphad_is_a_rail_and_the_config_thermo_scan_added_three_rails():
     # lobsterpy / smact deliberately earned no rail); the Atomistic Cookbook
     # audit's nuclear-quantum-effects layer (i-PI slice, 2026-07-11) added the
     # i-pi rail (the sixth Trajectory producer), reaching 28.
-    assert len(codes) == 28
+    assert len(codes) == 29
     assert "pycalphad" in codes
     assert "mat-equation-of-state" in codes
     assert "mat-surface-adsorption" in codes

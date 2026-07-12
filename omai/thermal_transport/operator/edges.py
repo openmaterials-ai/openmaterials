@@ -68,6 +68,8 @@ from omai.thermal_transport.operator.nodes import (
     # Nuclear-quantum-effects layer (Cookbook Slice 1, i-PI, records 212-215)
     QUANTUM_KINETIC_ENERGY,
     HEAT_CAPACITY_PIMD,
+    # Enhanced-sampling free energy (Cookbook Slice 2, PLUMED, record 216)
+    POTENTIAL_OF_MEAN_FORCE,
 )
 
 
@@ -1650,6 +1652,55 @@ sample_quantum_heat_capacity = Operator(
 )
 
 
+# ---------------------------------------------------------------------------
+# Enhanced-sampling free energy (Cookbook Slice 2, the PLUMED / metadynamics
+# layer; record 216). One sampling edge, from the pre-existing MD tier
+# (Trajectory, Temperature): the biased Trajectory is a metadynamics run (an MD
+# Trajectory riding a PLUMED bias potential along a chosen collective variable),
+# and the free-energy profile is reconstructed off it (PLUMED sum_hills). The
+# reconstruction is an opaque functional of the sampled biased trajectory and
+# the temperature (F(s) = -k_B T ln P(s) via the deposited bias, or WHAM), so it
+# is not sympy-executable and the dimensional gate SKIPS it, exactly like the
+# two PIMD estimator edges of slice 1.
+# ---------------------------------------------------------------------------
+
+# sample_pmf: F(s) = F_pmf[r(t), T] the one-collective-variable potential of
+# mean force reconstructed from a metadynamics (or umbrella + WHAM) Trajectory.
+# Opaque estimator functional of the sampled biased Trajectory and the
+# Temperature; not sympy-executable.
+_F_pmf = sp.Symbol("F")
+_F_pmf_fn = sp.Function("F_pmf")
+
+_SAMPLE_PMF_FORMULA = sp.Eq(
+    _F_pmf,
+    _F_pmf_fn(_r_traj_arg, _T_arg),
+)
+
+sample_pmf = Operator(
+    name="sample_pmf",
+    inputs=(TRAJECTORY, TEMPERATURE_STATE),
+    outputs=(POTENTIAL_OF_MEAN_FORCE,),
+    schemes={"method": "metadynamics_or_umbrella", "cv_count": "1"},
+    formula=_SAMPLE_PMF_FORMULA,
+    is_executable_in_sympy_override=False,
+    description=(
+        "One-collective-variable potential of mean force F(s) = -k_B T ln P(s) "
+        "reconstructed from an enhanced-sampling Trajectory (scheme "
+        "method=metadynamics_or_umbrella, cv_count=1): a metadynamics run "
+        "(PLUMED deposits a Gaussian bias along the chosen collective variable; "
+        "sum_hills reconstructs F(s) from the accumulated hills) or umbrella "
+        "sampling combined with WHAM. An opaque reconstruction functional of the "
+        "sampled biased Trajectory and the Temperature (F_pmf[r(t), T]), so not "
+        "sympy-executable; the dimensional gate SKIPS it (the PLUMED rail fixes "
+        "the output at ENERGY). Produces PotentialOfMeanForce, the free-energy "
+        "profile along one reaction coordinate, whose function-valuedness lives in "
+        "the spectrum layer (the collective variable is the record's axis). The "
+        "cv_count=1 scheme is deliberate: the multi-CV free-energy surface is a "
+        "scalar field over CV-space, deferred to the field-evidence kernel."
+    ),
+)
+
+
 EDGES: tuple[Operator, ...] = (
     provide_potential,
     provide_temperature,
@@ -1706,4 +1757,6 @@ EDGES: tuple[Operator, ...] = (
     # Nuclear-quantum-effects layer (Cookbook Slice 1, i-PI, records 212-215)
     sample_quantum_kinetic_energy,
     sample_quantum_heat_capacity,
+    # Enhanced-sampling free energy (Cookbook Slice 2, PLUMED, record 217)
+    sample_pmf,
 )

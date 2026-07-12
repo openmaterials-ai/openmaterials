@@ -286,10 +286,18 @@ def _validate_spectrum(rec: dict, *, name_to_uid: dict, axis_by_var, where: str)
             f"{where}: {variable!r} declares no canonical axis; it is not a "
             f"spectrum-capable node (add a CanonicalAxis to its representation)")
 
-    # Axis unit: registered and dimensionally consistent with the declaration.
+    # Axis unit: always registered. When the declaration PINS an axis unit
+    # (canon.unit is not None, e.g. PhononDOS's linear_THz), the record's axis
+    # unit must also share its dimension. When the declaration leaves the axis
+    # OPEN (canon.unit is None, the first case being PotentialOfMeanForce over a
+    # collective variable, whose unit is heterogeneous across records: a distance,
+    # an angle, a coordination number), no canonical axis dimension is enforced -
+    # the axis unit only has to be a registered unit. This is the axis analog of
+    # the open value_unit below.
     if axis["units"] not in UNITS:
         raise ValueError(f"{where}: axis unit {axis['units']!r} is not registered")
-    if UNITS[axis["units"]].dimension != UNITS[canon.unit].dimension:
+    if canon.unit is not None and (
+            UNITS[axis["units"]].dimension != UNITS[canon.unit].dimension):
         raise ValueError(
             f"{where}: axis unit {axis['units']!r} "
             f"({UNITS[axis['units']].dimension.name}) is dimensionally "

@@ -115,6 +115,16 @@ CODE_CREDITS: dict[str, dict] = {
         "MIT licenses' (user's choice)",
         "url": "https://ipi-code.org",
     },
+    "plumed": {
+        "citation": "G. A. Tribello, M. Bonomi, D. Branduardi, C. Camilloni, "
+        "G. Bussi, PLUMED 2: New feathers for an old bird, Comput. Phys. Commun. "
+        "185, 604 (2014)",
+        "doi": "10.1016/j.cpc.2013.09.018",
+        "license": "LGPL-3.0",
+        "license_source": "plumed2 repo COPYING.LESSER (GNU LGPL v3, 29 June "
+        "2007; verified 2026-07-11 from the reviewed cookbook-audit table)",
+        "url": "https://www.plumed.org",
+    },
     # --- DFT ground state / periodic quantum chemistry -----------------------
     "qe": {
         "citation": "P. Giannozzi, S. Baroni, N. Bonini, et al., QUANTUM "

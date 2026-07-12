@@ -60,9 +60,18 @@ class CanonicalAxis:
     record's axis and value units against a fixed convention rather than against
     ad-hoc per-record choices.
 
-      name              the axis label (e.g. "omega", "d_hkl").
+      name              the axis label (e.g. "omega", "d_hkl", "cv").
       unit              the registered unit name the axis is stored in (its
-                        Unit.dimension is the axis's dimension).
+                        Unit.dimension is the axis's dimension), or None when the
+                        axis unit is OPEN: a node whose axis has heterogeneous
+                        units across records (a collective variable is a distance,
+                        an angle, or a coordination number depending on the study,
+                        so no single axis unit / dimension can be pinned). The
+                        first open-axis node is PotentialOfMeanForce (the PMF over
+                        a collective variable); an open axis unit is the axis
+                        analog of an open value_unit. When None, the validator
+                        only requires each record's axis unit to be registered; it
+                        does not enforce a canonical axis dimension.
       value_unit        the registered unit the ordinates are in, or None when
                         the value normalization is open (e.g. a phonon DOS
                         density: states per THz per cell vs per formula unit
@@ -76,7 +85,7 @@ class CanonicalAxis:
     """
 
     name: str
-    unit: str
+    unit: str | None
     value_unit: str | None = None
     required_conditions: tuple[str, ...] = ()
 

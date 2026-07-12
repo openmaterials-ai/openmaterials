@@ -124,7 +124,7 @@ def test_all_six_mechanics_edges_are_dimensionally_ok():
     ), report["violation"]
 
 
-def test_no_node_uid_collisions_at_100_nodes():
+def test_no_node_uid_collisions_at_103_nodes():
     # 59 with the original mechanics four; 61 with YoungsModulus and
     # PoissonRatio; 66 with the stability four plus MagneticMoment; 67 with
     # BandGap (2026-07-09, atomate2/VASP scan); 73 with the six
@@ -149,7 +149,7 @@ def test_no_node_uid_collisions_at_100_nodes():
     # QuantumKineticEnergy and HeatCapacity[method=pimd], both in the
     # thermal_transport Molecular dynamics tier (2026-07-11).
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 102
+    assert len(g["nodes"]) == 103
     uids = [n["uid"] for n in g["nodes"]]
     assert len(set(uids)) == len(uids), "node uid collision"
 

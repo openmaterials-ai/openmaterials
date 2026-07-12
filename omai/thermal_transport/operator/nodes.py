@@ -800,6 +800,61 @@ HEAT_CAPACITY_PIMD = ObservableSpace(
 )
 
 
+# ---------------------------------------------------------------------------
+# Enhanced-sampling free energy (Cookbook Slice 2, the PLUMED slice;
+# scans/cookbook-audit.json, record 216). One member joins the Molecular
+# dynamics tier as a sampled-trajectory observable:
+#
+#   * PotentialOfMeanForce: a genuinely NEW node (tag potential_of_mean_force,
+#     ENERGY), the free energy F(s) = -k_B T ln P(s) along ONE collective
+#     variable, reconstructed from enhanced sampling (metadynamics sum_hills, or
+#     umbrella + WHAM). It is a scalar-valued FUNCTION of one collective
+#     variable: on the map it is a single node (exactly as PhononDOS is one
+#     node), the function-valuedness living in the SPECTRUM LAYER, where each
+#     record carries the collective variable as its axis. Distinct BY TAG from
+#     the molar Gibbs / Helmholtz free-energy family (MolarGibbsEnergy,
+#     MolarHelmholtzFreeEnergy, QHAGibbsEnergy): those three are SCALAR state
+#     functions per mole of cells at a state point (harmonic A(T), CALPHAD
+#     G(T,x), quasi-harmonic G(T,p)); this is a PROFILE along a reaction
+#     coordinate, per system, function-valued over a configurational order
+#     parameter. Same ENERGY dimension, DIFFERENT argument structure:
+#     dimension-equal, family-distinct, MUST NOT merge (that dimension-equality
+#     is exactly the trap). The multi-CV free-energy surface (a scalar field
+#     over CV-space) is DEFERRED to the field-evidence kernel.
+# ---------------------------------------------------------------------------
+
+POTENTIAL_OF_MEAN_FORCE = ObservableSpace(
+    name="PotentialOfMeanForce",
+    fields=(Field("F", ENERGY, indices=()),),
+    description=(
+        "Free energy along ONE collective variable, the potential of mean force "
+        "F(s) = -k_B T ln P(s), reconstructed from enhanced sampling: "
+        "metadynamics (PLUMED sum_hills over the deposited Gaussian bias) or "
+        "umbrella sampling + WHAM. A scalar-valued FUNCTION of one collective "
+        "variable s (a reaction coordinate: an O-O distance, a dihedral angle, a "
+        "coordination number, a SOAP-based order parameter): on the map a single "
+        "node exactly as PhononDOS is, the function-valuedness living in the "
+        "SPECTRUM LAYER where each record carries the collective variable as its "
+        "axis (the FIRST open-AXIS spectrum declaration: collective variables have "
+        "heterogeneous units, so the canonical axis unit is left open, like the "
+        "PhononDOS density value unit). Distinct BY TAG from the molar Gibbs / "
+        "Helmholtz family (MolarGibbsEnergy, MolarHelmholtzFreeEnergy, "
+        "QHAGibbsEnergy): those are SCALAR state functions per mole of cells at a "
+        "state point (harmonic A(T), CALPHAD G(T,x), quasi-harmonic G(T,p)); this "
+        "is a profile along a reaction coordinate, per system, function-valued "
+        "over a configurational order parameter. Same ENERGY dimension, different "
+        "argument structure: dimension-equal, family-distinct, must not merge. "
+        "The energy convention is per system (metadynamics native, often k_B T "
+        "units) or per mole; the record's conditions pin which. Produced by "
+        "PLUMED (metadynamics), i-PI + PLUMED (path-integral metadynamics), or "
+        "thermodynamic integration (any MD engine). The multi-CV free-energy "
+        "surface (a scalar field over CV-space) is deferred to the field-evidence "
+        "kernel. Cookbook recipes: pi-metad, metatomic-plumed."
+    ),
+    tier="Molecular dynamics",
+)
+
+
 NODES: tuple[Space, ...] = (
     POTENTIAL,
     TEMPERATURE_STATE,
@@ -856,4 +911,6 @@ NODES: tuple[Space, ...] = (
     # Nuclear-quantum-effects layer (Cookbook Slice 1, i-PI, records 212-215)
     QUANTUM_KINETIC_ENERGY,
     HEAT_CAPACITY_PIMD,
+    # Enhanced-sampling free energy (Cookbook Slice 2, PLUMED, record 216)
+    POTENTIAL_OF_MEAN_FORCE,
 )

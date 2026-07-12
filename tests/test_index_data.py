@@ -88,7 +88,7 @@ def test_write_index_emits_one_file_per_representation(tmp_path):
     # audit's nuclear-quantum-effects layer (i-PI slice) added the i-pi rail,
     # 28th (2026-07-11).
     assert len(files) == len(reps)
-    assert len(files) == 28
+    assert len(files) == 29
 
 
 def test_each_index_entry_uid_matches_live_node_id(tmp_path):
