@@ -1,0 +1,212 @@
+{
+  "scan": {
+    "title": "kaldo DELTA: what kaldo computes that its map rail does not cover",
+    "kind": "delta / gap analysis (not a fresh survey)",
+    "target": "the DELTAS between kaldo's public API (phonons.py, conductivity.py, observables/, forceconstants.py, quasiharmonic.py) and the 32-node kaldo rail in docs/data/codes.json. Triggered by a live finding: parsing the QHGK paper (Isaeva et al. 2019) surfaced modal diffusivity, participation ratio, generalized specific heat c_nm, mode-pair lifetimes, and generalized velocity matrix elements as unmappable, and kaldo computes at least the first two directly.",
+    "codes": ["kaldo"],
+    "sources": {
+      "kaldo_clone": "kaldo/ vendored (read directly; ground truth). Key files: kaldo/kaldo/phonons.py, kaldo/kaldo/conductivity.py, kaldo/kaldo/observables/harmonic_with_q.py, kaldo/kaldo/observables/harmonic_with_q_temp.py, kaldo/kaldo/forceconstants.py, kaldo/kaldo/quasiharmonic.py",
+      "rail": "docs/data/codes.json kaldo entry (32 space specs)",
+      "existing_domain": "omai/thermal_transport/ (BTE branch fully decomposed; QHGK/Wigner terminal kappa variants with internals folded into their edge formulas: omai/thermal_transport/operator/edges.py:896-923)"
+    },
+    "graph_snapshot": {
+      "git_head": "2834a4e",
+      "node_count": 98,
+      "records": 207,
+      "links": 242,
+      "tiers": 15,
+      "relevant_present_and_load_bearing": [
+        "Diffusivity (uid 37eb72..., tier Diffusion, symbol D, formula D = slope_MSD/(2d), produced MeanSquaredDisplacement -> Diffusivity contract_diffusivity; this is the mass self-diffusion coefficient, NOT the per-mode heat-mode diffusivity: THE false-merge guardrail)",
+        "ElasticConstants (uid 01043a..., tier Mechanics, formula C = -d sigma / d eps^str, produced Stress+Structure -> ElasticConstants compute_elastic_constants; contracts to BulkModulus/ShearModulus)",
+        "ThermalExpansion (uid 9b42f8..., tier Quasi-harmonic, alpha_V = alpha^qha(G_qha), produced QHAGibbsEnergy -> ThermalExpansion; contracts to ThermalGruneisen and HeatCapacityConstantP)",
+        "PhononDOS (uid 9b0af0..., tier Harmonic, g(omega), total DOS only)",
+        "HeatCapacity (per-mode c, J/K), HelmholtzFreeEnergy (eV), Frequency (linear_THz), GroupVelocity, Linewidth[channel=total] (angular_THz), ThermalConductivity[transport_model=qhgk], the three Wigner kappa variants, Temperature, Eigenvectors"
+      ],
+      "relevant_absent": [
+        "ParticipationRatio (dimensionless per-mode localization; kaldo computes it: phonons.py:648, harmonic_with_q.py:335)",
+        "ModalDiffusivity / per-mode heat-mode diffusivity D_n (L^2 T^-1, kaldo computes it: conductivity.py:303 diffusivity, mm^2/s)",
+        "quasi-harmonic thermal-expansion / F(lattice,T) / V(T) via kaldo's OWN quasiharmonic.py route (kaldo has a full QHA module; the existing ThermalExpansion node is produced only via the phonopy QHAGibbsEnergy route)",
+        "kaldo elastic tensor producer (forceconstants.elastic_prop() GPa; the existing ElasticConstants node is produced from Stress/Structure only, not from FC2)",
+        "atom-projected PhononDOS / pdos (phonons.py:1246; the existing PhononDOS node is total DOS)"
+      ]
+    },
+    "note_on_qhgk_internals": "The QHGK edge (edges.py:896-923) already carries c[q,nu] (HeatCapacity), v^alpha_qnu / v^beta_qnup (GroupVelocity, generalized to the off-diagonal flux matrix), Gamma_anh (TOTAL_LINEWIDTH), omega, T. The mode-pair specific heat c_nm, the generalized velocity matrix elements S_ij (flux operators), the mode-pair broadening (Gamma+Gamma'), and the Lorentzian denominator are ALL folded into that single formula's index structure (a sum over nu' at fixed q). This scan asks whether pulling any of them out into HiddenSpace scaffolding nodes earns its keep; it does not re-catalog the terminal kappa variants themselves (covered)."
+  },
+  "entries": [
+
+    {
+      "name": "kaldo-participation-ratio",
+      "code": "kaldo",
+      "quantity": "Per-mode participation ratio: the fraction of atoms displaced by a normal mode, a localization measure. PR = 1 for a fully extended (translation-like) mode, PR ~ 1/N for a mode localized on one atom. The signature diagnostic for localized vibrations in amorphous/disordered solids (the QHGK/Allen-Feldman regime).",
+      "symbol": "p_qnu (or PR_s)",
+      "units": "dimensionless",
+      "exponents": "all-zero (dimensionless)",
+      "normalization": "1/N convention. calculate_participation_ratio (harmonic_with_q.py:335-344): per-atom eigenvector amplitude a_i = sum_cart |e|^2 (summed over the 3 cartesian components of atom i), then PR = 1 / (N_atoms * sum_i a_i^2). Because sum_i a_i = 1 for a normalized eigenvector, PR ranges from 1/N (single-atom-localized) to 1 (uniform). This is the standard Bell/Dean localization ratio, the SAME 1/N normalization the kaldo docstring cites (DOI 10.1103/PhysRevB.53.11469, phonons.py:652).",
+      "source_anchors": [
+        {"file": "kaldo/kaldo/phonons.py", "line": 648, "what": "Phonons.participation_ratio lazy_property, shape (n_k_points, n_modes); loops HarmonicWithQ per k-point"},
+        {"file": "kaldo/kaldo/observables/harmonic_with_q.py", "line": 335, "what": "calculate_participation_ratio: reshape eigenvectors to (n_modes, n_atoms, 3), sum |e|^2 over cartesian, square, sum over atoms, reciprocal * n_atoms"},
+        {"file": "kaldo/kaldo/phonons.py", "line": 447, "what": "'participation_ratio': 'formatted' in _store_formats (it is a first-class stored, formatted output, not an internal)"}
+      ],
+      "maps_to": {"node": null, "status": "new-candidate", "notes": "VERDICT: mint a NEW node ParticipationRatio (dimensionless, per-mode (q,nu)-indexed, tier Harmonic or a new Localization/Disorder tier). It is a first-class formatted kaldo output (_store_formats), a top-level Phonons attribute, and the load-bearing localization diagnostic of the QHGK/amorphous branch that the QHGK paper surfaced. No dimensional collision (dimensionless nodes are kept apart by NAME per omai/operator/space.py name-based identity; do NOT alias PhaseSpace3Phonon or any other dimensionless node). Producer: Eigenvectors -> ParticipationRatio contract_participation_ratio. HIGH priority: it is the harmonic-side companion to ModalDiffusivity and directly answers 'is this mode extended/propagating or localized/diffuson', the physical content the QHGK regime turns on."}
+    },
+
+    {
+      "name": "kaldo-modal-diffusivity",
+      "code": "kaldo",
+      "quantity": "Per-mode (heat-mode) diffusivity D_n: the Allen-Feldman / QHGK single-mode thermal diffusivity, the trace-averaged mode-resolved contribution to kappa_QHGK. D_n = (1/3)(1/100) sum_alpha D_n^{alpha,alpha} where D_n^{ab} = sum_{n'} S^a_{nn'} S^b_{n'n} * Lorentzian(omega_n-omega_n', 2(Gamma_n+Gamma_n')) / (4 omega_n omega_n'). It classifies modes as propagons / diffusons / locons and is the heat-transport analog of the participation ratio.",
+      "symbol": "D_qnu (D_n)",
+      "units": "mm^2/s (documented in the docstring, conductivity.py:310). CONFIRMED by the code path: calculate_conductivity_and_diffusivity_qhgk returns diffusivity = 1/3 * 1/100 * contract('knaa->kn', diffusivity_with_axis) (conductivity.py:434). The 1/100 factor converts the internal A^2*THz (Angstrom^2 * 1e12/s) accumulation to mm^2/s: 1 A^2/ps = 1e-20 m^2 / 1e-12 s = 1e-8 m^2/s = 1e-2 mm^2/s, i.e. * 1/100. So the internal per-axis units are A^2*THz (A^2/ps) and the returned per-mode D_n is mm^2/s.",
+      "exponents": "length^2 time^-1 (L^2 T^-1). IDENTICAL exponent vector to the existing mass Diffusivity node (D = slope_MSD/(2d), also L^2 T^-1). THIS IS THE FALSE-MERGE GUARDRAIL.",
+      "source_anchors": [
+        {"file": "kaldo/kaldo/conductivity.py", "line": 303, "what": "Conductivity.diffusivity lazy_property; docstring 'diffusivity in mm^2/s'; returns self._diffusivity set during the qhgk branch"},
+        {"file": "kaldo/kaldo/conductivity.py", "line": 434, "what": "diffusivity = 1/3 * 1/100 * contract('knaa->kn', diffusivity_with_axis); the trace/3 average over cartesian axes and the A^2/ps -> mm^2/s conversion"},
+        {"file": "kaldo/kaldo/conductivity.py", "line": 27, "what": "calculate_diffusivity(omega, sij_left, sij_right, diffusivity_bandwidth, ...): the per-mode-pair kernel D = S_left * [pi * Lorentzian(delta_omega, sigma) / (4 omega_n omega_n')] * S_right, sigma = 2(Gamma_n + Gamma_n')"},
+        {"file": "kaldo/kaldo/conductivity.py", "line": 248, "what": "self._diffusivity = diff, set only inside the method=='qhgk' branch of Conductivity.conductivity"},
+        {"file": "kaldo/kaldo/tests/test_diffusivity.py", "line": 34, "what": "test_diffusivity exercises cond.diffusivity with diffusivity_bandwidth and diffusivity_threshold; first-class tested output"}
+      ],
+      "maps_to": {"node": "Diffusivity (EXISTING, but DIFFERENT physics - do NOT merge)", "status": "new-candidate", "notes": "VERDICT: mint a NEW node, distinct name (recommend ModalDiffusivity or HeatModeDiffusivity, per-mode (q,nu)-indexed, tier alongside QHGK on the amorphous branch). FALSE-MERGE GUARDRAIL (the load-bearing point): its exponent vector L^2 T^-1 is IDENTICAL to the existing Diffusivity node (mass self-diffusion, D=slope_MSD/(2d), tier Diffusion, produced from MeanSquaredDisplacement). They MUST NOT be aliased. They are kept apart by DISTINCT NODE NAME (omai/operator/space.py name-based __hash__/__eq__), NOT by dimension. The physics differs completely: (a) existing Diffusivity is a SCALAR macroscopic Einstein mass-transport coefficient of DIFFUSING atoms (units in the rail derived from GK/MSD), tier Diffusion; (b) kaldo D_n is a PER-MODE (q,nu)-indexed HEAT-MODE diffusivity from the Allen-Feldman/QHGK flux-operator overlap, a mode-resolved decomposition of kappa, tier QHGK/amorphous. The false merge would silently claim a phonon-mode heat diffusivity equals an atomic mass-diffusion coefficient. Record {basis: per_mode, physics: allen_feldman_qhgk_heat, indices: (q,nu)} in the description prose. Producer: GroupVelocity(generalized flux S_ij) + Frequency + Linewidth[channel=total] -> ModalDiffusivity. Its trace-sum-over-modes relationship to kappa_QHGK is an honest contraction edge. HIGH priority: it is the object the QHGK paper is about."}
+    },
+
+    {
+      "name": "kaldo-qhgk-internal-cnm",
+      "code": "kaldo",
+      "quantity": "Generalized (mode-pair) specific heat c_nm: the two-mode heat-capacity weight in the QHGK/Wigner-coherence kernel. Quantum: c_nm = hbar * omega_n * omega_m / T * (n_n - n_m)/(omega_m - omega_n); classical: k_B; degenerate limit: (c_n + c_m)/2.",
+      "symbol": "c_nm (heat_capacity_2d)",
+      "units": "J/K (docstring harmonic_with_q_temp.py:54-56; the same J/K as the diagonal per-mode HeatCapacity)",
+      "exponents": "energy temperature^-1 (same as HeatCapacity). Its DIAGONAL n=m limit IS the existing HeatCapacity node.",
+      "source_anchors": [
+        {"file": "kaldo/kaldo/observables/harmonic_with_q_temp.py", "line": 52, "what": "_calculate_2d_heat_capacity: c_nm = kelvintojoule * freq_n*freq_m * (n_n-n_m)/(omega_m-omega_n) / T, with a degeneracy branch substituting (c_n+c_m)/2; returns (n_k_points, n_modes, n_modes)"},
+        {"file": "kaldo/kaldo/phonons.py", "line": 773, "what": "Phonons.heat_capacity_2d lazy_property exposes it at the Phonons level (shape n_k_points, n_modes, n_modes)"},
+        {"file": "kaldo/kaldo/conductivity.py", "line": 393, "what": "consumed inside calculate_conductivity_and_diffusivity_qhgk: heat_capacity_2d = phonon.heat_capacity_2d; conductivity_per_mode = sum(heat_capacity_2d * diffusivity)"},
+        {"file": "omai/thermal_transport/operator/edges.py", "line": 820, "what": "the map already cites this c_nm kernel: 'kaldo off-diagonal C_{ss'} / (4 omega_s omega_s') QHGK kernel (harmonic_with_q_temp.py:77-81)' in the Wigner-coherence formula comment"}
+      ],
+      "maps_to": {"node": null, "status": "scheme-on-operator / internal-scaffolding (RECOMMEND: do NOT decompose)", "notes": "RECOMMENDATION (do not decide): keep c_nm INTERNAL to the QHGK and Wigner-coherence edge formulas; do NOT mint a HiddenSpace node. EVIDENCE FOR internal-only: (1) it is exposed at the Phonons level (heat_capacity_2d, phonons.py:773) but its ONLY consumer is the QHGK conductivity assembly (conductivity.py:393) and the Wigner-coherence sibling; no other kaldo output reads it; (2) the map ALREADY encodes the c_nm weighting explicitly INSIDE both the QHGK formula (edges.py:901, the c[q,nu] factor) and the Wigner-coherence formula (edges.py:828-830, the frequency-weighted Simoncelli form), with a source comment (edges.py:820) tying it to harmonic_with_q_temp.py:77-81 - so its physics is already documented at the edge, not lost; (3) its diagonal limit is just the existing HeatCapacity node, so a separate node would carry a near-duplicate identity distinguished only by a second mode index. EVIDENCE AGAINST (weak): it IS a first-class formatted-storable Phonons attribute, so a purist decomposition is defensible. Net: the edge already carries it faithfully; a scaffolding node earns its keep only if a future consumer outside the kappa assembly appears. RECOMMEND leave folded."}
+    },
+
+    {
+      "name": "kaldo-qhgk-internal-sij-flux",
+      "code": "kaldo",
+      "quantity": "Generalized velocity / flux matrix elements S^alpha_{nn'} (the off-diagonal heat-flux operator in the mode basis). The diagonal S^alpha_{nn} is (up to 1/(2*2pi*sqrt(w_n w_m)) rescaling) the group velocity; the off-diagonal elements S^alpha_{nn'} carry the wave-like/coherent heat transport that BTE omits and that QHGK/Wigner restore.",
+      "symbol": "S^alpha_{nn'} (sij_x / sij_y / sij_z)",
+      "units": "flux-operator units; the derived diagonal velocity is A*THz (angstrom_linear_THz, the same as the existing GroupVelocity node, harmonic_with_q.py:268-271)",
+      "source_anchors": [
+        {"file": "kaldo/kaldo/observables/harmonic_with_q.py", "line": 226, "what": "calculate_sij(direction): S = e^dag . (dD/dq_alpha) . e, the eigenvector-projected dynamical-matrix derivative (the flux operator); stored as _sij_x/_sij_y/_sij_z ('numpy' _store_formats)"},
+        {"file": "kaldo/kaldo/observables/harmonic_with_q.py", "line": 255, "what": "calculate_velocity: the DIAGONAL of the rescaled S_ij (velocity_AF = S / (2pi) / (2 sqrt(w_n w_m)); velocity = Im(diag)) IS the group velocity - so GroupVelocity is already the diagonal projection of this object"},
+        {"file": "kaldo/kaldo/conductivity.py", "line": 399, "what": "consumed in QHGK: sij_left = phonon._sij_x/_y/_z, sij_right = conj(...), fed to calculate_diffusivity as S_left * kernel * S_right"}
+      ],
+      "maps_to": {"node": null, "status": "internal-scaffolding (RECOMMEND: do NOT decompose)", "notes": "RECOMMENDATION: keep S_ij internal. EVIDENCE FOR internal-only: (1) it is a private attribute (_sij_x, leading underscore, 'numpy' storage) not a public formatted output; (2) its DIAGONAL is already the existing GroupVelocity node (harmonic_with_q.py:255-271 derives velocity as Im(diag(rescaled S))), so the map already exposes the physically-named projection; (3) its only consumers are the QHGK diffusivity kernel and (implicitly) the Wigner-coherence velocity factor, both already encoded in the edge formulas (edges.py:830 v^alpha_qnu * v^beta_qnup is exactly the off-diagonal S generalization). The QHGK/Wigner formulas honestly denote the off-diagonal velocity via v_qnu,qnu'; a separate FluxOperator node would be a matrix-valued HiddenSpace object whose only role is to be summed inside kappa. RECOMMEND leave folded; the off-diagonal generalization is documentation on the GroupVelocity node / the QHGK+Wigner edges, not a new node."}
+    },
+
+    {
+      "name": "kaldo-qhgk-internal-mode-pair-lifetime",
+      "code": "kaldo",
+      "quantity": "Mode-pair broadening / lifetime (Gamma_n + Gamma_n'), the width entering the QHGK Lorentzian energy-conservation kernel. In kaldo the diffusivity_bandwidth defaults to bandwidth/2 (conductivity.py:376) and the kernel sigma = 2(db_n + db_m) (conductivity.py:31), i.e. the pair width is (Gamma_n + Gamma_n').",
+      "symbol": "Gamma_n + Gamma_n' (diffusivity_bandwidth)",
+      "units": "rad/ps (the diffusivity_bandwidth docstring, conductivity.py:75) = angular frequency, same family as the existing Linewidth[channel=total] (angular_THz)",
+      "source_anchors": [
+        {"file": "kaldo/kaldo/conductivity.py", "line": 371, "what": "diffusivity_bandwidth: user-supplied (rad/ps) OR default = phonons.bandwidth/2 (conductivity.py:376)"},
+        {"file": "kaldo/kaldo/conductivity.py", "line": 31, "what": "sigma = 2*(db[:,None] + db[None,:]) - the mode-PAIR width in the Lorentzian kernel"},
+        {"file": "omai/thermal_transport/operator/edges.py", "line": 902, "what": "the QHGK edge already carries (Gamma_anh[q,nu] + Gamma_anh[q,nu']) as the Lorentzian width - the pair broadening is IN the formula"}
+      ],
+      "maps_to": {"node": null, "status": "scheme-on-operator (RECOMMEND: do NOT decompose)", "notes": "RECOMMENDATION: keep folded. The single-mode Gamma_n IS the existing Linewidth[channel=total] node (angular_THz). The mode-PAIR sum (Gamma_n + Gamma_n') is not a new physical quantity - it is a combination of two Linewidth values that the QHGK/Wigner edges already spell out literally (edges.py:902-904, 831-833). The only knob is a SCHEME: diffusivity_bandwidth {default = bandwidth/2 | user-supplied constant} and diffusivity_shape {lorentz | gauss | triangle} and diffusivity_threshold. Record these as scheme choices on the compute_kappa_qhgk operator (parallel to broadening_shape on the anharmonic operator), NOT as nodes. No mode-pair-lifetime node."}
+    },
+
+    {
+      "name": "kaldo-quasiharmonic-module",
+      "code": "kaldo",
+      "quantity": "kaldo's OWN quasi-harmonic approximation module: free-energy-vs-lattice surface F(lattice params, T) (meV/atom), temperature-optimized lattice constants a(T)/V(T), linear and volumetric thermal-expansion coefficients alpha(T) (1/K), and equilibrium structures at temperature. A full parallel QHA route independent of the phonopy QHAGibbsEnergy chain that currently feeds the map's ThermalExpansion node.",
+      "symbol": "F(L,T), a(T), alpha(T) (linear + alpha_V)",
+      "units": "free_energies meV/atom (quasiharmonic.py:410); thermal_expansion 1/K (quasiharmonic.py:255,412); lattice_constants Angstrom",
+      "source_anchors": [
+        {"file": "kaldo/kaldo/quasiharmonic.py", "line": 357, "what": "calculate_qha(atoms, calculator, temperatures, supercell, kpts, symmetry): the public QHA driver; result dict keys 'thermal_expansion', 'lattice_constants', 'free_energies', 'free_energy_matrix', 'grid', 'temperatures'"},
+        {"file": "kaldo/kaldo/quasiharmonic.py", "line": 241, "what": "calculate_thermal_expansion: alpha = grad(a, T)/a, LINEAR expansion coefficient(s) in 1/K"},
+        {"file": "kaldo/kaldo/quasiharmonic.py", "line": 590, "what": "get_volumetric_thermal_expansion: alpha_V = 3*alpha (isotropic) or sum of principal alphas (anisotropic)"},
+        {"file": "kaldo/kaldo/quasiharmonic.py", "line": 536, "what": "free_energy_matrix[i_temp,i_grid] = potential_energy + phonons.free_energy.sum()/n_atoms; the F(lattice,T) surface minimized over lattice at each T (fit_and_minimize_polynomial, :155)"}
+      ],
+      "maps_to": {"node": "ThermalExpansion (EXISTING) via a DIFFERENT producer", "status": "cross-engine / alternative-producer candidate", "notes": "The graph ALREADY has ThermalExpansion (tier Quasi-harmonic, alpha_V = alpha^qha(G_qha), produced QHAGibbsEnergy -> ThermalExpansion). kaldo reaches the SAME physical alpha(T) by a DIFFERENT route: a direct free-energy lattice scan (F = E_pot + F_vib(harmonic), minimize over lattice per T, differentiate a(T)). So this is NOT a new node but an ALTERNATIVE-PRODUCER / cross-engine EXPECTED_AGREE edge into ThermalExpansion (kaldo QHA route vs phonopy QHAGibbsEnergy route), analogous to fc2's dual producers. TWO sub-points: (a) kaldo's alpha is LINEAR by default (per lattice param) with an explicit volumetric contraction (3*alpha), matching alpha_V; (b) kaldo also exposes V(T)/a(T) (lattice_constants) and the F(lattice,T) surface - the surface is a matcalc-style DISCRETIZATION SCHEME (n_lattice_points, lattice_range, symmetry in {cubic,tetra,ortho,general}) on the QHA operator, not a node. RECOMMEND: add kaldo as an alternative producer of ThermalExpansion; treat the lattice scan as a scheme. The zero_point_harmonic_energy and free_energy (harmonic, eV/mode; already the HelmholtzFreeEnergy node) feed it. MEDIUM priority (the node exists; only the producer edge is missing)."}
+    },
+
+    {
+      "name": "kaldo-elastic-tensor-producer",
+      "code": "kaldo",
+      "quantity": "Full fourth-rank elastic (stiffness) tensor C_ijkl in GPa, computed from the second-order force constants via the long-wavelength expansion of the dynamical matrix (Gamma-tensor / acoustic-sum-rule expansion), NOT from a stress-strain finite-difference scan.",
+      "symbol": "C_ijkl",
+      "units": "GPa (forceconstants.py:280,289,396; test values C11=142.97, C12=75.85, C44=69.06 GPa at test_elastic.py:20,25,30)",
+      "exponents": "pressure (energy/volume), same as the existing ElasticConstants node",
+      "source_anchors": [
+        {"file": "kaldo/kaldo/forceconstants.py", "line": 278, "what": "ForceConstants.elastic_prop(): returns C_ijkl (3,3,3,3) in GPa from FC2 via the square-bracket + round-bracket lattice-dynamics expansion (DOI 10.1002/pssb.200879604)"},
+        {"file": "kaldo/kaldo/forceconstants.py", "line": 393, "what": "evperang3togpa = units._e/(units.Angstrom*1e-21); the eV/A^3 -> GPa unit conversion"},
+        {"file": "kaldo/kaldo/tests/test_elastic.py", "line": 18, "what": "test_c11/test_c12/test_c44 assert C11=142.97, C12=75.85, C44=69.06 GPa (Si), significant=3"}
+      ],
+      "maps_to": {"node": "ElasticConstants (EXISTING) via a DIFFERENT producer", "status": "cross-engine / alternative-producer candidate", "notes": "The graph ALREADY has ElasticConstants (tier Mechanics, C = -d sigma / d eps^str, produced Stress+Structure -> ElasticConstants compute_elastic_constants; contracts to BulkModulus/ShearModulus). kaldo's elastic_prop() produces the SAME tensor by a DIFFERENT route: the long-wavelength expansion of the FC2 dynamical matrix (a lattice-dynamics derivation), not a stress-strain finite-difference scan. This is an ALTERNATIVE-PRODUCER / cross-engine EXPECTED_AGREE edge: ForceConstants[order=2] -> ElasticConstants (kaldo lattice-dynamics route) parallel to the existing Stress/Structure route. Same GPa units, same exponents, same contraction targets (Bulk/Shear). NOT a new node. RECOMMEND: add the FC2->ElasticConstants producer edge for kaldo. Tolerance: EXPECTED_AGREE to the acoustic-sum-rule / long-wavelength approximation precision, not bit-exact vs a stress scan. MEDIUM priority."}
+    },
+
+    {
+      "name": "kaldo-projected-pdos",
+      "code": "kaldo",
+      "quantity": "Atom-projected (and optionally direction-projected) phonon density of states: pdos summed over a chosen atom set, normalized so each projection integrates to 3*n_atoms. Total DOS is the all-atoms special case.",
+      "symbol": "g_p(omega)",
+      "units": "states per THz (per-projection, integral-normalized to 3*n_atoms)",
+      "source_anchors": [
+        {"file": "kaldo/kaldo/phonons.py", "line": 1246, "what": "Phonons.pdos(p_atoms, direction, bandwidth, n_points): atom-projected DOS via Gaussian-broadened eigenvector projections; supports per-atom-set and per-direction projections"},
+        {"file": "kaldo/kaldo/phonons.py", "line": 1332, "what": "p_dos[ip] *= 3*n_atoms/np.trapz(p_dos[ip], f_grid) - the 3*n_atoms integral normalization"}
+      ],
+      "maps_to": {"node": "PhononDOS (EXISTING; total only)", "status": "new-candidate-minor / scheme-on-existing", "notes": "The existing PhononDOS node (g(omega), total DOS) is the p_atoms=all, direction=None special case of kaldo's pdos. The atom-projected / direction-projected variant is a RICHER object (indexed by a projection set). OPTION A: a projection SCHEME on the PhononDOS operator (p_atoms, direction) - preferred, since the projection is a post-processing choice on the same eigenvector data. OPTION B: a distinct ProjectedPhononDOS node if projections need first-class comparability. RECOMMEND Option A (scheme) unless a consumer needs the projected variant by name. LOW priority (no QHGK relevance; recorded for sweep completeness)."}
+    },
+
+    {
+      "name": "kaldo-harmonic-confirmed",
+      "code": "kaldo",
+      "quantity": "The harmonic + BTE + terminal-kappa outputs the rail already covers, re-confirmed against source so the sweep is honest: Frequency (linear_THz), GroupVelocity (A*THz), HeatCapacity (per-mode c, J/K), HelmholtzFreeEnergy (eV/mode), population, the Linewidth channels (angular_THz), phase_space, eigen{values,vectors}, the BTE kappa/mfp variants, the three Wigner kappa variants, and ThermalConductivity[transport_model=qhgk] itself.",
+      "symbol": "(various)",
+      "units": "(as in the rail)",
+      "source_anchors": [
+        {"file": "kaldo/kaldo/phonons.py", "line": 621, "what": "frequency (linear THz), velocity :678 (A/ps = A*THz), heat_capacity :741 (J/K per mode), free_energy :835 (eV/mode incl ZPE), population :805, bandwidth :905 (angular_THz), phase_space :962, eigenvalues :976 / eigenvectors :990"},
+        {"file": "kaldo/kaldo/conductivity.py", "line": 235, "what": "conductivity (rta/sc/inverse/qhgk/full) and mean_free_path :275; the qhgk branch :346 and full BTE :533"}
+      ],
+      "maps_to": {"node": "Frequency / GroupVelocity / HeatCapacity / HelmholtzFreeEnergy / Linewidth[*] / PhaseSpace3Phonon / Eigenvectors / ThermalConductivity[*] / MeanFreeDisplacement[*]", "status": "existing-confirmed", "notes": "All present and honest. NOTE two exposed-but-covered items: free_energy and zero_point_harmonic_energy (phonons.py:835,894) are the HelmholtzFreeEnergy node (eV; ZPE is its T=0 limit, not a separate node). population is the Bose-Einstein occupation, an intermediate of heat_capacity/bandwidth, not a standalone rail node (correctly internal). heat_capacity_2d, sparse_phase/sparse_potential, _sij_*, _ps_gamma_and_gamma_tensor, _generalized_diffusivity, flux are ALL internal scaffolding (leading-underscore or matrix-valued intermediates of the kappa assembly), correctly absent from the rail. Coverage confirmed for the harmonic/BTE/terminal-kappa slice."}
+    }
+  ],
+
+  "summary": {
+    "entry_counts_by_status": {
+      "new_candidate": 2,
+      "internal_scaffolding_or_scheme_recommend_no_decompose": 3,
+      "cross_engine_alternative_producer": 2,
+      "new_candidate_minor_or_scheme": 1,
+      "existing_confirmed": 1,
+      "total_entries": 9,
+      "note": "new-candidate (mint a node): ParticipationRatio, ModalDiffusivity. internal/scheme (leave folded): c_nm, S_ij flux, mode-pair lifetime. cross-engine alt-producer (edge into an EXISTING node): kaldo QHA -> ThermalExpansion, kaldo elastic_prop -> ElasticConstants. minor/scheme: projected pdos on PhononDOS. existing-confirmed: the harmonic/BTE/kappa slice."
+    },
+    "modal_diffusivity_verdict": "MINT a new node ModalDiffusivity (per-mode heat-mode diffusivity, mm^2/s, L^2 T^-1, (q,nu)-indexed, QHGK/amorphous tier). FALSE-MERGE GUARDRAIL: its exponent vector is IDENTICAL to the existing mass-transport Diffusivity node (D=slope_MSD/(2d), tier Diffusion), so it MUST be kept apart by a DISTINCT NAME (name-based identity, omai/operator/space.py), never merged on dimension. Anchors: units mm^2/s at conductivity.py:310; the 1/3*1/100 trace-average and A^2/ps->mm^2/s conversion at conductivity.py:434; the per-mode-pair Allen-Feldman kernel D = S_left * pi*Lorentz(delta_omega,2(Gamma_n+Gamma_m))/(4 omega_n omega_m) * S_right at conductivity.py:27-49; tested at test_diffusivity.py:34.",
+    "participation_ratio_verdict": "MINT a new node ParticipationRatio (dimensionless, (q,nu)-indexed, localization). Normalization is the 1/N Bell/Dean ratio: PR = 1/(N_atoms * sum_i a_i^2) with a_i = sum_cart |e_i|^2, range 1/N..1. Anchors: phonons.py:648 (public, formatted-stored); harmonic_with_q.py:335-344 (the 1/N formula); docstring cites DOI 10.1103/PhysRevB.53.11469 (phonons.py:652). First-class formatted output, the harmonic-side localization diagnostic of the QHGK/amorphous branch.",
+    "qhgk_decomposition_recommendation": "RECOMMEND (do not decide): do NOT decompose the QHGK edge into HiddenSpace scaffolding nodes for c_nm, S_ij, or the mode-pair lifetime. EVIDENCE: (1) the QHGK edge (edges.py:896-923) and Wigner-coherence edge (edges.py:825-836) ALREADY carry all three explicitly in their formulas - c[q,nu] weight, v^alpha_qnu*v^beta_qnup off-diagonal velocity, (Gamma_n+Gamma_m) Lorentzian width - with a source comment (edges.py:820) tying c_nm to harmonic_with_q_temp.py:77-81, so the physics is documented at the edge, not lost; (2) each internal's physically-named projection is ALREADY a node: c_nm's diagonal is HeatCapacity, S_ij's diagonal is GroupVelocity, single-mode Gamma is Linewidth[channel=total]; a scaffolding node would be a near-duplicate distinguished only by a second mode index; (3) their ONLY consumers are the QHGK/Wigner kappa assembly (conductivity.py:393,399; harmonic_with_q.py:255); nothing else reads them. The one point AGAINST: heat_capacity_2d is a first-class formatted-storable Phonons attribute (harmonic_with_q_temp.py:15), so a purist could argue for it - but with no external consumer it does not earn its keep. Verdict: leave folded; revisit only if a consumer outside the kappa assembly appears.",
+    "wigner_branch_shallow_scoping": "The Wigner branch has the SAME internals as QHGK (same c_nm off-diagonal weight - the Simoncelli frequency-weighted form at edges.py:828-830; same off-diagonal velocity v^alpha_qnu*v^beta_qnup at :830; same (Gamma_n+Gamma_m) Lorentzian at :831-833). It is already split into three named terminal nodes (wigner_populations = particle/LBTE, wigner_coherences = wave/off-diagonal, wigner = sum), which is the RIGHT granularity - those three ARE the physically meaningful, separately-published channels (Simoncelli-Marzari-Mauri Nat.Phys.15,809). Its coherence INTERNALS (the same c_nm/v_nn'/Gamma-pair) get the SAME recommendation as QHGK: leave folded in the coherence-channel formula. No further Wigner decomposition needed; no further Wigner nodes.",
+    "units_and_conventions": [
+      "ModalDiffusivity: mm^2/s (conductivity.py:310 docstring; conductivity.py:434 the *1/100 = A^2/ps -> mm^2/s conversion after the 1/3 cartesian-trace average). Internal per-axis accumulation is A^2*THz (A^2/ps).",
+      "ParticipationRatio: dimensionless, 1/N normalization (PR in [1/N, 1]); harmonic_with_q.py:343 reciprocal(sum * n_atoms).",
+      "generalized c_nm: J/K (harmonic_with_q_temp.py:54-56), quantum c_nm = hbar w_n w_m/T*(n_n-n_m)/(w_m-w_n), classical k_B, degenerate (c_n+c_m)/2.",
+      "diffusivity_bandwidth (mode-pair width knob): rad/ps (conductivity.py:75); default = phonons.bandwidth/2 (conductivity.py:376); kernel sigma = 2(db_n+db_m) (conductivity.py:31).",
+      "elastic_prop: GPa (forceconstants.py:280,393; C11=142.97/C12=75.85/C44=69.06 GPa Si at test_elastic.py).",
+      "kaldo QHA: thermal_expansion 1/K (linear, quasiharmonic.py:255; volumetric via 3*alpha :609), free_energies meV/atom (:410), lattice_constants Angstrom.",
+      "pdos: integral-normalized to 3*n_atoms per projection (phonons.py:1332)."
+    ],
+    "traps": [
+      "FALSE-MERGE (the headline trap): kaldo ModalDiffusivity (mm^2/s, per-mode Allen-Feldman heat diffusivity) has the SAME L^2 T^-1 exponent vector as the EXISTING mass Diffusivity node (D=slope_MSD/(2d), Einstein self-diffusion, tier Diffusion). They are different physics and MUST stay apart by distinct NAME, not dimension. A dimension-keyed merge would silently equate phonon-mode heat diffusivity with atomic mass diffusion.",
+      "diffusivity is only populated in the qhgk branch: Conductivity.diffusivity returns self._diffusivity, which is set ONLY inside method=='qhgk' (conductivity.py:248,312-315). Calling .diffusivity after an rta/inverse run logs 'calculate the conductivity QHGK first' and returns None. The node is QHGK-scoped.",
+      "kaldo velocity/group velocity IS the diagonal of the same S_ij flux operator that the QHGK off-diagonal diffusivity uses (harmonic_with_q.py:255-271). So GroupVelocity and the QHGK flux are the same object at different index depth - do not double-count; the off-diagonal is a generalization documented on GroupVelocity / the QHGK edge, not a new node.",
+      "ThermalExpansion and ElasticConstants already EXIST in the graph but via NON-kaldo producers (QHAGibbsEnergy route, and Stress/Structure route respectively). kaldo offers alternative FC2-based producers. Do not mint duplicate nodes; add producer edges (cross-engine EXPECTED_AGREE).",
+      "free_energy vs zero_point_harmonic_energy: both are the HelmholtzFreeEnergy node (eV); ZPE is the T=0 limit (phonons.py:862-863), not a separate node. free_energy is per-mode, BZ-averaged, includes ZPE (phonons.py:835-892).",
+      "the QHGK/Wigner Lorentzian denominator uses (Gamma_n+Gamma_m)^2 in kaldo's edge convention (edges.py:903-904) - the mode-PAIR width, not a single lifetime. The single-mode Linewidth[channel=total] is the atom, the pair is the combination."
+    ],
+    "open_questions": [
+      "ModalDiffusivity node name: ModalDiffusivity vs HeatModeDiffusivity vs ModeDiffusivity? (Must be distinct from Diffusivity to avoid the false merge; the exact name is an encode-time choice.)",
+      "Which tier for ParticipationRatio and ModalDiffusivity: reuse Harmonic/QHGK tiers, or add a Localization/Disorder tier that groups the amorphous-branch diagnostics (participation ratio, modal diffusivity, propagon/diffuson/locon classification)?",
+      "Does ParticipationRatio want a downstream propagon/diffuson/locon classification node (thresholded on PR and D_n), or is that a representation on the two nodes? (kaldo does not compute the classification itself; it exposes PR and D_n and leaves the cut to the user.)",
+      "kaldo QHA -> ThermalExpansion: encode as a full alternative producer (with its own free-energy-lattice-scan scheme) now, or defer until the phonopy QHAGibbsEnergy route and the kaldo route are both needed for a cross-engine agree test? The node exists; only the edge is missing.",
+      "kaldo elastic_prop -> ElasticConstants: same question - alternative FC2 producer now, or defer? Note the two routes (stress-scan vs FC2 long-wavelength) agree only to the acoustic-sum-rule approximation, so the EXPECTED_AGREE tolerance must not be bit-exact.",
+      "projected pdos: a projection SCHEME on the PhononDOS operator (p_atoms, direction) or a distinct ProjectedPhononDOS node? (Recommend scheme; revisit if a consumer needs the projected variant by name.)",
+      "c_nm / S_ij / mode-pair-lifetime decomposition: the recommendation is leave-folded, but the orchestrator decides. If any future consumer outside the kappa assembly reads heat_capacity_2d or the flux operator, the c_nm scaffolding node earns its keep and this should be revisited."
+    ]
+  }
+}
