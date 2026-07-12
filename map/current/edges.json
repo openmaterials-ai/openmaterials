@@ -1457,6 +1457,31 @@
   },
   "uid": "901873fa2497cc75e75079357e7125527526bf2590507835f5cbeae3e5fd2868"
  },
+ "93c6afe349f877656a16d18074e195ac4257226ce9d863d7f5d10ce96b679715": {
+  "identity": {
+   "formula": "Equality(Indexed(IndexedBase(Symbol('p')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Mul(Pow(Symbol('N', positive=True, integer=True), Integer(-1)), Pow(Sum(Pow(Indexed(IndexedBase(Symbol('a')), Symbol('i', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Integer(2)), Tuple(Symbol('i', integer=True), Integer(1), Symbol('N', positive=True, integer=True))), Integer(-1))))",
+   "inputs": [
+    "21ba7756f45c808d3d91ed059c34c532f04845781d549b4c16573d9462bb2902"
+   ],
+   "output": "09138ae29cee41ae5f1a1758ac65a479625ef4d3c6026bf7ad5b60f884d668a0",
+   "outputs": [
+    "09138ae29cee41ae5f1a1758ac65a479625ef4d3c6026bf7ad5b60f884d668a0"
+   ],
+   "schemes": {
+    "normalization": "bell_dean_1_over_N"
+   }
+  },
+  "meta": {
+   "description": "Per-mode Bell/Dean inverse participation ratio from the harmonic eigenvectors: PR_q\u03bd = 1 / (N sum_i a_i\u00b2) with a_i = sum_cart |e_i,q\u03bd|\u00b2 the cartesian-summed squared amplitude on atom i (auxiliary_formulas[0]). The 1/N normalization (scheme normalization=bell_dean_1_over_N) makes PR range from 1/N (single-atom-localized) to 1 (uniformly extended). Dimensionless; the localization diagnostic of the amorphous / QHGK regime. kaldo calculate_participation_ratio (harmonic_with_q.py:335-344), Phys. Rev. B 53, 11469.",
+   "formula_latex": "{p}_{\\mathbf{q},\\nu} = \\frac{1}{N \\sum_{i=1}^{N} {a}_{i,\\mathbf{q},\\nu}^{2}}",
+   "formula_srepr": "Equality(Indexed(IndexedBase(Symbol('p')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Mul(Pow(Symbol('N', positive=True, integer=True), Integer(-1)), Pow(Sum(Pow(Indexed(IndexedBase(Symbol('a')), Symbol('i', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Integer(2)), Tuple(Symbol('i', integer=True), Integer(1), Symbol('N', positive=True, integer=True))), Integer(-1))))",
+   "name": "compute_participation_ratio",
+   "schemes": {
+    "normalization": "bell_dean_1_over_N"
+   }
+  },
+  "uid": "93c6afe349f877656a16d18074e195ac4257226ce9d863d7f5d10ce96b679715"
+ },
  "979756d34934118442ec22671b68e036b5e9751c95ed110d3a508ba2dee95288": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('\\\\Phi^{(3)}')), Symbol('i', integer=True), Symbol('j', integer=True), Symbol('k', integer=True), Symbol('\\\\mathbf{R}'), Symbol(\"\\\\mathbf{R'}\")), Derivative(Function('V')(Symbol('\\\\{u\\\\}')), Tuple(Symbol('u_i(0)'), Integer(1)), Tuple(Symbol('u_j(R)'), Integer(1)), Tuple(Symbol(\"u_k(R')\"), Integer(1))))",
@@ -2234,6 +2259,35 @@
    }
   },
   "uid": "de67212047d6c2bb08a94d9394adffe1b1cc183b7a1811d838de2dcfb9323235"
+ },
+ "decf7f445e4993527dcca3c243b35b3f328eaf16cac38d1668caf959e9f03975": {
+  "identity": {
+   "formula": "Equality(Symbol('D_{mode}'), Function('D^{QHGK}')(Symbol('\\\\omega'), Symbol('e'), Symbol('\\\\Gamma^{tot}')))",
+   "inputs": [
+    "21ba7756f45c808d3d91ed059c34c532f04845781d549b4c16573d9462bb2902",
+    "50c33a1edd60bff6fb74124af1a8847a4c8a2c58d39554b4661e6a2cddb62f30",
+    "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8"
+   ],
+   "output": "6052fe7e6aa8d2116b369886bffe59b04859f21145640184d24dfd96fbb60513",
+   "outputs": [
+    "6052fe7e6aa8d2116b369886bffe59b04859f21145640184d24dfd96fbb60513"
+   ],
+   "schemes": {
+    "method": "qhgk",
+    "scope": "qhgk_only"
+   }
+  },
+  "meta": {
+   "description": "Per-mode QHGK / Allen-Feldman heat-mode diffusivity D_q\u03bd = D^{QHGK}[\u03c9, e, \u0393^{tot}]: the mode-resolved decomposition of kappa_QHGK, D_q\u03bd = (1/3) trace_a sum_\u03bd' S^a_q\u03bd,q\u03bd' S^a_q\u03bd',q\u03bd Lorentzian(\u03c9_q\u03bd - \u03c9_q\u03bd', 2(\u0393_q\u03bd + \u0393_q\u03bd')) / (4 \u03c9_q\u03bd \u03c9_q\u03bd') (kaldo conductivity.py:27-49,434). D^{QHGK} is opaque over the frequencies \u03c9 (the Lorentzian centres and the 1/(4 \u03c9\u03c9') weight), the eigenvectors e (through the flux operator S_ij = e\u2020 (\u2202D/\u2202q) e, whose diagonal is the GroupVelocity), and the total linewidth \u0393^{tot} (the mode-pair broadening 2(\u0393+\u0393') in the Lorentzian). Served in mm^2/s. SHARES the L^2 T^-1 dimension with the mass-transport Diffusivity node but is a DIFFERENT quantity, kept apart by name and tag, per-mode vs scalar. QHGK-scoped (scheme scope=qhgk_only): kaldo populates .diffusivity only in the method='qhgk' branch. Implicit (the QHGK kernel), so not sympy-executable.",
+   "formula_latex": "D_{mode} = D^{QHGK}{\\left(\\omega,e,\\Gamma^{tot} \\right)}",
+   "formula_srepr": "Equality(Symbol('D_{mode}'), Function('D^{QHGK}')(Symbol('\\\\omega'), Symbol('e'), Symbol('\\\\Gamma^{tot}')))",
+   "name": "compute_modal_diffusivity",
+   "schemes": {
+    "method": "qhgk",
+    "scope": "qhgk_only"
+   }
+  },
+  "uid": "decf7f445e4993527dcca3c243b35b3f328eaf16cac38d1668caf959e9f03975"
  },
  "dee3e5f2230cae44c646c62985260fc103745cc44d0b1c2a87fe0a72ca675a97": {
   "identity": {
