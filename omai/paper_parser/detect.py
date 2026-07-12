@@ -33,7 +33,13 @@ from dataclasses import dataclass, field
 # PDF document blocks with citations, prompt caching). Pinned here as the tested
 # floor; install into the miniconda base env if absent.
 MODEL = "claude-opus-4-8"
-MAX_TOKENS = 16000
+MAX_TOKENS = 16000          # map/review calls: never observed near the cap
+DETECT_MAX_TOKENS = 32000   # detect emits verbose citation blocks; a 30-page
+                            # paper truncated at 16k (quantum-elastic, live
+                            # 2026-07-12), so detect gets the model's full
+                            # output budget. If a paper defeats 32k too, the
+                            # next step is page-chunked detect unioned by the
+                            # existing ensemble machinery, not a bigger cap.
 
 
 # --------------------------------------------------------------------------
@@ -271,7 +277,7 @@ def detect(client, ingested, usage: Usage, *, prompt: str = DETECT_PROMPT,
     """
     resp = client.messages.create(
         model=MODEL,
-        max_tokens=MAX_TOKENS,
+        max_tokens=DETECT_MAX_TOKENS,
         messages=[{"role": "user", "content": [
             _document_block(ingested),
             {"type": "text", "text": prompt},
