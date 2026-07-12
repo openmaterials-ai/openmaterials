@@ -260,9 +260,9 @@ stability, thermochemistry, quasi-harmonic, molecular, and electronic-transport
 domains (grown from the AtomisticSkills scans),
 a first materials-diffusion subgraph, and a thermodynamic-identities domain that
 closes the map's formulas together; the unified map of
-103 quantities and 102 operators is content-addressed in the log-first store
+104 quantities and 103 operators is content-addressed in the log-first store
 (Part~\ref{part:kernel}), grown past its frozen genesis version through the
-contribution gates, and the whole is held together by a suite of 1407
+contribution gates, and the whole is held together by a suite of 1408
 passing tests.
 
 What is next is mostly upward and outward. The upstream from the
@@ -389,8 +389,8 @@ A content hash                  & \textbf{uid} & sha256; a 12-hex prefix is disp
 
 \section{The map}
 
-The map is a curated reference graph. Today it holds 103 nodes (100 observable
-and hidden quantities plus 3 promoted parameters) and 253 edges. Nodes are
+The map is a curated reference graph. Today it holds 104 nodes (101 observable
+and hidden quantities plus 3 promoted parameters) and 255 edges. Nodes are
 typed physical quantities. An edge produces one node from a list of input
 nodes, carrying the symbolic formula that relates them (parameter inputs are
 marked as inputs rather than derived through a formula).
@@ -692,7 +692,7 @@ the reviewers decide what enters the commons.
 
 \section{Status and build order}
 
-Today's map is one hundred seventeen change records past v1, its frozen genesis version:
+Today's map is one hundred nineteen change records past v1, its frozen genesis version:
 99 typed quantities plus 3 promoted
 parameters, the symbolic formula on every relational edge, 28 representations
 mapped (kaldo 34 variables, phono3py 31, phonopy 22, pymatgen 22, ShengBTE 20,
@@ -2738,14 +2738,14 @@ trusted). What remains, in order:
 \label{sec:status-live}
 
 The map is at store head version
-\texttt{275d97d38696e29671046eab8db702e80cb42c5879ad189fb18e4f9ce26540d9}
-(2026-07-12, 217 records), one hundred seventeen change records past the frozen genesis hash
+\texttt{a4a60afe3fe692e67f1044cb6899c0a67550942092b192b9d9df4d455c0c6bcb}
+(2026-07-12, 219 records), one hundred nineteen change records past the frozen genesis hash
 \texttt{e6e8044e92039696417b53b220b0f3f10559a286b0eaabbe7ea4167ff510f6cd}
 (2026-07-07, the untouched 100-record prefix). The live numbers:
 
 \begin{itemize}[leftmargin=2em, itemsep=0.25em]
-  \item \textbf{Structure.} 103 nodes (100 observable and hidden quantities plus 3
-        promoted parameters), 253 rendered links, 102 deduplicated operators,
+  \item \textbf{Structure.} 104 nodes (101 observable and hidden quantities plus 3
+        promoted parameters), 255 rendered links, 103 deduplicated operators,
         rendered in fifteen physics tiers (Sources, Harmonic, Thermodynamics,
         Scattering, Transport, Molecular dynamics, Ground state, Mechanics,
         Stability, Thermochemistry, Quasi-harmonic, Molecular, Electronic
@@ -2791,7 +2791,7 @@ The map is at store head version
         moduli) are proven ok, as are the six thermodynamic-identity edges (the
         Gr\"uneisen identity, total thermal conductivity, molar volume, the
         $C_P - C_V$ relation, the power factor, and $ZT$).
-  \item \textbf{Tests.} The suite is 1407 passing.
+  \item \textbf{Tests.} The suite is 1408 passing.
 \end{itemize}
 
 \begin{center}

@@ -1,6 +1,6 @@
 {
  "representation": "vasp",
- "map_version": "275d97d38696e29671046eab8db702e80cb42c5879ad189fb18e4f9ce26540d9",
+ "map_version": "a4a60afe3fe692e67f1044cb6899c0a67550942092b192b9d9df4d455c0c6bcb",
  "covers": [
   {
    "node": "BandGap",
@@ -25,6 +25,12 @@
    "uid": "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e",
    "api": "pymatgen Outcar.elastic_modulus (VASP IBRION=6 'TOTAL ELASTIC MODULI (kBar)'), kbar; atomate2 ElasticMaker",
    "unit": "kbar"
+  },
+  {
+   "node": "ElectronicDOS",
+   "uid": "a32e08f3d5a147643986f961b701aea560791721df573f09188a557da369fb4f",
+   "api": "pymatgen Vasprun.complete_dos.densities (total DOS), states/eV vs energy grid; efermi from CompleteDos",
+   "unit": "per_ev"
   },
   {
    "node": "Forces",
