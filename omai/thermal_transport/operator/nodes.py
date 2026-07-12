@@ -26,6 +26,7 @@ ObservableSpaces.
 from __future__ import annotations
 
 from omai.operator.dimensions import (
+    DIFFUSIVITY,
     DIMENSIONLESS,
     ENERGY,
     ENERGY_PER_LENGTH_CUBED,
@@ -541,6 +542,59 @@ THERMAL_CONDUCTIVITY_QHGK = HiddenSpace(
 
 
 # ---------------------------------------------------------------------------
+# Amorphous / localization diagnostics (kaldo delta scan, records 208-211).
+# The two per-mode nodes the QHGK paper (Isaeva et al. 2019) surfaced as
+# unmappable: the harmonic-side localization measure (ParticipationRatio) and
+# the QHGK/Allen-Feldman per-mode heat diffusivity (ModalDiffusivity). Both
+# join the thermal_transport domain (no new tier): ParticipationRatio in the
+# Harmonic tier alongside the eigenvector-derived Gruneisen / PhaseSpace3Phonon
+# diagnostics, ModalDiffusivity in the Transport tier alongside the QHGK κ it
+# decomposes.
+# ---------------------------------------------------------------------------
+
+PARTICIPATION_RATIO = ObservableSpace(
+    name="ParticipationRatio",
+    fields=(Field("p", DIMENSIONLESS, indices=("q", "nu")),),
+    description=(
+        "Per-mode Bell/Dean inverse participation ratio, the harmonic-side "
+        "localization diagnostic of the amorphous / QHGK branch (is a mode "
+        "extended/propagating or localized/diffuson). PR_qnu = 1 / (N_atoms "
+        "sum_i a_i^2) with a_i = sum_cart |e_i,qnu|^2 the cartesian-summed "
+        "squared eigenvector amplitude on atom i (kaldo "
+        "calculate_participation_ratio, harmonic_with_q.py:335-344, the 1/N "
+        "normalization). Dimensionless, range 1/N (single-atom-localized) to 1 "
+        "(uniformly extended). Kept apart from every other dimensionless node "
+        "by NAME (name-based identity, omai/operator/space.py). Cite "
+        "Phys. Rev. B 53, 11469 (the localization ratio kaldo's docstring "
+        "cites, phonons.py:652). (q, nu)-indexed, a first-class formatted "
+        "kaldo output (Phonons.participation_ratio, phonons.py:648)."
+    ),
+    tier="Harmonic",
+)
+
+MODAL_DIFFUSIVITY = ObservableSpace(
+    name="ModalDiffusivity",
+    fields=(Field("D_mode", DIFFUSIVITY, indices=("q", "nu")),),
+    description=(
+        "Per-mode heat-mode diffusivity D_qnu of the QHGK / Allen-Feldman "
+        "picture, the mode-resolved decomposition of kappa_QHGK from the "
+        "flux-operator overlap: D_qnu = (1/3) trace_a sum_nu' S^a_qnu,qnu' "
+        "S^a_qnu',qnu Lorentzian(omega_qnu - omega_qnu', 2(Gamma_qnu + "
+        "Gamma_qnu')) / (4 omega_qnu omega_qnu') (kaldo Conductivity."
+        "diffusivity, conductivity.py:27-49,303,434). Served in mm^2/s. "
+        "FALSE-MERGE GUARDRAIL: it SHARES its L^2 T^-1 (DIFFUSIVITY) dimension "
+        "with the mass-transport Diffusivity node (D = slope_MSD/(2d), the "
+        "scalar Einstein self-diffusion coefficient, tier Diffusion), but is a "
+        "DIFFERENT quantity, kept apart by NAME and TAG, per-mode heat-mode "
+        "diffusivity vs scalar mass diffusivity, NEVER merged on the shared "
+        "dimension. QHGK-scoped (kaldo populates .diffusivity only in the "
+        "method='qhgk' branch). (q, nu)-indexed."
+    ),
+    tier="Transport",
+)
+
+
+# ---------------------------------------------------------------------------
 # MD primitives (phase 2 P2). The MD tier sits parallel to the BTE chain
 # and feeds the MD-based κ paths added in P3 (Green-Kubo, NEMD, HNEMD).
 # ---------------------------------------------------------------------------
@@ -731,4 +785,7 @@ NODES: tuple[Space, ...] = (
     THERMAL_CONDUCTIVITY_GREEN_KUBO,
     THERMAL_CONDUCTIVITY_NEMD,
     THERMAL_CONDUCTIVITY_HNEMD,
+    # Amorphous / localization diagnostics (kaldo delta scan, records 208-211)
+    PARTICIPATION_RATIO,
+    MODAL_DIFFUSIVITY,
 )

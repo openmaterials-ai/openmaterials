@@ -148,4 +148,12 @@ register_space_symbols({
     "ThermalConductivity[transport_model=green_kubo]": {r"\kappa^{MD}"},
     "ThermalConductivity[transport_model=nemd]": {r"\kappa^{MD}"},
     "ThermalConductivity[transport_model=hnemd]": {r"\kappa^{MD}"},
+    # Amorphous / localization diagnostics (kaldo delta scan, records 208-211).
+    # ParticipationRatio carries its output field p and the per-atom amplitude
+    # a_i = sum_cart |e|^2 the auxiliary formula introduces (the eigenvector e
+    # itself rides in via the Eigenvectors input space). ModalDiffusivity
+    # carries its output field D_{mode}; its formula's ω / e / Γ^{tot} arguments
+    # ride in via the Frequency / Eigenvectors / Linewidth[channel=total] inputs.
+    "ParticipationRatio": {"p", "a"},
+    "ModalDiffusivity": {r"D_{mode}"},
 })

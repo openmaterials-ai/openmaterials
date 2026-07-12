@@ -62,6 +62,9 @@ from omai.thermal_transport.operator.nodes import (
     THERMAL_CONDUCTIVITY_GREEN_KUBO,
     THERMAL_CONDUCTIVITY_NEMD,
     THERMAL_CONDUCTIVITY_HNEMD,
+    # Amorphous / localization diagnostics (kaldo delta scan, records 208-211)
+    PARTICIPATION_RATIO,
+    MODAL_DIFFUSIVITY,
 )
 
 
@@ -1463,6 +1466,102 @@ contract_kappa_hnemd = Operator(
 )
 
 
+# ---------------------------------------------------------------------------
+# Amorphous / localization diagnostics (kaldo delta scan, records 208-211).
+# ---------------------------------------------------------------------------
+
+# ParticipationRatio: the Bell/Dean 1/N inverse participation ratio.
+#   PR_qν = 1 / (N sum_i a_i²),   a_i = sum_cart |e_i,qν|²
+# The main formula is written over the per-atom (cartesian-summed) squared
+# amplitude a_i, a DIMENSIONLESS IndexedBase (eigenvectors are dimensionless,
+# so a_i is too). This makes the dimensional gate PROVE the ratio dimensionless
+# (N dimensionless, sum of dimensionless dimensionless, reciprocal dimensionless,
+# LHS p dimensionless) rather than SKIP on the globally-unregistered eigenvector
+# symbol e. The auxiliary formula records that a_i is the cartesian-summed
+# squared eigenvector amplitude (uses e; auxiliary formulas are not gated).
+_p_PR = sp.IndexedBase("p")
+_a_amp = sp.IndexedBase("a")
+
+_PARTICIPATION_RATIO_FORMULA = sp.Eq(
+    _p_PR[_q, _nu],
+    1 / (_N_atoms * sp.Sum(_a_amp[_i, _q, _nu] ** 2, (_i, 1, _N_atoms))),
+)
+
+# a_i,qν = sum_α |e_{i,α,qν}|²: the per-atom amplitude, summed over the three
+# cartesian components of atom i (harmonic_with_q.py:341). Reuses the
+# eigenvector IndexedBase e; α runs 1..3 over cartesian components.
+_PARTICIPATION_RATIO_AMPLITUDE = sp.Eq(
+    _a_amp[_i, _q, _nu],
+    sp.Sum(sp.Abs(_e[_i, _q, _nu]) ** 2, (_alpha, 1, 3)),
+)
+
+compute_participation_ratio = Operator(
+    name="compute_participation_ratio",
+    inputs=(EIGENVECTORS,),
+    outputs=(PARTICIPATION_RATIO,),
+    schemes={"normalization": "bell_dean_1_over_N"},
+    formula=_PARTICIPATION_RATIO_FORMULA,
+    auxiliary_formulas=(_PARTICIPATION_RATIO_AMPLITUDE,),
+    description=(
+        "Per-mode Bell/Dean inverse participation ratio from the harmonic "
+        "eigenvectors: PR_qν = 1 / (N sum_i a_i²) with a_i = sum_cart "
+        "|e_i,qν|² the cartesian-summed squared amplitude on atom i "
+        "(auxiliary_formulas[0]). The 1/N normalization (scheme "
+        "normalization=bell_dean_1_over_N) makes PR range from 1/N "
+        "(single-atom-localized) to 1 (uniformly extended). Dimensionless; the "
+        "localization diagnostic of the amorphous / QHGK regime. kaldo "
+        "calculate_participation_ratio (harmonic_with_q.py:335-344), "
+        "Phys. Rev. B 53, 11469."
+    ),
+)
+
+
+# ModalDiffusivity: the QHGK / Allen-Feldman per-mode heat diffusivity.
+#   D_qν = D^{QHGK}[ω, e, Γ^{tot}]
+# Implicit: the QHGK diffusivity kernel is an off-diagonal flux-operator
+# overlap summed over mode pairs with a Lorentzian energy-conservation weight
+# (kaldo conductivity.py:27-49), assembled from the frequencies, the
+# eigenvector-projected flux S_ij (derived from the eigenvectors), and the
+# total per-mode linewidth as the pair broadening. Opaque applied function, so
+# not sympy-executable; the dimensional gate SKIPS it (the kaldo unit chain
+# fixes it at mm^2/s, L^2 T^-1, on the rail).
+_D_mode = sp.Symbol("D_{mode}")
+_D_qhgk_fn = sp.Function("D^{QHGK}")
+_omega_arg = sp.Symbol(r"\omega")
+_e_arg = sp.Symbol("e")
+_Gamma_tot_arg = sp.Symbol(r"\Gamma^{tot}")
+
+_MODAL_DIFFUSIVITY_FORMULA = sp.Eq(
+    _D_mode,
+    _D_qhgk_fn(_omega_arg, _e_arg, _Gamma_tot_arg),
+)
+
+compute_modal_diffusivity = Operator(
+    name="compute_modal_diffusivity",
+    inputs=(FREQUENCY_STATE, EIGENVECTORS, TOTAL_LINEWIDTH),
+    outputs=(MODAL_DIFFUSIVITY,),
+    schemes={"method": "qhgk", "scope": "qhgk_only"},
+    formula=_MODAL_DIFFUSIVITY_FORMULA,
+    is_executable_in_sympy_override=False,
+    description=(
+        "Per-mode QHGK / Allen-Feldman heat-mode diffusivity D_qν = "
+        "D^{QHGK}[ω, e, Γ^{tot}]: the mode-resolved decomposition of "
+        "kappa_QHGK, D_qν = (1/3) trace_a sum_ν' S^a_qν,qν' S^a_qν',qν "
+        "Lorentzian(ω_qν - ω_qν', 2(Γ_qν + Γ_qν')) / (4 ω_qν ω_qν') "
+        "(kaldo conductivity.py:27-49,434). D^{QHGK} is opaque over the "
+        "frequencies ω (the Lorentzian centres and the 1/(4 ωω') weight), the "
+        "eigenvectors e (through the flux operator S_ij = e† (∂D/∂q) e, whose "
+        "diagonal is the GroupVelocity), and the total linewidth Γ^{tot} (the "
+        "mode-pair broadening 2(Γ+Γ') in the Lorentzian). Served in mm^2/s. "
+        "SHARES the L^2 T^-1 dimension with the mass-transport Diffusivity node "
+        "but is a DIFFERENT quantity, kept apart by name and tag, per-mode vs "
+        "scalar. QHGK-scoped (scheme scope=qhgk_only): kaldo populates "
+        ".diffusivity only in the method='qhgk' branch. Implicit (the QHGK "
+        "kernel), so not sympy-executable."
+    ),
+)
+
+
 EDGES: tuple[Operator, ...] = (
     provide_potential,
     provide_temperature,
@@ -1513,4 +1612,7 @@ EDGES: tuple[Operator, ...] = (
     contract_kappa_green_kubo,
     contract_kappa_nemd,
     contract_kappa_hnemd,
+    # Amorphous / localization diagnostics (kaldo delta scan, records 208-211)
+    compute_participation_ratio,
+    compute_modal_diffusivity,
 )

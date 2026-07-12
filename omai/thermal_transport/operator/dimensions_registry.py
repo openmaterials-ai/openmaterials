@@ -44,6 +44,7 @@ from __future__ import annotations
 
 from omai.operator.dimcheck import register_symbol_dimensions
 from omai.operator.dimensions import (
+    DIFFUSIVITY,
     DIMENSIONLESS,
     ENERGY,
     ENERGY_PER_LENGTH_CUBED,
@@ -129,4 +130,17 @@ register_symbol_dimensions({
     # Dimensionless response tensors.
     r"Z^*": DIMENSIONLESS,
     r"\varepsilon_\infty": DIMENSIONLESS,
+    # Amorphous / localization diagnostics (kaldo delta scan, records 208-211).
+    # The participation ratio p and the per-atom (cartesian-summed squared
+    # eigenvector) amplitude a are both DIMENSIONLESS; registering a lets the
+    # dimensional gate PROVE compute_participation_ratio dimensionless (the
+    # eigenvector symbol e stays globally unregistered because it collides with
+    # the internal-energy field). The modal diffusivity D_{mode} is DIFFUSIVITY
+    # (L^2 T^-1); its edge carries the opaque QHGK kernel function, so the gate
+    # SKIPS it, but the binding documents the intended dimension. Note D_{mode}
+    # is a fresh base name that does NOT collide with the materials-domain D
+    # (diffusivity) or the dynamical-matrix D.
+    "p": DIMENSIONLESS,
+    "a": DIMENSIONLESS,
+    r"D_{mode}": DIFFUSIVITY,
 })

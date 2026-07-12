@@ -1,4 +1,36 @@
-"""The thermal-transport Domain descriptor."""
+"""The thermal-transport Domain descriptor.
+
+kaldo delta scan (scans/kaldo-delta.json, 9/9 CONFIRMED), triggered by the QHGK
+paper parse (Isaeva et al. 2019). It landed TWO new nodes here (records 208-211):
+ParticipationRatio (Harmonic tier, the Bell/Dean localization diagnostic) and
+ModalDiffusivity (Transport tier, the QHGK / Allen-Feldman per-mode heat-mode
+diffusivity, mm^2/s, kept apart from the mass-transport Diffusivity by name/tag
+despite the shared L^2 T^-1 dimension). The scan's other findings are DEFERRED by
+the orchestrator review, recorded here so a later parse re-derives, not
+re-discovers, them:
+
+  * kaldo QHA -> ThermalExpansion (quasiharmonic.calculate_qha, 1/K linear via a
+    direct F(V,T) lattice scan) and kaldo elastic_prop -> ElasticConstants
+    (forceconstants.elastic_prop, GPa from the FC2 long-wavelength expansion) are
+    CROSS-ENGINE ALTERNATIVE-PRODUCER edges into EXISTING nodes (ThermalExpansion
+    lives in the quasiharmonic domain via the phonopy QHAGibbsEnergy route;
+    ElasticConstants in the mechanics domain via the Stress/Structure route). Do
+    NOT mint duplicate nodes; add the producer edges only when a cross-engine
+    EXPECTED_AGREE test wants the second route (tolerance approximation-level:
+    acoustic-sum-rule for elastic, harmonic-lattice-scan vs phonopy-QHA for
+    expansion), not bit-exact.
+  * The QHGK / Wigner edge internals (the mode-pair specific heat c_nm, the
+    generalized velocity / flux matrix S_ij, the mode-pair broadening
+    Gamma_n + Gamma_n') stay FOLDED into the compute_kappa_qhgk /
+    compute_kappa_wigner_coherences edge formulas: each internal's physically
+    named projection is already a node (c_nm diagonal = HeatCapacity, S_ij
+    diagonal = GroupVelocity, single-mode Gamma = Linewidth[channel=total]), and
+    nothing outside the kappa assembly consumes them. No HiddenSpace scaffolding
+    nodes. The decomposition-no is final.
+  * Atom-projected pdos (kaldo Phonons.pdos) is a projection SCHEME (p_atoms,
+    direction) on the PhononDOS operator, not a distinct node (see the note on
+    the kaldo PhononDOS spec). Total DOS is the all-atoms special case.
+"""
 from __future__ import annotations
 
 from omai.map_data import Domain
@@ -55,6 +87,8 @@ SYMBOLS = {
     "ThermalConductivity[bte_solver=direct_inverse]": r"\kappa^{\mathrm{dinv}}",
     "ThermalConductivity[transport_model=wigner_populations]": r"\kappa_{\mathrm{pop}}",
     "ThermalConductivity[transport_model=wigner]": r"\kappa",
+    "ParticipationRatio": r"p",
+    "ModalDiffusivity": r"D_{\mathrm{mode}}",
 }
 
 

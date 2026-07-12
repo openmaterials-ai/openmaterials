@@ -17,6 +17,7 @@ from dataclasses import dataclass
 
 from omai.operator.dimensions import (
     Dimension,
+    DIFFUSIVITY,
     DIMENSIONLESS,
     ENERGY,
     ENERGY_PER_LENGTH_CUBED,
@@ -262,6 +263,16 @@ PER_M3 = Unit("per_m3", NUMBER_DENSITY, 1.0, si_scale=1.0)
 PER_CM3 = Unit("per_cm3", NUMBER_DENSITY, 1e6)
 
 
+# Canonical diffusivity unit: square metre per second (m^2/s), the SI L^2 T^-1
+# form. kaldo serves the QHGK per-mode ModalDiffusivity in mm^2/s
+# (conductivity.py:310); 1 mm^2/s = 1e-6 m^2/s, so mm2_per_s carries
+# to_operator 1e-6 to the canonical m2_per_s. The existing mass-transport
+# Diffusivity node shares this DIFFUSIVITY dimension but is a different
+# quantity (kept apart by name / tag, never by unit).
+M2_PER_S = Unit("m2_per_s", DIFFUSIVITY, 1.0, si_scale=1.0)
+MM2_PER_S = Unit("mm2_per_s", DIFFUSIVITY, 1e-6)
+
+
 UNITS: dict[str, Unit] = {
     u.name: u
     for u in [
@@ -312,6 +323,8 @@ UNITS: dict[str, Unit] = {
         W_PER_M_K2,
         PER_M3,
         PER_CM3,
+        M2_PER_S,
+        MM2_PER_S,
     ]
 }
 

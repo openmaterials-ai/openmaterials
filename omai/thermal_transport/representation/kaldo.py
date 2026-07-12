@@ -84,7 +84,9 @@ from omai.thermal_transport.operator.nodes import (
     ISOTOPIC_LINEWIDTH,
     MEAN_FREE_DISPLACEMENT_DIRECT,
     MEAN_FREE_DISPLACEMENT_RTA,
+    MODAL_DIFFUSIVITY,
     MOLAR_HEAT_CAPACITY,
+    PARTICIPATION_RATIO,
     PHASE_SPACE_3PH,
     PHONON_DOS,
     POTENTIAL,
@@ -425,7 +427,13 @@ KALDO_PHONON_DOS = SpaceRepresentationSpec(
         "controllers.plotter.plot_dos. The array isn't exposed as a clean "
         "attribute, but the underlying Phonons.frequency + a histogram "
         "reproduces it: g(ω) ← sum of Gaussians of width `bandwidth` "
-        "centered on each ω_qν."
+        "centered on each ω_qν. kaldo ALSO exposes an atom-projected DOS "
+        "Phonons.pdos(p_atoms, direction, bandwidth, n_points) (phonons.py:1246, "
+        "integral-normalized to 3*n_atoms per projection): the total DOS is the "
+        "p_atoms=all, direction=None special case. The projection is a SCHEME "
+        "(p_atoms, direction) on this same PhononDOS node, not a distinct "
+        "ProjectedPhononDOS node (kaldo delta scan deferral); revisit only if a "
+        "consumer needs the projected variant by name."
     ),
 )
 
@@ -952,5 +960,53 @@ KALDO_SUM_LINEWIDTHS = OperatorRepresentationSpec(
         "Boundary is added later inside Conductivity rather than into "
         "Phonons.bandwidth, so the kaldo 'total' the LBTE consumes is the "
         "sum of those terms plus Γ_boundary at solve time."
+    ),
+)
+
+
+# ---------------------------------------------------------------------------
+# Amorphous / localization diagnostics (kaldo delta scan, records 208-211).
+# kaldo is the surfacing code for both: the QHGK paper (Isaeva et al. 2019)
+# parse turned up the participation ratio and the modal (heat-mode) diffusivity
+# as unmappable, and kaldo computes each directly.
+# ---------------------------------------------------------------------------
+
+
+KALDO_PARTICIPATION_RATIO = SpaceRepresentationSpec(
+    space=PARTICIPATION_RATIO,
+    representation_name="kaldo",
+    observable_units={"p": "dimensionless"},
+    code_api={"p": "Phonons.participation_ratio"},
+    notes=(
+        "Phonons.participation_ratio (phonons.py:648): a first-class formatted "
+        "output, shape (n_k_points, n_modes). Dimensionless. The 1/N Bell/Dean "
+        "normalization is calculate_participation_ratio "
+        "(harmonic_with_q.py:335-344): a_i = sum_cart |e_i|^2, then PR = "
+        "1 / (n_atoms * sum_i a_i^2), so PR ranges 1/N (localized) to 1 "
+        "(extended). kaldo's docstring cites DOI 10.1103/PhysRevB.53.11469 "
+        "(phonons.py:652)."
+    ),
+)
+
+
+KALDO_MODAL_DIFFUSIVITY = SpaceRepresentationSpec(
+    space=MODAL_DIFFUSIVITY,
+    representation_name="kaldo",
+    observable_units={"D_mode": "mm2_per_s"},
+    code_api={"D_mode": "Conductivity(method='qhgk').diffusivity"},
+    notes=(
+        "Conductivity(method='qhgk').diffusivity (conductivity.py:303,310): "
+        "the QHGK / Allen-Feldman per-mode heat-mode diffusivity in mm^2/s, "
+        "shape (n_k_points, n_modes). QHGK-SCOPED: self._diffusivity is "
+        "populated only in the method=='qhgk' branch (conductivity.py:248); "
+        "calling .diffusivity after an rta/inverse run logs 'calculate the "
+        "conductivity QHGK first' and returns None. The mm^2/s serving unit "
+        "carries to_operator 1e-6 to the canonical m2_per_s. Internal unit "
+        "chain (review-verified): the per-axis accumulation is A^2/ps "
+        "(= A^2*THz); the returned D_qν = (1/3)*(1/100)*trace_a(D^{aa}) "
+        "(conductivity.py:434) applies the 1/3 cartesian-trace average and the "
+        "1/100 = A^2/ps -> mm^2/s conversion. SHARES the L^2 T^-1 dimension "
+        "with the mass-transport Diffusivity node but is a different quantity, "
+        "kept apart by name / tag."
     ),
 )

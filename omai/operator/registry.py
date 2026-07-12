@@ -143,6 +143,8 @@ QUANTITY_TAGS: dict[str, str] = {
     "velocity_autocorrelation": "Atom-and-time-averaged velocity autocorrelation function.",
     "mean_squared_displacement": "Atom-and-time-averaged mean squared displacement (diffusion probe).",
     "diffusivity": "Self-diffusion coefficient from the Einstein relation.",
+    "participation_ratio": "Per-mode Bell/Dean inverse participation ratio PR_qnu = 1/(N_atoms sum_i a_i^2) with a_i the cartesian-summed squared eigenvector amplitude on atom i; dimensionless, range 1/N (localized) to 1 (extended); the harmonic-side localization diagnostic of the amorphous/QHGK branch (Phys. Rev. B 53, 11469).",
+    "modal_diffusivity": "Per-mode heat-mode diffusivity D_qnu of the QHGK / Allen-Feldman picture (mm^2/s, L^2 T^-1), the mode-resolved decomposition of kappa_QHGK from the flux-operator overlap. Shares the L^2 T^-1 dimension with the mass-transport diffusivity but is a DIFFERENT quantity (per-mode heat vs scalar Einstein mass diffusion), kept apart by this own tag and name.",
     "electrical_conductivity": "Electrical conductivity from a carrier flux; the ionic (Nernst-Einstein) carrier is a tracer-diffusivity conductivity, the electronic carrier the amset sibling (kept apart by the carrier label).",
     "configurational_energy": "Lattice-model (cluster-expansion) energy of a configuration on a fixed lattice; a fitted-Hamiltonian energy, distinct from a relaxed-structure DFT/MLIP total energy.",
     "reaction_energy": "Stoichiometric reaction energy of a balanced solid-state reaction, combined from the per-atom formation energies of reactants and products.",
