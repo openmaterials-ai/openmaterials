@@ -124,7 +124,7 @@ def test_all_six_mechanics_edges_are_dimensionally_ok():
     ), report["violation"]
 
 
-def test_no_node_uid_collisions_at_98_nodes():
+def test_no_node_uid_collisions_at_100_nodes():
     # 59 with the original mechanics four; 61 with YoungsModulus and
     # PoissonRatio; 66 with the stability four plus MagneticMoment; 67 with
     # BandGap (2026-07-09, atomate2/VASP scan); 73 with the six
@@ -142,9 +142,11 @@ def test_no_node_uid_collisions_at_98_nodes():
     # MolarVolume, PowerFactor, ZT) in the new Thermoelectric tier (2026-07-10);
     # 98 with the physics review's three follow-on nodes (CalphadMolarEntropy,
     # CarrierDensity, MolecularFrequency), each joining an existing tier
-    # (2026-07-10).
+    # (2026-07-10); 100 with the kaldo delta scan's two amorphous-branch
+    # diagnostics (ParticipationRatio in the Harmonic tier, ModalDiffusivity in
+    # the Transport tier, both thermal_transport, 2026-07-11).
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 98
+    assert len(g["nodes"]) == 100
     uids = [n["uid"] for n in g["nodes"]]
     assert len(set(uids)) == len(uids), "node uid collision"
 

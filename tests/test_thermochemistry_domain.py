@@ -331,7 +331,7 @@ def test_thermochemistry_nodes_carry_the_tier():
         assert tier_of[name] == "Thermochemistry"
 
 
-def test_map_has_ninety_eight_nodes_and_fifteen_tiers():
+def test_map_has_one_hundred_nodes_and_fifteen_tiers():
     # 73 through the pycalphad scan; 74 with AdsorptionEnergy (2026-07-10,
     # matcalc/ASE scan); 77 with the config-thermo scan's
     # ElectricalConductivity[carrier=ionic] + ConfigurationalEnergy (joining the
@@ -352,8 +352,12 @@ def test_map_has_ninety_eight_nodes_and_fifteen_tiers():
     # recommendations (2026-07-10): CalphadMolarEntropy (Thermochemistry),
     # CarrierDensity (Diffusion), MolecularFrequency (Molecular), each joining
     # an existing tier, no new tier.
+    # 100 nodes (still 15 tiers) with the kaldo delta scan's two amorphous-branch
+    # diagnostics (2026-07-11): ParticipationRatio (Harmonic) and
+    # ModalDiffusivity (Transport), both thermal_transport, each joining an
+    # existing tier, no new tier.
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 98
+    assert len(g["nodes"]) == 100
     assert len(g["tiers"]) == 15
 
 

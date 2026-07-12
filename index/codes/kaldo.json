@@ -1,6 +1,6 @@
 {
  "representation": "kaldo",
- "map_version": "7645184eacf9f78fd21be3ff5f765d8617cb60e9bc41a7dd18a7eaa06ba1bba6",
+ "map_version": "635ce392b3c307c528291bd3435057942878e059c1b1ba471859d11651fc70e1",
  "covers": [
   {
    "node": "BareDynamicalMatrix",
@@ -123,10 +123,22 @@
    "unit": null
   },
   {
+   "node": "ModalDiffusivity",
+   "uid": "6052fe7e6aa8d2116b369886bffe59b04859f21145640184d24dfd96fbb60513",
+   "api": "Conductivity(method='qhgk').diffusivity",
+   "unit": "mm2_per_s"
+  },
+  {
    "node": "MolarHeatCapacity",
    "uid": "4fa2d8e16bde42f794f150f5d149e5d645d63f7ddaac59cef79bd41771b13c17",
    "api": "N_A * np.sum(Phonons.heat_capacity) / n_q_points",
    "unit": null
+  },
+  {
+   "node": "ParticipationRatio",
+   "uid": "09138ae29cee41ae5f1a1758ac65a479625ef4d3c6026bf7ad5b60f884d668a0",
+   "api": "Phonons.participation_ratio",
+   "unit": "dimensionless"
   },
   {
    "node": "PhaseSpace3Phonon",

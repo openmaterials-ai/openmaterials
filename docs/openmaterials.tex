@@ -260,7 +260,7 @@ stability, thermochemistry, quasi-harmonic, molecular, and electronic-transport
 domains (grown from the AtomisticSkills scans),
 a first materials-diffusion subgraph, and a thermodynamic-identities domain that
 closes the map's formulas together; the unified map of
-98 quantities and 94 operators is content-addressed in the log-first store
+100 quantities and 96 operators is content-addressed in the log-first store
 (Part~\ref{part:kernel}), grown past its frozen genesis version through the
 contribution gates, and the whole is held together by a suite of 1327
 passing tests.
@@ -389,8 +389,8 @@ A content hash                  & \textbf{uid} & sha256; a 12-hex prefix is disp
 
 \section{The map}
 
-The map is a curated reference graph. Today it holds 98 nodes (95 observable
-and hidden quantities plus 3 promoted parameters) and 242 edges. Nodes are
+The map is a curated reference graph. Today it holds 100 nodes (97 observable
+and hidden quantities plus 3 promoted parameters) and 247 edges. Nodes are
 typed physical quantities. An edge produces one node from a list of input
 nodes, carrying the symbolic formula that relates them (parameter inputs are
 marked as inputs rather than derived through a formula).
@@ -692,10 +692,10 @@ the reviewers decide what enters the commons.
 
 \section{Status and build order}
 
-Today's map is one hundred three change records past v1, its frozen genesis version:
-95 typed quantities plus 3 promoted
+Today's map is one hundred eleven change records past v1, its frozen genesis version:
+97 typed quantities plus 3 promoted
 parameters, the symbolic formula on every relational edge, 27 representations
-mapped (kaldo 32 variables, phono3py 31, phonopy 22, pymatgen 22, ShengBTE 20,
+mapped (kaldo 34 variables, phono3py 31, phonopy 22, pymatgen 22, ShengBTE 20,
 mp-api 13, QE 13, LAMMPS 12, VASP 9, GPUMD 8, pycalphad 7, and a further sixteen
 codes and mat-* / chem-* skills at five or fewer each), and real instances
 computed through the framework: cross-code silicon thermal conductivity
@@ -1660,6 +1660,15 @@ $\kappa$ map alongside the LBTE / Wigner / QHGK variants.
         force. With \texttt{[lbte]} (rta + direct\_inverse), \texttt{[wigner]}
         (populations + coherences + total), and \texttt{[qhgk]}, this closes
         the cross-paradigm $\kappa$ map across BTE and MD.
+  \item \emph{Amorphous-branch per-mode diagnostics (kaldo delta scan):}
+        alongside the QHGK terminal $\kappa$, the amorphous branch now carries
+        the two per-mode quantities the QHGK-paper parse surfaced,
+        \texttt{ParticipationRatio} (\textbf{O}, dimensionless, indexed
+        $(q,\nu)$) --- the Bell/Dean $1/N$ localization ratio --- and
+        \texttt{ModalDiffusivity} (\textbf{O}, $L^2 T^{-1}$, indexed
+        $(q,\nu)$), the QHGK / Allen--Feldman per-mode heat-mode diffusivity in
+        $\text{mm}^2/\text{s}$, kept apart from the mass-transport
+        \texttt{Diffusivity} by name and tag despite the shared dimension.
 \end{itemize}
 
 \paragraph{Edges.} Verb-headed names; each carries a sympy formula:

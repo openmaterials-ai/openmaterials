@@ -57,7 +57,7 @@ def test_build_codes_maps_real_variables():
 def test_build_graph_dict_shape():
     g = build_graph_dict()
     symbolic = [n for n in g["nodes"] if n["type"] in ("observable", "hidden")]
-    assert len(symbolic) == 46
+    assert len(symbolic) == 48
     assert {n["id"] for n in g["nodes"] if n["type"] == "parameter"} == {
         "CellVolume", "AtomicMass", "AtomCount",
     }
