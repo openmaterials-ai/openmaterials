@@ -153,17 +153,41 @@ MAP_USER_INSTRUCTIONS = (
 )
 
 
+MAP_BATCH_SIZE = 40  # claims per MAP call. The ensemble detect on a long
+                     # paper can union 100+ claims, whose mappings overflow a
+                     # single 16k output (live: quantum-elastic and ptse2,
+                     # 2026-07-12). Batches keep each call's output bounded;
+                     # the catalog system block is cache_control'd, so extra
+                     # calls re-read it from cache instead of paying full price.
+
+
 def map_claims(client, claims: list[DetectedClaim], catalog_text: str,
                usage: Usage) -> tuple[list[MappedClaim], str, dict]:
-    """Run pass 2 with structured outputs. Returns (mapped, stop_reason, cache_info).
+    """Run pass 2 with structured outputs, in batches of MAP_BATCH_SIZE claims.
 
-    cache_info reports cache_read_input_tokens for this call so the caller can
-    confirm the catalog prefix cached on the second call of a run. A refusal
-    returns an empty mapping with the stop_reason.
+    Returns (mapped, stop_reason, cache_info) where cache_info sums the
+    cache reads across batches and stop_reason is the first non-end_turn
+    stop encountered (a refusal aborts the remaining batches).
     """
     if not claims:
         return [], "end_turn", {"cache_read_input_tokens": 0}
 
+    mapped_all: list[MappedClaim] = []
+    total_cache = 0
+    for lo in range(0, len(claims), MAP_BATCH_SIZE):
+        batch = claims[lo:lo + MAP_BATCH_SIZE]
+        mapped, stop, info = _map_one_batch(client, batch, catalog_text, usage)
+        total_cache += info.get("cache_read_input_tokens", 0)
+        mapped_all.extend(mapped)
+        if stop != "end_turn":
+            return mapped_all, stop, {"cache_read_input_tokens": total_cache}
+    return mapped_all, "end_turn", {"cache_read_input_tokens": total_cache}
+
+
+def _map_one_batch(client, claims: list[DetectedClaim], catalog_text: str,
+                   usage: Usage) -> tuple[list[MappedClaim], str, dict]:
+    """One structured-output MAP call over a bounded batch. Payload indices
+    are LOCAL to the batch (0..len-1); the caller reassembles by order."""
     system = build_system(catalog_text)
     user = MAP_USER_INSTRUCTIONS + "\n\nCLAIMS:\n" + _claims_payload(claims)
 

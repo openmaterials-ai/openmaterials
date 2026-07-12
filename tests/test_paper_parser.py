@@ -653,3 +653,41 @@ def test_review_prompt_kills_differences_posing_as_values():
     human adversarial pass, 2026-07-12) before the prompt learned it."""
     from omai.paper_parser.review import REVIEW_SYSTEM
     assert "DIFFERENCES POSING AS VALUES" in REVIEW_SYSTEM
+
+
+def test_map_claims_batches_and_reassembles(monkeypatch):
+    """121 claims must arrive as ceil(121/40)=4 MAP calls whose batch-local
+    indices reassemble in order (live: 100+-claim papers overflowed a single
+    16k mapping call)."""
+    from omai.paper_parser import map_nodes
+
+    calls = []
+
+    class FakeMessages:
+        def create(self, **kw):
+            user = kw["messages"][0]["content"]
+            rows = json.loads(user.split("CLAIMS:\n", 1)[1])
+            calls.append(len(rows))
+
+            class R:
+                stop_reason = "end_turn"
+                usage = _FakeUsage()
+                content = [type("B", (), {
+                    "type": "text",
+                    "text": json.dumps({"mappings": [
+                        {"index": r["index"], "node_id": "UNMAPPABLE",
+                         "unmappable_reason": "x", "proposed_quantity": None,
+                         "unit_declaration": "", "material": r["material"],
+                         "conditions_json": "{}"} for r in rows]})})()]
+            return R()
+
+    class FakeClient:
+        messages = FakeMessages()
+
+    claims = [_claim(str(i), quantity=f"q{i}", material=f"m{i}") for i in range(121)]
+    mapped, stop, info = map_nodes.map_claims(FakeClient(), claims, "CATALOG", Usage())
+    assert calls == [40, 40, 40, 1]
+    assert stop == "end_turn" and len(mapped) == 121
+    # order preserved across batches: the reassembled mapping carries each
+    # claim's own material back
+    assert [m.material for m in mapped] == [f"m{i}" for i in range(121)]

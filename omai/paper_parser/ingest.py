@@ -43,6 +43,13 @@ def read_pdf(pdf_path: str | Path) -> Ingested:
     pdf_b64 = base64.standard_b64encode(data).decode("ascii")
 
     from pypdf import PdfReader
+    import pypdf.filters as _f
+
+    # pypdf guards zlib decompression at 75MB per stream; real arXiv papers
+    # exceed it with giant vector figures (page 6 of a 55-page paper wanted
+    # ~76MB, live 2026-07-12). Quadruple the guard; the per-page isolation
+    # below remains the fallback for genuinely malformed streams.
+    _f.ZLIB_MAX_OUTPUT_LENGTH = max(_f.ZLIB_MAX_OUTPUT_LENGTH, 300_000_000)
 
     reader = PdfReader(str(path))
     pages_l: list[str] = []
