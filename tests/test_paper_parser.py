@@ -574,3 +574,12 @@ def test_default_map_version_is_the_live_published_pin():
     assert isinstance(v, str) and len(v) == 64
     repo = Path(__file__).resolve().parent.parent
     assert v == json.load(open(repo / "docs" / "data" / "version.json"))["version"]
+
+
+def test_review_prompt_kills_descriptive_spectral_markers():
+    """Prose band edges / crossovers ('below 4 THz') are narrative structure,
+    not results; the pattern showed up in Esfarjani (3 hand-cut) and the
+    amorphous-alloys parse (9 more) before the prompt learned it."""
+    from omai.paper_parser.review import REVIEW_SYSTEM
+    assert "DESCRIPTIVE SPECTRAL MARKERS" in REVIEW_SYSTEM
+    assert "Raman" in REVIEW_SYSTEM  # the counter-example stays protected
