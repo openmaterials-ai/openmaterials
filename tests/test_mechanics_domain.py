@@ -144,9 +144,12 @@ def test_no_node_uid_collisions_at_100_nodes():
     # CarrierDensity, MolecularFrequency), each joining an existing tier
     # (2026-07-10); 100 with the kaldo delta scan's two amorphous-branch
     # diagnostics (ParticipationRatio in the Harmonic tier, ModalDiffusivity in
-    # the Transport tier, both thermal_transport, 2026-07-11).
+    # the Transport tier, both thermal_transport, 2026-07-11); 102 with the
+    # Atomistic Cookbook audit's nuclear-quantum-effects layer (i-PI slice):
+    # QuantumKineticEnergy and HeatCapacity[method=pimd], both in the
+    # thermal_transport Molecular dynamics tier (2026-07-11).
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 100
+    assert len(g["nodes"]) == 102
     uids = [n["uid"] for n in g["nodes"]]
     assert len(set(uids)) == len(uids), "node uid collision"
 

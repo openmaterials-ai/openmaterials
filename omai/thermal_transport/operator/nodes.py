@@ -735,6 +735,71 @@ THERMAL_CONDUCTIVITY_HNEMD = ObservableSpace(
 )
 
 
+# ---------------------------------------------------------------------------
+# Nuclear-quantum-effects layer (Cookbook Slice 1, the i-PI / path-integral MD
+# layer; scans/cookbook-audit.json, records 212-215). Two members join the
+# Molecular dynamics tier as sampled-trajectory observables:
+#
+#   * QuantumKineticEnergy: a genuinely NEW scalar node (tag
+#     quantum_kinetic_energy, ENERGY), the centroid-virial estimator of the
+#     nuclear quantum kinetic energy. No dimensional twin it could false-merge
+#     with: it shares ENERGY with the per-mode InternalEnergy / free-energy
+#     nodes, but those are (q, nu)-indexed harmonic Bose-Einstein occupation
+#     energies while this is a scalar PIMD ensemble estimator, kept apart by its
+#     own tag.
+#   * HeatCapacity[method=pimd]: a method-tagged PRODUCER VARIANT of the
+#     existing HeatCapacity (SAME heat_capacity tag, SAME ENERGY_PER_TEMPERATURE
+#     dimension), the i-PI PIMD scaled-coordinates (double-virial) estimator of
+#     C_V for liquids / anharmonic systems, complementary to the map's harmonic
+#     mode-sum HeatCapacity. Distinct node ONLY by the method=pimd label (the
+#     carrier-label / transport_model precedent): same tag, label distinguishes,
+#     distinct uid, NO re-mint. Served as a scalar C_V (a single number per
+#     state point), unlike the per-mode harmonic HeatCapacity.
+# ---------------------------------------------------------------------------
+
+QUANTUM_KINETIC_ENERGY = ObservableSpace(
+    name="QuantumKineticEnergy",
+    fields=(Field("E_K", ENERGY, indices=()),),
+    description=(
+        "Nuclear quantum kinetic energy from path-integral molecular dynamics, "
+        "via the centroid-virial estimator over the ring-polymer beads: "
+        "<E_K> = (3/2) N k_B T + (1/2N) <sum_i (q_i - q_c) . (dV/dq_i)>, with q_c "
+        "the bead centroid. Exceeds the classical 3/2 N k_B T equipartition value "
+        "by the quantum-nuclear zero-point contribution, and reduces to it in the "
+        "classical limit (nbeads=1). Scalar (a single number per state point); an "
+        "optional 3x3 kinetic-energy tensor variant probes the anisotropy of the "
+        "quantum effect on bonds. Distinct from the per-mode InternalEnergy (the "
+        "harmonic-oscillator Bose-Einstein occupation energy) and from any "
+        "classical MD kinetic energy: a PIMD ensemble estimator, kept apart by its "
+        "own quantum_kinetic_energy tag. Produced by i-PI (path-integrals, "
+        "heat-capacity recipes of the Atomistic Cookbook)."
+    ),
+    tier="Molecular dynamics",
+)
+
+HEAT_CAPACITY_PIMD = ObservableSpace(
+    name="HeatCapacity[method=pimd]",
+    fields=(Field("C_V", ENERGY_PER_TEMPERATURE, indices=()),),
+    labels={"method": "pimd"},
+    description=(
+        "Constant-volume heat capacity C_V of a liquid / anharmonic system from "
+        "path-integral MD via the scaled-coordinates (double-virial) estimator, "
+        "C_V = k_B beta^2 (<eps_v^2> - <eps_v>^2 - <eps_v'>) (i-PI heat-capacity "
+        "recipe). A method-tagged PRODUCER VARIANT of the existing harmonic "
+        "HeatCapacity: SAME heat_capacity tag, SAME ENERGY_PER_TEMPERATURE "
+        "dimension, differing only in METHOD (the PIMD fluctuation estimator, "
+        "valid for liquids and strongly anharmonic systems, vs the map's harmonic "
+        "crystalline mode-sum). It joins the one heat_capacity family through the "
+        "method=pimd label (a registered LABEL_KEY value): a distinct node ONLY by "
+        "that label (the carrier / transport_model precedent), NO re-mint. Captures "
+        "the quantum suppression the harmonic route misses (liquid water ~15 "
+        "k_B/molecule). Served as a scalar C_V (a single number per state point), "
+        "unlike the (q, nu)-indexed harmonic HeatCapacity."
+    ),
+    tier="Molecular dynamics",
+)
+
+
 NODES: tuple[Space, ...] = (
     POTENTIAL,
     TEMPERATURE_STATE,
@@ -788,4 +853,7 @@ NODES: tuple[Space, ...] = (
     # Amorphous / localization diagnostics (kaldo delta scan, records 208-211)
     PARTICIPATION_RATIO,
     MODAL_DIFFUSIVITY,
+    # Nuclear-quantum-effects layer (Cookbook Slice 1, i-PI, records 212-215)
+    QUANTUM_KINETIC_ENERGY,
+    HEAT_CAPACITY_PIMD,
 )

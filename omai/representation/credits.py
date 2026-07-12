@@ -104,6 +104,17 @@ CODE_CREDITS: dict[str, dict] = {
         "citation from lammps/CITATION.cff",
         "url": "https://www.lammps.org",
     },
+    "i-pi": {
+        "citation": "Y. Litman, V. Kapil, Y. M. Y. Feldman, et al., i-PI 3.0: "
+        "a flexible and efficient framework for advanced atomistic simulations, "
+        "J. Chem. Phys. 161, 062504 (2024)",
+        "doi": "10.1063/5.0215869",
+        "license": "GPL-2.0-or-later OR MIT (user's choice, dual license)",
+        "license_source": "i-pi repo licenses/LICENSE.md (WebFetch, verified "
+        "2026-07-11): 'i-PI is free software distributed under both the GPL and "
+        "MIT licenses' (user's choice)",
+        "url": "https://ipi-code.org",
+    },
     # --- DFT ground state / periodic quantum chemistry -----------------------
     "qe": {
         "citation": "P. Giannozzi, S. Baroni, N. Bonini, et al., QUANTUM "

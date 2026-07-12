@@ -65,6 +65,9 @@ from omai.thermal_transport.operator.nodes import (
     # Amorphous / localization diagnostics (kaldo delta scan, records 208-211)
     PARTICIPATION_RATIO,
     MODAL_DIFFUSIVITY,
+    # Nuclear-quantum-effects layer (Cookbook Slice 1, i-PI, records 212-215)
+    QUANTUM_KINETIC_ENERGY,
+    HEAT_CAPACITY_PIMD,
 )
 
 
@@ -1562,6 +1565,91 @@ compute_modal_diffusivity = Operator(
 )
 
 
+# ---------------------------------------------------------------------------
+# Nuclear-quantum-effects layer (Cookbook Slice 1, the i-PI / path-integral MD
+# layer; records 212-215). Two sampling edges, both from the pre-existing MD
+# tier (Trajectory, Temperature): the PIMD trajectory is the path-integral
+# producer variant of the classical run_md Trajectory, and the quantum
+# estimators are read off its ring-polymer beads. Both estimators are
+# ensemble averages over the beads (opaque applied functions of the sampled
+# trajectory and the temperature), so neither is sympy-executable and the
+# dimensional gate SKIPS both (no false proof, no false violation), exactly
+# like the QHGK compute_modal_diffusivity kernel.
+# ---------------------------------------------------------------------------
+
+# sample_quantum_kinetic_energy: <E_K> = E_K^{cv}[r(t), T] via the
+# centroid-virial estimator over the ring-polymer beads,
+#   <E_K> = (3/2) N k_B T + (1/2N) <sum_i (q_i - q_c) . dV/dq_i>,
+# with q_c the bead centroid. Opaque estimator functional of the sampled
+# Trajectory and the Temperature; not sympy-executable.
+_E_K_qke = sp.Symbol("E_K")
+_E_K_cv_fn = sp.Function("E_K^{cv}")
+_r_traj_arg = sp.Symbol("r")  # the Trajectory positions (a PIMD ring-polymer sample)
+_T_arg = sp.Symbol("T", positive=True)
+
+_SAMPLE_QUANTUM_KINETIC_ENERGY_FORMULA = sp.Eq(
+    _E_K_qke,
+    _E_K_cv_fn(_r_traj_arg, _T_arg),
+)
+
+sample_quantum_kinetic_energy = Operator(
+    name="sample_quantum_kinetic_energy",
+    inputs=(TRAJECTORY, TEMPERATURE_STATE),
+    outputs=(QUANTUM_KINETIC_ENERGY,),
+    schemes={"method": "pimd", "estimator": "centroid_virial"},
+    formula=_SAMPLE_QUANTUM_KINETIC_ENERGY_FORMULA,
+    is_executable_in_sympy_override=False,
+    description=(
+        "Nuclear quantum kinetic energy from a PIMD Trajectory via the "
+        "centroid-virial estimator (scheme estimator=centroid_virial): "
+        "<E_K> = (3/2) N k_B T + (1/2N) <sum_i (q_i - q_c) . dV/dq_i>, with q_c "
+        "the ring-polymer bead centroid. An ensemble average over the beads of "
+        "the sampled trajectory, opaque as a closed form (E_K^{cv}[r(t), T]), so "
+        "not sympy-executable; the dimensional gate SKIPS it (i-PI fixes the "
+        "output at ENERGY on the rail). PIMD (method=pimd) is the path-integral "
+        "producer variant of the classical run_md Trajectory: the same Trajectory "
+        "node, sampled with ring-polymer beads instead of a single classical "
+        "replica, from which the quantum estimator is read. Complementary to the "
+        "classical 3/2 N k_B T equipartition kinetic energy it exceeds."
+    ),
+)
+
+
+# sample_quantum_heat_capacity: C_V = C_V^{pimd}[r(t), T] via the PIMD
+# scaled-coordinates (double-virial) estimator,
+#   C_V = k_B beta^2 (<eps_v^2> - <eps_v>^2 - <eps_v'>),
+# an ensemble average over the beads. Opaque; not sympy-executable.
+_C_V_pimd = sp.Symbol("C_V")
+_C_V_pimd_fn = sp.Function("C_V^{pimd}")
+
+_SAMPLE_QUANTUM_HEAT_CAPACITY_FORMULA = sp.Eq(
+    _C_V_pimd,
+    _C_V_pimd_fn(_r_traj_arg, _T_arg),
+)
+
+sample_quantum_heat_capacity = Operator(
+    name="sample_quantum_heat_capacity",
+    inputs=(TRAJECTORY, TEMPERATURE_STATE),
+    outputs=(HEAT_CAPACITY_PIMD,),
+    schemes={"method": "pimd", "estimator": "double_virial"},
+    formula=_SAMPLE_QUANTUM_HEAT_CAPACITY_FORMULA,
+    is_executable_in_sympy_override=False,
+    description=(
+        "Constant-volume heat capacity C_V from a PIMD Trajectory via the "
+        "scaled-coordinates (double-virial) estimator (scheme "
+        "estimator=double_virial): C_V = k_B beta^2 (<eps_v^2> - <eps_v>^2 - "
+        "<eps_v'>) (i-PI heat-capacity recipe), an ensemble average over the "
+        "ring-polymer beads. Produces the method-tagged HeatCapacity[method=pimd] "
+        "variant: SAME heat_capacity tag and ENERGY_PER_TEMPERATURE dimension as "
+        "the harmonic HeatCapacity, the quantum fluctuation estimator valid for "
+        "liquids / anharmonic systems (the harmonic mode-sum route is not). Opaque "
+        "as a closed form (C_V^{pimd}[r(t), T]), so not sympy-executable; the "
+        "dimensional gate SKIPS it (i-PI fixes the output at "
+        "ENERGY_PER_TEMPERATURE on the rail)."
+    ),
+)
+
+
 EDGES: tuple[Operator, ...] = (
     provide_potential,
     provide_temperature,
@@ -1615,4 +1703,7 @@ EDGES: tuple[Operator, ...] = (
     # Amorphous / localization diagnostics (kaldo delta scan, records 208-211)
     compute_participation_ratio,
     compute_modal_diffusivity,
+    # Nuclear-quantum-effects layer (Cookbook Slice 1, i-PI, records 212-215)
+    sample_quantum_kinetic_energy,
+    sample_quantum_heat_capacity,
 )

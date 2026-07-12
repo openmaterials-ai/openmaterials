@@ -84,9 +84,11 @@ def test_write_index_emits_one_file_per_representation(tmp_path):
     # openmm rails, 24th-25th; the characterization scan added the mattergen and
     # diffcsp Structure-provenance rails, 26th-27th (the XRDCalculator note
     # extended the existing pymatgen rail rather than opening a new one, and
-    # lobsterpy / smact deliberately earned no rail).
+    # lobsterpy / smact deliberately earned no rail); the Atomistic Cookbook
+    # audit's nuclear-quantum-effects layer (i-PI slice) added the i-pi rail,
+    # 28th (2026-07-11).
     assert len(files) == len(reps)
-    assert len(files) == 27
+    assert len(files) == 28
 
 
 def test_each_index_entry_uid_matches_live_node_id(tmp_path):

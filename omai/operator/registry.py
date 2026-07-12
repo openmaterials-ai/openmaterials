@@ -176,6 +176,7 @@ QUANTITY_TAGS: dict[str, str] = {
     "molar_volume": "Molar volume V_m = N_A V_cell, the volume per mole of PRIMITIVE CELLS (the phonon molar basis, matching the per-mole-of-cells Molar* thermodynamics, NOT per mole of atoms); m^3/mol. A promoted-parameter-style contraction of CellVolume by Avogadro's number, the one node that makes the molar Gruneisen and C_P - C_V identities executable (whole-map physics review 2026-07-10).",
     "power_factor": "Thermoelectric power factor PF = sigma_e S^2, the electronic electrical conductivity times the Seebeck coefficient squared; W/(m K^2). The first fruit of the thermoelectric slice, one input to the figure of merit ZT.",
     "zt": "Dimensionless thermoelectric figure of merit ZT = PF T / kappa_total = sigma_e S^2 T / (kappa_lattice + kappa_electronic); the single relation that stitches the lattice and electronic thermal-transport halves of the map into one thermoelectrics story. Tag derived from the node name ZT (the ZT acronym stays one token, as HOMOLUMOGap -> homolumo_gap and PhononDOS -> phonon_dos).",
+    "quantum_kinetic_energy": "Nuclear quantum kinetic energy from path-integral MD, estimated by the centroid-virial (or thermodynamic) estimator over the ring-polymer beads; ENERGY, the quantum-nuclear KE that exceeds the classical 3/2 N k_B T equipartition value and vanishes into it in the classical (nbeads=1) limit. Distinct from the per-mode internal_energy (a harmonic Bose-Einstein occupation energy) and from any classical MD kinetic energy: a PIMD ensemble estimator of nuclear KE, kept apart by its own tag.",
 }
 
 
@@ -287,4 +288,20 @@ LABEL_KEYS: dict[str, frozenset[str]] = {
     # so no node aliases). The lattice-only and electronic-only members are the
     # existing distinctly-tagged nodes; only the summed total needs this label.
     "contribution": frozenset({"total"}),
+    # The estimation METHOD of an otherwise-shared quantity: pimd (the
+    # path-integral molecular-dynamics fluctuation estimator, valid for
+    # liquids and anharmonic systems). Carried by HeatCapacity[method=pimd],
+    # the i-PI PIMD scaled-coordinates (double-virial) estimator of the
+    # constant-volume heat capacity C_V; it joins the one heat_capacity family
+    # (SAME heat_capacity tag, SAME ENERGY_PER_TEMPERATURE dimension as the
+    # existing harmonic HeatCapacity) and is kept a distinct node ONLY by this
+    # method label, so the quantum estimator lands WITHOUT a re-mint (the
+    # carrier-label pattern). Deliberately a SEPARATE label key from
+    # transport_model / bte_solver (which pick lattice-conductivity SOLVER
+    # routes): 'method' picks how a thermodynamic quantity is ESTIMATED (the
+    # harmonic mode-sum vs the PIMD fluctuation), a different axis. Collision-
+    # free against every other label key (order, bte_solver, transport_model,
+    # channel, wrt, carrier, construction, contribution): no key or value
+    # overlaps ('pimd' appears in no other value set).
+    "method": frozenset({"pimd"}),
 }

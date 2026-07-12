@@ -156,4 +156,14 @@ register_space_symbols({
     # ride in via the Frequency / Eigenvectors / Linewidth[channel=total] inputs.
     "ParticipationRatio": {"p", "a"},
     "ModalDiffusivity": {r"D_{mode}"},
+    # Nuclear-quantum-effects layer (Cookbook Slice 1, i-PI, records 212-215).
+    # The two PIMD sampling edges are implicit estimators over the ring-polymer
+    # beads: sample_quantum_kinetic_energy has LHS E_K and reads the Trajectory
+    # positions (the Trajectory `r` field) and the Temperature T (both ride in
+    # via the input spaces); sample_quantum_heat_capacity has LHS C_V likewise.
+    # The estimator applied-function names (E_K^{cv}, C_V^{pimd}) are sympy
+    # Functions, not free symbols, so only the output LHS symbols need
+    # registering here.
+    "QuantumKineticEnergy": {"E_K"},
+    "HeatCapacity[method=pimd]": {"C_V"},
 })

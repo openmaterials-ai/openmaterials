@@ -89,6 +89,8 @@ SYMBOLS = {
     "ThermalConductivity[transport_model=wigner]": r"\kappa",
     "ParticipationRatio": r"p",
     "ModalDiffusivity": r"D_{\mathrm{mode}}",
+    "QuantumKineticEnergy": r"\langle E_{K}\rangle",
+    "HeatCapacity[method=pimd]": r"C_{V}^{\mathrm{pimd}}",
 }
 
 
