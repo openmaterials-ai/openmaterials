@@ -1,0 +1,205 @@
+{
+ "paper": "Mode Localization and Suppressed Heat Transport in Amorphous Alloys (PRB 103, 024204)",
+ "claims": [
+  {
+   "node_id": "ThermalConductivity[bte_solver=direct_inverse]",
+   "quantity": "thermal conductivity",
+   "value_text": "150",
+   "unit": "W m\u22121 K\u22121",
+   "material": "c-Si",
+   "kind": "value"
+  },
+  {
+   "node_id": "ThermalConductivity[bte_solver=direct_inverse]",
+   "quantity": "thermal conductivity",
+   "value_text": "7",
+   "unit": "W m\u22121 K\u22121",
+   "material": "c-Si1-xGex",
+   "kind": "value"
+  },
+  {
+   "node_id": "Frequency",
+   "quantity": "phonon scattering frequency threshold",
+   "value_text": "2",
+   "unit": "THz",
+   "material": "c-Si1-xGex",
+   "kind": "value"
+  },
+  {
+   "node_id": "Temperature",
+   "quantity": "melting temperature",
+   "value_text": "4000",
+   "unit": "K",
+   "material": "crystalline silicon",
+   "kind": "condition"
+  },
+  {
+   "node_id": "Temperature",
+   "quantity": "quench temperature",
+   "value_text": "2000",
+   "unit": "K",
+   "material": "silicon",
+   "kind": "condition"
+  },
+  {
+   "node_id": "Temperature",
+   "quantity": "annealing start temperature",
+   "value_text": "2000",
+   "unit": "K",
+   "material": "silicon glass",
+   "kind": "condition"
+  },
+  {
+   "node_id": "Temperature",
+   "quantity": "annealing end temperature",
+   "value_text": "1400",
+   "unit": "K",
+   "material": "silicon",
+   "kind": "condition"
+  },
+  {
+   "node_id": "Temperature",
+   "quantity": "QHGK calculation temperature",
+   "value_text": "300",
+   "unit": "K",
+   "material": "a-SiGe",
+   "kind": "condition"
+  },
+  {
+   "node_id": "MassDensity",
+   "quantity": "density",
+   "value_text": "2.32",
+   "unit": "g/cm3",
+   "material": "amorphous silicon",
+   "kind": "value"
+  },
+  {
+   "node_id": "AtomCount",
+   "quantity": "number of atoms",
+   "value_text": "1728",
+   "unit": "atoms",
+   "material": "glass structure",
+   "kind": "condition"
+  },
+  {
+   "node_id": "AtomCount",
+   "quantity": "number of atoms",
+   "value_text": "4096",
+   "unit": "atoms",
+   "material": "glass structure",
+   "kind": "condition"
+  },
+  {
+   "node_id": "AtomCount",
+   "quantity": "number of atoms",
+   "value_text": "13824",
+   "unit": "atoms",
+   "material": "glass structure",
+   "kind": "condition"
+  },
+  {
+   "node_id": "Frequency",
+   "quantity": "size effect frequency threshold",
+   "value_text": "4",
+   "unit": "THz",
+   "material": "a-Si, a-Si0.8Ge0.2",
+   "kind": "value"
+  },
+  {
+   "node_id": "ThermalConductivity[transport_model=qhgk]",
+   "quantity": "thermal conductivity",
+   "value_text": "2.2",
+   "unit": "W m\u22121 K\u22121",
+   "material": "a-Si",
+   "kind": "value"
+  },
+  {
+   "node_id": "ThermalConductivity[transport_model=qhgk]",
+   "quantity": "thermal conductivity drop for 5% Ge",
+   "value_text": "0.6",
+   "unit": "W m\u22121 K\u22121",
+   "material": "a-Si1-xGex",
+   "kind": "value"
+  },
+  {
+   "node_id": "ThermalConductivity[transport_model=qhgk]",
+   "quantity": "further thermal conductivity reduction",
+   "value_text": "0.55",
+   "unit": "W m\u22121 K\u22121",
+   "material": "a-Si1-xGex",
+   "kind": "value"
+  },
+  {
+   "node_id": "Frequency",
+   "quantity": "low-frequency range upper bound",
+   "value_text": "4",
+   "unit": "THz",
+   "material": "a-Si",
+   "kind": "value"
+  },
+  {
+   "node_id": "Frequency",
+   "quantity": "mid-frequency range upper bound",
+   "value_text": "10",
+   "unit": "THz",
+   "material": "a-Si",
+   "kind": "value"
+  },
+  {
+   "node_id": "Frequency",
+   "quantity": "frequency threshold for \u03ba difference constancy",
+   "value_text": "8",
+   "unit": "THz",
+   "material": "a-Si1-xGex",
+   "kind": "value"
+  },
+  {
+   "node_id": "Frequency",
+   "quantity": "frequency threshold for contribution",
+   "value_text": "10",
+   "unit": "THz",
+   "material": "a-Si",
+   "kind": "value"
+  },
+  {
+   "node_id": "Frequency",
+   "quantity": "frequency threshold for constant conductivity differences",
+   "value_text": "8",
+   "unit": "THz",
+   "material": "a-Si1-xGex",
+   "kind": "value"
+  },
+  {
+   "node_id": "Temperature",
+   "quantity": "final temperature",
+   "value_text": "300",
+   "unit": "K",
+   "material": "silicon glass",
+   "kind": "condition"
+  },
+  {
+   "node_id": "Frequency",
+   "quantity": "frequency threshold for size effect buildup",
+   "value_text": "4",
+   "unit": "THz",
+   "material": "a-Si / a-Si0.8Ge0.2",
+   "kind": "value"
+  },
+  {
+   "node_id": "Frequency",
+   "quantity": "low-frequency range definition",
+   "value_text": "4",
+   "unit": "THz",
+   "material": "a-Si",
+   "kind": "value"
+  },
+  {
+   "node_id": "Frequency",
+   "quantity": "high-frequency range definition",
+   "value_text": "10",
+   "unit": "THz",
+   "material": "a-Si",
+   "kind": "value"
+  }
+ ]
+}

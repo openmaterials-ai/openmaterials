@@ -44,6 +44,13 @@
   .pg-hit .id{font-family:var(--font-mono,monospace);font-size:.8rem;color:var(--ink);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .pg-hit .sc{font-size:.7rem;color:var(--sim);flex:0 0 auto;}
   .pg-empty{padding:12px;border:1px dashed var(--line);border-radius:8px;color:var(--muted);font-size:.85rem;text-align:center;}
+  .lin-lab{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--faint,#9aa0a8);margin:14px 0 6px;font-weight:700;}
+  .lin-diagram{border:1px solid var(--line);border-radius:9px;padding:10px 12px;background:#fff;overflow-x:auto;}
+  .lin-row{display:flex;align-items:center;gap:6px;font-size:.72rem;padding:2px 0;white-space:nowrap;}
+  .lin-n{font-family:var(--font-mono,monospace);color:var(--ink-2,#3d4149);}
+  .lin-n.hot{color:var(--accent);font-weight:650;}
+  .lin-op{font-family:var(--font-mono,monospace);color:var(--faint,#9aa0a8);font-size:.66rem;}
+  .lin-code{margin:0;padding:10px 12px;background:#1a1c1f;color:#d6d9de;border-radius:9px;font-family:var(--font-mono,monospace);font-size:.7rem;line-height:1.5;overflow-x:auto;white-space:pre;}
   .pg-sel{display:flex;flex-direction:column;gap:8px;margin:8px 0;}
   .pg-canvas{flex:1 1 auto;position:relative;min-width:0;background:radial-gradient(circle at 50% 34%,#ffffff,#f4f1ea 78%);}
   #pgsvg{width:100%;height:100%;display:block;touch-action:none;}
@@ -115,15 +122,16 @@
     </div>
 
     <div class="pg-panel" data-panel="parse">
-      <h3>Parse a paper</h3>
-      <p>The paper parser reads a PDF and proposes values for the map, each
-        backed by a verbatim quote. The full parser with a drop zone lives on
-        the <a href="../learn/">learn page</a>; it runs on the project's key
-        behind a cost-gated relay.</p>
-      <a class="om-btn om-btn-primary" href="../learn/" style="display:inline-block">Open the parser</a>
-      <p style="margin-top:16px;font-size:.82rem;color:var(--muted)">Values a
-        paper proposes attach to the same nodes you see here; they enter the
-        map only through review, never automatically.</p>
+      <h3>A paper's lineage</h3>
+      <p>A parsed paper reports quantities; the map knows how each is produced.
+        Load a proposal to see the paper's method dataflow drawn as a graph,
+        with the same lineage lit on the map. Drop a PDF on the
+        <a href="../learn/">learn page</a> to make a proposal of your own.</p>
+      <button class="om-btn om-btn-primary" id="loadExample" type="button" style="display:inline-block">Load an example</button>
+      <p style="margin:14px 0 6px;font-size:.78rem;color:var(--muted)">or paste a proposal JSON:</p>
+      <textarea class="pg-input" id="proposalInput" rows="4" placeholder='{"claims": [{"node_id": "...", ...}]}' style="resize:vertical;font-family:var(--font-mono,monospace);font-size:.78rem"></textarea>
+      <button class="om-btn om-btn-sm" id="renderProposal" type="button" style="margin-top:8px">Draw lineage</button>
+      <div id="parseResult" style="margin-top:14px"></div>
     </div>
   </div>
 
@@ -343,6 +351,64 @@ function runTrace(){
   }
   renderSubmap(path, ops);
 }
+
+/* ---- parse: a paper's lineage -------------------------------------------- */
+// From a proposal's mapped node ids, reconstruct the method dataflow the paper
+// used: the map's own producing edges among (and into) the nodes the paper
+// touched. This is the paper's lineage expressed in the map's operators, drawn
+// Mermaid-style on the left and lit on the shared canvas on the right.
+function paperLineage(nodeIds){
+  var touched = {}; nodeIds.forEach(function(id){ if (nodeById[id]) touched[id] = 1; });
+  var edges = [], seen = {}, involved = {};
+  GRAPH.links.forEach(function(l){
+    if (!l.op || l.source === l.target) return;
+    if (!touched[l.target]) return;           // only edges that PRODUCE a reported quantity
+    var k = l.source + '>>' + l.target + '>>' + l.op; if (seen[k]) return; seen[k] = 1;
+    edges.push({ from: l.source, to: l.target, op: l.op });
+    involved[l.source] = 1; involved[l.target] = 1;
+  });
+  Object.keys(touched).forEach(function(id){ involved[id] = 1; });
+  return { edges: edges, nodes: Object.keys(involved), touched: touched };
+}
+
+function renderProposal(proposal){
+  var box = document.getElementById('parseResult');
+  var claims = (proposal && proposal.claims) || [];
+  var nodeIds = claims.map(function(c){ return c.node_id; }).filter(function(x){ return x && nodeById[x]; });
+  if (!nodeIds.length) { box.innerHTML = '<div class="pg-empty">No mapped quantities in this proposal.</div>'; renderSubmap([], {}); return; }
+  var lin = paperLineage(nodeIds);
+  var eops = {}; lin.edges.forEach(function(e){ eops[e.op] = 1; });
+
+  // the diagram: the paper's dataflow, each edge "from --op--> to" (Mermaid feel)
+  var diagram = lin.edges.map(function(e){
+    var op = e.op.replace(/\[.*?\]/g, '').replace(/_/g, ' ');
+    return '<div class="lin-row"><span class="lin-n' + (lin.touched[e.from] ? ' hot' : '') + '">' + esc(e.from) + '</span>'
+         + '<span class="lin-op">&mdash;' + esc(op) + '&rarr;</span>'
+         + '<span class="lin-n' + (lin.touched[e.to] ? ' hot' : '') + '">' + esc(e.to) + '</span></div>';
+  }).join('');
+  // the mapping in code: each reported value -> its node id and unit
+  var code = claims.filter(function(c){ return c.node_id && nodeById[c.node_id]; }).map(function(c){
+    return esc((c.value_text || '?') + ' ' + (c.unit || '') + '  ->  ' + c.node_id + (c.material ? ('   # ' + c.material) : ''));
+  }).join('\n');
+
+  box.innerHTML =
+    (proposal.paper ? '<div style="font-size:.82rem;font-weight:650;color:var(--ink);margin-bottom:10px">' + esc(proposal.paper) + '</div>' : '')
+    + '<div class="lin-lab">The paper\'s dataflow</div><div class="lin-diagram">' + (diagram || '<span style="color:var(--muted)">no producing edges among the reported quantities</span>') + '</div>'
+    + '<div class="lin-lab">The mapping, in code</div><pre class="lin-code">' + code + '</pre>';
+  renderSubmap(lin.nodes.filter(function(n){ return lin.touched[n]; }), eops);
+}
+
+document.getElementById('loadExample').addEventListener('click', function(){
+  fetch('example-proposal.json?v=' + Date.now()).then(function(r){ return r.json(); })
+    .then(function(p){ document.getElementById('proposalInput').value = JSON.stringify(p, null, 1); renderProposal(p); })
+    .catch(function(e){ document.getElementById('parseResult').innerHTML = '<div class="pg-empty">Could not load the example: ' + esc(e.message) + '</div>'; });
+});
+document.getElementById('renderProposal').addEventListener('click', function(){
+  var raw = document.getElementById('proposalInput').value.trim();
+  if (!raw) return;
+  try { renderProposal(JSON.parse(raw)); }
+  catch (e) { document.getElementById('parseResult').innerHTML = '<div class="pg-empty">Not valid JSON: ' + esc(e.message) + '</div>'; }
+});
 
 /* ---- tabs, share, hash --------------------------------------------------- */
 document.querySelectorAll('.pg-tab').forEach(function(t){
