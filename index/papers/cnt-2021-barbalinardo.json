@@ -1,0 +1,54 @@
+{
+ "map_version": "a4a60afe3fe692e67f1044cb6899c0a67550942092b192b9d9df4d455c0c6bcb",
+ "paper": {
+  "arxiv": "2103.10633",
+  "authors": "Giuseppe Barbalinardo, Zekun Chen, Haikuan Dong, Zheyong Fan, Davide Donadio",
+  "doi": "10.1103/PhysRevLett.127.025902",
+  "journal_ref": "Phys. Rev. Lett. 127, 025902 (2021)",
+  "title": "Ultrahigh convergent thermal conductivity of carbon nanotubes from comprehensive atomistic modeling"
+ },
+ "parsed": {
+  "date": "2026-07-12",
+  "parser": "omai.paper_parser P2 (ensemble, batched map)",
+  "proposal_stats": {
+   "applied": 3,
+   "detected": 40,
+   "survived": 5
+  }
+ },
+ "values": [
+  {
+   "instance": "10-0-swcnt-thermalconductivity-bte-solver-direct-inverse-paper-cnt-2021-barbalinardo.json",
+   "node_id": "ThermalConductivity[bte_solver=direct_inverse]",
+   "node_uid": "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9",
+   "pages": [
+    2
+   ],
+   "quote": "The classical limit at 300 K gives \u03bacl = 3190 Wm\u22121K\u22121",
+   "units": "W/(m K)",
+   "value": 3190.0
+  },
+  {
+   "instance": "10-0-swcnt-meanfreedisplacement-bte-solver-direct-inverse-paper-cnt-2021-barbalinardo-qm.json",
+   "node_id": "MeanFreeDisplacement[bte_solver=direct_inverse]",
+   "node_uid": "b24a26725f5641ffb16720514a7fdb23bf03304ce0d51c9f39501d1c8c009b6c",
+   "pages": [
+    3
+   ],
+   "quote": "the longest mean free paths, which are 6 mm (QM) and 0.9 mm (classical)",
+   "units": "mm",
+   "value": 6.0
+  },
+  {
+   "instance": "10-0-swcnt-meanfreedisplacement-bte-solver-direct-inverse-paper-cnt-2021-barbalinardo-classical.json",
+   "node_id": "MeanFreeDisplacement[bte_solver=direct_inverse]",
+   "node_uid": "b24a26725f5641ffb16720514a7fdb23bf03304ce0d51c9f39501d1c8c009b6c",
+   "pages": [
+    3
+   ],
+   "quote": "the longest mean free paths, which are 6 mm (QM) and 0.9 mm (classical)",
+   "units": "mm",
+   "value": 0.9
+  }
+ ]
+}

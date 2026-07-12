@@ -1,0 +1,32 @@
+{
+ "map_version": "a4a60afe3fe692e67f1044cb6899c0a67550942092b192b9d9df4d455c0c6bcb",
+ "paper": {
+  "arxiv": "2011.08318",
+  "authors": "Nicholas W. Lundgren, Giuseppe Barbalinardo, Davide Donadio",
+  "doi": "10.1103/PhysRevB.103.024204",
+  "journal_ref": "Phys. Rev. B 103, 024204 (2021)",
+  "title": "Mode Localization and Suppressed Heat Transport in Amorphous Alloys"
+ },
+ "parsed": {
+  "date": "2026-07-12",
+  "parser": "omai.paper_parser P2 (ensemble, batched map)",
+  "proposal_stats": {
+   "applied": 1,
+   "detected": 107,
+   "survived": 16
+  }
+ },
+ "values": [
+  {
+   "instance": "a-si-thermalconductivity-transport-model-qhgk-paper-amorphous-alloys-2020-lundgren.json",
+   "node_id": "ThermalConductivity[transport_model=qhgk]",
+   "node_uid": "8932e3cbadef74a82802b43fd1d25328cb40e6136c90df3b6a4a998e77f9567b",
+   "pages": [
+    4
+   ],
+   "quote": "starting from a reference \u03ba = 2.2 W m\u22121 K\u22121for a-Si",
+   "units": "W/(m K)",
+   "value": 2.2
+  }
+ ]
+}
