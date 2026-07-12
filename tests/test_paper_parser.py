@@ -691,3 +691,45 @@ def test_map_claims_batches_and_reassembles(monkeypatch):
     # order preserved across batches: the reassembled mapping carries each
     # claim's own material back
     assert [m.material for m in mapped] == [f"m{i}" for i in range(121)]
+
+
+def test_split_for_api_partitions_oversized_documents(monkeypatch, tmp_path):
+    """Documents above the API request cap detect on page-range parts: real
+    sub-PDFs with their own text, page offsets converting back to whole-doc
+    numbering; small documents stay single-part (live: a 26MB figure-heavy
+    paper 413'd, 2026-07-12)."""
+    from omai.paper_parser.ingest import Ingested, split_for_api
+
+    small = Ingested(pdf_b64="A" * 100, pages=("p1", "p2"), full_text="p1\np2")
+    assert split_for_api("unused.pdf", small) == [(small, 0)]
+
+    # an oversized doc splits via real sub-PDF construction; fake the
+    # PdfReader/Writer machinery to keep the test hermetic
+    import pypdf
+
+    class FakePage:
+        pass
+
+    class FakeReader:
+        def __init__(self, path):
+            self.pages = [FakePage() for _ in range(4)]
+
+    class FakeWriter:
+        def __init__(self):
+            self.n = 0
+        def add_page(self, p):
+            self.n += 1
+        def write(self, buf):
+            buf.write(b"x" * (self.n * 30))  # 30 raw bytes/page -> 40 b64 chars
+
+    monkeypatch.setattr(pypdf, "PdfReader", FakeReader)
+    monkeypatch.setattr(pypdf, "PdfWriter", FakeWriter)
+    big = Ingested(pdf_b64="A" * 1000, pages=("a", "b", "c", "d"),
+                   full_text="a\nb\nc\nd", broken_pages=(3,))
+    parts = split_for_api("fake.pdf", big, max_b64=90)
+    assert len(parts) == 2
+    (p1, off1), (p2, off2) = parts
+    assert (off1, off2) == (0, 2)
+    assert p1.pages == ("a", "b") and p2.pages == ("c", "d")
+    # the broken page (3, whole-doc) lands in part 2 as its local page 1
+    assert p2.broken_pages == (1,) and p1.broken_pages == ()

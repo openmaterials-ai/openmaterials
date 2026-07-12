@@ -105,9 +105,27 @@ def run_pipeline(pdf_path: str | Path, *, client=None, map_version: str | None =
     detect_stop = map_stop = review_stop = "end_turn"
     cache_read = 0
 
-    # DETECT (ensemble: N independent passes, unioned)
-    detected, detect_stop, detect_info = _detect.detect_ensemble(
-        client, ingested, usage, passes=detect_passes)
+    # DETECT (ensemble: N independent passes, unioned). Oversized documents
+    # detect on page-range parts (each under the API request cap); a part's
+    # claim pages are offset back to whole-document numbering, and later
+    # stages (MAP, the quote corpus, REVIEW) see the whole paper as usual.
+    parts = _ingest.split_for_api(pdf_path, ingested)
+    detected = []
+    detect_info = {"passes": detect_passes, "per_pass_claim_counts": [],
+                   "stop_reasons": [], "cache_read_input_tokens": 0,
+                   "document_parts": len(parts)}
+    for part, page_offset in parts:
+        d, detect_stop, info = _detect.detect_ensemble(
+            client, part, usage, passes=detect_passes)
+        if page_offset:
+            for c in d:
+                c.pages = [pg + page_offset for pg in (c.pages or [])]
+        detected.extend(d)
+        detect_info["per_pass_claim_counts"] += info.get("per_pass_claim_counts", [])
+        detect_info["stop_reasons"] += info.get("stop_reasons", [])
+        detect_info["cache_read_input_tokens"] += info.get("cache_read_input_tokens", 0)
+        if detect_stop not in ("end_turn",):
+            break
 
     # MAP (pass 2)
     mapped, map_stop, cache_info = _map.map_claims(client, detected, catalog_text, usage)

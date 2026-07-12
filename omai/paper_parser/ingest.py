@@ -75,3 +75,57 @@ def read_pdf(pdf_path: str | Path) -> Ingested:
     full_text = "\n".join(pages)
     return Ingested(pdf_b64=pdf_b64, pages=pages, full_text=full_text,
                     broken_pages=tuple(broken))
+
+
+# The API rejects requests whose document block exceeds the request-size cap
+# (a 26MB figure-heavy PDF 413'd live, 2026-07-12). Above this many base64
+# chars, the pipeline detects on page-range parts instead (the corpus and all
+# later stages still see the whole paper).
+MAX_DOC_B64_CHARS = 24_000_000
+
+
+def split_for_api(pdf_path: str | Path, ingested: Ingested,
+                  max_b64: int = MAX_DOC_B64_CHARS) -> list[tuple[Ingested, int]]:
+    """Return [(part, page_offset)] parts each under the API size cap.
+
+    A part is a real sub-PDF (contiguous page range) with its OWN extracted
+    text so the detect citations stay meaningful; page_offset converts a
+    part's 1-indexed pages back to whole-document pages. A single part means
+    no split was needed. Parts are halved recursively until they fit (a part
+    that cannot fit even as one page raises: such a page is unparseable)."""
+    if len(ingested.pdf_b64) <= max_b64:
+        return [(ingested, 0)]
+
+    import base64
+    import io
+
+    from pypdf import PdfReader, PdfWriter
+
+    def _part(lo: int, hi: int) -> tuple[Ingested, int]:
+        reader = PdfReader(str(pdf_path))
+        w = PdfWriter()
+        for i in range(lo, hi):
+            w.add_page(reader.pages[i])
+        buf = io.BytesIO()
+        w.write(buf)
+        data = buf.getvalue()
+        b64 = base64.standard_b64encode(data).decode("ascii")
+        pages = ingested.pages[lo:hi]
+        part = Ingested(pdf_b64=b64, pages=pages, full_text="\n".join(pages),
+                        broken_pages=tuple(p - lo for p in ingested.broken_pages
+                                           if lo < p <= hi))
+        return part, lo
+
+    def _split(lo: int, hi: int) -> list[tuple[Ingested, int]]:
+        if hi - lo < 1:
+            raise ValueError(f"empty page range {lo}:{hi}")
+        part, off = _part(lo, hi)
+        if len(part.pdf_b64) <= max_b64:
+            return [(part, off)]
+        if hi - lo == 1:
+            raise ValueError(
+                f"page {lo + 1} alone exceeds the API size cap; unparseable")
+        mid = (lo + hi) // 2
+        return _split(lo, mid) + _split(mid, hi)
+
+    return _split(0, len(ingested.pages))
