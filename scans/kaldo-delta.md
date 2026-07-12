@@ -228,3 +228,134 @@ scaffolding, correctly absent from the rail.
 `quasiharmonic.py`) and the `test_diffusivity.py` / `test_elastic.py` reference
 values were present in the vendored tree; every unit was confirmed against
 source.
+
+## Review verdicts (2026-07-11)
+
+Adversarial deep review of commit `1dbfee8`'s catalog (9 entries). Default to
+distrust. Every source anchor was re-opened in the vendored `kaldo/` tree; the
+`ModalDiffusivity` unit chain was recomputed from the code (the `dirac_kernel`
+delta, the `sij` rescaling, the `omega` convention), not read off the docstring;
+the participation-ratio exponent was verified line by line; the three QHGK named
+projections were checked against `omai/thermal_transport/operator/edges.py:896-923`
+and the `compute_kappa_qhgk` inputs; the Si elastic numbers were traced to their
+test assertions; graph state was re-checked against `docs/data/graph.json`.
+
+**Headline: every claim survived. Tally over the 9 entries: 9 CONFIRMED, 0
+corrected, 0 rejected. No status flipped. No unit and no physics relationship was
+wrong.** Two non-substantive anchor nits are noted inline and did not change any
+verdict.
+
+**Snapshot note.** The scan header records `git_head 2834a4e`. At review time HEAD
+is `1dbfee8` (this delta scan's own commit); `docs/data/graph.json` is unchanged
+between the two (the scan commit touched `scans/` only) and still reads **98 nodes,
+242 links, 15 tiers**, matching the snapshot. `Diffusivity`, `ElasticConstants`,
+`ThermalExpansion`, `PhononDOS`, `GroupVelocity`, `HeatCapacity`,
+`HelmholtzFreeEnergy` are all present; `ParticipationRatio` and `ModalDiffusivity`
+are absent, exactly as the `relevant_present` / `relevant_absent` lists claim. (The
+snapshot's `records 207` is not derivable from `graph.json`, which carries no
+records field; the node/link/tier counts and all present/absent facts hold.)
+
+### The participation-ratio exponent: the trap was avoided (load-bearing)
+
+The brief flagged a specific failure mode: writing `PR = 1/(N sum_i a_i^2)` where
+`a_i` is a raw normalized amplitude would give `sum_i a_i^2 = 1` identically. The
+scanner did **not** fall into it. `calculate_participation_ratio`
+(`harmonic_with_q.py:341-343`) reshapes the eigenvector to `(n_modes, n_atoms, 3)`,
+forms `a_i = reduce_sum(e * conj(e), axis=2)` (the **per-atom** amplitude, summed
+over the 3 cartesian components, line 341), then `tf.math.square(a_i)` (line 342),
+then `reciprocal(reduce_sum(a_i^2, axis=1) * n_atoms)` (line 343). So
+
+```
+PR = 1 / (N * sum_i a_i^2),   a_i = sum_cart |e_i|^2
+   = 1 / (N * sum_i (sum_cart |e_i|^2)^2)
+```
+
+The square is applied to the **cartesian-summed per-atom amplitude**, not to a bare
+component, so the sum is not identically 1. This is the Bell/Dean `1/N` ratio, range
+`1/N..1`. **Exponent right.** DOI `10.1103/PhysRevB.53.11469` confirmed at
+`phonons.py:652`.
+
+### The ModalDiffusivity unit chain: recomputed, it holds (load-bearing)
+
+Working the dimensions from the code rather than the docstring: `omega = 2*pi*freq`
+in `rad/ps`; `velocity` is `A/ps` (`phonons.py:685`); `diffusivity_bandwidth` is
+`rad/ps`. In `calculate_diffusivity` (`conductivity.py:27-49`):
+
+- `lorentz_delta(delta_omega, sigma) = (1/2pi) sigma / (delta_omega^2 + (sigma/2)^2)`
+  has units `ps/rad` (`dirac_kernel.py:25-27`);
+- `kernel = pi * lorentz / (omega_n omega_m 4)` has units `ps^3/rad^3`;
+- `sij` has units `A*rad/ps^2` (from `velocity_AF = sij / (2pi * 2 * sqrt(omega_n omega_m))`,
+  `harmonic_with_q.py:268`, with `velocity` in `A/ps`);
+- so `diffusivity = sij_left * kernel * sij_right = (A*rad/ps^2)^2 * ps^3/rad^3 =
+  A^2/(ps*rad) = A^2/ps` (radian is dimensionless) `= A^2*THz`.
+
+So the internal per-axis accumulation **is** `A^2/ps`, as claimed. The final
+`diffusivity = 1/3 * 1/100 * contract('knaa->kn', diffusivity_with_axis)`
+(`conductivity.py:434`): `'knaa->kn'` traces the 3 diagonal cartesian axes, `1/3`
+averages them, and `1/100` is **exactly** the `A^2/ps -> mm^2/s` conversion
+(`1 A^2/ps = 1e-20 m^2 / 1e-12 s = 1e-8 m^2/s = 1e-2 mm^2/s`). Returned `D_n` in
+`mm^2/s` (`conductivity.py:310`). **QHGK-scoped:** `self._diffusivity` is set only
+in the `case 'qhgk'` branch (`conductivity.py:248`); `.diffusivity` returns it via
+`try/except` and otherwise logs "You need to calculate the conductivity QHGK first."
+and returns `None` (`conductivity.py:312-315`).
+
+### The three QHGK named projections: factually right
+
+Checked against `edges.py:896-923` and the `compute_kappa_qhgk` inputs
+(`HEAT_CAPACITY, FREQUENCY_STATE, GROUP_VELOCITY, TOTAL_LINEWIDTH, TEMPERATURE_STATE`,
+`edges.py:912`): `c_nm`'s diagonal **is** `HeatCapacity` (the `c[q,nu]` factor, line
+901); `S_ij`'s diagonal **is** `GroupVelocity` (`calculate_velocity` takes
+`Im(diag(rescaled S))`, `harmonic_with_q.py:271`, matching the graph's `GroupVelocity`
+formula `v = e-bar.(dD/dq).e / (2 omega)`); the single-mode `Gamma` **is**
+`Linewidth[channel=total]` (`TOTAL_LINEWIDTH`, the `(Gamma+Gamma')` width at
+`edges.py:902-904`). All three correct. The GroupVelocity double-count trap
+(same flux operator, different index depth) is precise.
+
+### The bonus finds: anchors and numbers verified
+
+`calculate_qha` (`quasiharmonic.py:357`) returns `thermal_expansion` (linear
+`alpha(T)` in `1/K`, `calculate_thermal_expansion` `np.gradient(a,T)/a` at :264,
+docstring `:254`), `free_energies` (meV/atom, docstring `:410`), volumetric via
+`3*alpha` in `get_volumetric_thermal_expansion` (`:609`). `elastic_prop`
+(`forceconstants.py:278`) returns `C_ijkl` in GPa (`evperang3togpa` at `:393`) via
+the FC2 long-wavelength expansion (DOI 10.1002/pssb.200879604, `:294`), **not** a
+stress scan. **The Si numbers are real, not invented:** `test_elastic.py` asserts
+`cijkl[0,0,0,0]==142.97` (C11, `:19`), `cijkl[0,0,1,1]==75.85` (C12, `:24`),
+`cijkl[1,2,1,2]==69.06` (C44, `:29`), `significant=3`, from the `si-crystal/` eskm
+fixture.
+
+### The two anchor nits (non-substantive, no verdict change)
+
+- `'participation_ratio': 'formatted'` in `_store_formats` is at `phonons.py:446`,
+  not `:447` (off by one). Still a first-class formatted output.
+- The `calculate_diffusivity` kernel description writes `sij_right = conj(...)`;
+  that conjugation is the **crystal path only** (`conductivity.py:413-414`
+  conjugates `sij_right` only when `not _is_amorphous`; the amorphous real-`Gamma`
+  path skips it). The core Allen-Feldman kernel formula is correct.
+
+### Orchestrator decisions (node names; the producer-edges call; the tier question)
+
+1. **MINT `ParticipationRatio`** (dimensionless, `(q,nu)`-indexed). HIGH.
+   Producer `Eigenvectors -> ParticipationRatio`. Kept apart from every other
+   dimensionless node by NAME.
+2. **MINT `ModalDiffusivity`** (or `HeatModeDiffusivity` - the name is the open
+   question), `mm^2/s`, `L^2 T^-1`, `(q,nu)`-indexed, QHGK/amorphous tier. HIGH.
+   FALSE-MERGE GUARDRAIL: same `L^2 T^-1` exponent as the existing mass
+   `Diffusivity` node; keep apart by DISTINCT NAME, never merge on dimension.
+3. **DO NOT decompose the QHGK/Wigner edge** into `HiddenSpace` nodes for `c_nm`,
+   `S_ij`, or the mode-pair lifetime. Record `diffusivity_bandwidth` /
+   `diffusivity_shape` / `diffusivity_threshold` as SCHEMES on `compute_kappa_qhgk`.
+4. **Producer-edges-now-or-later:** kaldo QHA `-> ThermalExpansion` and kaldo
+   `elastic_prop -> ElasticConstants` are cross-engine alternative-producer edges
+   into EXISTING nodes (no duplicates). MEDIUM. **Recommend DEFER both** until a
+   cross-engine EXPECTED_AGREE test needs the second route; add now only if that
+   test is being built. Tolerance must be approximation-level (acoustic-sum-rule /
+   long-wavelength for elastic; harmonic-lattice-scan vs phonopy-QHA for
+   expansion), not bit-exact.
+5. **projected pdos:** a projection SCHEME (`p_atoms`, `direction`) on the
+   `PhononDOS` operator, not a distinct node. LOW.
+6. **Tier question (open):** put `ParticipationRatio` + `ModalDiffusivity` in the
+   existing Harmonic/QHGK tiers, or add a **Localization/Disorder** tier grouping
+   the amorphous-branch diagnostics. kaldo does not compute the
+   propagon/diffuson/locon cut itself (it exposes PR and `D_n` and leaves the
+   threshold to the user), so a classification node is not required by kaldo.
