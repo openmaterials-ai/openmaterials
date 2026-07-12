@@ -1,0 +1,30 @@
+{
+ "representation": "i-pi",
+ "map_version": "2856922db839bfcf7b775d00f92b14ace6fb0cc8bdaa58bfae552ec2be94b908",
+ "covers": [
+  {
+   "node": "HeatCapacity[method=pimd]",
+   "uid": "3064108b9fe3839c9ca154ba7887f73cd550c02944ddf61dc26fcbdf07cf6fe0",
+   "api": "output property 'scaledcoords' (eps_v, eps_v') post-processed into C_V, or the i-pi-getacf / heat-capacity example script",
+   "unit": "eV_per_K"
+  },
+  {
+   "node": "QuantumKineticEnergy",
+   "uid": "a9a8eae4014c21afe87f7332c4aa842b0fd9002a7ed33e0bdb1ec339402fc9c9",
+   "api": "output property 'kinetic_cv{electronvolt}' (centroid-virial); per-atom / tensor via 'kinetic_od', 'kinetic_tens_cv'",
+   "unit": "ev"
+  },
+  {
+   "node": "Temperature",
+   "uid": "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0",
+   "api": "<initialize><cell>/<system> ... ensemble temperature; output property 'temperature{kelvin}'",
+   "unit": "kelvin"
+  },
+  {
+   "node": "Trajectory",
+   "uid": "12cde23e9a333fdd03313c4cdbd82d51033f9bb3bd505466a8db5360faf166b4",
+   "api": "output <trajectory filename='pos' stride=... > positions{angstrom} (per bead, or the centroid x_centroid)",
+   "unit": null
+  }
+ ]
+}

@@ -245,8 +245,8 @@ shape is already here.
 \section{Where we are, and what is next}
 
 Today the framework is real and growing. It has an operator layer and a
-representation layer, 27 ingested representations (kaldo, phono3py, phonopy,
-pymatgen, ShengBTE, Quantum ESPRESSO, VASP, LAMMPS, GPUMD, the machine-learned
+representation layer, 28 ingested representations (kaldo, phono3py, phonopy,
+pymatgen, ShengBTE, Quantum ESPRESSO, VASP, LAMMPS, GPUMD, i-PI, the machine-learned
 potentials matgl / MACE / fairchem, the database rail mp-api, and the CALPHAD,
 amset, ORCA, OpenMM, and AtomisticSkills mat-* / chem-* workflows), and a
 validation engine that executes the graph, composes
@@ -260,9 +260,9 @@ stability, thermochemistry, quasi-harmonic, molecular, and electronic-transport
 domains (grown from the AtomisticSkills scans),
 a first materials-diffusion subgraph, and a thermodynamic-identities domain that
 closes the map's formulas together; the unified map of
-100 quantities and 96 operators is content-addressed in the log-first store
+102 quantities and 98 operators is content-addressed in the log-first store
 (Part~\ref{part:kernel}), grown past its frozen genesis version through the
-contribution gates, and the whole is held together by a suite of 1327
+contribution gates, and the whole is held together by a suite of 1401
 passing tests.
 
 What is next is mostly upward and outward. The upstream from the
@@ -389,8 +389,8 @@ A content hash                  & \textbf{uid} & sha256; a 12-hex prefix is disp
 
 \section{The map}
 
-The map is a curated reference graph. Today it holds 100 nodes (97 observable
-and hidden quantities plus 3 promoted parameters) and 247 edges. Nodes are
+The map is a curated reference graph. Today it holds 102 nodes (99 observable
+and hidden quantities plus 3 promoted parameters) and 251 edges. Nodes are
 typed physical quantities. An edge produces one node from a list of input
 nodes, carrying the symbolic formula that relates them (parameter inputs are
 marked as inputs rather than derived through a formula).
@@ -692,12 +692,12 @@ the reviewers decide what enters the commons.
 
 \section{Status and build order}
 
-Today's map is one hundred eleven change records past v1, its frozen genesis version:
-97 typed quantities plus 3 promoted
-parameters, the symbolic formula on every relational edge, 27 representations
+Today's map is one hundred fifteen change records past v1, its frozen genesis version:
+99 typed quantities plus 3 promoted
+parameters, the symbolic formula on every relational edge, 28 representations
 mapped (kaldo 34 variables, phono3py 31, phonopy 22, pymatgen 22, ShengBTE 20,
-mp-api 13, QE 13, LAMMPS 12, VASP 9, GPUMD 8, pycalphad 7, and a further sixteen
-codes and mat-* / chem-* skills at five or fewer each), and real instances
+mp-api 13, QE 13, LAMMPS 12, VASP 9, GPUMD 8, pycalphad 7, i-PI 4, and a further
+sixteen codes and mat-* / chem-* skills at five or fewer each), and real instances
 computed through the framework: cross-code silicon thermal conductivity
 (Tersoff potential, 8x8x8 mesh, 300 K: kaldo 19.46 RTA and 26.91 direct,
 phono3py 16.74 RTA and 24.30 direct, in W/m K) plus an LGPS activation energy
@@ -1669,6 +1669,18 @@ $\kappa$ map alongside the LBTE / Wigner / QHGK variants.
         $(q,\nu)$), the QHGK / Allen--Feldman per-mode heat-mode diffusivity in
         $\text{mm}^2/\text{s}$, kept apart from the mass-transport
         \texttt{Diffusivity} by name and tag despite the shared dimension.
+  \item \emph{Nuclear-quantum-effects layer (Atomistic Cookbook audit, i-PI
+        slice):} sampled off the same MD \texttt{Trajectory}, path-integral MD
+        (i-PI, the sixth Trajectory producer) opens the nuclear-quantum layer
+        with a genuinely new scalar \texttt{QuantumKineticEnergy} (\textbf{O},
+        \textsc{energy}), the centroid-virial estimator that exceeds the
+        classical $\tfrac{3}{2}Nk_BT$ equipartition value, and a method-tagged
+        \texttt{HeatCapacity[method=pimd]} (\textbf{O},
+        \textsc{energy per temperature}), the PIMD scaled-coordinates $C_V$
+        estimator that joins the harmonic \texttt{HeatCapacity} family on the
+        same tag and dimension, distinguished only by the \texttt{method=pimd}
+        label (the carrier / transport\_model precedent), a producer variant
+        with no re-mint.
 \end{itemize}
 
 \paragraph{Edges.} Verb-headed names; each carries a sympy formula:
@@ -2726,14 +2738,14 @@ trusted). What remains, in order:
 \label{sec:status-live}
 
 The map is at store head version
-\texttt{b505d9421136e70bfa21d89dd6f81ba6a765c0d00b4f7e6226220ed5743a111e}
-(2026-07-10, 203 records), one hundred three change records past the frozen genesis hash
+\texttt{2856922db839bfcf7b775d00f92b14ace6fb0cc8bdaa58bfae552ec2be94b908}
+(2026-07-11, 215 records), one hundred fifteen change records past the frozen genesis hash
 \texttt{e6e8044e92039696417b53b220b0f3f10559a286b0eaabbe7ea4167ff510f6cd}
 (2026-07-07, the untouched 100-record prefix). The live numbers:
 
 \begin{itemize}[leftmargin=2em, itemsep=0.25em]
-  \item \textbf{Structure.} 98 nodes (95 observable and hidden quantities plus 3
-        promoted parameters), 242 rendered links, 94 deduplicated operators,
+  \item \textbf{Structure.} 102 nodes (99 observable and hidden quantities plus 3
+        promoted parameters), 251 rendered links, 104 deduplicated operators,
         rendered in fifteen physics tiers (Sources, Harmonic, Thermodynamics,
         Scattering, Transport, Molecular dynamics, Ground state, Mechanics,
         Stability, Thermochemistry, Quasi-harmonic, Molecular, Electronic
@@ -2745,12 +2757,12 @@ The map is at store head version
         rendered-link count exceeds the operator count because the site graph
         draws one link per (input $\to$ output) pair while an operator with
         several inputs is a single edge in the store.
-  \item \textbf{Representations.} 27 codes mapped, with per-code variable coverage:
-        kaldo 32, phono3py 31, phonopy 22, pymatgen 22, ShengBTE 20, mp-api 13,
+  \item \textbf{Representations.} 28 codes mapped, with per-code variable coverage:
+        kaldo 34, phono3py 31, phonopy 22, pymatgen 22, ShengBTE 20, mp-api 13,
         Quantum ESPRESSO 13, LAMMPS 12, VASP 9, GPUMD 8, pycalphad 7, matgl 5,
         mat-elasticity 5, amset 5, ORCA 5, pymatgen-analysis-diffusion 5,
-        fairchem 4, MACE 4, OpenMM 4, ASE 3, mat-diffusion-analysis 2, smol 2,
-        mat-equation-of-state 1, mat-surface-adsorption 1, rxn-network 1,
+        i-PI 4, fairchem 4, MACE 4, OpenMM 4, ASE 3, mat-diffusion-analysis 2,
+        smol 2, mat-equation-of-state 1, mat-surface-adsorption 1, rxn-network 1,
         diffcsp 1, mattergen 1.
   \item \textbf{Instances.} 59 recorded values, 57 simulation and 2 measurement.
         They span the newer domains (formation and hull energies, elastic and
@@ -2766,19 +2778,20 @@ The map is at store head version
         steady-state thermal conductivities of bulk single-crystal silicon
         ($156\,\mathrm{W/(m\,K)}$) and germanium ($60.2\,\mathrm{W/(m\,K)}$) at
         $300\,\mathrm{K}$ and natural isotopic abundance.
-  \item \textbf{Dimensional gate.} Of the 100 operator edges the gate walks, 37
+  \item \textbf{Dimensional gate.} Of the 104 operator edges the gate walks, 38
         are ok, 2 are documented-schematic violations
         (\texttt{compute\_gruneisen} and \texttt{compute\_phase\_space\_3phonon},
-        kept schematic by choice), and 61 are skipped (not closed-form
+        kept schematic by choice), and 64 are skipped (not closed-form
         \texttt{Eq} edges the gate can check, most of them the opaque solver
-        edges of the newer domains). The two ground-state derivatives
+        edges of the newer domains, now including the two PIMD estimator edges).
+        The two ground-state derivatives
         (\texttt{compute\_forces\_hf} and \texttt{compute\_stress\_cell}) and all
         four mechanics edges (the elastic tensor as
         $-\partial\sigma/\partial\varepsilon$, the pressure trace, and both Voigt
         moduli) are proven ok, as are the six thermodynamic-identity edges (the
         Gr\"uneisen identity, total thermal conductivity, molar volume, the
         $C_P - C_V$ relation, the power factor, and $ZT$).
-  \item \textbf{Tests.} The suite is 1372 passing.
+  \item \textbf{Tests.} The suite is 1401 passing.
 \end{itemize}
 
 \begin{center}
@@ -2786,7 +2799,7 @@ The map is at store head version
 \toprule
 Code & Variables mapped & License \\
 \midrule
-kaldo                        & 32 & BSD-3-Clause \\
+kaldo                        & 34 & BSD-3-Clause \\
 phono3py                     & 31 & BSD-3-Clause \\
 phonopy                      & 22 & BSD-3-Clause \\
 pymatgen                     & 22 & MIT \\
@@ -2802,6 +2815,7 @@ mat-elasticity               & 5  & MIT \\
 amset                        & 5  & BSD-3-Clause \\
 ORCA                         & 5  & Proprietary \\
 pymatgen-analysis-diffusion  & 5  & BSD-3-Clause \\
+i-PI                         & 4  & GPL-2.0 / MIT \\
 fairchem                     & 4  & MIT \\
 MACE                         & 4  & MIT \\
 OpenMM                       & 4  & MIT \\
@@ -2821,7 +2835,9 @@ Every code we represent must be cited and must carry its license. The License
 column above is read from the actual license text (the vendored LICENSE files
 for kaldo, LAMMPS, Quantum ESPRESSO, phonopy, phono3py, ShengBTE, and the
 AtomisticSkills skills; package metadata for the pip-distributed codes; the
-project's GitHub LICENSE for GPUMD, MatterGen, DiffCSP, and OpenMM). VASP and
+project's GitHub LICENSE for GPUMD, MatterGen, DiffCSP, and OpenMM; the i-PI
+repository's \texttt{licenses/LICENSE.md} for i-PI, distributed under both the
+GPL and MIT at the user's choice). VASP and
 ORCA are proprietary: VASP under the commercial license at vasp.at, ORCA free
 for academic use with commercial licensing through FACCTs. The mat-* rows are
 AtomisticSkills skills and carry that project's MIT license. The single source
