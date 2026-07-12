@@ -16,6 +16,7 @@ import json
 from dataclasses import dataclass, field
 
 from .detect import MODEL, MAX_TOKENS, Usage, DetectedClaim
+from omai.semantics import build_semantics, resolve as _resolve
 
 
 @dataclass
@@ -109,6 +110,32 @@ def build_system(catalog_text: str) -> list[dict]:
     ]
 
 
+_SEMANTIC_INDEX = None
+
+
+def _semantic_index():
+    """The label cloud, built once per process from the live graph. Used to
+    give the MAP model a deterministic grounding HINT per claim: the map's own
+    resolver applied to the detected quantity string. The model may confirm or
+    override the hint, so a wrong one costs nothing; a right one anchors the
+    fuzzy quantity string to the map's actual vocabulary."""
+    global _SEMANTIC_INDEX
+    if _SEMANTIC_INDEX is None:
+        from omai.map_data import DOMAINS, build_graph_dict
+        _SEMANTIC_INDEX = build_semantics(build_graph_dict(DOMAINS))
+    return _SEMANTIC_INDEX
+
+
+def _resolve_hint(quantity: str) -> list[str]:
+    """Top node-id suggestions for a detected quantity string (empty when the
+    resolver has no confident match). Nodes only; the model picks the exact
+    labeled variant and the dimension."""
+    if not quantity:
+        return []
+    hits = _resolve(quantity, _semantic_index(), limit=4)
+    return [h["id"] for h in hits if h["kind"] == "node" and h["score"] >= 0.6]
+
+
 def _claims_payload(claims: list[DetectedClaim]) -> str:
     """Render the detected claims as a compact JSON list for the user turn."""
     rows = []
@@ -122,6 +149,7 @@ def _claims_payload(claims: list[DetectedClaim]) -> str:
             "material": c.material,
             "conditions": c.conditions,
             "provenance": c.provenance,
+            "resolver_hint": _resolve_hint(c.quantity),
         })
     return json.dumps(rows, ensure_ascii=False)
 
@@ -130,7 +158,11 @@ MAP_USER_INSTRUCTIONS = (
     "Here are the detected claims as a JSON array. For each, return a mapping "
     "object. Rules:\n"
     "- node_id: the exact id of the best-matching catalog node, or the literal "
-    "string 'UNMAPPABLE'. Match on the physical quantity AND its dimension; a "
+    "string 'UNMAPPABLE'. Each claim carries a 'resolver_hint': node ids the "
+    "map's own deterministic resolver matched to the quantity string. Treat it "
+    "as a SUGGESTION: confirm it when the dimension and method agree, override "
+    "it freely when they do not. Match on the physical quantity AND its "
+    "dimension; a "
     "value in W/(m K) can only map to a thermal-conductivity node, etc. When a "
     "node id carries a label like [bte_solver=rta] or [carrier=ionic], choose "
     "the label that matches the claim's stated method/conditions. For a lattice "

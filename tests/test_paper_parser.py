@@ -733,3 +733,23 @@ def test_split_for_api_partitions_oversized_documents(monkeypatch, tmp_path):
     assert p1.pages == ("a", "b") and p2.pages == ("c", "d")
     # the broken page (3, whole-doc) lands in part 2 as its local page 1
     assert p2.broken_pages == (1,) and p1.broken_pages == ()
+
+
+def test_map_payload_carries_deterministic_resolver_hint():
+    """The MAP stage grounds each claim's fuzzy quantity string in the map's
+    own vocabulary via the semantic resolver, passed as a hint the model may
+    confirm or override. A known family hints, a genuine gap hints nothing."""
+    from omai.paper_parser.map_nodes import _resolve_hint
+
+    assert "PhononDOS" in _resolve_hint("phonon density of states")
+    qha = _resolve_hint("quasi-harmonic approximation")
+    assert "QHAGibbsEnergy" in qha and "ThermalExpansion" in qha
+    assert _resolve_hint("atomic multipole partitioning") == []  # honest gap
+    assert _resolve_hint("") == []
+
+    # the hint rides in the rendered claims payload
+    from omai.paper_parser.map_nodes import _claims_payload
+    d = _claim("2.2", quote="q", pages=[1])
+    d.quantity = "phonon density of states"
+    row = json.loads(_claims_payload([d]))[0]
+    assert "PhononDOS" in row["resolver_hint"]

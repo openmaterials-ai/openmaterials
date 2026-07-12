@@ -187,7 +187,7 @@
   <a class="brand" href="../index.html" aria-label="openmaterials home">
     <span>openmaterials.ai</span><span class="om-dot" aria-hidden="true"></span>
   </a>
-  <span class="om-search"><svg class="om-search-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input class="om-input" id="q" placeholder="Find a quantity" aria-label="Find a quantity on the map"></span>
+  <span class="om-search"><svg class="om-search-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input class="om-input" id="q" placeholder="Search by name or method" aria-label="Find a quantity on the map"></span>
   <nav class="nav" aria-label="Primary">
     <a href="../map/" class="active" aria-current="page">Map</a>
     <a href="../learn/">Learn</a>
@@ -285,10 +285,33 @@ function attr(s){ return (''+s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').rep
 Promise.all([
   fetch('../data/graph.json?v='+Date.now()).then(r=>r.json()),
   fetch('../data/codes.json?v='+Date.now()).then(r=>r.json()).catch(()=>({})),
-  fetch('../data/version.json?v='+Date.now()).then(r=>r.json()).catch(()=>null)
+  fetch('../data/version.json?v='+Date.now()).then(r=>r.json()).catch(()=>null),
+  fetch('../data/semantics.json?v='+Date.now()).then(r=>r.json()).catch(()=>[])
 ]).then(build).catch(e=> err('data: '+e));
 
-function build([graph, codes, version]){
+// The semantic index: a node/edge's surface labels (auto + curated), keyed by
+// id. Labels are structure metadata over uids, not evidence, so the map view
+// stays MVC-pure. resolveLabel() mirrors omai/semantics.resolve: normalize,
+// exact-alias, token-containment; deterministic, no server call.
+let semById={};
+function normLabel(s){ return String(s).replace(/([a-z0-9])([A-Z])/g,'$1 $2').replace(/[-_]/g,' ').toLowerCase().replace(/[^a-z0-9 ]+/g,' ').replace(/\s+/g,' ').trim(); }
+const STOP=new Set(['calculation','estimation','computation','analysis','the','a','an','of','and']);
+function tokset(s){ return new Set(normLabel(s).split(' ').filter(t=> t && !STOP.has(t))); }
+function resolveLabel(q){
+  const nq=normLabel(q), qt=tokset(q); if(!nq) return [];
+  const out=[];
+  for(const id in semById){
+    const e=semById[id]; let score=0;
+    if((e.curated||[]).some(c=> normLabel(c)===nq)) score=1.0;
+    else if((e.labels||[]).some(l=> normLabel(l)===nq)) score=0.9;
+    else if(qt.size){ const es=tokset((e.labels||[]).join(' ')+' '+id); let all=true; qt.forEach(t=>{ if(!es.has(t)) all=false; }); if(all) score=0.65; }
+    if(score) out.push({id, kind:e.kind, score});
+  }
+  return out.sort((a,b)=> b.score-a.score || a.id.localeCompare(b.id));
+}
+
+function build([graph, codes, version, semantics]){
+  (semantics||[]).forEach(e=>{ semById[e.id]=e; });
   codesData = codes || {};
   if(version && version.version){
     const vh=document.getElementById('mapverhash');
@@ -594,12 +617,31 @@ function toggleCode(code){
 
 // ---- interaction: search ---------------------------------------------------
 document.getElementById('q').addEventListener('input', function(){
-  const v=this.value.trim().toLowerCase(); if(!v){ clearSel(); return; }
-  const hits=Object.values(nodeById).filter(n=> (n.id+' '+(n.symbol||'')).toLowerCase().includes(v)).map(n=>n.id);
-  const set=new Set(hits); depth='focused'; clearDim(); panelEl.style.display='none';
+  const v=this.value.trim(); if(!v){ clearSel(); return; }
+  // Semantic resolution first: a physicist types "quasi-harmonic approximation"
+  // or "kappa" and the map grounds it to the matching nodes AND the edges of
+  // matched families. Falls back to the id/symbol substring match so partial
+  // typing still narrows.
+  const resolved=resolveLabel(v);
+  let nodeHits, edgeOps;
+  if(resolved.length){
+    nodeHits=resolved.filter(r=> r.kind==='node').map(r=> r.id).filter(id=> nodeById[id]);
+    edgeOps=new Set(resolved.filter(r=> r.kind==='edge').map(r=> r.id));
+  } else {
+    const lv=v.toLowerCase();
+    nodeHits=Object.values(nodeById).filter(n=> (n.id+' '+(n.symbol||'')).toLowerCase().includes(lv)).map(n=>n.id);
+    edgeOps=new Set();
+  }
+  const set=new Set(nodeHits); depth='focused'; clearDim(); panelEl.style.display='none';
   vp.querySelectorAll('.node').forEach(el=> el.classList.toggle('dim', !set.has(el.dataset.id)));
-  vp.querySelectorAll('.edge').forEach(el=> el.classList.add('dim'));
-  if(hits.length) fitTo(hits);
+  // an edge lights if it produces/consumes a hit node, or its operator resolved
+  vp.querySelectorAll('.edge').forEach(el=>{
+    const ab=(el.dataset.edge||'').split('>>'); const opn=el.dataset.op||'';
+    const touches=set.has(ab[0])||set.has(ab[1]); const named=edgeOps.has(opn);
+    el.classList.toggle('dim', !(touches||named)); el.classList.toggle('hot', named);
+  });
+  const focusIds=nodeHits.slice();
+  if(focusIds.length) fitTo(focusIds);
 });
 
 // keyboard: Escape returns from focus/panel.
