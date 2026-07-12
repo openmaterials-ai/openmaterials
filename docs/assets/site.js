@@ -87,7 +87,8 @@
       '<div class="om-trust-row"><span class="om-trust-k">version</span><span class="om-trust-v" id="om-version" role="button" tabindex="0" title="click to copy">loading…</span></div>' +
       '</div></div>' +
       '</div>' +
-      '<div class="om-smallprint">openmaterials.ai, a versioned map of physics. Giuseppe Barbalinardo and Davide Donadio, UC Davis. <span class="om-ver">' + year + '</span></div>' +
+      '<div class="om-smallprint">openmaterials.ai, a versioned map of physics. Giuseppe Barbalinardo and Davide Donadio, UC Davis. ' +
+      'Map data CC BY 4.0, stewarded by the OpenMaterials-AI initiative; interfaces by Da Vinci Labs. <span class="om-ver">' + year + '</span></div>' +
       '</footer>'
     );
   }

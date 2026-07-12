@@ -109,6 +109,18 @@ docs/                # the openmaterials document + the openmaterials.ai site
                      #   (map, map-trace, learn, deck, map-lab)
 ```
 
+## Structure and stewardship
+
+The project is one map in three parts. The map itself (the versioned graph,
+its evidence, and the rules that govern changes) is the commons, stewarded
+by OpenMaterials-AI, an open initiative structured as a foundation in
+formation: map data is CC BY 4.0 (LICENSE-DATA), the kernel is Apache 2.0
+(LICENSE), and GOVERNANCE.md states the boundary rule and the graduation
+path. The interfaces (the site, the views, the bibliography tooling) and
+the AI improvement engine (the paper parser, the scan agents) are built by
+Da Vinci Labs on top of the commons. Cite via CITATION.cff, stating the map
+version (docs/data/version.json) your work used.
+
 ## Design
 
 The architecture is Part III of `docs/openmaterials.pdf`; the implemented kernel

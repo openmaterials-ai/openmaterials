@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: >-
+  If you use the openmaterials map or the omai kernel, please cite the
+  project document and state the map version (docs/data/version.json) your
+  work used.
+title: "openmaterials.ai: a versioned, content-addressed map of physics"
+authors:
+  - family-names: Barbalinardo
+    given-names: Giuseppe
+  - family-names: Donadio
+    given-names: Davide
+repository-code: "https://github.com/gbarbalinardo/openmaterials"
+url: "https://openmaterials.ai"
+license: Apache-2.0
