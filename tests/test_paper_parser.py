@@ -563,3 +563,14 @@ def test_apply_proposal_excludes_condition_claims(tmp_path):
     assert len(written) == 1
     rec = json.loads(written[0].read_text())
     assert rec["variable"] == "ThermalConductivity[bte_solver=rta]"
+
+
+def test_default_map_version_is_the_live_published_pin():
+    """A proposal must never ship with map_version None while its catalog
+    fingerprint is set (found live 2026-07-12: the CLI's --map-version
+    defaulted to None and nothing fell back to the published head)."""
+    from omai.paper_parser import default_map_version
+    v = default_map_version()
+    assert isinstance(v, str) and len(v) == 64
+    repo = Path(__file__).resolve().parent.parent
+    assert v == json.load(open(repo / "docs" / "data" / "version.json"))["version"]

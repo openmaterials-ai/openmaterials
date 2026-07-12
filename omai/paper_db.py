@@ -143,8 +143,41 @@ def render_table(entries: list[dict]) -> str:
         )
     return "\n".join(rows)
 
+def render_proposal(slug: str, proposals_dir: Path | None = None) -> str:
+    """The per-paper sanity-check view: survivors, conditions, kills, feed."""
+    proposals_dir = Path(proposals_dir) if proposals_dir else PROPOSALS_DIR
+    p = json.loads((proposals_dir / f"{slug}.json").read_text())
+    claims = p.get("claims") or []
+    lines = [f"{slug}  (map {str(p.get('map_version'))[:12]}, ${p.get('cost_estimate_usd')})"]
+    ens = p.get("ensemble") or {}
+    lines.append(f"  ensemble per-pass claims: {ens.get('per_pass_claim_counts')}")
+
+    def _sv(c):
+        return (c.get("validation") or {}).get("survives") and                (c.get("review") or {}).get("verdict") in ("confirmed", "corrected")
+
+    values = [c for c in claims if c.get("node_id") and _sv(c) and c.get("kind", "value") == "value"]
+    conds = [c for c in claims if c.get("kind") == "condition"]
+    lines.append(f"  claims {len(claims)} | value-survivors {len(values)} | conditions {len(conds)} | unmapped {sum(1 for c in claims if not c.get('node_id'))}")
+    for c in values:
+        dup = (c.get("validation") or {}).get("duplicate")
+        lines.append(
+            f"    {str(c.get('node_id'))[:44]:44} {str(c.get('material'))[:16]:16} "
+            f"{(str(c.get('value_text')) + ' ' + str(c.get('unit') or '')):20} "
+            f"s={c.get('support')} {str(c.get('provenance'))[:12]}"
+            + (" DUP" if dup else "")
+        )
+    feed = p.get("new_node_feed") or []
+    if feed:
+        lines.append("  new-node feed: " + ", ".join(str(x.get("quantity", "?"))[:28] for x in feed[:8]))
+    return "\n".join(lines)
+
+
 if __name__ == "__main__":  # pragma: no cover - the CLI shell
-    entries = build_db()
-    path = write_db(entries)
-    print(render_table(entries))
-    print(f"\n{len(entries)} papers -> {path}")
+    import sys
+    if len(sys.argv) > 2 and sys.argv[1] == "--show":
+        print(render_proposal(sys.argv[2]))
+    else:
+        entries = build_db()
+        path = write_db(entries)
+        print(render_table(entries))
+        print(f"\n{len(entries)} papers -> {path}")

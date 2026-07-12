@@ -10,6 +10,7 @@ golden eval; the CLI lives in __main__.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import json
 from pathlib import Path
 
 from . import catalog as _catalog
@@ -53,6 +54,20 @@ def _make_client():
     return anthropic.Anthropic()
 
 
+def default_map_version() -> str | None:
+    """The live published map version (docs/data/version.json), the same
+    artifact the node catalog is built from. A proposal must never ship with
+    map_version None while its catalog fingerprint is set; this is the
+    fallback when the caller does not pin one explicitly."""
+    vfile = (Path(__file__).resolve().parents[1] / ".." / "docs" / "data" / "version.json").resolve()
+    if not vfile.exists():
+        return None
+    try:
+        return json.loads(vfile.read_text()).get("version")
+    except Exception:
+        return None
+
+
 def run_pipeline(pdf_path: str | Path, *, client=None, map_version: str | None = None,
                  proposals_dir: Path | None = None, write: bool = True,
                  instances_dir: Path | None = None,
@@ -69,6 +84,11 @@ def run_pipeline(pdf_path: str | Path, *, client=None, map_version: str | None =
 
     if client is None:
         client = _make_client()
+
+    # The proposal's provenance pin: which published map this parse ran
+    # against. Callers may override; the default is the live version.json.
+    if map_version is None:
+        map_version = default_map_version()
 
     # INGEST
     ingested = _ingest.read_pdf(pdf_path)
