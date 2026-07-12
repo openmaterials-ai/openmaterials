@@ -275,14 +275,22 @@ def detect(client, ingested, usage: Usage, *, prompt: str = DETECT_PROMPT,
     stop_reason rather than crashing. `prompt` selects the pass variant; the
     document block is identical and first in every pass so its tokens cache.
     """
-    resp = client.messages.create(
-        model=MODEL,
-        max_tokens=DETECT_MAX_TOKENS,
-        messages=[{"role": "user", "content": [
-            _document_block(ingested),
-            {"type": "text", "text": prompt},
-        ]}],
-    )
+    _messages = [{"role": "user", "content": [
+        _document_block(ingested),
+        {"type": "text", "text": prompt},
+    ]}]
+    # The 32k output budget trips the SDK's 10-minute non-streaming guard, so
+    # the real client must stream; the final message object is identical.
+    # Fake test clients implement only .create, hence the hasattr fallback.
+    if hasattr(client.messages, "stream"):
+        with client.messages.stream(
+            model=MODEL, max_tokens=DETECT_MAX_TOKENS, messages=_messages,
+        ) as _s:
+            resp = _s.get_final_message()
+    else:
+        resp = client.messages.create(
+            model=MODEL, max_tokens=DETECT_MAX_TOKENS, messages=_messages,
+        )
     usage.add(resp.usage)
     cache_read = getattr(resp.usage, "cache_read_input_tokens", 0) or 0
     stop = resp.stop_reason

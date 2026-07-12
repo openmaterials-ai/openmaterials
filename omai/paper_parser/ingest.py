@@ -19,6 +19,10 @@ class Ingested:
     pdf_b64: str          # base64 with no newlines, for the API document block
     pages: tuple[str, ...]  # per-page extracted text (1-indexed by position+1)
     full_text: str        # all pages joined by newlines: the quote corpus
+    broken_pages: tuple[int, ...] = ()  # 1-indexed pages whose text extraction
+                                        # failed (malformed streams); quotes
+                                        # citing only these pages cannot be
+                                        # verified and will be quote-killed
 
 
 def read_pdf(pdf_path: str | Path) -> Ingested:
@@ -41,8 +45,26 @@ def read_pdf(pdf_path: str | Path) -> Ingested:
     from pypdf import PdfReader
 
     reader = PdfReader(str(path))
-    pages = tuple((page.extract_text() or "") for page in reader.pages)
+    pages_l: list[str] = []
+    broken: list[int] = []
+    # Per-page isolation: one malformed compressed stream (pypdf
+    # LimitReachedError, live on a 55-page arXiv PDF 2026-07-12) must not
+    # take down the whole corpus. A broken page contributes empty text and
+    # is recorded; claims citing only broken pages die at the quote gate,
+    # which is the honest outcome (unverifiable is unusable).
+    for i, page in enumerate(reader.pages):
+        try:
+            pages_l.append(page.extract_text() or "")
+        except Exception:
+            pages_l.append("")
+            broken.append(i + 1)
+    pages = tuple(pages_l)
     if not pages:
         raise ValueError(f"PDF has no pages: {path}")
+    if broken and len(broken) > len(pages) // 2:
+        raise ValueError(
+            f"PDF text extraction failed on {len(broken)}/{len(pages)} pages: "
+            f"the quote gate would kill everything; treat as unparseable: {path}")
     full_text = "\n".join(pages)
-    return Ingested(pdf_b64=pdf_b64, pages=pages, full_text=full_text)
+    return Ingested(pdf_b64=pdf_b64, pages=pages, full_text=full_text,
+                    broken_pages=tuple(broken))

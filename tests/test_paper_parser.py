@@ -610,3 +610,38 @@ def test_collapse_same_finding_within_proposal():
     dead["validation"] = {"survives": False}
     out2 = _collapse_same_finding([claim(0, "340", 2), dead])
     assert len(out2) == 2
+
+
+def test_ingest_survives_broken_pages(monkeypatch, tmp_path):
+    """One malformed compressed stream (pypdf LimitReachedError, live on a
+    55-page arXiv PDF) must not take down the whole corpus: the broken page
+    contributes empty text and is recorded; a mostly-broken PDF is refused."""
+    import pypdf
+    from omai.paper_parser.ingest import read_pdf
+
+    class FakePage:
+        def __init__(self, ok):
+            self.ok = ok
+        def extract_text(self):
+            if not self.ok:
+                raise RuntimeError("Limit reached while decompressing")
+            return "good text"
+
+    class OneBad:
+        def __init__(self, path):
+            self.pages = [FakePage(True), FakePage(False), FakePage(True)]
+
+    f = tmp_path / "x.pdf"
+    f.write_bytes(b"%PDF-fake")
+    monkeypatch.setattr(pypdf, "PdfReader", OneBad)
+    ing = read_pdf(f)
+    assert ing.broken_pages == (2,)
+    assert len(ing.pages) == 3 and ing.pages[1] == ""
+
+    class MostlyBad:
+        def __init__(self, path):
+            self.pages = [FakePage(False), FakePage(False), FakePage(True)]
+
+    monkeypatch.setattr(pypdf, "PdfReader", MostlyBad)
+    with pytest.raises(ValueError):
+        read_pdf(f)
