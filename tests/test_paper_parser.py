@@ -583,3 +583,30 @@ def test_review_prompt_kills_descriptive_spectral_markers():
     from omai.paper_parser.review import REVIEW_SYSTEM
     assert "DESCRIPTIVE SPECTRAL MARKERS" in REVIEW_SYSTEM
     assert "Raman" in REVIEW_SYSTEM  # the counter-example stays protected
+
+
+def test_collapse_same_finding_within_proposal():
+    """The same finding stated twice in a paper (abstract + body) must
+    collapse to one surviving claim (max support, merged_from recorded);
+    distinct values on the same node/material are never touched. Found live
+    in the kALDo 2.0 parse (the CsPbBr3 340 K transition, twice)."""
+    from omai.paper_parser.propose import _collapse_same_finding
+
+    def claim(i, val, support, mat="CsPbBr3", node="TransitionTemperature"):
+        return {"index": i, "node_id": node, "material": mat, "value_text": val,
+                "kind": "value", "support": support,
+                "validation": {"survives": True},
+                "review": {"verdict": "confirmed"}}
+
+    out = _collapse_same_finding([
+        claim(0, "340", 2), claim(1, "340", 1),          # same finding: collapse
+        claim(2, "118", 3, node="X"), claim(3, "123", 3, node="X"),  # distinct: keep
+    ])
+    by = {c["index"]: c for c in out}
+    assert 1 not in by and by[0]["support"] == 2 and by[0]["merged_from"] == [1]
+    assert 2 in by and 3 in by
+    # non-surviving claims never participate
+    dead = claim(4, "340", 3)
+    dead["validation"] = {"survives": False}
+    out2 = _collapse_same_finding([claim(0, "340", 2), dead])
+    assert len(out2) == 2

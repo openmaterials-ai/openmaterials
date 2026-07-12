@@ -22,6 +22,47 @@ def slugify(text: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", (text or "").lower()).strip("-")
 
 
+def _collapse_same_finding(claims_out: list[dict]) -> list[dict]:
+    """Collapse SURVIVING duplicate findings within one proposal.
+
+    The detect-stage union merges only same-page / overlapping-quote pairs,
+    so the same finding stated twice in a paper (abstract and body, e.g. the
+    CsPbBr3 340 K transition in the kALDo 2.0 parse) survives as two claims.
+    Same (node_id, material, normalized value, kind) among surviving,
+    review-confirmed claims is one finding: keep the higher-support claim,
+    record merged_from with the other's index, take the max support. Distinct
+    values on the same node/material (118 vs 123 W/mK) are never touched.
+    """
+    def _norm_val(t):
+        try:
+            return float(str(t).replace(",", ""))
+        except (TypeError, ValueError):
+            return str(t)
+
+    def _surviving(c):
+        return (c.get("node_id")
+                and (c.get("validation") or {}).get("survives")
+                and (c.get("review") or {}).get("verdict") in ("confirmed", "corrected"))
+
+    best: dict = {}
+    drop = set()
+    for c in claims_out:
+        if not _surviving(c):
+            continue
+        key = (c["node_id"], str(c.get("material") or "").strip().lower(),
+               _norm_val(c.get("value_text")), c.get("kind"))
+        prev = best.get(key)
+        if prev is None:
+            best[key] = c
+            continue
+        keep, lose = (prev, c) if (prev.get("support") or 0) >= (c.get("support") or 0) else (c, prev)
+        keep["support"] = max(prev.get("support") or 0, c.get("support") or 0)
+        keep.setdefault("merged_from", []).append(lose["index"])
+        drop.add(lose["index"])
+        best[key] = keep
+    return [c for c in claims_out if c["index"] not in drop]
+
+
 def build_proposal(*, paper_slug: str, map_version: str | None, mapped, validations,
                    verdicts_by_index: dict, usage, catalog_fingerprint: str,
                    detect_stop: str, map_stop: str, review_stop: str,
@@ -92,6 +133,8 @@ def build_proposal(*, paper_slug: str, map_version: str | None, mapped, validati
                 "unit": d.unit,
                 "material": m.material,
             })
+
+    claims_out = _collapse_same_finding(claims_out)
 
     # Separated counts (spec section 6): value targets vs. input conditions.
     # A surviving, non-duplicate, non-killed VALUE claim is what apply would
