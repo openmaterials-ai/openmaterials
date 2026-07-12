@@ -1,4 +1,5 @@
-"""Golden eval: run the REAL pipeline live against docs/openmaterials.pdf and
+"""Golden eval: run the REAL pipeline live against the FROZEN golden copy of
+the openmaterials paper (tests/golden/openmaterials-golden.pdf) and
 score it against the honestly-built expected set.
 
 Skipped without an API key so the suite is green with and without a key. When a
@@ -25,7 +26,11 @@ from omai.paper_parser import run_pipeline
 from omai.paper_parser.env import has_key, load_env
 
 _REPO_ROOT = Path(__file__).resolve().parents[1]
-_PDF = _REPO_ROOT / "docs" / "openmaterials.pdf"
+_PDF = _REPO_ROOT / "tests" / "golden" / "openmaterials-golden.pdf"
+# Frozen 2026-07-12 (104-node era; all 8 expected values verified present).
+# The living docs/openmaterials.pdf keeps evolving with the map counts, so
+# pinning the eval to it made the golden silently drift; the frozen copy
+# makes the eval reproducible forever.
 _EXPECTED = _REPO_ROOT / "tests" / "golden" / "openmaterials-expected.json"
 
 

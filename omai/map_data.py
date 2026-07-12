@@ -349,7 +349,7 @@ def _validate_spectrum(rec: dict, *, name_to_uid: dict, axis_by_var, where: str)
 
 def record_instance(*, domains, variable, material, value, units, source_kind,
                     source_ref, conditions=None, uncertainty=None, detail=None,
-                    configuration=None, instances_dir=None):
+                    configuration=None, instances_dir=None, slug_hint=None):
     known = {n["id"] for n in build_graph_dict(domains)["nodes"]}
     if variable not in known:
         raise ValueError(f"unknown variable {variable!r}")
@@ -364,8 +364,20 @@ def record_instance(*, domains, variable, material, value, units, source_kind,
     # the display string; configuration is the canonical uid when known.
     if configuration is not None:
         rec["configuration"] = configuration
-    path = instances_dir / (_slug(f"{material}-{variable}-{source_ref}") + ".json")
-    path.write_text(json.dumps(rec))
+    # The slug is (material, variable, source_ref) plus an optional caller
+    # hint (k-mesh, cell size...). One paper legitimately reports several
+    # values on the same node for the same material, so an existing file with
+    # DIFFERENT content must never be silently overwritten: identical
+    # re-records stay idempotent (same path back); different records get a
+    # numeric suffix.
+    base = f"{material}-{variable}-{source_ref}" + (f"-{slug_hint}" if slug_hint else "")
+    payload = json.dumps(rec)
+    path = instances_dir / (_slug(base) + ".json")
+    n = 1
+    while path.exists() and path.read_text() != payload:
+        n += 1
+        path = instances_dir / (_slug(base) + f"-{n}.json")
+    path.write_text(payload)
     return path
 
 

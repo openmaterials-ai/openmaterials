@@ -273,3 +273,30 @@ def test_spectra_bundle_valid():
         assert s["node_uid"] == name_to_uid[s["variable"]]
         assert len(s["axis"]["values"]) == len(s["values"])
 
+
+
+def test_record_instance_never_silently_overwrites(tmp_path):
+    """One paper legitimately reports several values on the same node for the
+    same material (the kaldo 2020 apply had five such). The old slug was
+    (material, variable, source_ref) only, so the second value silently
+    OVERWROTE the first. Now: identical re-records are idempotent (same path
+    back); different records get a numeric suffix; a slug_hint gives the
+    caller a human-readable disambiguator."""
+    common = dict(
+        variable="ThermalConductivity[bte_solver=rta]", material="Si",
+        units="W/(m K)", source_kind="simulation", source_ref="paper:x",
+        instances_dir=tmp_path,
+    )
+    p1 = record_instance(value=118.0, conditions={"mesh": "7x7x7"}, **common)
+    # identical re-record: same path, still one file
+    p1b = record_instance(value=118.0, conditions={"mesh": "7x7x7"}, **common)
+    assert p1 == p1b
+    assert len(list(tmp_path.glob("*.json"))) == 1
+    # a DIFFERENT value on the same slug: new suffixed file, first untouched
+    p2 = record_instance(value=123.0, conditions={"mesh": "10x10x10"}, **common)
+    assert p2 != p1 and p2.exists() and p1.exists()
+    recs = build_instances(tmp_path)
+    assert sorted(r["value"] for r in recs) == [118.0, 123.0]
+    # slug_hint: human-readable disambiguation up front
+    p3 = record_instance(value=166.0, slug_hint="extrapolated", **common)
+    assert "extrapolated" in p3.name
