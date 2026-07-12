@@ -1337,6 +1337,34 @@
   },
   "uid": "8ad53af4eefce437872dd08ee834962e6db76f7803ab50771b4985c0782c64d4"
  },
+ "8b0442bc348b8bb2e337fa19c06e6ab2e1c3568515b4322c834cbf197207469c": {
+  "identity": {
+   "formula": "Equality(Symbol('C_V'), Function('C_V^{pimd}')(Symbol('r'), Symbol('T', positive=True)))",
+   "inputs": [
+    "12cde23e9a333fdd03313c4cdbd82d51033f9bb3bd505466a8db5360faf166b4",
+    "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0"
+   ],
+   "output": "3064108b9fe3839c9ca154ba7887f73cd550c02944ddf61dc26fcbdf07cf6fe0",
+   "outputs": [
+    "3064108b9fe3839c9ca154ba7887f73cd550c02944ddf61dc26fcbdf07cf6fe0"
+   ],
+   "schemes": {
+    "estimator": "double_virial",
+    "method": "pimd"
+   }
+  },
+  "meta": {
+   "description": "Constant-volume heat capacity C_V from a PIMD Trajectory via the scaled-coordinates (double-virial) estimator (scheme estimator=double_virial): C_V = k_B beta^2 (<eps_v^2> - <eps_v>^2 - <eps_v'>) (i-PI heat-capacity recipe), an ensemble average over the ring-polymer beads. Produces the method-tagged HeatCapacity[method=pimd] variant: SAME heat_capacity tag and ENERGY_PER_TEMPERATURE dimension as the harmonic HeatCapacity, the quantum fluctuation estimator valid for liquids / anharmonic systems (the harmonic mode-sum route is not). Opaque as a closed form (C_V^{pimd}[r(t), T]), so not sympy-executable; the dimensional gate SKIPS it (i-PI fixes the output at ENERGY_PER_TEMPERATURE on the rail).",
+   "formula_latex": "C_{V} = C_V^{pimd}{\\left(r,T \\right)}",
+   "formula_srepr": "Equality(Symbol('C_V'), Function('C_V^{pimd}')(Symbol('r'), Symbol('T', positive=True)))",
+   "name": "sample_quantum_heat_capacity",
+   "schemes": {
+    "estimator": "double_virial",
+    "method": "pimd"
+   }
+  },
+  "uid": "8b0442bc348b8bb2e337fa19c06e6ab2e1c3568515b4322c834cbf197207469c"
+ },
  "8bd0005f31f01cd5d358f7cc58b21f7c7bb12abda8f11140d1b18c2b9b2e1e70": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('\\\\kappa')), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True)), Mul(Pow(Symbol('N_q', positive=True, integer=True), Integer(-1)), Pow(Symbol('V_{cell}', positive=True), Integer(-1)), Sum(Mul(Indexed(IndexedBase(Symbol('F')), Symbol('\\\\beta', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Indexed(IndexedBase(Symbol('c')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Indexed(IndexedBase(Symbol('v')), Symbol('\\\\alpha', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True))), Tuple(Symbol('\\\\mathbf{q}'), Integer(1), Symbol('N_q', positive=True, integer=True)), Tuple(Symbol('\\\\nu', integer=True), Integer(1), Mul(Integer(3), Symbol('N', positive=True, integer=True))))))",
@@ -1608,6 +1636,34 @@
    }
   },
   "uid": "9fc03548d4ca70a6634ed22f93f7efb198f00c48c8c8b0bd94b2b37d7f73c456"
+ },
+ "9fc76c80bba656236591522ff1955da5d9c313be5d0bc5beca5db579022d2ccd": {
+  "identity": {
+   "formula": "Equality(Symbol('E_K'), Function('E_K^{cv}')(Symbol('r'), Symbol('T', positive=True)))",
+   "inputs": [
+    "12cde23e9a333fdd03313c4cdbd82d51033f9bb3bd505466a8db5360faf166b4",
+    "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0"
+   ],
+   "output": "a9a8eae4014c21afe87f7332c4aa842b0fd9002a7ed33e0bdb1ec339402fc9c9",
+   "outputs": [
+    "a9a8eae4014c21afe87f7332c4aa842b0fd9002a7ed33e0bdb1ec339402fc9c9"
+   ],
+   "schemes": {
+    "estimator": "centroid_virial",
+    "method": "pimd"
+   }
+  },
+  "meta": {
+   "description": "Nuclear quantum kinetic energy from a PIMD Trajectory via the centroid-virial estimator (scheme estimator=centroid_virial): <E_K> = (3/2) N k_B T + (1/2N) <sum_i (q_i - q_c) . dV/dq_i>, with q_c the ring-polymer bead centroid. An ensemble average over the beads of the sampled trajectory, opaque as a closed form (E_K^{cv}[r(t), T]), so not sympy-executable; the dimensional gate SKIPS it (i-PI fixes the output at ENERGY on the rail). PIMD (method=pimd) is the path-integral producer variant of the classical run_md Trajectory: the same Trajectory node, sampled with ring-polymer beads instead of a single classical replica, from which the quantum estimator is read. Complementary to the classical 3/2 N k_B T equipartition kinetic energy it exceeds.",
+   "formula_latex": "E_{K} = E_K^{cv}{\\left(r,T \\right)}",
+   "formula_srepr": "Equality(Symbol('E_K'), Function('E_K^{cv}')(Symbol('r'), Symbol('T', positive=True)))",
+   "name": "sample_quantum_kinetic_energy",
+   "schemes": {
+    "estimator": "centroid_virial",
+    "method": "pimd"
+   }
+  },
+  "uid": "9fc76c80bba656236591522ff1955da5d9c313be5d0bc5beca5db579022d2ccd"
  },
  "a4bc99a6b2efc1df1400041ada33cfb59e97819f189e3501a99c06f9c5e5d49f": {
   "identity": {

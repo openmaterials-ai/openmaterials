@@ -457,6 +457,28 @@
   },
   "uid": "306384aed4a1204fb7ca2347729de8d1816fa5fc32f4855a5d5f56a4d0fc1ddf"
  },
+ "3064108b9fe3839c9ca154ba7887f73cd550c02944ddf61dc26fcbdf07cf6fe0": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2 Th^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "method": "pimd"
+   },
+   "quantity": "heat_capacity"
+  },
+  "meta": {
+   "description": "Constant-volume heat capacity C_V of a liquid / anharmonic system from path-integral MD via the scaled-coordinates (double-virial) estimator, C_V = k_B beta^2 (<eps_v^2> - <eps_v>^2 - <eps_v'>) (i-PI heat-capacity recipe). A method-tagged PRODUCER VARIANT of the existing harmonic HeatCapacity: SAME heat_capacity tag, SAME ENERGY_PER_TEMPERATURE dimension, differing only in METHOD (the PIMD fluctuation estimator, valid for liquids and strongly anharmonic systems, vs the map's harmonic crystalline mode-sum). It joins the one heat_capacity family through the method=pimd label (a registered LABEL_KEY value): a distinct node ONLY by that label (the carrier / transport_model precedent), NO re-mint. Captures the quantum suppression the harmonic route misses (liquid water ~15 k_B/molecule). Served as a scalar C_V (a single number per state point), unlike the (q, nu)-indexed harmonic HeatCapacity.",
+   "name": "HeatCapacity[method=pimd]",
+   "symbol": "C_{V}^{\\mathrm{pimd}}",
+   "tier": "Molecular dynamics"
+  },
+  "uid": "3064108b9fe3839c9ca154ba7887f73cd550c02944ddf61dc26fcbdf07cf6fe0"
+ },
  "3303dee51d36b5a42bf80aa0ab62bdecd0db34cc77782c5203192ecf3512a91d": {
   "identity": {
    "fields": [
@@ -1500,6 +1522,26 @@
    "tier": "Harmonic"
   },
   "uid": "a883ea19a62fcb80dc79d8c347fc583bef6a56d8764aef89455da764b4732031"
+ },
+ "a9a8eae4014c21afe87f7332c4aa842b0fd9002a7ed33e0bdb1ec339402fc9c9": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "quantum_kinetic_energy"
+  },
+  "meta": {
+   "description": "Nuclear quantum kinetic energy from path-integral molecular dynamics, via the centroid-virial estimator over the ring-polymer beads: <E_K> = (3/2) N k_B T + (1/2N) <sum_i (q_i - q_c) . (dV/dq_i)>, with q_c the bead centroid. Exceeds the classical 3/2 N k_B T equipartition value by the quantum-nuclear zero-point contribution, and reduces to it in the classical limit (nbeads=1). Scalar (a single number per state point); an optional 3x3 kinetic-energy tensor variant probes the anisotropy of the quantum effect on bonds. Distinct from the per-mode InternalEnergy (the harmonic-oscillator Bose-Einstein occupation energy) and from any classical MD kinetic energy: a PIMD ensemble estimator, kept apart by its own quantum_kinetic_energy tag. Produced by i-PI (path-integrals, heat-capacity recipes of the Atomistic Cookbook).",
+   "name": "QuantumKineticEnergy",
+   "symbol": "\\langle E_{K}\\rangle",
+   "tier": "Molecular dynamics"
+  },
+  "uid": "a9a8eae4014c21afe87f7332c4aa842b0fd9002a7ed33e0bdb1ec339402fc9c9"
  },
  "aab7019fbc014398b74ece01428527aa95e89da6f6d51efc0323b0acf59248c6": {
   "identity": {
