@@ -119,6 +119,7 @@ register_space_symbols({
         "F",
         r"\mathcal{M}",  # collision matrix used in solve_bte_direct's auxiliary formula
     },
+    "ThermalConductivity": {r"\kappa"},
     "ThermalConductivity[bte_solver=rta]": {r"\kappa"},
     "ThermalConductivity[bte_solver=direct_inverse]": {r"\kappa"},
     "ThermalConductivity[transport_model=wigner_populations]": {r"\kappa^{W,pop}"},

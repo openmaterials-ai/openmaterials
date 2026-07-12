@@ -352,6 +352,20 @@
 },
 {
 "curated": [
+"phonon-thermal-conductivity",
+"thermal-conductivity"
+],
+"id": "ThermalConductivity",
+"kind": "node",
+"labels": [
+"ThermalConductivity",
+"\\kappa",
+"thermal conductivity"
+],
+"uid": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5"
+},
+{
+"curated": [
 "phonon-thermal-conductivity"
 ],
 "id": "ThermalConductivity[bte_solver=direct_inverse]",
@@ -393,7 +407,7 @@
 "kind": "node",
 "labels": [
 "ThermalConductivity[transport_model=wigner]",
-"\\kappa",
+"\\kappa^{\\mathrm{W}}",
 "thermal conductivity transport model wigner"
 ],
 "uid": "35e6000d8a0f2e4572e667befbd4cd5a8c6005fa8f6ef08791b6879c77baba64"
@@ -1367,6 +1381,16 @@
 "labels": [
 "contract kappa bte solver direct inverse",
 "contract_kappa[bte_solver=direct_inverse]"
+],
+"uid": null
+},
+{
+"curated": [],
+"id": "resolve_thermal_conductivity",
+"kind": "edge",
+"labels": [
+"resolve thermal conductivity",
+"resolve_thermal_conductivity"
 ],
 "uid": null
 },

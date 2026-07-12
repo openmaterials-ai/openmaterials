@@ -361,7 +361,7 @@ def test_map_has_one_hundred_nodes_and_fifteen_tiers():
     # and HeatCapacity[method=pimd], both thermal_transport, each joining the
     # existing Molecular dynamics tier, no new tier.
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 104
+    assert len(g["nodes"]) == 105
     assert len(g["tiers"]) == 15
 
 

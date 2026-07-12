@@ -44,6 +44,7 @@ from omai.thermal_transport.operator.nodes import (
     TEMPERATURE_STATE,
     CUMULATIVE_KAPPA_MFP,
     CUMULATIVE_KAPPA_OMEGA,
+    THERMAL_CONDUCTIVITY,
     THERMAL_CONDUCTIVITY_DIRECT,
     THERMAL_CONDUCTIVITY_QHGK,
     THERMAL_CONDUCTIVITY_RTA,
@@ -798,6 +799,32 @@ contract_kappa_direct = Operator(
     # symbol heuristic false-negatives. The contraction is closed-form
     # (an einsum), evaluable by the general Sum evaluator.
     is_executable_in_sympy_override=True,
+)
+
+
+# The method-neutral observable. The direct/iterative LBTE is the converged,
+# exact route (unlike the RTA and MD approximants), so within the map's
+# abstraction the exact-solver estimate IS the physical thermal conductivity:
+# this identity edge connects the neutral node to the map and gives measured
+# and method-unspecified kappa a home the other routes point at by tag. Only
+# this one edge is minted (not one per route): the remaining routes are
+# approximants related by the shared thermal_conductivity tag, and a formal
+# "kappa[route] approximates kappa within error" edge lands only if an
+# explicit agreement claim ever earns it (YAGNI).
+resolve_thermal_conductivity = Operator(
+    name="resolve_thermal_conductivity",
+    inputs=(THERMAL_CONDUCTIVITY_DIRECT,),
+    outputs=(THERMAL_CONDUCTIVITY,),
+    formula=sp.Eq(_kappa[_alpha, _beta], _kappa[_alpha, _beta]),
+    is_executable_in_sympy_override=True,
+    description=(
+        "Identity: the converged direct/iterative LBTE thermal conductivity "
+        "is the physical observable within the map's abstraction. This edge "
+        "anchors the method-neutral ThermalConductivity node, the home for "
+        "measured and method-unspecified kappa; the RTA, Wigner, QHGK, and "
+        "MD routes are approximants of the same observable, related by the "
+        "shared thermal_conductivity tag rather than by their own edges."
+    ),
 )
 
 
@@ -1726,6 +1753,7 @@ EDGES: tuple[Operator, ...] = (
     solve_bte_direct,
     contract_kappa_rta,
     contract_kappa_direct,
+    resolve_thermal_conductivity,
     compute_kappa_wigner_populations,
     compute_kappa_wigner_coherences,
     combine_kappa_wigner,

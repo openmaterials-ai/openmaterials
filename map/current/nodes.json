@@ -542,7 +542,7 @@
   "meta": {
    "description": "Unified Wigner \u03ba = \u03ba_populations + \u03ba_coherences. The full expression interpolates between LBTE (when mode spacings \u226b \u0393, coherences \u2192 0) and a glass-like wave-transport regime (spacings \u2272 \u0393). Gauge-invariant ObservableSpace.",
    "name": "ThermalConductivity[transport_model=wigner]",
-   "symbol": "\\kappa",
+   "symbol": "\\kappa^{\\mathrm{W}}",
    "tier": "Transport"
   },
   "uid": "35e6000d8a0f2e4572e667befbd4cd5a8c6005fa8f6ef08791b6879c77baba64"
@@ -1407,6 +1407,29 @@
    "tier": "Ground state"
   },
   "uid": "9c5a2fdedab6b668ccf5f2043fb4c29a982bcde5063fd6ac8633ee2c7858ecbf"
+ },
+ "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-1",
+     "indices": [
+      "cartesian",
+      "cartesian"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "thermal_conductivity"
+  },
+  "meta": {
+   "description": "The thermal conductivity tensor kappa: the physical observable itself, the quantity a MEASUREMENT reports and every computational route ESTIMATES. Method-neutral by construction: it carries no route label. The labeled siblings (ThermalConductivity[bte_solver=rta], [transport_model=qhgk], [transport_model=green_kubo], ...) are computational APPROXIMANTS of this node, sharing its tag (thermal_conductivity) so the semantic and agreement layers relate them; they are distinct nodes only by their route label. A measured kappa, or a computed kappa reported without a resolvable solver, is evidence of THIS node, not of any particular route. W/(m K).",
+   "name": "ThermalConductivity",
+   "symbol": "\\kappa",
+   "tier": "Transport"
+  },
+  "uid": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5"
  },
  "a32e08f3d5a147643986f961b701aea560791721df573f09188a557da369fb4f": {
   "identity": {

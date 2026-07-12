@@ -788,6 +788,27 @@
   ],
   "uid": "504b2deeec3553dc90f91bdc0b4136feaf52abcbc585edd65500d5cab9f27cb2"
  },
+ "516d748ca6d647abd4346336058ba9c42970078bee2991aa45cf8d4cfb8ff49d": {
+  "identity": {
+   "formula": "true",
+   "inputs": [
+    "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9"
+   ],
+   "output": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5",
+   "outputs": [
+    "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Identity: the converged direct/iterative LBTE thermal conductivity is the physical observable within the map's abstraction. This edge anchors the method-neutral ThermalConductivity node, the home for measured and method-unspecified kappa; the RTA, Wigner, QHGK, and MD routes are approximants of the same observable, related by the shared thermal_conductivity tag rather than by their own edges.",
+   "formula_latex": "\\text{True}",
+   "formula_srepr": "true",
+   "name": "resolve_thermal_conductivity",
+   "schemes": {}
+  },
+  "uid": "516d748ca6d647abd4346336058ba9c42970078bee2991aa45cf8d4cfb8ff49d"
+ },
  "59ae54527b2e735e5408e66eadb81c9f1fa29720ea39207564e388a44cd1b04c": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('F^{at}')), Symbol('i', integer=True), Symbol('\\\\alpha', integer=True)), Mul(Integer(-1), Derivative(Symbol('E_{tot}'), Tuple(Indexed(IndexedBase(Symbol('R^{at}')), Symbol('i', integer=True), Symbol('\\\\alpha', integer=True)), Integer(1)))))",

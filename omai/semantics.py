@@ -33,7 +33,11 @@ _DOCS = Path(__file__).resolve().parent.parent / "docs"
 # ---------------------------------------------------------------------------
 ALIASES: dict[str, tuple[str, ...]] = {
     # RA2 screenshot seed (2026-07-12)
+    "thermal-conductivity": (
+        "ThermalConductivity",
+    ),
     "phonon-thermal-conductivity": (
+        "ThermalConductivity",
         "ThermalConductivity[bte_solver=rta]",
         "ThermalConductivity[bte_solver=direct_inverse]",
         "ThermalConductivity[transport_model=qhgk]",

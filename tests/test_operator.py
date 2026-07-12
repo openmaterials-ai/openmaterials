@@ -21,11 +21,11 @@ from omai.thermal_transport.operator import (
 
 
 def test_node_count():
-    assert len(NODES) == 51
+    assert len(NODES) == 52
 
 
 def test_edge_count():
-    assert len(EDGES) == 52
+    assert len(EDGES) == 53
 
 
 def test_cumulative_kappa_parameterised():
@@ -202,10 +202,20 @@ def test_topological_order_is_valid():
 
 
 def test_thermal_conductivity_is_terminal():
-    """No edge has ThermalConductivity as an input."""
+    """The method-neutral ThermalConductivity is the terminal kappa node (no
+    edge consumes it). The exact-solver direct_inverse now feeds it through
+    resolve_thermal_conductivity (the method-neutral ruling, 2026-07-12), so
+    only the neutral node and the RTA approximant are terminal; direct_inverse
+    is intentionally no longer terminal."""
+    from omai.thermal_transport.operator import THERMAL_CONDUCTIVITY
+
     for op in EDGES:
         for inp in op.inputs:
-            assert inp not in (THERMAL_CONDUCTIVITY_RTA, THERMAL_CONDUCTIVITY_DIRECT)
+            assert inp is not THERMAL_CONDUCTIVITY, op.name
+            assert inp is not THERMAL_CONDUCTIVITY_RTA, op.name
+    # direct_inverse feeds exactly the resolver edge and nothing else
+    consumers = [op.name for op in EDGES if THERMAL_CONDUCTIVITY_DIRECT in op.inputs]
+    assert consumers == ["resolve_thermal_conductivity"]
 
 
 def test_linewidth_normalization_registry_has_2x_convention():

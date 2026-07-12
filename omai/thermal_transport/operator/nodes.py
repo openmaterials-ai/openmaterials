@@ -44,7 +44,7 @@ from omai.operator.dimensions import (
     LENGTH_TIMES_FREQUENCY,
     OPAQUE,
     TEMPERATURE,
-    THERMAL_CONDUCTIVITY,
+    THERMAL_CONDUCTIVITY as THERMAL_CONDUCTIVITY_DIM,
 )
 from omai.operator.space import Field, HiddenSpace, ObservableSpace, Space
 
@@ -241,9 +241,27 @@ MOLAR_INTERNAL_ENERGY = ObservableSpace(
     tier="Thermodynamics",
 )
 
+THERMAL_CONDUCTIVITY = ObservableSpace(
+    name="ThermalConductivity",
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY_DIM, indices=("alpha", "beta")),),
+    description=(
+        "The thermal conductivity tensor kappa: the physical observable itself, "
+        "the quantity a MEASUREMENT reports and every computational route "
+        "ESTIMATES. Method-neutral by construction: it carries no route label. "
+        "The labeled siblings (ThermalConductivity[bte_solver=rta], "
+        "[transport_model=qhgk], [transport_model=green_kubo], ...) are "
+        "computational APPROXIMANTS of this node, sharing its tag "
+        "(thermal_conductivity) so the semantic and agreement layers relate "
+        "them; they are distinct nodes only by their route label. A measured "
+        "kappa, or a computed kappa reported without a resolvable solver, is "
+        "evidence of THIS node, not of any particular route. W/(m K)."
+    ),
+    tier="Transport",
+)
+
 THERMAL_CONDUCTIVITY_DIRECT = ObservableSpace(
     name="ThermalConductivity[bte_solver=direct_inverse]",
-    fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY_DIM, indices=("alpha", "beta")),),
     labels={"bte_solver": "direct_inverse"},
     description=(
         "Lattice thermal conductivity from the direct/iterative LBTE solver. "
@@ -432,7 +450,7 @@ MEAN_FREE_DISPLACEMENT_RTA = HiddenSpace(
 
 THERMAL_CONDUCTIVITY_RTA = HiddenSpace(
     name="ThermalConductivity[bte_solver=rta]",
-    fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY_DIM, indices=("alpha", "beta")),),
     labels={"bte_solver": "rta"},
     gauge_group="bz_summation_permutation_via_1_over_gamma",
     kind="approximation",
@@ -456,7 +474,7 @@ THERMAL_CONDUCTIVITY_RTA = HiddenSpace(
 
 THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS = ObservableSpace(
     name="ThermalConductivity[transport_model=wigner_populations]",
-    fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY_DIM, indices=("alpha", "beta")),),
     labels={"transport_model": "wigner_populations"},
     description=(
         "Particle-like (populations) channel of the Wigner κ decomposition "
@@ -469,7 +487,7 @@ THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS = ObservableSpace(
 
 THERMAL_CONDUCTIVITY_WIGNER_COHERENCES = ObservableSpace(
     name="ThermalConductivity[transport_model=wigner_coherences]",
-    fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY_DIM, indices=("alpha", "beta")),),
     labels={"transport_model": "wigner_coherences"},
     description=(
         "Wave-like (coherences) channel of the Wigner κ decomposition. "
@@ -482,7 +500,7 @@ THERMAL_CONDUCTIVITY_WIGNER_COHERENCES = ObservableSpace(
 
 THERMAL_CONDUCTIVITY_WIGNER = ObservableSpace(
     name="ThermalConductivity[transport_model=wigner]",
-    fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY_DIM, indices=("alpha", "beta")),),
     labels={"transport_model": "wigner"},
     description=(
         "Unified Wigner κ = κ_populations + κ_coherences. The full "
@@ -495,7 +513,7 @@ THERMAL_CONDUCTIVITY_WIGNER = ObservableSpace(
 
 CUMULATIVE_KAPPA_OMEGA = ObservableSpace(
     name="CumulativeKappa[wrt=omega]",
-    fields=(Field("kappa_cum", THERMAL_CONDUCTIVITY, indices=("alpha", "beta", "omega_bin")),),
+    fields=(Field("kappa_cum", THERMAL_CONDUCTIVITY_DIM, indices=("alpha", "beta", "omega_bin")),),
     labels={"wrt": "omega"},
     description=(
         "Cumulative thermal conductivity vs frequency: κ_cum(ω_c) "
@@ -509,7 +527,7 @@ CUMULATIVE_KAPPA_OMEGA = ObservableSpace(
 
 CUMULATIVE_KAPPA_MFP = ObservableSpace(
     name="CumulativeKappa[wrt=mfp]",
-    fields=(Field("kappa_cum", THERMAL_CONDUCTIVITY, indices=("alpha", "beta", "mfp_bin")),),
+    fields=(Field("kappa_cum", THERMAL_CONDUCTIVITY_DIM, indices=("alpha", "beta", "mfp_bin")),),
     labels={"wrt": "mfp"},
     description=(
         "Cumulative thermal conductivity vs mean free path: κ_cum(Λ_c) "
@@ -523,7 +541,7 @@ CUMULATIVE_KAPPA_MFP = ObservableSpace(
 
 THERMAL_CONDUCTIVITY_QHGK = HiddenSpace(
     name="ThermalConductivity[transport_model=qhgk]",
-    fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY_DIM, indices=("alpha", "beta")),),
     labels={"transport_model": "qhgk"},
     gauge_group="bz_summation_permutation_via_lorentzian",
     kind="approximation",
@@ -689,7 +707,7 @@ MEAN_SQUARED_DISPLACEMENT = ObservableSpace(
 
 THERMAL_CONDUCTIVITY_GREEN_KUBO = ObservableSpace(
     name="ThermalConductivity[transport_model=green_kubo]",
-    fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY_DIM, indices=("alpha", "beta")),),
     labels={"transport_model": "green_kubo"},
     description=(
         "Classical Green-Kubo κ: time-integrated heat-flux autocorrelation. "
@@ -704,7 +722,7 @@ THERMAL_CONDUCTIVITY_GREEN_KUBO = ObservableSpace(
 
 THERMAL_CONDUCTIVITY_NEMD = ObservableSpace(
     name="ThermalConductivity[transport_model=nemd]",
-    fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY_DIM, indices=("alpha", "beta")),),
     labels={"transport_model": "nemd"},
     description=(
         "Non-equilibrium MD κ: steady-state response to an imposed "
@@ -721,7 +739,7 @@ THERMAL_CONDUCTIVITY_NEMD = ObservableSpace(
 
 THERMAL_CONDUCTIVITY_HNEMD = ObservableSpace(
     name="ThermalConductivity[transport_model=hnemd]",
-    fields=(Field("kappa", THERMAL_CONDUCTIVITY, indices=("alpha", "beta")),),
+    fields=(Field("kappa", THERMAL_CONDUCTIVITY_DIM, indices=("alpha", "beta")),),
     labels={"transport_model": "hnemd"},
     description=(
         "Homogeneous-NEMD κ (Evans 1982, Fan et al. 2019): a uniform "
@@ -888,6 +906,7 @@ NODES: tuple[Space, ...] = (
     MEAN_FREE_DISPLACEMENT_RTA,
     MEAN_FREE_DISPLACEMENT_DIRECT,
     THERMAL_CONDUCTIVITY_RTA,
+    THERMAL_CONDUCTIVITY,
     THERMAL_CONDUCTIVITY_DIRECT,
     THERMAL_CONDUCTIVITY_WIGNER_POPULATIONS,
     THERMAL_CONDUCTIVITY_WIGNER_COHERENCES,

@@ -43,6 +43,7 @@ from omai.thermal_transport.operator import edges as _edges
 SYMBOLS = {
     "Potential": r"V",
     "Temperature": r"T",
+    "ThermalConductivity": r"\kappa",
     "BornCharges": r"Z^{*}",
     "DielectricTensor": r"\varepsilon_{\infty}",
     "IsotopeAbundances": r"g_{\mathrm{iso}}",
@@ -86,7 +87,7 @@ SYMBOLS = {
     "CumulativeKappa[wrt=omega]": r"\kappa^{\mathrm{cum}}_{\omega}",
     "ThermalConductivity[bte_solver=direct_inverse]": r"\kappa^{\mathrm{dinv}}",
     "ThermalConductivity[transport_model=wigner_populations]": r"\kappa_{\mathrm{pop}}",
-    "ThermalConductivity[transport_model=wigner]": r"\kappa",
+    "ThermalConductivity[transport_model=wigner]": r"\kappa^{\mathrm{W}}",
     "ParticipationRatio": r"p",
     "ModalDiffusivity": r"D_{\mathrm{mode}}",
     "QuantumKineticEnergy": r"\langle E_{K}\rangle",
