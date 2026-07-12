@@ -659,4 +659,9 @@ if __name__ == "__main__":
     print("wrote", write_configurations())
     print("wrote", write_codes())
     print("wrote", write_catalog())
+    # The semantic layer regenerates with the map: labels are metadata over
+    # live uids, so a stale semantics.json is a lie about identity.
+    from omai.semantics import write_semantics as _write_semantics
+    import json as _json
+    print("wrote", _write_semantics(_json.loads((_DOCS / "data" / "graph.json").read_text())))
     print("wrote", write_version())

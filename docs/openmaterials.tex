@@ -39,7 +39,10 @@
 \begin{abstract}
 \noindent openmaterials stores the object a scientific result \emph{is}, not the
 printout of it: a typed physical quantity, the executable formula that produces
-it, its lineage, its units and gauge, and the codes that represent it. This
+it, its lineage, its units and gauge, and the codes that represent it. The map
+doubles as a semantic layer for AI: fuzzy natural-language labels resolve to
+typed, gated, content-addressed identities, so agents ground their language in
+checkable physics instead of text similarity. This
 document is the project's single source of truth. Part~I states the vision (why
 science needs a git-like object model). Part~II describes the product (the free
 protocol and the hosted app, the map, the parsers, the index, the contracts).
@@ -451,6 +454,28 @@ interatomic potential are not independent confirmations, so the map keeps the
 full provenance (potential, method, code) and lets independence be judged rather
 than counting raw repetitions. A claim no instance has reached yet still lives
 on the map, simply unconfirmed.
+
+\section{The semantic layer}
+
+The map speaks symbolic language: typed nodes, executable formulas, proven
+dimensions. The literature and the language models that read it speak semantic
+language: labels like ``quasi-harmonic approximation'' or
+``phonon-thermal-conductivity''. The semantic layer (2026-07-12) connects the
+two as a first-class artifact: every node and edge carries its cloud of surface
+labels (auto-derived forms plus a curated alias registry, reviewed like
+vocabulary), published uid-pinned in \texttt{docs/data/semantics.json} and
+regenerated with the map. A deterministic resolver turns any fuzzy label into
+ranked typed identities: normalization, exact alias hits, token containment,
+no embeddings, so every resolution is auditable. An agent that grounds its
+phrase through the resolver inherits everything the map knows about the
+element: the formula, the dimensional proof, the producing codes with their
+citations, the evidence with its provenance. A label that resolves to nothing
+is an honest coverage gap and feeds the encode queue. External method
+vocabularies (the first being a 16,012-paper skill map extracted by
+large-scale literature analysis) align to the map through reviewed alignment
+files, each unmatched label ranked by its usage frequency in the field. This
+is the sense in which the map is a semantics for AI: fuzzy language in,
+checkable identity out.
 
 \section{The parsers}
 

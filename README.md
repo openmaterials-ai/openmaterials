@@ -6,9 +6,13 @@ symbolic (sympy) formulas. Each external code (kaldo, phono3py, phonopy,
 ShengBTE, LAMMPS, GPUMD) is a *representation*: a per-code mapping of its
 numerical output onto the shared operator layer. Because every quantity is typed
 and every edge carries its formula, the framework reconciles results across codes
-mechanically, runs calculations itself, and validates them. The longer aim is a
-semantic action space for AI agents that reason over typed physics rather than
-text tokens.
+mechanically, runs calculations itself, and validates them. This is the best
+semantics for AI: the semantic layer (omai/semantics.py, docs/data/semantics.json)
+resolves the fuzzy language of papers and LLMs ("quasi-harmonic-approximation",
+"phonon-thermal-conductivity") to typed, gated, content-addressed identities,
+so an agent that grounds its phrase through resolve() inherits the formula, the
+dimensional proof, the producing codes with citations, and the evidence with
+provenance. Fuzzy language in, checkable identity out.
 
 Browse the map as an interactive [3D view](https://openmaterials.ai/map/). The
 map spans ten physics domains (thermal transport, DFT ground state, mechanics,
