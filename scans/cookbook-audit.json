@@ -1,0 +1,353 @@
+{
+  "audit": "atomistic-cookbook-coverage",
+  "date": "2026-07-11",
+  "source": {
+    "site": "https://atomistic-cookbook.org",
+    "repo": "https://github.com/lab-cosmo/atomistic-cookbook",
+    "maintainer": "COSMO / EPFL (lab-cosmo), BSD-3-Clause",
+    "method": "sphinx-gallery site + examples/ folder listing; per-recipe pages fetched via WebFetch for codes and physics",
+    "recipes_swept": 40,
+    "recipe_folders": [
+      "batch-cp2k", "dos-align", "eon-pet-neb", "flashmd", "gaas-map",
+      "hamiltonian-qm7", "heat-capacity", "learn-tensors-with-mcov",
+      "llpr-from-scratch", "lode-linear", "lpr", "mendeleev", "metatomic-plumed",
+      "ml-density", "ml-mm", "path-integrals", "periodic-hamiltonian",
+      "pet-finetuning", "pet-mad-dos", "pet-mad-nc", "pet-mad-uq", "pet-mad",
+      "pet-phonons", "pet-relaxation", "pi-metad", "pi-mts-rpc", "polarizability",
+      "ring-polymer-instanton", "rotate-equivariants", "roy-gch", "sample-selection",
+      "shiftml-structure-match", "shiftml", "thermal-conductivity-bte", "thermostats",
+      "torchpme", "water-ir-spectrum", "water-md", "water-model", "water-pulsed"
+    ]
+  },
+  "ground_truth": {
+    "codes_json_rails": 27,
+    "graph_json_nodes": 98,
+    "domains": 10,
+    "note": "The cookbook is an ML-interatomic-potential (MLIP) + statistical-sampling collection. Its DFT/DFPT and lattice-dynamics overlap with the map is thin (one BTE recipe on kALDo, one phonon-UQ recipe on phonopy). Most of its physics is in nuclear quantum effects, enhanced sampling / free energy, and ML model quantities, which the map barely touches. This is where the real gap concentration is."
+  },
+  "status_legend": {
+    "covered": "produced quantity or code already has a map node / rail",
+    "gap-code": "code the cookbook drives that is absent from the 27 rails",
+    "gap-node": "quantity the cookbook computes that has no map node",
+    "gap-edge": "producing method the map lacks (a new operator, not a new node)"
+  },
+
+  "axis_a_codes": [
+    {
+      "code": "i-PI",
+      "status": "gap-code",
+      "recipes": ["path-integrals", "pi-metad", "pi-mts-rpc", "heat-capacity", "ring-polymer-instanton", "pet-phonons (force driver)", "thermostats", "water-model"],
+      "what": "Universal Python force-server for advanced MD: path-integral MD (PIMD), ring-polymer contraction, multiple time stepping, thermostats (PIGLET/GLE), instanton rate theory, replica exchange. Talks to force engines (LAMMPS, CP2K, metatomic models) over a socket.",
+      "produces": ["Trajectory (PIMD variant)", "quantum kinetic-energy estimators (centroid-virial, thermodynamic)", "quantum heat capacity via scaled-coordinates estimator", "instanton/tunneling rate constants", "free energy (with PLUMED)", "conserved-quantity diagnostics"],
+      "credits": {"citation": "V. Kapil et al. / M. Litman et al., i-PI 3.0: a flexible and efficient framework for advanced atomistic simulations, J. Chem. Phys. 161, 062504 (2024)", "doi": "10.1063/5.0215869", "license": "MIT (GPL components); confirm from repo LICENSE", "url": "https://github.com/i-pi/i-pi"},
+      "recommendation": "RAIL. Highest-value new code. i-PI is a Trajectory producer (PIMD as a producer variant of the existing Trajectory node) and the natural home for the whole nuclear-quantum-effects layer (quantum kinetic energy, quantum heat capacity, isotope estimators). Broad field use. It also grounds the existing HeatCapacity node with a genuinely-quantum MD estimator, complementary to the map's harmonic HeatCapacity."
+    },
+    {
+      "code": "PLUMED",
+      "status": "gap-code",
+      "recipes": ["pi-metad", "metatomic-plumed"],
+      "what": "Enhanced-sampling and free-energy plugin: metadynamics, adaptive biasing, collective variables (coordination numbers, SOAP-based order parameters, distances). Patches into MD engines and i-PI. sum_hills reconstructs the free-energy surface.",
+      "produces": ["FreeEnergySurface / PMF", "CollectiveVariable trajectories", "metadynamics bias potential"],
+      "credits": {"citation": "G. A. Tribello, M. Bonomi, D. Branduardi, C. Camilloni, G. Bussi, PLUMED 2: New feathers for an old bird, Comput. Phys. Commun. 185, 604 (2014)", "doi": "10.1016/j.cpc.2013.09.018", "license": "LGPL-3.0", "url": "https://github.com/plumed/plumed2"},
+      "recommendation": "RAIL. The producer for the biggest missing physics tier (free energy / PMF / collective variables). Pairs with a new FreeEnergy-tier node family. Very broad field use across MD/biomolecular/materials communities."
+    },
+    {
+      "code": "metatensor / metatomic",
+      "status": "gap-code",
+      "recipes": ["nearly all ML recipes: pet-mad, pet-mad-dos, ml-density, polarizability, learn-tensors-with-mcov, metatomic-plumed, ml-mm, water-ir-spectrum, pet-phonons, shiftml"],
+      "what": "Self-describing sparse-tensor data format (TensorMap) and the metatomic model interface for interoperable atomistic ML; TorchScript export lets a trained model drive LAMMPS/i-PI/GROMACS/ASE/PLUMED. Infrastructure, not a physics producer per se.",
+      "produces": ["the transport format for equivariant ML predictions (energies, forces, dipoles, polarizability, DOS, NMR shieldings)"],
+      "credits": {"citation": "F. Bigi, J. W. Abbott, P. Loche, et al., Metatensor and Metatomic: Foundational Libraries for Interoperable Atomistic Machine Learning, J. Chem. Phys. 164, 064113 (2026)", "doi": "10.1063/5.0304911", "license": "BSD-3-Clause", "url": "https://github.com/metatensor/metatensor"},
+      "recommendation": "REPRESENTATION-ONLY (grounding, not a rail). metatomic is the calculator interface a model attaches to; the map already treats the Potential leaf as provided. When PET-family models are encoded they enter via a metatomic-backed ASE/LAMMPS calculator; the citation is owed but it is not its own physics rail. Track as the standard MLIP-delivery mechanism."
+    },
+    {
+      "code": "CP2K",
+      "status": "gap-code",
+      "recipes": ["batch-cp2k"],
+      "what": "DFT / Gaussian-and-plane-waves electronic-structure and AIMD package. In the cookbook used to batch-generate reference energies/forces (training-data generation).",
+      "produces": ["TotalEnergy", "Forces", "Stress", "Structure (AIMD frames)", "charge density"],
+      "credits": {"citation": "T. D. Kuhne, M. Iannuzzi, M. Del Ben, et al., CP2K: An electronic structure and molecular dynamics software package, J. Chem. Phys. 152, 194103 (2020)", "doi": "10.1063/5.0007045", "license": "GPL-2.0-or-later", "url": "https://github.com/cp2k/cp2k"},
+      "recommendation": "RAIL (medium priority). A second first-principles engine alongside QE/VASP; grounds the same DFT ground-state nodes (TotalEnergy, Forces, Stress, Structure). Broad field use. The DFT nodes already exist, so it is a rail-grounding task, not a new-node task."
+    },
+    {
+      "code": "GROMACS",
+      "status": "gap-code",
+      "recipes": ["ml-mm", "water-pulsed"],
+      "what": "High-performance classical/biomolecular MD engine. In the cookbook: ML/MM hybrid simulations and water in a pulsed electric field.",
+      "produces": ["Trajectory", "Temperature", "Pressure", "dielectric-response / dipole orientation observables"],
+      "credits": {"citation": "M. J. Abraham, T. Murtola, R. Schulz, et al., GROMACS: High performance molecular simulations through multi-level parallelism from laptops to supercomputers, SoftwareX 1-2, 19 (2015)", "doi": "10.1016/j.softx.2015.06.001", "license": "LGPL-2.1-or-later", "url": "https://www.gromacs.org"},
+      "recommendation": "RAIL (medium-low priority). A Trajectory/MD producer variant like LAMMPS/GPUMD/OpenMM; the map already has these MD nodes. Value is mainly biomolecular/soft-matter reach, which is outside the map's current materials focus. Grounds Trajectory, Temperature, Pressure."
+    },
+    {
+      "code": "eOn",
+      "status": "gap-code",
+      "recipes": ["eon-pet-neb"],
+      "what": "Long-timescale / saddle-search engine: nudged elastic band (NEB, climbing-image, OCI-NEB), dimer method, adaptive kinetic Monte Carlo. C++ client driven by an ASE/metatomic potential.",
+      "produces": ["ReactionBarrier (NEB MEP)", "transition-state geometry (saddle)", "minimum energy path profile", "Hessian curvature at saddle"],
+      "credits": {"citation": "S. T. Chill, M. Welborn, R. Terrell, et al., EON: client-server software for long-time simulations of atomic scale systems, Model. Simul. Mater. Sci. Eng. 22, 055002 (2014)", "doi": "10.1088/0965-0393/22/5/055002", "license": "BSD-3-Clause (confirm)", "url": "https://github.com/TheochemUI/eon"},
+      "recommendation": "RAIL (medium priority). Direct independent confirmation of the deferred NEB-barrier hook: eOn is a second producer for the existing ReactionBarrier[construction=neb_mep] node, and adds saddle-point/dimer methods. Also a natural producer for the instanton-rate node (below)."
+    },
+    {
+      "code": "torch-pme",
+      "status": "gap-code",
+      "recipes": ["torchpme", "learn-tensors-with-mcov (LODE)"],
+      "what": "Differentiable particle-mesh Ewald library (PyTorch) for long-range electrostatics inside ML potentials and long-distance-equivariant features.",
+      "produces": ["long-range electrostatic energy and forces (a contribution to the Potential/energy, not a standalone observable)"],
+      "credits": {"citation": "P. Loche et al., Fast and flexible range-separated models for atomistic machine learning (torch-pme), (2024)", "doi": "10.48550/arXiv.2412.03281", "license": "BSD-3-Clause", "url": "https://github.com/lab-cosmo/torch-pme"},
+      "recommendation": "OUT-OF-SCOPE as a rail (representation-only). It computes an energy contribution internal to a potential; it produces no map-tier observable of its own. Cite if a range-separated potential is ever encoded, but do not mint a rail."
+    },
+    {
+      "code": "chemiscope",
+      "status": "gap-code",
+      "recipes": ["roy-gch", "metatomic-plumed", "sample-selection", "mendeleev"],
+      "what": "Interactive structure-and-property visualizer for the browser. Pure visualization; computes no physics.",
+      "produces": ["(nothing; a viewer)"],
+      "credits": {"citation": "G. Fraux, R. K. Cersonsky, M. Ceriotti, Chemiscope: interactive structure-property explorer for materials and molecules, J. Open Source Softw. 5, 2117 (2020)", "doi": "10.21105/joss.02117", "license": "BSD-3-Clause", "url": "https://github.com/lab-cosmo/chemiscope"},
+      "recommendation": "OUT-OF-SCOPE (pure visualization). No producer, no node. Noted for completeness only."
+    },
+    {
+      "code": "scikit-matter",
+      "status": "gap-code",
+      "recipes": ["sample-selection", "roy-gch", "gaas-map"],
+      "what": "scikit-learn-compatible ML utilities for atomistic data: FPS/CUR sample and feature selection, PCovR, directional convex hull.",
+      "produces": ["dataset-selection indices, PCA/PCovR embeddings, GCH hull distances (ML-descriptor / data-analysis quantities, not physical observables)"],
+      "credits": {"citation": "A. Goscinski, V. P. Principe, G. Fraux, et al., scikit-matter: A Suite of Generalisable Machine Learning Methods Born out of Chemistry and Materials Science, Open Res. Europe 1, 81 (2021)", "doi": "10.12688/openreseurope.13703.2", "license": "BSD-3-Clause", "url": "https://github.com/scikit-learn-contrib/scikit-matter"},
+      "recommendation": "OUT-OF-SCOPE (data-science tooling). Its outputs are model/data-analysis artifacts, not physical values the map records. Skip."
+    },
+    {
+      "code": "featomic (rascaline successor)",
+      "status": "gap-code",
+      "recipes": ["polarizability", "roy-gch", "metatomic-plumed", "learn-tensors-with-mcov", "lode-linear"],
+      "what": "Descriptor engine: SOAP power spectra, lambda-SOAP equivariant features, LODE long-range features. The featurizer feeding linear/equivariant ML models.",
+      "produces": ["ML structural descriptors (SOAP, lambda-SOAP) - representations, not physical observables"],
+      "credits": {"citation": "featomic (formerly rascaline), lab-cosmo; cite alongside metatensor J. Chem. Phys. 164, 064113 (2026)", "doi": "10.1063/5.0304911", "license": "BSD-3-Clause", "url": "https://github.com/metatensor/featomic"},
+      "recommendation": "OUT-OF-SCOPE (representation-only). Descriptors are model internals. Not a map node. Skip unless the map ever adds an explicit ML-descriptor tier (not currently in scope)."
+    },
+    {
+      "code": "kALDo",
+      "status": "covered",
+      "recipes": ["thermal-conductivity-bte"],
+      "what": "Anharmonic lattice-dynamics / BTE phonon-transport package. ALREADY a rail (kaldo).",
+      "produces": ["ThermalConductivity (BTE, QHGK, Wigner)", "phonon linewidths", "mean free paths", "mode heat capacity", "PhononDOS"],
+      "credits": {"citation": "already in credits (kaldo rail)", "doi": "10.1063/5.0020443", "license": "BSD-3-Clause", "url": "https://github.com/nanotheorygroup/kaldo"},
+      "recommendation": "N/A - covered. The cookbook drives kALDo with a PET-MAD potential; every quantity in that recipe (dispersions, DOS, mode c, linewidths, mfp, kappa tensor) is already a map node. Independent confirmation that the thermal-transport DAG is well targeted."
+    },
+    {
+      "code": "LAMMPS / ASE",
+      "status": "covered",
+      "recipes": ["path-integrals", "heat-capacity", "water-ir-spectrum", "water-md", "geometry relaxation, etc."],
+      "what": "Force engine (LAMMPS) and structure/driver toolkit (ASE). Both are existing rails.",
+      "produces": ["Trajectory, Potential, Structure, Temperature, Pressure, MSD, VACF (all existing nodes)"],
+      "credits": {"citation": "already in credits (lammps, ase rails)", "doi": null, "license": null, "url": null},
+      "recommendation": "N/A - covered."
+    }
+  ],
+
+  "axis_b_physics_nodes": [
+    {
+      "node_candidate": "FreeEnergySurface / PotentialOfMeanForce",
+      "status": "gap-node",
+      "recipes": ["pi-metad", "metatomic-plumed"],
+      "physics": "Free energy as a function of one or more collective variables, F(s) = -kT ln P(s), reconstructed from a metadynamics bias (plumed sum_hills). The central observable of enhanced-sampling.",
+      "dimension": "energy (per mole or per particle); axis is CV-dependent",
+      "spectrum_or_scalar": "SPECTRUM-LAYER (function-valued: F versus a collective-variable axis). Fits the map's existing spectrum contract (axis + values), like PhononDOS.",
+      "false_merge_check": "Distinct from HelmholtzFreeEnergy (that node is the harmonic vibrational free energy from phonon frequencies; this is a configurational free-energy profile along a reaction/order coordinate). Distinct from QHAGibbsEnergy. No existing node is a function of a collective variable. Genuinely new.",
+      "producers": ["PLUMED (metadynamics)", "i-PI + PLUMED (path-integral metadynamics)", "thermodynamic integration (any MD engine)"]
+    },
+    {
+      "node_candidate": "CollectiveVariable",
+      "status": "gap-node",
+      "recipes": ["pi-metad", "metatomic-plumed"],
+      "physics": "A low-dimensional order parameter of the configuration (O-O distance, coordination number, SOAP-based Steinhardt-like Q4/Q6). The coordinate the free-energy surface is projected onto.",
+      "dimension": "varies (length, dimensionless count, or dimensionless order parameter)",
+      "spectrum_or_scalar": "TIME-SERIES / source axis. Behaves like a derived coordinate, best modeled as a source/parameter node that the FreeEnergySurface node depends on.",
+      "false_merge_check": "No existing node. Not a physical observable in the evidence sense but a necessary axis definition for FreeEnergySurface. Consider representation-only (an axis descriptor) rather than an evidence node.",
+      "producers": ["PLUMED", "featomic-derived ML CVs"]
+    },
+    {
+      "node_candidate": "QuantumKineticEnergy",
+      "status": "gap-node",
+      "recipes": ["path-integrals", "heat-capacity"],
+      "physics": "Nuclear quantum kinetic energy from PIMD via the centroid-virial or thermodynamic estimator; its anisotropy (kinetic-energy tensor) probes quantum effects on bonds. Directly gives the quantum correction absent from classical MD.",
+      "dimension": "energy (eV or per particle); tensor variant has 3x3 directional structure",
+      "spectrum_or_scalar": "SCALAR (plus an optional 3x3 tensor variant, like the kinetic-energy tensor).",
+      "false_merge_check": "Distinct from InternalEnergy (that is the harmonic-oscillator internal energy per mode from Bose-Einstein occupation; this is a PIMD ensemble estimator of nuclear KE). Distinct from any MD kinetic energy (classical equipartition). New.",
+      "producers": ["i-PI (PIMD estimators)"]
+    },
+    {
+      "node_candidate": "QuantumHeatCapacity (PIMD)",
+      "status": "gap-node",
+      "recipes": ["heat-capacity"],
+      "physics": "Constant-volume heat capacity of a liquid/anharmonic system from PIMD via the scaled-coordinates estimator, C_V = k_B beta^2 (<eps_v^2> - <eps_v>^2 - <eps_v'>). Captures quantum suppression (water ~15 k_B/molecule).",
+      "dimension": "energy per temperature (or k_B per molecule)",
+      "spectrum_or_scalar": "SCALAR.",
+      "false_merge_check": "Overlaps the existing HeatCapacity node in QUANTITY but not in METHOD: HeatCapacity in the map is the harmonic per-mode c from phonon frequencies (crystalline). This is a fluctuation estimator from PIMD valid for liquids/strongly-anharmonic systems. Best as a HeatCapacity producer variant (new edge onto an existing node) rather than a new node, unless the map wants method-tagged siblings like it does for ThermalConductivity[transport_model=...]. Recommend a method-tagged producer.",
+      "producers": ["i-PI (PIMD scaled-coordinates estimator)"]
+    },
+    {
+      "node_candidate": "IRAbsorptionSpectrum",
+      "status": "gap-node",
+      "recipes": ["water-ir-spectrum"],
+      "physics": "Frequency-dependent infrared absorption n(w)alpha(w) from the power spectrum of the cell dipole time series (fluctuation-dissipation): n(w)alpha(w) = w^2 S_mu(w)/(6 V eps0 kB T c). Peaks governed by dipole derivatives (Born charges).",
+      "dimension": "absorption coefficient (per length) versus angular frequency",
+      "spectrum_or_scalar": "SPECTRUM-LAYER (absorption versus frequency axis). Fits the spectrum contract cleanly, like PhononDOS.",
+      "false_merge_check": "No existing spectral node. Distinct from PhononDOS (density of states, not an optical response). New. Confirms the deferred spectrum-layer hook for an optical spectrum.",
+      "producers": ["MD dipole autocorrelation (LAMMPS/i-PI + ML dipole model via metatrain)"]
+    },
+    {
+      "node_candidate": "DipoleMoment / DynamicalCharges",
+      "status": "gap-node",
+      "recipes": ["water-ir-spectrum", "water-pulsed"],
+      "physics": "Cell dipole moment time series and its derivative (dynamical / Born effective charges) driving IR intensities; also the response variable in the pulsed-field dielectric recipe.",
+      "dimension": "electric dipole moment (e*angstrom) as a per-frame vector; derivative is dimensionless (Born charge)",
+      "spectrum_or_scalar": "TIME-SERIES (source for IRAbsorptionSpectrum).",
+      "false_merge_check": "The map has BornCharges (a static/DFPT Z* tensor, a Sources leaf). The dynamical dipole time series is a different object (MD trajectory observable) that feeds IR. Related but not a merge: BornCharges is provided input; DipoleMoment(t) is a produced trajectory observable. Consider a Molecular-domain node.",
+      "producers": ["ML dipole model along MD (metatrain dipole head)", "GROMACS (pulsed field)"]
+    },
+    {
+      "node_candidate": "PolarizabilityTensor",
+      "status": "gap-node",
+      "recipes": ["polarizability"],
+      "physics": "Molecular polarizability tensor alpha (response to an external electric field), decomposed into lambda=0 (isotropic) and lambda=2 (anisotropic) spherical components. Basis of Raman intensities.",
+      "dimension": "polarizability volume (angstrom^3) / (dimensionless with convention)",
+      "spectrum_or_scalar": "SCALAR TENSOR (rank-2). Two irreducible pieces.",
+      "false_merge_check": "The map has DielectricTensor (bulk eps_infinity, a Sources leaf for the NAC correction) and StaticDielectricTensor. Molecular polarizability is the per-molecule analog and a distinct object (finite systems, Raman). Not a merge with the bulk dielectric tensor. New Molecular-domain node.",
+      "producers": ["equivariant ML model (featomic lambda-SOAP + linear regression)"]
+    },
+    {
+      "node_candidate": "NMRShieldingTensor / IsotropicChemicalShift",
+      "status": "gap-node",
+      "recipes": ["shiftml", "shiftml-structure-match"],
+      "physics": "Per-atom NMR shielding tensor (3x3) and its isotropic part (chemical shift), with ensemble uncertainty. Used for structure determination (matching predicted to measured shifts).",
+      "dimension": "dimensionless (ppm)",
+      "spectrum_or_scalar": "SCALAR per atom (isotropic) plus a 3x3 tensor (anisotropic, visualized as ellipsoids).",
+      "false_merge_check": "No existing node touches NMR. Entirely new physics domain (magnetic-resonance / spectroscopy). No merge risk.",
+      "producers": ["ShiftML ML model"]
+    },
+    {
+      "node_candidate": "ElectronicDOS",
+      "status": "gap-node",
+      "recipes": ["pet-mad-dos", "ml-density", "dos-align"],
+      "physics": "Electronic density of states g(E) on an energy grid, with derived Fermi level and band gap. Note the CNN-integrated bandgap head.",
+      "dimension": "states per energy per volume (or per cell) versus energy",
+      "spectrum_or_scalar": "SPECTRUM-LAYER (DOS versus energy axis).",
+      "false_merge_check": "CRITICAL false-merge risk with PhononDOS: both are 'DOS'. They are physically distinct (electronic states vs vibrational modes; energy axis in eV vs frequency axis in THz). Must be a separate node, not a PhononDOS producer. The map has BandGap already (a DFT ground-state scalar); ElectronicDOS is the function-valued parent that a gap can be read from. New spectrum node in the DFT/electronic domain.",
+      "producers": ["PET-MAD-DOS ML model", "any DFT code (electronic-structure DOS)"]
+    },
+    {
+      "node_candidate": "ChargeDensity / ElectronDensity (as an evidence field)",
+      "status": "gap-node",
+      "recipes": ["ml-density"],
+      "physics": "The real-space electron density rho(r) as a learned/derived field, and properties derived from it.",
+      "dimension": "electrons per volume, on a spatial grid",
+      "spectrum_or_scalar": "FIELD (3D grid) - beyond the current scalar+spectrum contract.",
+      "false_merge_check": "The QE scan already flagged scf-charge-density as a hidden new-node candidate waiting on the kernel. The cookbook independently confirms electron density as a target. No existing node. Likely representation-only until the map supports field-valued evidence.",
+      "producers": ["ML density model", "any DFT code"]
+    },
+    {
+      "node_candidate": "TunnelingRate / InstantonRateConstant",
+      "status": "gap-node",
+      "recipes": ["ring-polymer-instanton"],
+      "physics": "Chemical reaction rate constant including nuclear quantum tunneling, from ring-polymer instanton theory (semiclassical). Complements classical transition-state theory rates.",
+      "dimension": "inverse time (rate); or a dimensionless tunneling enhancement factor",
+      "spectrum_or_scalar": "SCALAR (temperature-dependent).",
+      "false_merge_check": "The map has ActivationEnergy and ReactionBarrier[construction=neb_mep] (barrier heights, energies). A rate CONSTANT with tunneling is a different quantity (kinetics, not the static barrier). Not a merge. New kinetics node.",
+      "producers": ["i-PI (ring-polymer instanton)"]
+    },
+    {
+      "node_candidate": "ModelUncertainty / CommitteeDisagreement",
+      "status": "gap-node",
+      "recipes": ["pet-mad-uq", "pet-phonons", "llpr-from-scratch", "lpr", "shiftml"],
+      "physics": "Predictive uncertainty of an ML potential/model: committee/ensemble spread, last-layer prediction rigidity (LLPR), shallow-ensemble error bars. Propagated onto physical predictions (e.g. error bands on phonon dispersions).",
+      "dimension": "same units as the predicted quantity (an error bar), or dimensionless rigidity",
+      "spectrum_or_scalar": "META (an uncertainty attached to any prediction, not a physical observable of the material).",
+      "false_merge_check": "No existing node. This is not a material property but a property of the MODEL. The map records physical evidence; committee disagreement is metadata about a prediction's reliability. Recommend it does NOT become an evidence node; if surfaced at all it belongs as an uncertainty attribute on records (the instance schema already has an 'uncertainty' field) rather than a node. Flag as out-of-scope-as-node.",
+      "producers": ["committee/ensemble ML models", "LLPR framework"]
+    }
+  ],
+
+  "axis_c_edges_methods": [
+    {
+      "method": "PIMD (path-integral molecular dynamics) as a Trajectory producer",
+      "status": "gap-edge",
+      "recipes": ["path-integrals", "heat-capacity", "pi-metad", "pi-mts-rpc"],
+      "physics": "Ring-polymer sampling of the quantum partition function: a Trajectory producer variant that additionally exposes quantum estimators. New operator producing Trajectory (and the quantum-estimator nodes) from Potential + Temperature.",
+      "false_merge_check": "The existing Trajectory node has one producer (run_md, classical Velocity-Verlet). PIMD is a second producing method with quantum estimators attached, analogous to how ThermalConductivity carries transport_model tags. Add as a producer variant / edge, not a new node."
+    },
+    {
+      "method": "Metadynamics as a FreeEnergy producer",
+      "status": "gap-edge",
+      "recipes": ["pi-metad", "metatomic-plumed"],
+      "physics": "Adaptive Gaussian bias along collective variables -> free-energy surface (sum_hills). The producing operator for the new FreeEnergySurface node.",
+      "false_merge_check": "No existing free-energy-along-CV producer. New edge into the new FreeEnergySurface node."
+    },
+    {
+      "method": "Thermodynamic integration / free-energy perturbation",
+      "status": "gap-edge",
+      "recipes": ["implied by the free-energy tier; not a standalone cookbook recipe but the standard alternative to metadynamics"],
+      "physics": "Alternative route to free-energy differences by integrating dH/dlambda across a coupling parameter. A second producer for the FreeEnergy-tier node.",
+      "false_merge_check": "Same target as metadynamics (free energy), different method. A producer variant."
+    },
+    {
+      "method": "Dipole/polarizability autocorrelation -> spectroscopy",
+      "status": "gap-edge",
+      "recipes": ["water-ir-spectrum"],
+      "physics": "Fourier transform of a dipole (or polarizability) autocorrelation along an MD trajectory -> IR (or Raman) spectrum. A producer chain: Trajectory -> DipoleMoment(t) -> autocorrelation -> IRAbsorptionSpectrum. Mirrors the existing HeatCurrent -> HeatCurrentACF -> Green-Kubo kappa chain.",
+      "false_merge_check": "Structurally identical to the existing Green-Kubo autocorrelation pattern but for a different current (dipole vs heat). New operators, reusing the ACF/Fourier machinery."
+    },
+    {
+      "method": "NEB / saddle-search (eOn) as a second ReactionBarrier producer",
+      "status": "gap-edge",
+      "recipes": ["eon-pet-neb"],
+      "physics": "Climbing-image NEB, dimer, OCI-NEB producing the minimum-energy-path barrier and saddle geometry. A second producer for the existing ReactionBarrier[construction=neb_mep] node (currently likely grounded on one engine).",
+      "false_merge_check": "The node ReactionBarrier[construction=neb_mep] already exists. eOn is an additional producing rail, not a new node. Confirms the NEB deferred hook."
+    },
+    {
+      "method": "Ring-polymer instanton as a rate producer",
+      "status": "gap-edge",
+      "recipes": ["ring-polymer-instanton"],
+      "physics": "Semiclassical instanton optimization on the ring-polymer surface -> tunneling-corrected rate constant. Producer for the new TunnelingRate node.",
+      "false_merge_check": "New target (rate constant), new producer. No merge."
+    }
+  ],
+
+  "top10_ranked_candidates": [
+    {"rank": 1, "candidate": "i-PI rail + PIMD Trajectory producer", "axis": "code+edge", "physics": "Path-integral MD samples the quantum partition function via ring polymers; unlocks all nuclear-quantum-effect observables.", "why": "One rail opens an entire missing physics layer (NQE) and grounds Trajectory + quantum HeatCapacity; very broad field use."},
+    {"rank": 2, "candidate": "FreeEnergySurface / PMF node (spectrum-layer)", "axis": "node", "physics": "F(s) = -kT ln P(s) along a collective variable, from metadynamics.", "why": "The single biggest missing physics tier; function-valued, fits the existing spectrum contract; central to all of chemistry/biophysics/materials sampling."},
+    {"rank": 3, "candidate": "PLUMED rail (metadynamics producer)", "axis": "code+edge", "physics": "Adaptive-bias free-energy sampling and collective variables.", "why": "The producer for candidate 2; ubiquitous across the MD field; pairs 1:1 with the FreeEnergy tier."},
+    {"rank": 4, "candidate": "ElectronicDOS node (spectrum-layer)", "axis": "node", "physics": "Electronic g(E), Fermi level, gap on an energy grid.", "why": "Fits the spectrum contract; parent of the existing BandGap; high demand. Guard against the PhononDOS false-merge."},
+    {"rank": 5, "candidate": "eOn rail + second NEB/saddle producer", "axis": "code+edge", "physics": "Climbing-image NEB and dimer saddle search for reaction barriers.", "why": "Directly confirms + strengthens the existing ReactionBarrier[neb_mep] node with a second producer; broad kinetics use."},
+    {"rank": 6, "candidate": "IRAbsorptionSpectrum node + dipole-ACF producer", "axis": "node+edge", "physics": "n(w)alpha(w) from the dipole power spectrum (fluctuation-dissipation).", "why": "Confirms the deferred spectrum-layer hook; reuses the existing ACF/Green-Kubo machinery; classic observable."},
+    {"rank": 7, "candidate": "QuantumHeatCapacity as a HeatCapacity producer variant", "axis": "node+edge", "physics": "PIMD scaled-coordinates estimator of C_V for anharmonic/liquid systems.", "why": "Grounds the existing HeatCapacity node with a method-tagged quantum estimator; small increment on top of the i-PI rail."},
+    {"rank": 8, "candidate": "CP2K rail (DFT ground-state producer)", "axis": "code", "physics": "DFT/AIMD energies, forces, stress.", "why": "Second first-principles engine grounding existing DFT nodes; broad use; low new-node cost (nodes already exist)."},
+    {"rank": 9, "candidate": "PolarizabilityTensor node", "axis": "node", "physics": "Molecular alpha (lambda=0,2 components); Raman basis.", "why": "Distinct from the bulk DielectricTensor; opens the molecular optical-response corner; modest scope."},
+    {"rank": 10, "candidate": "NMRShieldingTensor / chemical-shift node", "axis": "node", "physics": "Per-atom shielding tensor and isotropic shift (ppm), with uncertainty.", "why": "Entirely new spectroscopy corner with strong experimental linkage (structure determination); no merge risk. Lower rank because it sits far from the map's current lattice-dynamics core."}
+  ],
+
+  "deferred_hooks_confirmed": {
+    "note": "Which of the map's known deferred hooks the cookbook independently corroborates as real demand.",
+    "confirmed": [
+      {"hook": "NEB barrier", "by": "eon-pet-neb recipe; the ReactionBarrier[construction=neb_mep] node already exists and eOn is a second producer (climbing-image NEB + dimer)."},
+      {"hook": "spectrum layer (optical/electronic spectra)", "by": "water-ir-spectrum (IR absorption), pet-mad-dos (electronic DOS) - both function-valued spectra beyond PhononDOS, confirming the deferred spectrum-layer generalization."},
+      {"hook": "dielectric / polarization response", "by": "water-pulsed (dielectric response, dipole orientation), polarizability (molecular alpha), water-ir-spectrum (dynamical/Born charges) - the deferred polarization hook has clear cookbook demand."},
+      {"hook": "RRHO / thermochemistry of molecules", "by": "partial - heat-capacity (quantum C_V of water) and MolecularFrequency-adjacent recipes touch molecular thermodynamics, though the cookbook does it via PIMD rather than rigid-rotor-harmonic-oscillator."},
+      {"hook": "isotope / quantum-nuclear effects", "by": "path-integrals, heat-capacity, pi-metad - a whole recipe cluster on nuclear quantum effects; the map's IsotopeAbundances leaf and any isotope-fractionation hook is strongly corroborated as a real theme."}
+    ],
+    "not_independently_confirmed_by_cookbook": [
+      {"hook": "RDF (radial distribution function)", "note": "The cookbook runs plenty of MD (water-md, water-model) where RDF is standard analysis, but no recipe page surfaced RDF as a headline product. Weaker independent confirmation than expected; still a natural MD-analysis node."},
+      {"hook": "XRDPattern", "note": "No diffraction recipe in the cookbook. Not confirmed here (it is an ML-potential/sampling collection, not a characterization one)."},
+      {"hook": "defects", "note": "No dedicated defect-formation recipe surfaced. Not confirmed by this source."},
+      {"hook": "thermoelectric evidence", "note": "No Seebeck/ZT recipe; the cookbook's transport recipe is phonon (lattice) thermal conductivity, already covered by kALDo. Not confirmed."}
+    ]
+  },
+
+  "open_questions": [
+    "License confirmation needed for i-PI (repo mixes MIT/GPL components) and eOn before any rail is minted (the credits rule blocks an unlicensed rail).",
+    "Whether QuantumHeatCapacity and quantum-KE become method-tagged siblings of existing nodes (like ThermalConductivity[transport_model=...]) or standalone nodes - a kernel/tiering decision, deferred to the map-kernel work.",
+    "Whether CollectiveVariable is an evidence node or a representation-only axis descriptor for FreeEnergySurface (leaning axis-descriptor).",
+    "ModelUncertainty / committee disagreement: recommended as a record-level 'uncertainty' attribute (already in the instance schema) rather than a node; needs a project decision before any UQ recipe is encoded.",
+    "ElectronDensity / ChargeDensity is field-valued (3D grid) and exceeds the current scalar+spectrum evidence contract; confirms the QE scan's deferred charge-density node but needs a field-evidence kernel first.",
+    "metatomic as the standard MLIP delivery interface: when PET-family potentials are encoded, decide whether metatomic gets its own credit line or rides on the underlying engine's rail (ASE/LAMMPS).",
+    "Was the water-ir-spectrum IR node's value-record axis (absorption vs frequency) expressible under the current spectrum canonical-axis registry, or does it need a new registered axis+value unit pair (absorption coefficient)?"
+  ]
+}
