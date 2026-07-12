@@ -1086,6 +1086,26 @@
   },
   "uid": "78d005a949ff56a526a1911f0b24e766daecad0a7f5ce9c1cc15222f2ed73551"
  },
+ "7a4fd6ca35f412c375006146204be07210a037901b0e4fb33e1805f243c74b6a": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-2",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "potential_of_mean_force"
+  },
+  "meta": {
+   "description": "Free energy along ONE collective variable, the potential of mean force F(s) = -k_B T ln P(s), reconstructed from enhanced sampling: metadynamics (PLUMED sum_hills over the deposited Gaussian bias) or umbrella sampling + WHAM. A scalar-valued FUNCTION of one collective variable s (a reaction coordinate: an O-O distance, a dihedral angle, a coordination number, a SOAP-based order parameter): on the map a single node exactly as PhononDOS is, the function-valuedness living in the SPECTRUM LAYER where each record carries the collective variable as its axis (the FIRST open-AXIS spectrum declaration: collective variables have heterogeneous units, so the canonical axis unit is left open, like the PhononDOS density value unit). Distinct BY TAG from the molar Gibbs / Helmholtz family (MolarGibbsEnergy, MolarHelmholtzFreeEnergy, QHAGibbsEnergy): those are SCALAR state functions per mole of cells at a state point (harmonic A(T), CALPHAD G(T,x), quasi-harmonic G(T,p)); this is a profile along a reaction coordinate, per system, function-valued over a configurational order parameter. Same ENERGY dimension, different argument structure: dimension-equal, family-distinct, must not merge. The energy convention is per system (metadynamics native, often k_B T units) or per mole; the record's conditions pin which. Produced by PLUMED (metadynamics), i-PI + PLUMED (path-integral metadynamics), or thermodynamic integration (any MD engine). The multi-CV free-energy surface (a scalar field over CV-space) is deferred to the field-evidence kernel. Cookbook recipes: pi-metad, metatomic-plumed.",
+   "name": "PotentialOfMeanForce",
+   "symbol": "F(s)",
+   "tier": "Molecular dynamics"
+  },
+  "uid": "7a4fd6ca35f412c375006146204be07210a037901b0e4fb33e1805f243c74b6a"
+ },
  "7b55b11531084dcb2d5fd95100d62b2d68b787596e7c9712e06c011817ab5b8c": {
   "identity": {
    "fields": [

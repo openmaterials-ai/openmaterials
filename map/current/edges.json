@@ -630,6 +630,34 @@
   },
   "uid": "3e995930ac921247acde0b3724b91c698f5c8e93c991635155d50a9c8039fe85"
  },
+ "40c9c4bdbf9b62a690eceb9042667a3ebc6c73a53ac141b538c0d2e44037d2a1": {
+  "identity": {
+   "formula": "Equality(Symbol('F'), Function('F_pmf')(Symbol('r'), Symbol('T', positive=True)))",
+   "inputs": [
+    "12cde23e9a333fdd03313c4cdbd82d51033f9bb3bd505466a8db5360faf166b4",
+    "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0"
+   ],
+   "output": "7a4fd6ca35f412c375006146204be07210a037901b0e4fb33e1805f243c74b6a",
+   "outputs": [
+    "7a4fd6ca35f412c375006146204be07210a037901b0e4fb33e1805f243c74b6a"
+   ],
+   "schemes": {
+    "cv_count": "1",
+    "method": "metadynamics_or_umbrella"
+   }
+  },
+  "meta": {
+   "description": "One-collective-variable potential of mean force F(s) = -k_B T ln P(s) reconstructed from an enhanced-sampling Trajectory (scheme method=metadynamics_or_umbrella, cv_count=1): a metadynamics run (PLUMED deposits a Gaussian bias along the chosen collective variable; sum_hills reconstructs F(s) from the accumulated hills) or umbrella sampling combined with WHAM. An opaque reconstruction functional of the sampled biased Trajectory and the Temperature (F_pmf[r(t), T]), so not sympy-executable; the dimensional gate SKIPS it (the PLUMED rail fixes the output at ENERGY). Produces PotentialOfMeanForce, the free-energy profile along one reaction coordinate, whose function-valuedness lives in the spectrum layer (the collective variable is the record's axis). The cv_count=1 scheme is deliberate: the multi-CV free-energy surface is a scalar field over CV-space, deferred to the field-evidence kernel.",
+   "formula_latex": "F = F_{pmf}{\\left(r,T \\right)}",
+   "formula_srepr": "Equality(Symbol('F'), Function('F_pmf')(Symbol('r'), Symbol('T', positive=True)))",
+   "name": "sample_pmf",
+   "schemes": {
+    "cv_count": "1",
+    "method": "metadynamics_or_umbrella"
+   }
+  },
+  "uid": "40c9c4bdbf9b62a690eceb9042667a3ebc6c73a53ac141b538c0d2e44037d2a1"
+ },
  "40d04377570142198d0a7f3d505de3b8fa6fdcf0418622be679aceec11b13264": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('s')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Add(Mul(Integer(-1), Symbol('k_B', positive=True), log(Add(Integer(1), Mul(Integer(-1), exp(Mul(Integer(-1), Pow(Symbol('T', positive=True), Integer(-1)), Symbol('\\\\hbar', positive=True), Pow(Symbol('k_B', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('\\\\omega')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)))))))), Mul(Pow(Symbol('T', positive=True), Integer(-1)), Symbol('\\\\hbar', positive=True), Function('n_{BE}')(Mul(Pow(Symbol('T', positive=True), Integer(-1)), Symbol('\\\\hbar', positive=True), Pow(Symbol('k_B', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('\\\\omega')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)))), Indexed(IndexedBase(Symbol('\\\\omega')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)))))",
