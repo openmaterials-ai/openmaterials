@@ -102,9 +102,13 @@ def test_paper_sourced_instances_land_and_pin_the_live_node_uids():
     name_to_uid = {n["id"]: n["uid"]
                    for n in map_data.build_graph_dict(map_data.DOMAINS)["nodes"]}
     paper = [it for it in insts if it["source"]["ref"].startswith("paper:")]
-    assert len(paper) == 18
+    assert len(paper) == 22
+    # papers contribute BOTH kinds now: measured kappa lands on the
+    # method-neutral node (Balandin graphene, PtSe2 FDTR), computed values on
+    # their route-labeled or neutral nodes. Pin the split so drift is loud.
+    kinds = [it["source"]["kind"] for it in paper]
+    assert kinds.count("simulation") == 20 and kinds.count("measurement") == 2
     for it in paper:
-        assert it["source"]["kind"] == "simulation"
         assert it["node_uid"] == name_to_uid[it["variable"]]
         # Every landed value carries a verbatim, page-located quote in detail.
         assert "(p. " in it["source"]["detail"]

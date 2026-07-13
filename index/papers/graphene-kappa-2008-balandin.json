@@ -1,0 +1,32 @@
+{
+ "map_version": "8aea09f90c24ae29137be4860452b9085d5b1e1a502493bffd8f956a9c382a8f",
+ "paper": {
+  "arxiv": "0802.1367",
+  "authors": "A. A. Balandin, S. Ghosh, W. Bao, I. Calizo, D. Teweldebrhan, F. Miao, C. N. Lau",
+  "doi": "10.1021/nl0731872",
+  "journal_ref": "Nano Lett. 8, 902 (2008)",
+  "title": "Extremely High Thermal Conductivity of Graphene: Experimental Study"
+ },
+ "parsed": {
+  "date": "2026-07-13",
+  "parser": "omai.paper_parser P2 (ensemble, batched map)",
+  "proposal_stats": {
+   "applied": 1,
+   "detected": 87,
+   "survived": 10
+  }
+ },
+ "values": [
+  {
+   "instance": "graphene-suspended-slg-thermalconductivity-paper-graphene-kappa-2008-balandin.json",
+   "node_id": "ThermalConductivity",
+   "node_uid": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5",
+   "pages": [
+    6
+   ],
+   "quote": "up to ~5300 W/mK measured in this work for graphene",
+   "units": "W/(m K)",
+   "value": 5300.0
+  }
+ ]
+}

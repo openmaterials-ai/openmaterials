@@ -1,0 +1,54 @@
+{
+ "map_version": "8aea09f90c24ae29137be4860452b9085d5b1e1a502493bffd8f956a9c382a8f",
+ "paper": {
+  "arxiv": "2111.13395",
+  "authors": "D. Donadio group and experimental collaborators",
+  "doi": null,
+  "journal_ref": "arXiv:2111.13395",
+  "title": "Phonon dynamics and thermal conductivity of PtSe2 thin films: Impact of crystallinity and film thickness"
+ },
+ "parsed": {
+  "date": "2026-07-13",
+  "parser": "omai.paper_parser P2 (ensemble, batched map)",
+  "proposal_stats": {
+   "applied": 3,
+   "detected": 316,
+   "survived": 26
+  }
+ },
+ "values": [
+  {
+   "instance": "ptse2-bulk-thermalconductivity-paper-ptse2-2021-donadio-fdtr-inplane.json",
+   "node_id": "ThermalConductivity",
+   "node_uid": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5",
+   "pages": [
+    13
+   ],
+   "quote": "and kr \u2248 41.4 Wm-1K-1",
+   "units": "W/(m K)",
+   "value": 41.4
+  },
+  {
+   "instance": "ptse2-bulk-thermalconductivity-paper-ptse2-2021-donadio-bte-inplane.json",
+   "node_id": "ThermalConductivity",
+   "node_uid": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5",
+   "pages": [
+    13
+   ],
+   "quote": "Our first-principles BTE calculations give kz = 2.84 Wm-1K-1 and kr = 39.0 Wm-1K-1",
+   "units": "W/(m K)",
+   "value": 39.0
+  },
+  {
+   "instance": "ptse2-bulk-thermalconductivity-paper-ptse2-2021-donadio-bte-crossplane.json",
+   "node_id": "ThermalConductivity",
+   "node_uid": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5",
+   "pages": [
+    13
+   ],
+   "quote": "Our first-principles BTE calculations give kz = 2.84 Wm-1K-1 and kr = 39.0 Wm-1K-1",
+   "units": "W/(m K)",
+   "value": 2.84
+  }
+ ]
+}
