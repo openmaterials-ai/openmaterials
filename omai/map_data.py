@@ -661,6 +661,12 @@ if __name__ == "__main__":
     print("wrote", write_catalog())
     # The semantic layer regenerates with the map: labels are metadata over
     # live uids, so a stale semantics.json is a lie about identity.
+    from omai.physlean_export import write_export as _write_physlean
+    try:
+        _p, _st = _write_physlean()
+        print("wrote", _p, "(" + str(_st["lemmas"]) + " lemmas, " + str(_st["nodes_exported"]) + " nodes)")
+    except Exception as _e:
+        print("physlean export skipped:", _e)
     from omai.semantics import write_semantics as _write_semantics
     import json as _json
     print("wrote", _write_semantics(_json.loads((_DOCS / "data" / "graph.json").read_text())))
