@@ -46,6 +46,7 @@ register_formula_constants({
     r"Z^*_{provided}",
     r"\varepsilon_{\infty,provided}",
     r"g_{provided}",
+    r"\mathcal{T}_{provided}",
     # DOS bin variable and cumulative-κ thresholds.
     r"\omega",
     r"\omega_c",
@@ -157,6 +158,14 @@ register_space_symbols({
     # ride in via the Frequency / Eigenvectors / Linewidth[channel=total] inputs.
     "ParticipationRatio": {"p", "a"},
     "ModalDiffusivity": {r"D_{mode}"},
+    # Coherent phonon transport (Landauer). PhononTransmission carries its
+    # transmission field \mathcal{T} (kept apart from the temperature symbol T);
+    # ThermalConductance[transport_model=landauer] carries its output \mathcal{G}.
+    # The Landauer integrand's \hbar / \omega / k_B / T / \pi are generic
+    # constants, and the transmission \mathcal{T} rides in via the
+    # PhononTransmission input space.
+    "PhononTransmission": {r"\mathcal{T}", r"\mathcal{T}_{provided}"},
+    "ThermalConductance[transport_model=landauer]": {r"\mathcal{G}", r"\mathcal{T}"},
     # Nuclear-quantum-effects layer (Cookbook Slice 1, i-PI, records 212-215).
     # The two PIMD sampling edges are implicit estimators over the ring-polymer
     # beads: sample_quantum_kinetic_energy has LHS E_K and reads the Trajectory

@@ -44,6 +44,7 @@ from omai.operator.dimensions import (
     LENGTH_TIMES_FREQUENCY,
     OPAQUE,
     TEMPERATURE,
+    THERMAL_CONDUCTANCE,
     THERMAL_CONDUCTIVITY as THERMAL_CONDUCTIVITY_DIM,
 )
 from omai.operator.space import Field, HiddenSpace, ObservableSpace, Space
@@ -613,6 +614,50 @@ MODAL_DIFFUSIVITY = ObservableSpace(
 
 
 # ---------------------------------------------------------------------------
+# Coherent phonon transport (Landauer). MESCAL joins here the way kaldo enters
+# for QHGK: PhononTransmission is the observable every coherent-transport method
+# shares (a per-frequency transmission function of a lead/junction system), and
+# the Landauer conductance G(T) integrates it against the Bose-Einstein energy
+# window. Both live in the Transport tier alongside the BTE / Wigner / QHGK
+# routes to the same heat-transport story.
+# ---------------------------------------------------------------------------
+
+PHONON_TRANSMISSION = ObservableSpace(
+    name="PhononTransmission",
+    fields=(Field("T_trans", DIMENSIONLESS, indices=("omega",)),),
+    description=(
+        "Per-frequency transmission function T(nu) of a lead/junction system: "
+        "the dimensionless probability a phonon at frequency nu transmits through "
+        "a device between two semi-infinite periodic leads (integer for ballistic "
+        "channel staircases, fractional under scattering). The observable every "
+        "coherent-transport method shares, the coherent-transport analogue of the "
+        "Linewidth the BTE routes share; the junction and lead specification "
+        "(device geometry, lead channels, any anharmonic optical-potential "
+        "attenuation) rides in the record conditions. Gauge-invariant (a scattering "
+        "probability), binned over the frequency axis like PhononDOS."
+    ),
+    tier="Transport",
+)
+
+THERMAL_CONDUCTANCE_LANDAUER = ObservableSpace(
+    name="ThermalConductance[transport_model=landauer]",
+    fields=(Field("G", THERMAL_CONDUCTANCE, indices=()),),
+    labels={"transport_model": "landauer"},
+    description=(
+        "The Landauer thermal conductance G(T) of a lead/junction system: the "
+        "ballistic (coherent) heat conductance from the phonon transmission, "
+        "G(T) = (1/2pi) integral hbar Omega T(Omega) (dn/dT) dOmega with n the "
+        "Bose-Einstein occupation. Power per temperature (W/K), a conductance not "
+        "the per-length ThermalConductivity: the coherent-transport terminal "
+        "observable, the Landauer sibling of the BTE / Wigner / QHGK / MD kappa "
+        "routes. Scalar, a function of T only; the junction and lead specification "
+        "rides in the record conditions."
+    ),
+    tier="Transport",
+)
+
+
+# ---------------------------------------------------------------------------
 # MD primitives (phase 2 P2). The MD tier sits parallel to the BTE chain
 # and feeds the MD-based κ paths added in P3 (Green-Kubo, NEMD, HNEMD).
 # ---------------------------------------------------------------------------
@@ -927,6 +972,10 @@ NODES: tuple[Space, ...] = (
     # Amorphous / localization diagnostics (kaldo delta scan, records 208-211)
     PARTICIPATION_RATIO,
     MODAL_DIFFUSIVITY,
+    # Coherent phonon transport (Landauer). MESCAL joins for coherent transport
+    # the way kaldo enters for QHGK.
+    PHONON_TRANSMISSION,
+    THERMAL_CONDUCTANCE_LANDAUER,
     # Nuclear-quantum-effects layer (Cookbook Slice 1, i-PI, records 212-215)
     QUANTUM_KINETIC_ENERGY,
     HEAT_CAPACITY_PIMD,

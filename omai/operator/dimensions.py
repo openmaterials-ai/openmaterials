@@ -113,6 +113,9 @@ ENERGY_PER_LENGTH_CUBED = Dimension("energy_per_length_cubed", (1, -1, -2, 0, 0,
 # ENERGY_PER_LENGTH_CUBED (energy density), which Stress reuses.
 FORCE = Dimension("force", (1, 1, -2, 0, 0, 0, 0))
 THERMAL_CONDUCTIVITY = Dimension("thermal_conductivity", (1, 1, -3, -1, 0, 0, 0))
+# Thermal conductance: power per temperature, W/K, the Landauer G(T) of a
+# lead/junction system (a conductance, not the per-length conductivity above).
+THERMAL_CONDUCTANCE = Dimension("thermal_conductance", (1, 2, -3, -1, 0, 0, 0))
 # MD-primitive dimensions (phase 2 P2). length_per_time and
 # length_times_frequency are both velocity, so they share exponents and
 # compare equal by design.
@@ -211,6 +214,7 @@ DIMENSIONS: dict[str, Dimension] = {
         ENERGY_PER_LENGTH_CUBED,
         FORCE,
         THERMAL_CONDUCTIVITY,
+        THERMAL_CONDUCTANCE,
         LENGTH_PER_TIME,
         LENGTH_SQUARED,
         ENERGY_TIMES_LENGTH_PER_TIME,

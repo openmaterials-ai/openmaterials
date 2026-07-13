@@ -244,6 +244,28 @@
   },
   "uid": "1ab85488c90143e38b94e27f93ab96571f381e7b09d507fa7a38216ffd34c5ec"
  },
+ "1e8b145f7ea4fc232aac842c985a46fee4a6d2b2a04118a38d67dce470ed1b50": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "1",
+     "indices": [
+      "omega_bin"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "phonon_transmission"
+  },
+  "meta": {
+   "description": "Per-frequency transmission function T(nu) of a lead/junction system: the dimensionless probability a phonon at frequency nu transmits through a device between two semi-infinite periodic leads (integer for ballistic channel staircases, fractional under scattering). The observable every coherent-transport method shares, the coherent-transport analogue of the Linewidth the BTE routes share; the junction and lead specification (device geometry, lead channels, any anharmonic optical-potential attenuation) rides in the record conditions. Gauge-invariant (a scattering probability), binned over the frequency axis like PhononDOS.",
+   "name": "PhononTransmission",
+   "symbol": "\\mathcal{T}(\\omega)",
+   "tier": "Transport"
+  },
+  "uid": "1e8b145f7ea4fc232aac842c985a46fee4a6d2b2a04118a38d67dce470ed1b50"
+ },
  "21ba7756f45c808d3d91ed059c34c532f04845781d549b4c16573d9462bb2902": {
   "identity": {
    "fields": [
@@ -809,6 +831,28 @@
    "tier": "Thermodynamics"
   },
   "uid": "4fa2d8e16bde42f794f150f5d149e5d645d63f7ddaac59cef79bd41771b13c17"
+ },
+ "50084cef8405999bb14c2ff71b98f70f982d71254e3ec35bed543a10bbbbf542": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^2 T^-3 Th^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "transport_model": "landauer"
+   },
+   "quantity": "thermal_conductance"
+  },
+  "meta": {
+   "description": "The Landauer thermal conductance G(T) of a lead/junction system: the ballistic (coherent) heat conductance from the phonon transmission, G(T) = (1/2pi) integral hbar Omega T(Omega) (dn/dT) dOmega with n the Bose-Einstein occupation. Power per temperature (W/K), a conductance not the per-length ThermalConductivity: the coherent-transport terminal observable, the Landauer sibling of the BTE / Wigner / QHGK / MD kappa routes. Scalar, a function of T only; the junction and lead specification rides in the record conditions.",
+   "name": "ThermalConductance[transport_model=landauer]",
+   "symbol": "\\mathcal{G}_{\\mathrm{L}}",
+   "tier": "Transport"
+  },
+  "uid": "50084cef8405999bb14c2ff71b98f70f982d71254e3ec35bed543a10bbbbf542"
  },
  "50c33a1edd60bff6fb74124af1a8847a4c8a2c58d39554b4661e6a2cddb62f30": {
   "identity": {

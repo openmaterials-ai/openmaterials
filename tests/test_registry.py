@@ -144,7 +144,7 @@ def test_label_keys_registry_shape():
     assert LABEL_KEYS["wrt"] == frozenset({"omega", "mfp"})
     assert LABEL_KEYS["transport_model"] == frozenset(
         {"wigner", "wigner_populations", "wigner_coherences", "qhgk",
-         "green_kubo", "nemd", "hnemd"}
+         "green_kubo", "nemd", "hnemd", "landauer"}
     )
 
 

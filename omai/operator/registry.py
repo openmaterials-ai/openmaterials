@@ -138,6 +138,8 @@ QUANTITY_TAGS: dict[str, str] = {
     "phase_space3_phonon": "Three-phonon kinematic phase space available for scattering per mode.",
     "mean_free_displacement": "Per-mode mean free displacement F entering the BTE conductivity.",
     "thermal_conductivity": "Lattice thermal conductivity tensor kappa (BTE, Wigner, QHGK, or MD route).",
+    "phonon_transmission": "Per-frequency transmission function T(nu) of a lead/junction system, the dimensionless probability a phonon transmits through a device between two semi-infinite periodic leads; the observable every coherent-transport (Landauer) method shares, the coherent-transport analogue of the BTE Linewidth.",
+    "thermal_conductance": "Landauer thermal conductance G(T) of a lead/junction system, the ballistic coherent heat conductance from the phonon transmission; power per temperature (W/K), a conductance NOT the per-length thermal_conductivity, kept apart by this own tag and dimension.",
     "cumulative_kappa": "Cumulative thermal conductivity distributed over frequency or mean free path.",
     "trajectory": "Per-atom MD positions and velocities sampled at each timestep.",
     "heat_current": "Instantaneous MD heat-current vector J(t).",
@@ -251,7 +253,7 @@ LABEL_KEYS: dict[str, frozenset[str]] = {
     "bte_solver": frozenset({"rta", "direct_inverse"}),
     "transport_model": frozenset(
         {"wigner", "wigner_populations", "wigner_coherences", "qhgk",
-         "green_kubo", "nemd", "hnemd"}
+         "green_kubo", "nemd", "hnemd", "landauer"}
     ),
     "channel": frozenset({"anharmonic_3ph", "isotope", "boundary", "total"}),
     "wrt": frozenset({"omega", "mfp"}),
