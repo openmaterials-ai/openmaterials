@@ -171,7 +171,7 @@ def _render_lean(nodes: dict, lemmas: list, node_dims: dict) -> str:
         "",
         "  PhysLean (c) Joseph Tooby-Smith, Apache 2.0.",
         "-/",
-        "import PhysLean.Physlib.Units.Dimension",
+        "import Physlib.Units.Dimension",
         "",
         "namespace OpenMaterials",
         "",
