@@ -96,6 +96,7 @@
     <div class="pg-tabs">
       <button class="pg-tab on" data-tab="query" type="button">Query</button>
       <button class="pg-tab" data-tab="trace" type="button">Trace</button>
+      <button class="pg-tab" data-tab="map" type="button">Map</button>
       <button class="pg-tab" data-tab="parse" type="button">Parse</button>
     </div>
 
@@ -119,6 +120,19 @@
       </div>
       <datalist id="nodeList"></datalist>
       <div class="pg-results" id="traceResult"></div>
+    </div>
+
+    <div class="pg-panel" data-panel="map">
+      <h3>A map from code</h3>
+      <p>A sub-map is a list of edges plus the map version they came from. Paste
+        that JSON to render it, or build one on the canvas and Share it: the
+        link carries the edges in its fragment, no server. Node symbols and
+        formulas are pulled live from the map by id.</p>
+      <button class="om-btn om-btn-sm" id="loadMapExample" type="button">Load an example</button>
+      <p style="margin:12px 0 6px;font-size:.78rem;color:var(--muted)">the map, as code:</p>
+      <textarea class="pg-input" id="mapInput" rows="7" placeholder='{"v": "8aea09f90c24", "e": [["Structure", "compute_dispersion", "Frequency"]]}' style="resize:vertical;font-family:var(--font-mono,monospace);font-size:.74rem"></textarea>
+      <button class="om-btn om-btn-sm" id="renderMap" type="button" style="margin-top:8px">Render map</button>
+      <div id="mapResult" style="margin-top:12px"></div>
     </div>
 
     <div class="pg-panel" data-panel="parse">
@@ -192,9 +206,11 @@ function resolveLabel(q){
 /* ---- data load ----------------------------------------------------------- */
 Promise.all([
   fetch('../data/graph.json?v=' + Date.now()).then(function(r){ return r.json(); }),
-  fetch('../data/semantics.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return []; })
+  fetch('../data/semantics.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return []; }),
+  fetch('../data/version.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; })
 ]).then(function(res){
   GRAPH = res[0]; SEM = res[1] || [];
+  if (res[2] && res[2].version) window.__MAP_VERSION__ = res[2].version;
   SEM.forEach(function(e){ semById[e.id] = e; });
   var seen = {};
   GRAPH.nodes.forEach(function(n){ nodeById[n.id] = n; symHtml[n.id] = tex(n.symbol); });
@@ -205,7 +221,7 @@ Promise.all([
     (parents[l.target] = parents[l.target] || []).push(l.source);
   });
   seedUI();
-  applyHash();
+  return applyHash();
 }).catch(function(e){ hint.textContent = 'Could not load the map: ' + e; });
 
 function seedUI(){
@@ -423,24 +439,124 @@ document.getElementById('qInput').addEventListener('input', function(){ runQuery
 document.getElementById('traceFrom').addEventListener('change', runTrace);
 document.getElementById('traceTo').addEventListener('change', runTrace);
 
-document.getElementById('shareBtn').addEventListener('click', function(){
-  var tab = document.querySelector('.pg-tab.on').getAttribute('data-tab');
-  var hash = '#/play?tab=' + tab;
-  if (tab === 'query') hash += '&q=' + encodeURIComponent(document.getElementById('qInput').value);
-  if (tab === 'trace') hash += '&from=' + encodeURIComponent(document.getElementById('traceFrom').value) + '&to=' + encodeURIComponent(document.getElementById('traceTo').value);
-  var url = location.origin + location.pathname + hash;
-  location.hash = hash;
-  var btn = this;
-  if (navigator.clipboard) navigator.clipboard.writeText(url).then(function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Share'; }, 1200); });
+/* ---- the map-view format: {v: version, e: [[from, op, to], ...]} ---------- */
+// A sub-map is edges plus the version they came from. Node symbols and
+// formulas are pulled LIVE from the map by id, so the payload stays tiny and
+// never drifts from the map's truth. This one format serves both the Map tab
+// (paste to render, "a map from code") and Share (gzip into the URL fragment,
+// "the serialized explanation of the edges in the GET"). No backend: a shared
+// link is self-contained and never expires.
+function currentVersion(){
+  var el = document.getElementById('om-version');  // may be absent on this page
+  return (window.__MAP_VERSION__ || '').slice(0, 12);
+}
+function mapViewFromEdges(edges){
+  // edges: array of [from, op, to] triples known to the live map
+  var nodeIds = {}, eops = {};
+  edges.forEach(function(tr){ nodeIds[tr[0]] = 1; nodeIds[tr[2]] = 1; if (tr[1]) eops[tr[1]] = 1; });
+  return { nodes: Object.keys(nodeIds).filter(function(id){ return nodeById[id]; }), eops: eops };
+}
+function renderMapView(view){
+  var box = document.getElementById('mapResult');
+  var edges = (view && view.e) || [];
+  if (!edges.length) { box.innerHTML = '<div class="pg-empty">No edges in this map. Add [from, op, to] triples.</div>'; renderSubmap([], {}); return; }
+  var valid = edges.filter(function(tr){ return Array.isArray(tr) && nodeById[tr[0]] && nodeById[tr[2]]; });
+  var mv = mapViewFromEdges(valid);
+  var stale = view.v && currentVersion() && view.v.slice(0, 12) !== currentVersion();
+  var note = '';
+  if (stale) note = '<div style="font-size:.74rem;color:var(--meas);margin-bottom:8px">Built against map ' + esc(view.v.slice(0,12)) + '; the live map is ' + esc(currentVersion()) + '. Rendering by node id.</div>';
+  if (valid.length < edges.length) note += '<div style="font-size:.74rem;color:var(--muted);margin-bottom:8px">' + (edges.length - valid.length) + ' edge(s) reference nodes not on this map version.</div>';
+  box.innerHTML = note + '<div class="lin-lab">' + valid.length + ' edges rendered</div><div class="lin-diagram">' +
+    valid.map(function(tr){ var op = String(tr[1] || '').replace(/\[.*?\]/g, '').replace(/_/g, ' ');
+      return '<div class="lin-row"><span class="lin-n hot">' + esc(tr[0]) + '</span><span class="lin-op">&mdash;' + esc(op) + '&rarr;</span><span class="lin-n hot">' + esc(tr[2]) + '</span></div>'; }).join('') + '</div>';
+  renderSubmap(mv.nodes, mv.eops);
+}
+function currentMapViewJSON(){
+  // serialize whatever is lit on the canvas as an edges+version map
+  var lit = {}; svg.querySelectorAll('.pg-node:not(.dim)').forEach(function(el){ lit[el.getAttribute('data-id')] = 1; });
+  var e = [];
+  GRAPH.links.forEach(function(l){ if (l.op && lit[l.source] && lit[l.target] && l.source !== l.target) e.push([l.source, l.op, l.target]); });
+  return { v: currentVersion(), e: e };
+}
+
+/* ---- gzip <-> base64url in the URL fragment ------------------------------ */
+function b64urlFromBytes(bytes){
+  var s = ''; for (var i = 0; i < bytes.length; i++) s += String.fromCharCode(bytes[i]);
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function bytesFromB64url(str){
+  str = str.replace(/-/g, '+').replace(/_/g, '/'); while (str.length % 4) str += '=';
+  var bin = atob(str), out = new Uint8Array(bin.length);
+  for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+async function gzipToB64url(obj){
+  var bytes = new TextEncoder().encode(JSON.stringify(obj));
+  if (typeof CompressionStream !== 'undefined') {
+    var cs = new CompressionStream('gzip'); var w = cs.writable.getWriter(); w.write(bytes); w.close();
+    return 'g' + b64urlFromBytes(new Uint8Array(await new Response(cs.readable).arrayBuffer()));
+  }
+  return 'r' + b64urlFromBytes(bytes);
+}
+async function b64urlToObj(str){
+  var mode = str[0], body = bytesFromB64url(str.slice(1));
+  if (mode === 'g') {
+    if (typeof DecompressionStream === 'undefined') throw new Error('this link needs a newer browser');
+    var ds = new DecompressionStream('gzip'); var w = ds.writable.getWriter(); w.write(body); w.close();
+    body = new Uint8Array(await new Response(ds.readable).arrayBuffer());
+  }
+  return JSON.parse(new TextDecoder().decode(body));
+}
+
+/* ---- Map tab wiring ------------------------------------------------------ */
+document.getElementById('renderMap').addEventListener('click', function(){
+  var raw = document.getElementById('mapInput').value.trim(); if (!raw) return;
+  try { renderMapView(JSON.parse(raw)); }
+  catch (e) { document.getElementById('mapResult').innerHTML = '<div class="pg-empty">Not valid JSON: ' + esc(e.message) + '</div>'; }
+});
+document.getElementById('loadMapExample').addEventListener('click', function(){
+  var ex = { v: currentVersion(), e: [
+    ['DynamicalMatrix', 'compute_dispersion', 'Frequency'],
+    ['Frequency', 'compute_kappa[transport_model=qhgk]', 'ThermalConductivity[transport_model=qhgk]'],
+    ['HeatCapacity', 'compute_kappa[transport_model=qhgk]', 'ThermalConductivity[transport_model=qhgk]'],
+    ['GroupVelocity', 'compute_kappa[transport_model=qhgk]', 'ThermalConductivity[transport_model=qhgk]'],
+    ['Linewidth[channel=total]', 'compute_kappa[transport_model=qhgk]', 'ThermalConductivity[transport_model=qhgk]']
+  ]};
+  document.getElementById('mapInput').value = JSON.stringify(ex, null, 1);
+  renderMapView(ex);
 });
 
-function applyHash(){
-  var m = location.hash.match(/[#&]tab=([a-z]+)/); if (!m) return;
-  var tab = document.querySelector('.pg-tab[data-tab="' + m[1] + '"]'); if (tab) tab.click();
-  var q = location.hash.match(/[#&]q=([^&]*)/);
+document.getElementById('shareBtn').addEventListener('click', async function(){
+  var tab = document.querySelector('.pg-tab.on').getAttribute('data-tab');
+  var hash = '#/play?tab=' + tab;
+  var btn = this;
+  if (tab === 'query') hash += '&q=' + encodeURIComponent(document.getElementById('qInput').value);
+  if (tab === 'trace') hash += '&from=' + encodeURIComponent(document.getElementById('traceFrom').value) + '&to=' + encodeURIComponent(document.getElementById('traceTo').value);
+  // query, trace, parse, and map all share the LIT sub-map as an edges+version
+  // payload, so any view is a linkable map. (Query/trace also keep their inputs
+  // above so the input box repopulates.)
+  if (svg.querySelector('.pg-node:not(.dim)')) hash += '&m=' + await gzipToB64url(currentMapViewJSON());
+  var url = location.origin + location.pathname + hash;
+  location.hash = hash;
+  if (url.length > 8000) { btn.textContent = 'Too large to link'; setTimeout(function(){ btn.textContent = 'Share'; }, 1600); return; }
+  var done = function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Share'; }, 1200); };
+  if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, done); else done();
+});
+
+async function applyHash(){
+  var m = location.hash.match(/[#?&]tab=([a-z]+)/); if (!m) return;
+  var tabBtn = document.querySelector('.pg-tab[data-tab="' + m[1] + '"]'); if (tabBtn) tabBtn.click();
+  var q = location.hash.match(/[#?&]q=([^&]*)/);
   if (q) { var v = decodeURIComponent(q[1]); document.getElementById('qInput').value = v; runQuery(v); }
-  var f = location.hash.match(/[#&]from=([^&]*)/), t = location.hash.match(/[#&]to=([^&]*)/);
+  var f = location.hash.match(/[#?&]from=([^&]*)/), t = location.hash.match(/[#?&]to=([^&]*)/);
   if (f && t) { document.getElementById('traceFrom').value = decodeURIComponent(f[1]); document.getElementById('traceTo').value = decodeURIComponent(t[1]); runTrace(); }
+  // the edges+version map payload: renders the shared sub-map. On the Map tab
+  // it also fills the code box; elsewhere it just lights the canvas.
+  var mm = location.hash.match(/[#?&]m=([^&]*)/);
+  if (mm) { try { var view = await b64urlToObj(mm[1]);
+      if (m[1] === 'map') { document.getElementById('mapInput').value = JSON.stringify(view, null, 1); renderMapView(view); }
+      else { var mv = mapViewFromEdges((view.e || []).filter(function(tr){ return Array.isArray(tr) && nodeById[tr[0]] && nodeById[tr[2]]; })); renderSubmap(mv.nodes, mv.eops); }
+    } catch (e) { hint.style.display = 'block'; hint.textContent = 'Could not open the shared map: ' + e.message; } }
 }
 window.addEventListener('resize', function(){ if (svg.querySelector('.pg-node')) { var ids = [], pos = {}, set = {};
   // cheap re-sync: recompute label transform against current viewBox (positions unchanged)
