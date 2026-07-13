@@ -48,18 +48,18 @@
       "value_text": "156",
       "unit": "W/(m K)",
       "material": "Si",
-      "node_id": "ThermalConductivity[bte_solver=direct_inverse]",
+      "node_id": "ThermalConductivity",
       "committed_instance": "si-thermalconductivity-bte-solver-direct-inverse-glassbrenner-slack-1964.json",
-      "note": "bulk single-crystal Si experimental reference (300 K), printed in the abstract."
+      "note": "bulk single-crystal Si experimental reference (300 K), printed in the abstract. Re-pointed 2026-07-13 to the method-neutral ThermalConductivity node, following the 2026-07-12 instance migration (a measurement reports the observable, not a solver route)."
     },
     {
       "value": 60.2,
       "value_text": "60.2",
       "unit": "W/(m K)",
       "material": "Ge",
-      "node_id": "ThermalConductivity[bte_solver=direct_inverse]",
+      "node_id": "ThermalConductivity",
       "committed_instance": "ge-thermalconductivity-bte-solver-direct-inverse-glassbrenner-slack-1964.json",
-      "note": "bulk single-crystal Ge experimental reference (300 K), printed in the abstract."
+      "note": "bulk single-crystal Ge experimental reference (300 K), printed in the abstract. Re-pointed 2026-07-13 to the method-neutral ThermalConductivity node, following the 2026-07-12 instance migration (a measurement reports the observable, not a solver route)."
     },
     {
       "value": 91.44,
