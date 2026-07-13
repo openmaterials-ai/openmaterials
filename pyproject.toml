@@ -20,10 +20,23 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The paper parser (omai/paper_parser, omai/paper_db) imports these lazily:
+# pypdf>=6.1 for PdfReader/PdfWriter and filters.ZLIB_MAX_OUTPUT_LENGTH (the
+# decompression guard raised in ingest.py), anthropic for the detect/review
+# stages. Declared so installing the parser matches the README's
+# "Parse a paper" section instead of failing on the first import.
+parser = [
+    "pypdf>=6.1",
+    "anthropic>=0.40",
+]
+# dev carries the parser deps too: tests/test_paper_parser.py imports pypdf
+# unconditionally, so a fresh `pip install -e ".[dev]" && pytest` must pass.
 dev = [
     "pytest>=8.0",
     "ruff>=0.4",
     "mypy>=1.8",
+    "pypdf>=6.1",
+    "anthropic>=0.40",
 ]
 
 [tool.setuptools.packages.find]
