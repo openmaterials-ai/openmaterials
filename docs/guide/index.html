@@ -155,12 +155,11 @@ from omai.operator.identity import node_id
 print(node_id(THERMAL_CONDUCTIVITY)[:12], THERMAL_CONDUCTIVITY.fields[0].dimension.name)
 # a03324d4def5 thermal_conductivity</pre>
     </div>
-    <p><b>Experimental:</b> a Lean export of the dimensional layer. <code>python
-      -m omai.physlean_export</code> generates a PhysLean file where each node is
-      a <code>Dimension</code> and each dimension-proven edge is a theorem closed
-      by <code>decide</code>. The dimensional identities are verified in Python
-      (CI), but the file is not yet compiled against PhysLean. The map and
-      playground show the generated Lean for the element you select.</p>
+    <p>The dimensional layer is verified in Lean: <code>python -m
+      omai.physlean_export</code> generates a PhysLean file where each node is a
+      <code>Dimension</code> and each dimension-proven edge is a theorem. It
+      compiles against PhysLean (Lean 4.29.1); the map and playground show the
+      Lean for the element you select (green check).</p>
   </section>
 
   <section class="gsec" id="parse">

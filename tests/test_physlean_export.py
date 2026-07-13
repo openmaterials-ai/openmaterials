@@ -1,6 +1,7 @@
-"""The PhysLean export (Tier 1): the map's dimensional layer as Lean (experimental).
+"""The PhysLean export (Tier 1): the map's dimensional layer as Lean.
 
-We cannot run a Lean toolchain in CI (no lake/Mathlib), so we verify the two
+The generated file compiles against PhysLean (verified on a machine with a
+Lean toolchain, 2026-07-12). CI has no toolchain, so here we re-verify the two
 things that make the generated file correct: (1) every node's PhysLean
 Dimension has the right shared-base exponents, and (2) every emitted lemma
 states a dimensional identity that ACTUALLY HOLDS, which is exactly what
@@ -43,7 +44,7 @@ def test_every_emitted_lemma_is_a_true_dimensional_identity():
     for name, exps in node_exps.items():
         ident_to_exps[_lean_ident(name)] = exps
 
-    lemma_re = re.compile(r"theorem \S+ : (\w+) = (.+) := by decide")
+    lemma_re = re.compile(r"theorem \S+ : (\w+) = (.+?) := by\s*$")
     checked = 0
     for line in src.splitlines():
         m = lemma_re.match(line.strip())
