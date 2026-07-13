@@ -115,7 +115,7 @@ def build_export():
     # We assert it only for edges every one of whose endpoints exported (so the
     # Lean statement is well-typed) and whose product actually holds (the
     # dimensional gate already proved this for executable edges; here we restate
-    # it as a Lean lemma closed by decide).
+    # it as a Lean theorem proved by ext + simp with PhysLean's *_mul lemmas).
     producers = {}
     for l in graph["links"]:
         if l.get("op"):
