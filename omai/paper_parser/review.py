@@ -122,17 +122,44 @@ def _payload(surviving, corpus: str) -> str:
     return json.dumps(rows, ensure_ascii=False)
 
 
+REVIEW_BATCH_SIZE = 40  # claims per REVIEW call. A dense paper's surviving
+                        # claims (with a reason sentence per verdict) can
+                        # overflow a single 16k output (live: kappa-limit,
+                        # 2026-07-13). Batches bound each call's output; the
+                        # catalog system block is cache_control'd, so extra
+                        # calls re-read it from cache. Mirrors MAP_BATCH_SIZE.
+
+
 def review(client, surviving, catalog_text: str, corpus: str,
            usage: Usage) -> tuple[list[Verdict], str]:
-    """Run pass 3. Returns (verdicts, stop_reason).
+    """Run pass 3 in batches of REVIEW_BATCH_SIZE claims.
 
-    `surviving` is a list of (index, mapped_claim, validation). A refusal returns
-    empty verdicts with the stop_reason. Claims with no returned verdict default
-    to 'confirmed' (the deterministic gates already cleared them).
+    `surviving` is a list of (index, mapped_claim, validation); payload rows
+    carry the GLOBAL index, so batch verdicts concatenate directly. Returns
+    (verdicts, stop_reason) where stop_reason is the first non-end_turn stop;
+    a refusal aborts the remaining batches, whose claims then carry no verdict
+    (propose records review: None and apply-time gating excludes them).
     """
     if not surviving:
         return [], "end_turn"
 
+    verdicts_all: list[Verdict] = []
+    for lo in range(0, len(surviving), REVIEW_BATCH_SIZE):
+        batch = surviving[lo:lo + REVIEW_BATCH_SIZE]
+        verdicts, stop = _review_one_batch(client, batch, catalog_text,
+                                           corpus, usage)
+        verdicts_all.extend(verdicts)
+        if stop != "end_turn":
+            return verdicts_all, stop
+    return verdicts_all, "end_turn"
+
+
+def _review_one_batch(client, surviving, catalog_text: str, corpus: str,
+                      usage: Usage) -> tuple[list[Verdict], str]:
+    """One structured-output REVIEW call over a bounded batch. A refusal
+    returns empty verdicts with the stop_reason. Claims with no returned
+    verdict default to 'confirmed' (the deterministic gates already cleared
+    them)."""
     system = [
         {"type": "text", "text": REVIEW_SYSTEM},
         {"type": "text", "text": catalog_text,

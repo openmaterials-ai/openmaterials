@@ -869,3 +869,59 @@ def test_adaptive_chunking_halves_until_detect_fits(monkeypatch, tmp_path):
     # 2 eights, 2 fours, 4 twos regardless of pop order.
     assert calls.count(8) == 2 and calls.count(4) == 2 and calls.count(2) == 4
     assert res.proposal["ensemble"]["document_parts"] == 4
+
+
+def test_review_batches_and_concatenates_verdicts():
+    """A dense paper's surviving claims overflow a single 16k review output
+    (live: kappa-limit, 2026-07-13): review now runs in REVIEW_BATCH_SIZE
+    batches with global indices, and a refusal aborts the remaining batches
+    honestly (their claims carry no verdict)."""
+    from omai.paper_parser import review as review_mod
+
+    surviving = []
+    for i in range(95):
+        m, v = _mapped_and_validation("Temperature", str(200 + i))
+        surviving.append((i, m, v))
+
+    class FakeUsageBlock:
+        input_tokens = output_tokens = 0
+        cache_read_input_tokens = cache_creation_input_tokens = 0
+
+    class FakeResp:
+        def __init__(self, indices):
+            self.usage = FakeUsageBlock()
+            self.stop_reason = "end_turn"
+            body = json.dumps({"verdicts": [
+                {"index": i, "verdict": "confirmed", "corrected_field": "",
+                 "corrected_value": "", "reason": "holds"} for i in indices]})
+            self.content = [type("B", (), {"type": "text", "text": body})()]
+
+    class FakeClient:
+        def __init__(self):
+            self.batch_sizes = []
+            self.messages = self
+
+        def create(self, **kw):
+            rows = json.loads(kw["messages"][0]["content"].split("CLAIMS:\n", 1)[1])
+            self.batch_sizes.append(len(rows))
+            return FakeResp([r["index"] for r in rows])
+
+    fc = FakeClient()
+    verdicts, stop = review_mod.review(fc, surviving, "catalog", "corpus", Usage())
+    assert fc.batch_sizes == [40, 40, 15]
+    assert stop == "end_turn" and len(verdicts) == 95
+    assert sorted(v.index for v in verdicts) == list(range(95))
+
+    class RefusingClient(FakeClient):
+        def create(self, **kw):
+            resp = super().create(**kw)
+            if len(self.batch_sizes) == 2:
+                resp.stop_reason = "refusal"
+                resp.content = []
+            return resp
+
+    rc = RefusingClient()
+    verdicts, stop = review_mod.review(rc, surviving, "catalog", "corpus", Usage())
+    # batch 2 refuses: batch 3 never runs, batch 1's verdicts survive
+    assert rc.batch_sizes == [40, 40] and stop == "refusal"
+    assert len(verdicts) == 40
