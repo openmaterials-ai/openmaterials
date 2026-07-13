@@ -239,10 +239,20 @@ def build_lean_index():
         proof = f"apply Dimension.ext <;> simp [{_proof_defs(target, srcs)}]"
         edges[op] = {"lean": f"theorem {lem} :\n  {_lean_ident(target)} = {prod} := by\n  {proof}"}
 
+    # Tier 2: the algebraic composition theorems, keyed by edge op, merged in so
+    # an identity edge can show both its dimension proof and its algebra proof.
+    identities = {}
+    try:
+        from omai.lean_identities import build_index as _ids
+        identities = _ids()
+    except Exception:
+        identities = {}
+
     return {
         "version": (json_version() or "")[:12],
-        "nodes": nodes,   # id -> {lean}
-        "edges": edges,   # op -> {lean}
+        "nodes": nodes,          # id -> {lean}  (Tier 1 dimensions)
+        "edges": edges,          # op -> {lean}  (Tier 1 dimension identities)
+        "identities": identities,  # op -> {lean, kind}  (Tier 2 compositions)
     }
 
 

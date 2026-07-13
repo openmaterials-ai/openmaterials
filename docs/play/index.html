@@ -475,13 +475,21 @@ function renderMapView(view){
   box.innerHTML = note + '<div class="lin-lab">' + valid.length + ' edges rendered</div><div class="lin-diagram">' +
     valid.map(function(tr){ var op = String(tr[1] || '').replace(/\[.*?\]/g, '').replace(/_/g, ' ');
       return '<div class="lin-row"><span class="lin-n hot">' + esc(tr[0]) + '</span><span class="lin-op">&mdash;' + esc(op) + '&rarr;</span><span class="lin-n hot">' + esc(tr[2]) + '</span></div>'; }).join('') + '</div>';
-  // any Lean theorems that cover the rendered edges: the by-decide proofs
+  // any Lean theorems that cover the rendered edges: the dimension proofs, and
+  // the algebraic composition proofs (Tier 2) where an identity chains.
   var thms = {};
   valid.forEach(function(tr){ var lv = LEAN.edges && LEAN.edges[tr[1]]; if (lv) thms[tr[1]] = lv.lean; });
   var thmKeys = Object.keys(thms);
   if (thmKeys.length) {
     box.innerHTML += '<div class="lin-lab">verified in Lean <span class="lean-badge" title="These theorems compile against PhysLean (Lean 4.29.1).">&#10003;</span></div><pre class="lin-code">' +
       thmKeys.map(function(k){ return esc(thms[k]); }).join('\n') + '</pre>';
+  }
+  var ids = {};
+  valid.forEach(function(tr){ var iv = LEAN.identities && LEAN.identities[tr[1]]; if (iv) ids[tr[1]] = iv.lean; });
+  var idKeys = Object.keys(ids);
+  if (idKeys.length) {
+    box.innerHTML += '<div class="lin-lab">algebraic identity, verified in Lean <span class="lean-badge" title="The chained identity compiles against Mathlib (Lean 4.29.1).">&#10003;</span></div><pre class="lin-code">' +
+      idKeys.map(function(k){ return esc(ids[k]); }).join('\n\n') + '</pre>';
   }
   renderSubmap(mv.nodes, mv.eops);
 }
