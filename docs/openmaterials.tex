@@ -2304,15 +2304,15 @@ Three longer-term directions follow naturally from the design:
         it), allowing approximation theorems to be formally proved rather than asserted. The
         provenance mechanism makes this projection well-defined: each operation in $\pi$
         corresponds to a Lean lemma whose statement is the operation's error formula.
-An experimental first tier exists (2026-07-12): \texttt{omai.physlean\_export} generates
+The first tier is built and verified (2026-07-12): \texttt{omai.physlean\_export} generates
         a Lean file in which every node is a PhysLean \texttt{Dimension} and every
-        dimension-proven edge is a theorem closed by \texttt{decide}, regenerated with the map.
-        The four bases PhysLean shares with the map (length, time, mass, temperature) map
-        directly; nodes carrying amount-of-substance, current, or luminous intensity are
-        omitted, since PhysLean's \texttt{Dimension} has no base for them. The dimensional
-        identities are checked in the test suite (the property \texttt{decide} would verify);
-        compiling the file against PhysLean, and the approximation-error theorems, remain
-        future work.
+        dimension-proven edge is a theorem stating the output dimension equals the product of
+        the input dimensions. The file \emph{compiles} against PhysLean (Lean~4.29.1): 80
+        nodes, 11 edge theorems, zero errors. The four bases PhysLean shares with the map
+        (length, time, mass, temperature) map directly; nodes carrying amount-of-substance,
+        current, or luminous intensity are omitted, since PhysLean's \texttt{Dimension} has no
+        base for them. So the dimensional layer type-checks in a proof assistant today; the
+        approximation-error theorems remain future work.
   \item \textbf{Theory-experiment integration.} Extend the representation functor to ingest
         experimental observables. The operator layer's graph-alignment machinery applies uniformly,
         so a measured $\kappa$ becomes another representation of the abstract $\kappa$, and
