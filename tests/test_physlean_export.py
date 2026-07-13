@@ -1,4 +1,4 @@
-"""The PhysLean export (Tier 1): the map's dimensional layer as Lean.
+"""The PhysLean export (Tier 1): the map's dimensional layer as Lean (experimental).
 
 We cannot run a Lean toolchain in CI (no lake/Mathlib), so we verify the two
 things that make the generated file correct: (1) every node's PhysLean
