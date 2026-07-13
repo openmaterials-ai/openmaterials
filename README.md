@@ -38,6 +38,32 @@ CUDA_VISIBLE_DEVICES="" PYTHONPATH=. python -m omai.map_data
 
 To append a value, add a JSON file under `docs/data/instances/` and open a pull request.
 
+## A slice of the map, as Mermaid
+
+Any sub-map exports as a Mermaid flowchart (`python -m omai.mermaid <node>`),
+so a lineage renders natively in GitHub markdown, issues, and PRs:
+
+```mermaid
+flowchart LR
+  ForceConstants_order_2["ForceConstants[order=2]"]:::observable
+  BareDynamicalMatrix["BareDynamicalMatrix"]:::observable
+  DynamicalMatrix["DynamicalMatrix"]:::observable
+  Frequency["Frequency"]:::observable
+  PhononDOS["PhononDOS"]:::observable
+  ThermalConductivity_bte_solver_direct_inverse["ThermalConductivity[bte_solver=direct_inverse]"]:::observable
+  ThermalConductivity["ThermalConductivity"]:::observable
+  ForceConstants_order_2 -- "compute dynamical matrix" --> BareDynamicalMatrix
+  BareDynamicalMatrix -- "identity dm" --> DynamicalMatrix
+  DynamicalMatrix -- "compute dispersion" --> Frequency
+  Frequency -- "compute dos" --> PhononDOS
+  ThermalConductivity_bte_solver_direct_inverse -- "resolve thermal conductivity" --> ThermalConductivity
+  classDef observable fill:#eef2ff,stroke:#4f46e5,color:#312e81;
+  classDef hidden fill:#f4f6fa,stroke:#7c89a0,color:#3d4149;
+  classDef parameter fill:#f6f7f9,stroke:#94a3b8,color:#475569;
+```
+
+The playground's Map tab has a Copy as Mermaid button for any view you build.
+
 ## Install
 
 ```bash

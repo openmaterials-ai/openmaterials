@@ -134,6 +134,7 @@
       <p style="margin:12px 0 6px;font-size:.78rem;color:var(--muted)">the map, as code:</p>
       <textarea class="pg-input" id="mapInput" rows="7" placeholder='{"v": "8aea09f90c24", "e": [["Structure", "compute_dispersion", "Frequency"]]}' style="resize:vertical;font-family:var(--font-mono,monospace);font-size:.74rem"></textarea>
       <button class="om-btn om-btn-sm" id="renderMap" type="button" style="margin-top:8px">Render map</button>
+      <button class="om-btn om-btn-sm" id="copyMermaid" type="button" style="margin-top:8px" title="Copy this map as a mermaid flowchart: paste it into any markdown (GitHub renders it natively)">Copy as Mermaid</button>
       <div id="mapResult" style="margin-top:12px"></div>
     </div>
 
@@ -531,6 +532,44 @@ async function b64urlToObj(str){
 }
 
 /* ---- Map tab wiring ------------------------------------------------------ */
+// Mermaid export of the current map view: paste into any markdown (GitHub
+// renders ```mermaid natively). Mirrors omai/mermaid.py.
+function mermaidFromEdges(edges){
+  var seen = {}, order = [];
+  function mid(name){
+    if (seen[name]) return seen[name];
+    var s = String(name).replace(/[^A-Za-z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '') || 'n';
+    var base = s, n = 2;
+    while (Object.values(seen).indexOf(s) >= 0) { s = base + '_' + n; n++; }
+    seen[name] = s; order.push(name); return s;
+  }
+  var edgeLines = [];
+  (edges || []).forEach(function(tr){
+    if (!Array.isArray(tr) || tr.length !== 3) return;
+    var a = mid(tr[0]), b = mid(tr[2]);
+    var op = String(tr[1] || '').replace(/[\[\]=_]/g, ' ').replace(/\s+/g, ' ').trim();
+    edgeLines.push('  ' + a + ' -- "' + op + '" --> ' + b);
+  });
+  var nodeLines = order.map(function(name){
+    var t = (nodeById[name] && nodeById[name].type) || 'hidden';
+    return '  ' + seen[name] + '["' + name + '"]:::' + t;
+  });
+  var classes = '  classDef observable fill:#eef2ff,stroke:#4f46e5,color:#312e81;\n' +
+                '  classDef hidden fill:#f4f6fa,stroke:#7c89a0,color:#3d4149;\n' +
+                '  classDef parameter fill:#f6f7f9,stroke:#94a3b8,color:#475569;';
+  return 'flowchart LR\n' + nodeLines.join('\n') + '\n' + edgeLines.join('\n') + '\n' + classes + '\n';
+}
+document.getElementById('copyMermaid').addEventListener('click', function(){
+  var btn = this, raw = document.getElementById('mapInput').value.trim();
+  if (!raw) { btn.textContent = 'Nothing to copy'; setTimeout(function(){ btn.textContent = 'Copy as Mermaid'; }, 1200); return; }
+  try {
+    var view = JSON.parse(raw);
+    var text = '```mermaid\n' + mermaidFromEdges(view.e || []) + '```\n';
+    var done = function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy as Mermaid'; }, 1200); };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done, done); else done();
+  } catch (e) { btn.textContent = 'Invalid JSON'; setTimeout(function(){ btn.textContent = 'Copy as Mermaid'; }, 1400); }
+});
+
 document.getElementById('renderMap').addEventListener('click', function(){
   var raw = document.getElementById('mapInput').value.trim(); if (!raw) return;
   try { renderMapView(JSON.parse(raw)); }

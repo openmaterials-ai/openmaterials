@@ -58,6 +58,7 @@
     <a href="#graph">Load the map</a>
     <a href="#edges">A node's producing edges</a>
     <a href="#identity">Identity and dimension</a>
+    <a href="#mermaid">Mermaid export</a>
     <a href="#parse">Parse a paper</a>
     <a href="#data">Data contract</a>
     <a href="#cli">CLI reference</a>
@@ -165,6 +166,20 @@ print(node_id(THERMAL_CONDUCTIVITY)[:12], THERMAL_CONDUCTIVITY.fields[0].dimensi
       the molar volume) equal their expanded forms, and
       <code>OpenMaterialsUnits.lean</code> anchors the map's SI convention against
       PhysLean's unit-conversion structure.</p>
+  </section>
+
+  <section class="gsec" id="mermaid">
+    <h2>Export a sub-map as Mermaid</h2>
+    <p>Any lineage or map view renders natively wherever markdown does (GitHub,
+      issues, PRs): the playground's Map tab has a Copy as Mermaid button, and
+      the exporter runs from Python:</p>
+    <div class="recipe" data-recipe="python">
+      <div class="recipe-head"><span class="recipe-title">A node's lineage as a mermaid flowchart</span><span class="recipe-lang">python</span></div>
+      <pre>from omai.mermaid import mermaid_lineage
+
+print(mermaid_lineage("PhononDOS"))
+# flowchart LR ... Frequency -- "compute dos" --> PhononDOS ...</pre>
+    </div>
   </section>
 
   <section class="gsec" id="parse">
