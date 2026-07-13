@@ -56,6 +56,21 @@ CODE_CREDITS: dict[str, dict] = {
         "license_source": "kaldo/LICENSE (vendored clone)",
         "url": "https://github.com/nanotheorygroup/kaldo",
     },
+    "mescal": {
+        "citation": "G. Barbalinardo, D. Donadio, MESCAL: differentiable "
+        "mode-matching phonon transport with machine-learned potentials "
+        "(manuscript in preparation); validated against I. Duchemin, D. Donadio, "
+        "Atomistic calculation of the thermal conductance of large scale "
+        "bulk-nanowire junctions, Phys. Rev. B 84, 115423 (2011)",
+        # Manuscript in preparation: no DOI yet. The validation reference (the
+        # published coherent-transport results MESCAL reproduces) is the
+        # Duchemin-Donadio 2011 paper, whose DOI is 10.1103/PhysRevB.84.115423.
+        "doi": None,
+        "license": "MIT",
+        "license_source": "gbarbalinardo/mescal LICENSE (gh api "
+        "repos/gbarbalinardo/mescal/license -> spdx_id MIT, verified 2026-07-13)",
+        "url": "https://github.com/gbarbalinardo/mescal",
+    },
     "shengbte": {
         "citation": "W. Li, J. Carrete, N. A. Katcho, N. Mingo, ShengBTE: A "
         "solver of the Boltzmann transport equation for phonons, Comput. Phys. "

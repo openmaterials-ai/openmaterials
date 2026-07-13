@@ -59,6 +59,7 @@ from omai.operator.dimensions import (
     LENGTH_TIMES_FREQUENCY,
     MASS,
     TEMPERATURE,
+    THERMAL_CONDUCTANCE,
     THERMAL_CONDUCTIVITY,
     TIME,
     VOLUME,
@@ -143,4 +144,14 @@ register_symbol_dimensions({
     "p": DIMENSIONLESS,
     "a": DIMENSIONLESS,
     r"D_{mode}": DIFFUSIVITY,
+    # Coherent phonon transport (Landauer). The transmission \mathcal{T} is a
+    # DIMENSIONLESS scattering probability; the Landauer conductance \mathcal{G}
+    # is THERMAL_CONDUCTANCE (W/K). Registering both lets the dimensional gate
+    # PROVE compute_conductance[landauer]: the integrand \hbar \omega \mathcal{T}
+    # (dn/dT) is energy x (1/temperature) = ENERGY_PER_TEMPERATURE, and the
+    # d\omega integration multiplies by a frequency (T^-1), landing on
+    # THERMAL_CONDUCTANCE. Both base names are fresh (no collision).
+    r"\mathcal{T}": DIMENSIONLESS,
+    r"\mathcal{T}_{provided}": DIMENSIONLESS,
+    r"\mathcal{G}": THERMAL_CONDUCTANCE,
 })

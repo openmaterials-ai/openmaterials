@@ -39,6 +39,7 @@ from omai.operator.dimensions import (
     NUMBER_DENSITY,
     SEEBECK,
     TEMPERATURE,
+    THERMAL_CONDUCTANCE,
     THERMAL_CONDUCTIVITY,
     POWER_FACTOR,
     THERMAL_EXPANSIVITY,
@@ -104,6 +105,13 @@ KM_PER_S = Unit("km_per_s", LENGTH_TIMES_FREQUENCY, 10.0)
 
 # Canonical thermal-conductivity unit: W/(m·K).
 W_PER_M_PER_K = Unit("W_per_m_per_K", THERMAL_CONDUCTIVITY, 1.0, si_scale=1.0)
+
+
+# Canonical thermal-conductance unit: W/K (the Landauer G(T)). MESCAL's
+# eskm_tools.landauer emits G in nW/K (1 nW/K = 1e-9 W/K), so nW_per_K carries
+# to_operator 1e-9 to the canonical W/K.
+W_PER_K = Unit("W_per_K", THERMAL_CONDUCTANCE, 1.0, si_scale=1.0)
+NW_PER_K = Unit("nW_per_K", THERMAL_CONDUCTANCE, 1e-9)
 
 
 # Canonical molar-energy unit: J/mol. Phonopy's free_energy / internal_energy
@@ -297,6 +305,8 @@ UNITS: dict[str, Unit] = {
         ANGSTROM_LINEAR_THZ,
         KM_PER_S,
         W_PER_M_PER_K,
+        W_PER_K,
+        NW_PER_K,
         J_PER_MOL,
         KJ_PER_MOL,
         EV_PER_A3,
