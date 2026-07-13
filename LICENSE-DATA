@@ -1,3 +1,30 @@
+OpenMaterials data licensing notice
+===================================
+
+The text below this notice is the unmodified Creative Commons
+Attribution 4.0 International license (CC BY 4.0). It applies to the map
+data in this repository (map/, docs/data/, index/).
+
+Three plain-language notes on how it applies. They summarize
+GOVERNANCE.md ("Data ownership and fairness") and are not part of the
+license:
+
+  1. Contributors keep ownership of what they contribute. CC BY 4.0 is
+     a non-exclusive license, not a transfer: whatever rights exist in
+     a contributed record remain with the contributor or the original
+     rights holder. There is no copyright assignment and no contributor
+     license agreement.
+
+  2. The map stores derived values with provenance. It never ingests
+     the underlying simulation or experimental artifacts, which stay
+     with their owners under their owners' own terms.
+
+  3. Reuse of the data requires attribution (the BY): cite the map
+     version you used and, through its provenance, the original
+     sources.
+
+=======================================================================
+
 Attribution 4.0 International
 
 =======================================================================

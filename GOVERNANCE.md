@@ -64,3 +64,37 @@ each of these stages, not to any company, including Da Vinci Labs.
 * Every mapped code's own citation and license is recorded in its rail
   (`docs/data/codes.json`); crediting upstream science is a gate, not a
   courtesy.
+
+## Data ownership and fairness
+
+The map runs on other people's science: simulations someone paid compute
+for, measurements someone ran a lab for, codes someone maintains, papers
+someone wrote. The rules below keep that exchange fair. They are
+commitments of the initiative, not courtesies.
+
+* **Contributed values stay their owner's.** Appending evidence to the
+  map transfers nothing. Whatever rights exist in a contributed record
+  (for a measured fact, often none; for a curated dataset, sometimes
+  many) remain with the contributor or the original rights holder. By
+  contributing, you grant the initiative a worldwide, non-exclusive,
+  royalty-free license to redistribute the record under CC BY 4.0, and
+  you keep everything else. There is no copyright assignment and no
+  contributor license agreement: the license in is the license out.
+* **Raw artifacts never enter the store.** The map holds derived values
+  with conditions, uncertainty, and provenance. It never ingests the
+  underlying trajectories, wavefunctions, force sets, lab records, or
+  datasets. Those remain wholly the owner's, under the owner's own
+  terms, reachable through the provenance reference and nowhere else.
+* **Attribution flows both ways.** Downstream, reuse of map data must
+  credit the map version and, through its provenance, the original
+  sources: that is what the BY in CC BY 4.0 means. Upstream, every
+  mapped code's citation and license is recorded in its rail, every
+  parsed paper is cited with verbatim quotes and page anchors, and a
+  contribution that cannot cite its source does not enter.
+* **Good open licenses are respected where we meet them.** Values enter
+  with citation; quotes stay short, verbatim, and page-anchored; codes
+  are described and credited, never vendored. Material whose license
+  does not permit this kind of inclusion does not enter. A rights
+  holder who believes something entered in error can open an issue: the
+  record is removed from the current view of the map, and the
+  append-only log records the retraction.

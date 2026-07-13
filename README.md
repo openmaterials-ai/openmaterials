@@ -36,7 +36,11 @@ with:
 CUDA_VISIBLE_DEVICES="" PYTHONPATH=. python -m omai.map_data
 ```
 
-To append a value, add a JSON file under `docs/data/instances/` and open a pull request.
+To append a value, add a JSON file under `docs/data/instances/` and open a pull
+request. What you contribute stays yours: appending grants the map a
+non-exclusive CC BY 4.0 license, never a transfer, and the raw simulation or
+experimental artifacts behind a value are never ingested (GOVERNANCE.md, "Data
+ownership and fairness").
 
 ## A slice of the map, as Mermaid
 
@@ -151,6 +155,16 @@ path. The interfaces (the site, the views, the bibliography tooling) and
 the AI improvement engine (the paper parser, the scan agents) are built by
 Da Vinci Labs on top of the commons. Cite via CITATION.cff, stating the map
 version (docs/data/version.json) your work used.
+
+Evidence stays its owner's. Contributing a value grants the map a
+non-exclusive CC BY 4.0 license and transfers nothing; there is no copyright
+assignment and no CLA; raw simulation and experimental artifacts are never
+ingested and remain under their owners' own terms. Attribution is enforced
+in both directions: upstream, every mapped code's citation and license is
+recorded in its rail and every parsed paper is quoted verbatim with page
+anchors as a merge gate; downstream, reuse must credit the map version and,
+through it, the original sources. The full statement is GOVERNANCE.md,
+"Data ownership and fairness".
 
 ## Design
 
