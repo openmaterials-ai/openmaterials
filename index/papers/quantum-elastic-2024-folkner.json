@@ -1,0 +1,65 @@
+{
+ "map_version": "8aea09f90c24ae29137be4860452b9085d5b1e1a502493bffd8f956a9c382a8f",
+ "paper": {
+  "arxiv": null,
+  "authors": "Folkner, Barbalinardo et al.",
+  "doi": null,
+  "journal_ref": "2024",
+  "title": "Elastic moduli and thermal conductivity of quantum materials at finite temperature"
+ },
+ "parsed": {
+  "date": "2026-07-13",
+  "parser": "omai.paper_parser P2 (ensemble, batched map)",
+  "proposal_stats": {
+   "applied": 4,
+   "detected": 187,
+   "survived": 120
+  }
+ },
+ "values": [
+  {
+   "instance": "si-diamond-elasticconstants-paper-quantum-elastic-2024-folkner-pimd-tdep-300k-c11.json",
+   "node_id": "ElasticConstants",
+   "node_uid": "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e",
+   "pages": [
+    19
+   ],
+   "quote": "300 133.6 59.4 64.3 84.1 153.7 134.1 97.0 53.4",
+   "units": "GPa",
+   "value": 133.6
+  },
+  {
+   "instance": "si-diamond-elasticconstants-paper-quantum-elastic-2024-folkner-pimd-tdep-300k-c12.json",
+   "node_id": "ElasticConstants",
+   "node_uid": "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e",
+   "pages": [
+    19
+   ],
+   "quote": "300 133.6 59.4 64.3 84.1 153.7 134.1 97.0 53.4",
+   "units": "GPa",
+   "value": 59.4
+  },
+  {
+   "instance": "si-diamond-elasticconstants-paper-quantum-elastic-2024-folkner-pimd-tdep-300k-c44.json",
+   "node_id": "ElasticConstants",
+   "node_uid": "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e",
+   "pages": [
+    19
+   ],
+   "quote": "300 133.6 59.4 64.3 84.1 153.7 134.1 97.0 53.4",
+   "units": "GPa",
+   "value": 64.3
+  },
+  {
+   "instance": "si-diamond-bulkmodulus-paper-quantum-elastic-2024-folkner-pimd-tdep-300k.json",
+   "node_id": "BulkModulus",
+   "node_uid": "c0a13e64c02811f49b951271c894373267937676e0c657fc9ef09fac72558ced",
+   "pages": [
+    19
+   ],
+   "quote": "300 133.6 59.4 64.3 84.1 153.7 134.1 97.0 53.4",
+   "units": "GPa",
+   "value": 84.1
+  }
+ ]
+}
