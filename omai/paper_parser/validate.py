@@ -122,6 +122,28 @@ _PRINTED_UNIT_ALIASES = {
     "j/m2": "J_per_m2",
     "mu_b": "mu_B",
     "ry": "ry",
+    # Molar heat capacity and molar energy: the registry has carried
+    # J_per_K_per_mol / J_per_mol / kJ_per_mol from the start (units.py calls
+    # J/(K·mol) the canonical molar heat capacity), but no printed spelling
+    # resolved to them, so every C_p / reaction-enthalpy claim passed the
+    # unit gate "unresolved" instead of dimension-checked. These are the
+    # spellings thermochemistry papers actually print.
+    "j/(k mol)": "J_per_K_per_mol",
+    "j/(mol k)": "J_per_K_per_mol",
+    "j/(k·mol)": "J_per_K_per_mol",
+    "j/(mol·k)": "J_per_K_per_mol",
+    "j/mol/k": "J_per_K_per_mol",
+    "j/mol k": "J_per_K_per_mol",
+    "j mol^-1 k^-1": "J_per_K_per_mol",
+    "j mol-1 k-1": "J_per_K_per_mol",
+    # the IUPAC/NIST order (K before mol) is at least as common in journals
+    "j k^-1 mol^-1": "J_per_K_per_mol",
+    "j k-1 mol-1": "J_per_K_per_mol",
+    "j/mol": "J_per_mol",
+    "j mol^-1": "J_per_mol",
+    "kj/mol": "kJ_per_mol",
+    "kj mol^-1": "kJ_per_mol",
+    "kj mol-1": "kJ_per_mol",
 }
 
 
