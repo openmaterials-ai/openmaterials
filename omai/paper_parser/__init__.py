@@ -132,16 +132,47 @@ def run_pipeline(pdf_path: str | Path, *, client=None, map_version: str | None =
     try:
         detected, detect_stop, detect_info = _detect_over_parts(parts)
     except RuntimeError as exc:
-        if "truncated" not in str(exc) or len(ingested.pages) <= 12:
+        if "truncated" not in str(exc) or len(ingested.pages) <= 1:
             raise
         # A dense paper can overflow the detect OUTPUT budget even when the
         # document fits the request cap (live: a 55-page paper defeated the
-        # 32k budget, 2026-07-13). Retry page-chunked: each chunk's claims fit
-        # comfortably, the union machinery merges duplicates across chunk
-        # boundaries, and pages are offset back to whole-document numbering.
-        parts = _ingest.split_for_api(pdf_path, ingested, max_pages=12)
-        detected, detect_stop, detect_info = _detect_over_parts(parts)
-        detect_info["chunked_after_truncation"] = True
+        # 32k budget, and a table-dense 12-page part of it STILL overflowed,
+        # 2026-07-13). Adaptive worklist: start at 12-page tiles and halve any
+        # range that truncates, down to single pages; parts that succeed are
+        # never re-run, the union machinery merges duplicates across chunk
+        # boundaries, and pages offset back to whole-document numbering. A
+        # SINGLE page that overflows the budget raises honestly.
+        n = len(ingested.pages)
+        work = [(lo, min(lo + 12, n)) for lo in range(0, n, 12)]
+        detected = []
+        detect_info = {"passes": detect_passes, "per_pass_claim_counts": [],
+                       "stop_reasons": [], "cache_read_input_tokens": 0,
+                       "document_parts": 0, "chunked_after_truncation": True}
+        detect_stop = "end_turn"
+        while work:
+            lo, hi = work.pop(0)
+            part, off = _ingest.page_part(pdf_path, ingested, lo, hi)
+            try:
+                d, detect_stop, info = _detect.detect_ensemble(
+                    client, part, usage, passes=detect_passes)
+            except RuntimeError as sub:
+                if "truncated" in str(sub) and hi - lo > 1:
+                    mid = (lo + hi) // 2
+                    work[:0] = [(lo, mid), (mid, hi)]
+                    continue
+                raise RuntimeError(
+                    f"DETECT truncated on a single page ({lo + 1}); the page's "
+                    f"claim density exceeds the output budget") from sub
+            if off:
+                for c in d:
+                    c.pages = [pg + off for pg in (c.pages or [])]
+            detected.extend(d)
+            detect_info["document_parts"] += 1
+            detect_info["per_pass_claim_counts"] += info.get("per_pass_claim_counts", [])
+            detect_info["stop_reasons"] += info.get("stop_reasons", [])
+            detect_info["cache_read_input_tokens"] += info.get("cache_read_input_tokens", 0)
+            if detect_stop not in ("end_turn",):
+                break
 
     # MAP (pass 2)
     mapped, map_stop, cache_info = _map.map_claims(client, detected, catalog_text, usage)

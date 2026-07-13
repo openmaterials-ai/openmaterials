@@ -812,3 +812,60 @@ def test_split_for_api_max_pages_force(monkeypatch):
     assert all(len(p.pages) <= 12 for p, _ in parts)
     assert [off for _, off in parts] == sorted(off for _, off in parts)
     assert sum(len(p.pages) for p, _ in parts) == 30
+
+
+def test_adaptive_chunking_halves_until_detect_fits(monkeypatch, tmp_path):
+    """A table-dense part can overflow the detect budget even at 12 pages
+    (live, 2026-07-13): the pipeline halves any truncating range down to
+    single pages, never re-runs parts that succeeded, and unions the claims
+    with whole-document page numbers."""
+    import pypdf
+
+    from omai.paper_parser import run_pipeline
+    from omai.paper_parser import detect as detect_mod
+
+    class FakePage:
+        def extract_text(self):
+            return "page text 1.23 W/(m K)"
+
+    class FakeReader:
+        def __init__(self, path):
+            self.pages = [FakePage() for _ in range(8)]
+
+    class FakeWriter:
+        def __init__(self):
+            self.n = 0
+        def add_page(self, p):
+            self.n += 1
+        def write(self, buf):
+            buf.write(b"x" * self.n)
+
+    monkeypatch.setattr(pypdf, "PdfReader", FakeReader)
+    monkeypatch.setattr(pypdf, "PdfWriter", FakeWriter)
+
+    calls = []
+
+    def fake_ensemble(client, ingested, usage, passes=3):
+        n = len(ingested.pages)
+        calls.append(n)
+        if n > 3:
+            raise RuntimeError("DETECT truncated (max_tokens); raise cap or split the PDF")
+        c = _claim("1.23", quote="1.23 W/(m K)", pages=[1])
+        return [c], "end_turn", {"passes": passes, "per_pass_claim_counts": [1],
+                                 "stop_reasons": ["end_turn"],
+                                 "cache_read_input_tokens": 0}
+
+    monkeypatch.setattr(detect_mod, "detect_ensemble", fake_ensemble)
+
+    pdf = tmp_path / "dense.pdf"
+    pdf.write_bytes(b"%PDF-fake")
+    # exercise the worklist through run_pipeline with MAP/REVIEW as no-ops
+    from omai import paper_parser as pp
+    monkeypatch.setattr(pp._map, "map_claims", lambda client, claims, cat, usage: ([], "end_turn", {"cache_read_input_tokens": 0}))
+    monkeypatch.setattr(pp._review, "review", lambda *a, **k: ({}, "end_turn"))
+    res = pp.run_pipeline(pdf, client=object(), write=False, proposals_dir=tmp_path)
+    # 8 pages: the whole doc (8) truncates, the 12-page tile (still 8)
+    # truncates, both 4-page halves truncate, all four 2-page quarters fit:
+    # 2 eights, 2 fours, 4 twos regardless of pop order.
+    assert calls.count(8) == 2 and calls.count(4) == 2 and calls.count(2) == 4
+    assert res.proposal["ensemble"]["document_parts"] == 4

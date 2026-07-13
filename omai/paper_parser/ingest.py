@@ -84,6 +84,30 @@ def read_pdf(pdf_path: str | Path) -> Ingested:
 MAX_DOC_B64_CHARS = 24_000_000
 
 
+def page_part(pdf_path: str | Path, ingested: Ingested,
+              lo: int, hi: int) -> tuple[Ingested, int]:
+    """A real sub-PDF for the page range [lo, hi), with its own extracted text
+    and broken-page bookkeeping; the offset converts part pages back to
+    whole-document numbering. Used by split_for_api and by the pipeline's
+    adaptive re-chunking when a dense part overflows the detect output."""
+    import base64
+    import io
+
+    from pypdf import PdfReader, PdfWriter
+
+    reader = PdfReader(str(pdf_path))
+    w = PdfWriter()
+    for i in range(lo, hi):
+        w.add_page(reader.pages[i])
+    buf = io.BytesIO()
+    w.write(buf)
+    b64 = base64.standard_b64encode(buf.getvalue()).decode("ascii")
+    pages = ingested.pages[lo:hi]
+    return Ingested(pdf_b64=b64, pages=pages, full_text="\n".join(pages),
+                    broken_pages=tuple(p - lo for p in ingested.broken_pages
+                                       if lo < p <= hi)), lo
+
+
 def split_for_api(pdf_path: str | Path, ingested: Ingested,
                   max_b64: int = MAX_DOC_B64_CHARS,
                   max_pages: int | None = None) -> list[tuple[Ingested, int]]:
@@ -97,25 +121,8 @@ def split_for_api(pdf_path: str | Path, ingested: Ingested,
     if len(ingested.pdf_b64) <= max_b64 and max_pages is None:
         return [(ingested, 0)]
 
-    import base64
-    import io
-
-    from pypdf import PdfReader, PdfWriter
-
     def _part(lo: int, hi: int) -> tuple[Ingested, int]:
-        reader = PdfReader(str(pdf_path))
-        w = PdfWriter()
-        for i in range(lo, hi):
-            w.add_page(reader.pages[i])
-        buf = io.BytesIO()
-        w.write(buf)
-        data = buf.getvalue()
-        b64 = base64.standard_b64encode(data).decode("ascii")
-        pages = ingested.pages[lo:hi]
-        part = Ingested(pdf_b64=b64, pages=pages, full_text="\n".join(pages),
-                        broken_pages=tuple(p - lo for p in ingested.broken_pages
-                                           if lo < p <= hi))
-        return part, lo
+        return page_part(pdf_path, ingested, lo, hi)
 
     def _split(lo: int, hi: int) -> list[tuple[Ingested, int]]:
         if hi - lo < 1:

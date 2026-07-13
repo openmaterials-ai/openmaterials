@@ -161,6 +161,10 @@ def build_proposal(*, paper_slug: str, map_version: str | None, mapped, validati
             "detect_passes": info.get("passes", 1),
             "per_pass_claim_counts": info.get("per_pass_claim_counts", []),
             "detect_stop_reasons": info.get("stop_reasons", []),
+            # oversized/dense documents detect on page-range parts; the part
+            # count and the adaptive-chunking flag are provenance worth keeping
+            "document_parts": info.get("document_parts", 1),
+            "chunked_after_truncation": info.get("chunked_after_truncation", False),
         },
         "usage": usage.as_dict(),
         "cost_estimate_usd": usage.cost_estimate_usd(),
