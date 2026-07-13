@@ -26,3 +26,14 @@ The build bundles every `*.json` here into `../instances.json`, which the map re
 ```bash
 CUDA_VISIBLE_DEVICES="" PYTHONPATH=. python -m omai.map_data
 ```
+
+## Your data stays yours
+
+Appending an instance grants the map a non-exclusive CC BY 4.0 license to
+redistribute the record with attribution, and nothing else: no copyright
+assignment, no CLA, no claim on the simulation or experiment behind it. The
+raw artifacts (trajectories, force sets, lab records) are never ingested;
+the record carries a provenance reference and the artifacts stay wherever,
+and however, you publish them. Anyone reusing map data must credit the map
+version and, through its provenance, your source. The full statement is
+GOVERNANCE.md, "Data ownership and fairness".
