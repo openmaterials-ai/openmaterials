@@ -85,7 +85,8 @@ MAX_DOC_B64_CHARS = 24_000_000
 
 
 def split_for_api(pdf_path: str | Path, ingested: Ingested,
-                  max_b64: int = MAX_DOC_B64_CHARS) -> list[tuple[Ingested, int]]:
+                  max_b64: int = MAX_DOC_B64_CHARS,
+                  max_pages: int | None = None) -> list[tuple[Ingested, int]]:
     """Return [(part, page_offset)] parts each under the API size cap.
 
     A part is a real sub-PDF (contiguous page range) with its OWN extracted
@@ -93,7 +94,7 @@ def split_for_api(pdf_path: str | Path, ingested: Ingested,
     part's 1-indexed pages back to whole-document pages. A single part means
     no split was needed. Parts are halved recursively until they fit (a part
     that cannot fit even as one page raises: such a page is unparseable)."""
-    if len(ingested.pdf_b64) <= max_b64:
+    if len(ingested.pdf_b64) <= max_b64 and max_pages is None:
         return [(ingested, 0)]
 
     import base64
@@ -119,6 +120,12 @@ def split_for_api(pdf_path: str | Path, ingested: Ingested,
     def _split(lo: int, hi: int) -> list[tuple[Ingested, int]]:
         if hi - lo < 1:
             raise ValueError(f"empty page range {lo}:{hi}")
+        # a max_pages force (dense papers whose DETECT OUTPUT overflows even
+        # when the document itself fits the request cap) splits by page count
+        # before the size check ever passes a long range through
+        if max_pages is not None and hi - lo > max_pages:
+            mid = (lo + hi) // 2
+            return _split(lo, mid) + _split(mid, hi)
         part, off = _part(lo, hi)
         if len(part.pdf_b64) <= max_b64:
             return [(part, off)]

@@ -777,3 +777,38 @@ def test_map_payload_carries_deterministic_resolver_hint():
     d.quantity = "phonon density of states"
     row = json.loads(_claims_payload([d]))[0]
     assert "PhononDOS" in row["resolver_hint"]
+
+
+def test_split_for_api_max_pages_force(monkeypatch):
+    """A dense paper can overflow the detect OUTPUT budget while fitting the
+    request cap; max_pages forces page-chunking regardless of byte size (live:
+    a 55-page paper defeated the 32k budget, 2026-07-13)."""
+    import pypdf
+    from omai.paper_parser.ingest import Ingested, split_for_api
+
+    class FakePage:
+        pass
+
+    class FakeReader:
+        def __init__(self, path):
+            self.pages = [FakePage() for _ in range(30)]
+
+    class FakeWriter:
+        def __init__(self):
+            self.n = 0
+        def add_page(self, p):
+            self.n += 1
+        def write(self, buf):
+            buf.write(b"x" * self.n)
+
+    monkeypatch.setattr(pypdf, "PdfReader", FakeReader)
+    monkeypatch.setattr(pypdf, "PdfWriter", FakeWriter)
+    doc = Ingested(pdf_b64="A" * 100, pages=tuple(f"p{i}" for i in range(30)),
+                   full_text="x")
+    # fits the size cap: without the force it stays whole
+    assert len(split_for_api("f.pdf", doc)) == 1
+    # with the force every part is <= 12 pages and offsets tile the document
+    parts = split_for_api("f.pdf", doc, max_pages=12)
+    assert all(len(p.pages) <= 12 for p, _ in parts)
+    assert [off for _, off in parts] == sorted(off for _, off in parts)
+    assert sum(len(p.pages) for p, _ in parts) == 30

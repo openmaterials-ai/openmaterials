@@ -109,23 +109,39 @@ def run_pipeline(pdf_path: str | Path, *, client=None, map_version: str | None =
     # detect on page-range parts (each under the API request cap); a part's
     # claim pages are offset back to whole-document numbering, and later
     # stages (MAP, the quote corpus, REVIEW) see the whole paper as usual.
+    def _detect_over_parts(parts):
+        collected, stop_last = [], "end_turn"
+        dinfo = {"passes": detect_passes, "per_pass_claim_counts": [],
+                 "stop_reasons": [], "cache_read_input_tokens": 0,
+                 "document_parts": len(parts)}
+        for part, page_offset in parts:
+            d, stop_last, info = _detect.detect_ensemble(
+                client, part, usage, passes=detect_passes)
+            if page_offset:
+                for c in d:
+                    c.pages = [pg + page_offset for pg in (c.pages or [])]
+            collected.extend(d)
+            dinfo["per_pass_claim_counts"] += info.get("per_pass_claim_counts", [])
+            dinfo["stop_reasons"] += info.get("stop_reasons", [])
+            dinfo["cache_read_input_tokens"] += info.get("cache_read_input_tokens", 0)
+            if stop_last not in ("end_turn",):
+                break
+        return collected, stop_last, dinfo
+
     parts = _ingest.split_for_api(pdf_path, ingested)
-    detected = []
-    detect_info = {"passes": detect_passes, "per_pass_claim_counts": [],
-                   "stop_reasons": [], "cache_read_input_tokens": 0,
-                   "document_parts": len(parts)}
-    for part, page_offset in parts:
-        d, detect_stop, info = _detect.detect_ensemble(
-            client, part, usage, passes=detect_passes)
-        if page_offset:
-            for c in d:
-                c.pages = [pg + page_offset for pg in (c.pages or [])]
-        detected.extend(d)
-        detect_info["per_pass_claim_counts"] += info.get("per_pass_claim_counts", [])
-        detect_info["stop_reasons"] += info.get("stop_reasons", [])
-        detect_info["cache_read_input_tokens"] += info.get("cache_read_input_tokens", 0)
-        if detect_stop not in ("end_turn",):
-            break
+    try:
+        detected, detect_stop, detect_info = _detect_over_parts(parts)
+    except RuntimeError as exc:
+        if "truncated" not in str(exc) or len(ingested.pages) <= 12:
+            raise
+        # A dense paper can overflow the detect OUTPUT budget even when the
+        # document fits the request cap (live: a 55-page paper defeated the
+        # 32k budget, 2026-07-13). Retry page-chunked: each chunk's claims fit
+        # comfortably, the union machinery merges duplicates across chunk
+        # boundaries, and pages are offset back to whole-document numbering.
+        parts = _ingest.split_for_api(pdf_path, ingested, max_pages=12)
+        detected, detect_stop, detect_info = _detect_over_parts(parts)
+        detect_info["chunked_after_truncation"] = True
 
     # MAP (pass 2)
     mapped, map_stop, cache_info = _map.map_claims(client, detected, catalog_text, usage)
