@@ -148,6 +148,29 @@ def test_unit_check_activation_energy_ev():
     assert res["ok"] and res["kind"] == "match"
 
 
+def test_unit_check_molar_heat_capacity_spellings():
+    # J_per_K_per_mol has been registered from the start, but no printed
+    # spelling resolved to it, so C_p claims went "unresolved". Every common
+    # spelling must now dimension-check as a hard match.
+    for spelling in ("J/(K mol)", "J/(mol K)", "J/(K\u00b7mol)", "J/mol/K", "J mol^-1 K^-1"):
+        res = validate.unit_check(spelling, "MolarHeatCapacity", _catalog_by_id())
+        assert res["ok"] and res["kind"] == "match", (spelling, res)
+
+
+def test_unit_check_molar_energy_spellings():
+    for spelling, node in (("kJ/mol", "MolarEnthalpy"), ("J/mol", "MolarEnthalpy")):
+        res = validate.unit_check(spelling, node, _catalog_by_id())
+        assert res["ok"] and res["kind"] == "match", (spelling, res)
+
+
+def test_unit_check_molar_energy_against_plain_energy_is_fatal():
+    # With kJ/mol resolvable, a molar energy printed against a plain-energy
+    # node (ReactionEnergy is per event/atom, not per mole) must now be a hard
+    # mismatch instead of slipping through unresolved.
+    res = validate.unit_check("kJ/mol", "ReactionEnergy", _catalog_by_id())
+    assert not res["ok"] and res["kind"] == "mismatch"
+
+
 # --------------------------------------------------------------------------
 # value sanity
 # --------------------------------------------------------------------------
