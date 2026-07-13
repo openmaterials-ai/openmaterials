@@ -560,6 +560,28 @@
 "uid": "6052fe7e6aa8d2116b369886bffe59b04859f21145640184d24dfd96fbb60513"
 },
 {
+"curated": [],
+"id": "PhononTransmission",
+"kind": "node",
+"labels": [
+"PhononTransmission",
+"\\mathcal{T}(\\omega)",
+"phonon transmission"
+],
+"uid": "1e8b145f7ea4fc232aac842c985a46fee4a6d2b2a04118a38d67dce470ed1b50"
+},
+{
+"curated": [],
+"id": "ThermalConductance[transport_model=landauer]",
+"kind": "node",
+"labels": [
+"ThermalConductance[transport_model=landauer]",
+"\\mathcal{G}_{\\mathrm{L}}",
+"thermal conductance transport model landauer"
+],
+"uid": "50084cef8405999bb14c2ff71b98f70f982d71254e3ec35bed543a10bbbbf542"
+},
+{
 "curated": [
 "path-integral-molecular-dynamics"
 ],
@@ -1645,6 +1667,16 @@
 "labels": [
 "compute modal diffusivity",
 "compute_modal_diffusivity"
+],
+"uid": null
+},
+{
+"curated": [],
+"id": "compute_conductance[transport_model=landauer]",
+"kind": "edge",
+"labels": [
+"compute conductance transport model landauer",
+"compute_conductance[transport_model=landauer]"
 ],
 "uid": null
 },

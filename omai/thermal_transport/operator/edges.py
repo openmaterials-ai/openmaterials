@@ -66,6 +66,9 @@ from omai.thermal_transport.operator.nodes import (
     # Amorphous / localization diagnostics (kaldo delta scan, records 208-211)
     PARTICIPATION_RATIO,
     MODAL_DIFFUSIVITY,
+    # Coherent phonon transport (Landauer)
+    PHONON_TRANSMISSION,
+    THERMAL_CONDUCTANCE_LANDAUER,
     # Nuclear-quantum-effects layer (Cookbook Slice 1, i-PI, records 212-215)
     QUANTUM_KINETIC_ENERGY,
     HEAT_CAPACITY_PIMD,
@@ -958,6 +961,67 @@ compute_kappa_qhgk = Operator(
 )
 
 
+# Coherent phonon transport (Landauer). PhononTransmission is a source-tier
+# observable a coherent-transport code (MESCAL) emits directly from its
+# lead/junction S-matrix; like the other source nodes (Potential, Temperature,
+# ForceConstants) it is produced by a nullary provide_ edge. The Landauer
+# conductance then integrates it against the Bose-Einstein energy window.
+_T_trans = sp.IndexedBase(r"\mathcal{T}")
+_T_trans_provided = sp.Symbol(r"\mathcal{T}_{provided}")
+
+provide_transmission = Operator(
+    name="provide_transmission",
+    inputs=(),
+    outputs=(PHONON_TRANSMISSION,),
+    formula=sp.Eq(_T_trans[_omega], _T_trans_provided),
+    description=(
+        "Source: the per-frequency phonon transmission T(nu) of a lead/junction "
+        "system, emitted directly by a coherent-transport code (MESCAL) from its "
+        "direct mode-matching S-matrix. The coherent-transport analogue of the "
+        "provided Linewidth / force constants the BTE chain reads."
+    ),
+)
+
+
+# Landauer conductance. Coherent (ballistic) heat conductance from the phonon
+# transmission integrated against the Bose-Einstein energy window:
+#   G(T) = (1/(2π)) ∫ ℏΩ T(Ω) (dn/dT) dΩ,   n = n_BE(ℏΩ/(k_B T)).
+# The integrand carries ℏΩ (energy) × T(Ω) (dimensionless) × ∂n/∂T (1/temperature)
+# = energy/temperature, and the dΩ integration adds a frequency (1/time), landing
+# on THERMAL_CONDUCTANCE (W/K), so the dimensional gate PROVES it. The transmission
+# rides in via the PhononTransmission input as the indexed T(Ω).
+_G_landauer = sp.Symbol(r"\mathcal{G}")
+_Omega = sp.Symbol(r"\omega", positive=True)
+
+_CONDUCTANCE_LANDAUER_FORMULA = sp.Eq(
+    _G_landauer,
+    sp.Integral(
+        _hbar * _Omega * _T_trans[_Omega]
+        * sp.Derivative(_n_BE(_hbar * _Omega / (_kB * _T)), _T),
+        (_Omega, 0, sp.oo),
+    ) / (2 * sp.pi),
+)
+
+
+compute_conductance_landauer = Operator(
+    name="compute_conductance[transport_model=landauer]",
+    inputs=(PHONON_TRANSMISSION, FREQUENCY_STATE, TEMPERATURE_STATE),
+    outputs=(THERMAL_CONDUCTANCE_LANDAUER,),
+    schemes={"transport_model": "landauer"},
+    formula=_CONDUCTANCE_LANDAUER_FORMULA,
+    description=(
+        "Landauer thermal conductance G(T) = (1/(2π)) ∫ ℏΩ T(Ω) (dn/dT) dΩ: the "
+        "ballistic (coherent) heat conductance of a lead/junction system from its "
+        "phonon transmission T(Ω), integrated against the derivative of the "
+        "Bose-Einstein occupation n. The coherent-transport terminal observable, "
+        "the Landauer sibling of the BTE / Wigner / QHGK / MD κ routes. Frequency "
+        "(Ω) enters both as the transmission's spectral argument and as the "
+        "integration variable; the temperature dependence lives in ∂n/∂T. MESCAL "
+        "evaluates it via eskm_tools.landauer (THz in, nW/K out)."
+    ),
+)
+
+
 # Cumulative κ distributions: thresholded sums over the per-mode κ
 # integrand. wrt=omega bins by phonon frequency; wrt=mfp bins by mean
 # free path magnitude.
@@ -1782,6 +1846,9 @@ EDGES: tuple[Operator, ...] = (
     # Amorphous / localization diagnostics (kaldo delta scan, records 208-211)
     compute_participation_ratio,
     compute_modal_diffusivity,
+    # Coherent phonon transport (Landauer)
+    provide_transmission,
+    compute_conductance_landauer,
     # Nuclear-quantum-effects layer (Cookbook Slice 1, i-PI, records 212-215)
     sample_quantum_kinetic_energy,
     sample_quantum_heat_capacity,

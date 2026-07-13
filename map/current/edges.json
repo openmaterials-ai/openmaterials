@@ -136,6 +136,33 @@
   },
   "uid": "1038d2249c062baff931bbc06138496d90157bb4365334cae8c5092866e9b6a4"
  },
+ "1201b09100e9aaac69f343b09ff8c8002c6de6dec1c843458bec89e3151ef436": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\mathcal{G}'), Mul(Rational(1, 2), Pow(pi, Integer(-1)), Integral(Mul(Symbol('\\\\hbar', positive=True), Symbol('\\\\omega', positive=True), Derivative(Function('n_{BE}')(Mul(Pow(Symbol('T', positive=True), Integer(-1)), Symbol('\\\\hbar', positive=True), Symbol('\\\\omega', positive=True), Pow(Symbol('k_B', positive=True), Integer(-1)))), Tuple(Symbol('T', positive=True), Integer(1))), Indexed(IndexedBase(Symbol('\\\\mathcal{T}')), Symbol('\\\\omega', positive=True))), Tuple(Symbol('\\\\omega', positive=True), Integer(0), oo))))",
+   "inputs": [
+    "1e8b145f7ea4fc232aac842c985a46fee4a6d2b2a04118a38d67dce470ed1b50",
+    "63f9bd32d94d77e12afbb96f5b1b7a870de6b1f5805213b7f3c3ff227da301f0",
+    "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8"
+   ],
+   "output": "50084cef8405999bb14c2ff71b98f70f982d71254e3ec35bed543a10bbbbf542",
+   "outputs": [
+    "50084cef8405999bb14c2ff71b98f70f982d71254e3ec35bed543a10bbbbf542"
+   ],
+   "schemes": {
+    "transport_model": "landauer"
+   }
+  },
+  "meta": {
+   "description": "Landauer thermal conductance G(T) = (1/(2\u03c0)) \u222b \u210f\u03a9 T(\u03a9) (dn/dT) d\u03a9: the ballistic (coherent) heat conductance of a lead/junction system from its phonon transmission T(\u03a9), integrated against the derivative of the Bose-Einstein occupation n. The coherent-transport terminal observable, the Landauer sibling of the BTE / Wigner / QHGK / MD \u03ba routes. Frequency (\u03a9) enters both as the transmission's spectral argument and as the integration variable; the temperature dependence lives in \u2202n/\u2202T. MESCAL evaluates it via eskm_tools.landauer (THz in, nW/K out).",
+   "formula_latex": "\\mathcal{G} = \\frac{\\int\\limits_{0}^{\\infty} \\bar{\\h} \\omega \\frac{\\partial}{\\partial T} n_{BE}{\\left(\\frac{\\bar{\\h} \\omega}{T k_{B}} \\right)} {\\mathcal{T}}_{\\omega}\\, d\\omega}{2 \\pi}",
+   "formula_srepr": "Equality(Symbol('\\\\mathcal{G}'), Mul(Rational(1, 2), Pow(pi, Integer(-1)), Integral(Mul(Symbol('\\\\hbar', positive=True), Symbol('\\\\omega', positive=True), Derivative(Function('n_{BE}')(Mul(Pow(Symbol('T', positive=True), Integer(-1)), Symbol('\\\\hbar', positive=True), Symbol('\\\\omega', positive=True), Pow(Symbol('k_B', positive=True), Integer(-1)))), Tuple(Symbol('T', positive=True), Integer(1))), Indexed(IndexedBase(Symbol('\\\\mathcal{T}')), Symbol('\\\\omega', positive=True))), Tuple(Symbol('\\\\omega', positive=True), Integer(0), oo))))",
+   "name": "compute_conductance[transport_model=landauer]",
+   "schemes": {
+    "transport_model": "landauer"
+   }
+  },
+  "uid": "1201b09100e9aaac69f343b09ff8c8002c6de6dec1c843458bec89e3151ef436"
+ },
  "1348e12defce337587f9c2b152a3a1c88f9d27ec8cc48fc30167aebadd907043": {
   "identity": {
    "formula": "Equality(Symbol('\\\\gamma_{th}'), Mul(Pow(Symbol('C_V^{vol}'), Integer(-1)), Symbol('K'), Symbol('\\\\alpha_V')))",
@@ -2602,6 +2629,25 @@
    }
   },
   "uid": "f2e7f20060fc7a467fa60d0dcede02095054636adf260b0f78f1206350524738"
+ },
+ "f4a8562c1bf037775616e93ace8d78be9cda7338810339c51a41a2662c756079": {
+  "identity": {
+   "formula": "Equality(Indexed(IndexedBase(Symbol('\\\\mathcal{T}')), IndexedBase(Symbol('\\\\omega'))), Symbol('\\\\mathcal{T}_{provided}'))",
+   "inputs": [],
+   "output": "1e8b145f7ea4fc232aac842c985a46fee4a6d2b2a04118a38d67dce470ed1b50",
+   "outputs": [
+    "1e8b145f7ea4fc232aac842c985a46fee4a6d2b2a04118a38d67dce470ed1b50"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Source: the per-frequency phonon transmission T(nu) of a lead/junction system, emitted directly by a coherent-transport code (MESCAL) from its direct mode-matching S-matrix. The coherent-transport analogue of the provided Linewidth / force constants the BTE chain reads.",
+   "formula_latex": "{\\mathcal{T}}_{\\omega} = \\mathcal{T}_{provided}",
+   "formula_srepr": "Equality(Indexed(IndexedBase(Symbol('\\\\mathcal{T}')), IndexedBase(Symbol('\\\\omega'))), Symbol('\\\\mathcal{T}_{provided}'))",
+   "name": "provide_transmission",
+   "schemes": {}
+  },
+  "uid": "f4a8562c1bf037775616e93ace8d78be9cda7338810339c51a41a2662c756079"
  },
  "fd0c5bbfc433db7ed55562ae46c06b3880389135fa84225a10c0687269251352": {
   "identity": {

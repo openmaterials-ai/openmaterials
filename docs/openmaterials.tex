@@ -263,7 +263,7 @@ stability, thermochemistry, quasi-harmonic, molecular, and electronic-transport
 domains (grown from the AtomisticSkills scans),
 a first materials-diffusion subgraph, and a thermodynamic-identities domain that
 closes the map's formulas together; the unified map of
-105 quantities and 104 operators is content-addressed in the log-first store
+107 quantities and 109 operators is content-addressed in the log-first store
 (Part~\ref{part:kernel}), grown past its frozen genesis version through the
 contribution gates, and the whole is held together by a suite of 1408
 passing tests.
@@ -392,8 +392,8 @@ A content hash                  & \textbf{uid} & sha256; a 12-hex prefix is disp
 
 \section{The map}
 
-The map is a curated reference graph. Today it holds 105 nodes (102 observable
-and hidden quantities plus 3 promoted parameters) and 255 edges. Nodes are
+The map is a curated reference graph. Today it holds 107 nodes (104 observable
+and hidden quantities plus 3 promoted parameters) and 259 edges. Nodes are
 typed physical quantities. An edge produces one node from a list of input
 nodes, carrying the symbolic formula that relates them (parameter inputs are
 marked as inputs rather than derived through a formula).
@@ -1273,6 +1273,35 @@ the pre-modification version. Existing example:
 In all three patterns, \emph{edges carry the formulas} and \emph{states carry
 the typed places}; the patterns differ only in which nodes are shared and
 which are distinct.
+
+\paragraph{Learned shortcut edges.} A machine-learned surrogate, seen from
+the map, is Pattern~C with a precise extra claim: the edge approximates the
+\emph{composite of a declared path of exact edges}, usually while amortizing
+away that path's most expensive boundary input. The kernel makes the claim
+first-class (\texttt{omai/operator/learned.py}): a \texttt{LearnedOperator}
+names the exact edges it shortcuts, and \texttt{validate\_learned} checks the
+objective part in the spirit of the contribution gates. Its outputs must equal
+the shortcut path's terminal outputs, exactly; its inputs may read nothing the
+path produces, nor anything downstream of the path's outputs (a shortcut may
+not create a cycle); scheme entries of the path's terminal edges are inherited
+verbatim, because a surrogate trained on labels computed under scheme $S$ is a
+surrogate of the path under scheme $S$; and provenance is mandatory, a
+content-addressed \texttt{model\_ref} for the trained artifact (retraining
+mints a new reference, hence a new claim) plus \texttt{trained\_on} citations
+for the label sources, the same citation discipline as evidence. A learned
+edge is never authoritative: it is not sympy-executable (a formula, when
+present, is a structural ansatz, never a definition), it cannot settle
+cross-code agreement at an observable, and its predictions enter the record
+only as evidence tagged with the \texttt{model\_ref}, comparable against the
+exact path wherever both exist. \texttt{amortized\_inputs} computes what the
+shortcut buys. The motivating case is the third-order wall of anharmonic
+transport: the exact three-phonon linewidth consumes
+\texttt{ForceConstants[order=3]}, and a surrogate producing the same
+\texttt{Linewidth} node from harmonic geometry alone amortizes exactly that
+input into weights. No learned edge sits on the exported map yet: the first
+declaration should land together with a released model artifact and its
+evidence instances, and whether a surrogate is any \emph{good} is settled by
+that evidence next to the exact path's values, never by the gates.
 
 \paragraph{Two-tier validation.} Validation runs at two layers.
 \emph{Declarations} are checked at module load: \texttt{validate\_dag} on
@@ -2326,6 +2355,14 @@ The first tier is built and verified (2026-07-12): \texttt{omai.physlean\_export
         text tokens) constructs workflows by emitting operator operations. The framework
         type-checks each emission, eliminating the drift problem that plagues current
         text-token agents. The action space is finite, typed, and physically meaningful.
+  \item \textbf{Learned shortcuts.} The kernel already types ML surrogates as
+        declared, non-authoritative shortcuts of exact-edge paths
+        (\texttt{LearnedOperator}, 2026-07-13): the shortcut names its path, inherits
+        its schemes, cites its model artifact and training labels, and stays
+        permanently subordinate to the exact edges and the evidence. The first map
+        declaration ships when a released model artifact and its evidence instances
+        land together; the natural candidate is the three-phonon linewidth surrogate
+        that amortizes \texttt{ForceConstants[order=3]} into weights.
 \end{itemize}
 
 The unifying claim of the design is that scientific computing has been organized around the
@@ -2790,8 +2827,8 @@ The map is at store head version
 (2026-07-07, the untouched 100-record prefix). The live numbers:
 
 \begin{itemize}[leftmargin=2em, itemsep=0.25em]
-  \item \textbf{Structure.} 105 nodes (102 observable and hidden quantities plus 3
-        promoted parameters), 256 rendered links, 104 deduplicated operators,
+  \item \textbf{Structure.} 107 nodes (104 observable and hidden quantities plus 3
+        promoted parameters), 259 rendered links, 105 deduplicated operators,
         rendered in fifteen physics tiers (Sources, Harmonic, Thermodynamics,
         Scattering, Transport, Molecular dynamics, Ground state, Mechanics,
         Stability, Thermochemistry, Quasi-harmonic, Molecular, Electronic

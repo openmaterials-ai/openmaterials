@@ -114,7 +114,9 @@ map/                 # the versioned protocol artifact: log-first, content-addre
 index/               # the source registry: per-code coverage pinned to the map version
 omai/
   operator/          # operator layer: Spaces, Operators, sympy formulas,
-                     #   gauge discipline, validate_dag, dimensions, identity
+                     #   gauge discipline, validate_dag, dimensions, identity;
+                     #   learned.py: LearnedOperator, ML surrogates as declared,
+                     #   non-authoritative shortcuts of exact-edge paths
   representation/    # the bridge: units, normalizations, per-code specs,
                      #   compare, and the execute/compose/cross-check runtime
   thermal_transport/ # ten per-domain packages: each carries an operator/ DAG

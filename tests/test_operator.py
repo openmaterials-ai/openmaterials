@@ -21,11 +21,11 @@ from omai.thermal_transport.operator import (
 
 
 def test_node_count():
-    assert len(NODES) == 52
+    assert len(NODES) == 54
 
 
 def test_edge_count():
-    assert len(EDGES) == 53
+    assert len(EDGES) == 55
 
 
 def test_cumulative_kappa_parameterised():
@@ -79,6 +79,40 @@ def test_qhgk_is_hidden_state():
 
     assert isinstance(THERMAL_CONDUCTIVITY_QHGK, HiddenSpace)
     assert compute_kappa_qhgk.outputs == (THERMAL_CONDUCTIVITY_QHGK,)
+
+
+def test_landauer_conductance_edge_dimension_composition():
+    """The MESCAL coherent-transport edge: compute_conductance[landauer] produces
+    the Landauer ThermalConductance from PhononTransmission, Frequency, and
+    Temperature, and its formula PROVES the thermal_conductance dimension
+    (power per temperature, W/K = M L^2 T^-3 Th^-1)."""
+    from omai.operator.dimcheck import dimensional_report
+    from omai.operator.dimensions import THERMAL_CONDUCTANCE
+    from omai.operator.space import ObservableSpace
+    from omai.thermal_transport.operator import (
+        NODES,
+        FREQUENCY_STATE,
+        PHONON_TRANSMISSION,
+        TEMPERATURE_STATE,
+        THERMAL_CONDUCTANCE_LANDAUER,
+        compute_conductance_landauer,
+    )
+
+    op = compute_conductance_landauer
+    assert op.inputs == (PHONON_TRANSMISSION, FREQUENCY_STATE, TEMPERATURE_STATE)
+    assert op.outputs == (THERMAL_CONDUCTANCE_LANDAUER,)
+    assert op.schemes == {"transport_model": "landauer"}
+    # Both new nodes are observables; the conductance carries THERMAL_CONDUCTANCE.
+    assert isinstance(PHONON_TRANSMISSION, ObservableSpace)
+    assert isinstance(THERMAL_CONDUCTANCE_LANDAUER, ObservableSpace)
+    (g_field,) = THERMAL_CONDUCTANCE_LANDAUER.fields
+    assert g_field.dimension == THERMAL_CONDUCTANCE
+    assert THERMAL_CONDUCTANCE.exponents == (1, 2, -3, -1, 0, 0, 0)
+    # The dimensional gate PROVES the edge (in ok, not skipped, no violation).
+    rep = dimensional_report(NODES, (op,))
+    assert op.name in rep["ok"]
+    assert op.name not in rep["skipped"]
+    assert not any(op.name in v for v in rep["violation"])
 
 
 def test_linewidth_channels_converge_through_sum():

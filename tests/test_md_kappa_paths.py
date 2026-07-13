@@ -217,3 +217,30 @@ def test_gpumd_nemd_is_documented_as_not_exposed():
     assert GPUMD_CONTRACT_KAPPA_NEMD.operator is contract_kappa_nemd
     notes = GPUMD_CONTRACT_KAPPA_NEMD.notes.lower()
     assert "not exposed" in notes or "lammps" in notes
+
+
+# ---------------------------------------------------------------------------
+# MESCAL coherent-transport rail (Landauer). MESCAL joins for coherent transport
+# the way kaldo enters for QHGK: it serves PhononTransmission and the Landauer
+# ThermalConductance.
+# ---------------------------------------------------------------------------
+
+
+def test_mescal_appears_in_build_codes_with_phonon_transmission_mapped():
+    from omai.map_data import build_codes, build_graph_dict
+    from omai.thermal_transport.domain import THERMAL_TRANSPORT
+
+    codes = build_codes((THERMAL_TRANSPORT,))
+    assert "mescal" in codes, "mescal rail missing from build_codes"
+    mescal = codes["mescal"]
+    # PhononTransmission is mapped (the observable every coherent method shares).
+    assert "PhononTransmission" in mescal
+    assert mescal["PhononTransmission"]["unit"] == "dimensionless"
+    # The Landauer conductance is served in nW/K and credited (MIT license).
+    landauer = "ThermalConductance[transport_model=landauer]"
+    assert landauer in mescal
+    assert mescal[landauer]["unit"] == "nW_per_K"
+    assert mescal[landauer]["license"] == "MIT"
+    # The mapped variables are real nodes on the map.
+    ids = {n["id"] for n in build_graph_dict((THERMAL_TRANSPORT,))["nodes"]}
+    assert "PhononTransmission" in ids and landauer in ids

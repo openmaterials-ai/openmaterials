@@ -687,10 +687,14 @@ def test_instances_bundle_32_records_all_uid_pinned():
     # 14 signed-off thermal-conductivity / mass-density values from three parsed
     # papers (kaldo-2020-barbalinardo 8, qhgk-2019-isaeva 3, esfarjani-2011 3),
     # each pinned to its node uid and carrying a verbatim, page-located quote.
+    # 83 after the MESCAL onboarding (2026-07-13): the carbon-bilayer Landauer
+    # conductance G(300 K) from the committed reference/milestoneA/conductance.dat
+    # artifact, unit nW/K converted to canonical W/K, pinned to the new
+    # ThermalConductance[transport_model=landauer] node.
     from omai.map_data import build_instances
 
     insts = build_instances()
-    assert len(insts) == 82
+    assert len(insts) == 83
     for it in insts:
         assert it.get("node_uid"), f"instance for {it['variable']} lacks node_uid"
 
