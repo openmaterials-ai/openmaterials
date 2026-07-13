@@ -136,6 +136,9 @@ _PRINTED_UNIT_ALIASES = {
     "j/mol k": "J_per_K_per_mol",
     "j mol^-1 k^-1": "J_per_K_per_mol",
     "j mol-1 k-1": "J_per_K_per_mol",
+    # the IUPAC/NIST order (K before mol) is at least as common in journals
+    "j k^-1 mol^-1": "J_per_K_per_mol",
+    "j k-1 mol-1": "J_per_K_per_mol",
     "j/mol": "J_per_mol",
     "j mol^-1": "J_per_mol",
     "kj/mol": "kJ_per_mol",
