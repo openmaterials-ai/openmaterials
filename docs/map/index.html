@@ -107,6 +107,8 @@
   .om-panel .tiertag{display:inline-block;font-size:.62rem;font-weight:700;color:var(--muted);background:var(--band);border:1px solid var(--bandln);border-radius:999px;padding:3px 9px;margin-left:8px;vertical-align:middle;}
   .om-panel .name{font-family:var(--font-mono);font-feature-settings:"zero" 1;color:#64748b;font-size:.78rem;margin:.55em 0 .1em;word-break:break-word;}
   .om-panel .name .tiertag{font-family:var(--font-sans,'Inter',sans-serif);}   /* the tier pill stays UI type */
+  .lean-line{margin:4px 0 2px;padding:7px 9px;background:#1a1c1f;color:#c8f7d8;border-radius:7px;font-family:var(--font-mono);font-size:.66rem;line-height:1.4;overflow-x:auto;white-space:pre;}
+  .lean-badge{display:inline-block;margin-left:6px;color:#0f9d6b;font-weight:700;}
   .om-panel .uid{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.66rem;color:#a3aec0;margin-left:8px;vertical-align:middle;}
   .legend .ver{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.7rem;color:#a3aec0;}
   .formula{background:linear-gradient(180deg,#fbfaf8,#f5f3ef);border:1px solid var(--line);border-radius:12px;padding:13px 12px;overflow-x:auto;}
@@ -251,6 +253,7 @@ const HAS_KATEX = (typeof katex!=='undefined');
 const HAS_DAGRE = (typeof dagre!=='undefined');
 
 let VB={x:0,y:0,w:1000,h:1000}, GW=1000, GH=1000;
+let leanData={nodes:{},edges:{}};
 let nodeById={}, parents={}, children={}, symHtml={}, pos={},
     codesData={}, activeCode=null, tierList=[], tierIndex={}, edgeList=[],
     depth='overview';   // 'overview' | 'expanded' | 'focused'
@@ -288,7 +291,8 @@ Promise.all([
   fetch('../data/graph.json?v='+Date.now()).then(r=>r.json()),
   fetch('../data/codes.json?v='+Date.now()).then(r=>r.json()).catch(()=>({})),
   fetch('../data/version.json?v='+Date.now()).then(r=>r.json()).catch(()=>null),
-  fetch('../data/semantics.json?v='+Date.now()).then(r=>r.json()).catch(()=>[])
+  fetch('../data/semantics.json?v='+Date.now()).then(r=>r.json()).catch(()=>[]),
+  fetch('../data/lean.json?v='+Date.now()).then(r=>r.json()).catch(()=>({nodes:{},edges:{}}))
 ]).then(build).catch(e=> err('data: '+e));
 
 // The semantic index: a node/edge's surface labels (auto + curated), keyed by
@@ -312,7 +316,8 @@ function resolveLabel(q){
   return out.sort((a,b)=> b.score-a.score || a.id.localeCompare(b.id));
 }
 
-function build([graph, codes, version, semantics]){
+function build([graph, codes, version, semantics, lean]){
+  leanData = lean || {nodes:{},edges:{}};
   (semantics||[]).forEach(e=>{ semById[e.id]=e; });
   codesData = codes || {};
   if(version && version.version){
@@ -565,6 +570,8 @@ function selectNode(node){
     h+='<div class="om-panel-label">'+fl.length+' producing edges (alternative routes)</div>';
     fl.forEach(f=>{ h+='<div class="fop">'+esc(f.op)+'</div><div class="formula">'+tex(f.latex,true)+'</div>'; });
   }
+  const lv=leanData.nodes&&leanData.nodes[node.id];
+  if(lv){ h+='<div class="om-panel-label">verified in Lean<span class="lean-badge" title="This node\'s dimension type-checks against PhysLean">&#10003;</span></div><pre class="lean-line">'+esc(lv.lean)+'</pre>'; }
   if(outs.length){ h+='<div class="om-panel-label">produces &rarr;</div><div class="chips">'+outs.map(chip).join('')+'</div>'; }
   if(ins.length){ h+='<div class="om-panel-label">&larr; from</div><div class="chips">'+ins.map(chip).join('')+'</div>'; }
   h+=mappedByHtml(id);

@@ -69,6 +69,8 @@
   .pg-node-panel .nm{font-family:var(--font-mono,monospace);font-size:.85rem;color:var(--ink);margin-bottom:6px;padding-right:16px;word-break:break-word;}
   .pg-node-panel .lb{font-size:.62rem;text-transform:uppercase;letter-spacing:.06em;color:var(--faint,#9aa0a8);margin:10px 0 3px;}
   .pg-node-panel .fm{font-size:.9rem;overflow-x:auto;}
+  .lean-line{margin:4px 0 2px;padding:7px 9px;background:#1a1c1f;color:#c8f7d8;border-radius:7px;font-family:var(--font-mono,monospace);font-size:.66rem;line-height:1.4;overflow-x:auto;white-space:pre;}
+  .lean-badge{color:#0f9d6b;font-weight:700;}
   .pg-node-panel .uid{font-family:var(--font-mono,monospace);font-size:.68rem;color:var(--muted);word-break:break-all;}
   @media (max-width:720px){
     .pg-left{flex-basis:100%;max-width:none;border-right:none;border-bottom:1px solid var(--line);max-height:44vh;}
@@ -177,7 +179,7 @@ var hint = document.getElementById('pgHint');
 var nodePanel = document.getElementById('pgNodePanel');
 var SVGNS = 'http://www.w3.org/2000/svg';
 
-var GRAPH = null, SEM = [], semById = {}, nodeById = {}, children = {}, parents = {}, symHtml = {};
+var GRAPH = null, SEM = [], LEAN = {nodes:{},edges:{}}, semById = {}, nodeById = {}, children = {}, parents = {}, symHtml = {};
 var VB = { x: 0, y: 0, w: 1000, h: 700 };
 
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
@@ -207,10 +209,12 @@ function resolveLabel(q){
 Promise.all([
   fetch('../data/graph.json?v=' + Date.now()).then(function(r){ return r.json(); }),
   fetch('../data/semantics.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return []; }),
-  fetch('../data/version.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; })
+  fetch('../data/version.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; }),
+  fetch('../data/lean.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {nodes:{},edges:{}}; })
 ]).then(function(res){
   GRAPH = res[0]; SEM = res[1] || [];
   if (res[2] && res[2].version) window.__MAP_VERSION__ = res[2].version;
+  LEAN = res[3] || {nodes:{},edges:{}};
   SEM.forEach(function(e){ semById[e.id] = e; });
   var seen = {};
   GRAPH.nodes.forEach(function(n){ nodeById[n.id] = n; symHtml[n.id] = tex(n.symbol); });
@@ -307,6 +311,8 @@ function openNode(id){
   h += '<div class="lb">symbol</div><div class="fm">' + (symHtml[id] || esc(n.symbol)) + '</div>';
   if (n.formula) h += '<div class="lb">formula</div><div class="fm">' + tex(n.formula, true) + '</div>';
   if (fam) h += '<div class="lb">also known as</div><div style="font-size:.78rem;color:var(--ink-2,#3d4149)">' + esc(fam) + '</div>';
+  var lv = LEAN.nodes && LEAN.nodes[id];
+  if (lv) h += '<div class="lb">verified in Lean <span class="lean-badge" title="type-checks against PhysLean">&#10003;</span></div><pre class="lean-line">' + esc(lv.lean) + '</pre>';
   h += '<div class="lb">uid</div><div class="uid">' + esc(n.uid || '') + '</div>';
   nodePanel.innerHTML = h; nodePanel.style.display = 'block';
   document.getElementById('pgClose').addEventListener('click', function(){ nodePanel.style.display = 'none'; });
@@ -469,6 +475,14 @@ function renderMapView(view){
   box.innerHTML = note + '<div class="lin-lab">' + valid.length + ' edges rendered</div><div class="lin-diagram">' +
     valid.map(function(tr){ var op = String(tr[1] || '').replace(/\[.*?\]/g, '').replace(/_/g, ' ');
       return '<div class="lin-row"><span class="lin-n hot">' + esc(tr[0]) + '</span><span class="lin-op">&mdash;' + esc(op) + '&rarr;</span><span class="lin-n hot">' + esc(tr[2]) + '</span></div>'; }).join('') + '</div>';
+  // any Lean theorems that cover the rendered edges: the by-decide proofs
+  var thms = {};
+  valid.forEach(function(tr){ var lv = LEAN.edges && LEAN.edges[tr[1]]; if (lv) thms[tr[1]] = lv.lean; });
+  var thmKeys = Object.keys(thms);
+  if (thmKeys.length) {
+    box.innerHTML += '<div class="lin-lab">verified in Lean <span class="lean-badge" title="type-checks against PhysLean">&#10003;</span></div><pre class="lin-code">' +
+      thmKeys.map(function(k){ return esc(thms[k]); }).join('\n') + '</pre>';
+  }
   renderSubmap(mv.nodes, mv.eops);
 }
 function currentMapViewJSON(){
@@ -516,11 +530,9 @@ document.getElementById('renderMap').addEventListener('click', function(){
 });
 document.getElementById('loadMapExample').addEventListener('click', function(){
   var ex = { v: currentVersion(), e: [
-    ['DynamicalMatrix', 'compute_dispersion', 'Frequency'],
-    ['Frequency', 'compute_kappa[transport_model=qhgk]', 'ThermalConductivity[transport_model=qhgk]'],
-    ['HeatCapacity', 'compute_kappa[transport_model=qhgk]', 'ThermalConductivity[transport_model=qhgk]'],
-    ['GroupVelocity', 'compute_kappa[transport_model=qhgk]', 'ThermalConductivity[transport_model=qhgk]'],
-    ['Linewidth[channel=total]', 'compute_kappa[transport_model=qhgk]', 'ThermalConductivity[transport_model=qhgk]']
+    ['Frequency', 'compute_dos', 'PhononDOS'],
+    ['ElasticConstants', 'contract_bulk_modulus', 'BulkModulus'],
+    ['ThermalConductivity[bte_solver=direct_inverse]', 'resolve_thermal_conductivity', 'ThermalConductivity']
   ]};
   document.getElementById('mapInput').value = JSON.stringify(ex, null, 1);
   renderMapView(ex);
