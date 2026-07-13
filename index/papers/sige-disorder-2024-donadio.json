@@ -1,0 +1,54 @@
+{
+ "map_version": "8aea09f90c24ae29137be4860452b9085d5b1e1a502493bffd8f956a9c382a8f",
+ "paper": {
+  "arxiv": null,
+  "authors": "D. Donadio group",
+  "doi": null,
+  "journal_ref": "2024",
+  "title": "Effects of colored disorder on the heat conductivity of SiGe alloys from first principles"
+ },
+ "parsed": {
+  "date": "2026-07-13",
+  "parser": "omai.paper_parser P2 (ensemble, batched map)",
+  "proposal_stats": {
+   "applied": 3,
+   "detected": 104,
+   "survived": 18
+  }
+ },
+ "values": [
+  {
+   "instance": "si0-5ge0-5-gaussian-correlated-disorder-thermalconductivity-transport-model-qhgk-paper-sige-disorder-2024-donadio-qhgk-gaussian.json",
+   "node_id": "ThermalConductivity[transport_model=qhgk]",
+   "node_uid": "8932e3cbadef74a82802b43fd1d25328cb40e6136c90df3b6a4a998e77f9567b",
+   "pages": [
+    8
+   ],
+   "quote": "reduces the thermal conductivity to approximately 2.4 Wm-1K-1 at room temperature",
+   "units": "W/(m K)",
+   "value": 2.4
+  },
+  {
+   "instance": "si0-5ge0-5-1-r-correlated-disorder-zt-paper-sige-disorder-2024-donadio-1200k.json",
+   "node_id": "ZT",
+   "node_uid": "cf5879d2e17024fb396d83e19e71852f6cedf446fcf9d2feb81eb994e3e66e3a",
+   "pages": [
+    9
+   ],
+   "quote": "yields a theoretical maximum ZT of 1.9 at T = 1200 K",
+   "units": "dimensionless",
+   "value": 1.9
+  },
+  {
+   "instance": "si0-5ge0-5-1-r-correlated-disorder-zt-paper-sige-disorder-2024-donadio-700k.json",
+   "node_id": "ZT",
+   "node_uid": "cf5879d2e17024fb396d83e19e71852f6cedf446fcf9d2feb81eb994e3e66e3a",
+   "pages": [
+    9
+   ],
+   "quote": "ZT reaches the technologically critical value of 1 at T = 700 K",
+   "units": "dimensionless",
+   "value": 1.0
+  }
+ ]
+}

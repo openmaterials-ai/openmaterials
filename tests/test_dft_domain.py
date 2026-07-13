@@ -690,7 +690,7 @@ def test_instances_bundle_32_records_all_uid_pinned():
     from omai.map_data import build_instances
 
     insts = build_instances()
-    assert len(insts) == 75
+    assert len(insts) == 78
     for it in insts:
         assert it.get("node_uid"), f"instance for {it['variable']} lacks node_uid"
 
