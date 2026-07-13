@@ -31,6 +31,10 @@ _PDF = _REPO_ROOT / "tests" / "golden" / "openmaterials-golden.pdf"
 # The living docs/openmaterials.pdf keeps evolving with the map counts, so
 # pinning the eval to it made the golden silently drift; the frozen copy
 # makes the eval reproducible forever.
+# 2026-07-13: the two measurement entries (Si 156, Ge 60.2) re-pointed to the
+# method-neutral ThermalConductivity node, following the 2026-07-12 instance
+# migration (a measurement reports the observable, not a solver route); the
+# instances they must duplicate now live on that node.
 _EXPECTED = _REPO_ROOT / "tests" / "golden" / "openmaterials-expected.json"
 
 

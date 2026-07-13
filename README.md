@@ -66,8 +66,9 @@ python -m omai.paper_parser <pdf>                # writes a proposal; nothing la
 python -m omai.paper_parser <pdf> --apply --yes  # human-confirmed: writes instances
 ```
 
-It needs an `ANTHROPIC_API_KEY` (environment or a repo-root `.env`); the key is
-never printed or logged.
+It needs its own extras (`pip install -e ".[parser]"`, already included in
+`[dev]`) and an `ANTHROPIC_API_KEY` (environment or a repo-root `.env`); the
+key is never printed or logged.
 
 ## Run the tests
 
