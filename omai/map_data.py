@@ -667,6 +667,13 @@ if __name__ == "__main__":
         print("wrote", _p, "(" + str(_st["lemmas"]) + " lemmas, " + str(_st["nodes_exported"]) + " nodes)")
     except Exception as _e:
         print("physlean export skipped:", _e)
+    from omai.lean_identities import write_identities as _write_ids
+    from omai.lean_units import write_units as _write_units
+    try:
+        _pi, _si = _write_ids(); print("wrote", _pi, "(" + str(_si["compositions"]) + " compositions)")
+        _pu, _su = _write_units(); print("wrote", _pu, "(" + str(_su["theorems"]) + " unit theorems)")
+    except Exception as _e:
+        print("lean tier2/units export skipped:", _e)
     from omai.semantics import write_semantics as _write_semantics
     import json as _json
     print("wrote", _write_semantics(_json.loads((_DOCS / "data" / "graph.json").read_text())))
