@@ -27,7 +27,10 @@ dependencies = [
 # "Parse a paper" section instead of failing on the first import.
 parser = [
     "pypdf>=6.1",
-    "anthropic>=0.40",
+    # the MAP stage uses output_config structured outputs and detect streams
+    # via client.messages.stream; 0.116 is the version the pipeline is
+    # developed and tested against, and older SDKs predate output_config.
+    "anthropic>=0.116",
 ]
 # dev carries the parser deps too: tests/test_paper_parser.py imports pypdf
 # unconditionally, so a fresh `pip install -e ".[dev]" && pytest` must pass.
@@ -36,7 +39,7 @@ dev = [
     "ruff>=0.4",
     "mypy>=1.8",
     "pypdf>=6.1",
-    "anthropic>=0.40",
+    "anthropic>=0.116",
 ]
 
 [tool.setuptools.packages.find]
