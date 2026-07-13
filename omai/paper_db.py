@@ -174,7 +174,12 @@ def render_proposal(slug: str, proposals_dir: Path | None = None) -> str:
 
 if __name__ == "__main__":  # pragma: no cover - the CLI shell
     import sys
-    if len(sys.argv) > 2 and sys.argv[1] == "--show":
+    if any(a in ("--help", "-h") for a in sys.argv[1:]):
+        # anything else rebuilds the db, which re-reads every PDF; help
+        # must not cost minutes of pypdf noise
+        print("usage: python -m omai.paper_db            rebuild db.json, print the table\n"
+              "       python -m omai.paper_db --show S   render proposal for paper slug S")
+    elif len(sys.argv) > 2 and sys.argv[1] == "--show":
         print(render_proposal(sys.argv[2]))
     else:
         entries = build_db()

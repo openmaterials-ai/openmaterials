@@ -1,0 +1,76 @@
+{
+ "map_version": "8aea09f90c24ae29137be4860452b9085d5b1e1a502493bffd8f956a9c382a8f",
+ "paper": {
+  "arxiv": "2503.11568",
+  "authors": "D. Donadio group",
+  "doi": null,
+  "journal_ref": "arXiv:2503.11568",
+  "title": "Probing the Limit of Heat Transfer in Inorganic Crystals with Deep Learning"
+ },
+ "parsed": {
+  "date": "2026-07-13",
+  "parser": "omai.paper_parser P2 (ensemble, adaptive detect chunking, batched map and review)",
+  "proposal_stats": {
+   "applied": 5,
+   "detected": 1288,
+   "survived": 767
+  }
+ },
+ "values": [
+  {
+   "instance": "tan-i41md-thermalconductivity-paper-kappa-limit-2025-donadio-lbte-xx-3ph4ph.json",
+   "node_id": "ThermalConductivity",
+   "node_uid": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5",
+   "pages": [
+    8
+   ],
+   "quote": "TaN RSS I41md 0.10 900 900 395 B",
+   "units": "W/(m K)",
+   "value": 900.0
+  },
+  {
+   "instance": "tan-i41md-thermalconductivity-paper-kappa-limit-2025-donadio-lbte-zz-3ph4ph.json",
+   "node_id": "ThermalConductivity",
+   "node_uid": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5",
+   "pages": [
+    8
+   ],
+   "quote": "TaN RSS I41md 0.10 900 900 395 B",
+   "units": "W/(m K)",
+   "value": 395.0
+  },
+  {
+   "instance": "wn2-p-6m2-thermalconductivity-paper-kappa-limit-2025-donadio-lbte-zz-3ph.json",
+   "node_id": "ThermalConductivity",
+   "node_uid": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5",
+   "pages": [
+    8
+   ],
+   "quote": "WN2 mp-999549 P¯6m2 0.09 436 436 517 A",
+   "units": "W/(m K)",
+   "value": 517.0
+  },
+  {
+   "instance": "bn-p42-mnm-thermalconductivity-paper-kappa-limit-2025-donadio-lbte-zz-3ph.json",
+   "node_id": "ThermalConductivity",
+   "node_uid": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5",
+   "pages": [
+    8
+   ],
+   "quote": "BN mp-13151 P42/mnm 0.18 451 451 1023 A",
+   "units": "W/(m K)",
+   "value": 1023.0
+  },
+  {
+   "instance": "tan-i41md-bandgap-paper-kappa-limit-2025-donadio-pbe.json",
+   "node_id": "BandGap",
+   "node_uid": "7164425d1695208e46171b5030c938c3545c180b57018d51748d0507f9f08135",
+   "pages": [
+    9
+   ],
+   "quote": "reveal this phase to be a semiconductor with an estimated band gap of approximately 0.6 eV",
+   "units": "eV",
+   "value": 0.6
+  }
+ ]
+}
