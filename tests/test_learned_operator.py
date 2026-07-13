@@ -213,6 +213,14 @@ def test_name_collision_with_exact_edge_rejected():
     assert any("collides" in v for v in violations)
 
 
+def test_missing_trained_on_rejected():
+    """An entirely absent trained_on is a provenance violation, not a pass:
+    the per-entry check alone is silent on an empty tuple."""
+    learned = _predict_linewidth(trained_on=())
+    errors = validate_learned([learned], EDGES, NODES)
+    assert any("trained_on is empty" in e for e in errors)
+
+
 def test_empty_trained_on_entry_rejected():
     edge = _predict_linewidth(trained_on=("",))
     violations = validate_learned((edge,), EDGES, NODES)

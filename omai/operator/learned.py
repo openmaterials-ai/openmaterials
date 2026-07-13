@@ -269,6 +269,12 @@ def validate_learned(
                         "under a different scheme shortcuts a different path"
                     )
 
+        if not learned.trained_on:
+            errors.append(
+                f"{prefix}: trained_on is empty; a surrogate that cannot "
+                "cite its labels does not enter (same citation discipline "
+                "as evidence)"
+            )
         for ref in learned.trained_on:
             if not ref:
                 errors.append(f"{prefix}: empty entry in trained_on")
