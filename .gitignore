@@ -72,3 +72,4 @@ AtomisticSkills/
 # paper parser proposal output (never committed)
 proposals/
 papers_local/
+physlean/.lake/

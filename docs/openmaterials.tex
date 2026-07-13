@@ -2304,6 +2304,14 @@ Three longer-term directions follow naturally from the design:
         it), allowing approximation theorems to be formally proved rather than asserted. The
         provenance mechanism makes this projection well-defined: each operation in $\pi$
         corresponds to a Lean lemma whose statement is the operation's error formula.
+        The first tier of this is built (2026-07-12): \texttt{omai.physlean\_export} generates
+        a Lean file in which every node is a PhysLean \texttt{Dimension} and every
+        dimension-proven edge is a theorem closed by \texttt{decide}, regenerated with the map.
+        The four bases PhysLean shares with the map (length, time, mass, temperature) map
+        directly; nodes carrying amount-of-substance, current, or luminous intensity are
+        omitted honestly, since PhysLean's \texttt{Dimension} has no base for them. So the
+        dimensional layer type-checks in a proof assistant today; the approximation-error
+        theorems remain future work.
   \item \textbf{Theory-experiment integration.} Extend the representation functor to ingest
         experimental observables. The operator layer's graph-alignment machinery applies uniformly,
         so a measured $\kappa$ becomes another representation of the abstract $\kappa$, and
