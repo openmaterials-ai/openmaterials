@@ -2311,8 +2311,12 @@ The first tier is built and verified (2026-07-12): \texttt{omai.physlean\_export
         nodes, 11 edge theorems, zero errors. The four bases PhysLean shares with the map
         (length, time, mass, temperature) map directly; nodes carrying amount-of-substance,
         current, or luminous intensity are omitted, since PhysLean's \texttt{Dimension} has no
-        base for them. So the dimensional layer type-checks in a proof assistant today; the
-        approximation-error theorems remain future work.
+        base for them. So the dimensional layer type-checks in a proof assistant today. A second tier
+        also compiles: the chained thermodynamic identities (the thermoelectric
+        figure of merit through the power factor, the constant-pressure heat capacity
+        through the molar volume) are proved equal to their expanded forms, and a
+        units file anchors the map's SI convention against PhysLean's conversion
+        structure. The approximation-error theorems remain future work.
   \item \textbf{Theory-experiment integration.} Extend the representation functor to ingest
         experimental observables. The operator layer's graph-alignment machinery applies uniformly,
         so a measured $\kappa$ becomes another representation of the abstract $\kappa$, and

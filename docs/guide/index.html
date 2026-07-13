@@ -159,7 +159,12 @@ print(node_id(THERMAL_CONDUCTIVITY)[:12], THERMAL_CONDUCTIVITY.fields[0].dimensi
       omai.physlean_export</code> generates a PhysLean file where each node is a
       <code>Dimension</code> and each dimension-proven edge is a theorem. It
       compiles against PhysLean (Lean 4.29.1); the map and playground show the
-      Lean for the element you select (green check).</p>
+      Lean for the element you select (green check). Two further Lean files are
+      generated and compile: <code>OpenMaterialsIdentities.lean</code> proves the
+      chained thermodynamic identities (ZT through the power factor, C_P through
+      the molar volume) equal their expanded forms, and
+      <code>OpenMaterialsUnits.lean</code> anchors the map's SI convention against
+      PhysLean's unit-conversion structure.</p>
   </section>
 
   <section class="gsec" id="parse">
