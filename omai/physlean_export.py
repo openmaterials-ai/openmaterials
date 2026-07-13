@@ -189,11 +189,58 @@ def _render_lean(nodes: dict, lemmas: list, node_dims: dict) -> str:
     return "\n".join(lines)
 
 
-def write_export(out: Path | None = None):
+def build_lean_index():
+    """A browser-consumable index of the Lean export, so the frontend can show
+    the actual Lean for the element you are looking at. Keyed by node id and by
+    edge op; a node/edge absent from the index simply was not exported (uses a
+    base PhysLean lacks, or is not a pure dimensional product)."""
+    graph = build_graph_dict(DOMAINS)
+    node_dims = _node_dimensions()
+
+    nodes = {}
+    for name, (exps, expr) in node_dims.items():
+        if expr is not None:
+            nodes[name] = {"lean": f"def {_lean_ident(name)} : Dimension := {expr}"}
+
+    # reuse the lemma selection from build_export by re-deriving it identically
+    producers = {}
+    for l in graph["links"]:
+        if l.get("op"):
+            producers.setdefault((l["op"], l["target"]), set()).add(l["source"])
+    edges = {}
+    for (op, target), sources in producers.items():
+        if op.startswith("provide_") or target not in nodes:
+            continue
+        srcs = sorted(sources)
+        if any(s not in nodes for s in srcs):
+            continue
+        acc = [0] * len(node_dims[target][0])
+        for s in srcs:
+            for i, e in enumerate(node_dims[s][0]):
+                acc[i] += e
+        if tuple(acc) != tuple(node_dims[target][0]):
+            continue
+        prod = " * ".join(_lean_ident(s) for s in srcs)
+        lem = "edge_" + _lean_ident(op) + "__to__" + _lean_ident(target)
+        edges[op] = {"lean": f"theorem {lem} : {_lean_ident(target)} = {prod} := by decide"}
+
+    return {
+        "version": (json_version() or "")[:12],
+        "nodes": nodes,   # id -> {lean}
+        "edges": edges,   # op -> {lean}
+    }
+
+
+def write_export(out: Path | None = None, index_out: Path | None = None):
     out = out or (_REPO / "physlean" / "OpenMaterials.lean")
     out.parent.mkdir(parents=True, exist_ok=True)
     src, stats = build_export()
     out.write_text(src)
+    # the browser index (docs/data/lean.json), so the frontend can surface Lean
+    import json
+    index_out = index_out or (_REPO / "docs" / "data" / "lean.json")
+    index_out.parent.mkdir(parents=True, exist_ok=True)
+    index_out.write_text(json.dumps(build_lean_index(), separators=(",", ":"), sort_keys=True))
     return out, stats
 
 

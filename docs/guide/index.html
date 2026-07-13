@@ -155,6 +155,11 @@ from omai.operator.identity import node_id
 print(node_id(THERMAL_CONDUCTIVITY)[:12], THERMAL_CONDUCTIVITY.fields[0].dimension.name)
 # a03324d4def5 thermal_conductivity</pre>
     </div>
+    <p>The dimensional layer also type-checks in Lean: <code>python -m
+      omai.physlean_export</code> generates a PhysLean file where each node is a
+      <code>Dimension</code> and each dimension-proven edge is a theorem closed
+      by <code>decide</code>. The map and playground show the Lean for the
+      element you select (look for the green check).</p>
   </section>
 
   <section class="gsec" id="parse">
