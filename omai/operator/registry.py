@@ -180,6 +180,9 @@ QUANTITY_TAGS: dict[str, str] = {
     "molar_volume": "Molar volume V_m = N_A V_cell, the volume per mole of PRIMITIVE CELLS (the phonon molar basis, matching the per-mole-of-cells Molar* thermodynamics, NOT per mole of atoms); m^3/mol. A promoted-parameter-style contraction of CellVolume by Avogadro's number, the one node that makes the molar Gruneisen and C_P - C_V identities executable (whole-map physics review 2026-07-10).",
     "power_factor": "Thermoelectric power factor PF = sigma_e S^2, the electronic electrical conductivity times the Seebeck coefficient squared; W/(m K^2). The first fruit of the thermoelectric slice, one input to the figure of merit ZT.",
     "zt": "Dimensionless thermoelectric figure of merit ZT = PF T / kappa_total = sigma_e S^2 T / (kappa_lattice + kappa_electronic); the single relation that stitches the lattice and electronic thermal-transport halves of the map into one thermoelectrics story. Tag derived from the node name ZT (the ZT acronym stays one token, as HOMOLUMOGap -> homolumo_gap and PhononDOS -> phonon_dos).",
+    "interface_conductance": "Kapitza (interfacial) thermal boundary conductance G at a filler/matrix interface, power per unit area per kelvin (W/(m^2 K)); the reciprocal interface resistance R = 1/G whose Kapitza radius a_K = km/G is a length, the genuinely new physics the composite effective-medium (Nan) domain adds. Lumps interface chemistry and dispersion quality; calibrated against one measured composite point or replaced by a computed thermal boundary conductance.",
+    "filler_volume_fraction": "Volume fraction f of the dispersed filler phase in a two-phase composite, dimensionless in [0, ~0.25) for the non-interacting effective-medium theory to hold; the loading knob of the Nan / Hasselman-Johnson effective conductivity.",
+    "depolarization_factor": "Spheroid depolarization (Eshelby) factors (L11, L33) with 2 L11 + L33 = 1, dimensionless geometry of an axially-symmetric inclusion (polar axis 3): sphere (1/3, 1/3), long fiber (1/2, 0), thin disk (0, 1); the shape input to the Nan effective-medium mixing formulas, a closed form in the aspect ratio d3/d1.",
     "quantum_kinetic_energy": "Nuclear quantum kinetic energy from path-integral MD, estimated by the centroid-virial (or thermodynamic) estimator over the ring-polymer beads; ENERGY, the quantum-nuclear KE that exceeds the classical 3/2 N k_B T equipartition value and vanishes into it in the classical (nbeads=1) limit. Distinct from the per-mode internal_energy (a harmonic Bose-Einstein occupation energy) and from any classical MD kinetic energy: a PIMD ensemble estimator of nuclear KE, kept apart by its own tag.",
     "potential_of_mean_force": "Free energy along ONE collective variable, the potential of mean force F(s) = -k_B T ln P(s), reconstructed from enhanced sampling (metadynamics sum_hills, or umbrella sampling + WHAM); ENERGY. A scalar-valued FUNCTION of one collective variable: on the map a single node (like phonon_dos), the function-valuedness living in the spectrum layer where each record carries the CV as its axis. Explicitly distinct by tag from the molar Gibbs / Helmholtz family (molar_gibbs_energy, molar_helmholtz_free_energy, qha_gibbs_energy): those are SCALAR state functions per mole of cells at a state point (harmonic-vibrational A(T), CALPHAD G(T,x), quasi-harmonic G(T,p)); this is a profile along a reaction coordinate, per system, function-valued over a configurational order parameter. Same ENERGY dimension, different argument structure: dimension-equal, family-distinct, must not merge. The multi-CV free-energy surface (a scalar field over CV-space) is deferred to the field-evidence kernel.",
 }
@@ -309,4 +312,36 @@ LABEL_KEYS: dict[str, frozenset[str]] = {
     # channel, wrt, carrier, construction, contribution): no key or value
     # overlaps ('pimd' appears in no other value set).
     "method": frozenset({"pimd"}),
+    # The ROLE a thermal conductivity plays as an INPUT to a composite
+    # effective-medium calculation: matrix (the continuous host phase km) vs
+    # filler (the dispersed inclusion phase, anisotropic k11/k33). Both join the
+    # one thermal_conductivity family (SAME tag, SAME THERMAL_CONDUCTIVITY
+    # dimension as the neutral ThermalConductivity observable and its route
+    # siblings) and are kept DISTINCT nodes ONLY by this role label, so an edge
+    # can consume "the matrix kappa" and "the filler kappa" as two nodes without
+    # self-looping on the neutral kappa node (edges cannot self-loop). The
+    # per-material value rides in instance conditions (identity is per quantity,
+    # not per material). Collision-free against every other label key (order,
+    # bte_solver, transport_model, channel, wrt, carrier, construction,
+    # contribution, method): no key or value overlaps.
+    "role": frozenset({"matrix", "filler"}),
+    # The effective-medium THEORY that produced a composite effective
+    # conductivity: nan (the Nan et al. 1997 spheroidal EMT with a per-direction
+    # interfacial series film). Carried by the composite effective-kappa output
+    # nodes, which join the thermal_conductivity family (same tag, same
+    # dimension) and resolve into the neutral ThermalConductivity observable (the
+    # measured composite kappa is evidence of THAT node). A SEPARATE axis from
+    # transport_model (which picks a lattice SOLVER for a single-phase kappa):
+    # effective_medium names a two-phase homogenization theory, not a lattice
+    # route. Collision-free against every other label key: no key or value
+    # overlaps ('nan' appears in no other value set).
+    "effective_medium": frozenset({"nan"}),
+    # The filler ORIENTATION distribution of a composite effective conductivity:
+    # random (isotropic, randomly-oriented inclusions, the scalar effective
+    # kappa) vs aligned (perfectly aligned inclusions, the anisotropic
+    # in-plane/through-plane tensor). The two are genuinely DIFFERENT Nan mixing
+    # formulas producing DISTINCT output nodes, kept apart by this orientation
+    # label (alongside effective_medium=nan). Collision-free against every other
+    # label key: no key or value overlaps.
+    "orientation": frozenset({"random", "aligned"}),
 }

@@ -457,10 +457,11 @@ def _domains() -> tuple[Domain, ...]:
         from omai.electronic_transport.domain import ELECTRONIC_TRANSPORT
         from omai.materials.domain import MATERIALS
         from omai.thermodynamic_identities.domain import THERMODYNAMIC_IDENTITIES
+        from omai.composites.domain import COMPOSITES
         _DOMAINS_CACHE = (THERMAL_TRANSPORT, DFT_GROUND_STATE, MECHANICS,
                           STABILITY, THERMOCHEMISTRY, QUASIHARMONIC,
                           MOLECULAR, ELECTRONIC_TRANSPORT, MATERIALS,
-                          THERMODYNAMIC_IDENTITIES)
+                          THERMODYNAMIC_IDENTITIES, COMPOSITES)
     return _DOMAINS_CACHE
 
 

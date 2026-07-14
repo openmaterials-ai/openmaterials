@@ -39,6 +39,31 @@
   },
   "uid": "0438b30a3ed499df2f925e42d7b0ffc9bcff837ab8fdaa3f83985ce27c29421c"
  },
+ "04d65e9f7a2f612eb94d018ebde08e8a1b39c1c5754d03e785ad92991a909fda": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\kappa_c', positive=True), Mul(Symbol('k_m', positive=True), Pow(Add(Mul(Integer(-1), Symbol('f_{vol}', nonnegative=True), Add(Mul(Integer(2), Symbol('L_{11}'), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_1', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(1), Integer(1)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(1), Integer(1)))), Pow(Add(Mul(Symbol('L_{11}'), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_1', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(1), Integer(1)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(1), Integer(1))))), Symbol('k_m', positive=True)), Integer(-1))), Mul(Symbol('L_{33}'), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_3', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Pow(Add(Mul(Symbol('L_{33}'), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_3', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3))))), Symbol('k_m', positive=True)), Integer(-1))))), Integer(3)), Integer(-1)), Add(Mul(Symbol('f_{vol}', nonnegative=True), Add(Mul(Integer(2), Add(Integer(1), Mul(Integer(-1), Symbol('L_{11}'))), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_1', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(1), Integer(1)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(1), Integer(1)))), Pow(Add(Mul(Symbol('L_{11}'), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_1', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(1), Integer(1)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(1), Integer(1))))), Symbol('k_m', positive=True)), Integer(-1))), Mul(Add(Integer(1), Mul(Integer(-1), Symbol('L_{33}'))), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_3', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Pow(Add(Mul(Symbol('L_{33}'), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_3', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3))))), Symbol('k_m', positive=True)), Integer(-1))))), Integer(3))))",
+   "inputs": [
+    "093e6e3278c242894f90f40f3ef1d4b7fda19c58061ceb9e65ceddc2e0000c0d",
+    "1375fb6172571befa9a6551aa1d72bf541272a3f94ad6a762017ba3e4a44f78d",
+    "297b3254a09037f017769b771e19ad849443911048f77078a804cbc334c38309",
+    "2995dc3d963a6d387aa5b62d35a7248391ce3ce8047c0dc381cfc1cc99ef08f9",
+    "b5cf0ca0f9b648341000b76e8839e45557973bb82a6e99460b05c066a448adf3"
+   ],
+   "output": "8cee68745e003909cd8e65688628af53a35c0803ace3f330394bbf0edf338d7b",
+   "outputs": [
+    "8cee68745e003909cd8e65688628af53a35c0803ace3f330394bbf0edf338d7b"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Nan-type effective-medium thermal conductivity for RANDOMLY oriented filler with a per-direction interfacial (Kapitza) series film (Nan et al., J. Appl. Phys. 81, 6692 (1997)): the isotropic scalar kappa_c = km (3 + f (2 beta11 (1-L11) + beta33 (1-L33))) / (3 - f (2 beta11 L11 + beta33 L33)), with the interface-corrected filler conductivities kc_ii = k_ii / (1 + 2 R k_ii / d_i) (R = 1/G) and the Bruggeman-Nan terms beta_ii = (kc_ii - km) / (km + L_ii (kc_ii - km)) substituted INLINE. The dimensional gate PROVES it: every sub-ratio is dimensionless (2 (1/G) k_ii / d_i = (m^2 K/W)(W/mK)/m = 1; beta_ii is a ratio of two W/(m K) quantities), so kappa_c carries km's THERMAL_CONDUCTIVITY (1,1,-3,-1,0,0,0). Zero loading (f=0) returns km. Below the Kapitza radius a_K = km/G a conductive filler LOWERS kappa_c. The reference DGEBA epoxy + 5 vol% GNP (km=0.2, k11=1200, k33=6, d1=5um, d3=0.02um, G=25 MW/m2K, f=0.05) gives kappa_c = 1.2452 W/(m K).",
+   "formula_latex": "\\kappa_{c} = \\frac{k_{m} \\left(f_{vol} \\left(\\frac{2 \\left(1 - L_{11}\\right) \\left(- k_{m} + \\frac{{k_{f}}_{1,1}}{1 + \\frac{2 {k_{f}}_{1,1}}{G_{int} d_{1}}}\\right)}{L_{11} \\left(- k_{m} + \\frac{{k_{f}}_{1,1}}{1 + \\frac{2 {k_{f}}_{1,1}}{G_{int} d_{1}}}\\right) + k_{m}} + \\frac{\\left(1 - L_{33}\\right) \\left(- k_{m} + \\frac{{k_{f}}_{3,3}}{1 + \\frac{2 {k_{f}}_{3,3}}{G_{int} d_{3}}}\\right)}{L_{33} \\left(- k_{m} + \\frac{{k_{f}}_{3,3}}{1 + \\frac{2 {k_{f}}_{3,3}}{G_{int} d_{3}}}\\right) + k_{m}}\\right) + 3\\right)}{- f_{vol} \\left(\\frac{2 L_{11} \\left(- k_{m} + \\frac{{k_{f}}_{1,1}}{1 + \\frac{2 {k_{f}}_{1,1}}{G_{int} d_{1}}}\\right)}{L_{11} \\left(- k_{m} + \\frac{{k_{f}}_{1,1}}{1 + \\frac{2 {k_{f}}_{1,1}}{G_{int} d_{1}}}\\right) + k_{m}} + \\frac{L_{33} \\left(- k_{m} + \\frac{{k_{f}}_{3,3}}{1 + \\frac{2 {k_{f}}_{3,3}}{G_{int} d_{3}}}\\right)}{L_{33} \\left(- k_{m} + \\frac{{k_{f}}_{3,3}}{1 + \\frac{2 {k_{f}}_{3,3}}{G_{int} d_{3}}}\\right) + k_{m}}\\right) + 3}",
+   "formula_srepr": "Equality(Symbol('\\\\kappa_c', positive=True), Mul(Symbol('k_m', positive=True), Pow(Add(Mul(Integer(-1), Symbol('f_{vol}', nonnegative=True), Add(Mul(Integer(2), Symbol('L_{11}'), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_1', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(1), Integer(1)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(1), Integer(1)))), Pow(Add(Mul(Symbol('L_{11}'), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_1', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(1), Integer(1)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(1), Integer(1))))), Symbol('k_m', positive=True)), Integer(-1))), Mul(Symbol('L_{33}'), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_3', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Pow(Add(Mul(Symbol('L_{33}'), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_3', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3))))), Symbol('k_m', positive=True)), Integer(-1))))), Integer(3)), Integer(-1)), Add(Mul(Symbol('f_{vol}', nonnegative=True), Add(Mul(Integer(2), Add(Integer(1), Mul(Integer(-1), Symbol('L_{11}'))), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_1', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(1), Integer(1)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(1), Integer(1)))), Pow(Add(Mul(Symbol('L_{11}'), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_1', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(1), Integer(1)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(1), Integer(1))))), Symbol('k_m', positive=True)), Integer(-1))), Mul(Add(Integer(1), Mul(Integer(-1), Symbol('L_{33}'))), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_3', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Pow(Add(Mul(Symbol('L_{33}'), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_3', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3))))), Symbol('k_m', positive=True)), Integer(-1))))), Integer(3))))",
+   "name": "nan_effective_kappa",
+   "schemes": {}
+  },
+  "uid": "04d65e9f7a2f612eb94d018ebde08e8a1b39c1c5754d03e785ad92991a909fda"
+ },
  "0547586f6514cf3d00afe174e20fb0222f1a645a124957664f7de6dd7b232941": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('\\\\kappa^{cum}_\\\\omega')), Symbol('\\\\alpha', integer=True), Symbol('\\\\beta', integer=True), Symbol('\\\\omega_c', positive=True)), Mul(Pow(Symbol('N_q', positive=True, integer=True), Integer(-1)), Pow(Symbol('V_{cell}', positive=True), Integer(-1)), Sum(Mul(Function('\\\\theta')(Add(Symbol('\\\\omega_c', positive=True), Mul(Integer(-1), Indexed(IndexedBase(Symbol('\\\\omega')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True))))), Indexed(IndexedBase(Symbol('F')), Symbol('\\\\beta', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Indexed(IndexedBase(Symbol('c')), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True)), Indexed(IndexedBase(Symbol('v')), Symbol('\\\\alpha', integer=True), Symbol('\\\\mathbf{q}'), Symbol('\\\\nu', integer=True))), Tuple(Symbol('\\\\mathbf{q}'), Integer(1), Symbol('N_q', positive=True, integer=True)), Tuple(Symbol('\\\\nu', integer=True), Integer(1), Mul(Integer(3), Symbol('N', positive=True, integer=True))))))",
@@ -457,6 +482,30 @@
    }
   },
   "uid": "325b66602b582ded28ce13760e5718257c3624d5eccfec041949157ce6a0dbc2"
+ },
+ "33e0be2a3db8fa86dce200159c6c0a273161ee6d1a49c75a369b1621197e0a1a": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\kappa_c', positive=True), Mul(Symbol('k_m', positive=True), Pow(Add(Mul(Integer(-1), Symbol('f_{vol}', nonnegative=True), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Add(Integer(1), Mul(Integer(-1), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('a_{rad}', positive=True), Integer(-1)), Symbol('k_m', positive=True))), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3))))), Mul(Integer(2), Symbol('k_m', positive=True)), Mul(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('a_{rad}', positive=True), Integer(-1)), Symbol('k_m', positive=True))), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Add(Mul(Integer(2), Symbol('f_{vol}', nonnegative=True), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Add(Integer(1), Mul(Integer(-1), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('a_{rad}', positive=True), Integer(-1)), Symbol('k_m', positive=True))), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3))))), Mul(Integer(2), Symbol('k_m', positive=True)), Mul(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('a_{rad}', positive=True), Integer(-1)), Symbol('k_m', positive=True))), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3))))))",
+   "inputs": [
+    "093e6e3278c242894f90f40f3ef1d4b7fda19c58061ceb9e65ceddc2e0000c0d",
+    "1375fb6172571befa9a6551aa1d72bf541272a3f94ad6a762017ba3e4a44f78d",
+    "2995dc3d963a6d387aa5b62d35a7248391ce3ce8047c0dc381cfc1cc99ef08f9",
+    "b5cf0ca0f9b648341000b76e8839e45557973bb82a6e99460b05c066a448adf3"
+   ],
+   "output": "8cee68745e003909cd8e65688628af53a35c0803ace3f330394bbf0edf338d7b",
+   "outputs": [
+    "8cee68745e003909cd8e65688628af53a35c0803ace3f330394bbf0edf338d7b"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Hasselman-Johnson effective conductivity for spherical filler with interfacial (Kapitza) resistance (J. Compos. Mater. 21, 508 (1987)), an INDEPENDENT cross-check: for an isotropic sphere (kp = k11 = k33, radius a) with alpha = a_K / a = (km/G)/a the Kapitza-radius-to-radius ratio (dimensionless), kappa_c = km [kp(1+2 alpha) + 2 km + 2 f (kp(1-alpha) - km)] / [kp(1+2 alpha) + 2 km - f (kp(1-alpha) - km)]. Reads the filler diagonal k33 (= k11 for the isotropic sphere it models). SECOND PRODUCER (Pattern C) of the random effective-kappa node alongside nan_effective_kappa: at aspect ratio 1 (a sphere) the Nan random formula reduces to THIS one EXACTLY, so the two must agree numerically (the redundant-route pattern BulkModulus's three producers already bless); the domain test pins the agreement to machine precision. The dimensional gate PROVES it: alpha is dimensionless (km/G is a length, over the radius a), so kappa_c carries km's THERMAL_CONDUCTIVITY.",
+   "formula_latex": "\\kappa_{c} = \\frac{k_{m} \\left(2 f_{vol} \\left(- k_{m} + \\left(1 - \\frac{k_{m}}{G_{int} a_{rad}}\\right) {k_{f}}_{3,3}\\right) + 2 k_{m} + \\left(1 + \\frac{2 k_{m}}{G_{int} a_{rad}}\\right) {k_{f}}_{3,3}\\right)}{- f_{vol} \\left(- k_{m} + \\left(1 - \\frac{k_{m}}{G_{int} a_{rad}}\\right) {k_{f}}_{3,3}\\right) + 2 k_{m} + \\left(1 + \\frac{2 k_{m}}{G_{int} a_{rad}}\\right) {k_{f}}_{3,3}}",
+   "formula_srepr": "Equality(Symbol('\\\\kappa_c', positive=True), Mul(Symbol('k_m', positive=True), Pow(Add(Mul(Integer(-1), Symbol('f_{vol}', nonnegative=True), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Add(Integer(1), Mul(Integer(-1), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('a_{rad}', positive=True), Integer(-1)), Symbol('k_m', positive=True))), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3))))), Mul(Integer(2), Symbol('k_m', positive=True)), Mul(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('a_{rad}', positive=True), Integer(-1)), Symbol('k_m', positive=True))), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Add(Mul(Integer(2), Symbol('f_{vol}', nonnegative=True), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Add(Integer(1), Mul(Integer(-1), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('a_{rad}', positive=True), Integer(-1)), Symbol('k_m', positive=True))), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3))))), Mul(Integer(2), Symbol('k_m', positive=True)), Mul(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('a_{rad}', positive=True), Integer(-1)), Symbol('k_m', positive=True))), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3))))))",
+   "name": "hasselman_johnson",
+   "schemes": {}
+  },
+  "uid": "33e0be2a3db8fa86dce200159c6c0a273161ee6d1a49c75a369b1621197e0a1a"
  },
  "3466399c40c467b80ca4b9b3a83c9c5b0d73df41ed0295e3a4d6685683972909": {
   "identity": {
@@ -1586,6 +1635,27 @@
   },
   "uid": "93c6afe349f877656a16d18074e195ac4257226ce9d863d7f5d10ce96b679715"
  },
+ "944a08d41ead4ae8f8b899345c3c046d36fb42fe57b5a62bd17a117de5388738": {
+  "identity": {
+   "formula": "true",
+   "inputs": [
+    "8cee68745e003909cd8e65688628af53a35c0803ace3f330394bbf0edf338d7b"
+   ],
+   "output": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5",
+   "outputs": [
+    "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Identity: the randomly-oriented composite effective conductivity is the physical thermal conductivity a measurement of the composite reports (isotropic, so its scalar sits on the diagonal of the neutral kappa tensor). This edge anchors the composite result onto the method-neutral ThermalConductivity observable, the home for measured and method-unspecified kappa: the Nan effective-medium route (and the Hasselman-Johnson second producer) are ESTIMATORS of this observable, related by the shared thermal_conductivity tag, exactly the resolve_thermal_conductivity precedent that anchors the lattice LBTE kappa. It also bridges this domain to the pre-existing map (the neutral node already exists in the store).",
+   "formula_latex": "\\text{True}",
+   "formula_srepr": "true",
+   "name": "resolve_effective_conductivity",
+   "schemes": {}
+  },
+  "uid": "944a08d41ead4ae8f8b899345c3c046d36fb42fe57b5a62bd17a117de5388738"
+ },
  "979756d34934118442ec22671b68e036b5e9751c95ed110d3a508ba2dee95288": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('\\\\Phi^{(3)}')), Symbol('i', integer=True), Symbol('j', integer=True), Symbol('k', integer=True), Symbol('\\\\mathbf{R}'), Symbol(\"\\\\mathbf{R'}\")), Derivative(Function('V')(Symbol('\\\\{u\\\\}')), Tuple(Symbol('u_i(0)'), Integer(1)), Tuple(Symbol('u_j(R)'), Integer(1)), Tuple(Symbol(\"u_k(R')\"), Integer(1))))",
@@ -2530,6 +2600,31 @@
   },
   "uid": "e78d5769e8a4718966dee70a82eb5ac9622b35e20edf471ee1d8dc88ab40868c"
  },
+ "e86ac8a4b69dbb670dbe3f8ec7fda7ff0309670bac4713851ced64a061cd7962": {
+  "identity": {
+   "formula": "Equality(Symbol('\\\\kappa_c', positive=True), Mul(Symbol('k_m', positive=True), Pow(Add(Mul(Integer(-1), Symbol('L_{33}'), Symbol('f_{vol}', nonnegative=True), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_3', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Pow(Add(Mul(Symbol('L_{33}'), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_3', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3))))), Symbol('k_m', positive=True)), Integer(-1))), Integer(1)), Integer(-1)), Add(Mul(Symbol('f_{vol}', nonnegative=True), Add(Integer(1), Mul(Integer(-1), Symbol('L_{33}'))), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_3', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Pow(Add(Mul(Symbol('L_{33}'), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_3', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3))))), Symbol('k_m', positive=True)), Integer(-1))), Integer(1))))",
+   "inputs": [
+    "093e6e3278c242894f90f40f3ef1d4b7fda19c58061ceb9e65ceddc2e0000c0d",
+    "1375fb6172571befa9a6551aa1d72bf541272a3f94ad6a762017ba3e4a44f78d",
+    "297b3254a09037f017769b771e19ad849443911048f77078a804cbc334c38309",
+    "2995dc3d963a6d387aa5b62d35a7248391ce3ce8047c0dc381cfc1cc99ef08f9",
+    "b5cf0ca0f9b648341000b76e8839e45557973bb82a6e99460b05c066a448adf3"
+   ],
+   "output": "fc292985123b709c76547dc02721e60797cf5693fbad40b874826291314d5dd3",
+   "outputs": [
+    "fc292985123b709c76547dc02721e60797cf5693fbad40b874826291314d5dd3"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Nan-type effective conductivity for PERFECTLY ALIGNED filler (Nan et al. 1997), a different mixing formula from the random orientation: the anisotropic composite tensor whose AXIAL (through-plane, along the alignment axis 3) component is the declared closed form al33 = km (1 + f beta33 (1-L33)) / (1 - f beta33 L33), and whose TRANSVERSE (in-plane, transverse to axis 3) component is the L11/beta11 companion al11 = km (1 + f beta11 (1-L11)) / (1 - f beta11 L11) (the auxiliary formula; it rides in instance conditions, the elastic-constants precedent for tensor components). Same inline kc_ii / beta_ii substitution, so the gate PROVES al33 carries km's THERMAL_CONDUCTIVITY. Aligned platelets are the enhancement geometry a thermal-interface material targets.",
+   "formula_latex": "\\kappa_{c} = \\frac{k_{m} \\left(\\frac{f_{vol} \\left(1 - L_{33}\\right) \\left(- k_{m} + \\frac{{k_{f}}_{3,3}}{1 + \\frac{2 {k_{f}}_{3,3}}{G_{int} d_{3}}}\\right)}{L_{33} \\left(- k_{m} + \\frac{{k_{f}}_{3,3}}{1 + \\frac{2 {k_{f}}_{3,3}}{G_{int} d_{3}}}\\right) + k_{m}} + 1\\right)}{- \\frac{L_{33} f_{vol} \\left(- k_{m} + \\frac{{k_{f}}_{3,3}}{1 + \\frac{2 {k_{f}}_{3,3}}{G_{int} d_{3}}}\\right)}{L_{33} \\left(- k_{m} + \\frac{{k_{f}}_{3,3}}{1 + \\frac{2 {k_{f}}_{3,3}}{G_{int} d_{3}}}\\right) + k_{m}} + 1}",
+   "formula_srepr": "Equality(Symbol('\\\\kappa_c', positive=True), Mul(Symbol('k_m', positive=True), Pow(Add(Mul(Integer(-1), Symbol('L_{33}'), Symbol('f_{vol}', nonnegative=True), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_3', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Pow(Add(Mul(Symbol('L_{33}'), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_3', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3))))), Symbol('k_m', positive=True)), Integer(-1))), Integer(1)), Integer(-1)), Add(Mul(Symbol('f_{vol}', nonnegative=True), Add(Integer(1), Mul(Integer(-1), Symbol('L_{33}'))), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_3', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Pow(Add(Mul(Symbol('L_{33}'), Add(Mul(Integer(-1), Symbol('k_m', positive=True)), Mul(Pow(Add(Integer(1), Mul(Integer(2), Pow(Symbol('G_{int}', positive=True), Integer(-1)), Pow(Symbol('d_3', positive=True), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3)))), Integer(-1)), Indexed(IndexedBase(Symbol('k_f')), Integer(3), Integer(3))))), Symbol('k_m', positive=True)), Integer(-1))), Integer(1))))",
+   "name": "nan_effective_kappa_aligned",
+   "schemes": {}
+  },
+  "uid": "e86ac8a4b69dbb670dbe3f8ec7fda7ff0309670bac4713851ced64a061cd7962"
+ },
  "e88e11c5770a9dc9c33df7139ddf40f072f3e415f20e15d860c3490104c3c34a": {
   "identity": {
    "formula": "Equality(Indexed(IndexedBase(Symbol('D')), Symbol('i', integer=True), Symbol('j', integer=True), Symbol('\\\\mathbf{q}')), Indexed(IndexedBase(Symbol('D^{bare}')), Symbol('i', integer=True), Symbol('j', integer=True), Symbol('\\\\mathbf{q}')))",
@@ -2550,6 +2645,25 @@
    "schemes": {}
   },
   "uid": "e88e11c5770a9dc9c33df7139ddf40f072f3e415f20e15d860c3490104c3c34a"
+ },
+ "e8bd01e04d39ccad6f7046883bfa8e955e67c23fcc2f8868be045f327b18482f": {
+  "identity": {
+   "formula": "Equality(Symbol('L_{33}'), Piecewise(ExprCondPair(Rational(1, 3), Equality(Symbol('p', positive=True), Integer(1))), ExprCondPair(Mul(Pow(Symbol('p', positive=True), Integer(-2)), Pow(Add(Integer(1), Mul(Integer(-1), Pow(Symbol('p', positive=True), Integer(-2)))), Rational(-3, 2)), Add(Mul(Integer(-1), Pow(Add(Integer(1), Mul(Integer(-1), Pow(Symbol('p', positive=True), Integer(-2)))), Rational(1, 2))), atanh(Pow(Add(Integer(1), Mul(Integer(-1), Pow(Symbol('p', positive=True), Integer(-2)))), Rational(1, 2))))), StrictGreaterThan(Symbol('p', positive=True), Integer(1))), ExprCondPair(Mul(Pow(Symbol('p', positive=True), Integer(-2)), Pow(Add(Integer(-1), Pow(Symbol('p', positive=True), Integer(-2))), Rational(-3, 2)), Add(Pow(Add(Integer(-1), Pow(Symbol('p', positive=True), Integer(-2))), Rational(1, 2)), Mul(Integer(-1), atan(Pow(Add(Integer(-1), Pow(Symbol('p', positive=True), Integer(-2))), Rational(1, 2)))))), true)))",
+   "inputs": [],
+   "output": "297b3254a09037f017769b771e19ad849443911048f77078a804cbc334c38309",
+   "outputs": [
+    "297b3254a09037f017769b771e19ad849443911048f77078a804cbc334c38309"
+   ],
+   "schemes": {}
+  },
+  "meta": {
+   "description": "Spheroid depolarization (Eshelby) factors (L11, L33) of an axially-symmetric inclusion (polar axis 3) from the aspect ratio p = d3/d1: a closed form, L33(p) with an atanh branch for prolate p>1 (fiber), an atan branch for oblate p<1 (platelet), and the sphere value 1/3 at p=1, with L11 = (1 - L33)/2 enforcing the sum rule 2 L11 + L33 = 1. Analytic limits sphere (1/3, 1/3), long fiber (1/2, 0), thin disk (0, 1). The aspect ratio rides in the record conditions (this is a geometry-from-conditions producer, nullary at the store level, like the source provide_ edges). Formula is a sp.Piecewise: the dimensional gate SKIPS it (the output is dimensionless by construction and the gate only needs the shape), and the numeric branches are pinned by the domain test.",
+   "formula_latex": "L_{33} = \\begin{cases} \\frac{1}{3} & \\text{for}\\: p = 1 \\\\\\frac{- \\sqrt{1 - \\frac{1}{p^{2}}} + \\operatorname{atanh}{\\left(\\sqrt{1 - \\frac{1}{p^{2}}} \\right)}}{p^{2} \\left(1 - \\frac{1}{p^{2}}\\right)^{\\frac{3}{2}}} & \\text{for}\\: p > 1 \\\\\\frac{\\sqrt{-1 + \\frac{1}{p^{2}}} - \\operatorname{atan}{\\left(\\sqrt{-1 + \\frac{1}{p^{2}}} \\right)}}{p^{2} \\left(-1 + \\frac{1}{p^{2}}\\right)^{\\frac{3}{2}}} & \\text{otherwise} \\end{cases}",
+   "formula_srepr": "Equality(Symbol('L_{33}'), Piecewise(ExprCondPair(Rational(1, 3), Equality(Symbol('p', positive=True), Integer(1))), ExprCondPair(Mul(Pow(Symbol('p', positive=True), Integer(-2)), Pow(Add(Integer(1), Mul(Integer(-1), Pow(Symbol('p', positive=True), Integer(-2)))), Rational(-3, 2)), Add(Mul(Integer(-1), Pow(Add(Integer(1), Mul(Integer(-1), Pow(Symbol('p', positive=True), Integer(-2)))), Rational(1, 2))), atanh(Pow(Add(Integer(1), Mul(Integer(-1), Pow(Symbol('p', positive=True), Integer(-2)))), Rational(1, 2))))), StrictGreaterThan(Symbol('p', positive=True), Integer(1))), ExprCondPair(Mul(Pow(Symbol('p', positive=True), Integer(-2)), Pow(Add(Integer(-1), Pow(Symbol('p', positive=True), Integer(-2))), Rational(-3, 2)), Add(Pow(Add(Integer(-1), Pow(Symbol('p', positive=True), Integer(-2))), Rational(1, 2)), Mul(Integer(-1), atan(Pow(Add(Integer(-1), Pow(Symbol('p', positive=True), Integer(-2))), Rational(1, 2)))))), true)))",
+   "name": "depolarization_factors",
+   "schemes": {}
+  },
+  "uid": "e8bd01e04d39ccad6f7046883bfa8e955e67c23fcc2f8868be045f327b18482f"
  },
  "e8e86bed52c1e09311b9baada0501b7668b72cf8de3797735bc4c7bb60090f3f": {
   "identity": {
