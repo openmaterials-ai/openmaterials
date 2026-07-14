@@ -204,12 +204,16 @@ def build_codes(domains: tuple[Domain, ...]) -> dict:
     return codes
 
 
-def build_instances(instances_dir: Path | None = None) -> list[dict]:
+def build_instances(instances_dir: Path | None = None,
+                    simulations_dir: Path | None = None) -> list[dict]:
+    from omai.simulations import _SHA256_RE, committed_ids
+
     instances_dir = instances_dir or (_DOCS / "data" / "instances")
     # Name -> content-addressed uid over the unified map (spaces + promoted
     # parameters). Each instance is pinned to the uid of the node its variable
     # names, so a value can follow the element through supersede chains.
     name_to_uid = {n["id"]: n["uid"] for n in build_graph_dict(_domains())["nodes"]}
+    sim_ids: set[str] | None = None
     out = []
     for f in sorted(instances_dir.glob("*.json")):
         rec = json.loads(f.read_text())
@@ -220,6 +224,25 @@ def build_instances(instances_dir: Path | None = None) -> list[dict]:
             raise ValueError(f"{f.name}: source.kind must be simulation|measurement")
         if rec["variable"] not in name_to_uid:
             raise ValueError(f"{f.name}: unknown variable {rec['variable']!r}")
+        backref = rec.get("simulation")
+        if backref is not None:
+            # The optional backref to the SimulationRecord that produced this
+            # value. A record id is the sha256 of the run's claim, so the shape
+            # is checkable, and the id must belong to a committed record under
+            # docs/data/simulations/: a value must not cite a run the commons
+            # does not hold. build_simulations enforces the same loop in the
+            # other direction (a record's result slugs must resolve to
+            # committed instances that backref it), so neither side dangles.
+            if not isinstance(backref, str) or not _SHA256_RE.match(backref):
+                raise ValueError(
+                    f"{f.name}: simulation backref must be a 64-hex sha256 "
+                    f"record id")
+            if sim_ids is None:
+                sim_ids = committed_ids(simulations_dir)
+            if backref not in sim_ids:
+                raise ValueError(
+                    f"{f.name}: simulation backref {backref[:12]} matches no "
+                    f"committed simulation record")
         rec["node_uid"] = name_to_uid[rec["variable"]]
         out.append(rec)
     return out
@@ -368,8 +391,16 @@ def record_instance(*, domains, variable, material, value, units, source_kind,
     # Optional backref to the SimulationRecord that produced this value: the
     # record id of the run. Written only when set, exactly like configuration,
     # so existing instances are untouched and the addition stays backward
-    # compatible. The bundler carries the key through unchanged.
+    # compatible. The id shape is checked here (a record id is a sha256, so
+    # anything else can never resolve); membership against the committed
+    # records is the bundler's gate, since the record may land after this
+    # instance does.
     if simulation is not None:
+        from omai.simulations import _SHA256_RE
+
+        if not isinstance(simulation, str) or not _SHA256_RE.match(simulation):
+            raise ValueError(
+                "simulation backref must be a 64-hex sha256 record id")
         rec["simulation"] = simulation
     # The slug is (material, variable, source_ref) plus an optional caller
     # hint (k-mesh, cell size...). One paper legitimately reports several
@@ -441,7 +472,8 @@ def record_spectrum(*, domains, variable, material, axis_name, axis_units,
     return path
 
 
-def build_simulations(simulations_dir: Path | None = None) -> list[dict]:
+def build_simulations(simulations_dir: Path | None = None,
+                      instances_dir: Path | None = None) -> list[dict]:
     """The validated simulation-record index (docs/data/simulations.json).
 
     A simulation record is a whole run as content-addressed evidence: its recipe
@@ -449,16 +481,22 @@ def build_simulations(simulations_dir: Path | None = None) -> list[dict]:
     an artifact manifest (path, bytes, sha256, role: bytes stay in object
     storage, the map holds identity and checksums), and the run's results. Each
     record is re-validated at bundle time against the live map by the same gates
-    the writer applied (recipe node resolves by id and uid pin, a named
-    configuration exists, the manifest is well-formed, bundled result stubs pass
-    the instance checks and backref the record) and pinned to the live uid of
-    its recipe node, so a record travels with its node through supersede chains
-    exactly like an instance. Identity excludes location: urls live in a
-    ``mirrors`` resolver layer outside the hash, so moving bytes never re-mints
-    the record (omai.simulations states the protocol commitment)."""
+    the writer applied (recipe node resolves by id and uid pin, the execution
+    block names the code that ran, a named configuration exists, the manifest
+    is well-formed, bundled result stubs pass the instance checks and backref
+    the record) and pinned to the live uid of its recipe node, so a record
+    travels with its node through supersede chains exactly like an instance. At
+    bundle time a result given as a backref SLUG must also resolve: the named
+    file exists under ``instances_dir`` (docs/data/instances/ by default) and
+    backrefs the record, so nothing enters simulations.json citing an instance
+    the commons does not hold (build_instances closes the loop in the other
+    direction). Identity excludes location: urls live in a ``mirrors`` resolver
+    layer outside the hash, so moving bytes never re-mints the record
+    (omai.simulations states the protocol commitment)."""
     from omai.simulations import _validate  # gate reused verbatim from the writer
 
     simulations_dir = simulations_dir or (_DOCS / "data" / "simulations")
+    instances_dir = instances_dir or (_DOCS / "data" / "instances")
     domains = _domains()
     name_to_uid = {n["id"]: n["uid"] for n in build_graph_dict(domains)["nodes"]}
     config_dir = _DOCS / "data" / "configurations"
@@ -467,7 +505,8 @@ def build_simulations(simulations_dir: Path | None = None) -> list[dict]:
         return out
     for f in sorted(simulations_dir.glob("*.json")):
         rec = json.loads(f.read_text())
-        _validate(rec, name_to_uid=name_to_uid, config_dir=config_dir, where=f.name)
+        _validate(rec, name_to_uid=name_to_uid, config_dir=config_dir, where=f.name,
+                  instances_dir=instances_dir)
         node = rec["recipe"]["node"]
         # Pin the record to the live uid of its recipe node (the instance/
         # configuration node_uid discipline), and carry its own file so the site

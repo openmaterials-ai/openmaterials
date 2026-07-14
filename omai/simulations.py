@@ -31,18 +31,29 @@ separators, and an explicit float rule. Every float inside ``conditions`` and
 ``params`` (at any nesting depth) is rounded to :data:`FLOAT_DECIMALS` decimals
 before hashing, so refetch-level numerical noise in a shared recipe collapses to
 one identity while physically distinct runs stay apart; booleans and integers
-are preserved exactly. Nothing else in the claim carries floats (paths, digests,
-seeds, byte counts, and codes are strings and integers). The canonical blob is
+are preserved exactly. The rounding rule covers conditions and params ONLY: a
+float anywhere else in the claim (a fractional ``wall_time_s`` in execution)
+enters the hash exactly as canonical JSON serializes it, unrounded, so ``4210``
+and ``4210.0`` are different claims; write execution values the way they are
+meant to be compared. The canonical blob is
 ``json.dumps(claim, sort_keys=True, separators=(",", ":"))`` and the id is its
 sha256; this rule is a protocol commitment, not an implementation detail.
 
 Validation (gate-shaped, cheap, deterministic): the recipe's node resolves
 against the live map by BOTH id and content uid (the instances node-pin
-discipline: a stale pin is a mismatch, not a silent pass); a named configuration
+discipline: a stale pin is a mismatch, not a silent pass); the execution block
+is an object naming the ``code`` that ran; a named configuration
 uid exists under ``docs/data/configurations/``; every manifest entry is
 well-formed (sha256 a 64-hex string, bytes a positive int, role non-empty); and
-any bundled result instance passes the existing instance checks and carries a
-``simulation`` backref equal to the record id.
+any bundled result instance passes the existing instance checks (the same
+required keys as ``build_instances``, ``conditions`` included) and carries a
+``simulation`` backref equal to the record id. A result given as a backref slug
+is accepted bare by the writer (results sit outside the hashed claim and may be
+appended after the instance lands), but at bundle time the slug must resolve:
+the named file exists under ``docs/data/instances/`` and backrefs the record.
+``build_instances`` closes the loop in the other direction, refusing an
+instance whose ``simulation`` backref matches no committed record, so neither
+side of the citation can dangle in the commons.
 
 Verification (a report, NEVER a gate): :func:`verify_simulation` checks the
 mirrors for reachability and checksum match when URLs are present and returns a
@@ -81,6 +92,7 @@ _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 __all__ = [
     "SimulationError",
     "canonical_id",
+    "committed_ids",
     "record_simulation",
     "verify_simulation",
     "slugify",
@@ -193,6 +205,25 @@ def _validate_manifest(artifacts, *, where: str) -> None:
             raise SimulationError(f"{where}: artifact {i} role must be non-empty")
 
 
+def _validate_execution(execution, *, where: str) -> None:
+    """The execution block is well-formed: an object naming the code that ran.
+
+    The block is the record's "what ran" claim (code, version, container
+    digest, runner, wall time, seeds); everything in it is optional EXCEPT that
+    the block is an object and ``code`` is a non-empty string. A run
+    necessarily ran some code; a record whose execution is null, a bare string,
+    or an empty object is degenerate and fails here, the manifest gate's
+    well-formedness bar applied to the execution claim.
+    """
+    if not isinstance(execution, dict):
+        raise SimulationError(f"{where}: execution must be an object")
+    code = execution.get("code")
+    if not isinstance(code, str) or not code:
+        raise SimulationError(
+            f"{where}: execution.code must be a non-empty string (the code "
+            f"that ran)")
+
+
 def _validate_recipe_node(recipe, name_to_uid, *, where: str) -> None:
     """The recipe's node resolves against the live map by id AND uid pin.
 
@@ -238,12 +269,18 @@ def _validate_configuration(recipe, *, config_dir: Path, where: str) -> None:
         f"configuration record under {config_dir.name}/")
 
 
-def _validate_results(results, record_id, name_to_uid, *, where: str) -> None:
+def _validate_results(results, record_id, name_to_uid, *, where: str,
+                      instances_dir: Path | None = None) -> None:
     """Bundled result instances pass the existing instance checks and backref
     this record. A result may be a bare backref slug (a string, pointing at an
     already-committed instance file) or an inline instance stub (a dict). An
-    inline stub is held to the instance contract AND must carry
-    ``simulation == record_id``: the run owns the values it produced.
+    inline stub is held to the instance contract (the same required keys as
+    ``build_instances``, ``conditions`` included) AND must carry
+    ``simulation == record_id``: the run owns the values it produced. A slug is
+    accepted bare by the writer (results sit outside the hashed claim and may
+    be appended after the instance lands); when ``instances_dir`` is given (the
+    bundler), the slug must resolve to a committed instance file that backrefs
+    this record.
     """
     if results is None:
         return
@@ -251,16 +288,31 @@ def _validate_results(results, record_id, name_to_uid, *, where: str) -> None:
         raise SimulationError(f"{where}: results must be a list")
     for i, res in enumerate(results):
         if isinstance(res, str):
-            # A backref slug: a pointer to a committed instance file. Its own
-            # backref is checked where that instance is validated (build_instances);
-            # here the slug only has to be a non-empty string.
+            # A backref slug: a pointer to a committed instance file.
             if not res:
                 raise SimulationError(f"{where}: result {i} backref slug is empty")
+            if instances_dir is not None:
+                inst_path = Path(instances_dir) / f"{res}.json"
+                if not inst_path.exists():
+                    raise SimulationError(
+                        f"{where}: result {i} slug {res!r} has no committed "
+                        f"instance file under {Path(instances_dir).name}/")
+                try:
+                    inst = json.loads(inst_path.read_text())
+                except (json.JSONDecodeError, OSError) as exc:
+                    raise SimulationError(
+                        f"{where}: result {i} instance {res}.json is "
+                        f"unreadable: {exc}")
+                if inst.get("simulation") != record_id:
+                    raise SimulationError(
+                        f"{where}: result {i} instance {res!r} does not "
+                        f"backref this record (simulation "
+                        f"{str(inst.get('simulation'))[:12]} != {record_id[:12]})")
             continue
         if not isinstance(res, dict):
             raise SimulationError(
                 f"{where}: result {i} must be a backref slug or an instance stub")
-        for key in ("variable", "material", "value", "units", "source"):
+        for key in ("variable", "material", "conditions", "value", "units", "source"):
             if key not in res:
                 raise SimulationError(f"{where}: result {i} instance stub missing {key!r}")
         if res.get("source", {}).get("kind") not in ("simulation", "measurement"):
@@ -276,11 +328,15 @@ def _validate_results(results, record_id, name_to_uid, *, where: str) -> None:
                 f"{record_id[:12]}")
 
 
-def _validate(record: dict, *, name_to_uid: dict, config_dir: Path, where: str) -> str:
+def _validate(record: dict, *, name_to_uid: dict, config_dir: Path, where: str,
+              instances_dir: Path | None = None) -> str:
     """Validate a whole simulation record and return its (recomputed) id.
 
     Checks required top-level keys, recomputes and pins the id from the claim,
-    then runs the recipe-node, configuration, manifest, and results gates.
+    then runs the execution, recipe-node, configuration, manifest, and results
+    gates. ``instances_dir`` turns on slug resolution for results (the bundler
+    passes it; the writer leaves it None, since a slug may name an instance
+    that lands after the record does).
     """
     for key in ("recipe", "execution", "artifacts"):
         if key not in record:
@@ -290,6 +346,7 @@ def _validate(record: dict, *, name_to_uid: dict, config_dir: Path, where: str) 
     artifacts = record["artifacts"]
 
     _validate_manifest(artifacts, where=where)
+    _validate_execution(execution, where=where)
     record_id = canonical_id(recipe, execution, artifacts)
     stated = record.get("id")
     if stated is not None and stated != record_id:
@@ -300,7 +357,8 @@ def _validate(record: dict, *, name_to_uid: dict, config_dir: Path, where: str) 
 
     _validate_recipe_node(recipe, name_to_uid, where=where)
     _validate_configuration(recipe, config_dir=config_dir, where=where)
-    _validate_results(record.get("results"), record_id, name_to_uid, where=where)
+    _validate_results(record.get("results"), record_id, name_to_uid, where=where,
+                      instances_dir=instances_dir)
     return record_id
 
 
@@ -319,8 +377,9 @@ def record_simulation(*, recipe, execution, artifacts, results=None, mirrors=Non
         ``material`` ({name, optional configuration uid}), ``conditions``,
         ``params``.
     execution : dict
-        What ran: ``code`` (codes rail), ``code_version``, ``container_digest``
-        (the per-run image digest), ``runner``, ``wall_time_s``, ``seeds``.
+        What ran: ``code`` (codes rail; required, a non-empty string),
+        ``code_version``, ``container_digest`` (the per-run image digest),
+        ``runner``, ``wall_time_s``, ``seeds``.
     artifacts : list[dict]
         The manifest: each entry ``{path, bytes, sha256, role}``. Any ``url`` on
         an entry is dropped from the hashed claim (location is not identity) and
@@ -328,6 +387,9 @@ def record_simulation(*, recipe, execution, artifacts, results=None, mirrors=Non
     results : list | None
         The run's instances as backref slugs (strings) or inline stubs (dicts
         carrying ``simulation == <this record id>``). Outside the hashed claim.
+        A slug is accepted bare here (its instance may land after the record
+        does); the bundler resolves it against docs/data/instances/ and
+        requires the instance to backref this record.
     mirrors : dict | None
         The mutable resolver layer, keyed by artifact path -> {url, ...} (or any
         location metadata). Outside the hashed claim: moving bytes never
@@ -410,6 +472,29 @@ def _stored_artifact(art: dict, mirrors) -> dict:
         elif isinstance(loc, str):
             row["url"] = loc
     return row
+
+
+def committed_ids(sim_dir: Path | None = None) -> set[str]:
+    """The record ids of every committed simulation under docs/data/simulations/.
+
+    The membership set for the instance-side backref gate: an instance whose
+    ``simulation`` field names an id absent from this set cites a run the
+    commons does not hold, and ``build_instances`` refuses it. An unreadable
+    file contributes nothing (the bundler's own pass reports it).
+    """
+    sim_dir = Path(sim_dir) if sim_dir else _SIM_DIR
+    ids: set[str] = set()
+    if not sim_dir.exists():
+        return ids
+    for path in sorted(sim_dir.glob("*.json")):
+        try:
+            rec = json.loads(path.read_text())
+        except (json.JSONDecodeError, OSError):
+            continue
+        rid = rec.get("id")
+        if isinstance(rid, str):
+            ids.add(rid)
+    return ids
 
 
 # --------------------------------------------------------------------------
