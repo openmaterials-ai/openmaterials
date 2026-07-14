@@ -60,6 +60,12 @@ you share carries the result and its receipts together. To share your own
 experiment, contribute its values as instances under one `source.ref` and send
 the URL.
 
+Views are links too: the map takes `#node=<id>` (and writes it as you click),
+the tracer takes `#node=<id>` or `#from=<id>&to=<id>` for a derivation path,
+the playground serializes its whole state behind its Share button, and the
+experiments index takes `#material=<name>`. Every page has a copy-link
+control.
+
 ## A slice of the map, as Mermaid
 
 Any sub-map exports as a Mermaid flowchart (`python -m omai.mermaid <node>`),
