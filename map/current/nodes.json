@@ -87,6 +87,26 @@
   },
   "uid": "09138ae29cee41ae5f1a1758ac65a479625ef4d3c6026bf7ad5b60f884d668a0"
  },
+ "093e6e3278c242894f90f40f3ef1d4b7fda19c58061ceb9e65ceddc2e0000c0d": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "filler_volume_fraction"
+  },
+  "meta": {
+   "description": "The volume fraction f of the dispersed filler phase in the composite: dimensionless, the loading knob of the effective-medium mixing. Valid for the non-interacting (ideal-dispersion) EMT in roughly [0, 0.25); above that, or near a filler-filler contact network, the Nan result is a lower bound (no percolation is modeled). Zero loading returns the matrix conductivity exactly. The reference epoxy draft uses f = 0.05 (5 vol%).",
+   "name": "FillerVolumeFraction",
+   "symbol": "f",
+   "tier": "Composite"
+  },
+  "uid": "093e6e3278c242894f90f40f3ef1d4b7fda19c58061ceb9e65ceddc2e0000c0d"
+ },
  "0f08fcb37791dc7cc3e0e0ee5c611abbefc5075867719b275fcaa77ada4f1ac2": {
   "identity": {
    "fields": [
@@ -178,6 +198,31 @@
    "tier": "Sources"
   },
   "uid": "12fb1ed0f109f6dd198199dde8ed169edc25c04ee12813e0612a96675784830c"
+ },
+ "1375fb6172571befa9a6551aa1d72bf541272a3f94ad6a762017ba3e4a44f78d": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-1",
+     "indices": [
+      "cartesian",
+      "cartesian"
+     ]
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "role": "filler"
+   },
+   "quantity": "thermal_conductivity"
+  },
+  "meta": {
+   "description": "The intrinsic thermal conductivity tensor of the dispersed FILLER (inclusion) phase of a composite, in the inclusion's principal frame (polar axis 3): a rank-2 Cartesian tensor kappa_f[alpha,beta] whose diagonal carries the transverse (in-plane) k11 = kappa_f[1,1] and the axial (through-plane) k33 = kappa_f[3,3]. Anisotropic for a real platelet or fiber (a graphene nanoplatelet has k11 >> k33). Dimension THERMAL_CONDUCTIVITY (1,1,-3,-1,0,0,0) = W/(m K), the SAME tag and dimension as the neutral ThermalConductivity observable, kept a DISTINCT node ONLY by the role=filler LABEL. Reuses the registered cartesian index kinds (alpha, beta), mirroring the neutral kappa tensor; the two diagonal components the mixing formulas read (k11, k33) and the particle dimensions (d1 equatorial, d3 polar) ride in instance conditions (the elastic-constants precedent for tensor components in conditions).",
+   "name": "ThermalConductivity[role=filler]",
+   "symbol": "\\kappa_f",
+   "tier": "Composite"
+  },
+  "uid": "1375fb6172571befa9a6551aa1d72bf541272a3f94ad6a762017ba3e4a44f78d"
  },
  "1423a9b16e18881e4388fee44f536891a6295aaa6e0fc3775bbbe89ee480847a": {
   "identity": {
@@ -438,6 +483,50 @@
    "tier": "Thermoelectric"
   },
   "uid": "2931c0e41adb40b9ce80f5169881f3a266a2e85d5b280223914fb3b61628aea9"
+ },
+ "297b3254a09037f017769b771e19ad849443911048f77078a804cbc334c38309": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "1",
+     "indices": []
+    },
+    {
+     "dimension": "1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "depolarization_factor"
+  },
+  "meta": {
+   "description": "The spheroid depolarization (Eshelby) factors (L11, L33) of an axially-symmetric inclusion, polar axis 3, with the sum rule 2 L11 + L33 = 1: dimensionless geometry from the aspect ratio p = d3/d1. Analytic limits sphere (1/3, 1/3), long fiber p -> infinity (1/2, 0), thin disk p -> 0 (0, 1). The shape input to the Nan mixing formulas; a closed form (an atanh branch for prolate p>1, an atan branch for oblate p<1, the (1/3, 1/3) sphere at p=1). Two scalar fields (the two independent factors); the aspect ratio rides in conditions.",
+   "name": "DepolarizationFactor",
+   "symbol": "L",
+   "tier": "Composite"
+  },
+  "uid": "297b3254a09037f017769b771e19ad849443911048f77078a804cbc334c38309"
+ },
+ "2995dc3d963a6d387aa5b62d35a7248391ce3ce8047c0dc381cfc1cc99ef08f9": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 T^-3 Th^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {},
+   "quantity": "interface_conductance"
+  },
+  "meta": {
+   "description": "The Kapitza (interfacial) thermal boundary conductance G at the filler/matrix interface: power per unit area per kelvin, the genuinely NEW physics this domain adds. Dimension INTERFACE_CONDUCTANCE (1,0,-3,-1,0,0,0) = W/(m^2 K), a conductance PER AREA (THERMAL_CONDUCTANCE W/K over an area) and equally THERMAL_CONDUCTIVITY over a length, so the Kapitza radius a_K = km/G is exactly a LENGTH (the dimensional gate proves the EMT edges on this). Enters the mixing formulas as the series interface film per principal direction, kc_ii = k_ii / (1 + 2 R k_ii / d_i) with R = 1/G. It LUMPS interface chemistry AND dispersion quality; the intended workflow calibrates G against one measured composite point, then ranks filler scenarios, and a computed thermal boundary conductance (NEMD) can replace the calibrated value. Served in MW/(m^2 K) (the practitioner scale) or the canonical W/(m^2 K).",
+   "name": "InterfaceConductance",
+   "symbol": "G",
+   "tier": "Composite"
+  },
+  "uid": "2995dc3d963a6d387aa5b62d35a7248391ce3ce8047c0dc381cfc1cc99ef08f9"
  },
  "29e324b97f31cdb7d3cd8ef6aec5668fff111fd7ee96bd19dd0426b8728c1d47": {
   "identity": {
@@ -1327,6 +1416,29 @@
   },
   "uid": "8b9dd2a79db11c01e15d37f64a7bd0d9c95f09ea080a67f7912d9b8aabd7b132"
  },
+ "8cee68745e003909cd8e65688628af53a35c0803ace3f330394bbf0edf338d7b": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "effective_medium": "nan",
+    "orientation": "random"
+   },
+   "quantity": "thermal_conductivity"
+  },
+  "meta": {
+   "description": "The composite effective thermal conductivity for RANDOMLY oriented filler: the isotropic scalar kappa_c a measurement of a randomly-mixed composite reports, from the Nan et al. (1997) effective-medium theory with a per-direction interfacial (Kapitza) series film. Dimension THERMAL_CONDUCTIVITY (1,1,-3,-1,0,0,0) = W/(m K). JOINS the thermal_conductivity family (same tag, same dimension) and is kept a DISTINCT node by the effective_medium=nan and orientation=random LABELS; it RESOLVES into the neutral ThermalConductivity observable (a measured composite kappa is evidence of that node). SECOND-PRODUCER home of the Hasselman-Johnson cross-check: in the spherical limit (aspect -> 1, isotropic filler) the HJ sphere formula produces this SAME node and must agree numerically (the blessed redundant-route pattern). The reference epoxy + 5 vol% GNP formulation gives kappa_c = 1.2452 W/(m K).",
+   "name": "ThermalConductivity[effective_medium=nan,orientation=random]",
+   "symbol": "\\kappa_c",
+   "tier": "Composite"
+  },
+  "uid": "8cee68745e003909cd8e65688628af53a35c0803ace3f330394bbf0edf338d7b"
+ },
  "910d47d67a7308728e2f7d211a08c1590239c7b802cd75128f00cd103a719b84": {
   "identity": {
    "fields": [
@@ -1766,6 +1878,28 @@
    "tier": "Transport"
   },
   "uid": "b24a26725f5641ffb16720514a7fdb23bf03304ce0d51c9f39501d1c8c009b6c"
+ },
+ "b5cf0ca0f9b648341000b76e8839e45557973bb82a6e99460b05c066a448adf3": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "role": "matrix"
+   },
+   "quantity": "thermal_conductivity"
+  },
+  "meta": {
+   "description": "The bulk thermal conductivity km of the continuous MATRIX (host) phase of a composite: the conductivity the effective-medium theory blends the filler into. Scalar (an isotropic host, e.g. an epoxy). Dimension THERMAL_CONDUCTIVITY (1,1,-3,-1,0,0,0) = W/(m K). JOINS the thermal_conductivity family (the SAME thermal_conductivity tag and dimension as the neutral ThermalConductivity observable and its route siblings) and is kept a DISTINCT node ONLY by the role=matrix LABEL, so a Nan / Hasselman-Johnson edge can consume 'the matrix kappa' as its own node without self-looping on the neutral kappa node. The host material rides in instance conditions (identity is per quantity, not per material); a computed or measured bulk km of the host is the input here.",
+   "name": "ThermalConductivity[role=matrix]",
+   "symbol": "\\kappa_m",
+   "tier": "Composite"
+  },
+  "uid": "b5cf0ca0f9b648341000b76e8839e45557973bb82a6e99460b05c066a448adf3"
  },
  "b6a79d756cf45fc64a3a07feb9e46c7372f398b3ee54806bf1c9903d8a42039f": {
   "identity": {
@@ -2359,5 +2493,28 @@
    "tier": "Harmonic"
   },
   "uid": "fa262448f625b62f5a8c6934518bb8ddc5d3a5a5ce69203b3e2f6b10b21cc4b8"
+ },
+ "fc292985123b709c76547dc02721e60797cf5693fbad40b874826291314d5dd3": {
+  "identity": {
+   "fields": [
+    {
+     "dimension": "M^1 L^1 T^-3 Th^-1",
+     "indices": []
+    }
+   ],
+   "gauge": "observable",
+   "labels": {
+    "effective_medium": "nan",
+    "orientation": "aligned"
+   },
+   "quantity": "thermal_conductivity"
+  },
+  "meta": {
+   "description": "The composite effective thermal conductivity for PERFECTLY ALIGNED filler: the anisotropic result of the Nan et al. (1997) EMT with the interfacial series film, a different mixing formula from the random orientation. Dimension THERMAL_CONDUCTIVITY (1,1,-3,-1,0,0,0) = W/(m K), the same thermal_conductivity family, kept DISTINCT from the random node by the orientation=aligned label. The two tensor components (the transverse / in-plane al11, transverse to the alignment axis 3, and the axial / through-plane al33 along axis 3) ride in instance conditions (the elastic-constants precedent); the declared closed form is the axial al33 = km (1 + f beta33 (1 - L33)) / (1 - f beta33 L33), with the transverse al11 its L11/beta11 companion (documented on the operator). Aligned platelets are the enhancement geometry a real thermal-interface material targets.",
+   "name": "ThermalConductivity[effective_medium=nan,orientation=aligned]",
+   "symbol": "\\kappa_c^{\\parallel}",
+   "tier": "Composite"
+  },
+  "uid": "fc292985123b709c76547dc02721e60797cf5693fbad40b874826291314d5dd3"
  }
 }

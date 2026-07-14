@@ -690,11 +690,14 @@ def test_instances_bundle_32_records_all_uid_pinned():
     # 83 after the MESCAL onboarding (2026-07-13): the carbon-bilayer Landauer
     # conductance G(300 K) from the committed reference/milestoneA/conductance.dat
     # artifact, unit nW/K converted to canonical W/K, pinned to the new
-    # ThermalConductance[transport_model=landauer] node.
+    # ThermalConductance[transport_model=landauer] node. 84 after the composites
+    # domain (2026-07-13): the DGEBA epoxy + 5 vol% GNP reference Nan-EMT
+    # effective conductivity 1.2452 W/(m K) from the materialscodegraph tool,
+    # pinned to ThermalConductivity[effective_medium=nan,orientation=random].
     from omai.map_data import build_instances
 
     insts = build_instances()
-    assert len(insts) == 83
+    assert len(insts) == 84
     for it in insts:
         assert it.get("node_uid"), f"instance for {it['variable']} lacks node_uid"
 

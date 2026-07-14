@@ -87,9 +87,11 @@ def test_write_index_emits_one_file_per_representation(tmp_path):
     # lobsterpy / smact deliberately earned no rail); the Atomistic Cookbook
     # audit's nuclear-quantum-effects layer (i-PI slice) added the i-pi rail,
     # 28th (2026-07-11); the PLUMED slice added the plumed rail, 29th; the MESCAL
-    # onboarding added the mescal coherent-transport rail, 30th (2026-07-13).
+    # onboarding added the mescal coherent-transport rail, 30th (2026-07-13); the
+    # composites domain added the materialscodegraph effective-medium rail, 31st
+    # (2026-07-13).
     assert len(files) == len(reps)
-    assert len(files) == 30
+    assert len(files) == 31
 
 
 def test_each_index_entry_uid_matches_live_node_id(tmp_path):

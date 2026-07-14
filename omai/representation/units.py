@@ -28,6 +28,7 @@ from omai.operator.dimensions import (
     ENERGY_PER_TEMPERATURE_PER_MOLE,
     ENERGY_PER_TEMPERATURE_PER_VOLUME,
     ELECTRICAL_CONDUCTIVITY,
+    INTERFACE_CONDUCTANCE,
     FORCE,
     FREQUENCY,
     FREQUENCY_SQUARED,
@@ -112,6 +113,15 @@ W_PER_M_PER_K = Unit("W_per_m_per_K", THERMAL_CONDUCTIVITY, 1.0, si_scale=1.0)
 # to_operator 1e-9 to the canonical W/K.
 W_PER_K = Unit("W_per_K", THERMAL_CONDUCTANCE, 1.0, si_scale=1.0)
 NW_PER_K = Unit("nW_per_K", THERMAL_CONDUCTANCE, 1e-9)
+
+
+# Canonical interface (Kapitza) conductance unit: W/(m^2 K), the SI power per unit
+# area per kelvin of a thermal boundary. The composite-EMT interface conductance G
+# is reported in MW/(m^2 K) (the practitioner's scale for filler/matrix interfaces),
+# so mw_per_m2_k carries to_operator 1e6 to the canonical W/(m^2 K) (mirroring how
+# nW/K carries to the canonical W/K for the Landauer conductance).
+W_PER_M2_K = Unit("W_per_m2_k", INTERFACE_CONDUCTANCE, 1.0, si_scale=1.0)
+MW_PER_M2_K = Unit("MW_per_m2_k", INTERFACE_CONDUCTANCE, 1e6)
 
 
 # Canonical molar-energy unit: J/mol. Phonopy's free_energy / internal_energy
@@ -307,6 +317,8 @@ UNITS: dict[str, Unit] = {
         W_PER_M_PER_K,
         W_PER_K,
         NW_PER_K,
+        W_PER_M2_K,
+        MW_PER_M2_K,
         J_PER_MOL,
         KJ_PER_MOL,
         EV_PER_A3,

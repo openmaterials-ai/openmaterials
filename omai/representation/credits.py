@@ -270,6 +270,28 @@ CODE_CREDITS: dict[str, dict] = {
         "license_source": "MatterGen GitHub LICENSE (WebFetch)",
         "url": "https://github.com/microsoft/mattergen",
     },
+    # --- composites (effective medium) ---------------------------------------
+    "materialscodegraph": {
+        # The composite effective-conductivity tool implements two published,
+        # validated formulas; the citation names both (the map author reproduced
+        # the pinned 1.2452 W/(m K) reference independently against them).
+        "citation": "S.-Y. Nan, R. Birringer, D. R. Clarke, H. Gleiter, Effective "
+        "thermal conductivity of particulate composites with interfacial thermal "
+        "resistance, J. Appl. Phys. 81, 6692 (1997); spherical-limit cross-check "
+        "D. P. H. Hasselman, L. F. Johnson, Effective thermal conductivity of "
+        "composites with interfacial thermal barrier resistance, J. Compos. "
+        "Mater. 21, 508 (1987)",
+        "doi": "10.1063/1.365209",
+        "license": "Apache-2.0",
+        # materialscodegraph is a private Da Vinci Labs repository (the repo
+        # metadata endpoint is not public); its committed LICENSE file reads
+        # Apache License 2.0, read directly from the file over the API.
+        "license_source": "materialscodegraph/materialscodegraph LICENSE (gh api "
+        "repos/materialscodegraph/materialscodegraph/contents/LICENSE -> Apache "
+        "License 2.0, spdx_id Apache-2.0; private Da Vinci Labs repo, verified "
+        "2026-07-13)",
+        "url": "https://github.com/materialscodegraph/materialscodegraph",
+    },
     # --- thermochemistry -----------------------------------------------------
     "pycalphad": {
         "citation": "R. Otis, Z.-K. Liu, pycalphad: CALPHAD-based Computational "

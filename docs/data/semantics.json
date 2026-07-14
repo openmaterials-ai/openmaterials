@@ -1183,6 +1183,83 @@
 },
 {
 "curated": [],
+"id": "ThermalConductivity[role=matrix]",
+"kind": "node",
+"labels": [
+"ThermalConductivity[role=matrix]",
+"\\kappa_m",
+"thermal conductivity role matrix"
+],
+"uid": "b5cf0ca0f9b648341000b76e8839e45557973bb82a6e99460b05c066a448adf3"
+},
+{
+"curated": [],
+"id": "ThermalConductivity[role=filler]",
+"kind": "node",
+"labels": [
+"ThermalConductivity[role=filler]",
+"\\kappa_f",
+"thermal conductivity role filler"
+],
+"uid": "1375fb6172571befa9a6551aa1d72bf541272a3f94ad6a762017ba3e4a44f78d"
+},
+{
+"curated": [],
+"id": "InterfaceConductance",
+"kind": "node",
+"labels": [
+"G",
+"InterfaceConductance",
+"interface conductance"
+],
+"uid": "2995dc3d963a6d387aa5b62d35a7248391ce3ce8047c0dc381cfc1cc99ef08f9"
+},
+{
+"curated": [],
+"id": "FillerVolumeFraction",
+"kind": "node",
+"labels": [
+"FillerVolumeFraction",
+"f",
+"filler volume fraction"
+],
+"uid": "093e6e3278c242894f90f40f3ef1d4b7fda19c58061ceb9e65ceddc2e0000c0d"
+},
+{
+"curated": [],
+"id": "DepolarizationFactor",
+"kind": "node",
+"labels": [
+"DepolarizationFactor",
+"L",
+"depolarization factor"
+],
+"uid": "297b3254a09037f017769b771e19ad849443911048f77078a804cbc334c38309"
+},
+{
+"curated": [],
+"id": "ThermalConductivity[effective_medium=nan,orientation=random]",
+"kind": "node",
+"labels": [
+"ThermalConductivity[effective_medium=nan,orientation=random]",
+"\\kappa_c",
+"thermal conductivity effective medium nan orientation random"
+],
+"uid": "8cee68745e003909cd8e65688628af53a35c0803ace3f330394bbf0edf338d7b"
+},
+{
+"curated": [],
+"id": "ThermalConductivity[effective_medium=nan,orientation=aligned]",
+"kind": "node",
+"labels": [
+"ThermalConductivity[effective_medium=nan,orientation=aligned]",
+"\\kappa_c^{\\parallel}",
+"thermal conductivity effective medium nan orientation aligned"
+],
+"uid": "fc292985123b709c76547dc02721e60797cf5693fbad40b874826291314d5dd3"
+},
+{
+"curated": [],
 "id": "CellVolume",
 "kind": "node",
 "labels": [
@@ -2258,6 +2335,46 @@
 "labels": [
 "contract zt",
 "contract_zt"
+],
+"uid": null
+},
+{
+"curated": [],
+"id": "nan_effective_kappa",
+"kind": "edge",
+"labels": [
+"nan effective kappa",
+"nan_effective_kappa"
+],
+"uid": null
+},
+{
+"curated": [],
+"id": "nan_effective_kappa_aligned",
+"kind": "edge",
+"labels": [
+"nan effective kappa aligned",
+"nan_effective_kappa_aligned"
+],
+"uid": null
+},
+{
+"curated": [],
+"id": "hasselman_johnson",
+"kind": "edge",
+"labels": [
+"hasselman johnson",
+"hasselman_johnson"
+],
+"uid": null
+},
+{
+"curated": [],
+"id": "resolve_effective_conductivity",
+"kind": "edge",
+"labels": [
+"resolve effective conductivity",
+"resolve_effective_conductivity"
 ],
 "uid": null
 },
