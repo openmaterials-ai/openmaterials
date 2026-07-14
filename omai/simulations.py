@@ -60,11 +60,22 @@ mirrors for reachability and checksum match when URLs are present and returns a
 dated report. A record whose bytes moved or whose mirror is down is stale, not
 invalid; the map owns identity and checksums, object storage owns the bytes.
 
+This module also carries the import/verify half: the bridge from a hosted
+bundle (an MCG-style ``manifest.json`` describing a run) to a verified
+SimulationRecord. :func:`record_from_bundle` maps a host bundle onto the
+record shape and mints the same content-addressed id, refusing an
+unverifiable bundle whose artifacts lack a sha256 or role; :func:`verify_bundle_bytes`
+reports (never gates) whether each artifact's bytes match its checksum when
+they are locally or fetchably reachable.
+
 Bridge entry points: :func:`record_simulation` (write one record, idempotent on
 identical content, refusing a silent overwrite on different content, the
-``record_instance`` discipline) and :func:`verify_simulation` (the dated
-reachability report). Bundling into ``docs/data/simulations.json`` lives in
-:mod:`omai.map_data` (``build_simulations``), mirroring the other record kinds.
+``record_instance`` discipline), :func:`record_from_bundle` (build a canonical
+record from a host bundle manifest), :func:`verify_simulation` (the dated
+reachability report over a record's mirrors), and :func:`verify_bundle_bytes`
+(the dated byte-vs-checksum report over local files or a fetcher). Bundling
+into ``docs/data/simulations.json`` lives in :mod:`omai.map_data`
+(``build_simulations``), mirroring the other record kinds.
 """
 from __future__ import annotations
 
@@ -94,7 +105,9 @@ __all__ = [
     "canonical_id",
     "committed_ids",
     "record_simulation",
+    "record_from_bundle",
     "verify_simulation",
+    "verify_bundle_bytes",
     "slugify",
 ]
 
@@ -498,6 +511,222 @@ def committed_ids(sim_dir: Path | None = None) -> set[str]:
 
 
 # --------------------------------------------------------------------------
+# Import (the reciprocal of a host's export): a hosted bundle -> a record.
+# --------------------------------------------------------------------------
+
+# The map-recipe keys a bundle spec may carry. A spec that names them lifts
+# them into the recipe (the asked computation); a spec that does not is kept
+# verbatim under recipe.spec and its missing node is left for validation to
+# report, never invented here.
+_RECIPE_SPEC_KEYS = ("node", "node_uid", "material", "conditions", "params")
+
+
+def _wall_time_s(started, finished):
+    """Seconds between two ISO-8601 timestamps, or None when either is absent
+    or unparseable. Derived, never guessed: a bundle whose timestamps do not
+    parse simply carries no wall time rather than a fabricated one.
+    """
+    if not isinstance(started, str) or not isinstance(finished, str):
+        return None
+    from datetime import datetime
+    try:
+        a = datetime.fromisoformat(started)
+        b = datetime.fromisoformat(finished)
+    except ValueError:
+        return None
+    return (b - a).total_seconds()
+
+
+def _recipe_from_bundle(manifest: dict) -> dict:
+    """The asked computation, lifted from the bundle's template + spec.
+
+    The bundle's ``template`` is the code family that ran; it is kept on the
+    recipe as ``template`` and (below) mirrored into ``execution.code``. The
+    ``spec`` is the input the host was given. If the spec names any map-recipe
+    key (``node``, ``material``, ``conditions``, ``params``, or a ``node_uid``
+    pin), those are lifted onto the recipe so validation can resolve the node
+    against the live map; the spec itself is always kept under ``recipe.spec``
+    so nothing the host asked is dropped. A spec that names NO node leaves
+    ``recipe.node`` absent: the writer never invents a node id, and
+    :func:`_validate` reports the gap (the honesty rule, a bundle without a
+    resolvable map node is recorded but flagged).
+    """
+    template = manifest.get("template")
+    spec = manifest.get("spec")
+    recipe: dict = {"template": template, "spec": spec}
+    if isinstance(spec, dict):
+        for key in _RECIPE_SPEC_KEYS:
+            if key in spec:
+                recipe[key] = spec[key]
+    return recipe
+
+
+def _execution_from_bundle(manifest: dict) -> dict:
+    """The "what ran" claim, mapped from the bundle's run metadata.
+
+    ``code`` is the bundle's explicit ``code`` field when present, else its
+    ``template`` (the code family a host run is filed under); a run necessarily
+    ran some code, and :func:`_validate_execution` refuses a block that names
+    none. The run's timing (``started_at``, ``finished_at``, ``current_stage``)
+    is mapped straight onto the execution block; ``wall_time_s`` is derived from
+    finished-minus-started only when both are parseable ISO timestamps, else
+    omitted (never guessed). The platform ``kind`` rides along as provenance.
+    """
+    code = manifest.get("code") or manifest.get("template")
+    execution: dict = {"code": code}
+    for src, dst in (("started_at", "started_at"),
+                     ("finished_at", "finished_at"),
+                     ("current_stage", "current_stage"),
+                     ("kind", "kind"),
+                     ("code_version", "code_version"),
+                     ("container_digest", "container_digest"),
+                     ("runner", "runner")):
+        if manifest.get(src) is not None:
+            execution[dst] = manifest[src]
+    wall = _wall_time_s(manifest.get("started_at"), manifest.get("finished_at"))
+    if wall is not None:
+        execution["wall_time_s"] = wall
+    return execution
+
+
+def _bundle_artifacts(manifest: dict, *, where: str) -> list[dict]:
+    """The bundle's artifacts, each reduced to the hashed {path, bytes, sha256,
+    role}. An entry missing ``sha256`` or ``role`` (an OLD MCG export, emitted
+    before the companion PR that adds them) is REFUSED: the verifier will not
+    mint a record with a null checksum it cannot ever check, so it names the
+    missing field and tells the caller the host must emit sha256+role. This is
+    exactly why the MCG export PR exists; an unverifiable bundle is an error,
+    not a record.
+    """
+    artifacts = manifest.get("artifacts")
+    if not isinstance(artifacts, list):
+        raise SimulationError(f"{where}: bundle 'artifacts' must be a list")
+    out: list[dict] = []
+    for i, art in enumerate(artifacts):
+        if not isinstance(art, dict):
+            raise SimulationError(f"{where}: bundle artifact {i} must be an object")
+        if art.get("sha256") is None:
+            raise SimulationError(
+                f"{where}: bundle artifact {i} ({art.get('path')!r}) has no "
+                f"'sha256'; the host must emit a sha256 for every artifact "
+                f"(an unverifiable bundle cannot become a record). Re-export "
+                f"with the sha256+role manifest.")
+        if art.get("role") is None:
+            raise SimulationError(
+                f"{where}: bundle artifact {i} ({art.get('path')!r}) has no "
+                f"'role'; the host must emit a role for every artifact "
+                f"(result, trajectory, log, ...). Re-export with the "
+                f"sha256+role manifest.")
+        out.append(_manifest_entry(art))
+    return out
+
+
+def record_from_bundle(manifest: dict, *, mirrors: dict | None = None,
+                       name_to_uid=None) -> dict:
+    """Build a canonical SimulationRecord from a host bundle manifest.
+
+    The reciprocal of a host's export: takes an MCG-style bundle manifest (keys
+    ``name``, ``kind``, ``template``, ``spec``, ``outputs``, ``artifacts``,
+    ``started_at``, ``finished_at``, ``current_stage``) and returns a record in
+    the same shape :func:`record_simulation` produces, minting the same
+    content-addressed id (:func:`canonical_id` over recipe + execution +
+    artifacts-without-urls).
+
+    The mapping (honest, never inventing what the bundle did not carry):
+
+    - ``recipe`` comes from ``template`` + ``spec`` (:func:`_recipe_from_bundle`).
+      If the spec names a map ``node`` (and optionally ``material``,
+      ``conditions``, ``params``, a ``node_uid`` pin), those are lifted so the
+      recipe resolves against the live map; the spec is always kept verbatim
+      under ``recipe.spec``. A spec that names no node yields a record with
+      ``recipe.node`` ABSENT, which :func:`_validate` reports rather than the
+      writer guessing a node id.
+    - ``execution`` comes from ``template`` (or an explicit ``code``) plus the
+      run's ``started_at`` / ``finished_at`` / ``current_stage``;
+      ``wall_time_s`` is derived only when both timestamps parse as ISO, else
+      omitted (:func:`_execution_from_bundle`).
+    - ``artifacts`` are the bundle's manifest entries, each passed through
+      :func:`_manifest_entry` so only ``{path, bytes, sha256, role}`` enters the
+      hash. A bundle artifact lacking ``sha256`` or ``role`` (an old export)
+      raises :class:`SimulationError` naming the field: the verifier refuses an
+      unverifiable bundle rather than record a null checksum.
+    - ``mirrors`` (optional) is the resolver layer (where the bytes are hosted),
+      stored OUTSIDE the hashed claim exactly like :func:`record_simulation`.
+    - ``outputs`` (the bundle's headline result JSON) rides along as
+      provenance OUTSIDE the hashed claim: it is what the run produced, not the
+      recipe it was asked, so it never enters the recipe identity; and it is raw
+      stage JSON, not a validated instance stub, so it is not filed under
+      ``results`` (which the record reserves for backref slugs and instance
+      stubs). ``name`` and ``kind`` likewise ride as provenance.
+
+    Parameters
+    ----------
+    manifest : dict
+        The host bundle manifest (the MCG export shape).
+    mirrors : dict | None
+        The optional resolver layer, keyed by artifact path -> {url, ...}.
+        Outside the hashed claim: adding or moving a url never re-mints the id.
+    name_to_uid : dict | None
+        Precomputed node-id -> uid map (tests); built from the live map if
+        omitted. Only consulted to attach a live ``node_uid`` pin when the spec
+        named a node but no pin; NEVER used to invent a node the spec omitted.
+
+    Returns
+    -------
+    dict
+        The full record dict (``id``, ``recipe``, ``execution``, ``artifacts``,
+        plus ``mirrors`` / ``outputs`` / ``name`` / ``kind`` when present), in
+        the same shape :func:`record_simulation` writes.
+
+    Raises
+    ------
+    SimulationError
+        If a bundle artifact lacks a sha256 or a role (an unverifiable bundle).
+    """
+    if not isinstance(manifest, dict):
+        raise SimulationError("bundle manifest must be an object")
+    where = manifest.get("name") or manifest.get("template") or "<bundle>"
+
+    recipe = _recipe_from_bundle(manifest)
+    execution = _execution_from_bundle(manifest)
+    artifacts = _bundle_artifacts(manifest, where=where)
+
+    # Attach the live uid pin ONLY when the spec named a node but carried no
+    # pin: pin what the map currently says, so a later validation is a real
+    # match, never a silent pass. A spec that named no node stays unpinned and
+    # unresolved on purpose (validation reports it).
+    node = recipe.get("node")
+    if isinstance(node, str) and recipe.get("node_uid") is None:
+        if name_to_uid is None:
+            from omai.map_data import _domains, build_graph_dict
+            name_to_uid = {n["id"]: n["uid"]
+                           for n in build_graph_dict(_domains())["nodes"]}
+        if node in name_to_uid:
+            recipe["node_uid"] = name_to_uid[node]
+
+    record_id = canonical_id(recipe, execution, artifacts)
+    record: dict = {
+        "id": record_id,
+        "recipe": recipe,
+        "execution": execution,
+        # The stored manifest: the four hashed keys, plus a url mirrored from
+        # the resolver layer when one is declared (the hash never sees it).
+        "artifacts": [_stored_artifact(a, mirrors) for a in artifacts],
+    }
+    if mirrors is not None:
+        record["mirrors"] = mirrors
+    # Provenance carried outside the hashed claim (like mirrors): what the run
+    # produced and how the host labeled it, never part of the recipe identity.
+    if manifest.get("outputs") is not None:
+        record["outputs"] = manifest["outputs"]
+    if manifest.get("name") is not None:
+        record["name"] = manifest["name"]
+    if manifest.get("kind") is not None:
+        record["kind"] = manifest["kind"]
+    return record
+
+
+# --------------------------------------------------------------------------
 # Verification (a dated report, NEVER a gate).
 # --------------------------------------------------------------------------
 
@@ -565,3 +794,108 @@ def verify_simulation(record: dict, *, fetcher=None, today=None) -> dict:
             entry["actual"] = actual
         checked.append(entry)
     return {"id": record.get("id"), "date": stamp, "checked": checked}
+
+
+def verify_bundle_bytes(record: dict, artifact_dir=None, fetcher=None, *,
+                        today=None) -> dict:
+    """A dated byte-vs-checksum report for an imported record's artifacts.
+
+    The import-side companion of :func:`verify_simulation`: where that reports
+    the reachability of a record's mirrors, this checks each artifact's actual
+    bytes against its manifest sha256 when the bytes are reachable. Same
+    contract, verbatim: a REPORT, never a gate, and it NEVER raises on a
+    mismatch or a miss. A record whose local bytes were tampered or whose
+    hosted bytes moved is surfaced (``mismatch`` / ``unchecked``), never thrown.
+
+    For each artifact, in order:
+
+    - if ``artifact_dir`` is given and ``artifact_dir/path`` exists, the local
+      file is hashed and compared: ``ok`` on match, ``mismatch`` on differ;
+    - else if a ``fetcher`` (``url -> bytes``) is given and the record has a
+      mirror url (or an on-row url) for that path, the bytes are fetched and
+      compared (a fetch failure is ``unchecked``, reason the error);
+    - else the artifact is ``unchecked`` with reason ``bytes not reachable``.
+
+    ``artifact_dir`` wins over ``fetcher`` when both can reach a path: a local
+    copy is the cheaper, authoritative check. Paths are joined POSIX-style under
+    ``artifact_dir`` (the bundle stores bundle-relative paths, e.g.
+    ``results/summary.json``), never escaping the directory.
+
+    Report shape::
+
+        {"id": <record id>, "date": "YYYY-MM-DD",
+         "checked": [{"path", "role", "status", ...}, ...],
+         "summary": {"ok": n, "mismatch": n, "unchecked": n}}
+
+    where ``status`` is ``ok`` (bytes hash to the manifest sha256),
+    ``mismatch`` (bytes differ: reports expected/actual), or ``unchecked``
+    (bytes not reachable, or a fetch failed: reports a reason).
+    """
+    stamp = (today or date.today()).isoformat()
+    artifacts = record.get("artifacts", []) or []
+    mirrors = record.get("mirrors", {}) or {}
+    base = Path(artifact_dir) if artifact_dir is not None else None
+    checked: list[dict] = []
+    summary = {"ok": 0, "mismatch": 0, "unchecked": 0}
+    for art in artifacts:
+        path = art.get("path")
+        role = art.get("role")
+        expected = art.get("sha256")
+        entry = {"path": path, "role": role}
+
+        blob = None
+        source = None
+        # 1) Local file under artifact_dir wins: cheapest, authoritative.
+        if base is not None and isinstance(path, str):
+            local = base / path
+            if local.is_file():
+                try:
+                    blob = local.read_bytes()
+                    source = "local"
+                except OSError as exc:
+                    entry["status"] = "unchecked"
+                    entry["reason"] = f"local read failed: {exc}"
+                    summary["unchecked"] += 1
+                    checked.append(entry)
+                    continue
+        # 2) Else fetch the mirror url, if a fetcher and a url are both present.
+        if blob is None and fetcher is not None:
+            loc = mirrors.get(path) if isinstance(mirrors, dict) else None
+            url = None
+            if isinstance(loc, dict):
+                url = loc.get("url")
+            elif isinstance(loc, str):
+                url = loc
+            if url is None:
+                url = art.get("url")
+            if url is not None:
+                try:
+                    blob = fetcher(url)
+                    source = url
+                except Exception as exc:  # noqa: BLE001 - a fetch miss is unchecked, not raised
+                    entry["status"] = "unchecked"
+                    entry["reason"] = f"fetch failed: {exc}"
+                    summary["unchecked"] += 1
+                    checked.append(entry)
+                    continue
+
+        if blob is None:
+            entry["status"] = "unchecked"
+            entry["reason"] = "bytes not reachable"
+            summary["unchecked"] += 1
+            checked.append(entry)
+            continue
+
+        entry["source"] = source
+        actual = hashlib.sha256(blob).hexdigest()
+        if actual == expected:
+            entry["status"] = "ok"
+            summary["ok"] += 1
+        else:
+            entry["status"] = "mismatch"
+            entry["expected"] = expected
+            entry["actual"] = actual
+            summary["mismatch"] += 1
+        checked.append(entry)
+    return {"id": record.get("id"), "date": stamp, "checked": checked,
+            "summary": summary}

@@ -610,3 +610,312 @@ def test_instance_without_simulation_omits_key(tmp_path):
         source_ref="gpumd", detail="no backref", instances_dir=tmp_path)
     rec = json.loads(path.read_text())
     assert "simulation" not in rec
+
+
+# --------------------------------------------------------------------------
+# Import: a hosted MCG-shape bundle -> a verified record (record_from_bundle).
+# The reciprocal of the host's export; refuses an unverifiable bundle rather
+# than mint a null-checksum record. All offline (real bytes hashed in-process).
+# --------------------------------------------------------------------------
+
+import hashlib  # noqa: E402  (import-half tests hash real bytes offline)
+
+# Two artifact bodies with their real checksums: the well-formed MCG export
+# carries a sha256 and a role per file (the companion PR's manifest shape).
+_BODY_RESULT = b'{"kappa": 1.37, "units": "W/(m K)"}'
+_BODY_TRAJ = b"HNEMD trajectory frames ..."
+_SHA_RESULT = hashlib.sha256(_BODY_RESULT).hexdigest()
+_SHA_TRAJ = hashlib.sha256(_BODY_TRAJ).hexdigest()
+
+
+def _bundle(**over):
+    """A realistic MCG export manifest: name/kind/template/spec, ISO
+    timestamps, a current stage, headline outputs, and artifacts each carrying
+    {path, bytes, sha256, role}. The spec names a real live map node so the
+    resulting recipe resolves (the enriched-spec case)."""
+    m = {
+        "name": "Si HNEMD (local)",
+        "kind": "composite_kappa",
+        "template": "gpumd",
+        "spec": {
+            "node": _NODE,
+            "material": {"name": "Si"},
+            "conditions": {"T": "300 K", "potential": "Si-NEP"},
+            "params": {},
+        },
+        "created_at": "2026-07-13T10:00:00+00:00",
+        "started_at": "2026-07-13T10:00:00+00:00",
+        "finished_at": "2026-07-13T11:10:10+00:00",
+        "current_stage": "thermal_summary",
+        "outputs": {"thermal_summary": {"kappa": 1.37, "units": "W/(m K)"}},
+        "artifacts": [
+            {"path": "results/thermal_summary.json", "bytes": len(_BODY_RESULT),
+             "sha256": _SHA_RESULT, "role": "result"},
+            {"path": "traj/dump.xyz", "bytes": len(_BODY_TRAJ),
+             "sha256": _SHA_TRAJ, "role": "trajectory"},
+        ],
+        "skipped_artifacts": [],
+    }
+    m.update(over)
+    return m
+
+
+def test_record_from_bundle_builds_stable_record():
+    """A well-formed MCG-shape manifest becomes a record whose id is stable
+    (same manifest -> same id) and whose artifacts hash exactly the four keys
+    {path, bytes, sha256, role}."""
+    r1 = sim.record_from_bundle(_bundle(), name_to_uid=_NAME_TO_UID)
+    r2 = sim.record_from_bundle(_bundle(), name_to_uid=_NAME_TO_UID)
+    assert r1["id"] == r2["id"]
+    assert len(r1["id"]) == 64
+    # The recipe lifts the spec's node and pins the live uid.
+    assert r1["recipe"]["node"] == _NODE
+    assert r1["recipe"]["node_uid"] == _NODE_UID
+    assert r1["recipe"]["spec"]["material"] == {"name": "Si"}
+    # Execution maps template -> code, timestamps, and derives wall time.
+    assert r1["execution"]["code"] == "gpumd"
+    assert r1["execution"]["current_stage"] == "thermal_summary"
+    assert r1["execution"]["wall_time_s"] == 4210.0  # 70 min 10 s
+    # The id recomputes from exactly (recipe, execution, artifacts).
+    assert r1["id"] == sim.canonical_id(
+        r1["recipe"], r1["execution"], r1["artifacts"])
+
+
+def test_record_from_bundle_artifacts_hash_only_four_keys():
+    """Only {path, bytes, sha256, role} enter the hashed claim; a url or any
+    other resolver key never rides into identity."""
+    rec = sim.record_from_bundle(_bundle(), name_to_uid=_NAME_TO_UID)
+    for entry in sim._claim(rec["recipe"], rec["execution"],
+                            rec["artifacts"])["artifacts"]:
+        assert set(entry) == {"path", "bytes", "sha256", "role"}
+
+
+def test_record_from_bundle_validates_against_live_map():
+    """The record record_from_bundle produces passes the existing _validate
+    against the LIVE map (node resolves by id and uid pin, manifest well-formed):
+    the import writer and the writer's gate agree on the shape."""
+    from pathlib import Path
+
+    from omai.map_data import _domains, build_graph_dict
+
+    live = {n["id"]: n["uid"] for n in build_graph_dict(_domains())["nodes"]}
+    # Rebuild against the live uid so the pin matches this checkout's node.
+    man = _bundle(spec={"node": _NODE, "material": {"name": "Si"},
+                        "conditions": {"T": "300 K"}, "params": {}})
+    rec = sim.record_from_bundle(man, name_to_uid=live)
+    rid = sim._validate(rec, name_to_uid=live,
+                        config_dir=Path("docs/data/configurations"),
+                        where="bundle")
+    assert rid == rec["id"]
+
+
+def test_record_from_bundle_refuses_missing_sha256():
+    """An OLD MCG export (artifacts {path, bytes} only, no sha256) is refused:
+    the verifier will not mint a record with a null checksum it can never check.
+    The error names sha256 and states the host requirement (the reason the MCG
+    export PR exists)."""
+    old = _bundle(artifacts=[{"path": "results/thermal_summary.json",
+                              "bytes": len(_BODY_RESULT)}])
+    with pytest.raises(sim.SimulationError, match="sha256"):
+        sim.record_from_bundle(old, name_to_uid=_NAME_TO_UID)
+    # The message must point the caller at the host's obligation.
+    try:
+        sim.record_from_bundle(old, name_to_uid=_NAME_TO_UID)
+    except sim.SimulationError as exc:
+        assert "host must emit" in str(exc)
+
+
+def test_record_from_bundle_refuses_missing_role():
+    """An artifact carrying a sha256 but no role is likewise refused: a record
+    needs the role (result / trajectory / log) the host assigned."""
+    norole = _bundle(artifacts=[{"path": "results/thermal_summary.json",
+                                 "bytes": len(_BODY_RESULT),
+                                 "sha256": _SHA_RESULT}])
+    with pytest.raises(sim.SimulationError, match="role"):
+        sim.record_from_bundle(norole, name_to_uid=_NAME_TO_UID)
+    try:
+        sim.record_from_bundle(norole, name_to_uid=_NAME_TO_UID)
+    except sim.SimulationError as exc:
+        assert "host must emit" in str(exc)
+
+
+def test_record_from_bundle_mirror_does_not_change_id():
+    """Identity excludes location: adding or changing a mirror url never
+    re-mints the record id (the same url-invariance the writer holds)."""
+    base = sim.record_from_bundle(_bundle(), name_to_uid=_NAME_TO_UID)["id"]
+    mirrors = {"results/thermal_summary.json":
+               {"url": "https://r2.example.com/x.json", "store": "r2"}}
+    with_mirror = sim.record_from_bundle(
+        _bundle(), mirrors=mirrors, name_to_uid=_NAME_TO_UID)
+    assert with_mirror["id"] == base
+    assert with_mirror["mirrors"] == mirrors
+    # The mirrored url appears on the matching artifact row as a convenience.
+    row = next(a for a in with_mirror["artifacts"]
+               if a["path"] == "results/thermal_summary.json")
+    assert row["url"] == "https://r2.example.com/x.json"
+    # A DIFFERENT mirror url still mints the same id.
+    other = sim.record_from_bundle(
+        _bundle(), mirrors={"results/thermal_summary.json":
+                            {"url": "https://zenodo.org/record/9/files/x.json"}},
+        name_to_uid=_NAME_TO_UID)
+    assert other["id"] == base
+
+
+def test_record_from_bundle_outputs_ride_outside_the_claim():
+    """The bundle's headline outputs are what the run PRODUCED, not the recipe
+    it was asked: they ride outside the hashed claim (like mirrors), so they
+    neither pollute the recipe identity nor pretend to be validated instance
+    stubs under 'results'."""
+    rec = sim.record_from_bundle(_bundle(), name_to_uid=_NAME_TO_UID)
+    assert rec["outputs"] == {"thermal_summary": {"kappa": 1.37,
+                                                  "units": "W/(m K)"}}
+    assert "results" not in rec
+    # Changing only the outputs does NOT change the id (identity is the claim).
+    changed = _bundle(outputs={"thermal_summary": {"kappa": 9.99}})
+    assert sim.record_from_bundle(changed, name_to_uid=_NAME_TO_UID)["id"] \
+        == rec["id"]
+
+
+def test_record_from_bundle_omits_wall_time_when_unparseable():
+    """wall_time_s is derived only when both timestamps parse as ISO; a bundle
+    whose timestamps do not parse carries no wall time (never guessed)."""
+    man = _bundle(started_at="not-a-timestamp", finished_at="also-not")
+    rec = sim.record_from_bundle(man, name_to_uid=_NAME_TO_UID)
+    assert "wall_time_s" not in rec["execution"]
+    # The raw strings are still carried through as the run's stated stamps.
+    assert rec["execution"]["started_at"] == "not-a-timestamp"
+
+
+def test_record_from_bundle_no_node_is_flagged_not_invented():
+    """A bundle whose spec names NO map node (the common MCG case: specs carry
+    template physics, not a map node id) is still recorded, but the writer does
+    NOT invent a node; _validate surfaces the missing node rather than guessing
+    one."""
+    from pathlib import Path
+
+    # A real MCG-style spec: template physics params, no 'node'.
+    man = _bundle(spec={"temperature_K": 300.0, "potential": "Si-NEP"})
+    rec = sim.record_from_bundle(man, name_to_uid=_NAME_TO_UID)
+    assert "node" not in rec["recipe"]
+    assert "node_uid" not in rec["recipe"]
+    # The spec is kept verbatim so nothing the host asked is dropped.
+    assert rec["recipe"]["spec"] == {"temperature_K": 300.0, "potential": "Si-NEP"}
+    # Validation reports the gap rather than passing silently.
+    with pytest.raises(sim.SimulationError, match="live map node"):
+        sim._validate(rec, name_to_uid=_NAME_TO_UID,
+                      config_dir=Path("docs/data/configurations"),
+                      where="bundle")
+
+
+# --------------------------------------------------------------------------
+# verify_bundle_bytes: a dated byte-vs-checksum report, never a gate. Fully
+# offline (real temp files, or an injected fake fetcher; no network).
+# --------------------------------------------------------------------------
+
+def test_verify_bundle_bytes_local_ok(tmp_path):
+    """Local artifact_dir whose bytes hash to the manifest sha256 reports ok."""
+    import datetime
+
+    rec = sim.record_from_bundle(_bundle(), name_to_uid=_NAME_TO_UID)
+    (tmp_path / "results").mkdir()
+    (tmp_path / "results" / "thermal_summary.json").write_bytes(_BODY_RESULT)
+    (tmp_path / "traj").mkdir()
+    (tmp_path / "traj" / "dump.xyz").write_bytes(_BODY_TRAJ)
+    report = sim.verify_bundle_bytes(rec, artifact_dir=tmp_path,
+                                     today=datetime.date(2026, 7, 13))
+    assert report["id"] == rec["id"]
+    assert report["date"] == "2026-07-13"
+    by_path = {c["path"]: c for c in report["checked"]}
+    assert by_path["results/thermal_summary.json"]["status"] == "ok"
+    assert by_path["traj/dump.xyz"]["status"] == "ok"
+    assert report["summary"] == {"ok": 2, "mismatch": 0, "unchecked": 0}
+
+
+def test_verify_bundle_bytes_tampered_reports_mismatch_not_raise(tmp_path):
+    """Tampered local bytes are reported mismatch (with expected/actual), never
+    raised: verify is a report, never a gate."""
+    rec = sim.record_from_bundle(_bundle(), name_to_uid=_NAME_TO_UID)
+    (tmp_path / "results").mkdir()
+    (tmp_path / "results" / "thermal_summary.json").write_bytes(b"TAMPERED")
+    # traj file absent -> unchecked; the result file present but wrong -> mismatch
+    report = sim.verify_bundle_bytes(rec, artifact_dir=tmp_path)
+    by_path = {c["path"]: c for c in report["checked"]}
+    bad = by_path["results/thermal_summary.json"]
+    assert bad["status"] == "mismatch"
+    assert bad["expected"] == _SHA_RESULT
+    assert bad["actual"] == hashlib.sha256(b"TAMPERED").hexdigest()
+    assert by_path["traj/dump.xyz"]["status"] == "unchecked"
+    assert report["summary"] == {"ok": 0, "mismatch": 1, "unchecked": 1}
+
+
+def test_verify_bundle_bytes_no_dir_no_fetcher_reports_unchecked():
+    """No artifact_dir and no fetcher: every artifact is unchecked with reason
+    'bytes not reachable'. Never raises."""
+    rec = sim.record_from_bundle(_bundle(), name_to_uid=_NAME_TO_UID)
+    report = sim.verify_bundle_bytes(rec)
+    assert all(c["status"] == "unchecked" for c in report["checked"])
+    assert all(c["reason"] == "bytes not reachable" for c in report["checked"])
+    assert report["summary"] == {"ok": 0, "mismatch": 0, "unchecked": 2}
+
+
+def test_verify_bundle_bytes_fetcher_ok_and_mismatch():
+    """With no local dir but a fetcher and mirror urls, bytes are fetched and
+    compared: ok on match, mismatch on differ, unchecked on a fetch failure.
+    Offline: the fetcher is a fake, no network."""
+    mirrors = {
+        "results/thermal_summary.json": {"url": "https://x/summary.json"},
+        "traj/dump.xyz": {"url": "https://x/dump.xyz"},
+    }
+    rec = sim.record_from_bundle(_bundle(), mirrors=mirrors,
+                                 name_to_uid=_NAME_TO_UID)
+
+    def fetcher(url):
+        if url.endswith("summary.json"):
+            return _BODY_RESULT              # matches -> ok
+        if url.endswith("dump.xyz"):
+            return b"corrupted-in-transit"   # differs -> mismatch
+        raise RuntimeError("boom")
+
+    report = sim.verify_bundle_bytes(rec, fetcher=fetcher)
+    by_path = {c["path"]: c for c in report["checked"]}
+    assert by_path["results/thermal_summary.json"]["status"] == "ok"
+    assert by_path["results/thermal_summary.json"]["source"] == "https://x/summary.json"
+    assert by_path["traj/dump.xyz"]["status"] == "mismatch"
+    assert report["summary"] == {"ok": 1, "mismatch": 1, "unchecked": 0}
+
+
+def test_verify_bundle_bytes_fetch_failure_is_unchecked_not_raised():
+    """A fetch that raises is reported unchecked (reason carries the error),
+    never propagated: the report philosophy of verify_simulation."""
+    mirrors = {"results/thermal_summary.json": {"url": "https://x/summary.json"},
+               "traj/dump.xyz": {"url": "https://x/dump.xyz"}}
+    rec = sim.record_from_bundle(_bundle(), mirrors=mirrors,
+                                 name_to_uid=_NAME_TO_UID)
+
+    def down(url):
+        raise ConnectionError("host unreachable")
+
+    report = sim.verify_bundle_bytes(rec, fetcher=down)
+    assert all(c["status"] == "unchecked" for c in report["checked"])
+    assert all("host unreachable" in c["reason"] for c in report["checked"])
+
+
+def test_verify_bundle_bytes_local_wins_over_fetcher(tmp_path):
+    """When both a local file and a fetcher can reach a path, the local copy is
+    the authoritative check (the fetcher is not consulted for that path)."""
+    mirrors = {"results/thermal_summary.json": {"url": "https://x/summary.json"}}
+    rec = sim.record_from_bundle(_bundle(), mirrors=mirrors,
+                                 name_to_uid=_NAME_TO_UID)
+    (tmp_path / "results").mkdir()
+    (tmp_path / "results" / "thermal_summary.json").write_bytes(_BODY_RESULT)
+
+    def poisoned(url):
+        raise AssertionError("fetcher must not be called when local bytes exist")
+
+    report = sim.verify_bundle_bytes(rec, artifact_dir=tmp_path, fetcher=poisoned)
+    by_path = {c["path"]: c for c in report["checked"]}
+    assert by_path["results/thermal_summary.json"]["status"] == "ok"
+    assert by_path["results/thermal_summary.json"]["source"] == "local"
+    # The traj file is neither local nor (this test proves) fetched without a
+    # crash: its url is absent from mirrors, so it is simply unchecked.
+    assert by_path["traj/dump.xyz"]["status"] == "unchecked"
