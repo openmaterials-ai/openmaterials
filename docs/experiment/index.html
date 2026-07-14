@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>openmaterials.ai: experiments</title>
+<meta name="description" content="Every experiment on the map is a link: one source's evidence, grouped, pinned to a map version, shareable by URL.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="openmaterials.ai">
+<meta property="og:title" content="openmaterials.ai: experiments">
+<meta property="og:description" content="One source's evidence, grouped, pinned to a map version, shareable by URL.">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../assets/vendor/inter/inter.css">
+<link rel="stylesheet" href="../assets/vendor/source-serif-4/source-serif-4.css">
+<link rel="stylesheet" href="../assets/vendor/jetbrains-mono/jetbrains-mono.css">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+  /* Experiments join the light editorial identity: warm-paper ground, indigo
+     for observables and navigation, amber for values, serif headings, mono
+     for refs and ids. Unlike the map and tracer this is a document page: it
+     scrolls. */
+  :root{
+    --font-serif:'Source Serif 4',Georgia,'Times New Roman',serif;
+    --font-sans:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+    --obs:#4f46e5; --obs2:#4338ca; --val:#d98a14;
+    --ink:#16181d; --ink2:#3d4149; --muted:#6b7078; --faint:#9aa0a8;
+    --line:#e8e6e1; --paper:#fdfcfa; --card:#ffffff; --wash:#f4f2ee;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--font-sans);-webkit-font-smoothing:antialiased;}
+  #err{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;font:13px/1.4 var(--font-mono);padding:8px 12px;z-index:40;display:none;white-space:pre-wrap;}
+  .top{position:sticky;top:0;height:58px;display:flex;align-items:center;gap:14px;padding:0 clamp(14px,3vw,22px);
+    background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);box-shadow:0 1px 0 rgba(22,24,29,.04);z-index:10;}
+  .top .brand{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-serif);font-weight:700;font-size:1.06rem;letter-spacing:-.01em;color:var(--ink);text-decoration:none;white-space:nowrap;}
+  .top .brand .om-dot{width:6px;height:6px;border-radius:50%;background:var(--obs);flex:none;display:inline-block;margin-bottom:.28em;}
+  .top .sub{color:var(--faint);font-size:.82rem;font-weight:500;white-space:nowrap;}
+  .top .nav{display:flex;align-items:center;gap:16px;margin-left:auto;}
+  .top .nav a{color:var(--ink2);font-size:.86rem;font-weight:500;white-space:nowrap;text-decoration:none;padding:6px 0;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+  .top .nav a:hover{color:var(--ink);}
+  @media (max-width:680px){ .top .nav a.opt{display:none;} .top .sub{display:none;} }
+
+  .wrap{max-width:960px;margin:0 auto;padding:34px clamp(14px,3vw,22px) 72px;}
+  .crumb{font-size:.82rem;color:var(--muted);margin:0 0 18px;}
+  .crumb a{color:var(--obs);text-decoration:none;}
+  .crumb a:hover{text-decoration:underline;}
+  .eyebrow{font-size:.74rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;}
+  h1{font-family:var(--font-serif);font-weight:700;letter-spacing:-.015em;font-size:clamp(1.5rem,3.4vw,2.1rem);line-height:1.15;margin:0 0 8px;text-wrap:balance;}
+  h1 .ref{font-family:var(--font-mono);font-weight:600;font-size:.72em;color:var(--obs2);word-break:break-all;}
+  .lede{color:var(--ink2);font-size:1.02rem;line-height:1.6;max-width:64ch;margin:0 0 26px;}
+  h2{font-family:var(--font-serif);font-weight:700;font-size:1.18rem;letter-spacing:-.01em;margin:38px 0 12px;}
+
+  .meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0 6px;}
+  .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 11px;font-size:.78rem;font-weight:500;color:var(--ink2);}
+  .chip .k{color:var(--faint);font-weight:600;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;}
+  .chip.kind-simulation{border-color:#dcd6fb;background:#f5f3ff;color:var(--obs2);}
+  .chip.kind-measurement{border-color:#f3ddba;background:#fdf6ea;color:#8a5a0d;}
+  .chip .mono{font-family:var(--font-mono);font-size:.74rem;}
+
+  .actions{display:flex;gap:10px;align-items:center;margin:16px 0 0;}
+  .btn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--ink2);border-radius:8px;
+    padding:8px 14px;font:600 .84rem var(--font-sans);cursor:pointer;transition:border-color .15s,color .15s,background .15s;}
+  .btn:hover{border-color:var(--obs);color:var(--obs2);}
+  .btn:focus-visible{outline:2px solid var(--obs);outline-offset:2px;}
+  .btn.primary{background:var(--obs);border-color:var(--obs);color:#fff;}
+  .btn.primary:hover{background:var(--obs2);border-color:var(--obs2);}
+  .copied{color:var(--obs2);font-size:.82rem;font-weight:600;opacity:0;transition:opacity .2s;}
+  .copied.on{opacity:1;}
+
+  /* index list */
+  .xp-list{display:flex;flex-direction:column;border-top:1px solid var(--line);margin-top:8px;}
+  .xp-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 18px;align-items:center;
+    padding:15px 4px;border-bottom:1px solid var(--line);text-decoration:none;color:inherit;transition:background .12s;}
+  .xp-row:hover{background:var(--wash);}
+  .xp-row .ref{font-family:var(--font-mono);font-size:.9rem;font-weight:600;color:var(--obs2);word-break:break-all;}
+  .xp-row .facts{grid-column:1;color:var(--muted);font-size:.8rem;margin-top:2px;}
+  .xp-row .n{grid-column:2;grid-row:1 / span 2;font-family:var(--font-mono);font-variant-numeric:tabular-nums;
+    font-size:.86rem;color:var(--ink2);white-space:nowrap;}
+  .xp-row .n b{color:var(--val);font-weight:700;}
+
+  /* values table */
+  .tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--card);}
+  table{border-collapse:collapse;width:100%;font-size:.86rem;}
+  th{font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+    text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--wash);white-space:nowrap;}
+  td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  td.var .sym{font-family:var(--font-mono);font-weight:600;color:var(--obs2);}
+  td.var .vid{display:block;font-family:var(--font-mono);font-size:.72rem;color:var(--faint);margin-top:2px;word-break:break-all;}
+  td.mat{white-space:nowrap;font-weight:500;}
+  td.cond{color:var(--ink2);font-size:.8rem;max-width:26ch;}
+  td.val{font-family:var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  td.val b{color:var(--val);font-weight:700;}
+  td.val .u{color:var(--muted);}
+
+  /* provenance quotes */
+  .quote{border:1px solid var(--line);border-left:3px solid var(--val);border-radius:0 10px 10px 0;
+    background:var(--card);padding:14px 16px;margin:0 0 12px;}
+  .quote .q{font-family:var(--font-serif);font-size:.95rem;line-height:1.55;color:var(--ink2);white-space:pre-line;}
+  .quote .who{margin-top:8px;font-size:.76rem;color:var(--muted);}
+
+  .pin{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem;line-height:1.6;}
+  .pin .mono{font-family:var(--font-mono);font-size:.74rem;color:var(--ink2);word-break:break-all;}
+  .pin a{color:var(--obs);text-decoration:none;}
+  .pin a:hover{text-decoration:underline;}
+  .empty{color:var(--muted);padding:26px 4px;}
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+<div id="err"></div>
+<header class="top">
+  <a class="brand" href="../"><span class="om-dot"></span>openmaterials.ai</a>
+  <span class="sub">experiments</span>
+  <nav class="nav">
+    <a href="../map/" class="opt">Map</a>
+    <a href="../map-trace/" class="opt">Tracer</a>
+    <a href="../play/">Playground</a>
+    <a href="../learn/" class="opt">Learn</a>
+  </nav>
+</header>
+<main class="wrap" id="main">
+  <noscript><p class="empty">This page renders the evidence store client-side and needs JavaScript.
+    The raw records are plain JSON in <a href="../data/instances.json">../data/instances.json</a>.</p></noscript>
+</main>
+<script>
+'use strict';
+var ERR = document.getElementById('err');
+function fail(msg){ ERR.textContent = msg; ERR.style.display = 'block'; }
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function condText(c){
+  if (!c || typeof c !== 'object') return '';
+  return Object.keys(c).map(function(k){ return k + ' = ' + c[k]; }).join(' · ');
+}
+function valText(rec){
+  var v = '<b>' + esc(rec.value) + '</b>';
+  if (rec.uncertainty != null) v += ' ± ' + esc(rec.uncertainty);
+  if (rec.units) v += ' <span class="u">' + esc(rec.units) + '</span>';
+  return v;
+}
+function uniq(arr){
+  var seen = {}, out = [];
+  arr.forEach(function(x){ if (x != null && !seen[x]) { seen[x] = 1; out.push(x); } });
+  return out;
+}
+function refFromHash(){
+  var m = location.hash.match(/[#?&]ref=([^&]*)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
+
+var DATA = null;   // {records, groups, catalog, version}
+function load(){
+  return Promise.all([
+    fetch('../data/instances.json').then(function(r){ return r.json(); }),
+    fetch('../data/catalog.json').then(function(r){ return r.json(); }),
+    fetch('../data/version.json').then(function(r){ return r.json(); })
+  ]).then(function(parts){
+    var records = parts[0], catalog = {}, version = parts[2];
+    parts[1].forEach(function(n){ catalog[n.id] = n; });
+    var groups = {};
+    records.forEach(function(rec){
+      var ref = (rec.source && rec.source.ref) || '(unsourced)';
+      (groups[ref] = groups[ref] || []).push(rec);
+    });
+    DATA = { records: records, groups: groups, catalog: catalog, version: version };
+  });
+}
+
+function pinHtml(){
+  var v = (DATA.version && DATA.version.version) || '';
+  return '<div class="pin">Map version <span class="mono">' + esc(v.slice(0, 12)) + '</span>' +
+    (v ? ' (<span class="mono">' + esc(v) + '</span>)' : '') +
+    '. This link renders the store as published at the current site build; cite the map version with the values.' +
+    '<br>Evidence stays its owner’s: each record is a non-exclusive CC BY 4.0 grant, raw artifacts are never ingested, and reuse must credit the source recorded in its provenance ' +
+    '(<a href="https://github.com/openmaterials-ai/openmaterials/blob/main/GOVERNANCE.md">GOVERNANCE.md, “Data ownership and fairness”</a>).</div>';
+}
+
+function renderIndex(){
+  document.title = 'openmaterials.ai: experiments';
+  var refs = Object.keys(DATA.groups).sort(function(a, b){
+    return DATA.groups[b].length - DATA.groups[a].length || a.localeCompare(b);
+  });
+  var rows = refs.map(function(ref){
+    var recs = DATA.groups[ref];
+    var mats = uniq(recs.map(function(r){ return r.material; }));
+    var kinds = uniq(recs.map(function(r){ return r.source && r.source.kind; }));
+    var vars = uniq(recs.map(function(r){ return r.variable; }));
+    return '<a class="xp-row" href="#ref=' + encodeURIComponent(ref) + '">' +
+      '<span class="ref">' + esc(ref) + '</span>' +
+      '<span class="n"><b>' + recs.length + '</b> values</span>' +
+      '<span class="facts">' + esc(kinds.join(', ')) + ' · ' +
+        esc(mats.join(', ')) + ' · ' + vars.length +
+        (vars.length === 1 ? ' quantity' : ' quantities') + '</span>' +
+      '</a>';
+  }).join('');
+  document.getElementById('main').innerHTML =
+    '<p class="eyebrow">Evidence, grouped by source</p>' +
+    '<h1>Every experiment is a link</h1>' +
+    '<p class="lede">An experiment here is one source’s evidence: the values a single simulation ' +
+    'campaign, measurement, or parsed paper contributed to the map, grouped by its provenance ' +
+    'reference. Open one and share its URL; the link carries the ref, and the page pins the map ' +
+    'version it renders.</p>' +
+    (rows ? '<div class="xp-list">' + rows + '</div>' : '<p class="empty">The store is empty.</p>') +
+    pinHtml();
+}
+
+function renderDetail(ref){
+  var recs = DATA.groups[ref];
+  document.title = 'openmaterials.ai: experiment ' + ref;
+  if (!recs){
+    document.getElementById('main').innerHTML =
+      '<p class="crumb"><a href="#">&larr; All experiments</a></p>' +
+      '<h1>Unknown experiment</h1>' +
+      '<p class="lede">No evidence in this build of the store carries the ref <span class="ref">' +
+      esc(ref) + '</span>. It may live in a newer map version, or the ref may be mistyped.</p>' +
+      pinHtml();
+    return;
+  }
+  var mats = uniq(recs.map(function(r){ return r.material; }));
+  var kinds = uniq(recs.map(function(r){ return r.source && r.source.kind; }));
+  var sorted = recs.slice().sort(function(a, b){
+    return a.variable.localeCompare(b.variable) || String(a.material).localeCompare(String(b.material));
+  });
+  var rows = sorted.map(function(rec){
+    var node = DATA.catalog[rec.variable.replace(/\[.*$/, '')] || DATA.catalog[rec.variable] || {};
+    return '<tr>' +
+      '<td class="var"><span class="sym">' + esc(node.symbol || '') + '</span>' +
+      '<span class="vid">' + esc(rec.variable) + '</span></td>' +
+      '<td class="mat">' + esc(rec.material) + '</td>' +
+      '<td class="cond">' + esc(condText(rec.conditions)) + '</td>' +
+      '<td class="val">' + valText(rec) + '</td>' +
+      '</tr>';
+  }).join('');
+  var quotes = uniq(sorted.map(function(r){ return r.source && r.source.detail; }))
+    .map(function(d){
+      return '<figure class="quote"><div class="q">' + esc(d) + '</div></figure>';
+    }).join('');
+  var chips =
+    kinds.map(function(k){ return '<span class="chip kind-' + esc(k) + '">' + esc(k) + '</span>'; }).join('') +
+    '<span class="chip"><span class="k">values</span> ' + recs.length + '</span>' +
+    mats.map(function(m){ return '<span class="chip"><span class="k">material</span> ' + esc(m) + '</span>'; }).join('');
+  document.getElementById('main').innerHTML =
+    '<p class="crumb"><a href="#">&larr; All experiments</a></p>' +
+    '<p class="eyebrow">Experiment</p>' +
+    '<h1><span class="ref">' + esc(ref) + '</span></h1>' +
+    '<div class="meta">' + chips + '</div>' +
+    '<div class="actions"><button class="btn primary" id="copy" type="button">Copy link</button>' +
+    '<span class="copied" id="copied">Link copied</span></div>' +
+    '<h2>Values</h2>' +
+    '<div class="tbl-scroll"><table><thead><tr>' +
+    '<th>Quantity</th><th>Material</th><th>Conditions</th><th>Value</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '<h2>Provenance</h2>' + quotes +
+    pinHtml();
+  document.getElementById('copy').addEventListener('click', function(){
+    var url = location.href;
+    var done = function(){
+      var el = document.getElementById('copied');
+      el.classList.add('on');
+      setTimeout(function(){ el.classList.remove('on'); }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).then(done, function(){ window.prompt('Copy this link:', url); });
+    } else {
+      window.prompt('Copy this link:', url);
+    }
+  });
+}
+
+function render(){
+  var ref = refFromHash();
+  if (ref) renderDetail(ref); else renderIndex();
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', render);
+load().then(render, function(e){ fail('Failed to load the store: ' + e); });
+</script>
+</body>
+</html>

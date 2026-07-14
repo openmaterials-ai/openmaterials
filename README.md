@@ -42,6 +42,24 @@ non-exclusive CC BY 4.0 license, never a transfer, and the raw simulation or
 experimental artifacts behind a value are never ingested (GOVERNANCE.md, "Data
 ownership and fairness").
 
+## Share an experiment with a link
+
+Every instance carries a provenance reference (`source.ref`), and that ref is
+the experiment key: all the values one simulation campaign, measurement, or
+parsed paper contributed, grouped. The [experiments
+page](https://openmaterials.ai/experiment/) lists every group in the store and
+gives each one a permalink:
+
+```
+https://openmaterials.ai/experiment/#ref=paper:cnt-2021-barbalinardo
+```
+
+The page renders the group's values with conditions and uncertainty, its
+verbatim provenance quotes, and the map version it was built from, so the link
+you share carries the result and its receipts together. To share your own
+experiment, contribute its values as instances under one `source.ref` and send
+the URL.
+
 ## A slice of the map, as Mermaid
 
 Any sub-map exports as a Mermaid flowchart (`python -m omai.mermaid <node>`),
