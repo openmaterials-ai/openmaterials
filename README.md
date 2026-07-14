@@ -60,7 +60,9 @@ you share carries the result and its receipts together. To share your own
 experiment, contribute its values as instances under one `source.ref` and send
 the URL.
 
-Views are links too: the map takes `#node=<id>` (and writes it as you click),
+Views are links too: the map takes `#node=<id>` (and writes it as you click)
+and `#experiment=<source.ref>` to light up exactly the quantities an
+experiment's evidence covers,
 the tracer takes `#node=<id>` or `#from=<id>&to=<id>` for a derivation path,
 the playground serializes its whole state behind its Share button, and the
 experiments index takes `#material=<name>`. Every page has a copy-link
