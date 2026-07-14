@@ -172,6 +172,27 @@ def test_unit_check_molar_energy_against_plain_energy_is_fatal():
     assert not res["ok"] and res["kind"] == "mismatch"
 
 
+def test_unit_check_thermal_conductance_spellings():
+    # W_per_K and nW_per_K entered the registry with the MESCAL onboarding,
+    # but no printed spelling resolved to them, so a Landauer G(T) claim
+    # passed the unit gate "unresolved". W/K and nW/K (the spelling MESCAL's
+    # native serving unit prints) must dimension-check as hard matches
+    # against the conductance node.
+    node = "ThermalConductance[transport_model=landauer]"
+    for spelling in ("W/K", "nW/K", "w/k", "nw/k"):
+        res = validate.unit_check(spelling, node, _catalog_by_id())
+        assert res["ok"] and res["kind"] == "match", (spelling, res)
+
+
+def test_unit_check_conductance_against_conductivity_is_fatal():
+    # The conductance/conductivity distinction the MESCAL onboarding drew:
+    # a W/K (power per temperature) value printed against the per-length
+    # kappa node must die as a dimensional mismatch, not slip through.
+    res = validate.unit_check(
+        "nW/K", "ThermalConductivity[bte_solver=rta]", _catalog_by_id())
+    assert not res["ok"] and res["kind"] == "mismatch"
+
+
 # --------------------------------------------------------------------------
 # value sanity
 # --------------------------------------------------------------------------

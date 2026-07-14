@@ -694,10 +694,15 @@ def test_instances_bundle_32_records_all_uid_pinned():
     # domain (2026-07-13): the DGEBA epoxy + 5 vol% GNP reference Nan-EMT
     # effective conductivity 1.2452 W/(m K) from the materialscodegraph tool,
     # pinned to ThermalConductivity[effective_medium=nan,orientation=random].
+    # 86 after the MESCAL bulk-Si golden evidence (2026-07-14): the ballistic
+    # transmission peak (278.983249 at 6.07824268 THz) and the acoustic
+    # staircase anchor (2.99992757 at 0.05 THz) from the committed
+    # reference/fixtures/level2_bulk_si_n8.npz artifact, both pinned to the
+    # PhononTransmission node with the eskm provenance quoted verbatim.
     from omai.map_data import build_instances
 
     insts = build_instances()
-    assert len(insts) == 84
+    assert len(insts) == 86
     for it in insts:
         assert it.get("node_uid"), f"instance for {it['variable']} lacks node_uid"
 
