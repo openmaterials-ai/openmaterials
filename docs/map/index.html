@@ -199,6 +199,7 @@
     <a href="https://github.com/openmaterials-ai/openmaterials" target="_blank" rel="noopener">Source</a>
   </nav>
   <span class="controls">
+    <button class="om-btn om-btn-sm" id="copylink" type="button" aria-label="Copy a link to this view">Copy link</button>
     <span class="om-seg" role="group" aria-label="Map view">
       <a class="on" href="./" aria-current="page">2D</a>
       <a href="../map-3d/" aria-label="Switch to the 3D view">3D</a>
@@ -388,6 +389,7 @@ function layoutAndRender(graph, bandOf){
   renderGraph(graph);
   fitAll();
   applyDepth();
+  applyHash();
 }
 
 // ---- render ----------------------------------------------------------------
@@ -548,6 +550,7 @@ function clearSel(){
   depth='expanded'; panelEl.style.display='none';
   activeCode=null; document.querySelectorAll('.codes .om-chip.on').forEach(e=>e.classList.remove('on'));
   applyDepth();
+  syncHash(null);
 }
 window.navTo=function(id){ const n=nodeById[id]; if(n) selectNode(n); };
 function chip(id){ return '<span class="chip" onclick="navTo(\''+attr(id).replace(/'/g,"&#39;")+'\')">'+(symHtml[id]||esc(id))+'</span>'; }
@@ -576,6 +579,7 @@ function selectNode(node){
   if(ins.length){ h+='<div class="om-panel-label">&larr; from</div><div class="chips">'+ins.map(chip).join('')+'</div>'; }
   h+=mappedByHtml(id);
   panelEl.innerHTML=h; panelEl.style.display='block';
+  syncHash(id);
 }
 function opName(op){ return (op||'').replace(/\[.*?\]/g,'').replace(/_/g,' ').trim() || 'operation'; }
 function selectEdge(key, op){
@@ -589,6 +593,26 @@ function selectEdge(key, op){
   h+='<div class="om-panel-label">computes</div><div class="formula">'+(tn.formula?tex(tn.formula,true):'<span class="muted">source (provided value)</span>')+'</div>';
   panelEl.innerHTML=h; panelEl.style.display='block';
 }
+
+// ---- deep links: #node=<id> selects and frames a quantity -------------------
+function nodeFromHash(){ const m=location.hash.match(/[#?&]node=([^&]*)/); return m?decodeURIComponent(m[1]):null; }
+function syncHash(id){
+  const h=id?('#node='+encodeURIComponent(id)):'';
+  if(location.hash===h||(!h&&!location.hash)) return;
+  history.replaceState(null,'',h||location.pathname+location.search);
+}
+function applyHash(){
+  const id=nodeFromHash(); if(!id||!nodeById[id]) return;
+  selectNode(nodeById[id]);
+  fitTo([id].concat(parents[id]||[]).concat(children[id]||[]));
+}
+window.addEventListener('hashchange', applyHash);
+document.getElementById('copylink').addEventListener('click', function(){
+  const btn=this, url=location.href;
+  const done=function(){ btn.textContent='Copied'; setTimeout(function(){ btn.textContent='Copy link'; },1200); };
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(done,function(){ window.prompt('Copy this link:',url); }); }
+  else{ window.prompt('Copy this link:',url); }
+});
 
 // click routing
 svg.addEventListener('click', e=>{ if(moved)return;

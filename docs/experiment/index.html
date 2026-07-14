@@ -59,6 +59,8 @@
   .chip.kind-simulation{border-color:#dcd6fb;background:#f5f3ff;color:var(--obs2);}
   .chip.kind-measurement{border-color:#f3ddba;background:#fdf6ea;color:#8a5a0d;}
   .chip .mono{font-family:var(--font-mono);font-size:.74rem;}
+  a.chip{text-decoration:none;cursor:pointer;transition:border-color .15s,color .15s;}
+  a.chip:hover{border-color:var(--obs);color:var(--obs2);}
 
   .actions{display:flex;gap:10px;align-items:center;margin:16px 0 0;}
   .btn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--ink2);border-radius:8px;
@@ -154,6 +156,10 @@ function refFromHash(){
   var m = location.hash.match(/[#?&]ref=([^&]*)/);
   return m ? decodeURIComponent(m[1]) : null;
 }
+function materialFromHash(){
+  var m = location.hash.match(/[#?&]material=([^&]*)/);
+  return m ? decodeURIComponent(m[1]) : null;
+}
 
 var DATA = null;   // {records, groups, catalog, version}
 function load(){
@@ -182,11 +188,19 @@ function pinHtml(){
     '(<a href="https://github.com/openmaterials-ai/openmaterials/blob/main/GOVERNANCE.md">GOVERNANCE.md, “Data ownership and fairness”</a>).</div>';
 }
 
-function renderIndex(){
+function renderIndex(material){
   document.title = 'openmaterials.ai: experiments';
   var refs = Object.keys(DATA.groups).sort(function(a, b){
     return DATA.groups[b].length - DATA.groups[a].length || a.localeCompare(b);
   });
+  if (material){
+    var needle = material.toLowerCase();
+    refs = refs.filter(function(ref){
+      return DATA.groups[ref].some(function(r){
+        return String(r.material).toLowerCase().indexOf(needle) !== -1;
+      });
+    });
+  }
   var rows = refs.map(function(ref){
     var recs = DATA.groups[ref];
     var mats = uniq(recs.map(function(r){ return r.material; }));
@@ -207,7 +221,10 @@ function renderIndex(){
     'campaign, measurement, or parsed paper contributed to the map, grouped by its provenance ' +
     'reference. Open one and share its URL; the link carries the ref, and the page pins the map ' +
     'version it renders.</p>' +
-    (rows ? '<div class="xp-list">' + rows + '</div>' : '<p class="empty">The store is empty.</p>') +
+    (material ? '<div class="meta"><span class="chip"><span class="k">material</span> ' + esc(material) +
+      '</span><a class="chip" href="#">clear filter</a></div>' : '') +
+    (rows ? '<div class="xp-list">' + rows + '</div>' :
+      '<p class="empty">No experiment in this build of the store matches that filter.</p>') +
     pinHtml();
 }
 
@@ -245,7 +262,8 @@ function renderDetail(ref){
   var chips =
     kinds.map(function(k){ return '<span class="chip kind-' + esc(k) + '">' + esc(k) + '</span>'; }).join('') +
     '<span class="chip"><span class="k">values</span> ' + recs.length + '</span>' +
-    mats.map(function(m){ return '<span class="chip"><span class="k">material</span> ' + esc(m) + '</span>'; }).join('');
+    mats.map(function(m){ return '<a class="chip" href="#material=' + encodeURIComponent(m) +
+      '" title="All experiments touching this material"><span class="k">material</span> ' + esc(m) + '</a>'; }).join('');
   document.getElementById('main').innerHTML =
     '<p class="crumb"><a href="#">&larr; All experiments</a></p>' +
     '<p class="eyebrow">Experiment</p>' +
@@ -276,7 +294,7 @@ function renderDetail(ref){
 
 function render(){
   var ref = refFromHash();
-  if (ref) renderDetail(ref); else renderIndex();
+  if (ref) renderDetail(ref); else renderIndex(materialFromHash());
   window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', render);

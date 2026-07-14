@@ -161,6 +161,7 @@
   </nav>
   <span class="controls">
     <span class="hint"><span><kbd>click</kbd> trace lineage</span><span><kbd>shift</kbd>+click path A&rarr;B</span></span>
+    <button class="om-btn om-btn-sm" id="copylink" type="button" aria-label="Copy a link to this trace">Copy link</button>
     <button class="om-btn om-btn-sm" onclick="resetAll()" aria-label="Reset the trace">Reset</button>
   </span>
 </div>
@@ -242,6 +243,7 @@ function build(graph){
   }
   syncLabels();
   fitAll();
+  applyHash();
 }
 function fitAll(){ VB={x:0,y:0,w:GW,h:GH}; setVB(); }
 function fitTo(ids){ let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9; ids.forEach(id=>{const q=pos[id]; if(!q)return; x0=Math.min(x0,q.x-q.w/2); y0=Math.min(y0,q.y-q.h/2); x1=Math.max(x1,q.x+q.w/2); y1=Math.max(y1,q.y+q.h/2);}); if(x1<x0)return; const pad=120; VB={x:x0-pad,y:y0-pad,w:(x1-x0)+2*pad,h:(y1-y0)+2*pad}; setVB(); }
@@ -261,6 +263,7 @@ function cssesc(s){ return (window.CSS&&CSS.escape)?CSS.escape(s):s.replace(/["\
 
 function trace(id){
   document.getElementById('resthint').style.opacity=0;
+  syncHash('#node='+encodeURIComponent(id));
   pathMode=null; document.getElementById('pathbar').style.display='none';
   clearClasses();
   const anc=reach(id,parents), desc=reach(id,children);
@@ -298,14 +301,35 @@ function derivationPanel(id, anc, desc){
   const p=document.getElementById('panel'); p.innerHTML=h; p.style.display='block';
 }
 
+// ---- deep links: #node=<id> traces a quantity; #from=&to= lights a path ----
+function hashParam(k){ const m=location.hash.match(new RegExp('[#?&]'+k+'=([^&]*)')); return m?decodeURIComponent(m[1]):null; }
+function syncHash(h){
+  if(location.hash===h||(!h&&!location.hash)) return;
+  history.replaceState(null,'',h||location.pathname+location.search);
+}
+function applyHash(){
+  const a=hashParam('from'), b=hashParam('to');
+  if(a&&b&&nodeById[a]&&nodeById[b]){ finishPath(a,b); fitTo([a,b]); return; }
+  const id=hashParam('node');
+  if(id&&nodeById[id]){ trace(id); fitTo([id].concat(parents[id]||[]).concat(children[id]||[])); }
+}
+window.addEventListener('hashchange', applyHash);
+document.getElementById('copylink').addEventListener('click', function(){
+  const btn=this, url=location.href;
+  const done=function(){ btn.textContent='Copied'; setTimeout(function(){ btn.textContent='Copy link'; },1200); };
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(done,function(){ window.prompt('Copy this link:',url); }); }
+  else{ window.prompt('Copy this link:',url); }
+});
+
 // ---- pick-two path mode ----
 let pathMode=null; // {a}
 function startPath(a){ pathMode={a}; const pb=document.getElementById('pathbar'); pb.style.display='flex'; pb.innerHTML='<span>path from</span><span class="ep">'+symHtml[a]+'</span><span style="color:#5b6b86">→ shift-click a target…</span><span class="clear" onclick="resetAll()">cancel</span>'; }
 function finishPath(a,b){
+  syncHash('#from='+encodeURIComponent(a)+'&to='+encodeURIComponent(b));
   const path=pathBetween(a,b);
   document.getElementById('resthint').style.opacity=0;
   clearClasses();
-  if(!path||!path.length){ const pb=document.getElementById('pathbar'); pb.innerHTML='<span>no directed path between</span><span class="ep">'+symHtml[a]+'</span><span class="ep">'+symHtml[b]+'</span><span class="clear" onclick="resetAll()">clear</span>'; pathMode=null; return; }
+  if(!path||!path.length){ const pb=document.getElementById('pathbar'); pb.style.display='flex'; pb.innerHTML='<span>no directed path between</span><span class="ep">'+symHtml[a]+'</span><span class="ep">'+symHtml[b]+'</span><span class="clear" onclick="resetAll()">clear</span>'; pathMode=null; return; }
   const keep=new Set(path); dimAllExcept(keep);
   path.forEach((n,i)=>{ const el=vp.querySelector('.node[data-id="'+cssesc(n)+'"]'); if(el) el.classList.add(i===0?'up':(i===path.length-1?'sel':'down')); });
   for(let i=0;i<path.length-1;i++){ if(opByEdge[path[i]+'>>'+path[i+1]]!==undefined) paintEdge(path[i],path[i+1],'down'); else paintEdge(path[i+1],path[i],'up'); }
@@ -314,11 +338,11 @@ function finishPath(a,b){
   h+='<div class="summary"><b>'+(path.length-1)+'</b> steps from '+tex(nodeById[a].symbol)+' to '+tex(nodeById[b].symbol)+'.</div>';
   for(let i=0;i<path.length-1;i++){ const fwd=opByEdge[path[i]+'>>'+path[i+1]]!==undefined; h+= fwd? stepHtml(path[i],path[i+1],i+1,'down') : stepHtml(path[i+1],path[i],i+1,'up'); }
   const p=document.getElementById('panel'); p.innerHTML=h; p.style.display='block';
-  const pb=document.getElementById('pathbar'); pb.innerHTML='<span class="ep">'+symHtml[a]+'</span><span style="color:#5b6b86">→</span><span class="ep">'+symHtml[b]+'</span><span class="clear" onclick="resetAll()">clear</span>';
+  const pb=document.getElementById('pathbar'); pb.style.display='flex'; pb.innerHTML='<span class="ep">'+symHtml[a]+'</span><span style="color:#5b6b86">→</span><span class="ep">'+symHtml[b]+'</span><span class="clear" onclick="resetAll()">clear</span>';
   fitTo(path); pathMode=null;
 }
 
-function resetAll(){ clearClasses(); document.getElementById('panel').style.display='none'; document.getElementById('pathbar').style.display='none'; document.getElementById('resthint').style.opacity=1; pathMode=null; }
+function resetAll(){ syncHash(null); clearClasses(); document.getElementById('panel').style.display='none'; document.getElementById('pathbar').style.display='none'; document.getElementById('resthint').style.opacity=1; pathMode=null; }
 
 // ---- pan / zoom / click ----
 let dragging=false, moved=false, sx=0, sy=0, vbs=null;
