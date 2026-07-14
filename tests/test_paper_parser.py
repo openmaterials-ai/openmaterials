@@ -337,6 +337,77 @@ def test_validate_claim_kills_nonfinite_value():
 
 
 # --------------------------------------------------------------------------
+# Deterministic semantic gates: a delta posing as a value, and a descriptive
+# spectral marker. These are the code-level kills for the two families the LLM
+# reviewer failed to catch on the amorphous-alloys (Lundgren) live parse: it
+# confirmed "a 0.6 W/mK drop of kappa" (a delta) and "below 4 THz" (a prose
+# band edge) as absolute values. A soft prompt rule is not reliable; these
+# gates make the kill off the LLM, and are deliberately conservative.
+# --------------------------------------------------------------------------
+def _validate(node_id, printed_unit, value, quote):
+    """validate_claim with the quote as its own corpus (so the hallucination
+    gate passes and only the semantic gates are exercised)."""
+    return validate.validate_claim(
+        node_id=node_id, printed_unit=printed_unit, value=value,
+        cited_text=quote, material="a-Si", corpus_text=quote,
+        name_to_uid=validate.build_name_to_uid(), catalog_by_id=_catalog_by_id(),
+        instance_index=[])
+
+
+def test_validate_claim_kills_delta_drop_of_kappa():
+    # Lundgren idx 40: "0.6 W/mK drop of kappa" is a delta, not a kappa value.
+    v = _validate("ThermalConductivity[transport_model=qhgk]", "W/(m K)", 0.6,
+                  "the substitution of 5% Ge results in a 0.6 W m-1 K-1 drop of kappa")
+    assert not v.survives
+    assert "delta_posing_as_value" in v.kills
+
+
+def test_validate_claim_kills_delta_reduction_of_kappa():
+    # Lundgren idx 41: "0.55 W/mK reduction of kappa" is a delta (the PDF glues
+    # the unit to "reduction", which the gate tolerates).
+    v = _validate("ThermalConductivity[transport_model=qhgk]", "W/(m K)", 0.55,
+                  "A further 0.55 W m-1 K-1reduction of kappa is obtained")
+    assert not v.survives
+    assert "delta_posing_as_value" in v.kills
+
+
+def test_validate_claim_kills_descriptive_spectral_marker_below_4thz():
+    # Lundgren idx 36: "below 4 THz" is a prose band edge on the Frequency node.
+    v = _validate("Frequency", "THz", 4,
+                  "mostly build in the low-frequency part of the spectrum, below 4 THz")
+    assert not v.survives
+    assert "descriptive_spectral_marker" in v.kills
+
+
+def test_validate_claim_survives_absolute_kappa_value():
+    # An absolute first-principles kappa is a real value; no delta cue binds.
+    v = _validate("ThermalConductivity[bte_solver=rta]", "W/(m K)", 39.0,
+                  "our first-principles BTE calculations give kr = 39.0 Wm-1K-1")
+    assert v.survives
+    assert "delta_posing_as_value" not in v.kills
+
+
+def test_validate_claim_survives_real_spectral_peak():
+    # A genuine measured/computed peak or mode value must survive the spectral
+    # gate: the "peak"/"mode at" cue short-circuits the kill.
+    for quote, value in (("a Raman peak at 520 cm-1", 520),
+                         ("the LA mode at 12.3 THz", 12.3)):
+        v = _validate("Frequency", "THz", value, quote)
+        assert v.survives, (quote, v.kills)
+        assert "descriptive_spectral_marker" not in v.kills
+
+
+def test_validate_claim_survives_absolute_value_with_distant_change_word():
+    # A distant "increase" (a different clause, after a sentence break) must NOT
+    # kill a real absolute value: the change is not bound to 145.
+    v = _validate("ThermalConductivity[transport_model=qhgk]", "W/(m K)", 145,
+                  "the thermal conductivity is 145 W/mK; an increase in "
+                  "temperature was applied later")
+    assert v.survives
+    assert "delta_posing_as_value" not in v.kills
+
+
+# --------------------------------------------------------------------------
 # usage tracker + slug
 # --------------------------------------------------------------------------
 def test_usage_accumulates():
