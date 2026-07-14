@@ -51,6 +51,19 @@
   .lin-n.hot{color:var(--accent);font-weight:650;}
   .lin-op{font-family:var(--font-mono,monospace);color:var(--faint,#9aa0a8);font-size:.66rem;}
   .lin-code{margin:0;padding:10px 12px;background:#1a1c1f;color:#d6d9de;border-radius:9px;font-family:var(--font-mono,monospace);font-size:.7rem;line-height:1.5;overflow-x:auto;white-space:pre;}
+  .xp-card{border:1px solid var(--line);border-radius:9px;padding:12px 14px;background:#fff;margin-bottom:12px;}
+  .xp-title{font-size:.86rem;font-weight:650;color:var(--ink);margin-bottom:2px;}
+  .xp-id{font-family:var(--font-mono,monospace);font-size:.66rem;color:var(--muted);word-break:break-all;margin-bottom:8px;}
+  .xp-kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:.76rem;margin:6px 0;}
+  .xp-k{color:var(--faint,#9aa0a8);text-transform:uppercase;letter-spacing:.05em;font-size:.62rem;font-weight:700;padding-top:2px;white-space:nowrap;}
+  .xp-v{color:var(--ink-2,#3d4149);font-family:var(--font-mono,monospace);word-break:break-word;}
+  .xp-v.node{color:var(--accent);}
+  .xp-art{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;margin-top:5px;font-size:.74rem;}
+  .xp-art .role{font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;color:var(--faint,#9aa0a8);flex:0 0 auto;}
+  .xp-art .path{font-family:var(--font-mono,monospace);color:var(--ink-2,#3d4149);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .xp-art a{color:var(--sim);flex:0 0 auto;text-decoration:none;font-weight:600;}
+  .xp-art .nolink{color:var(--faint,#9aa0a8);flex:0 0 auto;}
+  .xp-flag{font-size:.72rem;color:var(--meas);margin:6px 0;}
   .pg-sel{display:flex;flex-direction:column;gap:8px;margin:8px 0;}
   .pg-canvas{flex:1 1 auto;position:relative;min-width:0;background:radial-gradient(circle at 50% 34%,#ffffff,#f4f1ea 78%);}
   #pgsvg{width:100%;height:100%;display:block;touch-action:none;}
@@ -100,6 +113,7 @@
       <button class="pg-tab" data-tab="trace" type="button">Trace</button>
       <button class="pg-tab" data-tab="map" type="button">Map</button>
       <button class="pg-tab" data-tab="parse" type="button">Parse</button>
+      <button class="pg-tab" data-tab="experiment" type="button">Experiment</button>
     </div>
 
     <div class="pg-panel on" data-panel="query">
@@ -149,6 +163,25 @@
       <textarea class="pg-input" id="proposalInput" rows="4" placeholder='{"claims": [{"node_id": "...", ...}]}' style="resize:vertical;font-family:var(--font-mono,monospace);font-size:.78rem"></textarea>
       <button class="om-btn om-btn-sm" id="renderProposal" type="button" style="margin-top:8px">Draw lineage</button>
       <div id="parseResult" style="margin-top:14px"></div>
+    </div>
+
+    <div class="pg-panel" data-panel="experiment">
+      <h3>An experiment as a link</h3>
+      <p>An experiment record is light: the recipe it was asked (a map node when
+        known, else a template with its hyperparameters and setup values) plus
+        optional pointers to heavy artifacts hosted on
+        <a href="https://materialscodegraph.com/">MaterialsCodeGraph</a>. Paste a
+        record to render it, then Copy link: the whole record rides in the
+        <code>#x=</code> fragment, no server, and reopens here. When the recipe
+        names a map node it lights up on the canvas.</p>
+      <button class="om-btn om-btn-sm" id="loadXExample" type="button">Load an example</button>
+      <p style="margin:12px 0 6px;font-size:.78rem;color:var(--muted)">the experiment, as a record:</p>
+      <textarea class="pg-input" id="xInput" rows="9" placeholder='{"recipe": {"node": "ThermalConductivity[transport_model=hnemd]", "material": {"name": "Si"}, "hyperparameters": {"nep_cutoff": 8.0}}}' style="resize:vertical;font-family:var(--font-mono,monospace);font-size:.74rem"></textarea>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button class="om-btn om-btn-sm" id="renderX" type="button">Render experiment</button>
+        <button class="om-btn om-btn-sm" id="copyXLink" type="button" title="Copy a link that carries this record in its #x= fragment: it reopens this experiment here.">Copy link</button>
+      </div>
+      <div id="xResult" style="margin-top:14px"></div>
     </div>
   </div>
 
@@ -433,6 +466,114 @@ document.getElementById('renderProposal').addEventListener('click', function(){
   catch (e) { document.getElementById('parseResult').innerHTML = '<div class="pg-empty">Not valid JSON: ' + esc(e.message) + '</div>'; }
 });
 
+/* ---- experiment: a light record rendered from #x= or a paste --------------
+   A record is light and recipe-identified (omai/simulations.py): identity is the
+   recipe, artifacts are optional MCG pointers, and the whole thing rides in the
+   #x= fragment via the same gzip machinery as the map view. This renders the
+   recipe (node/material/template, hyperparameters, values), any artifact
+   pointers as links, and lights the recipe's map node when it names one. */
+function fmtScalar(v){
+  if (v == null) return '';
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+function kvRows(obj){
+  if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return '';
+  var keys = Object.keys(obj); if (!keys.length) return '';
+  return keys.map(function(k){
+    return '<div class="xp-k">' + esc(k) + '</div><div class="xp-v">' + esc(fmtScalar(obj[k])) + '</div>';
+  }).join('');
+}
+function renderExperiment(record){
+  var box = document.getElementById('xResult');
+  nodePanel.style.display = 'none';
+  var recipe = (record && record.recipe) || null;
+  if (!recipe || typeof recipe !== 'object') {
+    box.innerHTML = '<div class="pg-empty">Not an experiment record: no <code>recipe</code>.</div>';
+    renderSubmap([], {}); return;
+  }
+  var node = recipe.node, material = recipe.material, template = recipe.template;
+  var known = node && nodeById[node];
+  var h = '<div class="xp-card">';
+  h += '<div class="xp-title">' + esc(record.name || (node || template || 'experiment')) + '</div>';
+  if (record.id) h += '<div class="xp-id">id ' + esc(String(record.id)) + '</div>';
+  // the recipe: node / material / template, then the scalar dials
+  h += '<div class="xp-kv">';
+  if (node) h += '<div class="xp-k">node</div><div class="xp-v node">' + esc(node) + (known ? '' : ' <span style="color:var(--meas)">(not on this map)</span>') + '</div>';
+  else h += '<div class="xp-k">node</div><div class="xp-v" style="color:var(--meas)">unresolved (template only)</div>';
+  if (template) h += '<div class="xp-k">template</div><div class="xp-v">' + esc(fmtScalar(template)) + '</div>';
+  if (material != null) h += '<div class="xp-k">material</div><div class="xp-v">' + esc(fmtScalar(material && material.name != null ? material.name : material)) + '</div>';
+  h += '</div>';
+  [['conditions', recipe.conditions], ['params', recipe.params],
+   ['hyperparameters', recipe.hyperparameters], ['values', recipe.values]].forEach(function(pair){
+    var rows = kvRows(pair[1]);
+    if (rows) h += '<div class="lin-lab">' + pair[0] + '</div><div class="xp-kv">' + rows + '</div>';
+  });
+  h += '</div>';
+  // execution (optional, outside identity)
+  var ex = record.execution;
+  if (ex && typeof ex === 'object') {
+    var exrows = kvRows(ex);
+    if (exrows) h += '<div class="lin-lab">execution</div><div class="xp-card"><div class="xp-kv">' + exrows + '</div></div>';
+  }
+  // artifact pointers (optional): each a link to MCG when a url is present
+  var arts = (record.artifacts || []).filter(function(a){ return a && a.path; });
+  if (arts.length) {
+    h += '<div class="lin-lab">artifacts <span style="text-transform:none;letter-spacing:0;color:var(--muted)">(pointers, hosted on MaterialsCodeGraph)</span></div>';
+    h += arts.map(function(a){
+      var link = a.url ? '<a href="' + esc(a.url) + '" target="_blank" rel="noopener">open &rarr;</a>'
+                       : '<span class="nolink">no url</span>';
+      return '<div class="xp-art"><span class="role">' + esc(a.role || 'artifact') + '</span><span class="path" title="' + esc(a.path) + '">' + esc(a.path) + '</span>' + link + '</div>';
+    }).join('');
+  }
+  // node-unresolved honesty note
+  if (!node) h += '<div class="xp-flag">This record names no map node: it carries the template and values as-is (whatever we have). Valid, just node-unresolved.</div>';
+  else if (!known) h += '<div class="xp-flag">The recipe names <code>' + esc(node) + '</code>, which is not on the current map version.</div>';
+  box.innerHTML = h;
+  // light the recipe's node on the canvas when it is known
+  renderSubmap(known ? [node] : [], {});
+  if (known) openNode(node);
+}
+document.getElementById('renderX').addEventListener('click', function(){
+  var raw = document.getElementById('xInput').value.trim(); if (!raw) return;
+  try { renderExperiment(JSON.parse(raw)); }
+  catch (e) { document.getElementById('xResult').innerHTML = '<div class="pg-empty">Not valid JSON: ' + esc(e.message) + '</div>'; }
+});
+document.getElementById('loadXExample').addEventListener('click', function(){
+  // a real live node so the example lights on the map
+  var ex = {
+    name: 'Si thermal conductivity (HNEMD)',
+    recipe: {
+      node: 'ThermalConductivity[transport_model=hnemd]',
+      material: { name: 'Si' },
+      template: 'gpumd',
+      conditions: { T: 300.0, potential: 'Si-NEP' },
+      hyperparameters: { nep_cutoff: 8.0, neighbor: 800 },
+      values: { supercell: [4, 4, 4] }
+    },
+    execution: { code: 'gpumd', code_version: '3.9.5', seeds: [12345] },
+    artifacts: [
+      { path: 'results/thermal_summary.json', role: 'result', url: 'https://materialscodegraph.com/runs/demo/thermal_summary.json' },
+      { path: 'traj/dump.xyz', role: 'trajectory' }
+    ]
+  };
+  document.getElementById('xInput').value = JSON.stringify(ex, null, 1);
+  renderExperiment(ex);
+});
+document.getElementById('copyXLink').addEventListener('click', async function(){
+  var btn = this, raw = document.getElementById('xInput').value.trim();
+  if (!raw) { btn.textContent = 'Nothing to copy'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1200); return; }
+  var record;
+  try { record = JSON.parse(raw); }
+  catch (e) { btn.textContent = 'Invalid JSON'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1400); return; }
+  var hash = '#/play?tab=experiment&x=' + await gzipToB64url(record);
+  var url = location.origin + location.pathname + hash;
+  location.hash = hash;
+  if (url.length > 8000) { btn.textContent = 'Too large to link'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1600); return; }
+  var done = function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1200); };
+  if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, done); else done();
+});
+
 /* ---- tabs, share, hash --------------------------------------------------- */
 document.querySelectorAll('.pg-tab').forEach(function(t){
   t.addEventListener('click', function(){
@@ -591,10 +732,16 @@ document.getElementById('shareBtn').addEventListener('click', async function(){
   var btn = this;
   if (tab === 'query') hash += '&q=' + encodeURIComponent(document.getElementById('qInput').value);
   if (tab === 'trace') hash += '&from=' + encodeURIComponent(document.getElementById('traceFrom').value) + '&to=' + encodeURIComponent(document.getElementById('traceTo').value);
+  // the Experiment tab shares the pasted record as an #x= fragment (its own
+  // Copy link does the same); everything else shares the lit sub-map as #m=.
+  if (tab === 'experiment') {
+    var xr = document.getElementById('xInput').value.trim();
+    if (xr) { try { hash += '&x=' + await gzipToB64url(JSON.parse(xr)); } catch (e) {} }
+  }
   // query, trace, parse, and map all share the LIT sub-map as an edges+version
   // payload, so any view is a linkable map. (Query/trace also keep their inputs
   // above so the input box repopulates.)
-  if (svg.querySelector('.pg-node:not(.dim)')) hash += '&m=' + await gzipToB64url(currentMapViewJSON());
+  else if (svg.querySelector('.pg-node:not(.dim)')) hash += '&m=' + await gzipToB64url(currentMapViewJSON());
   var url = location.origin + location.pathname + hash;
   location.hash = hash;
   if (url.length > 8000) { btn.textContent = 'Too large to link'; setTimeout(function(){ btn.textContent = 'Share'; }, 1600); return; }
@@ -616,6 +763,13 @@ async function applyHash(){
       if (m[1] === 'map') { document.getElementById('mapInput').value = JSON.stringify(view, null, 1); renderMapView(view); }
       else { var mv = mapViewFromEdges((view.e || []).filter(function(tr){ return Array.isArray(tr) && nodeById[tr[0]] && nodeById[tr[2]]; })); renderSubmap(mv.nodes, mv.eops); }
     } catch (e) { hint.style.display = 'block'; hint.textContent = 'Could not open the shared map: ' + e.message; } }
+  // the #x= experiment record: decode the light record, fill the box, render it
+  // (and light its map node). Same gzip fragment scheme as #m=.
+  var xm = location.hash.match(/[#?&]x=([^&]*)/);
+  if (xm) { try { var record = await b64urlToObj(xm[1]);
+      document.getElementById('xInput').value = JSON.stringify(record, null, 1);
+      renderExperiment(record);
+    } catch (e) { hint.style.display = 'block'; hint.textContent = 'Could not open the shared experiment: ' + e.message; } }
 }
 window.addEventListener('resize', function(){ if (svg.querySelector('.pg-node')) { var ids = [], pos = {}, set = {};
   // cheap re-sync: recompute label transform against current viewBox (positions unchanged)

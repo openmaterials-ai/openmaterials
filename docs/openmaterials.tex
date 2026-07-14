@@ -667,33 +667,38 @@ the radiation wavelength a required condition of any served $2\theta$ axis) is
 recorded as a representation note, and a spectrum against it becomes admissible
 only when an \texttt{XRDPattern} node is minted.
 
-\paragraph{Simulation record (a whole run as evidence).} The value,
-configuration, and spectrum records each capture one number, one cell, or one
-curve; a \emph{simulation record} captures the whole run that produced them, as
-the shareable, re-runnable, fetchable-by-hash unit. It composes from parts that
-already exist: a \texttt{recipe} (the asked computation, in map identity: node,
-material, conditions, params, the format MaterialsCodeGraph already ships), an
-\texttt{execution} block (the code and its version, the per-run container
-digest, the runner, wall time, and seeds), an artifact \texttt{manifest}, and
-the run's \texttt{results} (the instances it produced, each gaining an optional
-\texttt{simulation} backref to the record). The manifest is a list of entries
-\texttt{\{path, bytes, sha256, role\}}: a claim about the bytes, never the bytes
-themselves, which stay in the owner's object storage (an R2 bucket, a Zenodo
-DOI) under the owner's own terms. The record is content-addressed by the sha256
-of exactly that claim (recipe, execution, and the manifest \emph{without} URLs),
-with the same canonical-JSON and float-rounding discipline the configuration
-uid uses. Location is deliberately out of the hash: the URLs live in a
-\texttt{mirrors} resolver layer outside the hashed claim, so moving bytes,
-renaming a bucket, or adding a mirror never re-mints the record and never
-orphans a value that cites it. A verification tool then checks reachability and
-checksum match as a dated report, never as a gate: a record whose bytes moved is
-stale, not wrong. The cheap validation gates that do apply are the existing
-ones: the recipe node resolves against the live map by id and content uid, a
-named configuration exists, every manifest entry is well-formed, and every
-bundled result instance passes the instance checks and backrefs the record. This
-is the same bytes-out-of-git rule the governance already commits to (the map
-holds identity and provenance, the owner holds the artifacts), made into a
-first-class record kind.
+\paragraph{Simulation record (a light, recipe-identified, URL-first run).} The
+value, configuration, and spectrum records each capture one number, one cell, or
+one curve; a \emph{simulation record} captures a whole experiment, and it is
+deliberately \emph{light}: it stores whatever we have, with no fixed
+reproducibility guarantee and no required heavy input files. Its core is the
+\texttt{recipe}: the map node when one is known (with a content-uid pin), else a
+\texttt{template} with its \texttt{hyperparameters} and setup \texttt{values},
+plus \texttt{material}, \texttt{conditions}, and \texttt{params}. Identity is the
+recipe alone, content-addressed by the sha256 of its canonical JSON with the same
+float-rounding discipline the configuration uid uses. Everything else rides
+\emph{outside} the hash: an optional \texttt{execution} block (code, version,
+seeds, wall time, whatever the run recorded); optional \texttt{artifacts}, which
+are pointer-only, each \texttt{\{path, role, url?, sha256?\}} where only path and
+role are required and the url points at the heavy bytes on MaterialsCodeGraph
+(MCG), the cheap host, never embedding them; a \texttt{mirrors} resolver; and the
+run's \texttt{results}. Attaching a trajectory pointer, moving its bytes, or
+re-running on another node therefore never re-mints the record. Because the
+record is light, it is URL-encodable: gzip and base64url pack it into a
+\texttt{\#x=} link fragment that opens in the openmaterials playground and, when
+the recipe names a map node, lights that node on the map, so an experiment is a
+link, no server, that carries the recipe and its receipts together. The get is
+that link; the heavy bytes are a separate, optional enrichment. A record with no
+artifacts and no map node is valid and normal: validation resolves a node by id
+and uid when the recipe names one (a stale pin is a mismatch, never a silent
+pass), and simply flags node-unresolved otherwise rather than rejecting it (the
+honesty rule). A full, checksummed bundle from MCG can additionally enrich a
+record with verifiable byte pointers, which a verification tool then checks
+against their checksums as a dated report, never a gate; but that heavy path is
+optional and never required for a record to exist or to have identity. This is
+the same bytes-out-of-git rule the governance commits to (the open format holds
+the recipe and its identity, the platform holds the artifacts, referenced by
+pointer), made into a first-class record kind.
 
 \paragraph{Parser contract.} Input: one artifact (a codebase, a paper, a run). Output:
 proposed structure and value records. Every proposal must pass validation below

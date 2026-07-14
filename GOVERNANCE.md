@@ -85,18 +85,19 @@ commitments of the initiative, not courtesies.
   underlying trajectories, wavefunctions, force sets, lab records, or
   datasets. Those remain wholly the owner's, under the owner's own
   terms, reachable through the provenance reference and nowhere else.
-* **Identity in the commons, bulk in object storage.** A simulation
-  record stores the identity and provenance of a whole run: its recipe,
-  the code and container that ran it, and a manifest of its artifacts
-  (path, byte count, and sha256 checksum, never the bytes). The bulk
-  outputs live in object storage under the owner's own terms (an R2
-  bucket, a Zenodo DOI, an institutional archive), reachable through a
-  resolver layer that carries the URLs. That resolver sits outside the
-  content hash, so the record's identity is the checksummed claim about
-  the bytes, not their location: moving bytes, renaming a bucket, or
-  adding a mirror never changes the record's identity or orphans a value
-  that cites it. This is the operational form of the rule above: the map
-  keeps checksums and provenance, the owner keeps the bytes.
+* **Identity in the commons, bulk on the platform.** A simulation record
+  is light and recipe-identified: its identity is the recipe it was asked
+  (a map node when known, else a template with its hyperparameters and
+  setup values), and heavy artifacts are optional, pointer-only
+  (`{path, role, url?, sha256?}`), never embedded and never hashed into
+  identity. The format (the data structure) is the open-source,
+  host-agnostic part; the heavy bytes live on the platform
+  (MaterialsCodeGraph) as the cheap host, or any object store under the
+  owner's own terms, referenced by pointer alone. Because location is
+  outside the identity, moving bytes, renaming a bucket, or adding a
+  mirror never changes the record's identity or orphans a value that cites
+  it. This is the operational form of the rule above: the open format
+  keeps the recipe and its identity, the platform keeps the bytes.
 * **Attribution flows both ways.** Downstream, reuse of map data must
   credit the map version and, through its provenance, the original
   sources: that is what the BY in CC BY 4.0 means. Upstream, every
