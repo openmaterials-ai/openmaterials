@@ -192,6 +192,15 @@ NUMBER_DENSITY = Dimension("number_density", (0, -3, 0, 0, 0, 0, 0))
 # unit w_per_m_k2. A genuinely new derived dimension, the thermoelectric-slice
 # first fruit of the whole-map physics review.
 POWER_FACTOR = Dimension("power_factor", (1, 1, -3, -2, 0, 0, 0))
+# Interface (Kapitza) conductance: power per unit area per kelvin, W/(m^2 K) =
+# M T^-3 Th^-1 (1,0,-3,-1,0,0,0). The InterfaceConductance node (the Kapitza
+# thermal boundary conductance G at a filler/matrix interface) carries it. It is
+# THERMAL_CONDUCTANCE (W/K, 1,2,-3,-1,0,0,0) divided by an area (L^2), i.e. a
+# conductance PER AREA, and equally THERMAL_CONDUCTIVITY (W/(m K)) divided by a
+# length: the Kapitza radius km/G is exactly a length (the dimensional gate proves
+# the composite EMT edges on this). Distinct exponent vector from both, kept apart
+# by its own tuple. Canonical unit w_per_m2_k; the common MW/(m^2 K) is 1e6.
+INTERFACE_CONDUCTANCE = Dimension("interface_conductance", (1, 0, -3, -1, 0, 0, 0))
 
 
 DIMENSIONS: dict[str, Dimension] = {
@@ -231,5 +240,6 @@ DIMENSIONS: dict[str, Dimension] = {
         VOLUME_PER_MOLE,
         NUMBER_DENSITY,
         POWER_FACTOR,
+        INTERFACE_CONDUCTANCE,
     ]
 }

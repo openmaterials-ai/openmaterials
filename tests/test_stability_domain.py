@@ -44,7 +44,8 @@ def test_stability_domain_in_domains_between_mechanics_and_materials():
     assert names == [
         "thermal_transport", "dft_ground_state", "mechanics", "stability",
         "thermochemistry", "quasiharmonic", "molecular",
-        "electronic_transport", "materials", "thermodynamic_identities"]
+        "electronic_transport", "materials", "thermodynamic_identities",
+        "composites"]
 
 
 def test_stability_domain_declares_stability_tier():

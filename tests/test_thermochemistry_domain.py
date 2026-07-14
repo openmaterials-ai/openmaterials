@@ -44,7 +44,8 @@ def test_thermochemistry_domain_between_stability_and_materials():
     assert names == [
         "thermal_transport", "dft_ground_state", "mechanics", "stability",
         "thermochemistry", "quasiharmonic", "molecular",
-        "electronic_transport", "materials", "thermodynamic_identities"]
+        "electronic_transport", "materials", "thermodynamic_identities",
+        "composites"]
 
 
 def test_thermochemistry_declares_the_single_tier():
@@ -362,10 +363,11 @@ def test_map_has_one_hundred_nodes_and_fifteen_tiers():
     # existing Molecular dynamics tier, no new tier. +2 for the MESCAL
     # coherent-transport nodes PhononTransmission and
     # ThermalConductance[transport_model=landauer], both in the Transport tier
-    # (2026-07-13, no new tier).
+    # (2026-07-13, no new tier). +7 for the composites domain's nodes in the new
+    # Composite tier (2026-07-13), the 16th tier.
     g = build_graph_dict(DOMAINS)
-    assert len(g["nodes"]) == 107
-    assert len(g["tiers"]) == 15
+    assert len(g["nodes"]) == 114
+    assert len(g["tiers"]) == 16
 
 
 # --------------------------------------------------------------------------
@@ -426,8 +428,11 @@ def test_pycalphad_is_a_rail_and_the_config_thermo_scan_added_three_rails():
     # audit's nuclear-quantum-effects layer (i-PI slice, 2026-07-11) added the
     # i-pi rail (the sixth Trajectory producer), reaching 28; the PLUMED slice
     # added the plumed rail, reaching 29; the MESCAL onboarding (2026-07-13)
-    # added the mescal coherent-transport rail, reaching 30.
-    assert len(codes) == 30
+    # added the mescal coherent-transport rail, reaching 30; the composites
+    # domain (2026-07-13) added the materialscodegraph effective-medium rail,
+    # reaching 31.
+    assert len(codes) == 31
+    assert "materialscodegraph" in codes
     assert "mescal" in codes
     assert "pycalphad" in codes
     assert "mat-equation-of-state" in codes

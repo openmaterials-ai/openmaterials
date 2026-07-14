@@ -261,11 +261,12 @@ state (the first contribution to land through the protocol gates), the
 mechanics domain (the elastic tensor, its Voigt moduli, and the pressure), the
 stability, thermochemistry, quasi-harmonic, molecular, and electronic-transport
 domains (grown from the AtomisticSkills scans),
-a first materials-diffusion subgraph, and a thermodynamic-identities domain that
-closes the map's formulas together; the unified map of
-107 quantities and 109 operators is content-addressed in the log-first store
+a first materials-diffusion subgraph, a thermodynamic-identities domain that
+closes the map's formulas together, and a composites domain (composite effective
+thermal conductivity with interfacial resistance); the unified map of
+114 quantities and 114 operators is content-addressed in the log-first store
 (Part~\ref{part:kernel}), grown past its frozen genesis version through the
-contribution gates, and the whole is held together by a suite of 1408
+contribution gates, and the whole is held together by a suite of 1489
 passing tests.
 
 What is next is mostly upward and outward. The upstream from the
@@ -357,8 +358,10 @@ already exists.
 
 The split is also a separation of concerns in the app. The map view renders the
 structure alone (nodes, edges, formulas, and the code representations that map
-onto them); instances and spectra are a distinct evidence layer that consumers
-load against node uids and attach locally, never carried on the map page itself.
+onto them); the four data record kinds beside the ledger (instances,
+configurations, spectra, and simulations) are a distinct evidence layer that
+consumers load against node uids and attach locally, never carried on the map
+page itself.
 The test suite and the contribution gates exercise that layer directly, so its
 correctness is checked against the same uids the view is drawn from.
 
@@ -392,8 +395,8 @@ A content hash                  & \textbf{uid} & sha256; a 12-hex prefix is disp
 
 \section{The map}
 
-The map is a curated reference graph. Today it holds 107 nodes (104 observable
-and hidden quantities plus 3 promoted parameters) and 259 edges. Nodes are
+The map is a curated reference graph. Today it holds 114 nodes (111 observable
+and hidden quantities plus 3 promoted parameters) and 274 edges. Nodes are
 typed physical quantities. An edge produces one node from a list of input
 nodes, carrying the symbolic formula that relates them (parameter inputs are
 marked as inputs rather than derived through a formula).
@@ -664,6 +667,34 @@ the radiation wavelength a required condition of any served $2\theta$ axis) is
 recorded as a representation note, and a spectrum against it becomes admissible
 only when an \texttt{XRDPattern} node is minted.
 
+\paragraph{Simulation record (a whole run as evidence).} The value,
+configuration, and spectrum records each capture one number, one cell, or one
+curve; a \emph{simulation record} captures the whole run that produced them, as
+the shareable, re-runnable, fetchable-by-hash unit. It composes from parts that
+already exist: a \texttt{recipe} (the asked computation, in map identity: node,
+material, conditions, params, the format MaterialsCodeGraph already ships), an
+\texttt{execution} block (the code and its version, the per-run container
+digest, the runner, wall time, and seeds), an artifact \texttt{manifest}, and
+the run's \texttt{results} (the instances it produced, each gaining an optional
+\texttt{simulation} backref to the record). The manifest is a list of entries
+\texttt{\{path, bytes, sha256, role\}}: a claim about the bytes, never the bytes
+themselves, which stay in the owner's object storage (an R2 bucket, a Zenodo
+DOI) under the owner's own terms. The record is content-addressed by the sha256
+of exactly that claim (recipe, execution, and the manifest \emph{without} URLs),
+with the same canonical-JSON and float-rounding discipline the configuration
+uid uses. Location is deliberately out of the hash: the URLs live in a
+\texttt{mirrors} resolver layer outside the hashed claim, so moving bytes,
+renaming a bucket, or adding a mirror never re-mints the record and never
+orphans a value that cites it. A verification tool then checks reachability and
+checksum match as a dated report, never as a gate: a record whose bytes moved is
+stale, not wrong. The cheap validation gates that do apply are the existing
+ones: the recipe node resolves against the live map by id and content uid, a
+named configuration exists, every manifest entry is well-formed, and every
+bundled result instance passes the instance checks and backrefs the record. This
+is the same bytes-out-of-git rule the governance already commits to (the map
+holds identity and provenance, the owner holds the artifacts), made into a
+first-class record kind.
+
 \paragraph{Parser contract.} Input: one artifact (a codebase, a paper, a run). Output:
 proposed structure and value records. Every proposal must pass validation below
 before a human confirms it into the index.
@@ -717,12 +748,12 @@ the reviewers decide what enters the commons.
 
 \section{Status and build order}
 
-Today's map is one hundred twenty-three change records past v1, its frozen genesis version:
-99 typed quantities plus 3 promoted
-parameters, the symbolic formula on every relational edge, 28 representations
+Today's map is one hundred thirty-nine change records past v1, its frozen genesis version:
+111 typed quantities plus 3 promoted
+parameters, the symbolic formula on every relational edge, 31 representations
 mapped (kaldo 34 variables, phono3py 31, phonopy 22, pymatgen 22, ShengBTE 20,
-mp-api 13, QE 13, LAMMPS 12, VASP 9, GPUMD 8, pycalphad 7, i-PI 4, and a further
-sixteen codes and mat-* / chem-* skills at five or fewer each), and real instances
+mp-api 13, QE 13, LAMMPS 12, VASP 10, GPUMD 8, pycalphad 7, i-PI 4, and a further
+nineteen codes and mat-* / chem-* skills at five or fewer each), and real instances
 computed through the framework: cross-code silicon thermal conductivity
 (Tersoff potential, 8x8x8 mesh, 300 K: kaldo 19.46 RTA and 26.91 direct,
 phono3py 16.74 RTA and 24.30 direct, in W/m K) plus an LGPS activation energy
@@ -2689,6 +2720,27 @@ pattern the identity design was meant to admit: a new derivation of an existing
 quantity is a parallel edge into the same node, not a re-minted node, so the
 routes stand side by side as cross-checks.
 
+\paragraph{The composites domain.} A composites domain (records 228-239) carries
+the effective thermal conductivity of a two-phase composite, a dispersed filler
+in a continuous matrix, with interfacial (Kapitza) resistance, via Nan-type
+effective-medium theory (Nan et al., J.\ Appl.\ Phys.\ \textbf{81}, 6692 (1997)).
+Its new physics is the interface: a thermal boundary conductance $G$ (W/(m$^2$\,K),
+the new \texttt{INTERFACE\_CONDUCTANCE} dimension) whose Kapitza radius
+$a_K = k_m / G$ is a length, the crossover below which a conductive filler
+\emph{lowers} the composite conductivity. The matrix and filler conductivities
+enter as role-labeled members of the one thermal-conductivity family
+(\texttt{[role=matrix]}, \texttt{[role=filler]}), and the effective conductivity
+is a family member produced by the effective-medium theory
+(\texttt{[effective\_medium=nan,orientation=random]} and its aligned sibling),
+which resolves onto the method-neutral \texttt{ThermalConductivity} observable a
+measurement of the composite reports. Four of its five edges are closed-form
+sympy the dimensional gate proves; the Hasselman-Johnson spherical-limit formula
+(J.\ Compos.\ Mater.\ \textbf{21}, 508 (1987)) is a second producer of the
+random effective conductivity that must agree with Nan at aspect ratio 1, a
+gate-level cross-check pinned to machine precision. The reference DGEBA epoxy +
+5\,vol\% graphene-nanoplatelet draft gives $\kappa_c = 1.2452\,\mathrm{W/(m\,K)}$
+from the materialscodegraph closed-form tool.
+
 \paragraph{Instance uid pinning.} Instances are additive JSON that attach a value
 to a node. Each instance pins to an exact element by node uid, so the genesis
 migration re-pins the harvested instances to element hashes mechanically. A value
@@ -2827,33 +2879,35 @@ trusted). What remains, in order:
 \label{sec:status-live}
 
 The map is at store head version
-\texttt{8aea09f90c24ae29137be4860452b9085d5b1e1a502493bffd8f956a9c382a8f}
-(2026-07-12, 223 records), one hundred twenty-three change records past the frozen genesis hash
+\texttt{9802d9e854c915eb47d867575730a556ab7f4a565e392bf5b29da58338f08434}
+(2026-07-13, 239 records), one hundred thirty-nine change records past the frozen genesis hash
 \texttt{e6e8044e92039696417b53b220b0f3f10559a286b0eaabbe7ea4167ff510f6cd}
 (2026-07-07, the untouched 100-record prefix). The live numbers:
 
 \begin{itemize}[leftmargin=2em, itemsep=0.25em]
-  \item \textbf{Structure.} 107 nodes (104 observable and hidden quantities plus 3
-        promoted parameters), 259 rendered links, 105 deduplicated operators,
-        rendered in fifteen physics tiers (Sources, Harmonic, Thermodynamics,
+  \item \textbf{Structure.} 114 nodes (111 observable and hidden quantities plus 3
+        promoted parameters), 274 rendered links, 109 deduplicated operators,
+        rendered in sixteen physics tiers (Sources, Harmonic, Thermodynamics,
         Scattering, Transport, Molecular dynamics, Ground state, Mechanics,
         Stability, Thermochemistry, Quasi-harmonic, Molecular, Electronic
-        transport, Diffusion, Thermoelectric). The newest tier (Thermoelectric)
-        and its power-factor and ZT nodes landed with the thermodynamic-identities
-        domain that closes the map's formulas together; the five before it
-        (Stability, Thermochemistry, Quasi-harmonic, Molecular, Electronic
-        transport) landed from the AtomisticSkills scans. The
+        transport, Diffusion, Thermoelectric, Composite). The newest tier
+        (Composite) and its interface-conductance and effective-medium nodes
+        landed with the composites domain (composite effective thermal
+        conductivity with interfacial resistance, cross-checked against the
+        Hasselman-Johnson spherical limit); the Thermoelectric tier before it
+        landed with the thermodynamic-identities domain. The
         rendered-link count exceeds the operator count because the site graph
         draws one link per (input $\to$ output) pair while an operator with
         several inputs is a single edge in the store.
-  \item \textbf{Representations.} 29 codes mapped, with per-code variable coverage:
+  \item \textbf{Representations.} 31 codes mapped, with per-code variable coverage:
         kaldo 34, phono3py 31, phonopy 22, pymatgen 22, ShengBTE 20, mp-api 13,
-        Quantum ESPRESSO 13, LAMMPS 12, VASP 9, GPUMD 8, pycalphad 7, matgl 5,
+        Quantum ESPRESSO 13, LAMMPS 12, VASP 10, GPUMD 8, pycalphad 7, matgl 5,
         mat-elasticity 5, amset 5, ORCA 5, pymatgen-analysis-diffusion 5,
-        i-PI 4, fairchem 4, MACE 4, OpenMM 4, ASE 3, mat-diffusion-analysis 2,
-        smol 2, mat-equation-of-state 1, mat-surface-adsorption 1, rxn-network 1,
+        i-PI 4, fairchem 4, MACE 4, OpenMM 4, ASE 3, materialscodegraph 3,
+        mat-diffusion-analysis 2, mescal 2, plumed 2, smol 2,
+        mat-equation-of-state 1, mat-surface-adsorption 1, rxn-network 1,
         diffcsp 1, mattergen 1.
-  \item \textbf{Instances.} 82 recorded values, 78 simulation and 4 measurement.
+  \item \textbf{Instances.} 84 recorded values, 80 simulation and 4 measurement.
         They span the newer domains (formation and hull energies, elastic and
         equation-of-state moduli, CALPHAD Gibbs energies, quasi-harmonic thermal
         expansion, molecular NEB barriers and bond dissociation energies) as
@@ -2867,19 +2921,22 @@ The map is at store head version
         steady-state thermal conductivities of bulk single-crystal silicon
         ($156\,\mathrm{W/(m\,K)}$) and germanium ($60.2\,\mathrm{W/(m\,K)}$) at
         $300\,\mathrm{K}$ and natural isotopic abundance.
-  \item \textbf{Dimensional gate.} Of the 104 operator edges the gate walks, 38
+  \item \textbf{Dimensional gate.} Of the 114 operator edges the gate walks, 43
         are ok, 2 are documented-schematic violations
         (\texttt{compute\_gruneisen} and \texttt{compute\_phase\_space\_3phonon},
-        kept schematic by choice), and 64 are skipped (not closed-form
+        kept schematic by choice), and 69 are skipped (not closed-form
         \texttt{Eq} edges the gate can check, most of them the opaque solver
-        edges of the newer domains, now including the two PIMD estimator edges).
-        The two ground-state derivatives
+        edges of the newer domains, plus the composites depolarization
+        \texttt{Piecewise} and the resolve identity). The two ground-state
+        derivatives
         (\texttt{compute\_forces\_hf} and \texttt{compute\_stress\_cell}) and all
         four mechanics edges (the elastic tensor as
         $-\partial\sigma/\partial\varepsilon$, the pressure trace, and both Voigt
         moduli) are proven ok, as are the six thermodynamic-identity edges (the
         Gr\"uneisen identity, total thermal conductivity, molar volume, the
-        $C_P - C_V$ relation, the power factor, and $ZT$).
+        $C_P - C_V$ relation, the power factor, and $ZT$) and the three composite
+        effective-medium edges (the Nan random and aligned mixing formulas and
+        the Hasselman-Johnson spherical cross-check).
   \item \textbf{Tests.} The suite is 1425 passing.
 \end{itemize}
 
