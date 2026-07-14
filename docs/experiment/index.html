@@ -69,6 +69,7 @@
   .btn:focus-visible{outline:2px solid var(--obs);outline-offset:2px;}
   .btn.primary{background:var(--obs);border-color:var(--obs);color:#fff;}
   .btn.primary:hover{background:var(--obs2);border-color:var(--obs2);}
+  a.btn{display:inline-flex;align-items:center;text-decoration:none;}
   .copied{color:var(--obs2);font-size:.82rem;font-weight:600;opacity:0;transition:opacity .2s;}
   .copied.on{opacity:1;}
 
@@ -91,7 +92,8 @@
   td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top;}
   tr:last-child td{border-bottom:none;}
   td.var .sym{font-family:var(--font-mono);font-weight:600;color:var(--obs2);}
-  td.var .vid{display:block;font-family:var(--font-mono);font-size:.72rem;color:var(--faint);margin-top:2px;word-break:break-all;}
+  td.var .vid{display:block;font-family:var(--font-mono);font-size:.72rem;color:var(--faint);margin-top:2px;word-break:break-all;text-decoration:none;}
+  td.var a.vid:hover{color:var(--obs2);text-decoration:underline;}
   td.mat{white-space:nowrap;font-weight:500;}
   td.cond{color:var(--ink2);font-size:.8rem;max-width:26ch;}
   td.val{font-family:var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap;}
@@ -249,7 +251,8 @@ function renderDetail(ref){
     var node = DATA.catalog[rec.variable.replace(/\[.*$/, '')] || DATA.catalog[rec.variable] || {};
     return '<tr>' +
       '<td class="var"><span class="sym">' + esc(node.symbol || '') + '</span>' +
-      '<span class="vid">' + esc(rec.variable) + '</span></td>' +
+      '<a class="vid" href="../map/#node=' + encodeURIComponent(rec.variable) +
+      '" title="Open this quantity on the map">' + esc(rec.variable) + '</a></td>' +
       '<td class="mat">' + esc(rec.material) + '</td>' +
       '<td class="cond">' + esc(condText(rec.conditions)) + '</td>' +
       '<td class="val">' + valText(rec) + '</td>' +
@@ -270,6 +273,7 @@ function renderDetail(ref){
     '<h1><span class="ref">' + esc(ref) + '</span></h1>' +
     '<div class="meta">' + chips + '</div>' +
     '<div class="actions"><button class="btn primary" id="copy" type="button">Copy link</button>' +
+    '<a class="btn" href="../map/#experiment=' + encodeURIComponent(ref) + '">View on the map</a>' +
     '<span class="copied" id="copied">Link copied</span></div>' +
     '<h2>Values</h2>' +
     '<div class="tbl-scroll"><table><thead><tr>' +

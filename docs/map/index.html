@@ -601,8 +601,37 @@ function syncHash(id){
   if(location.hash===h||(!h&&!location.hash)) return;
   history.replaceState(null,'',h||location.pathname+location.search);
 }
+function expFromHash(){ const m=location.hash.match(/[#?&]experiment=([^&]*)/); return m?decodeURIComponent(m[1]):null; }
+let instancesPromise=null;
+function loadInstances(){
+  if(!instancesPromise){ instancesPromise=fetch('../data/instances.json?v='+Date.now()).then(r=>r.json()).catch(()=>[]); }
+  return instancesPromise;
+}
+function resolveNodeId(v){ if(nodeById[v]) return v; const b=(''+v).split('[')[0]; return nodeById[b]?b:null; }
+function showExperiment(ref, recs){
+  const mine=recs.filter(r=> r.source && r.source.ref===ref);
+  const ids=[...new Set(mine.map(r=>resolveNodeId(r.variable)).filter(Boolean))];
+  let h='<span class="x" onclick="clearSel()">&times;</span><div class="om-panel-label">experiment</div>';
+  h+='<div class="name" style="font-weight:700;color:#312e81;word-break:break-all">'+esc(ref)+'</div>';
+  if(!ids.length){
+    h+='<div class="om-panel-label">no evidence with this ref in this build of the store</div>';
+    panelEl.innerHTML=h; panelEl.style.display='block'; return;
+  }
+  depth='focused'; clearDim();
+  const keep=new Set(ids);
+  vp.querySelectorAll('.node').forEach(el=>{ el.classList.toggle('dim', !keep.has(el.dataset.id)); el.classList.toggle('sel', keep.has(el.dataset.id)); });
+  vp.querySelectorAll('.edge').forEach(el=>{ const ab=el.dataset.edge.split('>>'); const inc=keep.has(ab[0])&&keep.has(ab[1]); el.classList.toggle('dim', !inc); el.classList.toggle('hot', inc); });
+  h+='<div class="om-panel-label">'+mine.length+' value'+(mine.length>1?'s':'')+' over '+ids.length+' quantit'+(ids.length>1?'ies':'y')+' (evidence-bearing nodes lit)</div>';
+  h+='<div class="chips">'+ids.map(chip).join('')+'</div>';
+  h+='<div class="om-panel-label"><a href="../experiment/#ref='+encodeURIComponent(ref)+'" style="color:#4f46e5;text-decoration:none">open the experiment &rarr;</a></div>';
+  panelEl.innerHTML=h; panelEl.style.display='block';
+  fitTo(ids);
+}
 function applyHash(){
-  const id=nodeFromHash(); if(!id||!nodeById[id]) return;
+  const ref=expFromHash();
+  if(ref){ loadInstances().then(recs=>showExperiment(ref,recs)); return; }
+  let id=nodeFromHash(); if(!id) return;
+  if(!nodeById[id]){ const b=id.split('[')[0]; if(!nodeById[b]) return; id=b; }
   selectNode(nodeById[id]);
   fitTo([id].concat(parents[id]||[]).concat(children[id]||[]));
 }
