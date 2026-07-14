@@ -158,6 +158,17 @@ def test_unit_check_molar_heat_capacity_spellings():
         assert res["ok"] and res["kind"] == "match", (spelling, res)
 
 
+def test_unit_check_interface_conductance_spellings():
+    # W_per_m2_k / MW_per_m2_k registered with the composites domain; the
+    # printed spellings must dimension-check as hard matches against the
+    # InterfaceConductance node, so a Kapitza-conductance claim is checked
+    # instead of passing "unresolved" (MW/(m^2 K) is the practitioner scale).
+    for spelling in ("W/(m^2 K)", "W/(m2 K)", "W m^-2 K^-1",
+                     "MW/(m^2 K)", "MW/(m2 K)", "MW m^-2 K^-1"):
+        res = validate.unit_check(spelling, "InterfaceConductance", _catalog_by_id())
+        assert res["ok"] and res["kind"] == "match", (spelling, res)
+
+
 def test_unit_check_molar_energy_spellings():
     for spelling, node in (("kJ/mol", "MolarEnthalpy"), ("J/mol", "MolarEnthalpy")):
         res = validate.unit_check(spelling, node, _catalog_by_id())

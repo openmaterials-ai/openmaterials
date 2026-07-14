@@ -152,6 +152,26 @@ _PRINTED_UNIT_ALIASES = {
     # ThermalConductivity node dies as a hard mismatch.
     "w/k": "W_per_K",
     "nw/k": "nW_per_K",
+    # Interface (Kapitza) thermal boundary conductance: W_per_m2_k and
+    # MW_per_m2_k entered the registry with the composites domain, but no
+    # printed spelling resolved to them, so a G claim would pass the unit
+    # gate "unresolved" instead of dimension-checked. These are the spellings
+    # composite / thermal-boundary-conductance papers actually print (the
+    # practitioner scale is MW/(m^2 K)).
+    "w/(m^2 k)": "W_per_m2_k",
+    "w/(m^2·k)": "W_per_m2_k",
+    "w/(m2 k)": "W_per_m2_k",
+    "w/m^2/k": "W_per_m2_k",
+    "w/m^2 k": "W_per_m2_k",
+    "w m^-2 k^-1": "W_per_m2_k",
+    "w m-2 k-1": "W_per_m2_k",
+    "mw/(m^2 k)": "MW_per_m2_k",
+    "mw/(m^2·k)": "MW_per_m2_k",
+    "mw/(m2 k)": "MW_per_m2_k",
+    "mw/m^2/k": "MW_per_m2_k",
+    "mw/m^2 k": "MW_per_m2_k",
+    "mw m^-2 k^-1": "MW_per_m2_k",
+    "mw m-2 k-1": "MW_per_m2_k",
 }
 
 
