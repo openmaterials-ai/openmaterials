@@ -1,16 +1,19 @@
 """Tests for the simulation layer (omai/simulations.py).
 
-Canonical-hash stability (same claim -> same id; a url change does NOT change
-the id; a recipe change DOES; floats outside conditions/params hash as given),
-writer idempotence and overwrite refusal, validation failures (bad uid pin,
-unknown configuration, malformed manifest or execution, result backref
-mismatch, stub missing the instance contract's conditions), the verify report
-shape (offline: a fake fetcher, no network), the build_simulations bundler
-(including slug resolution: a result slug must name a committed instance that
-backrefs the record), and the instance simulation-backref gate in both
-directions (shape at record_instance, membership at build_instances). All
-hermetic: node identity is supplied as a fixture name_to_uid or resolved
-against the live map read-only, and no test touches the network.
+Recipe identity (the light model: same recipe -> same id; a url, an artifact
+pointer, or an execution change does NOT change the id; a recipe change,
+including a hyperparameter or setup value, DOES), the light record builder
+record_light (a record with no artifacts and no node is valid, flagged
+node-unresolved not rejected), the URL round-trip (record_to_fragment ->
+record_from_fragment is identity-stable and base64url, and a hand-built fragment
+decodes), artifact-pointer well-formedness, the heavy checksummed writer's
+idempotence and overwrite refusal, the OPTIONAL heavy import path (a no-sha256
+bundle now yields a pointer record, not an exception; a full checksummed bundle
+verifies), the verify report shapes (offline: a fake fetcher, no network), the
+build_simulations bundler (including slug resolution), and the instance
+simulation-backref gate in both directions. All hermetic: node identity is
+supplied as a fixture name_to_uid or resolved against the live map read-only,
+and no test touches the network.
 """
 from __future__ import annotations
 
@@ -68,38 +71,60 @@ def _artifacts(**over):
 
 
 # --------------------------------------------------------------------------
-# Canonical-hash stability.
+# Recipe identity (the light model: the id is the recipe alone).
 # --------------------------------------------------------------------------
 
-def test_same_claim_same_id():
-    a = sim.canonical_id(_recipe(), _execution(), _artifacts())
-    b = sim.canonical_id(_recipe(), _execution(), _artifacts())
+def test_same_recipe_same_id():
+    a = sim.recipe_id(_recipe())
+    b = sim.recipe_id(_recipe())
     assert a == b
     assert len(a) == 64
 
 
+def test_canonical_id_is_recipe_only():
+    """The back-compatible canonical_id(recipe, execution, artifacts) hashes the
+    RECIPE alone: execution and artifacts are accepted but ignored, so it agrees
+    with recipe_id and never folds either into identity."""
+    assert (sim.canonical_id(_recipe(), _execution(), _artifacts())
+            == sim.recipe_id(_recipe()))
+    # A different execution / different artifacts, same recipe -> same id.
+    assert (sim.canonical_id(_recipe(), _execution(wall_time_s=9999), [])
+            == sim.recipe_id(_recipe()))
+
+
 def test_url_change_does_not_change_id():
-    """Location is out of the hash: an artifact url (or any resolver-layer key)
-    must not perturb the id."""
-    base = sim.canonical_id(_recipe(), _execution(), _artifacts())
+    """Location is out of identity: an artifact url (or any resolver-layer key)
+    never perturbs the recipe id."""
+    base = sim.recipe_id(_recipe())
     arts = _artifacts()
     arts[0]["url"] = "https://r2.example.com/runs/abc/thermal_summary.json"
     arts[1]["url"] = "https://zenodo.org/record/12345/files/dump.xyz"
+    # Artifacts are not part of identity at all; the id is the recipe.
     assert sim.canonical_id(_recipe(), _execution(), arts) == base
 
 
 def test_recipe_change_changes_id():
-    base = sim.canonical_id(_recipe(), _execution(), _artifacts())
-    other = sim.canonical_id(_recipe(conditions={"T": "500 K"}), _execution(),
-                             _artifacts())
+    base = sim.recipe_id(_recipe())
+    other = sim.recipe_id(_recipe(conditions={"T": "500 K"}))
     assert other != base
 
 
-def test_artifact_checksum_change_changes_id():
-    base = sim.canonical_id(_recipe(), _execution(), _artifacts())
+def test_artifact_change_does_not_change_id():
+    """Artifacts NEVER enter identity: changing a checksum, adding, or removing
+    a pointer leaves the recipe id unchanged (the light model's core promise)."""
+    base = sim.recipe_id(_recipe())
     arts = _artifacts()
     arts[0]["sha256"] = "f" * 64
-    assert sim.canonical_id(_recipe(), _execution(), arts) != base
+    assert sim.canonical_id(_recipe(), _execution(), arts) == base
+    assert sim.canonical_id(_recipe(), _execution(), []) == base
+
+
+def test_execution_change_does_not_change_id():
+    """Execution rides outside identity: a different wall time, seed, or code
+    version is the same experiment recipe and mints the same id."""
+    base = sim.recipe_id(_recipe())
+    assert sim.canonical_id(_recipe(), _execution(wall_time_s=4210.5), []) == base
+    assert sim.canonical_id(_recipe(), _execution(seeds=[999]), []) == base
 
 
 def test_float_conditions_round_to_one_identity():
@@ -107,30 +132,23 @@ def test_float_conditions_round_to_one_identity():
     physically distinct value does not."""
     noisy = _recipe(conditions={"T": 300.0000001, "fmax": 0.05})
     clean = _recipe(conditions={"T": 300.0, "fmax": 0.05})
-    assert (sim.canonical_id(noisy, _execution(), _artifacts())
-            == sim.canonical_id(clean, _execution(), _artifacts()))
+    assert sim.recipe_id(noisy) == sim.recipe_id(clean)
     distinct = _recipe(conditions={"T": 301.0, "fmax": 0.05})
-    assert (sim.canonical_id(distinct, _execution(), _artifacts())
-            != sim.canonical_id(clean, _execution(), _artifacts()))
+    assert sim.recipe_id(distinct) != sim.recipe_id(clean)
 
 
-def test_floats_outside_conditions_params_hash_as_given():
-    """The rounding rule covers conditions/params ONLY: a float elsewhere in
-    the claim (a fractional wall time in execution) enters the hash exactly as
-    canonical JSON serializes it. 4210 and 4210.0 are different claims, and
-    sub-rounding noise in execution does NOT collapse: the protocol commitment
-    stated in the module docstring, pinned here so it can never drift silently."""
-    base = sim.canonical_id(_recipe(), _execution(wall_time_s=4210.5),
-                            _artifacts())
-    # Stable: the same float claims the same id.
-    assert sim.canonical_id(_recipe(), _execution(wall_time_s=4210.5),
-                            _artifacts()) == base
-    # int vs float: different serializations, different claims.
-    assert sim.canonical_id(_recipe(), _execution(wall_time_s=4210),
-                            _artifacts()) != base
-    # No rounding outside the recipe rule.
-    assert sim.canonical_id(_recipe(), _execution(wall_time_s=4210.5000001),
-                            _artifacts()) != base
+def test_hyperparameters_and_values_round_and_matter():
+    """hyperparameters and setup values are recipe scalars: their floats round
+    to one identity, and a distinct value changes the id (they are part of the
+    recipe, unlike a url or an execution stamp)."""
+    noisy = _recipe(hyperparameters={"cutoff": 8.0000001},
+                    values={"pressure_GPa": 1.0000001})
+    clean = _recipe(hyperparameters={"cutoff": 8.0},
+                    values={"pressure_GPa": 1.0})
+    assert sim.recipe_id(noisy) == sim.recipe_id(clean)
+    other = _recipe(hyperparameters={"cutoff": 9.0},
+                    values={"pressure_GPa": 1.0})
+    assert sim.recipe_id(other) != sim.recipe_id(clean)
 
 
 # --------------------------------------------------------------------------
@@ -662,8 +680,7 @@ def _bundle(**over):
 
 def test_record_from_bundle_builds_stable_record():
     """A well-formed MCG-shape manifest becomes a record whose id is stable
-    (same manifest -> same id) and whose artifacts hash exactly the four keys
-    {path, bytes, sha256, role}."""
+    (same manifest -> same id) and whose id is the recipe alone."""
     r1 = sim.record_from_bundle(_bundle(), name_to_uid=_NAME_TO_UID)
     r2 = sim.record_from_bundle(_bundle(), name_to_uid=_NAME_TO_UID)
     assert r1["id"] == r2["id"]
@@ -676,24 +693,26 @@ def test_record_from_bundle_builds_stable_record():
     assert r1["execution"]["code"] == "gpumd"
     assert r1["execution"]["current_stage"] == "thermal_summary"
     assert r1["execution"]["wall_time_s"] == 4210.0  # 70 min 10 s
-    # The id recomputes from exactly (recipe, execution, artifacts).
-    assert r1["id"] == sim.canonical_id(
-        r1["recipe"], r1["execution"], r1["artifacts"])
+    # Identity is the recipe alone.
+    assert r1["id"] == sim.recipe_id(r1["recipe"])
 
 
-def test_record_from_bundle_artifacts_hash_only_four_keys():
-    """Only {path, bytes, sha256, role} enter the hashed claim; a url or any
-    other resolver key never rides into identity."""
+def test_record_from_bundle_artifacts_are_pointers_outside_identity():
+    """Bundle artifacts are stored as POINTERS {path, role, sha256?, bytes?,
+    url?}, and none of it enters identity: the recipe id is unchanged whether the
+    artifacts carry checksums or not."""
     rec = sim.record_from_bundle(_bundle(), name_to_uid=_NAME_TO_UID)
-    for entry in sim._claim(rec["recipe"], rec["execution"],
-                            rec["artifacts"])["artifacts"]:
-        assert set(entry) == {"path", "bytes", "sha256", "role"}
+    for art in rec["artifacts"]:
+        assert art["path"] and art["role"]
+        assert set(art) <= {"path", "role", "url", "sha256", "bytes"}
+    # Identity is the recipe; the checksummed pointers do not enter it.
+    assert rec["id"] == sim.recipe_id(rec["recipe"])
 
 
-def test_record_from_bundle_validates_against_live_map():
-    """The record record_from_bundle produces passes the existing _validate
-    against the LIVE map (node resolves by id and uid pin, manifest well-formed):
-    the import writer and the writer's gate agree on the shape."""
+def test_record_from_bundle_validates_light_against_live_map():
+    """The record record_from_bundle produces passes the LIGHT validator against
+    the LIVE map (node resolves by id and uid pin, pointers well-formed): the
+    import writer and the light gate agree on the shape."""
     from pathlib import Path
 
     from omai.map_data import _domains, build_graph_dict
@@ -703,45 +722,51 @@ def test_record_from_bundle_validates_against_live_map():
     man = _bundle(spec={"node": _NODE, "material": {"name": "Si"},
                         "conditions": {"T": "300 K"}, "params": {}})
     rec = sim.record_from_bundle(man, name_to_uid=live)
-    rid = sim._validate(rec, name_to_uid=live,
-                        config_dir=Path("docs/data/configurations"),
-                        where="bundle")
-    assert rid == rec["id"]
+    report = sim.validate_light(rec, name_to_uid=live,
+                                config_dir=Path("docs/data/configurations"),
+                                where="bundle")
+    assert report["id"] == rec["id"]
+    assert report["node_resolved"] is True
 
 
-def test_record_from_bundle_refuses_missing_sha256():
-    """An OLD MCG export (artifacts {path, bytes} only, no sha256) is refused:
-    the verifier will not mint a record with a null checksum it can never check.
-    The error names sha256 and states the host requirement (the reason the MCG
-    export PR exists)."""
+def test_record_from_bundle_no_sha256_yields_pointer_record():
+    """The corrected model: an unsummed bundle (artifacts {path, bytes} only, no
+    sha256) is NO LONGER refused. It yields a valid record whose artifact is a
+    plain pointer (a defaulted role, no sha256, outside identity)."""
     old = _bundle(artifacts=[{"path": "results/thermal_summary.json",
                               "bytes": len(_BODY_RESULT)}])
-    with pytest.raises(sim.SimulationError, match="sha256"):
-        sim.record_from_bundle(old, name_to_uid=_NAME_TO_UID)
-    # The message must point the caller at the host's obligation.
-    try:
-        sim.record_from_bundle(old, name_to_uid=_NAME_TO_UID)
-    except sim.SimulationError as exc:
-        assert "host must emit" in str(exc)
+    rec = sim.record_from_bundle(old, name_to_uid=_NAME_TO_UID)
+    assert rec["id"] == sim.recipe_id(rec["recipe"])
+    art = rec["artifacts"][0]
+    assert art["path"] == "results/thermal_summary.json"
+    assert art["role"] == "artifact"          # defaulted, not rejected
+    assert "sha256" not in art                # unsummed: a plain pointer
+    # It validates as a light record (pointer well-formed, node resolves).
+    report = sim.validate_light(rec, name_to_uid=_NAME_TO_UID, where="bundle")
+    assert report["id"] == rec["id"]
 
 
-def test_record_from_bundle_refuses_missing_role():
-    """An artifact carrying a sha256 but no role is likewise refused: a record
-    needs the role (result / trajectory / log) the host assigned."""
-    norole = _bundle(artifacts=[{"path": "results/thermal_summary.json",
-                                 "bytes": len(_BODY_RESULT),
-                                 "sha256": _SHA_RESULT}])
-    with pytest.raises(sim.SimulationError, match="role"):
-        sim.record_from_bundle(norole, name_to_uid=_NAME_TO_UID)
-    try:
-        sim.record_from_bundle(norole, name_to_uid=_NAME_TO_UID)
-    except sim.SimulationError as exc:
-        assert "host must emit" in str(exc)
+def test_record_from_bundle_mixed_sha256_keeps_the_summed_pointer():
+    """A bundle with one summed and one unsummed artifact keeps the sha256 on the
+    summed pointer and drops it from the other; both are pointers, neither is in
+    identity."""
+    man = _bundle(artifacts=[
+        {"path": "results/thermal_summary.json", "bytes": len(_BODY_RESULT),
+         "sha256": _SHA_RESULT, "role": "result"},
+        {"path": "traj/dump.xyz", "bytes": len(_BODY_TRAJ)},   # no sha256/role
+    ])
+    rec = sim.record_from_bundle(man, name_to_uid=_NAME_TO_UID)
+    by_path = {a["path"]: a for a in rec["artifacts"]}
+    assert by_path["results/thermal_summary.json"]["sha256"] == _SHA_RESULT
+    assert by_path["results/thermal_summary.json"]["role"] == "result"
+    assert "sha256" not in by_path["traj/dump.xyz"]
+    assert by_path["traj/dump.xyz"]["role"] == "artifact"
+    assert rec["id"] == sim.recipe_id(rec["recipe"])
 
 
 def test_record_from_bundle_mirror_does_not_change_id():
     """Identity excludes location: adding or changing a mirror url never
-    re-mints the record id (the same url-invariance the writer holds)."""
+    re-mints the record id (the same url-invariance the recipe id holds)."""
     base = sim.record_from_bundle(_bundle(), name_to_uid=_NAME_TO_UID)["id"]
     mirrors = {"results/thermal_summary.json":
                {"url": "https://r2.example.com/x.json", "store": "r2"}}
@@ -749,7 +774,7 @@ def test_record_from_bundle_mirror_does_not_change_id():
         _bundle(), mirrors=mirrors, name_to_uid=_NAME_TO_UID)
     assert with_mirror["id"] == base
     assert with_mirror["mirrors"] == mirrors
-    # The mirrored url appears on the matching artifact row as a convenience.
+    # The mirrored url appears on the matching artifact pointer as a convenience.
     row = next(a for a in with_mirror["artifacts"]
                if a["path"] == "results/thermal_summary.json")
     assert row["url"] == "https://r2.example.com/x.json"
@@ -789,10 +814,8 @@ def test_record_from_bundle_omits_wall_time_when_unparseable():
 def test_record_from_bundle_no_node_is_flagged_not_invented():
     """A bundle whose spec names NO map node (the common MCG case: specs carry
     template physics, not a map node id) is still recorded, but the writer does
-    NOT invent a node; _validate surfaces the missing node rather than guessing
-    one."""
-    from pathlib import Path
-
+    NOT invent a node. The light validator FLAGS it node-unresolved (valid, not
+    rejected): the honesty rule, whatever we have."""
     # A real MCG-style spec: template physics params, no 'node'.
     man = _bundle(spec={"temperature_K": 300.0, "potential": "Si-NEP"})
     rec = sim.record_from_bundle(man, name_to_uid=_NAME_TO_UID)
@@ -800,11 +823,11 @@ def test_record_from_bundle_no_node_is_flagged_not_invented():
     assert "node_uid" not in rec["recipe"]
     # The spec is kept verbatim so nothing the host asked is dropped.
     assert rec["recipe"]["spec"] == {"temperature_K": 300.0, "potential": "Si-NEP"}
-    # Validation reports the gap rather than passing silently.
-    with pytest.raises(sim.SimulationError, match="live map node"):
-        sim._validate(rec, name_to_uid=_NAME_TO_UID,
-                      config_dir=Path("docs/data/configurations"),
-                      where="bundle")
+    # The record is VALID and flagged node-unresolved, not rejected.
+    report = sim.validate_light(rec, name_to_uid=_NAME_TO_UID, where="bundle")
+    assert report["node_resolved"] is False
+    assert report["node"] is None
+    assert report["id"] == rec["id"]
 
 
 # --------------------------------------------------------------------------
@@ -919,3 +942,246 @@ def test_verify_bundle_bytes_local_wins_over_fetcher(tmp_path):
     # The traj file is neither local nor (this test proves) fetched without a
     # crash: its url is absent from mirrors, so it is simply unchecked.
     assert by_path["traj/dump.xyz"]["status"] == "unchecked"
+
+
+def test_verify_bundle_bytes_pointer_without_sha256_is_unchecked(tmp_path):
+    """A pointer carrying NO sha256 (a light or unsummed-bundle artifact) is
+    reported unchecked with reason 'no sha256 to verify against', even when its
+    bytes are present: there is no byte claim to check, and that is not a
+    failure."""
+    old = _bundle(artifacts=[{"path": "results/thermal_summary.json",
+                              "bytes": len(_BODY_RESULT)}])
+    rec = sim.record_from_bundle(old, name_to_uid=_NAME_TO_UID)
+    (tmp_path / "results").mkdir()
+    (tmp_path / "results" / "thermal_summary.json").write_bytes(_BODY_RESULT)
+    report = sim.verify_bundle_bytes(rec, artifact_dir=tmp_path)
+    entry = report["checked"][0]
+    assert entry["status"] == "unchecked"
+    assert entry["reason"] == "no sha256 to verify against"
+    assert report["summary"] == {"ok": 0, "mismatch": 0, "unchecked": 1}
+
+
+# --------------------------------------------------------------------------
+# record_light: the primary builder. Identity is the recipe alone; artifact
+# pointers are optional and never enter the id.
+# --------------------------------------------------------------------------
+
+def _light_recipe(**over):
+    """A full light recipe: a map node plus material, template, hyperparameters,
+    and setup values (the recipe-identified experiment)."""
+    r = {
+        "node": _NODE,
+        "node_uid": _NODE_UID,
+        "material": {"name": "Si"},
+        "template": "gpumd",
+        "conditions": {"T": 300.0, "potential": "Si-NEP"},
+        "params": {},
+        "hyperparameters": {"nep_cutoff": 8.0, "neighbor": 800},
+        "values": {"supercell": [4, 4, 4]},
+    }
+    r.update(over)
+    return r
+
+
+def _pointer(**over):
+    p = {"path": "traj/dump.xyz", "role": "trajectory",
+         "url": "https://mcg.example/runs/abc/dump.xyz", "sha256": _SHA_B}
+    p.update(over)
+    return p
+
+
+def test_record_light_mints_stable_recipe_id():
+    """record_light with a full recipe (map node + material + hyperparameters +
+    values) mints a stable, recipe-derived id."""
+    r1 = sim.record_light(recipe=_light_recipe(), name_to_uid=_NAME_TO_UID)
+    r2 = sim.record_light(recipe=_light_recipe(), name_to_uid=_NAME_TO_UID)
+    assert r1["id"] == r2["id"] == sim.recipe_id(_light_recipe())
+    assert len(r1["id"]) == 64
+    # A record with NO artifacts is valid and normal: artifacts is an empty list.
+    assert r1["artifacts"] == []
+
+
+def test_record_light_artifact_pointers_do_not_change_id():
+    """Adding or removing artifact POINTERS does not change the id (identity is
+    the recipe); the pointers are stored as {path, role, url?, sha256?}."""
+    base = sim.record_light(recipe=_light_recipe(), name_to_uid=_NAME_TO_UID)["id"]
+    withp = sim.record_light(
+        recipe=_light_recipe(),
+        artifacts=[_pointer(), _pointer(path="results/summary.json",
+                                        role="result", sha256=_SHA_A)],
+        name_to_uid=_NAME_TO_UID)
+    assert withp["id"] == base
+    assert len(withp["artifacts"]) == 2
+    row = next(a for a in withp["artifacts"] if a["path"] == "traj/dump.xyz")
+    assert row["url"] == "https://mcg.example/runs/abc/dump.xyz"
+    assert row["sha256"] == _SHA_B
+    # Removing the pointers again -> still the same id.
+    assert sim.record_light(recipe=_light_recipe(),
+                            name_to_uid=_NAME_TO_UID)["id"] == base
+
+
+def test_record_light_hyperparameter_change_changes_id():
+    """Changing a hyperparameter DOES change the id: it is part of the recipe."""
+    base = sim.record_light(recipe=_light_recipe(), name_to_uid=_NAME_TO_UID)["id"]
+    other = sim.record_light(
+        recipe=_light_recipe(hyperparameters={"nep_cutoff": 9.0, "neighbor": 800}),
+        name_to_uid=_NAME_TO_UID)
+    assert other["id"] != base
+
+
+def test_record_light_execution_and_mirrors_ride_outside_identity():
+    """execution and mirrors are carried but never hashed: the id is the recipe
+    with or without them."""
+    base = sim.record_light(recipe=_light_recipe(), name_to_uid=_NAME_TO_UID)["id"]
+    rec = sim.record_light(
+        recipe=_light_recipe(),
+        execution={"code": "gpumd", "code_version": "3.9.5", "seeds": [7]},
+        artifacts=[_pointer(url=None, sha256=None)],
+        mirrors={"traj/dump.xyz": {"url": "https://r2.example.com/dump.xyz"}},
+        name_to_uid=_NAME_TO_UID)
+    assert rec["id"] == base
+    assert rec["execution"]["code_version"] == "3.9.5"
+    assert rec["mirrors"] == {"traj/dump.xyz":
+                              {"url": "https://r2.example.com/dump.xyz"}}
+    # The mirror url is copied onto the pointer that had none, as a convenience.
+    assert rec["artifacts"][0]["url"] == "https://r2.example.com/dump.xyz"
+
+
+def test_record_light_no_node_no_artifacts_is_valid_and_flagged():
+    """A light record with NO artifacts and NO node is valid (whatever we have):
+    validate_light flags node-unresolved but does NOT reject. The recipe carries
+    the template + values honestly."""
+    rec = sim.record_light(recipe={"template": "gpumd",
+                                   "conditions": {"T": 300.0},
+                                   "values": {"pressure_GPa": 0.0}})
+    assert rec["artifacts"] == []
+    assert "node" not in rec["recipe"]
+    report = sim.validate_light(rec)
+    assert report["node_resolved"] is False
+    assert report["node"] is None
+    assert report["id"] == sim.recipe_id(rec["recipe"])
+
+
+def test_record_light_rejects_stale_node_pin():
+    """When the recipe names a node, the P3 pin discipline applies: a stale
+    node_uid is a mismatch, not a silent pass."""
+    with pytest.raises(sim.SimulationError, match="node_uid"):
+        sim.record_light(recipe=_light_recipe(node_uid="0" * 64),
+                         name_to_uid=_NAME_TO_UID)
+
+
+def test_record_light_pins_live_node_uid_when_absent():
+    """A recipe naming a node but no pin gets the live uid attached (so a later
+    validation is a real match), pulled from name_to_uid."""
+    recipe = _light_recipe()
+    recipe.pop("node_uid")
+    rec = sim.record_light(recipe=recipe, name_to_uid=_NAME_TO_UID)
+    assert rec["recipe"]["node_uid"] == _NODE_UID
+
+
+# --------------------------------------------------------------------------
+# Artifact-pointer well-formedness (validate_light / _validate_pointers).
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize("bad", [
+    {"role": "trajectory"},                                   # missing path
+    {"path": "", "role": "trajectory"},                       # empty path
+    {"path": "traj/dump.xyz"},                                # missing role
+    {"path": "traj/dump.xyz", "role": ""},                    # empty role
+    {"path": "x", "role": "r", "url": 5},                     # url not a string
+    {"path": "x", "role": "r", "sha256": "tooshort"},         # bad sha256 shape
+])
+def test_light_pointer_wellformedness_rejected(bad):
+    """A pointer missing path or role is rejected; a url present must be a
+    string and a sha256 present must be 64-hex (shape-only)."""
+    with pytest.raises(sim.SimulationError, match="artifact"):
+        sim.record_light(recipe=_light_recipe(), artifacts=[bad],
+                         name_to_uid=_NAME_TO_UID)
+
+
+def test_light_pointer_minimal_path_role_accepted():
+    """path + role with no url and no sha256 is a legal pointer (the minimum)."""
+    rec = sim.record_light(
+        recipe=_light_recipe(),
+        artifacts=[{"path": "log/run.log", "role": "log"}],
+        name_to_uid=_NAME_TO_UID)
+    assert rec["artifacts"] == [{"path": "log/run.log", "role": "log"}]
+
+
+def test_light_stated_id_mismatch_rejected():
+    """A record whose stated id does not recompute from its recipe (someone
+    folded an artifact or url into the hash) is rejected."""
+    with pytest.raises(sim.SimulationError, match="recipe"):
+        sim.validate_light({"id": "0" * 64, "recipe": _light_recipe()},
+                           name_to_uid=_NAME_TO_UID)
+
+
+# --------------------------------------------------------------------------
+# The URL round-trip: record_to_fragment <-> record_from_fragment, matching the
+# playground's gzip fragment scheme (gzip, base64url, '=' stripped, 'g' prefix).
+# --------------------------------------------------------------------------
+
+def test_fragment_round_trip_is_identity_stable():
+    """record -> fragment -> record round-trips: the record is identical and the
+    recipe id is unchanged."""
+    rec = sim.record_light(
+        recipe=_light_recipe(),
+        artifacts=[_pointer()],
+        execution={"code": "gpumd", "seeds": [7]},
+        name_to_uid=_NAME_TO_UID)
+    frag = sim.record_to_fragment(rec)
+    back = sim.record_from_fragment(frag)
+    assert back == rec
+    assert back["id"] == rec["id"] == sim.recipe_id(rec["recipe"])
+
+
+def test_fragment_is_base64url_no_plus_slash_or_padding():
+    """The fragment is base64url with a mode prefix: no '+', '/', or '=' (so it
+    is safe in a URL fragment), and it starts with 'g' (gzip)."""
+    frag = sim.record_to_fragment(
+        sim.record_light(recipe=_light_recipe(), name_to_uid=_NAME_TO_UID))
+    assert frag[0] == "g"
+    body = frag[1:]
+    assert "+" not in body and "/" not in body and "=" not in body
+
+
+def test_fragment_from_fragment_strips_x_prefix():
+    """record_from_fragment tolerates a leading '#x=' or 'x=' (a pasted fragment
+    key), decoding the payload after it."""
+    rec = sim.record_light(recipe=_light_recipe(), name_to_uid=_NAME_TO_UID)
+    frag = sim.record_to_fragment(rec)
+    assert sim.record_from_fragment("#x=" + frag) == rec
+    assert sim.record_from_fragment("x=" + frag) == rec
+
+
+def test_hand_built_gzip_fragment_decodes():
+    """A fragment built by hand with the playground's exact recipe (gzip, then
+    urlsafe base64 with '=' stripped, 'g' prefix) decodes to the record: this is
+    the interop contract with docs/play/index.html's gzipToB64url."""
+    import base64
+    import gzip
+    import json
+
+    rec = {"id": sim.recipe_id({"template": "gpumd", "conditions": {"T": 300.0}}),
+           "recipe": {"template": "gpumd", "conditions": {"T": 300.0}},
+           "artifacts": []}
+    blob = json.dumps(rec, separators=(",", ":")).encode("utf-8")
+    hand = "g" + base64.urlsafe_b64encode(gzip.compress(blob)).decode().rstrip("=")
+    assert sim.record_from_fragment(hand) == rec
+
+
+def test_raw_mode_fragment_decodes():
+    """The 'r' (raw, uncompressed) fallback the playground emits when
+    CompressionStream is unavailable also decodes."""
+    import base64
+    import json
+
+    rec = sim.record_light(recipe=_light_recipe(), name_to_uid=_NAME_TO_UID)
+    blob = json.dumps(rec, separators=(",", ":")).encode("utf-8")
+    raw = "r" + base64.urlsafe_b64encode(blob).decode().rstrip("=")
+    assert sim.record_from_fragment(raw) == rec
+
+
+def test_fragment_unknown_mode_rejected():
+    with pytest.raises(sim.SimulationError, match="mode"):
+        sim.record_from_fragment("zabcdef")

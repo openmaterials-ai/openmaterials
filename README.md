@@ -60,6 +60,26 @@ you share carries the result and its receipts together. To share your own
 experiment, contribute its values as instances under one `source.ref` and send
 the URL.
 
+A single experiment is also a link on its own, no store, no server. A simulation
+record is light and recipe-identified (`omai/simulations.py`): its identity is
+the recipe it was asked (a map node when known, else a template with its
+hyperparameters and setup values), and heavy artifacts are optional pointers to
+[MaterialsCodeGraph](https://materialscodegraph.com/), never embedded. Because
+it is light, the whole record gzips into a `#x=` link fragment that opens in the
+playground's Experiment tab:
+
+```
+https://openmaterials.ai/play/#/play?tab=experiment&x=<gzipped record>
+```
+
+Paste a record JSON on that tab and hit Copy link to mint one; opening the link
+re-renders the recipe (node, material, template, hyperparameters, values), lists
+its artifact pointers as links to MCG, and lights the recipe's node on the map.
+The fragment uses the same gzip+base64url scheme as the map-view share below, so
+a link a tool produces (`record_to_fragment`) and one the playground produces
+interoperate. It is the light path: a record with many artifact pointers may
+exceed a practical URL, and that is fine.
+
 The [cross-code agreement page](https://openmaterials.ai/agreement/) takes the
 other cut through the same instances: instead of grouping by source, it groups
 by the physical question. It finds every set of values that are the same
@@ -81,7 +101,8 @@ Views are links too: the map takes `#node=<id>` (and writes it as you click)
 and `#experiment=<source.ref>` to light up exactly the quantities an
 experiment's evidence covers,
 the tracer takes `#node=<id>` or `#from=<id>&to=<id>` for a derivation path,
-the playground serializes its whole state behind its Share button, and the
+the playground serializes its whole state behind its Share button and takes
+`#x=<gzipped record>` to open a single light experiment record, and the
 experiments index takes `#material=<name>`. Every page has a copy-link
 control.
 
