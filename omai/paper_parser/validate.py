@@ -144,6 +144,14 @@ _PRINTED_UNIT_ALIASES = {
     "kj/mol": "kJ_per_mol",
     "kj mol^-1": "kJ_per_mol",
     "kj mol-1": "kJ_per_mol",
+    # Thermal conductance (the Landauer G(T) of the MESCAL onboarding): the
+    # registry carries W_per_K (canonical) and nW_per_K (MESCAL's native
+    # serving unit, 1e-9). These printed spellings let a coherent-transport
+    # claim dimension-check against ThermalConductance instead of passing
+    # unresolved, and a W/K value pasted onto the per-length
+    # ThermalConductivity node dies as a hard mismatch.
+    "w/k": "W_per_K",
+    "nw/k": "nW_per_K",
     # Interface (Kapitza) thermal boundary conductance: W_per_m2_k and
     # MW_per_m2_k entered the registry with the composites domain, but no
     # printed spelling resolved to them, so a G claim would pass the unit
