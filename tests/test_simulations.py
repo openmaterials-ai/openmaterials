@@ -1,0 +1,416 @@
+"""Tests for the simulation layer (omai/simulations.py).
+
+Canonical-hash stability (same claim -> same id; a url change does NOT change
+the id; a recipe change DOES), writer idempotence and overwrite refusal,
+validation failures (bad uid pin, unknown configuration, malformed manifest,
+result backref mismatch), the verify report shape (offline: a fake fetcher, no
+network), the build_simulations bundler, and the instance simulation-backref
+passthrough. All hermetic: node identity is supplied as a fixture name_to_uid,
+never resolved against the live map, and no test touches the network.
+"""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+import pytest
+
+from omai import simulations as sim
+
+# A fixed fixture map: a recipe node and a result variable with pinned uids. The
+# ids are arbitrary 64-hex strings; the point is that the pin must MATCH, not
+# that it equals any live value.
+_NODE = "ThermalConductivity[transport_model=hnemd]"
+_NODE_UID = "e7157a52da5eb7d2ae79e57692acc30d7e63a3a0d1c731b14da4d6ab8fd5eb88"
+_NAME_TO_UID = {_NODE: _NODE_UID}
+
+_SHA_A = "a" * 64
+_SHA_B = "b" * 64
+
+
+def _recipe(**over):
+    r = {
+        "node": _NODE,
+        "node_uid": _NODE_UID,
+        "material": {"name": "Si"},
+        "conditions": {"T": "300 K", "potential": "Si-NEP"},
+        "params": {},
+    }
+    r.update(over)
+    return r
+
+
+def _execution(**over):
+    e = {
+        "code": "gpumd",
+        "code_version": "3.9.5",
+        "container_digest": "sha256:" + ("c" * 64),
+        "runner": "mcg-cloud/pod-abc",
+        "wall_time_s": 4210,
+        "seeds": [12345],
+    }
+    e.update(over)
+    return e
+
+
+def _artifacts(**over):
+    a = [{"path": "results/thermal_summary.json", "bytes": 2048,
+          "sha256": _SHA_A, "role": "result"},
+         {"path": "traj/dump.xyz", "bytes": 88123456, "sha256": _SHA_B,
+          "role": "trajectory"}]
+    if over.get("single"):
+        return a[:1]
+    return a
+
+
+# --------------------------------------------------------------------------
+# Canonical-hash stability.
+# --------------------------------------------------------------------------
+
+def test_same_claim_same_id():
+    a = sim.canonical_id(_recipe(), _execution(), _artifacts())
+    b = sim.canonical_id(_recipe(), _execution(), _artifacts())
+    assert a == b
+    assert len(a) == 64
+
+
+def test_url_change_does_not_change_id():
+    """Location is out of the hash: an artifact url (or any resolver-layer key)
+    must not perturb the id."""
+    base = sim.canonical_id(_recipe(), _execution(), _artifacts())
+    arts = _artifacts()
+    arts[0]["url"] = "https://r2.example.com/runs/abc/thermal_summary.json"
+    arts[1]["url"] = "https://zenodo.org/record/12345/files/dump.xyz"
+    assert sim.canonical_id(_recipe(), _execution(), arts) == base
+
+
+def test_recipe_change_changes_id():
+    base = sim.canonical_id(_recipe(), _execution(), _artifacts())
+    other = sim.canonical_id(_recipe(conditions={"T": "500 K"}), _execution(),
+                             _artifacts())
+    assert other != base
+
+
+def test_artifact_checksum_change_changes_id():
+    base = sim.canonical_id(_recipe(), _execution(), _artifacts())
+    arts = _artifacts()
+    arts[0]["sha256"] = "f" * 64
+    assert sim.canonical_id(_recipe(), _execution(), arts) != base
+
+
+def test_float_conditions_round_to_one_identity():
+    """Refetch-level float noise in conditions collapses to one id; a
+    physically distinct value does not."""
+    noisy = _recipe(conditions={"T": 300.0000001, "fmax": 0.05})
+    clean = _recipe(conditions={"T": 300.0, "fmax": 0.05})
+    assert (sim.canonical_id(noisy, _execution(), _artifacts())
+            == sim.canonical_id(clean, _execution(), _artifacts()))
+    distinct = _recipe(conditions={"T": 301.0, "fmax": 0.05})
+    assert (sim.canonical_id(distinct, _execution(), _artifacts())
+            != sim.canonical_id(clean, _execution(), _artifacts()))
+
+
+# --------------------------------------------------------------------------
+# Writer: idempotence and overwrite refusal.
+# --------------------------------------------------------------------------
+
+def test_record_simulation_writes_and_is_idempotent(tmp_path):
+    p1 = sim.record_simulation(
+        recipe=_recipe(), execution=_execution(), artifacts=_artifacts(),
+        sim_dir=tmp_path, name_to_uid=_NAME_TO_UID)
+    # A byte-identical re-record returns the SAME path, no second file.
+    p2 = sim.record_simulation(
+        recipe=_recipe(), execution=_execution(), artifacts=_artifacts(),
+        sim_dir=tmp_path, name_to_uid=_NAME_TO_UID)
+    assert p1 == p2
+    assert len(list(tmp_path.glob("*.json"))) == 1
+    rec = json.loads(p1.read_text())
+    assert rec["id"] == sim.canonical_id(_recipe(), _execution(), _artifacts())
+    assert rec["recipe"]["node"] == _NODE
+
+
+def test_record_simulation_stores_id_and_manifest(tmp_path):
+    rec_id = sim.canonical_id(_recipe(), _execution(), _artifacts())
+    path = sim.record_simulation(
+        recipe=_recipe(), execution=_execution(), artifacts=_artifacts(),
+        sim_dir=tmp_path, name_to_uid=_NAME_TO_UID)
+    rec = json.loads(path.read_text())
+    assert rec["id"] == rec_id
+    # The manifest keeps exactly the four hashed keys per entry (no url when no
+    # mirror was declared).
+    for art in rec["artifacts"]:
+        assert set(art) == {"path", "bytes", "sha256", "role"}
+
+
+def test_overwrite_refusal_on_different_content(tmp_path, monkeypatch):
+    """Two DIFFERENT records that slug to the same base must not clobber each
+    other: the record_instance discipline. Force a slug collision by pinning
+    slugify to a constant, so distinct ids land a numeric suffix instead of an
+    overwrite."""
+    monkeypatch.setattr(sim, "slugify", lambda *_a, **_k: "collide")
+    p1 = sim.record_simulation(
+        recipe=_recipe(), execution=_execution(), artifacts=_artifacts(),
+        sim_dir=tmp_path, name_to_uid=_NAME_TO_UID)
+    p2 = sim.record_simulation(
+        recipe=_recipe(conditions={"T": "500 K"}), execution=_execution(),
+        artifacts=_artifacts(), sim_dir=tmp_path, name_to_uid=_NAME_TO_UID)
+    assert p1 != p2
+    assert len(list(tmp_path.glob("*.json"))) == 2
+
+
+def test_mirrors_ride_outside_the_hash_and_mirror_urls(tmp_path):
+    mirrors = {"results/thermal_summary.json":
+               {"url": "https://r2.example.com/x.json", "store": "r2"}}
+    rec_id_no_mirror = sim.canonical_id(_recipe(), _execution(), _artifacts())
+    path = sim.record_simulation(
+        recipe=_recipe(), execution=_execution(), artifacts=_artifacts(),
+        mirrors=mirrors, sim_dir=tmp_path, name_to_uid=_NAME_TO_UID)
+    rec = json.loads(path.read_text())
+    # The id is the same as without any mirror: location is not identity.
+    assert rec["id"] == rec_id_no_mirror
+    assert rec["mirrors"] == mirrors
+    # The mirrored url appears on the matching artifact row as a convenience.
+    row = next(a for a in rec["artifacts"]
+               if a["path"] == "results/thermal_summary.json")
+    assert row["url"] == "https://r2.example.com/x.json"
+
+
+# --------------------------------------------------------------------------
+# Validation failures.
+# --------------------------------------------------------------------------
+
+def test_bad_node_uid_pin_rejected(tmp_path):
+    with pytest.raises(sim.SimulationError, match="node_uid"):
+        sim.record_simulation(
+            recipe=_recipe(node_uid="0" * 64), execution=_execution(),
+            artifacts=_artifacts(), sim_dir=tmp_path, name_to_uid=_NAME_TO_UID)
+
+
+def test_unknown_node_rejected(tmp_path):
+    with pytest.raises(sim.SimulationError, match="live map node"):
+        sim.record_simulation(
+            recipe=_recipe(node="NotANode", node_uid=None),
+            execution=_execution(), artifacts=_artifacts(),
+            sim_dir=tmp_path, name_to_uid=_NAME_TO_UID)
+
+
+def test_unknown_configuration_rejected(tmp_path):
+    """A recipe naming a configuration uid absent from docs/data/configurations/
+    fails, but the check reads the REAL configurations dir; point it at an empty
+    one so a missing record is deterministic."""
+    empty_cfg = tmp_path / "cfg"
+    empty_cfg.mkdir()
+    recipe = _recipe(material={"name": "Si", "configuration": "sha256:" + "9" * 64})
+    with pytest.raises(sim.SimulationError, match="configuration"):
+        sim._validate(
+            {"recipe": recipe, "execution": _execution(),
+             "artifacts": _artifacts()},
+            name_to_uid=_NAME_TO_UID, config_dir=empty_cfg, where="t")
+
+
+def test_known_configuration_accepted(tmp_path):
+    cfg = tmp_path / "cfg"
+    cfg.mkdir()
+    uid = "9" * 64
+    (cfg / "si.json").write_text(json.dumps({"canonical": {"uid": uid}}))
+    recipe = _recipe(material={"name": "Si", "configuration": uid})
+    # Should not raise: the configuration resolves.
+    sim._validate(
+        {"recipe": recipe, "execution": _execution(), "artifacts": _artifacts()},
+        name_to_uid=_NAME_TO_UID, config_dir=cfg, where="t")
+
+
+@pytest.mark.parametrize("bad", [
+    {"path": "", "bytes": 10, "sha256": _SHA_A, "role": "result"},
+    {"path": "x", "bytes": 0, "sha256": _SHA_A, "role": "result"},
+    {"path": "x", "bytes": -1, "sha256": _SHA_A, "role": "result"},
+    {"path": "x", "bytes": 10, "sha256": "tooshort", "role": "result"},
+    {"path": "x", "bytes": 10, "sha256": _SHA_A, "role": ""},
+    {"path": "x", "bytes": True, "sha256": _SHA_A, "role": "result"},
+])
+def test_malformed_manifest_rejected(tmp_path, bad):
+    with pytest.raises(sim.SimulationError, match="artifact"):
+        sim.record_simulation(
+            recipe=_recipe(), execution=_execution(), artifacts=[bad],
+            sim_dir=tmp_path, name_to_uid=_NAME_TO_UID)
+
+
+def test_result_backref_mismatch_rejected(tmp_path):
+    """An inline result stub whose simulation backref is not this record's id is
+    rejected: the run owns the values it produced."""
+    good_id = sim.canonical_id(_recipe(), _execution(), _artifacts())
+    stub = {"variable": _NODE, "material": "Si", "value": 1.37, "units": "W/(m K)",
+            "source": {"kind": "simulation", "ref": "gpumd", "detail": "HNEMD"},
+            "simulation": "0" * 64}  # wrong backref
+    assert stub["simulation"] != good_id
+    with pytest.raises(sim.SimulationError, match="backref"):
+        sim.record_simulation(
+            recipe=_recipe(), execution=_execution(), artifacts=_artifacts(),
+            results=[stub], sim_dir=tmp_path, name_to_uid=_NAME_TO_UID)
+
+
+def test_result_stub_with_correct_backref_accepted(tmp_path):
+    rec_id = sim.canonical_id(_recipe(), _execution(), _artifacts())
+    stub = {"variable": _NODE, "material": "Si", "value": 1.37, "units": "W/(m K)",
+            "source": {"kind": "simulation", "ref": "gpumd", "detail": "HNEMD"},
+            "simulation": rec_id}
+    path = sim.record_simulation(
+        recipe=_recipe(), execution=_execution(), artifacts=_artifacts(),
+        results=[stub], sim_dir=tmp_path, name_to_uid=_NAME_TO_UID)
+    rec = json.loads(path.read_text())
+    assert rec["results"][0]["simulation"] == rec_id
+
+
+def test_result_backref_slug_string_accepted(tmp_path):
+    """A bare backref slug (a pointer to a committed instance file) is a legal
+    result entry; its own backref is checked where that instance is bundled."""
+    path = sim.record_simulation(
+        recipe=_recipe(), execution=_execution(), artifacts=_artifacts(),
+        results=["si-thermalconductivity-gpumd-hnemd"],
+        sim_dir=tmp_path, name_to_uid=_NAME_TO_UID)
+    rec = json.loads(path.read_text())
+    assert rec["results"] == ["si-thermalconductivity-gpumd-hnemd"]
+
+
+def test_stated_id_mismatch_rejected(tmp_path):
+    """A record whose stated id does not recompute from its claim (e.g. someone
+    folded a url into the hash) is rejected."""
+    with pytest.raises(sim.SimulationError, match="recomputed"):
+        sim._validate(
+            {"id": "0" * 64, "recipe": _recipe(), "execution": _execution(),
+             "artifacts": _artifacts()},
+            name_to_uid=_NAME_TO_UID, config_dir=tmp_path, where="t")
+
+
+# --------------------------------------------------------------------------
+# verify_simulation: a dated report, never a gate (offline, fake fetcher).
+# --------------------------------------------------------------------------
+
+def _record_for_verify():
+    return {
+        "id": "deadbeef",
+        "artifacts": [
+            {"path": "a.json", "bytes": 3, "sha256":
+             __import__("hashlib").sha256(b"abc").hexdigest(), "role": "result"},
+            {"path": "b.bin", "bytes": 3, "sha256": _SHA_B, "role": "trajectory"},
+            {"path": "c.txt", "bytes": 3, "sha256": _SHA_A, "role": "log"},
+        ],
+        "mirrors": {
+            "a.json": {"url": "https://x/a.json"},
+            "b.bin": {"url": "https://x/b.bin"},
+            # c.txt has NO mirror -> no-url
+        },
+    }
+
+
+def test_verify_report_shape_ok_mismatch_and_unreachable():
+    import datetime
+
+    rec = _record_for_verify()
+
+    def fetcher(url):
+        if url.endswith("a.json"):
+            return b"abc"          # sha matches -> ok
+        if url.endswith("b.bin"):
+            return b"xyz"          # sha differs -> mismatch
+        raise RuntimeError("boom")
+
+    report = sim.verify_simulation(rec, fetcher=fetcher,
+                                   today=datetime.date(2026, 7, 13))
+    assert report["id"] == "deadbeef"
+    assert report["date"] == "2026-07-13"
+    by_path = {c["path"]: c for c in report["checked"]}
+    assert by_path["a.json"]["status"] == "ok"
+    assert by_path["b.bin"]["status"] == "mismatch"
+    assert by_path["b.bin"]["expected"] == _SHA_B
+    assert by_path["c.txt"]["status"] == "no-url"
+
+
+def test_verify_unreachable_url_no_network():
+    """The required case: an unreachable url is reported unreachable, never
+    raised, never a gate."""
+    import datetime
+
+    rec = _record_for_verify()
+
+    def down(url):
+        raise ConnectionError("host unreachable")
+
+    report = sim.verify_simulation(rec, fetcher=down,
+                                   today=datetime.date(2026, 7, 13))
+    statuses = {c["path"]: c["status"] for c in report["checked"]}
+    assert statuses["a.json"] == "unreachable"
+    assert statuses["b.bin"] == "unreachable"
+    assert statuses["c.txt"] == "no-url"
+    # Never raised: verify is a report.
+    assert report["date"] == "2026-07-13"
+
+
+def test_verify_without_fetcher_reports_unreachable():
+    rec = _record_for_verify()
+    report = sim.verify_simulation(rec)
+    urlful = [c for c in report["checked"] if c["url"] is not None]
+    assert urlful and all(c["status"] == "unreachable" for c in urlful)
+    assert all(c.get("reason") == "no fetcher" for c in urlful)
+
+
+# --------------------------------------------------------------------------
+# build_simulations bundler and the instance backref passthrough.
+# --------------------------------------------------------------------------
+
+def test_build_simulations_bundles_and_pins_node_uid(tmp_path):
+    """A written record round-trips through build_simulations, is pinned to the
+    LIVE recipe-node uid, and carries its file. Uses a real live node so the
+    bundler's live-map resolution agrees with the record's pin."""
+    from omai.map_data import _domains, build_graph_dict, build_simulations
+
+    live = {n["id"]: n["uid"] for n in build_graph_dict(_domains())["nodes"]}
+    node = "ThermalConductivity[transport_model=hnemd]"
+    recipe = _recipe(node=node, node_uid=live[node])
+    sim.record_simulation(
+        recipe=recipe, execution=_execution(), artifacts=_artifacts(),
+        sim_dir=tmp_path, name_to_uid=live)
+    bundle = build_simulations(tmp_path)
+    assert len(bundle) == 1
+    entry = bundle[0]
+    assert entry["node_uid"] == live[node]
+    assert entry["file"].endswith(".json")
+    assert entry["id"] == sim.canonical_id(recipe, _execution(), _artifacts())
+
+
+def test_build_simulations_empty_dir_returns_empty(tmp_path):
+    from omai.map_data import build_simulations
+
+    assert build_simulations(tmp_path) == []
+
+
+def test_instance_carries_simulation_backref(tmp_path):
+    """record_instance writes the simulation key only when set, and the bundler
+    carries it through (the configuration-field precedent)."""
+    from omai.map_data import _domains, build_instances, record_instance
+
+    doms = _domains()
+    node = "ThermalConductivity[transport_model=hnemd]"
+    rec_id = "s" * 64
+    path = record_instance(
+        domains=doms, variable=node, material="Si",
+        value=1.37, units="W/(m K)", source_kind="simulation",
+        source_ref="gpumd", detail="HNEMD bulk Si", simulation=rec_id,
+        instances_dir=tmp_path)
+    rec = json.loads(path.read_text())
+    assert rec["simulation"] == rec_id
+    bundle = build_instances(tmp_path)
+    assert bundle[0]["simulation"] == rec_id
+
+
+def test_instance_without_simulation_omits_key(tmp_path):
+    from omai.map_data import _domains, record_instance
+
+    doms = _domains()
+    node = "ThermalConductivity[transport_model=hnemd]"
+    path = record_instance(
+        domains=doms, variable=node, material="Si",
+        value=1.37, units="W/(m K)", source_kind="simulation",
+        source_ref="gpumd", detail="no backref", instances_dir=tmp_path)
+    rec = json.loads(path.read_text())
+    assert "simulation" not in rec

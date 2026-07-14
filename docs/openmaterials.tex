@@ -358,8 +358,10 @@ already exists.
 
 The split is also a separation of concerns in the app. The map view renders the
 structure alone (nodes, edges, formulas, and the code representations that map
-onto them); instances and spectra are a distinct evidence layer that consumers
-load against node uids and attach locally, never carried on the map page itself.
+onto them); the four data record kinds beside the ledger (instances,
+configurations, spectra, and simulations) are a distinct evidence layer that
+consumers load against node uids and attach locally, never carried on the map
+page itself.
 The test suite and the contribution gates exercise that layer directly, so its
 correctness is checked against the same uids the view is drawn from.
 
@@ -664,6 +666,34 @@ XRD pattern's canonical axis (the wavelength-free plane spacing $d_{hkl}$, with
 the radiation wavelength a required condition of any served $2\theta$ axis) is
 recorded as a representation note, and a spectrum against it becomes admissible
 only when an \texttt{XRDPattern} node is minted.
+
+\paragraph{Simulation record (a whole run as evidence).} The value,
+configuration, and spectrum records each capture one number, one cell, or one
+curve; a \emph{simulation record} captures the whole run that produced them, as
+the shareable, re-runnable, fetchable-by-hash unit. It composes from parts that
+already exist: a \texttt{recipe} (the asked computation, in map identity: node,
+material, conditions, params, the format MaterialsCodeGraph already ships), an
+\texttt{execution} block (the code and its version, the per-run container
+digest, the runner, wall time, and seeds), an artifact \texttt{manifest}, and
+the run's \texttt{results} (the instances it produced, each gaining an optional
+\texttt{simulation} backref to the record). The manifest is a list of entries
+\texttt{\{path, bytes, sha256, role\}}: a claim about the bytes, never the bytes
+themselves, which stay in the owner's object storage (an R2 bucket, a Zenodo
+DOI) under the owner's own terms. The record is content-addressed by the sha256
+of exactly that claim (recipe, execution, and the manifest \emph{without} URLs),
+with the same canonical-JSON and float-rounding discipline the configuration
+uid uses. Location is deliberately out of the hash: the URLs live in a
+\texttt{mirrors} resolver layer outside the hashed claim, so moving bytes,
+renaming a bucket, or adding a mirror never re-mints the record and never
+orphans a value that cites it. A verification tool then checks reachability and
+checksum match as a dated report, never as a gate: a record whose bytes moved is
+stale, not wrong. The cheap validation gates that do apply are the existing
+ones: the recipe node resolves against the live map by id and content uid, a
+named configuration exists, every manifest entry is well-formed, and every
+bundled result instance passes the instance checks and backrefs the record. This
+is the same bytes-out-of-git rule the governance already commits to (the map
+holds identity and provenance, the owner holds the artifacts), made into a
+first-class record kind.
 
 \paragraph{Parser contract.} Input: one artifact (a codebase, a paper, a run). Output:
 proposed structure and value records. Every proposal must pass validation below

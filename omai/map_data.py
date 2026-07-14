@@ -349,7 +349,8 @@ def _validate_spectrum(rec: dict, *, name_to_uid: dict, axis_by_var, where: str)
 
 def record_instance(*, domains, variable, material, value, units, source_kind,
                     source_ref, conditions=None, uncertainty=None, detail=None,
-                    configuration=None, instances_dir=None, slug_hint=None):
+                    configuration=None, simulation=None, instances_dir=None,
+                    slug_hint=None):
     known = {n["id"] for n in build_graph_dict(domains)["nodes"]}
     if variable not in known:
         raise ValueError(f"unknown variable {variable!r}")
@@ -364,6 +365,12 @@ def record_instance(*, domains, variable, material, value, units, source_kind,
     # the display string; configuration is the canonical uid when known.
     if configuration is not None:
         rec["configuration"] = configuration
+    # Optional backref to the SimulationRecord that produced this value: the
+    # record id of the run. Written only when set, exactly like configuration,
+    # so existing instances are untouched and the addition stays backward
+    # compatible. The bundler carries the key through unchanged.
+    if simulation is not None:
+        rec["simulation"] = simulation
     # The slug is (material, variable, source_ref) plus an optional caller
     # hint (k-mesh, cell size...). One paper legitimately reports several
     # values on the same node for the same material, so an existing file with
@@ -434,6 +441,43 @@ def record_spectrum(*, domains, variable, material, axis_name, axis_units,
     return path
 
 
+def build_simulations(simulations_dir: Path | None = None) -> list[dict]:
+    """The validated simulation-record index (docs/data/simulations.json).
+
+    A simulation record is a whole run as content-addressed evidence: its recipe
+    (map identity + material + conditions + params), the execution that ran it,
+    an artifact manifest (path, bytes, sha256, role: bytes stay in object
+    storage, the map holds identity and checksums), and the run's results. Each
+    record is re-validated at bundle time against the live map by the same gates
+    the writer applied (recipe node resolves by id and uid pin, a named
+    configuration exists, the manifest is well-formed, bundled result stubs pass
+    the instance checks and backref the record) and pinned to the live uid of
+    its recipe node, so a record travels with its node through supersede chains
+    exactly like an instance. Identity excludes location: urls live in a
+    ``mirrors`` resolver layer outside the hash, so moving bytes never re-mints
+    the record (omai.simulations states the protocol commitment)."""
+    from omai.simulations import _validate  # gate reused verbatim from the writer
+
+    simulations_dir = simulations_dir or (_DOCS / "data" / "simulations")
+    domains = _domains()
+    name_to_uid = {n["id"]: n["uid"] for n in build_graph_dict(domains)["nodes"]}
+    config_dir = _DOCS / "data" / "configurations"
+    out = []
+    if not simulations_dir.exists():
+        return out
+    for f in sorted(simulations_dir.glob("*.json")):
+        rec = json.loads(f.read_text())
+        _validate(rec, name_to_uid=name_to_uid, config_dir=config_dir, where=f.name)
+        node = rec["recipe"]["node"]
+        # Pin the record to the live uid of its recipe node (the instance/
+        # configuration node_uid discipline), and carry its own file so the site
+        # can link the row to the raw per-record JSON.
+        rec["node_uid"] = name_to_uid[node]
+        rec["file"] = f.name
+        out.append(rec)
+    return out
+
+
 _DOMAINS_CACHE: tuple[Domain, ...] | None = None
 
 
@@ -499,6 +543,13 @@ def write_spectra(path: Path | None = None) -> Path:
     path = path or (_DOCS / "data" / "spectra.json")
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(build_spectra()))
+    return path
+
+
+def write_simulations(path: Path | None = None) -> Path:
+    path = path or (_DOCS / "data" / "simulations.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(build_simulations()))
     return path
 
 
@@ -657,6 +708,7 @@ if __name__ == "__main__":
     print("wrote", write_graph())
     print("wrote", write_instances())
     print("wrote", write_spectra())
+    print("wrote", write_simulations())
     print("wrote", write_configurations())
     print("wrote", write_codes())
     print("wrote", write_catalog())
