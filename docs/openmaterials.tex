@@ -2151,6 +2151,25 @@ oriented but is deferred to Phase 2.
         single-crystal silicon and germanium (Part~\ref{part:status}) are the map's
         first measurement instances, sitting on the same $\kappa$ node as the
         computed values.
+  \item \textbf{An agreement layer over the committed values.} The map already holds
+        same-conditions comparisons, and a derived agreement view
+        (\texttt{docs/data/agreement.json}, the \texttt{/agreement/} page) surfaces
+        them as honest reporting of what the data contains. It groups the committed
+        instances that name the same base observable, the same material, and the
+        same physical conditions, differing only in the method or the code that
+        produced them, and reports each group's spread. The concrete cross-code
+        case is silicon at the Tersoff potential, $8\times 8\times 8$ mesh,
+        $T=300\,\text{K}$: kaldo and phono3py agree on direct inversion at $26.9$
+        versus $24.3$ and on RTA at $19.5$ versus $16.7$ (in W/m~K), the same run
+        both cross-method and cross-code; the silicon DFPT LDA case, $19\times
+        19\times 19$ q-grid, quantum statistics, contrasts direct inversion at
+        $147$ against RTA at $140$. The honesty caveat is the equivalence rule
+        itself: two values are compared only when their base quantity, material,
+        and every physical condition match and they differ solely in estimator,
+        so a spread is a real method or code disagreement, never an
+        apples-to-oranges artifact (the source paper is not a physical condition,
+        so two solvers from one paper compare, and two codes on the same inputs
+        are the strongest comparison).
 \end{itemize}
 
 \noindent\textbf{Deferred to Phase 2:}

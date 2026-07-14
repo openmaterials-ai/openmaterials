@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>openmaterials.ai: cross-code agreement</title>
+<meta name="description" content="Where the map's values agree: same observable, same material, same conditions, different method or code. The spread is real method and code disagreement.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="openmaterials.ai">
+<meta property="og:title" content="openmaterials.ai: cross-code agreement">
+<meta property="og:description" content="Same observable, same material, same conditions, different method or code: the spread is real disagreement, not an apples-to-oranges artifact.">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../assets/vendor/inter/inter.css">
+<link rel="stylesheet" href="../assets/vendor/source-serif-4/source-serif-4.css">
+<link rel="stylesheet" href="../assets/vendor/jetbrains-mono/jetbrains-mono.css">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+  /* Agreement joins the light editorial identity of the experiments page:
+     warm-paper ground, indigo for observables and navigation, amber for values,
+     serif headings, mono for refs and ids. A document page: it scrolls. */
+  :root{
+    --font-serif:'Source Serif 4',Georgia,'Times New Roman',serif;
+    --font-sans:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+    --obs:#4f46e5; --obs2:#4338ca; --val:#d98a14;
+    --ink:#16181d; --ink2:#3d4149; --muted:#6b7078; --faint:#9aa0a8;
+    --line:#e8e6e1; --paper:#fdfcfa; --card:#ffffff; --wash:#f4f2ee;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--font-sans);-webkit-font-smoothing:antialiased;}
+  #err{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;font:13px/1.4 var(--font-mono);padding:8px 12px;z-index:40;display:none;white-space:pre-wrap;}
+  .top{position:sticky;top:0;height:58px;display:flex;align-items:center;gap:14px;padding:0 clamp(14px,3vw,22px);
+    background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);box-shadow:0 1px 0 rgba(22,24,29,.04);z-index:10;}
+  .top .brand{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-serif);font-weight:700;font-size:1.06rem;letter-spacing:-.01em;color:var(--ink);text-decoration:none;white-space:nowrap;}
+  .top .brand .om-dot{width:6px;height:6px;border-radius:50%;background:var(--obs);flex:none;display:inline-block;margin-bottom:.28em;}
+  .top .sub{color:var(--faint);font-size:.82rem;font-weight:500;white-space:nowrap;}
+  .top .nav{display:flex;align-items:center;gap:16px;margin-left:auto;}
+  .top .nav a{color:var(--ink2);font-size:.86rem;font-weight:500;white-space:nowrap;text-decoration:none;padding:6px 0;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+  .top .nav a:hover{color:var(--ink);}
+  @media (max-width:680px){ .top .nav a.opt{display:none;} .top .sub{display:none;} }
+
+  .wrap{max-width:960px;margin:0 auto;padding:34px clamp(14px,3vw,22px) 72px;}
+  .crumb{font-size:.82rem;color:var(--muted);margin:0 0 18px;}
+  .crumb a{color:var(--obs);text-decoration:none;}
+  .crumb a:hover{text-decoration:underline;}
+  .eyebrow{font-size:.74rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;}
+  h1{font-family:var(--font-serif);font-weight:700;letter-spacing:-.015em;font-size:clamp(1.5rem,3.4vw,2.1rem);line-height:1.15;margin:0 0 8px;text-wrap:balance;}
+  .lede{color:var(--ink2);font-size:1.02rem;line-height:1.6;max-width:64ch;margin:0 0 8px;}
+  .lede.small{font-size:.9rem;color:var(--muted);max-width:70ch;margin:0 0 26px;}
+
+  .summary{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 26px;}
+  .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 11px;font-size:.78rem;font-weight:500;color:var(--ink2);}
+  .chip .k{color:var(--faint);font-weight:600;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;}
+  .chip .mono{font-family:var(--font-mono);font-size:.74rem;}
+  .chip b{color:var(--val);font-weight:700;}
+
+  /* one card per agreement group */
+  .grp{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:20px 20px 8px;margin:0 0 18px;}
+  .grp-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px 14px;margin:0 0 4px;}
+  .grp-head .obs{font-family:var(--font-serif);font-weight:700;font-size:1.16rem;letter-spacing:-.01em;color:var(--ink);}
+  .grp-head .obs .sym{font-family:var(--font-mono);font-weight:600;font-size:.8em;color:var(--obs2);margin-left:6px;}
+  .grp-head .mat{font-weight:600;color:var(--ink2);font-size:.98rem;}
+  .grp-head .spread{margin-left:auto;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-size:.86rem;color:var(--ink2);white-space:nowrap;}
+  .grp-head .spread b{color:var(--val);font-weight:700;}
+  .grp-head .spread .lbl{color:var(--faint);font-family:var(--font-sans);font-weight:600;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;margin-right:6px;}
+
+  .badges{display:flex;flex-wrap:wrap;gap:7px;margin:6px 0 12px;}
+  .badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:3px 10px;font-size:.74rem;font-weight:600;letter-spacing:.01em;}
+  .badge.cross{border:1px solid #c9d9f0;background:#eef4fd;color:#1d4e89;}
+  .badge.exp{border:1px solid #f3ddba;background:#fdf6ea;color:#8a5a0d;}
+
+  .cond{color:var(--ink2);font-size:.82rem;line-height:1.5;margin:0 0 14px;}
+  .cond .k{color:var(--faint);font-weight:600;font-size:.7rem;letter-spacing:.08em;text-transform:uppercase;margin-right:6px;}
+  .cond .mono{font-family:var(--font-mono);font-size:.78rem;color:var(--ink2);}
+
+  /* values table */
+  .tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--card);margin:0 0 14px;}
+  table{border-collapse:collapse;width:100%;font-size:.86rem;}
+  th{font-size:.7rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+    text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--wash);white-space:nowrap;}
+  td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  td.val{font-family:var(--font-mono);font-variant-numeric:tabular-nums;white-space:nowrap;}
+  td.val b{color:var(--val);font-weight:700;}
+  td.val .u{color:var(--muted);}
+  td.est{font-family:var(--font-mono);font-size:.8rem;color:var(--obs2);max-width:30ch;}
+  td.code .mono{font-family:var(--font-mono);font-size:.8rem;color:var(--ink2);word-break:break-all;}
+  td.kind{white-space:nowrap;}
+  .tag{display:inline-flex;align-items:center;border-radius:999px;padding:2px 9px;font-size:.72rem;font-weight:600;}
+  .tag.kind-simulation{border:1px solid #dcd6fb;background:#f5f3ff;color:var(--obs2);}
+  .tag.kind-measurement{border:1px solid #f3ddba;background:#fdf6ea;color:#8a5a0d;}
+
+  .pin{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:.8rem;line-height:1.6;}
+  .pin .mono{font-family:var(--font-mono);font-size:.74rem;color:var(--ink2);word-break:break-all;}
+  .pin a{color:var(--obs);text-decoration:none;}
+  .pin a:hover{text-decoration:underline;}
+  .empty{color:var(--muted);padding:26px 4px;}
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+<div id="err"></div>
+<header class="top">
+  <a class="brand" href="../"><span class="om-dot"></span>openmaterials.ai</a>
+  <span class="sub">cross-code agreement</span>
+  <nav class="nav">
+    <a href="../map/" class="opt">Map</a>
+    <a href="../map-trace/" class="opt">Tracer</a>
+    <a href="../experiment/">Experiments</a>
+    <a href="../play/">Playground</a>
+    <a href="../learn/" class="opt">Learn</a>
+  </nav>
+</header>
+<main class="wrap" id="main">
+  <noscript><p class="empty">This page renders the agreement layer client-side and needs JavaScript.
+    The raw groups are plain JSON in <a href="../data/agreement.json">../data/agreement.json</a>.</p></noscript>
+</main>
+<script>
+'use strict';
+var ERR = document.getElementById('err');
+function fail(msg){ ERR.textContent = msg; ERR.style.display = 'block'; }
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function condText(c){
+  if (!c || typeof c !== 'object') return '';
+  return Object.keys(c).map(function(k){ return k + ' = ' + c[k]; }).join('  ·  ');
+}
+function pct(x){ return (Number(x) * 100).toFixed(1) + '%'; }
+
+var DATA = null;   // { summary, groups, catalog }
+function load(){
+  return Promise.all([
+    fetch('../data/agreement.json').then(function(r){ return r.json(); }),
+    fetch('../data/catalog.json').then(function(r){ return r.json(); })
+  ]).then(function(parts){
+    var agreement = parts[0], catalog = {};
+    parts[1].forEach(function(n){ catalog[n.id] = n; });
+    DATA = {
+      summary: agreement.summary || {},
+      groups: agreement.groups || [],
+      catalog: catalog
+    };
+  });
+}
+
+function pinHtml(){
+  var v = (DATA.summary && DATA.summary.version) || '';
+  return '<div class="pin">Map version <span class="mono">' + esc(v.slice(0, 12)) + '</span>' +
+    (v ? ' (<span class="mono">' + esc(v) + '</span>)' : '') +
+    '. Agreement is derived from the committed instances at the current site build; cite the map version with any spread you share.' +
+    '<br>Each value stays its owner’s: the instances behind these comparisons are non-exclusive CC BY 4.0 grants, raw artifacts are never ingested, and reuse must credit the source recorded in each value’s provenance ' +
+    '(<a href="https://github.com/openmaterials-ai/openmaterials/blob/main/GOVERNANCE.md">GOVERNANCE.md, “Data ownership and fairness”</a>).</div>';
+}
+
+function badgesHtml(g){
+  var out = '';
+  if (g.has_cross_code)
+    out += '<span class="badge cross" title="The same method computed by two different codes, on the same inputs">cross-code</span>';
+  if (g.has_measurement)
+    out += '<span class="badge exp" title="A measurement and a simulation of the same quantity under the same conditions">theory vs experiment</span>';
+  return out ? '<div class="badges">' + out + '</div>' : '';
+}
+
+function groupHtml(g){
+  var node = (DATA.catalog[g.observable]) || {};
+  var sym = node.symbol ? '<span class="sym">' + esc(node.symbol) + '</span>' : '';
+  var rows = (g.members || []).map(function(m){
+    return '<tr>' +
+      '<td class="val"><b>' + esc(m.value) + '</b>' +
+        (m.units ? ' <span class="u">' + esc(m.units) + '</span>' : '') + '</td>' +
+      '<td class="est">' + esc(m.estimator) + '</td>' +
+      '<td class="code"><span class="mono">' + esc(m.ref) + '</span></td>' +
+      '<td class="kind"><span class="tag kind-' + esc(m.kind) + '">' + esc(m.kind) + '</span></td>' +
+      '</tr>';
+  }).join('');
+  return '<section class="grp">' +
+    '<div class="grp-head">' +
+      '<span class="obs">' + esc(g.observable) + sym + '</span>' +
+      '<span class="mat">' + esc(g.material) + '</span>' +
+      '<span class="spread"><span class="lbl">spread</span><b>' + esc(pct(g.spread)) + '</b></span>' +
+    '</div>' +
+    badgesHtml(g) +
+    '<p class="cond"><span class="k">conditions</span><span class="mono">' +
+      esc(condText(g.conditions)) + '</span></p>' +
+    '<div class="tbl-scroll"><table><thead><tr>' +
+      '<th>Value</th><th>Estimator</th><th>Code</th><th>Kind</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table></div>' +
+    '</section>';
+}
+
+function render(){
+  document.title = 'openmaterials.ai: cross-code agreement';
+  var s = DATA.summary || {};
+  var groups = DATA.groups || [];
+  var summaryChips =
+    '<span class="chip"><span class="k">groups</span> <b>' + esc(s.groups || 0) + '</b></span>' +
+    '<span class="chip"><span class="k">cross-code</span> <b>' + esc(s.cross_code || 0) + '</b></span>' +
+    '<span class="chip"><span class="k">theory vs experiment</span> <b>' + esc(s.theory_vs_experiment || 0) + '</b></span>';
+  var body = groups.length
+    ? groups.map(groupHtml).join('')
+    : '<p class="empty">No same-conditions comparison groups in this build of the store yet. ' +
+      'A group needs two values on the same observable and material, under identical physical conditions, ' +
+      'produced by different methods or codes.</p>';
+  document.getElementById('main').innerHTML =
+    '<p class="crumb"><a href="../experiment/">&larr; Experiments</a></p>' +
+    '<p class="eyebrow">Where the values agree</p>' +
+    '<h1>Cross-code agreement</h1>' +
+    '<p class="lede">One observable is produced by many estimators and codes that must agree. ' +
+    'Each group below is the same observable, the same material, and the same physical conditions, ' +
+    'differing only in the method or the code that produced the value. The spread is therefore a ' +
+    'real method or code disagreement.</p>' +
+    '<p class="lede small">Only values that answer the identical physical question are ever placed side by side: ' +
+    'two instances compare only when their base quantity, material, and every physical condition match, and ' +
+    'they differ solely in estimator (the solver label, the method, or the code). The source paper is not a ' +
+    'physical condition, so a spread is never an apples-to-oranges artifact.</p>' +
+    '<div class="summary">' + summaryChips + '</div>' +
+    body +
+    pinHtml();
+  window.scrollTo(0, 0);
+}
+
+load().then(render, function(e){ fail('Failed to load the agreement layer: ' + e); });
+</script>
+</body>
+</html>
