@@ -699,10 +699,14 @@ def test_instances_bundle_32_records_all_uid_pinned():
     # staircase anchor (2.99992757 at 0.05 THz) from the committed
     # reference/fixtures/level2_bulk_si_n8.npz artifact, both pinned to the
     # PhononTransmission node with the eskm provenance quoted verbatim.
+    # 87 after the amorphous-alloys (Lundgren) MassDensity apply (2026-07-14):
+    # the a-Si fixed density 2.32 g/cm3 in the NVT ensemble, pinned to
+    # MassDensity, the one uncurated own-result value from that parse (its
+    # delta and spectral-marker claims are killed by the deterministic gate).
     from omai.map_data import build_instances
 
     insts = build_instances()
-    assert len(insts) == 86
+    assert len(insts) == 87
     for it in insts:
         assert it.get("node_uid"), f"instance for {it['variable']} lacks node_uid"
 

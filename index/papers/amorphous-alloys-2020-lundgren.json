@@ -11,7 +11,7 @@
   "date": "2026-07-12",
   "parser": "omai.paper_parser P2 (ensemble, batched map)",
   "proposal_stats": {
-   "applied": 1,
+   "applied": 2,
    "detected": 107,
    "survived": 16
   }
@@ -27,6 +27,17 @@
    "quote": "starting from a reference \u03ba = 2.2 W m\u22121 K\u22121for a-Si",
    "units": "W/(m K)",
    "value": 2.2
+  },
+  {
+   "instance": "a-si-massdensity-paper-amorphous-alloys-2020-lundgren.json",
+   "node_id": "MassDensity",
+   "node_uid": "24749d8ecb8f22bd0931e83ebdc540a6cb0753bd4f3a611f142b31050353d42d",
+   "pages": [
+    2
+   ],
+   "quote": "in the NVT ensemble at the\nfixed density of 2.32 g/cm3",
+   "units": "g/cm3",
+   "value": 2.32
   }
  ]
 }

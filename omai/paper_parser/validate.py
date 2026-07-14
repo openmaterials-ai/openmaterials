@@ -12,6 +12,12 @@ Every surviving MAP claim must clear these gates:
   - quote VERIFIED: the cited_text appears, after normalization, as a substring
     of the extracted PDF text. A claim whose quote is not present DIES here.
     This is the hallucination gate.
+  - not a delta: the quote does not frame the value as a difference/change of
+    the mapped quantity ("a 0.6 W/mK drop of kappa" is a delta, not a value);
+  - not a descriptive spectral marker: a Frequency-family quote does not frame
+    the value as a prose band edge / threshold ("below 4 THz") rather than a
+    measured peak. These two are code-level kills for cases the LLM reviewer
+    does not reliably catch; both are deliberately conservative.
   - duplicate: (node uid + material + approx value) already present in
     docs/data/instances/ -> flagged duplicate (already on the map).
 
@@ -220,6 +226,153 @@ def value_finite(value) -> bool:
 
 
 # --------------------------------------------------------------------------
+# Semantic quote gates (deterministic; the LLM reviewer is not reliable here)
+# --------------------------------------------------------------------------
+# The adversarial REVIEW prompt asks the model to kill two families of claim
+# that corrupt the map if applied: a DIFFERENCE quoted as if it were an
+# absolute value (a "0.6 W/mK drop of kappa" is a delta, not a value of the
+# absolute-value node), and a DESCRIPTIVE SPECTRAL MARKER (a frequency quoted
+# as a band edge / threshold in running prose, "below 4 THz", is narrative
+# structure, not a measured mode). The model does not obey that instruction
+# reliably (live: it confirmed the Lundgren 0.6/0.55 drops and the "below 4
+# THz" markers, reason text and all), so these two gates make the kill in
+# code, off the LLM. Both are deliberately CONSERVATIVE: a false kill discards
+# a real value, so when the signal is not tightly bound to the value we do NOT
+# kill and leave the ambiguous case to the LLM reviewer backstop.
+
+# Delta cues. A NOUN ("drop", "reduction", ...) marks the value as a change
+# only when it binds to the value via "of" (drop of / reduction of), and a
+# VERB ("reduced", "decreased", ...) only when it binds via "by" (reduced by
+# <number>). The binding word is what proves the CHANGE is the quantity
+# itself, not a change mentioned elsewhere in the sentence.
+_DELTA_NOUNS = ("drop", "reduction", "decrease", "increase", "rise",
+                "change", "delta", "difference")
+_DELTA_VERBS = ("reduced", "decreased", "increased", "rose", "lowered",
+                "raised", "dropped")
+# The delta cue must sit within this many characters of the value token; a
+# sentence break (. ; :) between the value and the cue defeats the binding.
+_DELTA_WINDOW = 24
+
+
+def _value_token(value) -> str:
+    """The bare numeric token as printed, to locate the value in a normalized
+    quote. Integral floats render without the trailing ".0" so a quote's "4"
+    matches value 4.0. Non-numeric -> "" (never locates, so never kills)."""
+    try:
+        f = float(value)
+    except (TypeError, ValueError):
+        return ""
+    return str(int(f)) if f == int(f) else repr(f)
+
+
+def is_delta_posing_as_value(cited_text: str, value) -> bool:
+    """True iff the quote frames `value` as a difference/change of the mapped
+    quantity rather than an absolute value.
+
+    Deliberately conservative: fires only on a delta cue TIGHTLY bound to the
+    value token ("<noun> of <value>", "<value> <unit> <noun> of <quantity>",
+    "<verb> by <value>"), with no sentence break between them. A sentence that
+    merely mentions a change far from the value (e.g. "the conductivity is 145
+    W/mK; an increase in temperature was applied later") is NOT killed: the
+    "increase" neither binds to 145 by "of"/"by" nor sits before a sentence
+    break-free window, so a real absolute value survives to the LLM backstop.
+    """
+    q = normalize_quote(cited_text)
+    tok = _value_token(value)
+    if not q or not tok:
+        return False
+    m = re.search(r"(?<![\d.])" + re.escape(tok) + r"(?![\d.])", q)
+    if not m:
+        return False
+    lo, hi = m.start(), m.end()
+    left = q[max(0, lo - _DELTA_WINDOW):lo]
+    # a touch beyond the window so a cue starting at the edge still completes
+    right = q[hi:hi + _DELTA_WINDOW + 16]
+
+    def _blocked(s: str) -> bool:
+        return bool(re.search(r"[.;:]", s))
+
+    # PATTERN A: delta-noun BEFORE the value, bound by "of": "reduction of 0.55".
+    for noun in _DELTA_NOUNS:
+        if re.search(rf"\b{noun}\s+of\s*$", left) and not _blocked(left):
+            return True
+    # PATTERN B: delta-noun AFTER value(+unit), bound to the quantity by a
+    # trailing "of": "0.6 W/mK drop of kappa". No LEADING word boundary is
+    # required because PDF extraction glues the unit to the noun ("K-1reduction"),
+    # where the character before the noun is a digit, not a boundary; a lowercase
+    # letter before the noun WOULD make it a different word, so only that is
+    # excluded.
+    for noun in _DELTA_NOUNS:
+        mb = re.search(rf"(?<![a-z]){noun}\s+of\b", right)
+        if mb and mb.start() <= _DELTA_WINDOW and not _blocked(right[:mb.start()]):
+            return True
+    # PATTERN C: delta-verb BEFORE the value, bound by "by": "decreased by 0.6".
+    for verb in _DELTA_VERBS:
+        if re.search(rf"\b{verb}\s+by\s*$", left) and not _blocked(left):
+            return True
+    return False
+
+
+# The Frequency-family nodes: frequency-dimensioned observables that name a
+# POSITION on a spectral axis (a frequency/wavenumber value a paper describes
+# with band edges). Deliberately excludes Linewidth, GroupVelocity, and the
+# dynamical matrices: a "below X" on a linewidth or velocity is not the
+# band-edge narrative this gate targets, so keeping the set small avoids
+# killing legitimate values on those nodes.
+_SPECTRAL_NODE_IDS = frozenset({"Frequency", "MolecularFrequency", "PhononDOS"})
+# Band-edge / threshold / range-bound / crossover cues in prose.
+_SPECTRAL_MARKERS = ("below", "above", "larger than", "smaller than",
+                     "less than", "greater than", "lower than", "higher than",
+                     "up to", "crossover", "threshold", "range", "edge",
+                     "upper bound", "lower bound", "cutoff", "cut-off")
+# Cues that a number is a REAL measured/computed spectral feature (a peak, a
+# mode, a Raman shift, a table entry), which must survive even if a bound word
+# is also present in the sentence.
+_SPECTRAL_PEAK_CUES = ("peak", "mode at", "modes at", "shift", "centered at",
+                       "centred at", "located at", "resonance", "line at")
+
+
+def _is_spectral_node(node_id: str | None, catalog_by_id: dict) -> bool:
+    """True iff node_id is one of the Frequency-family nodes AND still carries
+    the frequency dimension in the catalog (so a rename that changed the
+    physics would drop out of the gate rather than silently mis-fire)."""
+    if node_id not in _SPECTRAL_NODE_IDS:
+        return False
+    dim = (catalog_by_id.get(node_id) or {}).get("dimension", "")
+    return "frequency" in {d.strip() for d in dim.split(",") if d.strip()}
+
+
+def is_descriptive_spectral_marker(cited_text: str, node_id: str | None,
+                                   catalog_by_id: dict) -> bool:
+    """True iff the node is a Frequency-family node AND the quote frames the
+    value as a band edge / threshold / range bound / crossover in prose rather
+    than a measured or computed peak/mode value.
+
+    Deliberately conservative: a genuine peak/mode/shift value survives (the
+    "peak"/"mode at"/"shift"/"centered at" cues short-circuit the kill), and a
+    bare number sequence with no marker word (a table row) survives too. Only
+    an explicit prose bound ("below/above/larger than ... THz", "between X and
+    Y") on a spectral node is killed; anything else is left to the LLM backstop.
+    """
+    if not _is_spectral_node(node_id, catalog_by_id):
+        return False
+    q = normalize_quote(cited_text)
+    if not q:
+        return False
+    # a real spectral feature survives even if a bound word appears nearby
+    for cue in _SPECTRAL_PEAK_CUES:
+        if cue in q:
+            return False
+    # "between X and Y" is a range bound
+    if re.search(r"\bbetween\b.*\band\b", q):
+        return True
+    for marker in _SPECTRAL_MARKERS:
+        if re.search(rf"\b{re.escape(marker)}\b", q):
+            return True
+    return False
+
+
+# --------------------------------------------------------------------------
 # Duplicate detection against the committed instance corpus
 # --------------------------------------------------------------------------
 # Full element / compound names a paper may spell out, mapped to the symbol the
@@ -323,8 +476,9 @@ class Validation:
         """A claim survives VALIDATE iff it has no fatal kill.
 
         Fatal kills: unmapped/unknown node, unit dimensional mismatch, non-finite
-        value, unverified quote. A duplicate flag is NOT fatal (the whole point of
-        the P1 golden gate is that recovered knowns survive and are flagged).
+        value, unverified quote, a delta posing as a value, a descriptive
+        spectral marker. A duplicate flag is NOT fatal (the whole point of the
+        P1 golden gate is that recovered knowns survive and are flagged).
         """
         return not self.kills
 
@@ -336,9 +490,10 @@ def validate_claim(*, node_id: str | None, printed_unit: str, value,
     """Run all deterministic gates on one mapped claim and return the verdict.
 
     node_id may be None (an UNMAPPABLE claim from MAP): that is a node kill.
-    Order of kills recorded: node, quote, unit, value. The quote gate is the
-    hallucination gate; a claim whose quote is absent is killed here regardless
-    of how well-formed the rest is.
+    Order of kills recorded: node, quote, unit, value, then the two semantic
+    quote gates (delta-posing-as-value, descriptive-spectral-marker). The quote
+    gate is the hallucination gate; a claim whose quote is absent is killed here
+    regardless of how well-formed the rest is.
     """
     kills: list[str] = []
 
@@ -359,6 +514,15 @@ def validate_claim(*, node_id: str | None, printed_unit: str, value,
     value_ok = value_finite(value)
     if not value_ok:
         kills.append("nonfinite_value")
+
+    # Semantic quote gates (deterministic, off the unreliable LLM reviewer): a
+    # difference posing as an absolute value, and a descriptive spectral marker
+    # on a Frequency-family node. Both are conservative (see the functions);
+    # they run only for a live node so the node kill is not double-counted.
+    if node_ok and is_delta_posing_as_value(cited_text, value):
+        kills.append("delta_posing_as_value")
+    if node_ok and is_descriptive_spectral_marker(cited_text, node_id, catalog_by_id):
+        kills.append("descriptive_spectral_marker")
 
     duplicate = None
     if node_ok and value_ok:
