@@ -65,8 +65,8 @@ MCG_DEPOLARIZATION_FACTOR = SpaceRepresentationSpec(
     space=DEPOLARIZATION_FACTOR,
     representation_name="materialscodegraph",
     observable_units={"L11": "dimensionless", "L33": "dimensionless"},
-    code_api={"L11": "emt.depolarization(aspect)[0]",
-              "L33": "emt.depolarization(aspect)[1]"},
+    code_api={"L11": "emt.depolarization_factors(aspect)[0]",
+              "L33": "emt.depolarization_factors(aspect)[1]"},
     notes=(
         "The spheroid depolarization factors (L11, L33) from the closed form in "
         "the aspect ratio p = d3/d1 (mcg/tools/composite/emt.py "
