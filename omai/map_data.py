@@ -770,3 +770,8 @@ if __name__ == "__main__":
     import json as _json
     print("wrote", _write_semantics(_json.loads((_DOCS / "data" / "graph.json").read_text())))
     print("wrote", write_version())
+    # Cross-code agreement is derived from the instances (like instances.json
+    # itself is derived), and its summary stamps the map version, so it runs last,
+    # after write_version() has written docs/data/version.json.
+    from omai.cross_code import build_agreement as _build_agreement
+    print("wrote", _build_agreement())

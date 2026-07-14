@@ -60,6 +60,23 @@ you share carries the result and its receipts together. To share your own
 experiment, contribute its values as instances under one `source.ref` and send
 the URL.
 
+The [cross-code agreement page](https://openmaterials.ai/agreement/) takes the
+other cut through the same instances: instead of grouping by source, it groups
+by the physical question. It finds every set of values that are the same
+observable, the same material, and the same physical conditions, differing only
+in the method or the code that produced them, and reports their spread:
+
+```
+https://openmaterials.ai/agreement/
+```
+
+Because only values that answer the identical physical question are ever placed
+side by side (same base quantity, material, and every physical condition, differing
+solely in estimator), a spread there is a real method or code disagreement, never
+an apples-to-oranges artifact. The strongest comparisons are cross-code (the same
+method run by two codes on the same inputs) and theory-versus-experiment (a
+measurement on the same node as a simulation), both badged.
+
 Views are links too: the map takes `#node=<id>` (and writes it as you click)
 and `#experiment=<source.ref>` to light up exactly the quantities an
 experiment's evidence covers,
