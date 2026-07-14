@@ -1,12 +1,16 @@
 """Tests for the simulation layer (omai/simulations.py).
 
 Canonical-hash stability (same claim -> same id; a url change does NOT change
-the id; a recipe change DOES), writer idempotence and overwrite refusal,
-validation failures (bad uid pin, unknown configuration, malformed manifest,
-result backref mismatch), the verify report shape (offline: a fake fetcher, no
-network), the build_simulations bundler, and the instance simulation-backref
-passthrough. All hermetic: node identity is supplied as a fixture name_to_uid,
-never resolved against the live map, and no test touches the network.
+the id; a recipe change DOES; floats outside conditions/params hash as given),
+writer idempotence and overwrite refusal, validation failures (bad uid pin,
+unknown configuration, malformed manifest or execution, result backref
+mismatch, stub missing the instance contract's conditions), the verify report
+shape (offline: a fake fetcher, no network), the build_simulations bundler
+(including slug resolution: a result slug must name a committed instance that
+backrefs the record), and the instance simulation-backref gate in both
+directions (shape at record_instance, membership at build_instances). All
+hermetic: node identity is supplied as a fixture name_to_uid or resolved
+against the live map read-only, and no test touches the network.
 """
 from __future__ import annotations
 
@@ -108,6 +112,25 @@ def test_float_conditions_round_to_one_identity():
     distinct = _recipe(conditions={"T": 301.0, "fmax": 0.05})
     assert (sim.canonical_id(distinct, _execution(), _artifacts())
             != sim.canonical_id(clean, _execution(), _artifacts()))
+
+
+def test_floats_outside_conditions_params_hash_as_given():
+    """The rounding rule covers conditions/params ONLY: a float elsewhere in
+    the claim (a fractional wall time in execution) enters the hash exactly as
+    canonical JSON serializes it. 4210 and 4210.0 are different claims, and
+    sub-rounding noise in execution does NOT collapse: the protocol commitment
+    stated in the module docstring, pinned here so it can never drift silently."""
+    base = sim.canonical_id(_recipe(), _execution(wall_time_s=4210.5),
+                            _artifacts())
+    # Stable: the same float claims the same id.
+    assert sim.canonical_id(_recipe(), _execution(wall_time_s=4210.5),
+                            _artifacts()) == base
+    # int vs float: different serializations, different claims.
+    assert sim.canonical_id(_recipe(), _execution(wall_time_s=4210),
+                            _artifacts()) != base
+    # No rounding outside the recipe rule.
+    assert sim.canonical_id(_recipe(), _execution(wall_time_s=4210.5000001),
+                            _artifacts()) != base
 
 
 # --------------------------------------------------------------------------
@@ -239,7 +262,8 @@ def test_result_backref_mismatch_rejected(tmp_path):
     """An inline result stub whose simulation backref is not this record's id is
     rejected: the run owns the values it produced."""
     good_id = sim.canonical_id(_recipe(), _execution(), _artifacts())
-    stub = {"variable": _NODE, "material": "Si", "value": 1.37, "units": "W/(m K)",
+    stub = {"variable": _NODE, "material": "Si",
+            "conditions": {"T": "300 K"}, "value": 1.37, "units": "W/(m K)",
             "source": {"kind": "simulation", "ref": "gpumd", "detail": "HNEMD"},
             "simulation": "0" * 64}  # wrong backref
     assert stub["simulation"] != good_id
@@ -251,7 +275,8 @@ def test_result_backref_mismatch_rejected(tmp_path):
 
 def test_result_stub_with_correct_backref_accepted(tmp_path):
     rec_id = sim.canonical_id(_recipe(), _execution(), _artifacts())
-    stub = {"variable": _NODE, "material": "Si", "value": 1.37, "units": "W/(m K)",
+    stub = {"variable": _NODE, "material": "Si",
+            "conditions": {"T": "300 K"}, "value": 1.37, "units": "W/(m K)",
             "source": {"kind": "simulation", "ref": "gpumd", "detail": "HNEMD"},
             "simulation": rec_id}
     path = sim.record_simulation(
@@ -259,6 +284,40 @@ def test_result_stub_with_correct_backref_accepted(tmp_path):
         results=[stub], sim_dir=tmp_path, name_to_uid=_NAME_TO_UID)
     rec = json.loads(path.read_text())
     assert rec["results"][0]["simulation"] == rec_id
+
+
+def test_result_stub_missing_conditions_rejected(tmp_path):
+    """The instance contract (build_instances) requires conditions; an inline
+    stub is held to the same bar, so a stub that would be refused as an
+    instance file cannot ride into a simulation record either."""
+    rec_id = sim.canonical_id(_recipe(), _execution(), _artifacts())
+    stub = {"variable": _NODE, "material": "Si", "value": 1.37,
+            "units": "W/(m K)",
+            "source": {"kind": "simulation", "ref": "gpumd", "detail": "HNEMD"},
+            "simulation": rec_id}  # no conditions
+    with pytest.raises(sim.SimulationError, match="conditions"):
+        sim.record_simulation(
+            recipe=_recipe(), execution=_execution(), artifacts=_artifacts(),
+            results=[stub], sim_dir=tmp_path, name_to_uid=_NAME_TO_UID)
+
+
+@pytest.mark.parametrize("bad_exec", [
+    None,
+    "gpumd",
+    {},
+    {"code": ""},
+    {"code": 3},
+    {"code_version": "3.9.5"},
+])
+def test_malformed_execution_rejected(tmp_path, bad_exec):
+    """The execution block is the record's "what ran" claim: it must be an
+    object naming the code that ran. A null, bare-string, or code-less block is
+    degenerate and fails the gate (the manifest well-formedness bar applied to
+    execution)."""
+    with pytest.raises(sim.SimulationError, match="execution"):
+        sim.record_simulation(
+            recipe=_recipe(), execution=bad_exec, artifacts=_artifacts(),
+            sim_dir=tmp_path, name_to_uid=_NAME_TO_UID)
 
 
 def test_result_backref_slug_string_accepted(tmp_path):
@@ -384,23 +443,160 @@ def test_build_simulations_empty_dir_returns_empty(tmp_path):
     assert build_simulations(tmp_path) == []
 
 
+# --------------------------------------------------------------------------
+# The backref loop, record -> instance: a result slug must resolve at bundle
+# time to a committed instance that backrefs the record.
+# --------------------------------------------------------------------------
+
+def _live_uids():
+    from omai.map_data import _domains, build_graph_dict
+
+    return {n["id"]: n["uid"] for n in build_graph_dict(_domains())["nodes"]}
+
+
+_LIVE_NODE = "ThermalConductivity[transport_model=hnemd]"
+
+
+def _record_and_instance(tmp_path, *, backref=None, slug=None):
+    """Write one simulation record (results=[slug]) into tmp_path/sims and one
+    instance into tmp_path/insts carrying ``backref`` (default: the record's
+    id). Returns (sims_dir, insts_dir, record_id, instance_slug)."""
+    from omai.map_data import _domains, record_instance
+
+    live = _live_uids()
+    recipe = _recipe(node=_LIVE_NODE, node_uid=live[_LIVE_NODE])
+    rec_id = sim.canonical_id(recipe, _execution(), _artifacts())
+    sims, insts = tmp_path / "sims", tmp_path / "insts"
+    inst_path = record_instance(
+        domains=_domains(), variable=_LIVE_NODE, material="Si", value=1.37,
+        units="W/(m K)", source_kind="simulation", source_ref="gpumd",
+        detail="HNEMD bulk Si", simulation=backref or rec_id,
+        instances_dir=insts)
+    sim.record_simulation(
+        recipe=recipe, execution=_execution(), artifacts=_artifacts(),
+        results=[slug or inst_path.stem], sim_dir=sims, name_to_uid=live)
+    return sims, insts, rec_id, inst_path.stem
+
+
+def test_bundler_resolves_result_slugs_and_their_backrefs(tmp_path):
+    """The good path: a record whose result slug names a committed instance
+    that backrefs it bundles cleanly and carries the slug through."""
+    from omai.map_data import build_simulations
+
+    sims, insts, rec_id, slug = _record_and_instance(tmp_path)
+    bundle = build_simulations(sims, instances_dir=insts)
+    assert len(bundle) == 1
+    assert bundle[0]["id"] == rec_id
+    assert bundle[0]["results"] == [slug]
+
+
+def test_bundler_refuses_a_dangling_result_slug(tmp_path):
+    """A record citing an instance file the commons does not hold must not
+    enter simulations.json. The WRITER accepts the bare slug (results sit
+    outside the hashed claim and may land after the record); the BUNDLER is the
+    gate."""
+    from omai.map_data import build_simulations
+
+    sims, insts, _rec_id, _slug = _record_and_instance(
+        tmp_path, slug="no-such-instance")
+    with pytest.raises(sim.SimulationError, match="no committed instance"):
+        build_simulations(sims, instances_dir=insts)
+
+
+def test_bundler_refuses_a_slug_whose_instance_backrefs_another_run(tmp_path):
+    """The cited instance exists but names a different run: the loop must not
+    close on someone else's record."""
+    from omai.map_data import build_simulations
+
+    sims, insts, _rec_id, _slug = _record_and_instance(
+        tmp_path, backref="0" * 64)
+    with pytest.raises(sim.SimulationError, match="does not backref"):
+        build_simulations(sims, instances_dir=insts)
+
+
+# --------------------------------------------------------------------------
+# The backref loop, instance -> record: shape at record_instance, membership
+# against the committed record ids at build_instances.
+# --------------------------------------------------------------------------
+
 def test_instance_carries_simulation_backref(tmp_path):
-    """record_instance writes the simulation key only when set, and the bundler
-    carries it through (the configuration-field precedent)."""
+    """record_instance writes the simulation key only when set (the
+    configuration-field precedent), and the bundler checks it against the
+    committed record ids and carries it through."""
     from omai.map_data import _domains, build_instances, record_instance
 
-    doms = _domains()
-    node = "ThermalConductivity[transport_model=hnemd]"
-    rec_id = "s" * 64
+    live = _live_uids()
+    sims, insts = tmp_path / "sims", tmp_path / "insts"
+    recipe = _recipe(node=_LIVE_NODE, node_uid=live[_LIVE_NODE])
+    rec_path = sim.record_simulation(
+        recipe=recipe, execution=_execution(), artifacts=_artifacts(),
+        sim_dir=sims, name_to_uid=live)
+    rec_id = json.loads(rec_path.read_text())["id"]
     path = record_instance(
-        domains=doms, variable=node, material="Si",
+        domains=_domains(), variable=_LIVE_NODE, material="Si",
         value=1.37, units="W/(m K)", source_kind="simulation",
         source_ref="gpumd", detail="HNEMD bulk Si", simulation=rec_id,
-        instances_dir=tmp_path)
+        instances_dir=insts)
     rec = json.loads(path.read_text())
     assert rec["simulation"] == rec_id
-    bundle = build_instances(tmp_path)
+    bundle = build_instances(insts, simulations_dir=sims)
     assert bundle[0]["simulation"] == rec_id
+
+
+def test_record_instance_refuses_malformed_backref(tmp_path):
+    """A record id is a sha256: anything that is not 64 hex characters can
+    never resolve, so the writer refuses it outright."""
+    from omai.map_data import _domains, record_instance
+
+    with pytest.raises(ValueError, match="64-hex"):
+        record_instance(
+            domains=_domains(), variable=_LIVE_NODE, material="Si",
+            value=1.37, units="W/(m K)", source_kind="simulation",
+            source_ref="gpumd", detail="bad backref", simulation="s" * 64,
+            instances_dir=tmp_path)
+
+
+def _handwritten_instance(insts, backref):
+    insts.mkdir(parents=True, exist_ok=True)
+    (insts / "si-thermalconductivity-gpumd.json").write_text(json.dumps({
+        "variable": _LIVE_NODE, "material": "Si",
+        "conditions": {"T": "300 K"}, "value": 1.37, "units": "W/(m K)",
+        "uncertainty": None,
+        "source": {"kind": "simulation", "ref": "gpumd", "detail": "HNEMD"},
+        "simulation": backref}))
+
+
+def test_build_instances_refuses_backref_to_uncommitted_record(tmp_path):
+    """An instance citing a well-formed record id that no committed simulation
+    record carries is a dangling citation: the bundler refuses it."""
+    from omai.map_data import build_instances
+
+    insts = tmp_path / "insts"
+    _handwritten_instance(insts, "a" * 64)
+    with pytest.raises(ValueError, match="matches no committed"):
+        build_instances(insts, simulations_dir=tmp_path / "sims-empty")
+
+
+def test_build_instances_refuses_malformed_backref(tmp_path):
+    """A hand-written instance file with a non-sha256 backref fails the shape
+    check before any membership lookup."""
+    from omai.map_data import build_instances
+
+    insts = tmp_path / "insts"
+    _handwritten_instance(insts, "s" * 64)
+    with pytest.raises(ValueError, match="64-hex"):
+        build_instances(insts, simulations_dir=tmp_path / "sims-empty")
+
+
+def test_committed_ids_reads_the_record_ids(tmp_path):
+    assert sim.committed_ids(tmp_path / "nowhere") == set()
+    live = _live_uids()
+    recipe = _recipe(node=_LIVE_NODE, node_uid=live[_LIVE_NODE])
+    rec_path = sim.record_simulation(
+        recipe=recipe, execution=_execution(), artifacts=_artifacts(),
+        sim_dir=tmp_path, name_to_uid=live)
+    rec_id = json.loads(rec_path.read_text())["id"]
+    assert sim.committed_ids(tmp_path) == {rec_id}
 
 
 def test_instance_without_simulation_omits_key(tmp_path):
