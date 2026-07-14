@@ -275,7 +275,7 @@ CODE_CREDITS: dict[str, dict] = {
         # The composite effective-conductivity tool implements two published,
         # validated formulas; the citation names both (the map author reproduced
         # the pinned 1.2452 W/(m K) reference independently against them).
-        "citation": "S.-Y. Nan, R. Birringer, D. R. Clarke, H. Gleiter, Effective "
+        "citation": "C.-W. Nan, R. Birringer, D. R. Clarke, H. Gleiter, Effective "
         "thermal conductivity of particulate composites with interfacial thermal "
         "resistance, J. Appl. Phys. 81, 6692 (1997); spherical-limit cross-check "
         "D. P. H. Hasselman, L. F. Johnson, Effective thermal conductivity of "

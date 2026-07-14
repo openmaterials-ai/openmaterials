@@ -158,6 +158,17 @@ def test_unit_check_molar_heat_capacity_spellings():
         assert res["ok"] and res["kind"] == "match", (spelling, res)
 
 
+def test_unit_check_interface_conductance_spellings():
+    # W_per_m2_k / MW_per_m2_k registered with the composites domain; the
+    # printed spellings must dimension-check as hard matches against the
+    # InterfaceConductance node, so a Kapitza-conductance claim is checked
+    # instead of passing "unresolved" (MW/(m^2 K) is the practitioner scale).
+    for spelling in ("W/(m^2 K)", "W/(m2 K)", "W m^-2 K^-1",
+                     "MW/(m^2 K)", "MW/(m2 K)", "MW m^-2 K^-1"):
+        res = validate.unit_check(spelling, "InterfaceConductance", _catalog_by_id())
+        assert res["ok"] and res["kind"] == "match", (spelling, res)
+
+
 def test_unit_check_molar_energy_spellings():
     for spelling, node in (("kJ/mol", "MolarEnthalpy"), ("J/mol", "MolarEnthalpy")):
         res = validate.unit_check(spelling, node, _catalog_by_id())
@@ -169,6 +180,27 @@ def test_unit_check_molar_energy_against_plain_energy_is_fatal():
     # node (ReactionEnergy is per event/atom, not per mole) must now be a hard
     # mismatch instead of slipping through unresolved.
     res = validate.unit_check("kJ/mol", "ReactionEnergy", _catalog_by_id())
+    assert not res["ok"] and res["kind"] == "mismatch"
+
+
+def test_unit_check_thermal_conductance_spellings():
+    # W_per_K and nW_per_K entered the registry with the MESCAL onboarding,
+    # but no printed spelling resolved to them, so a Landauer G(T) claim
+    # passed the unit gate "unresolved". W/K and nW/K (the spelling MESCAL's
+    # native serving unit prints) must dimension-check as hard matches
+    # against the conductance node.
+    node = "ThermalConductance[transport_model=landauer]"
+    for spelling in ("W/K", "nW/K", "w/k", "nw/k"):
+        res = validate.unit_check(spelling, node, _catalog_by_id())
+        assert res["ok"] and res["kind"] == "match", (spelling, res)
+
+
+def test_unit_check_conductance_against_conductivity_is_fatal():
+    # The conductance/conductivity distinction the MESCAL onboarding drew:
+    # a W/K (power per temperature) value printed against the per-length
+    # kappa node must die as a dimensional mismatch, not slip through.
+    res = validate.unit_check(
+        "nW/K", "ThermalConductivity[bte_solver=rta]", _catalog_by_id())
     assert not res["ok"] and res["kind"] == "mismatch"
 
 
