@@ -79,13 +79,21 @@ playground's Experiment tab:
 https://openmaterials.ai/play/#/play?tab=experiment&x=<gzipped record>
 ```
 
-Paste a record JSON on that tab, or drop a `.json` file (a record MCG serves
-pastes straight in), and hit Copy link to mint one; opening the link re-renders
-the recipe (node, material, template, hyperparameters, values), lists its
-artifact pointers as links to MCG, and lights the recipe's node on the map. The
-paste/drop ingress validates the record client-side against the same light shape
-checks as `validate_light` (recipe present, artifact pointers well-formed) and is
-honest about gaps (a node-unresolved record is valid, just flagged); it is a
+Opening the link renders the record as a customer **recipe card**: a
+product-style card (a HuggingFace-model-card feel), not a developer view. It
+leads with the property in plain words and the material ("Thermal conductivity
+of Silicon"), a Simulation or Measurement badge, the headline value with its
+units and condition, and a one-line method sentence ("Simulated with GPUMD,
+phonon Boltzmann transport, ..."). The mathematical map-node identity is present
+but quiet: one labeled provenance row carries the map node, the short recipe id,
+and a link to view it on the full map. A **Run on MaterialsCodeGraph** button
+appears when the node is one MCG can compute (and is simply absent otherwise),
+and a Copy link button re-mints the same `#x=` share URL. Paste a record JSON on
+that tab, or drop a `.json` file (a record MCG serves pastes straight in), to
+render a card of your own; the paste/drop ingress validates the record
+client-side against the same light shape checks as `validate_light` (recipe
+present, artifact pointers well-formed) and is honest about gaps (a
+node-unresolved record still renders a card, its provenance says so). It is a
 view only, nothing is uploaded or stored. The fragment uses the same
 gzip+base64url scheme as the map-view share below, so a link a tool produces
 (`record_to_fragment`) and one the playground produces interoperate. It is the
@@ -114,9 +122,9 @@ and `#experiment=<source.ref>` to light up exactly the quantities an
 experiment's evidence covers,
 the tracer takes `#node=<id>` or `#from=<id>&to=<id>` for a derivation path,
 the playground serializes its whole state behind its Share button and takes
-`#x=<gzipped record>` to open a single light experiment record, and the
-experiments index takes `#material=<name>`. Every page has a copy-link
-control.
+`#x=<gzipped record>` to open a single light experiment record as a customer
+recipe card, and the experiments index takes `#material=<name>`. Every page has
+a copy-link control.
 
 ## A slice of the map, as Mermaid
 
