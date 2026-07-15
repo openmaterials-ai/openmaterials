@@ -140,6 +140,60 @@ function esc(s){
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
+
+/* ---- "Run on MaterialsCodeGraph" deep link (#25) --------------------------
+   OPTIONAL, additive, storage-free: for a card whose node MCG can actually run,
+   one more action-row link deep-links MCG's compute wizard at #/new/<node_id>
+   (materialscodegraph#65), prefilled from the recipe. Hidden otherwise: precision
+   over reach, only genuinely runnable nodes get the link, and the card is
+   identical without it. Nothing here touches the store, a record, or identity. */
+var MCG_BASE = 'https://app.materialscodegraph.com';   // one place to change
+
+// The known-computable set: base map nodes MCG has a wired engine for right now.
+// Static by choice (the plan's Q3, YAGNI: no soft capability fetch, no network).
+// MCG's runnable kinds today are its thermal-transport verticals (device_thermal,
+// full_stack, composite_kappa), whose headline output is thermal conductivity, so
+// this is deliberately the ThermalConductivity family and nothing it cannot boot a
+// pod for. It is expected to GROW as MCG wires more kinds; extend this list then.
+var MCG_COMPUTABLE = { 'ThermalConductivity': 1 };
+
+// A variable/node id may carry a bracket qualifier (an estimator/method pin,
+// e.g. ThermalConductivity[bte_solver=direct_inverse]); the runnable KIND is the
+// base node, so computability keys on the base.
+function baseNode(id){ return String(id == null ? '' : id).replace(/\[.*$/, ''); }
+function isComputable(id){ return !!MCG_COMPUTABLE[baseNode(id)]; }
+
+// The runnable node id for a group of records: the first record whose base node
+// MCG can run (there may be several variables under one source ref). Returns the
+// record so the caller can prefill material/conditions from it, or null when the
+// group has nothing MCG can run (the link then does not render).
+function computableRec(recs){
+  for (var i = 0; i < recs.length; i++) { if (isComputable(recs[i].variable)) return recs[i]; }
+  return null;
+}
+
+// The MCG compute deep link for a runnable record: #/new/<node_id>, with the
+// base node id (the runnable kind), plus material and conditions passed as query
+// params when trivially in scope so the wizard can prefill. Q1 (the canonical
+// card URL) is the owner's open call; where a back-link to this openmaterials
+// card is wanted, the PORTABLE #x= form is the self-contained shareable identity,
+// so a back-link would carry the recipe in the fragment rather than invent a
+// server route. It is left off the deep link here (the reciprocal seam (c) ships
+// MCG-side and Q1 is undecided); the const and the base node keep it a one-line
+// add if the owner decides to include it.
+function mcgRunUrl(rec){
+  var url = MCG_BASE + '/#/new/' + encodeURIComponent(baseNode(rec.variable));
+  var qs = [];
+  var mat = rec.material;
+  if (mat != null && mat !== '') {
+    qs.push('material=' + encodeURIComponent(typeof mat === 'object' && mat.name != null ? mat.name : mat));
+  }
+  if (rec.conditions && typeof rec.conditions === 'object') {
+    var c = condText(rec.conditions);
+    if (c) qs.push('conditions=' + encodeURIComponent(c));
+  }
+  return qs.length ? url + '?' + qs.join('&') : url;
+}
 function condText(c){
   if (!c || typeof c !== 'object') return '';
   return Object.keys(c).map(function(k){ return k + ' = ' + c[k]; }).join(' · ');
@@ -268,6 +322,12 @@ function renderDetail(ref){
     '<span class="chip"><span class="k">values</span> ' + recs.length + '</span>' +
     mats.map(function(m){ return '<a class="chip" href="#material=' + encodeURIComponent(m) +
       '" title="All experiments touching this material"><span class="k">material</span> ' + esc(m) + '</a>'; }).join('');
+  // Optional "Run on MaterialsCodeGraph" link (#25): shown only when this
+  // group has a node MCG can actually run, deep-linking its compute wizard
+  // prefilled from that record. Absent otherwise (the card is identical).
+  var runRec = computableRec(recs);
+  var runBtn = runRec ? '<a class="btn" href="' + esc(mcgRunUrl(runRec)) +
+    '" target="_blank" rel="noopener" title="Open this recipe in the MaterialsCodeGraph compute wizard">Run on MaterialsCodeGraph</a>' : '';
   document.getElementById('main').innerHTML =
     '<p class="crumb"><a href="#">&larr; All experiments</a></p>' +
     '<p class="eyebrow">Experiment</p>' +
@@ -275,6 +335,7 @@ function renderDetail(ref){
     '<div class="meta">' + chips + '</div>' +
     '<div class="actions"><button class="btn primary" id="copy" type="button">Copy link</button>' +
     '<a class="btn" href="../map/#experiment=' + encodeURIComponent(ref) + '">View on the map</a>' +
+    runBtn +
     '<span class="copied" id="copied">Link copied</span></div>' +
     '<h2>Values</h2>' +
     '<div class="tbl-scroll"><table><thead><tr>' +
