@@ -136,6 +136,260 @@
   .rc-reopen summary::before{content:"+ ";font-family:var(--font-mono,monospace);}
   .rc-reopen[open] summary::before{content:"\2212 ";}
   .rc-reopen .rc-reopen-body{margin-top:10px;display:flex;flex-direction:column;gap:8px;}
+
+  /* ---- the X -> Y path: the card's hero ------------------------------------
+     An experiment is a typed path on the map, from input node(s) X to the result
+     node Y, through the map's operators. This draws that as the headline: a row
+     of input chips (the true upstream leaves you FEED the run), a chevron chain
+     of the milestone physics quantities the run passes through, and the result Y
+     as the anchor. Chips + arrows + the site's type, never a raw graph dump; the
+     full node-by-node lineage sits one click away in the expander below. Each
+     chip that maps to a real node deep-links the full map (#node=<id>). */
+  /* In the dashboard the path is a full-width HERO panel (the .rd flex gap owns
+     the vertical spacing, so no element margin here). Indigo-tinted so the brand
+     headline reads as the anchor of the dashboard, not a footnote. */
+  .rc-path{margin:0;padding:18px 20px 16px;border:1px solid #dfe4fb;
+    border-radius:14px;background:linear-gradient(180deg,#f6f7ff,var(--surface));
+    box-shadow:0 1px 2px rgba(16,24,40,.035);}
+  .rc-path-lab{font-size:.64rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    color:#6b73c9;margin:0 0 12px;}
+  .rc-path-flow{display:flex;align-items:center;flex-wrap:wrap;gap:9px 7px;}
+  /* one stage of the path: the input group, a milestone, or the result */
+  .rc-stage{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .rc-inputs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .rc-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);
+    background:#fff;border-radius:999px;padding:5px 12px;font-size:.8rem;font-weight:600;
+    color:var(--ink-2,#3d4149);text-decoration:none;line-height:1.2;white-space:nowrap;
+    transition:border-color .15s,color .15s,box-shadow .15s;}
+  a.rc-chip:hover{border-color:var(--accent);color:var(--accent);box-shadow:0 1px 3px rgba(79,70,229,.12);}
+  .rc-chip.in{background:var(--wash,#f4f2ee);}
+  a.rc-chip.in:hover{background:#fff;}
+  .rc-chip .rc-chip-sym{font-family:var(--font-mono,monospace);font-size:.72rem;color:var(--faint,#9aa0a8);}
+  a.rc-chip:hover .rc-chip-sym{color:var(--accent);}
+  /* a milestone the physics passes through: indigo-tinted, still a chip */
+  .rc-chip.mid{background:#eef2ff;border-color:#dfe4fb;color:#3730a3;}
+  a.rc-chip.mid:hover{background:#fff;}
+  a.rc-chip.mid .rc-chip-sym{color:#8891d6;}
+  /* the result Y: the anchor, filled accent so the eye lands here */
+  .rc-chip.out{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;}
+  a.rc-chip.out:hover{background:var(--accent-2,#4338ca);border-color:var(--accent-2,#4338ca);color:#fff;box-shadow:0 2px 8px rgba(79,70,229,.28);}
+  .rc-chip.out .rc-chip-sym{color:rgba(255,255,255,.72);}
+  a.rc-chip.out:hover .rc-chip-sym{color:rgba(255,255,255,.85);}
+  .rc-arrow{color:var(--faint,#9aa0a8);flex:0 0 auto;font-size:1rem;line-height:1;
+    display:inline-flex;align-items:center;}
+  .rc-arrow svg{display:block;}
+  .rc-inbrace{font-size:.62rem;color:var(--faint,#9aa0a8);font-weight:700;letter-spacing:.04em;
+    text-transform:uppercase;margin-right:2px;align-self:center;}
+  .rc-path-full{margin:12px 0 0;font-size:.78rem;}
+  .rc-path-full summary{cursor:pointer;color:var(--accent);font-weight:600;list-style:none;}
+  .rc-path-full summary::-webkit-details-marker{display:none;}
+  .rc-path-full summary::before{content:"+ ";font-family:var(--font-mono,monospace);}
+  .rc-path-full[open] summary::before{content:"\2212 ";}
+  .rc-path-full .rc-lineage{margin-top:9px;border:1px solid var(--line);border-radius:9px;
+    padding:9px 11px;background:#fff;overflow-x:auto;}
+  .rc-lin-row{display:flex;align-items:center;gap:6px;font-size:.72rem;padding:2px 0;white-space:nowrap;}
+  .rc-lin-n{font-family:var(--font-mono,monospace);color:var(--ink-2,#3d4149);}
+  .rc-lin-n.leaf{color:var(--accent);font-weight:650;}
+  .rc-lin-n.tgt{color:#3730a3;font-weight:650;}
+  .rc-lin-op{font-family:var(--font-mono,monospace);color:var(--faint,#9aa0a8);font-size:.66rem;}
+  .rc-path-note{font-size:.72rem;color:var(--muted);margin:9px 0 0;}
+
+  /* ==== the recipe DASHBOARD ================================================
+     A shared #x= record opens as a full dashboard, not a compact card: an
+     experiment is a typed, verifiable PATH from inputs X to a result Y that you
+     can share and replay. The dashboard shows EVERYTHING the recipe holds, laid
+     out as panels a materials scientist scans, not reads: the hero (property +
+     material + the primary value), the X->Y path (the brand hero), then a
+     two-column body of panels (recipe details, values, map-context/trust,
+     artifacts) and a prominent actions bar. It reuses the .rc-* vocabulary
+     above (path, chips, value type, badge) and the site tokens (Inter, Source
+     Serif, JetBrains Mono, the indigo accent). Light-only, matching the whole
+     site by deliberate choice: the dashboard is the site's paper, not a theme of
+     its own. Every field is real record/catalog data; absent fields are omitted,
+     never faked. */
+  .rd{display:flex;flex-direction:column;gap:16px;}
+  /* a panel: bordered surface, a small uppercase eyebrow, generous inner room */
+  .rd-panel{border:1px solid var(--line);border-radius:14px;background:var(--surface);
+    padding:18px 20px 18px;box-shadow:0 1px 2px rgba(16,24,40,.035);}
+  .rd-eyebrow{font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--faint,#9aa0a8);margin:0 0 12px;display:flex;align-items:center;gap:8px;}
+  .rd-eyebrow .rd-eyebrow-note{font-weight:600;letter-spacing:.02em;text-transform:none;
+    color:var(--muted);font-size:.68rem;margin-left:auto;}
+
+  /* HERO: the anchor. Kind badge, big property+material title, the primary value
+     large with units and the key condition. The eye lands here first. */
+  .rd-hero{border:1px solid var(--line);border-radius:16px;
+    background:linear-gradient(180deg,#fcfbf9,var(--surface));
+    padding:24px 26px 22px;box-shadow:0 1px 2px rgba(16,24,40,.04),0 10px 30px rgba(16,24,40,.05);
+    display:grid;grid-template-columns:1fr auto;gap:18px 28px;align-items:end;}
+  .rd-hero-lead{min-width:0;}
+  .rd-hero-title{font-family:var(--font-serif);font-weight:700;letter-spacing:-.018em;
+    font-size:clamp(1.5rem,3.4vw,2.05rem);line-height:1.12;color:var(--ink);
+    margin:12px 0 0;text-wrap:balance;}
+  .rd-hero-sub{font-size:.86rem;color:var(--muted);margin:8px 0 0;}
+  /* the big value, right-aligned on wide screens, tabular figures */
+  .rd-hero-val{text-align:right;white-space:nowrap;}
+  .rd-hero-num{font-family:var(--font-mono,monospace);font-variant-numeric:tabular-nums;
+    font-weight:700;font-size:clamp(2.1rem,5.6vw,3.1rem);line-height:1;
+    color:var(--val,#d98a14);letter-spacing:-.01em;display:block;}
+  .rd-hero-unit{font-family:var(--font-mono,monospace);font-size:1rem;font-weight:500;
+    color:var(--ink-2,#3d4149);margin-top:6px;display:block;}
+  .rd-hero-cond{font-size:.82rem;color:var(--muted);margin-top:6px;display:block;}
+  @media (max-width:640px){
+    .rd-hero{grid-template-columns:1fr;align-items:start;}
+    .rd-hero-val{text-align:left;}
+  }
+
+  /* the two-column body: a wide main column and a narrower trust/artifacts rail.
+     Collapses to one stack below 860px so nothing is cramped. */
+  .rd-body{display:grid;grid-template-columns:minmax(0,1.62fr) minmax(0,1fr);gap:16px;align-items:start;}
+  .rd-col{display:flex;flex-direction:column;gap:16px;min-width:0;}
+  @media (max-width:860px){ .rd-body{grid-template-columns:1fr;} }
+
+  /* RECIPE DETAILS: every field the recipe holds. A key-value grid, grouped into
+     labelled sub-sections (material, hyperparameters, conditions, execution,
+     template). Monospace values, keys in the ink. Nothing hidden. */
+  .rd-group{margin:0 0 14px;}
+  .rd-group:last-child{margin-bottom:0;}
+  .rd-group-lab{font-size:.68rem;font-weight:700;letter-spacing:.04em;color:var(--ink-2,#3d4149);
+    margin:0 0 7px;display:flex;align-items:baseline;gap:8px;}
+  .rd-group-lab .rd-group-tag{font-family:var(--font-mono,monospace);font-size:.64rem;font-weight:500;
+    color:var(--faint,#9aa0a8);letter-spacing:0;}
+  .rd-kv{display:grid;grid-template-columns:auto 1fr;gap:5px 16px;align-items:baseline;}
+  .rd-kv dt{font-size:.82rem;color:var(--ink-2,#3d4149);font-weight:500;white-space:nowrap;}
+  .rd-kv dd{margin:0;font-family:var(--font-mono,monospace);font-variant-numeric:tabular-nums;
+    font-size:.82rem;color:var(--ink);word-break:break-word;text-align:right;}
+  .rd-kv dd.mono-wrap{word-break:break-all;}
+  /* a single-line "material" callout with the configuration uid when present */
+  .rd-mat{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 12px;}
+  .rd-mat-name{font-family:var(--font-serif);font-weight:700;font-size:1.05rem;color:var(--ink);}
+  .rd-mat-uid{font-family:var(--font-mono,monospace);font-size:.7rem;color:var(--muted);word-break:break-all;}
+  .rd-mat-uid a{color:var(--accent);text-decoration:none;}
+  .rd-mat-uid a:hover{text-decoration:underline;}
+  .rd-empty{font-size:.8rem;color:var(--muted);font-style:italic;}
+
+  /* VALUES: the full recipe.values as a table, the primary row highlighted. When
+     several numeric values are present, a small hand-rolled SVG bar strip gives
+     a quick sense of scale (self-contained, no chart lib). */
+  .rd-vtable{width:100%;border-collapse:collapse;font-size:.84rem;}
+  .rd-vtable td{padding:6px 4px;border-bottom:1px solid var(--line);vertical-align:baseline;}
+  .rd-vtable tr:last-child td{border-bottom:none;}
+  .rd-vtable .rd-vk{color:var(--ink-2,#3d4149);font-weight:500;}
+  .rd-vtable .rd-vv{font-family:var(--font-mono,monospace);font-variant-numeric:tabular-nums;
+    color:var(--ink);text-align:right;white-space:nowrap;}
+  .rd-vtable tr.primary .rd-vk{color:var(--ink);font-weight:700;}
+  .rd-vtable tr.primary .rd-vv{color:var(--val,#d98a14);font-weight:700;}
+  .rd-vtable .rd-vk .rd-vtag{display:inline-block;margin-left:7px;font-size:.58rem;font-weight:700;
+    letter-spacing:.06em;text-transform:uppercase;color:var(--val,#d98a14);
+    border:1px solid #f0ddba;background:#fdf4e6;border-radius:999px;padding:1px 6px;vertical-align:middle;}
+  .rd-bars{margin:12px 0 0;display:flex;flex-direction:column;gap:6px;}
+  .rd-bar-row{display:grid;grid-template-columns:minmax(70px,26%) 1fr;gap:10px;align-items:center;font-size:.72rem;}
+  .rd-bar-k{color:var(--ink-2,#3d4149);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:var(--font-mono,monospace);}
+  .rd-bar-track{position:relative;height:9px;background:var(--wash,#f4f2ee);border-radius:5px;overflow:hidden;}
+  .rd-bar-fill{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:5px;opacity:.55;}
+  .rd-bar-row.primary .rd-bar-fill{background:var(--val,#d98a14);opacity:.85;}
+
+  /* MAP CONTEXT / TRUST: the high-value panel. The node's plain-language
+     description + units from the catalog, its tier on the map, and (the strong
+     signal) CROSS-CODE AGREEMENT for this observable+material when the static
+     agreement data has a group: N codes agree within X%, drawn as a range strip
+     with each member's value. This is how a customer trusts the physics. */
+  .rd-desc{font-size:.86rem;line-height:1.55;color:var(--ink-2,#3d4149);margin:0 0 12px;}
+  .rd-facts{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 4px;}
+  .rd-fact{display:inline-flex;align-items:baseline;gap:6px;font-size:.74rem;
+    background:var(--wash,#f4f2ee);border:1px solid var(--line);border-radius:8px;padding:5px 10px;}
+  .rd-fact .rd-fact-k{color:var(--muted);text-transform:uppercase;letter-spacing:.05em;font-size:.6rem;font-weight:700;}
+  .rd-fact .rd-fact-v{font-family:var(--font-mono,monospace);color:var(--ink);}
+  .rd-tier{margin:12px 0 0;font-size:.8rem;color:var(--muted);line-height:1.5;}
+  .rd-tier b{color:var(--ink-2,#3d4149);font-weight:600;}
+
+  /* the cross-code agreement callout: a trust banner + the range plot */
+  .rd-agree{margin:14px 0 0;padding:13px 14px 12px;border:1px solid #cbe9db;border-left:3px solid var(--sim);
+    border-radius:0 11px 11px 0;background:#f4faf7;}
+  .rd-agree.mixed{border-color:#f0ddba;border-left-color:var(--meas);background:#fdf8ef;}
+  .rd-agree-lead{font-size:.82rem;color:#1c6b4a;line-height:1.45;margin:0 0 2px;font-weight:600;}
+  .rd-agree.mixed .rd-agree-lead{color:#8a5a06;}
+  .rd-agree-lead b{font-weight:800;}
+  .rd-agree-sub{font-size:.72rem;color:var(--muted);margin:2px 0 10px;}
+  .rd-agree-plot{width:100%;display:block;overflow:visible;}
+  .rd-agree-plot text{font-family:var(--font-mono,monospace);}
+  .rd-agree-legend{display:flex;flex-direction:column;gap:8px;margin:12px 0 0;}
+  /* a member row: [dot | code + route stacked | value], the route on its own
+     line so the direction_inverse vs rta distinction reads in full. */
+  .rd-agree-mem{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:2px 9px;align-items:baseline;font-size:.76rem;}
+  .rd-agree-dot{width:9px;height:9px;border-radius:50%;align-self:center;grid-row:1/2;}
+  .rd-agree-ref{color:var(--ink);font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;grid-row:1/2;}
+  .rd-agree-val{font-family:var(--font-mono,monospace);font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap;grid-row:1/2;align-self:baseline;}
+  .rd-agree-est{grid-column:2/-1;grid-row:2/3;color:var(--muted);font-size:.66rem;font-family:var(--font-mono,monospace);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .rd-agree-est .rd-agree-kindtag{margin-right:6px;}
+  .rd-agree-kindtag{font-size:.54rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    border-radius:999px;padding:1px 5px;vertical-align:middle;}
+  .rd-agree-kindtag.sim{color:var(--sim);border:1px solid #cbe9db;background:#eafaf3;}
+  .rd-agree-kindtag.meas{color:#9a6206;border:1px solid #f0ddba;background:#fdf4e6;}
+
+  /* ARTIFACTS / HOST: the artifact pointers and the heavy-data host, as links
+     out to MCG / Zenodo. Each artifact is a small row: role, path, an open link
+     when it carries a url. Omitted entirely when the record has none. */
+  .rd-arts{display:flex;flex-direction:column;gap:8px;}
+  .rd-art{display:grid;grid-template-columns:auto 1fr auto;gap:6px 10px;align-items:baseline;
+    font-size:.78rem;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:var(--wash,#f4f2ee);}
+  .rd-art-role{font-size:.58rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--accent);align-self:center;}
+  .rd-art-path{font-family:var(--font-mono,monospace);color:var(--ink-2,#3d4149);
+    min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .rd-art-link{font-weight:700;color:var(--accent);text-decoration:none;white-space:nowrap;}
+  .rd-art-link:hover{text-decoration:underline;}
+  .rd-art-sha{grid-column:2/-1;font-family:var(--font-mono,monospace);font-size:.64rem;color:var(--muted);word-break:break-all;}
+  .rd-host{font-size:.8rem;color:var(--muted);margin:10px 0 0;}
+  .rd-host a{color:var(--accent);text-decoration:none;font-weight:600;}
+  .rd-host a:hover{text-decoration:underline;}
+
+  /* PROVENANCE: the quiet map-node identity row, kept in the trust rail */
+  .rd-prov-node{font-family:var(--font-mono,monospace);font-size:.82rem;color:var(--accent);
+    word-break:break-word;line-height:1.45;}
+  .rd-prov.unres .rd-prov-node{color:var(--meas);}
+  .rd-prov-sub{font-size:.74rem;color:var(--muted);margin-top:7px;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;}
+  .rd-prov-sub .rd-id{font-family:var(--font-mono,monospace);}
+  .rd-prov-sub a{color:var(--accent);text-decoration:none;font-weight:600;}
+  .rd-prov-sub a:hover{text-decoration:underline;}
+
+  /* ACTIONS bar: the prominent bottom anchor. Primary CTA Run on MCG, then Copy
+     link, then the demoted paste/drop affordance. */
+  .rd-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    padding:16px 20px;border:1px solid var(--line);border-radius:14px;background:var(--surface);
+    box-shadow:0 1px 2px rgba(16,24,40,.035);}
+  .rd-actions .rd-act-spacer{flex:1 1 auto;}
+  .rd-actions .rc-reopen{margin:0;}
+
+  /* the dashboard STAGE: fills the canvas area so a shared record commands the
+     full width (the map rail on the left keeps the paste/drop/example controls).
+     Scrolls on its own; a comfortable max-width keeps line lengths readable and
+     the two-column body breathing. Warm-paper ground, matching the site. */
+  .pg-dash{position:absolute;inset:0;z-index:9;overflow-y:auto;overflow-x:hidden;
+    background:radial-gradient(circle at 50% 0%,#fdfcfa,#f4f1ea 92%);
+    padding:26px clamp(16px,4vw,40px) 40px;}
+  .pg-dash .rd{max-width:1000px;margin:0 auto;}
+  /* a slim "shared experiment" ribbon so it's clear this is a replayed record */
+  .pg-dash-ribbon{max-width:1000px;margin:0 auto 16px;display:flex;align-items:baseline;
+    gap:10px;flex-wrap:wrap;font-size:.72rem;color:var(--muted);}
+  .pg-dash-ribbon .pg-dash-kicker{font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--accent);font-size:.64rem;}
+  .pg-dash-ribbon .pg-dash-close{margin-left:auto;font:600 .74rem var(--font-sans);color:var(--accent);
+    background:none;border:none;cursor:pointer;padding:4px 6px;}
+  .pg-dash-ribbon .pg-dash-close:hover{text-decoration:underline;}
+  /* the in-rail echo: once a record renders on the stage, the rail box shows a
+     short pointer to it (keeps the narrow rail uncluttered). */
+  .xp-echo{border:1px solid #cbe9db;border-left:3px solid var(--sim);border-radius:0 8px 8px 0;
+    background:#f2faf6;color:#1c6b4a;font-size:.76rem;padding:8px 10px;line-height:1.45;}
+  .xp-echo b{color:#155038;}
+
+  @media (max-width:520px){
+    /* on narrow screens the path goes vertical: each stage stacks, arrows point down */
+    .rc-path-flow{flex-direction:column;align-items:stretch;gap:5px;}
+    .rc-stage,.rc-inputs{justify-content:flex-start;}
+    .rc-arrow{transform:rotate(90deg);align-self:flex-start;margin-left:14px;}
+  }
   @media (max-width:720px){
     .pg-left{flex-basis:100%;max-width:none;border-right:none;border-bottom:1px solid var(--line);max-height:44vh;}
     .pg-main{flex-direction:column;}
@@ -223,11 +477,13 @@
         optional pointers to heavy artifacts hosted on
         <a href="https://materialscodegraph.com/">MaterialsCodeGraph</a>. Paste a
         record, or drop a <code>.json</code> file (an MCG-served record pastes
-        straight in), to render it as a recipe card, then Copy link: the whole
-        record rides in the <code>#x=</code> fragment, no server, and reopens
-        here as the same card. Nothing is stored or uploaded, it is a client-side
-        view. The card leads with the property and material, shows the value, and
-        keeps the map-node identity in a quiet provenance row.</p>
+        straight in), to open it as a full recipe <b>dashboard</b>, then Copy
+        link: the whole record rides in the <code>#x=</code> fragment, no server,
+        and replays here as the same dashboard. Nothing is stored or uploaded, it
+        is a client-side view. The dashboard shows everything the recipe holds:
+        the experiment as a typed X&rarr;Y path, its values, the map context and
+        cross-code agreement that make the physics trustworthy, and Run on
+        MaterialsCodeGraph.</p>
       <button class="om-btn om-btn-sm" id="loadXExample" type="button">Load an example</button>
       <p style="margin:12px 0 6px;font-size:.78rem;color:var(--muted)">the experiment, as a record:</p>
       <textarea class="pg-input" id="xInput" rows="9" placeholder='{"recipe": {"node": "ThermalConductivity[transport_model=hnemd]", "material": {"name": "Si"}, "hyperparameters": {"nep_cutoff": 8.0}}}' style="resize:vertical;font-family:var(--font-mono,monospace);font-size:.74rem"></textarea>
@@ -246,6 +502,11 @@
     <div id="pglabels"><div id="pglabelsInner"></div></div>
     <div class="pg-hint" id="pgHint">Type a method on the left, or trace a derivation, and the matching part of the map appears here.</div>
     <div class="pg-node-panel" id="pgNodePanel"></div>
+    <!-- the recipe DASHBOARD stage: a shared #x= record is the customer view, so
+         it takes over the whole canvas area (the map is deliberately cleared for
+         a shared record anyway). Scrolls independently; hidden until a record is
+         rendered. On mobile the shell stacks and this flows under the input. -->
+    <div class="pg-dash" id="xDash" hidden></div>
   </div>
 </div>
 
@@ -271,6 +532,8 @@ var SVGNS = 'http://www.w3.org/2000/svg';
 
 var GRAPH = null, SEM = [], LEAN = {nodes:{},edges:{}}, semById = {}, nodeById = {}, children = {}, parents = {}, symHtml = {};
 var catalogById = {};   // node id -> {id, symbol, description}: the plain-language names for the recipe card
+var AGREEMENT = { groups: [] };   // cross-code / theory-vs-experiment agreement groups (docs/data/agreement.json)
+var TIERS = [];         // the map's tiers: [{name, order, description}], for the map-context panel
 var VB = { x: 0, y: 0, w: 1000, h: 700 };
 
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
@@ -302,12 +565,15 @@ Promise.all([
   fetch('../data/semantics.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return []; }),
   fetch('../data/version.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; }),
   fetch('../data/lean.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {nodes:{},edges:{}}; }),
-  fetch('../data/catalog.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return []; })
+  fetch('../data/catalog.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return []; }),
+  fetch('../data/agreement.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return { groups: [] }; })
 ]).then(function(res){
   GRAPH = res[0]; SEM = res[1] || [];
   if (res[2] && res[2].version) window.__MAP_VERSION__ = res[2].version;
   LEAN = res[3] || {nodes:{},edges:{}};
   (res[4] || []).forEach(function(n){ if (n && n.id) catalogById[n.id] = n; });
+  AGREEMENT = res[5] && Array.isArray(res[5].groups) ? res[5] : { groups: [] };
+  TIERS = (GRAPH && Array.isArray(GRAPH.tiers)) ? GRAPH.tiers : [];
   SEM.forEach(function(e){ semById[e.id] = e; });
   var seen = {};
   GRAPH.nodes.forEach(function(n){ nodeById[n.id] = n; symHtml[n.id] = tex(n.symbol); });
@@ -593,16 +859,18 @@ function validateLightJS(record){
 function ingestExperiment(raw, sourceLabel){
   var box = document.getElementById('xResult');
   var text = (raw || '').trim();
-  if (!text) { box.innerHTML = ''; renderSubmap([], {}); return; }
+  if (!text) { hideDash(); box.innerHTML = ''; renderSubmap([], {}); return; }
   var record;
   try { record = JSON.parse(text); }
   catch (e) {
+    hideDash();
     box.innerHTML = '<div class="xp-err">Not valid JSON' +
       (sourceLabel ? ' in ' + esc(sourceLabel) : '') + ': ' + esc(e.message) + '</div>';
     renderSubmap([], {}); return;
   }
   var v = validateLightJS(record);
   if (!v.ok) {
+    hideDash();
     box.innerHTML = '<div class="xp-err">' + esc(v.error) + '</div>';
     renderSubmap([], {}); return;
   }
@@ -613,8 +881,11 @@ function ingestExperiment(raw, sourceLabel){
                       : 'Valid record: node <b>' + esc(v.node) + '</b> is not on this map version (node-unresolved, still valid).')
     : 'Valid record: no map node named (template only, node-unresolved). Whatever we have.';
   renderExperiment(record);
-  // Prepend the status banner to whatever renderExperiment produced.
-  box.innerHTML = '<div class="xp-ok">' + status + '</div>' + box.innerHTML;
+  // Prepend the status banner WITHOUT re-parsing the box: insertAdjacentHTML
+  // keeps the nodes renderExperiment just built (and the Copy-link click handler
+  // it wired to #rcCopy). Re-assigning box.innerHTML here would strip that
+  // listener, leaving Copy link dead after a paste/drop.
+  box.insertAdjacentHTML('afterbegin', '<div class="xp-ok">' + status + '</div>');
 }
 
 /* ---- the recipe card: helpers -------------------------------------------- */
@@ -831,18 +1102,562 @@ function mcgRunUrl(recipe){
   return qs.length ? url + '?' + qs.join('&') : url;
 }
 
-/* renderExperiment: the customer-facing recipe card. A shared #x= record (and a
-   pasted/dropped/example one) renders as a product card, not the developer
-   node-graph: kind badge, headline (property + material), the value big, a human
-   method line, then ONE quiet provenance row where the map-node identity lives,
-   then actions (Run on MaterialsCodeGraph for a computable node, Copy link).
-   Built only from real record + catalog fields; never rejects (a node-unresolved
-   record still renders, provenance says so). */
+/* ---- the dashboard: map context, cross-code agreement, recipe details ------
+   The dashboard adds panels a customer scans to SEE everything and TRUST the
+   physics. These helpers derive each panel purely from the static data already
+   fetched (graph.json tiers, catalog.json descriptions/units, agreement.json
+   groups) plus the in-hand record. No network, no recompute. */
+
+// Material name synonyms so an agreement group keyed "Si" matches a recipe that
+// says "Silicon" (and vice versa). A small, honest alias table for the common
+// elements/compounds the agreement data covers; unknown names match on the exact
+// (case-insensitive) string only, so a mismatch simply shows no agreement panel.
+var MAT_ALIASES = [
+  ['si', 'silicon'], ['ge', 'germanium'], ['c', 'carbon', 'diamond'],
+  ['ga as', 'gaas', 'gallium arsenide'], ['al n', 'aln', 'aluminium nitride', 'aluminum nitride'],
+  ['mg o', 'mgo', 'magnesia'], ['na cl', 'nacl', 'salt', 'rock salt'], ['si o2', 'sio2', 'silica', 'quartz']
+];
+function matKey(s){ return String(s == null ? '' : s).toLowerCase().replace(/[\s_()\-]+/g, ' ').replace(/\s+/g, ' ').trim(); }
+function matMatches(a, b){
+  var ka = matKey(a), kb = matKey(b);
+  if (!ka || !kb) return false;
+  if (ka === kb) return true;
+  // a group's material often carries a parenthetical note ("Si (diamond)"): match
+  // on the leading token too, so "Si" matches "Si (diamond)".
+  var la = ka.split(' ')[0], lb = kb.split(' ')[0];
+  for (var i = 0; i < MAT_ALIASES.length; i++) {
+    var set = MAT_ALIASES[i];
+    var inA = set.indexOf(ka) !== -1 || set.indexOf(la) !== -1;
+    var inB = set.indexOf(kb) !== -1 || set.indexOf(lb) !== -1;
+    if (inA && inB) return true;
+  }
+  return la === lb && la.length > 1;
+}
+
+// Find the agreement group for this observable + material, preferring a
+// cross-code group (the strongest signal) when several match. The observable key
+// is the BASE node (route-neutral kappa), exactly how agreement.json keys its
+// groups. Returns the group or null.
+function findAgreementGroup(node, material){
+  var groups = (AGREEMENT && AGREEMENT.groups) || [];
+  if (!groups.length) return null;
+  var obs = baseNode(node);
+  if (!obs) return null;
+  var mat = materialName(material);
+  var matched = groups.filter(function(g){
+    return g && matKey(g.observable) === matKey(obs) && matMatches(g.material, mat);
+  });
+  if (!matched.length) return null;
+  // prefer the cross-code group, then the one with the most members (richest)
+  matched.sort(function(a, b){
+    var ca = a.has_cross_code ? 1 : 0, cb = b.has_cross_code ? 1 : 0;
+    if (cb !== ca) return cb - ca;
+    return (b.members || []).length - (a.members || []).length;
+  });
+  return matched[0];
+}
+
+// The distinct code/reference names in a group's members, in first-seen order:
+// "kaldo", "phono3py". A ref like "paper:ptse2-2021-donadio" reads as the paper.
+function agreementRefs(group){
+  var refs = [], seen = {};
+  (group.members || []).forEach(function(m){
+    var r = refLabel(m.ref);
+    if (r && !seen[r]) { seen[r] = 1; refs.push(r); }
+  });
+  return refs;
+}
+function refLabel(ref){
+  if (!ref) return '';
+  var s = String(ref);
+  if (s.indexOf('paper:') === 0) return s.slice(6);   // a literature reference
+  return s;
+}
+// A member's short estimator label (route), e.g. "bte_solver=direct_inverse".
+function estimatorLabel(est){
+  if (!est) return '';
+  return String(est).split('|')[0].replace(/\s+/g, ' ').trim();
+}
+
+// Build the cross-code agreement SVG: a horizontal range strip. The axis spans
+// [min, max] of the member values; a soft band marks the full spread, a tick
+// marks the mean, and each member is a dot on the axis coloured by kind
+// (simulation vs measurement). Hand-rolled, self-contained, ~a few values.
+function agreementPlotSVG(group){
+  var members = (group.members || []).filter(function(m){ return typeof m.value === 'number' && isFinite(m.value); });
+  if (members.length < 2) return '';
+  var vals = members.map(function(m){ return m.value; });
+  var lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+  var mean = group.mean != null ? group.mean : vals.reduce(function(a, b){ return a + b; }, 0) / vals.length;
+  var pad = (hi - lo) * 0.18 || Math.abs(hi) * 0.08 || 1;   // breathing room; guard equal values
+  var a0 = lo - pad, a1 = hi + pad, span = (a1 - a0) || 1;
+  var W = 520, H = 78, mx = 30, axisY = 40;
+  var x = function(v){ return mx + (v - a0) / span * (W - 2 * mx); };
+  var s = '<svg class="rd-agree-plot" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Values from each code plotted on a shared axis; a band marks the spread.">';
+  // the spread band
+  s += '<rect x="' + x(lo).toFixed(1) + '" y="' + (axisY - 7) + '" width="' + (x(hi) - x(lo)).toFixed(1) + '" height="14" rx="7" fill="#0f9d6b" opacity="0.10"></rect>';
+  // the axis line
+  s += '<line x1="' + mx + '" y1="' + axisY + '" x2="' + (W - mx) + '" y2="' + axisY + '" stroke="#c9d0dc" stroke-width="1.4"></line>';
+  // min / max axis labels
+  s += '<text x="' + mx + '" y="' + (H - 6) + '" font-size="10" fill="#9aa0a8" text-anchor="start">' + esc(fmtNum(lo)) + '</text>';
+  s += '<text x="' + (W - mx) + '" y="' + (H - 6) + '" font-size="10" fill="#9aa0a8" text-anchor="end">' + esc(fmtNum(hi)) + '</text>';
+  // the mean tick
+  var mxp = x(mean);
+  s += '<line x1="' + mxp.toFixed(1) + '" y1="' + (axisY - 12) + '" x2="' + mxp.toFixed(1) + '" y2="' + (axisY + 12) + '" stroke="#9aa0a8" stroke-width="1" stroke-dasharray="2 2"></line>';
+  s += '<text x="' + mxp.toFixed(1) + '" y="14" font-size="9.5" fill="#6b7078" text-anchor="middle">mean ' + esc(fmtNum(mean)) + '</text>';
+  // each member as a dot, coloured by kind
+  members.forEach(function(m){
+    var col = m.kind === 'measurement' ? '#d98a14' : '#0f9d6b';
+    var cx = x(m.value).toFixed(1);
+    s += '<circle cx="' + cx + '" cy="' + axisY + '" r="5.5" fill="' + col + '" stroke="#fff" stroke-width="1.6"></circle>';
+  });
+  s += '</svg>';
+  return s;
+}
+
+// A compact number for a plot/value label: trims noise but keeps significant
+// figures (26.908 -> 26.9, 0.0000076 -> 7.6e-6, 147 -> 147).
+function fmtNum(v){
+  if (typeof v !== 'number' || !isFinite(v)) return String(v);
+  if (v === 0) return '0';
+  var a = Math.abs(v);
+  if (a >= 1000 || a < 0.001) return v.toExponential(2).replace(/e([+-])0*(\d)/, 'e$1$2');
+  if (Number.isInteger(v)) return String(v);
+  return String(Math.round(v * 1000) / 1000);
+}
+
+// The map-context panel HTML for the recipe's node: the catalog description +
+// units, the node's tier and where it sits, and the cross-code agreement group
+// when one exists. Returns '' when there is genuinely nothing to say (no node on
+// the map AND no agreement group), so the panel is simply omitted.
+function mapContextHTML(node, material){
+  var base = baseNode(node);
+  var cat = base && catalogById[base];
+  var gnode = (node && nodeById[node]) || (base && nodeById[base]);
+  var group = findAgreementGroup(node, material);
+  if (!cat && !gnode && !group) return '';
+
+  var body = '';
+  // the plain-language description (a customer-legible sentence), trimmed of the
+  // trailing bare SI unit the catalog appends (that unit is shown as a fact chip).
+  var desc = cat && cat.description ? String(cat.description).trim() : '';
+  if (desc) {
+    var descClean = desc.replace(/\s*[A-Za-z()·∙\/0-9\^\-]+(?:\s*\/\s*\([^)]*\))?\s*\.?\s*$/, function(m){
+      return /[\/·∙]/.test(m) ? '' : m;   // drop only a trailing real unit, keep normal words
+    }).trim();
+    body += '<p class="rd-desc">' + esc(descClean || desc) + '</p>';
+  }
+
+  // fact chips: symbol, units, dimension
+  var facts = [];
+  var sym = (gnode && gnode.symbol) || (cat && cat.symbol);
+  if (sym) facts.push('<span class="rd-fact"><span class="rd-fact-k">Symbol</span><span class="rd-fact-v">' + tex(sym) + '</span></span>');
+  var unit = cleanUnit((cat && unitFromDescription(cat.description)) || '');
+  if (unit) facts.push('<span class="rd-fact"><span class="rd-fact-k">Units</span><span class="rd-fact-v">' + esc(unit) + '</span></span>');
+  var dim = (gnode && gnode.dimension) || (cat && cat.dimension);
+  if (dim && dim !== 'opaque') facts.push('<span class="rd-fact"><span class="rd-fact-k">Dimension</span><span class="rd-fact-v">' + esc(String(dim).replace(/_/g, ' ')) + '</span></span>');
+  if (facts.length) body += '<div class="rd-facts">' + facts.join('') + '</div>';
+
+  // where on the map: the tier and its plain description, plus position
+  if (gnode && gnode.tier) {
+    var ti = TIERS.filter(function(t){ return t.name === gnode.tier; })[0];
+    var pos = ti ? ('tier ' + (ti.order + 1) + ' of ' + TIERS.length) : '';
+    body += '<p class="rd-tier">On the map: <b>' + esc(gnode.tier) + '</b> tier' + (pos ? ' (' + pos + ')' : '') +
+      (ti && ti.description ? '. ' + esc(ti.description) : '') + '</p>';
+  }
+
+  // cross-code / theory-vs-experiment agreement: the trust signal
+  if (group) body += agreementHTML(group);
+
+  return '<div class="rd-panel"><div class="rd-eyebrow">Map context &amp; trust</div>' + body + '</div>';
+}
+
+// The relative agreement WITHIN a matched estimator: comparing codes that ran
+// the SAME route is the honest cross-code signal (comparing across routes just
+// measures the method difference). For each route with >=2 codes we take the
+// relative spread (max-min)/mean; the reported verdict uses the WIDEST such
+// matched-route spread (conservative). Returns {pct, tight, wide, routes} or null.
+function crossCodeAgreement(members){
+  var byRoute = {};
+  members.forEach(function(m){
+    if (m.kind === 'measurement') return;   // code-vs-code only
+    var route = estimatorLabel(m.estimator) || '(unlabelled)';
+    var ref = refLabel(m.ref);
+    (byRoute[route] = byRoute[route] || []).push({ ref: ref, value: m.value });
+  });
+  var spreads = [];
+  Object.keys(byRoute).forEach(function(route){
+    var ms = byRoute[route];
+    var refs = {}; ms.forEach(function(x){ refs[x.ref] = 1; });
+    if (Object.keys(refs).length < 2) return;   // need >=2 distinct codes at this route
+    var vs = ms.map(function(x){ return x.value; });
+    var lo = Math.min.apply(null, vs), hi = Math.max.apply(null, vs);
+    var mean = vs.reduce(function(a, b){ return a + b; }, 0) / vs.length;
+    if (mean) spreads.push({ route: route, pct: (hi - lo) / Math.abs(mean) });
+  });
+  if (!spreads.length) return null;
+  spreads.sort(function(a, b){ return a.pct - b.pct; });
+  return {
+    tight: Math.round(spreads[0].pct * 1000) / 10,
+    wide: Math.round(spreads[spreads.length - 1].pct * 1000) / 10,
+    routes: spreads.length
+  };
+}
+
+// The agreement callout: a one-line verdict (N codes agree within X%), the range
+// plot, and the member legend (each value, its code/paper, its route, its kind).
+function agreementHTML(group){
+  var members = (group.members || []).filter(function(m){ return typeof m.value === 'number' && isFinite(m.value); });
+  if (members.length < 2) return '';
+  var refs = agreementRefs(group);
+  var hasMeas = !!group.has_measurement;
+  var crossCode = !!group.has_cross_code;
+  // the WHOLE-group relative spread, used as the honest fallback verdict
+  var spreadPct = group.spread != null ? Math.round(group.spread * 1000) / 10 : null;
+  // the matched-route cross-code delta: the real "codes agree" number
+  var cc = crossCode ? crossCodeAgreement(members) : null;
+
+  // the verdict sentence, honest about WHAT agrees. Prefer the matched-route
+  // cross-code delta (codes that ran the same route), which is the meaningful
+  // signal; fall back to theory-vs-experiment or the whole-group spread.
+  var lead, ccPct = cc ? cc.wide : null;
+  if (cc && refs.length >= 2) {
+    var codeNames = '<b>' + esc(refs.slice(0, 4).join(' and ')) + '</b>';
+    lead = codeNames + ' agree within <b>' + ccPct + '%</b>' +
+      (cc.routes > 1 ? ' across ' + cc.routes + ' routes' : '') + '.';
+  } else if (crossCode && refs.length >= 2) {
+    lead = '<b>' + esc(refs.slice(0, 4).join(' and ')) + '</b> agree' + (spreadPct != null ? ' within <b>' + spreadPct + '%</b>' : '') + '.';
+  } else if (hasMeas) {
+    lead = 'Theory and experiment agree' + (spreadPct != null ? ' within <b>' + spreadPct + '%</b>' : '') + '.';
+  } else {
+    lead = '<b>' + members.length + ' independent estimates</b> span <b>' + (spreadPct != null ? spreadPct + '%</b>' : 'a range</b>') + '.';
+  }
+  var mixed = hasMeas && !crossCode;
+  var out = '<div class="rd-agree' + (mixed ? ' mixed' : '') + '">';
+  out += '<p class="rd-agree-lead">' + (crossCode ? 'Cross-code agreement: ' : (hasMeas ? 'Theory vs experiment: ' : 'Independent estimates: ')) + lead + '</p>';
+  var cond = group.conditions && typeof group.conditions === 'object'
+    ? Object.keys(group.conditions).map(function(k){ return k + ' ' + fmtScalar(group.conditions[k]); }).join(' · ') : '';
+  var routeNote = cc ? ' Compared code-to-code at the same route.' : '';
+  out += '<p class="rd-agree-sub">' + members.length + ' values' + (cond ? ' at ' + esc(cond) : '') +
+    '.' + routeNote + ' Sourced from the map\'s agreement layer, not from this run.</p>';
+  out += agreementPlotSVG(group);
+  // the legend: each member as [dot | code | value] with the route on its own
+  // line beneath, so the same-route code-to-code pairing is legible in full.
+  out += '<div class="rd-agree-legend">' + members.map(function(m){
+    var col = m.kind === 'measurement' ? '#d98a14' : '#0f9d6b';
+    var est = estimatorLabel(m.estimator);
+    var kindTag = m.kind === 'measurement'
+      ? '<span class="rd-agree-kindtag meas">measured</span>'
+      : '<span class="rd-agree-kindtag sim">computed</span>';
+    return '<div class="rd-agree-mem">' +
+      '<span class="rd-agree-dot" style="background:' + col + '"></span>' +
+      '<span class="rd-agree-ref">' + esc(refLabel(m.ref)) + '</span>' +
+      '<span class="rd-agree-val">' + esc(fmtNum(m.value)) + (m.units ? ' ' + esc(cleanUnit(m.units)) : '') + '</span>' +
+      '<span class="rd-agree-est">' + kindTag + (est ? esc(est) : '') + '</span>' +
+      '</div>';
+  }).join('') + '</div>';
+  out += '</div>';
+  return out;
+}
+
+// The material's configuration uid, when recipe.material carries one (a pinned
+// atomic configuration): {name, uid} or {name, configuration:{uid}} or a bare
+// uid field. Returns '' otherwise. This is the "note the configuration uid" ask,
+// kept textual (a real structure viewer is a separate follow-up).
+function materialConfigUid(material){
+  if (!material || typeof material !== 'object') return '';
+  var u = material.uid || material.config_uid || material.configuration_uid ||
+    (material.configuration && typeof material.configuration === 'object' && material.configuration.uid) ||
+    (material.canonical && typeof material.canonical === 'object' && material.canonical.uid);
+  return u ? String(u) : '';
+}
+
+// The recipe-details groups: EVERY field the recipe holds, organised for
+// scanning. Each group is {label, tag, rows:[[k,v],...]}; empty groups are
+// dropped by the caller. execution lives on the record (not recipe), so it is
+// passed alongside. Values are formatted compactly; lists read as "a x b x c".
+function detailGroups(record, recipe){
+  var groups = [];
+  var ex = (record && record.execution) || {};
+
+  // hyperparameters: the knobs the run was set with
+  if (recipe.hyperparameters && typeof recipe.hyperparameters === 'object' && !Array.isArray(recipe.hyperparameters)) {
+    var hk = Object.keys(recipe.hyperparameters);
+    if (hk.length) groups.push({ label: 'Hyperparameters', tag: '', rows: hk.map(function(k){ return [k, detailVal(recipe.hyperparameters[k])]; }) });
+  }
+  // conditions / params: the physical setup (temperature, pressure, direction...)
+  ['conditions', 'params'].forEach(function(field){
+    var o = recipe[field];
+    if (o && typeof o === 'object' && !Array.isArray(o)) {
+      var ks = Object.keys(o);
+      if (ks.length) groups.push({ label: field === 'conditions' ? 'Conditions' : 'Parameters', tag: '', rows: ks.map(function(k){ return [k, detailVal(o[k])]; }) });
+    }
+  });
+  // execution: how and where it ran (code, version, container, runner, timing, seeds)
+  var exOrder = [
+    ['code', 'code'], ['code_version', 'code version'], ['container_digest', 'container digest'],
+    ['runner', 'runner'], ['wall_time_s', 'wall time (s)'], ['seeds', 'seeds'],
+    ['host', 'host'], ['platform', 'platform']
+  ];
+  var exRows = [];
+  exOrder.forEach(function(pair){ if (ex[pair[0]] != null && ex[pair[0]] !== '') exRows.push([pair[1], detailVal(ex[pair[0]])]); });
+  // any other execution keys not in the ordered list, so nothing is hidden
+  Object.keys(ex).forEach(function(k){
+    if (!exOrder.some(function(p){ return p[0] === k; }) && ex[k] != null && ex[k] !== '')
+      exRows.push([k.replace(/_/g, ' '), detailVal(ex[k])]);
+  });
+  if (exRows.length) groups.push({ label: 'Execution', tag: '', rows: exRows });
+
+  // template: the method blueprint, when named
+  if (recipe.template != null && recipe.template !== '') {
+    groups.push({ label: 'Template', tag: '', rows: [[String(recipe.template), templateWords(recipe.template) || '']] });
+  }
+  return groups;
+}
+// A detail value formatted for the grid: a list reads "8 x 8 x 8", an object is
+// JSON, a long hex is a hash we mark for break-anywhere wrapping.
+function detailVal(v){
+  if (v == null) return { text: '', wrap: false };
+  if (Array.isArray(v)) return { text: v.map(function(x){ return fmtScalar(x); }).join(' x '), wrap: false };
+  if (typeof v === 'object') return { text: JSON.stringify(v), wrap: true };
+  var s = String(v);
+  return { text: s, wrap: /^[0-9a-f]{16,}$/i.test(s) || s.length > 28 };
+}
+
+// The VALUES table: every entry of recipe.values, the primary row highlighted
+// and tagged. Non-'units' meta keys stay in the table so nothing is hidden.
+function valuesTableHTML(picked, unit){
+  var rows = [];
+  rows.push({ key: picked.primary.key, val: picked.primary.val, primary: true });
+  picked.rest.forEach(function(r){ rows.push({ key: r.key, val: r.val, primary: false }); });
+  return '<table class="rd-vtable"><tbody>' + rows.map(function(r){
+    var showUnit = r.primary && unit && typeof r.val !== 'object';
+    return '<tr' + (r.primary ? ' class="primary"' : '') + '>' +
+      '<td class="rd-vk">' + esc(r.key) + (r.primary ? '<span class="rd-vtag">primary</span>' : '') + '</td>' +
+      '<td class="rd-vv">' + esc(fmtValue(r.val)) + (showUnit ? ' ' + esc(unit) : '') + '</td></tr>';
+  }).join('') + '</tbody></table>';
+}
+
+// A hand-rolled bar strip for the numeric values (self-contained, no chart lib):
+// only drawn when at least two entries are finite scalars, so a lone value never
+// gets a pointless one-bar chart. Bars are scaled to the max absolute value; the
+// primary bar is amber, the rest indigo.
+function barsHTML(picked){
+  var all = [{ key: picked.primary.key, val: picked.primary.val, primary: true }]
+    .concat(picked.rest.map(function(r){ return { key: r.key, val: r.val, primary: false }; }));
+  var num = all.filter(function(r){ return typeof r.val === 'number' && isFinite(r.val); });
+  if (num.length < 2) return '';
+  var maxAbs = Math.max.apply(null, num.map(function(r){ return Math.abs(r.val); })) || 1;
+  return '<div class="rd-bars" role="img" aria-label="Relative magnitude of the numeric values.">' +
+    num.map(function(r){
+      var pct = Math.max(2, Math.abs(r.val) / maxAbs * 100);
+      return '<div class="rd-bar-row' + (r.primary ? ' primary' : '') + '">' +
+        '<span class="rd-bar-k" title="' + esc(r.key) + '">' + esc(r.key) + '</span>' +
+        '<span class="rd-bar-track"><span class="rd-bar-fill" style="width:' + pct.toFixed(1) + '%"></span></span>' +
+        '</div>';
+    }).join('') + '</div>';
+}
+
+// The ARTIFACTS / HOST panel: any artifact pointers (role, path, an open link
+// when it carries a url, its sha256 when present) and the heavy-data host line.
+// Returns '' when the record has neither, so the panel is simply omitted.
+function artifactsHTML(record){
+  var arts = (record && record.artifacts) || [];
+  var host = heavyHost(record);
+  if ((!Array.isArray(arts) || !arts.length) && !host) return '';
+  var body = '';
+  if (Array.isArray(arts) && arts.length) {
+    body += '<div class="rd-arts">' + arts.map(function(a){
+      if (!a || typeof a !== 'object') return '';
+      var link = a.url ? '<a class="rd-art-link" href="' + esc(a.url) + '" target="_blank" rel="noopener">open &rarr;</a>' : '<span class="rd-art-link" style="color:var(--faint);font-weight:500">no host</span>';
+      return '<div class="rd-art">' +
+        '<span class="rd-art-role">' + esc(a.role || 'artifact') + '</span>' +
+        '<span class="rd-art-path" title="' + esc(a.path || '') + '">' + esc(a.path || '') + '</span>' +
+        link +
+        (a.sha256 ? '<span class="rd-art-sha">sha256 ' + esc(String(a.sha256).slice(0, 24)) + '&hellip;</span>' : '') +
+        '</div>';
+    }).join('') + '</div>';
+  }
+  if (host) {
+    body += '<p class="rd-host">Heavy data hosted on ' + esc(host.provider) +
+      ' &middot; <a href="' + esc(host.url) + '" target="_blank" rel="noopener">open &rarr;</a></p>';
+  }
+  return '<div class="rd-panel"><div class="rd-eyebrow">Artifacts &amp; host</div>' + body + '</div>';
+}
+
+/* ---- the X -> Y path: an experiment is a typed lineage on the map ----------
+   An experiment goes from input node(s) X to a result node Y through the map's
+   operators. The lineage is already in graph.json: walking the PRODUCING edges
+   upstream from Y (links whose op does NOT start with provide_, exactly as
+   omai/mermaid.py mermaid_lineage does) reaches the true inputs. This block
+   derives, from a recipe's output node, (a) the true input leaves X, (b) a short
+   chain of milestone quantities the physics passes through, and (c) the full
+   producing-edge lineage for the expander. All against the page's live GRAPH. */
+
+// The producing edges of the map, indexed by target: target -> [[source, op], ...].
+// Producing means op present and NOT a provide_ (a source injection). Built once,
+// lazily, from the same links the canvas uses. Mirrors mermaid_lineage's filter.
+var _producers = null;
+function producersOf(){
+  if (_producers) return _producers;
+  _producers = {};
+  if (GRAPH && GRAPH.links) GRAPH.links.forEach(function(l){
+    if (l.op && String(l.op).indexOf('provide_') !== 0 && l.source !== l.target)
+      (_producers[l.target] = _producers[l.target] || []).push([l.source, l.op]);
+  });
+  return _producers;
+}
+
+// Walk producing edges upstream from a node, capped (like mermaid_lineage's
+// max_edges). Returns {edges:[[from,op,to],...], visited:{id:1}, leaves:[ids]}.
+// A LEAF is a reached node with no producing edge of its own: the true input X
+// you FEED the experiment (Potential, ForceConstants, Structure, Temperature...).
+function upstreamLineage(nodeId, maxEdges){
+  maxEdges = maxEdges || 60;
+  var prod = producersOf();
+  var edges = [], queue = [nodeId], visited = {}, leafSet = {};
+  while (queue.length && edges.length < maxEdges){
+    var cur = queue.shift();
+    if (visited[cur]) continue;
+    visited[cur] = 1;
+    var ps = prod[cur] || [];
+    if (!ps.length && cur !== nodeId) leafSet[cur] = 1;   // no producer: a source
+    ps.forEach(function(p){
+      edges.push([p[0], p[1], cur]);
+      if (!visited[p[0]]) queue.push(p[0]);
+    });
+  }
+  // any source that was an edge-tail but never expanded is also a leaf
+  edges.forEach(function(e){ if (!(prod[e[0]] && prod[e[0]].length)) leafSet[e[0]] = 1; });
+  // stable, readable order for the input chips: by node layer then id
+  var leaves = Object.keys(leafSet).sort(function(a, b){
+    var la = (nodeById[a] && nodeById[a].layer) || 0, lb = (nodeById[b] && nodeById[b].layer) || 0;
+    return la - lb || a.localeCompare(b);
+  });
+  return { edges: edges, visited: visited, leaves: leaves };
+}
+
+// The milestone chain: a HANDFUL of recognizable physics waypoints between the
+// inputs and the result, NOT the full graph (that is the expander). We walk the
+// spine from Y downward, at each step taking the deepest-layer producing parent,
+// keep only observable (customer-recognizable) intermediates that are not inputs
+// and not the target, then thin to at most `cap` evenly by layer. This yields,
+// for a BTE kappa run, ForceConstants -> Frequency -> Linewidth, the milestones a
+// materials scientist would name, never the 20-node internal chain.
+function milestoneChain(nodeId, lineage, cap){
+  cap = cap || 3;
+  var prod = producersOf();
+  var leafSet = {}; lineage.leaves.forEach(function(id){ leafSet[id] = 1; });
+  // the spine: from Y, repeatedly pick the producing parent with the highest layer
+  var spine = [], cur = nodeId, guard = 0, onSpine = {};
+  while (guard++ < 80){
+    var ps = (prod[cur] || []).slice();
+    if (!ps.length) break;
+    ps.sort(function(a, b){
+      var la = (nodeById[a[0]] && nodeById[a[0]].layer) || 0, lb = (nodeById[b[0]] && nodeById[b[0]].layer) || 0;
+      return lb - la;   // deepest layer first: the main derivation line
+    });
+    var nxt = ps[0][0];
+    if (onSpine[nxt]) break;
+    onSpine[nxt] = 1; spine.push(nxt); cur = nxt;
+  }
+  // keep observable milestones that are neither an input leaf nor the target
+  var cand = spine.filter(function(id){
+    var n = nodeById[id];
+    return n && n.type === 'observable' && !leafSet[id] && id !== nodeId;
+  });
+  if (cand.length <= cap) return cand.reverse();   // few enough: show them all, input->output order
+  // thin evenly across the chain so the milestones span the physics, not cluster
+  var picks = [];
+  for (var i = 0; i < cap; i++){
+    var idx = Math.round(i * (cand.length - 1) / (cap - 1));
+    if (picks.indexOf(cand[idx]) === -1) picks.push(cand[idx]);
+  }
+  return picks.reverse();   // input->output order for left-to-right reading
+}
+
+// A path chip: human-named, with the node's math symbol as a quiet monospace
+// tag, deep-linking the full map (#node=<id>) when the id maps to a real node.
+// role is 'in' (input X), 'mid' (milestone), or 'out' (result Y).
+function pathChip(id, role){
+  var human = humanProperty(id, null);
+  var onMap = !!nodeById[id] || !!nodeById[baseNode(id)];
+  var sym = nodeById[id] && nodeById[id].symbol;
+  var symHtmlStr = sym ? '<span class="rc-chip-sym">' + tex(sym) + '</span>' : '';
+  var body = esc(human) + symHtmlStr;
+  var cls = 'rc-chip ' + role;
+  if (onMap) return '<a class="' + cls + '" href="../map/#node=' + encodeURIComponent(id) +
+    '" title="' + esc(id) + ': view on the full map">' + body + '</a>';
+  return '<span class="' + cls + '" title="' + esc(id) + '">' + body + '</span>';
+}
+function chevron(){
+  return '<span class="rc-arrow" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none">' +
+    '<path d="M5 3l5 5-5 5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>';
+}
+
+// buildPathHTML: the hero. Returns the "INPUTS -> milestones -> RESULT" block for
+// a recipe whose output node is on the map, plus a "show full lineage" expander
+// carrying every producing edge. Returns '' when the node is off-map or has no
+// producing lineage (a source node, or a measurement): the caller then shows the
+// values it DOES have, never a fake path.
+function buildPathHTML(node){
+  if (!node || !nodeById[node]) return '';           // node-unresolved: no path
+  var lineage = upstreamLineage(node);
+  if (!lineage.edges.length) return '';              // a source / no computation: no path
+  var leaves = lineage.leaves;
+  var mids = milestoneChain(node, lineage, 3);
+
+  var flow = '';
+  // inputs X: the group of leaf chips, braced as INPUTS
+  if (leaves.length){
+    flow += '<div class="rc-stage"><span class="rc-inbrace">Inputs</span><span class="rc-inputs">' +
+      leaves.map(function(id){ return pathChip(id, 'in'); }).join('') + '</span></div>';
+    flow += chevron();
+  }
+  // milestones: the physics waypoints, each behind a chevron
+  mids.forEach(function(id){ flow += '<div class="rc-stage">' + pathChip(id, 'mid') + '</div>' + chevron(); });
+  // the result Y: the anchor
+  flow += '<div class="rc-stage">' + pathChip(node, 'out') + '</div>';
+
+  // the full lineage, one click away: every producing edge, from->op->to, with
+  // the input leaves and the target lit. Developer detail, not the default view.
+  var leafOf = {}; leaves.forEach(function(id){ leafOf[id] = 1; });
+  var rows = lineage.edges.map(function(e){
+    var op = String(e[1]).replace(/\[.*?\]/g, '').replace(/_/g, ' ');
+    var fcls = 'rc-lin-n' + (leafOf[e[0]] ? ' leaf' : '');
+    var tcls = 'rc-lin-n' + (e[2] === node ? ' tgt' : '');
+    return '<div class="rc-lin-row"><span class="' + fcls + '">' + esc(e[0]) + '</span>' +
+      '<span class="rc-lin-op">&mdash;' + esc(op) + '&rarr;</span>' +
+      '<span class="' + tcls + '">' + esc(e[2]) + '</span></div>';
+  }).join('');
+  var full = '<details class="rc-path-full"><summary>Show the full lineage (' +
+    lineage.edges.length + ' steps)</summary><div class="rc-lineage">' + rows + '</div></details>';
+
+  var note = leaves.length
+    ? '<p class="rc-path-note">Feed the inputs on the left; the map derives the result on the right, one verifiable step at a time.</p>'
+    : '';
+
+  return '<div class="rc-path"><div class="rc-path-lab">The experiment, as a path</div>' +
+    '<div class="rc-path-flow">' + flow + '</div>' + note + full + '</div>';
+}
+
+/* renderExperiment: the customer-facing recipe DASHBOARD. A shared #x= record
+   (and a pasted/dropped/example one) renders as a full dashboard, not the
+   developer node-graph: a HERO (kind badge, human property + material, the
+   primary value big), the X->Y PATH hero panel (the brand headline), then a
+   two-column body of panels showing EVERYTHING the recipe holds (recipe details,
+   values, map-context + cross-code agreement, artifacts/host) and a prominent
+   ACTIONS bar (Run on MaterialsCodeGraph for a computable node, Copy link).
+   Built only from the in-hand record + the static catalog/tier/agreement data;
+   never rejects: a node-unresolved or measurement record still renders the panels
+   it can and simply omits a fake path or a Run button. */
 function renderExperiment(record){
-  var box = document.getElementById('xResult');
+  var box = document.getElementById('xResult');   // the narrow-rail echo/errors
+  var stage = document.getElementById('xDash');   // the full-width dashboard stage
   nodePanel.style.display = 'none';
   var recipe = (record && record.recipe) || null;
   if (!recipe || typeof recipe !== 'object') {
+    hideDash();
     box.innerHTML = '<div class="xp-err">Not an experiment record: identity is the recipe, so a record needs a <code>recipe</code> object.</div>';
     renderSubmap([], {}); return;
   }
@@ -854,76 +1669,136 @@ function renderExperiment(record){
   var prop = humanProperty(node, template);
   var mat = materialName(recipe.material);
   var kind = recordKind(record);
+  var picked = pickValues(recipe.values, node);
+  var unit = cleanUnit((recipe.units) || (recipe.values && recipe.values.units) || (cat && unitFromDescription(cat.description)) || '');
+  var sub = conditionSubtitle(recipe);
 
-  var h = '<div class="rc-card">';
-  // kind badge
+  var h = '<div class="rd">';
+
+  // ---- 1) HERO: badge, property + material title, the primary value big ----
+  h += '<div class="rd-hero"><div class="rd-hero-lead">';
   h += '<span class="rc-badge ' + (kind === 'measurement' ? 'meas' : 'sim') + '">' +
        (kind === 'measurement' ? 'Measurement' : 'Simulation') + '</span>';
-  // headline: property in plain words + material
-  h += '<h2 class="rc-head">' + esc(prop) + (mat ? ' of ' + esc(mat) : '') + '</h2>';
-
-  // value block: the primary number + units, condition subtitle, the rest small
-  var picked = pickValues(recipe.values, node);
-  if (picked.primary) {
-    var unit = cleanUnit((recipe.units) || (recipe.values && recipe.values.units) || (cat && unitFromDescription(cat.description)) || '');
-    var sub = conditionSubtitle(recipe);
-    h += '<div class="rc-value"><span class="rc-num">' + esc(fmtValue(picked.primary.val)) + '</span>' +
-         (unit ? '<span class="rc-unit">' + esc(unit) + '</span>' : '') + '</div>';
-    if (sub) h += '<p class="rc-cond">' + esc(sub) + '</p>';
-    if (picked.rest.length) {
-      h += '<ul class="rc-more">' + picked.rest.map(function(r){
-        return '<li><span class="rc-mk">' + esc(r.key) + '</span><span class="rc-mv">' + esc(fmtValue(r.val)) + '</span></li>';
-      }).join('') + '</ul>';
-    }
-  }
-
-  // method line: a human sentence from execution.code + hyperparameters
+  h += '<h2 class="rd-hero-title">' + esc(prop) + (mat ? ' of ' + esc(mat) : '') + '</h2>';
   var method = methodSentence(record, recipe);
-  if (method) h += '<p class="rc-method">' + esc(method) + '</p>';
-
-  // provenance: the ONE quiet labelled row where the map-node identity lives
-  h += '<div class="rc-prov' + (node && !known ? ' unres' : '') + '">';
-  h += '<div class="rc-prov-lab">Provenance</div>';
-  if (node) {
-    h += '<div class="rc-prov-node">Map node: ' + esc(node) + '</div>';
-  } else {
-    h += '<div class="rc-prov-node">Node-unresolved (template only' + (template ? ': ' + esc(String(template)) : '') + ')</div>';
+  if (method) h += '<p class="rd-hero-sub">' + esc(method) + '</p>';
+  h += '</div>';
+  if (picked.primary) {
+    h += '<div class="rd-hero-val"><span class="rd-hero-num">' + esc(fmtValue(picked.primary.val)) + '</span>' +
+         (unit ? '<span class="rd-hero-unit">' + esc(unit) + '</span>' : '') +
+         (sub ? '<span class="rd-hero-cond">' + esc(sub) + '</span>' : '') + '</div>';
   }
-  var provSub = [];
-  if (record.id) provSub.push('<span class="rc-id">' + esc(String(record.id).slice(0, 12)) + '</span>');
-  if (known) provSub.push('<a href="../map/#node=' + encodeURIComponent(node) + '" title="Open this quantity on the full map">View on the map →</a>');
-  else if (node) provSub.push('<span>not on this map version</span>');
-  if (provSub.length) h += '<div class="rc-prov-sub">' + provSub.join('') + '</div>';
   h += '</div>';
 
-  // heavy-data host: a small line only when a mirror/artifact carries a url
-  var host = heavyHost(record);
-  if (host) {
-    h += '<p class="rc-host">Heavy data hosted on ' + esc(host.provider) +
-         ' · <a href="' + esc(host.url) + '" target="_blank" rel="noopener">open →</a></p>';
+  // ---- 2) THE X -> Y PATH: the brand hero panel. Drawn when the output node is
+  // on the map and has a producing lineage; a node-unresolved or measurement
+  // record shows no path (never a fake one). buildPathHTML returns '' otherwise.
+  h += buildPathHTML(node);
+
+  // ---- the two-column body. The wide MAIN column carries the map-context/trust
+  // panel (its plain-language description and the cross-code agreement plot read
+  // best with room) and the values; the RAIL carries the recipe-details grid (a
+  // compact key-value list that reads fine narrow), artifacts, and provenance.
+  h += '<div class="rd-body">';
+
+  // -- main column: map context + trust, then values --
+  h += '<div class="rd-col">';
+
+  // MAP CONTEXT / TRUST: catalog description + units, tier, cross-code agreement
+  var ctxHTML = mapContextHTML(node, recipe.material);
+  h += ctxHTML;
+
+  // VALUES: the full recipe.values as a table, primary highlighted, + bars
+  if (picked.primary) {
+    h += '<div class="rd-panel"><div class="rd-eyebrow">Values' +
+      (unit ? '<span class="rd-eyebrow-note">' + esc(unit) + '</span>' : '') + '</div>';
+    h += valuesTableHTML(picked, unit);
+    h += barsHTML(picked);
+    h += '</div>';
   }
 
-  // actions: primary Run (computable nodes only), secondary Copy link
-  h += '<div class="rc-actions">';
+  h += '</div>';   // end main column
+
+  // -- rail: recipe details, artifacts, provenance --
+  h += '<div class="rd-col">';
+
+  // RECIPE DETAILS: every field the recipe holds
+  h += '<div class="rd-panel"><div class="rd-eyebrow">Recipe details</div>';
+  // material (with a configuration uid when the recipe pins one)
+  var cfgUid = materialConfigUid(recipe.material);
+  h += '<div class="rd-group"><div class="rd-group-lab">Material</div>';
+  if (mat || cfgUid) {
+    h += '<div class="rd-mat">' + (mat ? '<span class="rd-mat-name">' + esc(mat) + '</span>' : '') +
+      (cfgUid ? '<span class="rd-mat-uid">configuration ' + esc(cfgUid.slice(0, 16)) +
+        ' · <a href="../map/#node=' + encodeURIComponent(base || '') + '" title="See this quantity on the map">on the map &rarr;</a></span>' : '') +
+      '</div>';
+  } else {
+    h += '<div class="rd-empty">No material named on this recipe.</div>';
+  }
+  h += '</div>';
+  // the remaining detail groups (hyperparameters, conditions, execution, template)
+  detailGroups(record, recipe).forEach(function(g){
+    h += '<div class="rd-group"><div class="rd-group-lab">' + esc(g.label) + '</div><dl class="rd-kv">' +
+      g.rows.map(function(row){
+        var v = row[1];
+        return '<dt>' + esc(row[0]) + '</dt><dd' + (v.wrap ? ' class="mono-wrap"' : '') + '>' + esc(v.text) + '</dd>';
+      }).join('') + '</dl></div>';
+  });
+  h += '</div>';
+
+  // ARTIFACTS / HOST: artifact pointers and the heavy-data host, as links out
+  h += artifactsHTML(record);
+
+  // PROVENANCE: the quiet map-node identity, in the rail
+  h += '<div class="rd-panel rd-prov' + (node && !known ? ' unres' : '') + '"><div class="rd-eyebrow">Provenance</div>';
+  if (node) {
+    h += '<div class="rd-prov-node">Map node: ' + esc(node) + '</div>';
+  } else {
+    h += '<div class="rd-prov-node">Node-unresolved (template only' + (template ? ': ' + esc(String(template)) : '') + ')</div>';
+  }
+  var provSub = [];
+  if (record.id) provSub.push('<span class="rd-id" title="the recipe id (sha256, first 12)">' + esc(String(record.id).slice(0, 12)) + '</span>');
+  if (window.__MAP_VERSION__) provSub.push('<span title="the map version this record was checked against">map ' + esc(String(window.__MAP_VERSION__).slice(0, 12)) + '</span>');
+  if (known) provSub.push('<a href="../map/#node=' + encodeURIComponent(node) + '" title="Open this quantity on the full map">View on the map &rarr;</a>');
+  else if (node) provSub.push('<span>not on this map version</span>');
+  if (provSub.length) h += '<div class="rd-prov-sub">' + provSub.join('') + '</div>';
+  h += '</div>';
+
+  h += '</div>';   // end rail
+  h += '</div>';   // end body
+
+  // ---- 7) ACTIONS bar: primary Run (computable nodes only), Copy link, and the
+  // demoted paste/drop affordance ----------------------------------------------
+  h += '<div class="rd-actions">';
   if (known && isComputable(node)) {
     h += '<a class="rc-btn primary" href="' + esc(mcgRunUrl(recipe)) +
          '" target="_blank" rel="noopener" title="Open this recipe in the MaterialsCodeGraph compute wizard">Run on MaterialsCodeGraph</a>';
   }
-  h += '<button class="rc-btn" id="rcCopy" type="button">Copy link</button>';
-  h += '</div>';
-
-  // a small "load another record" affordance: the paste/drop ingress stays
-  // available, just demoted below the card (the card is the default view).
+  h += '<button class="rc-btn" id="rcCopy" type="button" title="Copy a link that carries this whole record in its #x= fragment: it replays this experiment here.">Copy link</button>';
+  h += '<span class="rd-act-spacer"></span>';
   h += '<details class="rc-reopen"><summary>Load another record</summary>' +
        '<div class="rc-reopen-body"><p style="margin:0;color:var(--muted);font-size:.78rem">' +
        'Paste a record JSON or drop a <code>.json</code> file in the box above, then Render experiment. ' +
        'Everything stays client-side, nothing is uploaded.</p></div></details>';
-
   h += '</div>';
-  box.innerHTML = h;
 
-  // wire the card's Copy link: mint an #x= share URL for this record
-  var copyBtn = document.getElementById('rcCopy');
+  h += '</div>';   // end .rd
+
+  // render the dashboard onto the full-width STAGE (over the map canvas), with a
+  // "shared experiment" ribbon; the narrow rail keeps a short echo so the paste/
+  // drop controls stay uncluttered. A shared record IS the customer view, so it
+  // earns the whole area; the map is cleared for it either way.
+  var prop2 = esc(prop) + (mat ? ' of ' + esc(mat) : '');
+  stage.innerHTML =
+    '<div class="pg-dash-ribbon"><span class="pg-dash-kicker">Shared experiment</span>' +
+    '<span>A typed, replayable path from inputs to a result. Everything is client-side, nothing is uploaded.</span>' +
+    '<button class="pg-dash-close" id="xDashClose" type="button" title="Close the dashboard and return to the map">Close &times;</button></div>' + h;
+  showDash();
+  box.innerHTML = '<div class="xp-echo">Rendered as a dashboard on the right &rarr; <b>' + prop2 + '</b>. ' +
+    'Edit the record above and Render experiment to update it.</div>';
+
+  // wire the dashboard's Copy link (now on the stage): mint an #x= share URL
+  var copyBtn = stage.querySelector('#rcCopy');
   if (copyBtn) copyBtn.addEventListener('click', async function(){
     var btn = this;
     var hash = '#/play?tab=experiment&x=' + await gzipToB64url(record);
@@ -933,12 +1808,24 @@ function renderExperiment(record){
     var done = function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1200); };
     if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, done); else done();
   });
+  var closeBtn = stage.querySelector('#xDashClose');
+  if (closeBtn) closeBtn.addEventListener('click', function(){ hideDash(); box.innerHTML = ''; });
 
-  // the shared-record render is the CARD, not the node-graph: the canvas is
-  // cleared so the map does not compete with the card for the headline (the map
-  // still lives on the Map tab and the map/ page). The provenance row's "view on
-  // the map" link is the deliberate, quiet route to the graph.
+  // the shared-record render is the DASHBOARD on the stage, not the node-graph:
+  // the canvas is cleared so the map does not compete (the map still lives on the
+  // Map tab and the map/ page). The path/provenance links are the quiet routes
+  // back to the graph.
   renderSubmap([], {});
+}
+// Show / hide the full-width dashboard stage (and the map hint it covers).
+function showDash(){
+  var stage = document.getElementById('xDash'); if (!stage) return;
+  stage.hidden = false; stage.scrollTop = 0;
+  if (hint) hint.style.display = 'none';
+}
+function hideDash(){
+  var stage = document.getElementById('xDash'); if (!stage) return;
+  stage.hidden = true; stage.innerHTML = '';
 }
 document.getElementById('renderX').addEventListener('click', function(){
   ingestExperiment(document.getElementById('xInput').value, null);
@@ -1023,6 +1910,13 @@ document.querySelectorAll('.pg-tab').forEach(function(t){
     document.querySelectorAll('.pg-panel').forEach(function(x){ x.classList.remove('on'); });
     t.classList.add('on');
     document.querySelector('.pg-panel[data-panel="' + t.getAttribute('data-tab') + '"]').classList.add('on');
+    // the dashboard stage overlays the shared canvas the other tabs draw on, so
+    // hide it when leaving Experiment; re-show it on return if a record is loaded.
+    var stage = document.getElementById('xDash');
+    if (stage) {
+      if (t.getAttribute('data-tab') !== 'experiment') { if (!stage.hidden) { stage.hidden = true; } }
+      else if (stage.innerHTML.trim()) { stage.hidden = false; if (hint) hint.style.display = 'none'; }
+    }
   });
 });
 document.getElementById('qInput').addEventListener('input', function(){ runQuery(this.value); });

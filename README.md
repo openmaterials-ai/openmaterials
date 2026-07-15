@@ -79,23 +79,38 @@ playground's Experiment tab:
 https://openmaterials.ai/play/#/play?tab=experiment&x=<gzipped record>
 ```
 
-Opening the link renders the record as a customer **recipe card**: a
-product-style card (a HuggingFace-model-card feel), not a developer view. It
-leads with the property in plain words and the material ("Thermal conductivity
-of Silicon"), a Simulation or Measurement badge, the headline value with its
-units and condition, and a one-line method sentence ("Simulated with GPUMD,
-phonon Boltzmann transport, ..."). The mathematical map-node identity is present
-but quiet: one labeled provenance row carries the map node, the short recipe id,
-and a link to view it on the full map. A **Run on MaterialsCodeGraph** button
-appears when the node is one MCG can compute (and is simply absent otherwise),
-and a Copy link button re-mints the same `#x=` share URL. Paste a record JSON on
-that tab, or drop a `.json` file (a record MCG serves pastes straight in), to
-render a card of your own; the paste/drop ingress validates the record
-client-side against the same light shape checks as `validate_light` (recipe
-present, artifact pointers well-formed) and is honest about gaps (a
-node-unresolved record still renders a card, its provenance says so). It is a
-view only, nothing is uploaded or stored. The fragment uses the same
-gzip+base64url scheme as the map-view share below, so a link a tool produces
+Opening the link renders the record as a full customer **recipe dashboard**: the
+experiment shown as a typed, verifiable path from its inputs to its result, with
+everything the recipe holds on one page, not a developer view. It leads with a
+hero (the property in plain words and the material, "Thermal conductivity of
+Silicon", a Simulation or Measurement badge, and the headline value with its
+units and condition), then the brand headline: **the experiment as an X&rarr;Y
+path**, the true upstream input nodes you feed the run (potential, force
+constants, structure, temperature) flowing through the physics milestones to the
+result node, each chip deep-linking the full map, with the complete node-by-node
+lineage one click away. Below that, panels lay out the rest: a **recipe details**
+panel with every field (material and its pinned configuration, all
+hyperparameters, conditions, execution: code, version, container digest, runner,
+wall time, seeds, and template); a **values** panel with the full value table and
+a small hand-rolled bar strip; a **map context and trust** panel that pulls the
+node's plain-language description, units, and map tier from the catalog and, when
+the map's agreement layer has a group for this observable and material, shows the
+**cross-code agreement** (for example kaldo and phono3py compared code-to-code at
+the same route, with the member values and a range plot) as a direct signal that
+the physics is validated; an **artifacts and host** panel linking heavy data out
+to MaterialsCodeGraph; and a quiet provenance row with the map node, the short
+recipe id, and a view-on-the-map link. A prominent actions bar offers **Run on
+MaterialsCodeGraph** when the node is one MCG can compute (and is simply absent
+otherwise) and a Copy link button that re-mints the same `#x=` share URL, so the
+dashboard is shareable and replayable. Paste a record JSON on that tab, or drop a
+`.json` file (a record MCG serves pastes straight in), to open a dashboard of
+your own; the paste/drop ingress validates the record client-side against the
+same light shape checks as `validate_light` (recipe present, artifact pointers
+well-formed) and is honest about gaps (a node-unresolved or measurement record
+still renders, without a fabricated path, and its provenance says so). It is a
+view only, nothing is uploaded or stored, and every reference file it reads
+(graph, catalog, agreement) is static. The fragment uses the same gzip+base64url
+scheme as the map-view share below, so a link a tool produces
 (`record_to_fragment`) and one the playground produces interoperate. It is the
 light path: a record with many artifact pointers may exceed a practical URL, and
 that is fine.
@@ -122,9 +137,10 @@ and `#experiment=<source.ref>` to light up exactly the quantities an
 experiment's evidence covers,
 the tracer takes `#node=<id>` or `#from=<id>&to=<id>` for a derivation path,
 the playground serializes its whole state behind its Share button and takes
-`#x=<gzipped record>` to open a single light experiment record as a customer
-recipe card, and the experiments index takes `#material=<name>`. Every page has
-a copy-link control.
+`#x=<gzipped record>` to open a single light experiment record as a full recipe
+dashboard (the experiment as an X&rarr;Y path with all its details, values, map
+context and cross-code agreement, and Run on MaterialsCodeGraph), and the
+experiments index takes `#material=<name>`. Every page has a copy-link control.
 
 ## A slice of the map, as Mermaid
 
