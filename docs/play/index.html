@@ -51,21 +51,10 @@
   .lin-n.hot{color:var(--accent);font-weight:650;}
   .lin-op{font-family:var(--font-mono,monospace);color:var(--faint,#9aa0a8);font-size:.66rem;}
   .lin-code{margin:0;padding:10px 12px;background:#1a1c1f;color:#d6d9de;border-radius:9px;font-family:var(--font-mono,monospace);font-size:.7rem;line-height:1.5;overflow-x:auto;white-space:pre;}
-  .xp-card{border:1px solid var(--line);border-radius:9px;padding:12px 14px;background:#fff;margin-bottom:12px;}
-  .xp-title{font-size:.86rem;font-weight:650;color:var(--ink);margin-bottom:2px;}
-  .xp-id{font-family:var(--font-mono,monospace);font-size:.66rem;color:var(--muted);word-break:break-all;margin-bottom:8px;}
-  .xp-kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:.76rem;margin:6px 0;}
-  .xp-k{color:var(--faint,#9aa0a8);text-transform:uppercase;letter-spacing:.05em;font-size:.62rem;font-weight:700;padding-top:2px;white-space:nowrap;}
-  .xp-v{color:var(--ink-2,#3d4149);font-family:var(--font-mono,monospace);word-break:break-word;}
-  .xp-v.node{color:var(--accent);}
-  .xp-art{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--line);border-radius:7px;margin-top:5px;font-size:.74rem;}
-  .xp-art .role{font-size:.6rem;text-transform:uppercase;letter-spacing:.05em;color:var(--faint,#9aa0a8);flex:0 0 auto;}
-  .xp-art .path{font-family:var(--font-mono,monospace);color:var(--ink-2,#3d4149);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .xp-art a{color:var(--sim);flex:0 0 auto;text-decoration:none;font-weight:600;}
-  .xp-art .nolink{color:var(--faint,#9aa0a8);flex:0 0 auto;}
-  .xp-flag{font-size:.72rem;color:var(--meas);margin:6px 0;}
   /* drop-a-record ingress: a paste OR a dropped/chosen .json file, rendered in
-     place (no server, no storage). Mirrors the map/parse tabs' paste feel. */
+     place as a recipe card (no server, no storage). The record's customer view
+     is the card (see the .rc-* block below); these classes style the ingress and
+     its client-side validation banners only. */
   .xp-drop{border:1.5px dashed var(--line);border-radius:9px;padding:12px;text-align:center;font-size:.78rem;color:var(--muted);cursor:pointer;background:#fff;transition:border-color .15s,background .15s;}
   .xp-drop.drag{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
   .xp-drop b{color:var(--accent);font-weight:650;}
@@ -92,6 +81,61 @@
   .lean-line{margin:4px 0 2px;padding:7px 9px;background:#1a1c1f;color:#c8f7d8;border-radius:7px;font-family:var(--font-mono,monospace);font-size:.66rem;line-height:1.4;overflow-x:auto;white-space:pre;}
   .lean-badge{color:#0f9d6b;font-weight:700;}
   .pg-node-panel .uid{font-family:var(--font-mono,monospace);font-size:.68rem;color:var(--muted);word-break:break-all;}
+
+  /* ---- the recipe card: the customer-facing render of a shared #x= record ----
+     A shared experiment link opens as a product card (HuggingFace-model-card
+     feel), not the developer node-graph. Built only from real record + catalog
+     fields. Hierarchy: kind badge > headline (property + material) > value >
+     method > provenance (the quiet map-node identity) > actions. Reuses the
+     page's tokens (Inter, Source Serif, JetBrains Mono, the indigo accent). The
+     page is light-only, so the card is too (a deliberate match, not an omission). */
+  .rc-card{border:1px solid var(--line);border-radius:16px;background:var(--surface);
+    padding:26px 26px 22px;box-shadow:0 1px 2px rgba(16,24,40,.04),0 10px 30px rgba(16,24,40,.05);}
+  .rc-badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;
+    padding:4px 11px;font-size:.68rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;}
+  .rc-badge::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .rc-badge.sim{color:var(--sim);background:#eafaf3;border:1px solid #cbe9db;}
+  .rc-badge.meas{color:#9a6206;background:#fdf4e6;border:1px solid #f0ddba;}
+  .rc-head{font-family:var(--font-serif);font-weight:700;letter-spacing:-.018em;
+    font-size:clamp(1.4rem,3.2vw,1.85rem);line-height:1.14;color:var(--ink);
+    margin:13px 0 0;text-wrap:balance;}
+  .rc-value{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px 10px;margin:18px 0 3px;}
+  .rc-num{font-family:var(--font-mono,monospace);font-feature-settings:"zero" 1;
+    font-variant-numeric:tabular-nums;font-weight:700;font-size:clamp(2rem,5.4vw,2.9rem);
+    line-height:1;color:var(--val,#d98a14);letter-spacing:-.01em;}
+  .rc-unit{font-family:var(--font-mono,monospace);font-size:1.02rem;font-weight:500;color:var(--ink-2,#3d4149);}
+  .rc-cond{font-size:.9rem;color:var(--muted);margin:0 0 2px;}
+  .rc-more{list-style:none;margin:11px 0 0;padding:11px 0 0;border-top:1px solid var(--line);
+    display:flex;flex-direction:column;gap:6px;}
+  .rc-more li{display:flex;align-items:baseline;justify-content:space-between;gap:12px;font-size:.86rem;}
+  .rc-more .rc-mk{color:var(--ink-2,#3d4149);}
+  .rc-more .rc-mv{font-family:var(--font-mono,monospace);font-variant-numeric:tabular-nums;color:var(--ink);white-space:nowrap;}
+  .rc-method{font-size:.95rem;line-height:1.6;color:var(--ink-2,#3d4149);margin:18px 0 0;max-width:60ch;}
+  .rc-prov{margin:20px 0 0;padding:13px 15px;background:var(--wash,#f4f2ee);border:1px solid var(--line);border-radius:11px;}
+  .rc-prov-lab{font-size:.62rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--faint,#9aa0a8);margin:0 0 5px;}
+  .rc-prov-node{font-family:var(--font-mono,monospace);font-size:.82rem;color:var(--accent);word-break:break-word;line-height:1.45;}
+  .rc-prov-sub{font-size:.76rem;color:var(--muted);margin-top:5px;display:flex;flex-wrap:wrap;gap:4px 12px;align-items:baseline;}
+  .rc-prov-sub .rc-id{font-family:var(--font-mono,monospace);}
+  .rc-prov-sub a{color:var(--accent);text-decoration:none;font-weight:600;}
+  .rc-prov-sub a:hover{text-decoration:underline;}
+  .rc-prov.unres .rc-prov-node{color:var(--meas);}
+  .rc-host{font-size:.82rem;color:var(--muted);margin:14px 0 0;}
+  .rc-host a{color:var(--accent);text-decoration:none;font-weight:600;}
+  .rc-host a:hover{text-decoration:underline;}
+  .rc-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:22px 0 0;}
+  .rc-btn{appearance:none;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink-2,#3d4149);border-radius:9px;padding:10px 16px;
+    font:700 .88rem var(--font-sans);cursor:pointer;text-decoration:none;transition:border-color .15s,color .15s,background .15s;}
+  .rc-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .rc-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .rc-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .rc-btn.primary:hover{background:var(--accent-2,#4338ca);border-color:var(--accent-2,#4338ca);color:#fff;}
+  .rc-reopen{margin:16px 0 0;font-size:.78rem;color:var(--muted);}
+  .rc-reopen summary{cursor:pointer;color:var(--accent);font-weight:600;list-style:none;}
+  .rc-reopen summary::-webkit-details-marker{display:none;}
+  .rc-reopen summary::before{content:"+ ";font-family:var(--font-mono,monospace);}
+  .rc-reopen[open] summary::before{content:"\2212 ";}
+  .rc-reopen .rc-reopen-body{margin-top:10px;display:flex;flex-direction:column;gap:8px;}
   @media (max-width:720px){
     .pg-left{flex-basis:100%;max-width:none;border-right:none;border-bottom:1px solid var(--line);max-height:44vh;}
     .pg-main{flex-direction:column;}
@@ -179,10 +223,11 @@
         optional pointers to heavy artifacts hosted on
         <a href="https://materialscodegraph.com/">MaterialsCodeGraph</a>. Paste a
         record, or drop a <code>.json</code> file (an MCG-served record pastes
-        straight in), to render it, then Copy link: the whole record rides in the
-        <code>#x=</code> fragment, no server, and reopens here. Nothing is stored
-        or uploaded, it is a client-side view. When the recipe names a map node
-        it lights up on the canvas.</p>
+        straight in), to render it as a recipe card, then Copy link: the whole
+        record rides in the <code>#x=</code> fragment, no server, and reopens
+        here as the same card. Nothing is stored or uploaded, it is a client-side
+        view. The card leads with the property and material, shows the value, and
+        keeps the map-node identity in a quiet provenance row.</p>
       <button class="om-btn om-btn-sm" id="loadXExample" type="button">Load an example</button>
       <p style="margin:12px 0 6px;font-size:.78rem;color:var(--muted)">the experiment, as a record:</p>
       <textarea class="pg-input" id="xInput" rows="9" placeholder='{"recipe": {"node": "ThermalConductivity[transport_model=hnemd]", "material": {"name": "Si"}, "hyperparameters": {"nep_cutoff": 8.0}}}' style="resize:vertical;font-family:var(--font-mono,monospace);font-size:.74rem"></textarea>
@@ -225,6 +270,7 @@ var nodePanel = document.getElementById('pgNodePanel');
 var SVGNS = 'http://www.w3.org/2000/svg';
 
 var GRAPH = null, SEM = [], LEAN = {nodes:{},edges:{}}, semById = {}, nodeById = {}, children = {}, parents = {}, symHtml = {};
+var catalogById = {};   // node id -> {id, symbol, description}: the plain-language names for the recipe card
 var VB = { x: 0, y: 0, w: 1000, h: 700 };
 
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
@@ -255,11 +301,13 @@ Promise.all([
   fetch('../data/graph.json?v=' + Date.now()).then(function(r){ return r.json(); }),
   fetch('../data/semantics.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return []; }),
   fetch('../data/version.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; }),
-  fetch('../data/lean.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {nodes:{},edges:{}}; })
+  fetch('../data/lean.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {nodes:{},edges:{}}; }),
+  fetch('../data/catalog.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return []; })
 ]).then(function(res){
   GRAPH = res[0]; SEM = res[1] || [];
   if (res[2] && res[2].version) window.__MAP_VERSION__ = res[2].version;
   LEAN = res[3] || {nodes:{},edges:{}};
+  (res[4] || []).forEach(function(n){ if (n && n.id) catalogById[n.id] = n; });
   SEM.forEach(function(e){ semById[e.id] = e; });
   var seen = {};
   GRAPH.nodes.forEach(function(n){ nodeById[n.id] = n; symHtml[n.id] = tex(n.symbol); });
@@ -569,55 +617,328 @@ function ingestExperiment(raw, sourceLabel){
   box.innerHTML = '<div class="xp-ok">' + status + '</div>' + box.innerHTML;
 }
 
+/* ---- the recipe card: helpers -------------------------------------------- */
+// The base node id, qualifier stripped: ThermalConductivity[bte_solver=direct_inverse]
+// -> ThermalConductivity. The runnable KIND (and the human title) key on the base.
+function baseNode(id){ return String(id == null ? '' : id).replace(/\[.*$/, ''); }
+
+// The MCG-computable set, mirrored from docs/experiment/index.html (the shipped
+// allowlist): the base map nodes MCG has a wired engine for right now, so the
+// "Run on MaterialsCodeGraph" button appears only for a genuinely runnable node
+// and is simply absent otherwise. Static by choice (no capability fetch, no
+// network); it is expected to GROW as MCG wires more kinds, extend the list then.
+var MCG_BASE = 'https://app.materialscodegraph.com';
+var MCG_COMPUTABLE = { 'ThermalConductivity': 1 };
+function isComputable(id){ return !!MCG_COMPUTABLE[baseNode(id)]; }
+
+// The human property name for the headline. Precedence: an explicit short label
+// for the common families (so the customer-facing title reads clean, e.g.
+// "Thermal conductivity"), else the leading phrase of the catalog node's plain
+// description, else a de-camelCased base id. The [qualifier=...] route label is
+// NOT in the title (it lives in the provenance row); the title is the physical
+// property a customer recognizes, method-neutral.
+var HUMAN_PROP = {
+  'ThermalConductivity': 'Thermal conductivity',
+  'ThermalConductance': 'Thermal conductance',
+  'ElectronicThermalConductivity': 'Electronic thermal conductivity',
+  'ThermalExpansion': 'Thermal expansion',
+  'ThermalGruneisen': 'Thermal Gruneisen parameter',
+  'BulkModulus': 'Bulk modulus',
+  'ShearModulus': 'Shear modulus',
+  'ElasticConstants': 'Elastic constants',
+  'PhononDOS': 'Phonon density of states',
+  'ElectronicDOS': 'Electronic density of states',
+  'HeatCapacity': 'Heat capacity',
+  'Frequency': 'Phonon frequencies',
+  'BandGap': 'Band gap',
+  'Structure': 'Relaxed structure'
+};
+// A leading phrase from a catalog description: the first clause up to a
+// sentence break, colon, comma, or "from/of/tensor" pivot, then Title-cased
+// gently (first letter up). A readable fallback when the id is not in HUMAN_PROP.
+function propFromDescription(desc){
+  if (!desc) return '';
+  var s = String(desc).split(/[:.,;]|\s+(?:from|of|the|tensor)\b/i)[0].trim();
+  if (!s || s.length > 48) return '';
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+// De-camelCase a node id as a last resort: ThermalConductivity -> "Thermal conductivity".
+function humanizeId(id){
+  var s = String(id).replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').trim();
+  if (!s) return 'Property';
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+function humanProperty(node, template){
+  var base = baseNode(node);
+  if (base && HUMAN_PROP[base]) return HUMAN_PROP[base];
+  var cat = base && catalogById[base];
+  var fromDesc = cat && propFromDescription(cat.description);
+  if (fromDesc) return fromDesc;
+  if (base) return humanizeId(base);
+  // node-unresolved: fall back to the template phrased for a human
+  if (template) return templateWords(template);
+  return 'Experiment';
+}
+// The trailing unit a catalog description ends with (many end in the SI unit,
+// e.g. "W/(m K)."): a fallback when recipe.values carries no unit of its own.
+function unitFromDescription(desc){
+  if (!desc) return '';
+  var m = String(desc).replace(/\s+$/, '').replace(/\.$/, '')
+    .match(/([A-Za-z()·∙/0-9\^\-]+(?:\s*\/\s*\([^)]*\))?)\s*$/);
+  var u = m ? m[1].trim() : '';
+  // guard against grabbing a plain word; a real unit has a slash, a dot, or a cap
+  return /[\/·∙]/.test(u) ? u : '';
+}
+// Render a unit string cleanly: a middle dot for spacing between factors is fine,
+// but a stray long dash never belongs in a unit, so map U+2014/U+2013 to a space.
+// "W/(m K)" passes through as-is.
+function cleanUnit(u){ return String(u == null ? '' : u).replace(/[\u2014\u2013]/g, ' '); }
+
+// Map a template id to a readable phrase where obvious; fall back to the raw
+// template (underscores to spaces) when unknown. Keeps the method line a human
+// sentence.
+var TEMPLATE_WORDS = {
+  'phonon_bte_kappa': 'phonon Boltzmann transport',
+  'phonon_bte': 'phonon Boltzmann transport',
+  'bte_kappa': 'phonon Boltzmann transport',
+  'green_kubo_kappa': 'Green-Kubo equilibrium MD',
+  'gpumd': 'GPUMD molecular dynamics',
+  'hnemd': 'homogeneous non-equilibrium MD',
+  'nemd': 'non-equilibrium MD',
+  'qha': 'quasi-harmonic approximation',
+  'qha_thermal': 'quasi-harmonic approximation',
+  'elastic': 'elastic-constants relaxation',
+  'dft_relax': 'DFT relaxation',
+  'phonopy': 'finite-displacement phonons'
+};
+function templateWords(t){
+  if (t == null) return '';
+  var key = String(t).toLowerCase();
+  if (TEMPLATE_WORDS[key]) return TEMPLATE_WORDS[key];
+  return String(t).replace(/[_-]+/g, ' ').trim();
+}
+
+// The kind: "Measurement" for an experimental value (an explicit measurement
+// marker on the record or in a result's source.kind, the same marker the store
+// uses), else "Simulation" when execution.code names the code that ran. Default
+// Simulation for a code-bearing recipe. Derived honestly from the record.
+function recordKind(record){
+  var marker = record && (record.kind || (record.source && record.source.kind));
+  if (marker === 'measurement') return 'measurement';
+  var results = (record && record.results) || [];
+  if (Array.isArray(results) && results.some(function(r){ return r && r.source && r.source.kind === 'measurement'; })) return 'measurement';
+  return 'simulation';
+}
+
+// The material's human name (a bare string, or a {name} object).
+function materialName(material){
+  if (material == null) return '';
+  if (typeof material === 'object') return material.name != null ? String(material.name) : '';
+  return String(material);
+}
+
+// The primary value + the rest, from recipe.values. The primary is the entry
+// whose key matches the property (kappa for ThermalConductivity, ...) or the
+// first scalar; each remaining entry is a small labelled row. A vector value
+// (a list) renders compactly. Returns {primary:{val,key}|null, rest:[...]}.
+function pickValues(values, node){
+  if (!values || typeof values !== 'object' || Array.isArray(values)) return { primary: null, rest: [] };
+  var keys = Object.keys(values); if (!keys.length) return { primary: null, rest: [] };
+  // prefer a headline key by name; kappa/k for conductivity, else the first
+  var prefer = ['kappa', 'k', 'value', 'kappa_total'];
+  var pk = null;
+  for (var i = 0; i < prefer.length && pk == null; i++) { if (keys.indexOf(prefer[i]) !== -1) pk = prefer[i]; }
+  if (pk == null) pk = keys[0];
+  var rest = keys.filter(function(k){ return k !== pk; }).map(function(k){ return { key: k, val: values[k] }; });
+  return { primary: { key: pk, val: values[pk] }, rest: rest };
+}
+function fmtValue(v){
+  if (v == null) return '';
+  if (Array.isArray(v)) return v.map(function(x){ return fmtScalar(x); }).join(' × ');
+  if (typeof v === 'object') return JSON.stringify(v);
+  return String(v);
+}
+// The key condition for the value subtitle: the temperature, from
+// hyperparameters.T or conditions.T (a number reads as "at 300 K").
+function conditionSubtitle(recipe){
+  var src = [recipe.hyperparameters, recipe.conditions];
+  for (var i = 0; i < src.length; i++) {
+    var o = src[i];
+    if (o && typeof o === 'object' && o.T != null) {
+      var t = o.T;
+      return 'at ' + (typeof t === 'number' ? (Number.isInteger(t) ? t : t) : fmtScalar(t)) + ' K';
+    }
+  }
+  return '';
+}
+// A readable mesh string from a value that may be a list ([8,8,8] -> "8x8x8").
+function meshText(m){
+  if (m == null) return '';
+  if (Array.isArray(m)) return m.join('x');
+  return String(m);
+}
+// The method sentence: "Simulated with <code> (<template in words>), <potential>,
+// <mesh> mesh", assembled from execution.code + recipe.hyperparameters, each
+// clause dropped when its source is absent. A human sentence, not a field dump.
+function methodSentence(record, recipe){
+  var ex = record.execution || {};
+  var hp = recipe.hyperparameters || {};
+  var code = ex.code;
+  if (!code) return '';
+  var lead = 'Simulated with ' + code;
+  var tw = templateWords(recipe.template);
+  if (tw) lead += ' (' + tw + ')';
+  var tail = [];
+  var pot = hp.potential || hp.pseudopotential || (recipe.conditions && recipe.conditions.potential);
+  if (pot != null && pot !== '') tail.push(String(pot) + ' potential');
+  var mesh = hp.mesh || hp.qmesh || hp.kmesh || (recipe.values && recipe.values.mesh);
+  var mt = meshText(mesh);
+  if (mt) tail.push(mt + ' mesh');
+  return lead + (tail.length ? ', ' + tail.join(', ') : '') + '.';
+}
+
+// The provider + url for the heavy data host, from the mirrors resolver layer
+// (path -> {url, provider}) or an artifact pointer's own url. First hit wins;
+// the light recipe with no artifacts says nothing.
+function heavyHost(record){
+  var mirrors = record.mirrors;
+  if (mirrors && typeof mirrors === 'object') {
+    var mk = Object.keys(mirrors);
+    for (var i = 0; i < mk.length; i++) {
+      var loc = mirrors[mk[i]];
+      if (loc && typeof loc === 'object' && loc.url) return { provider: loc.provider || 'the host', url: loc.url };
+      if (typeof loc === 'string' && loc) return { provider: 'the host', url: loc };
+    }
+  }
+  var arts = record.artifacts || [];
+  for (var j = 0; j < arts.length; j++) { if (arts[j] && arts[j].url) return { provider: 'MaterialsCodeGraph', url: arts[j].url }; }
+  return null;
+}
+
+// The MCG compute deep link for a runnable recipe: #/new/<base node>, prefilled
+// with material and the temperature condition as query params so the wizard can
+// pre-populate. Mirrors the shipped experiment-page pattern.
+function mcgRunUrl(recipe){
+  var url = MCG_BASE + '/#/new/' + encodeURIComponent(baseNode(recipe.node));
+  var qs = [];
+  var mat = materialName(recipe.material);
+  if (mat) qs.push('material=' + encodeURIComponent(mat));
+  var cond = [];
+  [recipe.conditions, recipe.hyperparameters].forEach(function(o){
+    if (o && typeof o === 'object' && o.T != null && cond.indexOf('T = ' + o.T) === -1) cond.push('T = ' + o.T);
+  });
+  if (cond.length) qs.push('conditions=' + encodeURIComponent(cond.join(' · ')));
+  return qs.length ? url + '?' + qs.join('&') : url;
+}
+
+/* renderExperiment: the customer-facing recipe card. A shared #x= record (and a
+   pasted/dropped/example one) renders as a product card, not the developer
+   node-graph: kind badge, headline (property + material), the value big, a human
+   method line, then ONE quiet provenance row where the map-node identity lives,
+   then actions (Run on MaterialsCodeGraph for a computable node, Copy link).
+   Built only from real record + catalog fields; never rejects (a node-unresolved
+   record still renders, provenance says so). */
 function renderExperiment(record){
   var box = document.getElementById('xResult');
   nodePanel.style.display = 'none';
   var recipe = (record && record.recipe) || null;
   if (!recipe || typeof recipe !== 'object') {
-    box.innerHTML = '<div class="pg-empty">Not an experiment record: no <code>recipe</code>.</div>';
+    box.innerHTML = '<div class="xp-err">Not an experiment record: identity is the recipe, so a record needs a <code>recipe</code> object.</div>';
     renderSubmap([], {}); return;
   }
-  var node = recipe.node, material = recipe.material, template = recipe.template;
-  var known = node && nodeById[node];
-  var h = '<div class="xp-card">';
-  h += '<div class="xp-title">' + esc(record.name || (node || template || 'experiment')) + '</div>';
-  if (record.id) h += '<div class="xp-id">id ' + esc(String(record.id)) + '</div>';
-  // the recipe: node / material / template, then the scalar dials
-  h += '<div class="xp-kv">';
-  if (node) h += '<div class="xp-k">node</div><div class="xp-v node">' + esc(node) + (known ? '' : ' <span style="color:var(--meas)">(not on this map)</span>') + '</div>';
-  else h += '<div class="xp-k">node</div><div class="xp-v" style="color:var(--meas)">unresolved (template only)</div>';
-  if (template) h += '<div class="xp-k">template</div><div class="xp-v">' + esc(fmtScalar(template)) + '</div>';
-  if (material != null) h += '<div class="xp-k">material</div><div class="xp-v">' + esc(fmtScalar(material && material.name != null ? material.name : material)) + '</div>';
-  h += '</div>';
-  [['conditions', recipe.conditions], ['params', recipe.params],
-   ['hyperparameters', recipe.hyperparameters], ['values', recipe.values]].forEach(function(pair){
-    var rows = kvRows(pair[1]);
-    if (rows) h += '<div class="lin-lab">' + pair[0] + '</div><div class="xp-kv">' + rows + '</div>';
-  });
-  h += '</div>';
-  // execution (optional, outside identity)
-  var ex = record.execution;
-  if (ex && typeof ex === 'object') {
-    var exrows = kvRows(ex);
-    if (exrows) h += '<div class="lin-lab">execution</div><div class="xp-card"><div class="xp-kv">' + exrows + '</div></div>';
+  var node = recipe.node, template = recipe.template;
+  var base = baseNode(node);
+  var known = !!(node && nodeById[node]);
+  var cat = base && catalogById[base];
+
+  var prop = humanProperty(node, template);
+  var mat = materialName(recipe.material);
+  var kind = recordKind(record);
+
+  var h = '<div class="rc-card">';
+  // kind badge
+  h += '<span class="rc-badge ' + (kind === 'measurement' ? 'meas' : 'sim') + '">' +
+       (kind === 'measurement' ? 'Measurement' : 'Simulation') + '</span>';
+  // headline: property in plain words + material
+  h += '<h2 class="rc-head">' + esc(prop) + (mat ? ' of ' + esc(mat) : '') + '</h2>';
+
+  // value block: the primary number + units, condition subtitle, the rest small
+  var picked = pickValues(recipe.values, node);
+  if (picked.primary) {
+    var unit = cleanUnit((recipe.units) || (recipe.values && recipe.values.units) || (cat && unitFromDescription(cat.description)) || '');
+    var sub = conditionSubtitle(recipe);
+    h += '<div class="rc-value"><span class="rc-num">' + esc(fmtValue(picked.primary.val)) + '</span>' +
+         (unit ? '<span class="rc-unit">' + esc(unit) + '</span>' : '') + '</div>';
+    if (sub) h += '<p class="rc-cond">' + esc(sub) + '</p>';
+    if (picked.rest.length) {
+      h += '<ul class="rc-more">' + picked.rest.map(function(r){
+        return '<li><span class="rc-mk">' + esc(r.key) + '</span><span class="rc-mv">' + esc(fmtValue(r.val)) + '</span></li>';
+      }).join('') + '</ul>';
+    }
   }
-  // artifact pointers (optional): each a link to MCG when a url is present
-  var arts = (record.artifacts || []).filter(function(a){ return a && a.path; });
-  if (arts.length) {
-    h += '<div class="lin-lab">artifacts <span style="text-transform:none;letter-spacing:0;color:var(--muted)">(pointers, hosted on MaterialsCodeGraph)</span></div>';
-    h += arts.map(function(a){
-      var link = a.url ? '<a href="' + esc(a.url) + '" target="_blank" rel="noopener">open &rarr;</a>'
-                       : '<span class="nolink">no url</span>';
-      return '<div class="xp-art"><span class="role">' + esc(a.role || 'artifact') + '</span><span class="path" title="' + esc(a.path) + '">' + esc(a.path) + '</span>' + link + '</div>';
-    }).join('');
+
+  // method line: a human sentence from execution.code + hyperparameters
+  var method = methodSentence(record, recipe);
+  if (method) h += '<p class="rc-method">' + esc(method) + '</p>';
+
+  // provenance: the ONE quiet labelled row where the map-node identity lives
+  h += '<div class="rc-prov' + (node && !known ? ' unres' : '') + '">';
+  h += '<div class="rc-prov-lab">Provenance</div>';
+  if (node) {
+    h += '<div class="rc-prov-node">Map node: ' + esc(node) + '</div>';
+  } else {
+    h += '<div class="rc-prov-node">Node-unresolved (template only' + (template ? ': ' + esc(String(template)) : '') + ')</div>';
   }
-  // node-unresolved honesty note
-  if (!node) h += '<div class="xp-flag">This record names no map node: it carries the template and values as-is (whatever we have). Valid, just node-unresolved.</div>';
-  else if (!known) h += '<div class="xp-flag">The recipe names <code>' + esc(node) + '</code>, which is not on the current map version.</div>';
+  var provSub = [];
+  if (record.id) provSub.push('<span class="rc-id">' + esc(String(record.id).slice(0, 12)) + '</span>');
+  if (known) provSub.push('<a href="../map/#node=' + encodeURIComponent(node) + '" title="Open this quantity on the full map">View on the map →</a>');
+  else if (node) provSub.push('<span>not on this map version</span>');
+  if (provSub.length) h += '<div class="rc-prov-sub">' + provSub.join('') + '</div>';
+  h += '</div>';
+
+  // heavy-data host: a small line only when a mirror/artifact carries a url
+  var host = heavyHost(record);
+  if (host) {
+    h += '<p class="rc-host">Heavy data hosted on ' + esc(host.provider) +
+         ' · <a href="' + esc(host.url) + '" target="_blank" rel="noopener">open →</a></p>';
+  }
+
+  // actions: primary Run (computable nodes only), secondary Copy link
+  h += '<div class="rc-actions">';
+  if (known && isComputable(node)) {
+    h += '<a class="rc-btn primary" href="' + esc(mcgRunUrl(recipe)) +
+         '" target="_blank" rel="noopener" title="Open this recipe in the MaterialsCodeGraph compute wizard">Run on MaterialsCodeGraph</a>';
+  }
+  h += '<button class="rc-btn" id="rcCopy" type="button">Copy link</button>';
+  h += '</div>';
+
+  // a small "load another record" affordance: the paste/drop ingress stays
+  // available, just demoted below the card (the card is the default view).
+  h += '<details class="rc-reopen"><summary>Load another record</summary>' +
+       '<div class="rc-reopen-body"><p style="margin:0;color:var(--muted);font-size:.78rem">' +
+       'Paste a record JSON or drop a <code>.json</code> file in the box above, then Render experiment. ' +
+       'Everything stays client-side, nothing is uploaded.</p></div></details>';
+
+  h += '</div>';
   box.innerHTML = h;
-  // light the recipe's node on the canvas when it is known
-  renderSubmap(known ? [node] : [], {});
-  if (known) openNode(node);
+
+  // wire the card's Copy link: mint an #x= share URL for this record
+  var copyBtn = document.getElementById('rcCopy');
+  if (copyBtn) copyBtn.addEventListener('click', async function(){
+    var btn = this;
+    var hash = '#/play?tab=experiment&x=' + await gzipToB64url(record);
+    var url = location.origin + location.pathname + hash;
+    location.hash = hash;
+    if (url.length > 8000) { btn.textContent = 'Too large to link'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1600); return; }
+    var done = function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1200); };
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, done); else done();
+  });
+
+  // the shared-record render is the CARD, not the node-graph: the canvas is
+  // cleared so the map does not compete with the card for the headline (the map
+  // still lives on the Map tab and the map/ page). The provenance row's "view on
+  // the map" link is the deliberate, quiet route to the graph.
+  renderSubmap([], {});
 }
 document.getElementById('renderX').addEventListener('click', function(){
   ingestExperiment(document.getElementById('xInput').value, null);
@@ -657,22 +978,26 @@ document.getElementById('renderX').addEventListener('click', function(){
   });
 })();
 document.getElementById('loadXExample').addEventListener('click', function(){
-  // a real live node so the example lights on the map
+  // a computable, value-bearing, code-bearing record so the example shows the
+  // whole card: headline (property + material), the value big, a method line, a
+  // provenance row with a live map node, the Run button, and a hosted-data line.
   var ex = {
-    name: 'Si thermal conductivity (HNEMD)',
     recipe: {
       node: 'ThermalConductivity[transport_model=hnemd]',
-      material: { name: 'Si' },
+      material: { name: 'Silicon' },
       template: 'gpumd',
-      conditions: { T: 300.0, potential: 'Si-NEP' },
-      hyperparameters: { nep_cutoff: 8.0, neighbor: 800 },
-      values: { supercell: [4, 4, 4] }
+      conditions: { T: 300.0 },
+      hyperparameters: { potential: 'NEP', mesh: [4, 4, 4], nep_cutoff: 8.0 },
+      values: { kappa: 132.7 }
     },
-    execution: { code: 'gpumd', code_version: '3.9.5', seeds: [12345] },
+    execution: { code: 'GPUMD', code_version: '3.9.5', seeds: [12345] },
     artifacts: [
       { path: 'results/thermal_summary.json', role: 'result', url: 'https://materialscodegraph.com/runs/demo/thermal_summary.json' },
       { path: 'traj/dump.xyz', role: 'trajectory' }
-    ]
+    ],
+    mirrors: {
+      'results/thermal_summary.json': { url: 'https://materialscodegraph.com/runs/demo/thermal_summary.json', provider: 'MaterialsCodeGraph' }
+    }
   };
   document.getElementById('xInput').value = JSON.stringify(ex, null, 1);
   renderExperiment(ex);
