@@ -60,6 +60,13 @@ you share carries the result and its receipts together. To share your own
 experiment, contribute its values as instances under one `source.ref` and send
 the URL.
 
+For a card whose quantity [MaterialsCodeGraph](https://materialscodegraph.com/)
+can actually run, the page adds one more action: a **Run on MaterialsCodeGraph**
+link that deep-links MCG's compute wizard (`#/new/<node id>`) prefilled from the
+recipe. It is optional and storage-free: it appears only for genuinely runnable
+nodes and is simply absent otherwise, adds no data and touches no record, and
+the card is identical without it.
+
 A single experiment is also a link on its own, no store, no server. A simulation
 record is light and recipe-identified (`omai/simulations.py`): its identity is
 the recipe it was asked (a map node when known, else a template with its
@@ -72,13 +79,18 @@ playground's Experiment tab:
 https://openmaterials.ai/play/#/play?tab=experiment&x=<gzipped record>
 ```
 
-Paste a record JSON on that tab and hit Copy link to mint one; opening the link
-re-renders the recipe (node, material, template, hyperparameters, values), lists
-its artifact pointers as links to MCG, and lights the recipe's node on the map.
-The fragment uses the same gzip+base64url scheme as the map-view share below, so
-a link a tool produces (`record_to_fragment`) and one the playground produces
-interoperate. It is the light path: a record with many artifact pointers may
-exceed a practical URL, and that is fine.
+Paste a record JSON on that tab, or drop a `.json` file (a record MCG serves
+pastes straight in), and hit Copy link to mint one; opening the link re-renders
+the recipe (node, material, template, hyperparameters, values), lists its
+artifact pointers as links to MCG, and lights the recipe's node on the map. The
+paste/drop ingress validates the record client-side against the same light shape
+checks as `validate_light` (recipe present, artifact pointers well-formed) and is
+honest about gaps (a node-unresolved record is valid, just flagged); it is a
+view only, nothing is uploaded or stored. The fragment uses the same
+gzip+base64url scheme as the map-view share below, so a link a tool produces
+(`record_to_fragment`) and one the playground produces interoperate. It is the
+light path: a record with many artifact pointers may exceed a practical URL, and
+that is fine.
 
 The [cross-code agreement page](https://openmaterials.ai/agreement/) takes the
 other cut through the same instances: instead of grouping by source, it groups

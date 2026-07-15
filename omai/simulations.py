@@ -79,8 +79,12 @@ enrichment path that carries them.
 
 Verification (a report, NEVER a gate): :func:`verify_simulation` checks the
 mirrors for reachability and checksum match when URLs are present and returns a
-dated report. A record whose bytes moved or whose mirror is down is stale, not
-invalid; the map owns identity, MCG owns the bytes.
+dated report. A mirror entry may carry an optional free-form ``provider`` string
+naming who holds the bytes (e.g. "materialscodegraph", "zenodo"), outside
+identity like the rest of the mirror layer and echoed onto the report; the
+commons standardizes the key, not a registry of values. A record whose bytes
+moved or whose mirror is down is stale, not invalid; the map owns identity, MCG
+owns the bytes.
 
 The heavy import/verify path (an OPTIONAL enrichment): :func:`record_from_bundle`
 maps a hosted MCG-style bundle manifest onto the record shape and mints the same
@@ -327,6 +331,39 @@ def _validate_pointers(artifacts, *, where: str) -> None:
                 f"64-hex-character string")
 
 
+def _validate_mirrors(mirrors, *, where: str) -> None:
+    """Every mirror entry is well-formed, and nothing about it is mandatory.
+
+    The resolver layer maps an artifact path to a location, either a bare url
+    string or an object ``{url?, provider?, ...}``. It is OUTSIDE identity
+    (:func:`recipe_id` never sees it), so this is only a shape check on an
+    optional dict: when a mirror entry is an object, its ``url`` (if present) is
+    a string and its ``provider`` (if present) is a string. ``provider`` is the
+    optional free-form name of who holds the bytes (e.g. "materialscodegraph",
+    "zenodo"); the commons standardizes the KEY, not a registry of values, so a
+    provider is any string. An absent or empty mirror layer is normal.
+    """
+    if mirrors is None:
+        return
+    if not isinstance(mirrors, dict):
+        raise SimulationError(f"{where}: mirrors must be an object (path -> location)")
+    for path, loc in mirrors.items():
+        if isinstance(loc, str) or loc is None:
+            continue
+        if not isinstance(loc, dict):
+            raise SimulationError(
+                f"{where}: mirror {path!r} must be a url string or an object")
+        url = loc.get("url")
+        if url is not None and not isinstance(url, str):
+            raise SimulationError(
+                f"{where}: mirror {path!r} url, when present, must be a string")
+        provider = loc.get("provider")
+        if provider is not None and not isinstance(provider, str):
+            raise SimulationError(
+                f"{where}: mirror {path!r} provider, when present, must be a "
+                f"string (who holds the bytes; free-form)")
+
+
 def _validate_execution(execution, *, where: str) -> None:
     """The execution block is well-formed: an object naming the code that ran.
 
@@ -482,6 +519,7 @@ def _validate(record: dict, *, name_to_uid: dict, config_dir: Path, where: str,
 
     _validate_recipe_node(recipe, name_to_uid, where=where)
     _validate_configuration(recipe, config_dir=config_dir, where=where)
+    _validate_mirrors(record.get("mirrors"), where=where)
     _validate_results(record.get("results"), record_id, name_to_uid, where=where,
                       instances_dir=instances_dir)
     return record_id
@@ -504,6 +542,9 @@ def validate_light(record: dict, *, name_to_uid: dict | None = None,
     - ``artifacts`` (when present) are well-formed pointers (path+role required,
       url/sha256 shape-checked); nothing about artifacts is mandatory and an
       empty or absent list is normal.
+    - ``mirrors`` (when present) is a well-formed resolver layer: each entry a
+      url string or an object whose ``url`` and optional free-form ``provider``
+      (who holds the bytes) are strings. Outside identity; a shape check only.
     - ``execution``, a named ``configuration``, and ``results`` are OPTIONAL
       enrichment: each is validated only when present.
 
@@ -539,6 +580,7 @@ def validate_light(record: dict, *, name_to_uid: dict | None = None,
 
     artifacts = record.get("artifacts")
     _validate_pointers(artifacts, where=where)
+    _validate_mirrors(record.get("mirrors"), where=where)
 
     # Optional enrichment, checked only when present.
     if record.get("execution") is not None:
@@ -588,7 +630,9 @@ def record_light(*, recipe, execution=None, artifacts=None, mirrors=None,
         and role are required; url/sha256 are optional and never hashed. A record
         with no artifacts is valid and normal.
     mirrors : dict | None
-        Optional resolver layer (path -> {url, ...}). Outside identity.
+        Optional resolver layer (path -> {url, ...}). Outside identity. A mirror
+        entry may carry an optional free-form ``provider`` string naming who
+        holds the bytes (e.g. "materialscodegraph", "zenodo").
     results : list | None
         Optional results (backref slugs or instance stubs). Outside identity.
     name_to_uid : dict | None
@@ -1103,11 +1147,14 @@ def verify_simulation(record: dict, *, fetcher=None, today=None) -> dict:
     Report shape::
 
         {"id": <record id>, "date": "YYYY-MM-DD", "checked": [
-            {"path", "role", "url", "status", ...}, ...]}
+            {"path", "role", "url", "provider"?, "status", ...}, ...]}
 
     where ``status`` is ``ok`` (fetched, sha256 matches), ``mismatch`` (fetched,
     sha256 differs: reports expected/actual), ``unreachable`` (fetch failed or
-    no url), or ``no-url`` (the artifact declares no location to check).
+    no url), or ``no-url`` (the artifact declares no location to check). When a
+    mirror entry names a ``provider`` (who holds the bytes), it is echoed onto
+    that artifact's report entry, closing the provenance loop; the key is
+    outside identity and the value is free-form.
     """
     stamp = (today or date.today()).isoformat()
     artifacts = record.get("artifacts", []) or []
@@ -1118,14 +1165,20 @@ def verify_simulation(record: dict, *, fetcher=None, today=None) -> dict:
         role = art.get("role")
         loc = mirrors.get(path) if isinstance(mirrors, dict) else None
         url = None
+        provider = None
         if isinstance(loc, dict):
             url = loc.get("url")
+            provider = loc.get("provider")
         elif isinstance(loc, str):
             url = loc
         if url is None:
             url = art.get("url")
 
         entry = {"path": path, "role": role, "url": url}
+        # Echo the mirror's provider (who holds the bytes) when it names one:
+        # provenance carried outside identity, useful regardless of status.
+        if provider is not None:
+            entry["provider"] = provider
         if url is None:
             entry["status"] = "no-url"
             checked.append(entry)

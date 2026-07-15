@@ -64,6 +64,13 @@
   .xp-art a{color:var(--sim);flex:0 0 auto;text-decoration:none;font-weight:600;}
   .xp-art .nolink{color:var(--faint,#9aa0a8);flex:0 0 auto;}
   .xp-flag{font-size:.72rem;color:var(--meas);margin:6px 0;}
+  /* drop-a-record ingress: a paste OR a dropped/chosen .json file, rendered in
+     place (no server, no storage). Mirrors the map/parse tabs' paste feel. */
+  .xp-drop{border:1.5px dashed var(--line);border-radius:9px;padding:12px;text-align:center;font-size:.78rem;color:var(--muted);cursor:pointer;background:#fff;transition:border-color .15s,background .15s;}
+  .xp-drop.drag{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);}
+  .xp-drop b{color:var(--accent);font-weight:650;}
+  .xp-err{border:1px solid #f3c6c6;border-left:3px solid #c0392b;border-radius:0 8px 8px 0;background:#fdf3f3;color:#8a2020;font-size:.78rem;padding:8px 10px;margin-bottom:10px;}
+  .xp-ok{border:1px solid #cbe6d8;border-left:3px solid var(--sim);border-radius:0 8px 8px 0;background:#f2faf6;color:#1c6b4a;font-size:.76rem;padding:7px 10px;margin-bottom:10px;}
   .pg-sel{display:flex;flex-direction:column;gap:8px;margin:8px 0;}
   .pg-canvas{flex:1 1 auto;position:relative;min-width:0;background:radial-gradient(circle at 50% 34%,#ffffff,#f4f1ea 78%);}
   #pgsvg{width:100%;height:100%;display:block;touch-action:none;}
@@ -171,12 +178,16 @@
         known, else a template with its hyperparameters and setup values) plus
         optional pointers to heavy artifacts hosted on
         <a href="https://materialscodegraph.com/">MaterialsCodeGraph</a>. Paste a
-        record to render it, then Copy link: the whole record rides in the
-        <code>#x=</code> fragment, no server, and reopens here. When the recipe
-        names a map node it lights up on the canvas.</p>
+        record, or drop a <code>.json</code> file (an MCG-served record pastes
+        straight in), to render it, then Copy link: the whole record rides in the
+        <code>#x=</code> fragment, no server, and reopens here. Nothing is stored
+        or uploaded, it is a client-side view. When the recipe names a map node
+        it lights up on the canvas.</p>
       <button class="om-btn om-btn-sm" id="loadXExample" type="button">Load an example</button>
       <p style="margin:12px 0 6px;font-size:.78rem;color:var(--muted)">the experiment, as a record:</p>
       <textarea class="pg-input" id="xInput" rows="9" placeholder='{"recipe": {"node": "ThermalConductivity[transport_model=hnemd]", "material": {"name": "Si"}, "hyperparameters": {"nep_cutoff": 8.0}}}' style="resize:vertical;font-family:var(--font-mono,monospace);font-size:.74rem"></textarea>
+      <div class="xp-drop" id="xDrop" style="margin-top:8px">Drop a <b>.json</b> record here, or <b>click to choose a file</b>.
+        <input type="file" id="xFile" accept=".json,application/json" style="display:none"></div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
         <button class="om-btn om-btn-sm" id="renderX" type="button">Render experiment</button>
         <button class="om-btn om-btn-sm" id="copyXLink" type="button" title="Copy a link that carries this record in its #x= fragment: it reopens this experiment here.">Copy link</button>
@@ -484,6 +495,80 @@ function kvRows(obj){
     return '<div class="xp-k">' + esc(k) + '</div><div class="xp-v">' + esc(fmtScalar(obj[k])) + '</div>';
   }).join('');
 }
+/* A client-side mirror of validate_light's SHAPE checks (omai/simulations.py):
+   a convenience for the upload/paste ingress, NOT the authoritative gate (the
+   Python validate_light stays that for git entries). It is honest about gaps
+   the way validate_light is: recipe present; when a node is named it is checked
+   against THIS map version (node-unresolved is a normal, valid state, not an
+   error); artifact pointers well-formed ({path, role} required, url/sha256
+   optional and shape-checked). Returns {ok, error?, node, nodeResolved} so the
+   caller can banner an error or annotate what we have. It never recomputes the
+   sha256 recipe id (a browser could, but the render path does not gate on it). */
+var SHA256_RE = /^[0-9a-f]{64}$/;
+function validateLightJS(record){
+  if (!record || typeof record !== 'object' || Array.isArray(record))
+    return { ok: false, error: 'Not an object: an experiment record is a JSON object.' };
+  var recipe = record.recipe;
+  if (!recipe || typeof recipe !== 'object' || Array.isArray(recipe))
+    return { ok: false, error: 'No recipe: identity is the recipe, so a record needs a "recipe" object.' };
+  var node = recipe.node;
+  if (node != null && typeof node !== 'string')
+    return { ok: false, error: 'recipe.node, when present, must be a string (a map node id).' };
+  var arts = record.artifacts;
+  if (arts != null) {
+    if (!Array.isArray(arts))
+      return { ok: false, error: 'artifacts, when present, must be a list of pointers.' };
+    for (var i = 0; i < arts.length; i++) {
+      var a = arts[i];
+      if (!a || typeof a !== 'object' || Array.isArray(a))
+        return { ok: false, error: 'artifact ' + i + ' must be an object {path, role, url?, sha256?}.' };
+      if (typeof a.path !== 'string' || !a.path)
+        return { ok: false, error: 'artifact ' + i + ' path must be a non-empty string.' };
+      if (typeof a.role !== 'string' || !a.role)
+        return { ok: false, error: 'artifact ' + i + ' role must be a non-empty string.' };
+      if (a.url != null && typeof a.url !== 'string')
+        return { ok: false, error: 'artifact ' + i + ' url, when present, must be a string.' };
+      if (a.sha256 != null && (typeof a.sha256 !== 'string' || !SHA256_RE.test(a.sha256)))
+        return { ok: false, error: 'artifact ' + i + ' sha256, when present, must be a 64-hex string.' };
+    }
+  }
+  // node-unresolved is VALID (the honesty rule): a named-but-off-map node, or no
+  // node at all, is reported, never rejected. renderExperiment shows the flag.
+  var nodeResolved = !!(node && nodeById[node]);
+  return { ok: true, node: node || null, nodeResolved: nodeResolved };
+}
+
+/* The upload/paste ingress: parse JSON, run the light shape check, banner an
+   error (malformed JSON or a failed shape check) or a short "what we have" note,
+   then hand the record to the existing render path. No git, no server, no
+   storage: identical to pasting into the #x= box, just also fed by a file. */
+function ingestExperiment(raw, sourceLabel){
+  var box = document.getElementById('xResult');
+  var text = (raw || '').trim();
+  if (!text) { box.innerHTML = ''; renderSubmap([], {}); return; }
+  var record;
+  try { record = JSON.parse(text); }
+  catch (e) {
+    box.innerHTML = '<div class="xp-err">Not valid JSON' +
+      (sourceLabel ? ' in ' + esc(sourceLabel) : '') + ': ' + esc(e.message) + '</div>';
+    renderSubmap([], {}); return;
+  }
+  var v = validateLightJS(record);
+  if (!v.ok) {
+    box.innerHTML = '<div class="xp-err">' + esc(v.error) + '</div>';
+    renderSubmap([], {}); return;
+  }
+  // A one-line honest status above the render (client convenience; the Python
+  // validate_light is the real gate for anything entering git).
+  var status = v.node
+    ? (v.nodeResolved ? 'Valid record: node <b>' + esc(v.node) + '</b> resolves on this map version.'
+                      : 'Valid record: node <b>' + esc(v.node) + '</b> is not on this map version (node-unresolved, still valid).')
+    : 'Valid record: no map node named (template only, node-unresolved). Whatever we have.';
+  renderExperiment(record);
+  // Prepend the status banner to whatever renderExperiment produced.
+  box.innerHTML = '<div class="xp-ok">' + status + '</div>' + box.innerHTML;
+}
+
 function renderExperiment(record){
   var box = document.getElementById('xResult');
   nodePanel.style.display = 'none';
@@ -535,10 +620,42 @@ function renderExperiment(record){
   if (known) openNode(node);
 }
 document.getElementById('renderX').addEventListener('click', function(){
-  var raw = document.getElementById('xInput').value.trim(); if (!raw) return;
-  try { renderExperiment(JSON.parse(raw)); }
-  catch (e) { document.getElementById('xResult').innerHTML = '<div class="pg-empty">Not valid JSON: ' + esc(e.message) + '</div>'; }
+  ingestExperiment(document.getElementById('xInput').value, null);
 });
+// The drop-a-record ingress: a dropped or chosen .json file is read, its text
+// dropped into the paste box, and rendered through the same validate+render
+// path as a paste. Nothing is uploaded or stored (FileReader is local).
+(function wireXDrop(){
+  var drop = document.getElementById('xDrop');
+  var file = document.getElementById('xFile');
+  if (!drop || !file) return;
+  function readFile(f){
+    if (!f) return;
+    var reader = new FileReader();
+    reader.onload = function(){
+      document.getElementById('xInput').value = String(reader.result || '');
+      ingestExperiment(reader.result, f.name);
+    };
+    reader.onerror = function(){
+      document.getElementById('xResult').innerHTML = '<div class="xp-err">Could not read ' + esc(f.name) + '.</div>';
+    };
+    reader.readAsText(f);
+  }
+  drop.addEventListener('click', function(){ file.click(); });
+  file.addEventListener('change', function(){ readFile(file.files && file.files[0]); file.value = ''; });
+  ['dragenter', 'dragover'].forEach(function(ev){
+    drop.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); drop.classList.add('drag'); });
+  });
+  ['dragleave', 'dragend', 'drop'].forEach(function(ev){
+    drop.addEventListener(ev, function(e){ e.preventDefault(); e.stopPropagation(); drop.classList.remove('drag'); });
+  });
+  drop.addEventListener('drop', function(e){
+    var dt = e.dataTransfer; if (!dt) return;
+    if (dt.files && dt.files.length) { readFile(dt.files[0]); return; }
+    var txt = dt.getData && dt.getData('text');
+    if (txt) { document.getElementById('xInput').value = txt; ingestExperiment(txt, 'the dropped text'); }
+  });
+})();
 document.getElementById('loadXExample').addEventListener('click', function(){
   // a real live node so the example lights on the map
   var ex = {

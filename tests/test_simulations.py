@@ -6,7 +6,9 @@ including a hyperparameter or setup value, DOES), the light record builder
 record_light (a record with no artifacts and no node is valid, flagged
 node-unresolved not rejected), the URL round-trip (record_to_fragment ->
 record_from_fragment is identity-stable and base64url, and a hand-built fragment
-decodes), artifact-pointer well-formedness, the heavy checksummed writer's
+decodes), artifact-pointer well-formedness, the optional mirror `provider` key
+(who holds the bytes: outside identity, shape-checked as a string, round-tripping
+the fragment, echoed onto the verify report), the heavy checksummed writer's
 idempotence and overwrite refusal, the OPTIONAL heavy import path (a no-sha256
 bundle now yields a pointer record, not an exception; a full checksummed bundle
 verifies), the verify report shapes (offline: a fake fetcher, no network), the
@@ -1045,6 +1047,86 @@ def test_record_light_execution_and_mirrors_ride_outside_identity():
                               {"url": "https://r2.example.com/dump.xyz"}}
     # The mirror url is copied onto the pointer that had none, as a convenience.
     assert rec["artifacts"][0]["url"] == "https://r2.example.com/dump.xyz"
+
+
+# --------------------------------------------------------------------------
+# The optional mirror `provider` key (#23): who holds the bytes, outside
+# identity, shape-checked (a string if present), round-tripping the fragment,
+# and echoed onto the verify report.
+# --------------------------------------------------------------------------
+
+def test_mirror_provider_does_not_change_identity():
+    """A `provider` on a mirror entry names who holds the bytes and rides
+    OUTSIDE identity (mirrors never reach recipe_id): the record id is the same
+    with the provider, without it, and with a different provider."""
+    base = sim.record_light(recipe=_light_recipe(), name_to_uid=_NAME_TO_UID)["id"]
+    with_provider = sim.record_light(
+        recipe=_light_recipe(),
+        artifacts=[_pointer(url=None, sha256=None)],
+        mirrors={"traj/dump.xyz": {"url": "https://r2.example.com/dump.xyz",
+                                   "provider": "materialscodegraph"}},
+        name_to_uid=_NAME_TO_UID)
+    assert with_provider["id"] == base
+    assert with_provider["mirrors"]["traj/dump.xyz"]["provider"] == "materialscodegraph"
+    # A DIFFERENT provider still mints the same id (free-form, never hashed).
+    other = sim.record_light(
+        recipe=_light_recipe(),
+        artifacts=[_pointer(url=None, sha256=None)],
+        mirrors={"traj/dump.xyz": {"url": "https://r2.example.com/dump.xyz",
+                                   "provider": "zenodo"}},
+        name_to_uid=_NAME_TO_UID)
+    assert other["id"] == base
+
+
+def test_mirror_provider_round_trips_through_fragment():
+    """The provider survives record_to_fragment -> record_from_fragment intact
+    (it is part of the mirror layer carried in the #x= fragment)."""
+    rec = sim.record_light(
+        recipe=_light_recipe(),
+        artifacts=[_pointer(url=None, sha256=None)],
+        mirrors={"traj/dump.xyz": {"url": "https://r2.example.com/dump.xyz",
+                                   "provider": "materialscodegraph"}},
+        name_to_uid=_NAME_TO_UID)
+    back = sim.record_from_fragment(sim.record_to_fragment(rec))
+    assert back == rec
+    assert back["mirrors"]["traj/dump.xyz"]["provider"] == "materialscodegraph"
+
+
+def test_mirror_provider_echoed_onto_verify_report():
+    """verify_simulation echoes the mirror's provider onto that artifact's
+    report entry (the provenance loop), whatever the reachability status."""
+    rec = sim.record_light(
+        recipe=_light_recipe(),
+        artifacts=[_pointer(url=None, sha256=_SHA_B)],
+        mirrors={"traj/dump.xyz": {"url": "https://r2.example.com/dump.xyz",
+                                   "provider": "materialscodegraph"}},
+        name_to_uid=_NAME_TO_UID)
+    report = sim.verify_simulation(rec)  # no fetcher: unreachable, still echoes
+    entry = next(e for e in report["checked"] if e["path"] == "traj/dump.xyz")
+    assert entry["provider"] == "materialscodegraph"
+
+
+def test_mirror_provider_must_be_a_string_if_present():
+    """provider is optional and free-form, but when present it must be a string:
+    a non-string provider is a malformed mirror, rejected by validate_light."""
+    with pytest.raises(sim.SimulationError, match="provider"):
+        sim.record_light(
+            recipe=_light_recipe(),
+            artifacts=[_pointer(url=None, sha256=None)],
+            mirrors={"traj/dump.xyz": {"url": "https://r2.example.com/dump.xyz",
+                                       "provider": 123}},
+            name_to_uid=_NAME_TO_UID)
+
+
+def test_mirror_without_provider_is_valid():
+    """provider is optional: a mirror entry with only a url, and a bare url
+    string mirror, both validate (provider absent is normal)."""
+    rec = sim.record_light(
+        recipe=_light_recipe(),
+        artifacts=[_pointer(url=None, sha256=None)],
+        mirrors={"traj/dump.xyz": "https://r2.example.com/dump.xyz"},
+        name_to_uid=_NAME_TO_UID)
+    assert rec["mirrors"]["traj/dump.xyz"] == "https://r2.example.com/dump.xyz"
 
 
 def test_record_light_no_node_no_artifacts_is_valid_and_flagged():

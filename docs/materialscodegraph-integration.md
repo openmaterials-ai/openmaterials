@@ -128,6 +128,9 @@ ships on. None touches the hashing path.
 ### (a) "Run on MaterialsCodeGraph" on the experiment page
 
 - **Ships on:** openmaterials (UI only).
+- **Status: SHIPPED.** `renderDetail` adds the optional `Run on
+  MaterialsCodeGraph` link, gated on a static capability list (Q3, resolved
+  static; see below). `MCG_BASE` is a single const at the top of the page script.
 - **Issue:** #25.
 - **What:** for a card whose node is computable, add one more `a.btn` in
   `renderDetail`'s existing action row (`docs/experiment/index.html`, lines
@@ -154,6 +157,11 @@ ships on. None touches the hashing path.
 ### (b) Upload-a-JSON ingress
 
 - **Ships on:** openmaterials (UI only).
+- **Status: SHIPPED.** The Playground's Experiment tab now takes a dropped or
+  chosen `.json` file (or a paste) through a client-side `validateLightJS` shape
+  mirror and the existing `renderExperiment` path (`docs/play/index.html`), with
+  an error banner on malformed JSON and an honest node-unresolved note. No git,
+  no server, no storage. Q4 (how faithful) resolved as a documented shape subset.
 - **Issue:** the companion upload issue (the ingress half of the same arc #25
   calls out).
 - **What:** let someone paste or drop a SimulationRecord and render it in place,
@@ -189,6 +197,11 @@ ships on. None touches the hashing path.
 ### The naming seam: `provider` on mirrors (already open as #23)
 
 - **Ships on:** openmaterials (format), MCG (first populator).
+- **Status: SHIPPED (openmaterials format side).** `omai/simulations.py` carries
+  and shape-checks an optional free-form `provider` string on a mirror entry
+  (a string if present), `verify_simulation` echoes it onto the report entry, and
+  a test asserts identity is unchanged and the value round-trips the fragment. It
+  is free-form (Q5 resolved: no registry). MCG remains the intended first populator.
 - **Issue:** #23, already filed.
 - **What:** one optional free-form `provider` key on a mirror entry
   (`"mirrors": {"trajectory.nc": {"url": "...", "provider": "materialscodegraph"}}`),
@@ -247,18 +260,18 @@ PR gated on your review; nothing here presumes the sequence, it just proposes on
 - **Phase 0 (done).** MCG emits the byte-identical record (materialscodegraph#74)
   and receives the compute deep link (materialscodegraph#65). The receiving ends
   exist, so the openmaterials-side seams have something real to point at.
-- **Phase 1: `provider` on mirrors (#23).** The smallest, purely-additive change:
-  document one optional key and add the one-line `verify_simulation` surfacing,
-  with a test that a `provider` string round-trips and shows up in the report
-  while `canonical_id` stays unchanged. It unblocks nothing else but is the
+- **Phase 1 (done): `provider` on mirrors (#23).** The smallest, purely-additive
+  change: document one optional key and add the one-line `verify_simulation`
+  surfacing, with a test that a `provider` string round-trips and shows up in the
+  report while `canonical_id` stays unchanged. It unblocks nothing else but is the
   cleanest first step and settles the naming pattern the other seams reuse.
-- **Phase 2: upload-a-JSON ingress (seam (b)).** Reuses the Playground's existing
-  `renderExperiment` and the `validate_light` contract; adds paste/drop and the
-  light-gate surfacing. No dependency on the Run link. It makes an MCG-served
-  record directly viewable and verifiable in the commons.
-- **Phase 3: "Run on MaterialsCodeGraph" (#25).** One `a.btn` in `renderDetail`,
-  gated on the capability check chosen in Q3. Depends only on the deep-link target
-  (materialscodegraph#65, already merged).
+- **Phase 2 (done): upload-a-JSON ingress (seam (b)).** Reuses the Playground's
+  existing `renderExperiment` and the `validate_light` contract; adds paste/drop
+  and the light-gate surfacing. No dependency on the Run link. It makes an
+  MCG-served record directly viewable and verifiable in the commons.
+- **Phase 3 (done): "Run on MaterialsCodeGraph" (#25).** One `a.btn` in
+  `renderDetail`, gated on the static capability check (Q3, resolved static).
+  Depends only on the deep-link target (materialscodegraph#65, already merged).
 - **Phase 4 (MCG-side, noted not owned): the reciprocal back-link (seam (c)).**
   Ships on MCG once the canonical card URL is decided (Q1). Closes the loop.
 
@@ -276,7 +289,12 @@ choices this note deliberately does not make.
   rides in the URL, no new route); or introduce a record-addressed ref (for
   example an `#x=` on the experiment page, or a `#record=<recipe_id>` that
   resolves a committed `docs/data/simulations/<slug>.json`); or something else.
-  This is the one decision the rest hangs on, so it is first.
+  This is the one decision the rest hangs on, so it is first. **Still open.** The
+  shipped Run link (seam a) does not hard-commit it: it deep-links MCG from the
+  recipe fields and invents no server route, and where a back-link to the
+  openmaterials card is eventually wanted it would carry the portable `#x=`
+  fragment (the self-contained shareable form), left off the deep link for now
+  since seam (c) is MCG-side and this stays yours to decide.
 
 - **Q2. Does a card ever address an MCG *instance* (a specific run) as opposed to
   a recipe?** A recipe is content-addressed and side-agnostic; a run is an MCG
@@ -290,18 +308,28 @@ choices this note deliberately does not make.
   lets the commons declare which node kinds have a resolver; the soft fetch is
   always current but adds an optional network call. Both fail silent. Issue #25
   leans static; confirming the choice (and, if static, where the list lives among
-  `docs/data/*.json`) is yours.
+  `docs/data/*.json`) is yours. **Resolved: static.** The list is a small inline
+  `MCG_COMPUTABLE` set in the experiment page (the current known-computable base
+  nodes, MCG's thermal-transport verticals, keyed on the base node), with a
+  comment that it will grow; no data file and no network. Move it into a
+  `docs/data/*.json` if you would rather the commons declare it as data.
 
 - **Q4. How faithful should the upload ingress's client-side validation be to
   `validate_light`?** A full JS re-implementation of the light gates, a documented
   subset (recompute the id, check the stated id, shape-check pointers), or render
   first and annotate gaps as the Playground does today? This trades strictness
-  against page weight.
+  against page weight. **Resolved: a documented shape subset.** `validateLightJS`
+  mirrors the SHAPE checks (recipe present; node checked against the live map,
+  node-unresolved reported not rejected; pointers `{path, role}` required with
+  url/sha256 shape-checked) and does NOT recompute the sha256 id in the browser;
+  the Python `validate_light` stays the authoritative gate for git entries.
 
 - **Q5. Is `provider` free-form, or should the commons keep a short registry of
   known provider strings?** #23 proposes free-form. A tiny registry would make
   `provider` values comparable across records at the cost of a list to maintain.
-  Your call on whether that is worth it.
+  Your call on whether that is worth it. **Resolved: free-form.** The commons
+  standardizes the key and shape-checks it as a string; it keeps no registry of
+  values. Add one later if cross-record comparability proves worth the list.
 
 ## What this note does not do
 
