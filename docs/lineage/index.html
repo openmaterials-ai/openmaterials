@@ -59,6 +59,9 @@
   .legend .hid .sw{background:var(--hid-bg);border-color:var(--hid-line);}
   .legend .lrn .sw{background:var(--val-bg);border-color:var(--val);border-style:dashed;}
   .dagbox{border:1px solid var(--line);border-radius:12px;background:var(--card);overflow-x:auto;}
+  /* the whole derivation fits on desktop (viewBox scales down); narrow screens
+     fall back to the container's own horizontal scroll */
+  #dag{max-width:100%;height:auto;min-width:900px;display:block;}
   .dagbox svg{display:block;}
   .n rect{rx:7;stroke-width:1.4;}
   .n.obs rect{fill:var(--obs-bg);stroke:var(--obs);}
@@ -131,14 +134,16 @@
     <span class="m">ThermalConductivity[transport_model=qhgk]</span> through typed edges,
     a <b>lineage record</b> pins the run that produced the value, and each layer has a URL.
     The graph below is the map's own export (<span class="m">python -m omai.mermaid</span>),
-    verbatim: 21 quantities, 30 edges.</p>
+    verbatim: 21 quantities, 37 edges.</p>
 
-  <h2>1 · The map lineage</h2>
+  <h2>1 · The derivation</h2>
   <p class="sub">Left to right: sources, the DFT chain, harmonic objects, scattering channels, transport.
     Indigo nodes are gauge-invariant observables, slate nodes are gauge-dependent scaffolding.
-    The dashed amber edge is a <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/omai/operator/learned.py">learned shortcut</a>:
-    a declared, non-authoritative surrogate that produces the same linewidth node while
-    amortizing the third-order force constants away. Explore the same lineage live in
+    The dashed amber edge is drawn illustratively: it shows what a
+    <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/omai/operator/learned.py">learned shortcut</a>
+    would look like here, the generic non-authoritative surrogate pattern producing the same
+    linewidth node while amortizing the third-order force constants away. No learned edge is
+    declared on the map yet, so the tracer does not show it. Explore the same derivation live in
     <a href="../map-trace/#node=ThermalConductivity[transport_model=qhgk]">the tracer</a>.</p>
   <div class="legend">
     <span class="obs"><span class="sw"></span>observable</span>
