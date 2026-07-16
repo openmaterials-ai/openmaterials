@@ -1,0 +1,56 @@
+THIRD-PARTY NOTICES
+===================
+
+This project redistributes the following third-party components. Each remains
+the property of its respective copyright holder and is distributed under its
+own license. The authoritative version list is docs/assets/vendor/VERSIONS.md.
+
+For each component below, the upstream LICENSE text and copyright notice should
+be retained in that component's vendored directory. Where a license identifier
+or copyright line is marked TODO, it must be filled in from the upstream release
+before distribution; it is intentionally left blank here rather than guessed.
+
+Vendored under docs/assets/vendor/:
+
+- KaTeX 0.16.9
+  Upstream: https://github.com/KaTeX/KaTeX
+  License: TODO (confirm and copy upstream LICENSE)
+
+- dagre 0.8.5
+  Upstream: https://github.com/dagrejs/dagre
+  License: TODO (confirm and copy upstream LICENSE)
+
+- 3d-force-graph 1.80.0
+  Upstream: https://github.com/vasturiano/3d-force-graph
+  License: TODO (confirm and copy upstream LICENSE)
+
+- reveal.js 5.1.0
+  Upstream: https://github.com/hakimel/reveal.js
+  License: TODO (confirm and copy upstream LICENSE)
+
+- pdf.js 4.10.38
+  Upstream: https://github.com/mozilla/pdf.js
+  License: TODO (confirm and copy upstream LICENSE)
+
+- @anthropic-ai/sdk 0.110.0
+  Upstream: https://github.com/anthropics/anthropic-sdk-typescript
+  License: TODO (confirm and copy upstream LICENSE)
+  Note: import paths in the vendored copy have been MODIFIED from upstream.
+  Verify the upstream license permits modification and that any required
+  change/notice preservation is satisfied.
+
+  Vendored dependencies of the @anthropic-ai/sdk copy:
+  - standardwebhooks 1.0.0
+    License: TODO (confirm and copy upstream LICENSE)
+  - @stablelib/base64 1.0.1
+    License: TODO (confirm and copy upstream LICENSE)
+  - fast-sha256 1.3.0
+    License: TODO (confirm and copy upstream LICENSE)
+
+- Google Fonts (vendored web fonts)
+  Confirm the specific font families and their licenses (for example, the SIL
+  Open Font License or Apache-2.0, depending on the family) and retain each
+  font's license file.
+
+The Python source in this repository is licensed under Apache-2.0 (see LICENSE).
+The map data is licensed under CC BY 4.0 (see LICENSE-DATA).

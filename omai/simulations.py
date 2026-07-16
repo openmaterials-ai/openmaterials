@@ -545,13 +545,20 @@ def validate_light(record: dict, *, name_to_uid: dict | None = None,
     - ``mirrors`` (when present) is a well-formed resolver layer: each entry a
       url string or an object whose ``url`` and optional free-form ``provider``
       (who holds the bytes) are strings. Outside identity; a shape check only.
-    - ``execution``, a named ``configuration``, and ``results`` are OPTIONAL
-      enrichment: each is validated only when present.
+    - A named ``material.configuration`` MUST resolve to a committed
+      configuration record under ``config_dir`` (default: the real
+      ``docs/data/configurations/``): the structure pin sits inside the recipe
+      (part of ``recipe_id``), so a bogus uid is rejected on this path exactly
+      as it is on the heavy writer. A recipe with no configuration key is
+      unaffected (the common bare-material-name case is still valid).
+    - ``execution`` and ``results`` are OPTIONAL enrichment: each is validated
+      only when present.
 
     Returns a report ``{"id", "node_resolved": bool, "node": <id or None>,
     "artifact_count": int}``. Raises :class:`SimulationError` only on a genuinely
-    malformed record (bad recipe, stated-id mismatch, a stale node pin, or a
-    malformed pointer); a node-unresolved record is a normal return, not a raise.
+    malformed record (bad recipe, stated-id mismatch, a stale node pin, an
+    unresolved configuration pin, or a malformed pointer); a node-unresolved
+    record is a normal return, not a raise.
     """
     if not isinstance(record, dict):
         raise SimulationError(f"{where}: record must be an object")
@@ -585,9 +592,18 @@ def validate_light(record: dict, *, name_to_uid: dict | None = None,
     # Optional enrichment, checked only when present.
     if record.get("execution") is not None:
         _validate_execution(record["execution"], where=where)
-    if isinstance(recipe.get("material"), dict) and config_dir is not None:
-        _validate_configuration(recipe, config_dir=config_dir, where=where)
-    if record.get("results") is not None and name_to_uid is not None:
+    # The configuration pin sits inside the recipe (material.configuration is
+    # part of recipe_id), so a bogus uid must be caught on the primary path
+    # too, not just the heavy writer. config_dir defaults to the real
+    # configurations dir; a caller may still point it elsewhere (tests). A
+    # recipe with no configuration key is unaffected (_validate_configuration
+    # no-ops on that): the common bare-material-name case still passes.
+    _validate_configuration(recipe, config_dir=config_dir or _CONFIG_DIR, where=where)
+    if record.get("results") is not None:
+        if name_to_uid is None:
+            from omai.map_data import _domains, build_graph_dict
+            name_to_uid = {n["id"]: n["uid"]
+                           for n in build_graph_dict(_domains())["nodes"]}
         _validate_results(record["results"], record_id, name_to_uid,
                           where=where, instances_dir=instances_dir)
 
@@ -636,14 +652,19 @@ def record_light(*, recipe, execution=None, artifacts=None, mirrors=None,
     results : list | None
         Optional results (backref slugs or instance stubs). Outside identity.
     name_to_uid : dict | None
-        Precomputed node-id -> uid map. Only consulted when the recipe names a
-        node (to pin the live uid and validate); a node-less recipe never builds
-        the map.
+        Precomputed node-id -> uid map. Consulted when the recipe names a node
+        (to pin the live uid and validate) or when ``results`` is given (to
+        validate a result stub's variable); built from the live map on demand
+        when omitted and needed. A node-less recipe with no results never
+        builds the map.
     domains : tuple | None
         Domains to build ``name_to_uid`` from when the recipe names a node and no
         map was supplied (default: the live map).
     config_dir : Path | None
-        Optional configurations dir for the (optional) configuration check.
+        Configurations dir for the configuration-pin check (default: the real
+        ``docs/data/configurations/``). A recipe naming no configuration is
+        unaffected regardless of this value; pass an explicit dir (e.g. a test
+        fixture) to point the check elsewhere.
 
     Returns
     -------
@@ -656,8 +677,9 @@ def record_light(*, recipe, execution=None, artifacts=None, mirrors=None,
     Raises
     ------
     SimulationError
-        On a malformed recipe, a stale node pin, a malformed pointer, or (when
-        present) a malformed execution/result.
+        On a malformed recipe, a stale node pin, an unresolved configuration
+        pin, a malformed pointer, or (when present) a malformed
+        execution/result.
     """
     if not isinstance(recipe, dict) or not recipe:
         raise SimulationError("record_light: recipe must be a non-empty object")
