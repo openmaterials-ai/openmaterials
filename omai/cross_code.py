@@ -30,6 +30,7 @@ sharing identical physical conditions.
 from __future__ import annotations
 
 import json
+import math
 import re
 from pathlib import Path
 
@@ -123,7 +124,17 @@ def agreement_groups(instances=None) -> list[dict]:
 
         values = [r["value"] for r in members]
         vmin, vmax = min(values), max(values)
-        mean = sum(values) / len(values)
+        # math.fsum, not the builtin sum, so the mean (and the spread derived
+        # from it) is byte-identical on every supported Python. Python 3.12
+        # switched sum() to Neumaier compensated summation for floats
+        # (python/cpython#100425); 3.11's plain left fold accumulates a
+        # different last-ULP rounding, so sum([26.908, 24.301, 19.46, 16.735])
+        # is 87.404 on 3.12 but 87.40400000000001 on 3.11. Since the committed
+        # bundle is derived and pinned by test, that ULP would make the same
+        # code emit two different agreement.json files. math.fsum returns the
+        # exactly-rounded sum on both, matching the committed value, so the
+        # bundle reproduces regardless of interpreter version.
+        mean = math.fsum(values) / len(values)
         # Spread as a fraction of the mean: a dimensionless "how much do these
         # methods/codes disagree". Guard the degenerate mean == 0 (no thermal
         # group hits it, but a formation energy or a signed quantity could).
