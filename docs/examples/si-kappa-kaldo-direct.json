@@ -1,6 +1,6 @@
 {
   "id": "88385670f5e547cd3642492acf7c682cf9b864374478b4583ffebfbfb550a3b1",
-  "recipe": {
+  "lineage": {
     "node": "ThermalConductivity[bte_solver=direct_inverse]",
     "material": {
       "name": "Si",

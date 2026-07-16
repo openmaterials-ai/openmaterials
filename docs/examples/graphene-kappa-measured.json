@@ -1,6 +1,6 @@
 {
   "id": "abee8959d3fe94810c78ec91661b87f6102312106b5052dee6c054e21cedcec6",
-  "recipe": {
+  "lineage": {
     "node": "ThermalConductivity",
     "material": "graphene (suspended)",
     "hyperparameters": {
