@@ -70,10 +70,16 @@ the card is identical without it.
 OpenMaterials provides templates and lineages; MaterialsCodeGraph stores
 experiments and runs simulations from lineages.
 
-A lineage is also a link on its own, no store, no server. A lineage record is
-light and lineage-identified (`omai/lineages.py`): its identity is its lineage,
-the X-to-Y path from inputs to a result (a map node when known, else a template
-with its hyperparameters and setup values), and heavy artifacts are optional pointers to
+Glossary:
+
+- Lineage is the shareable run record defined in `omai/lineages.py`.
+- Provenance is a quantity instance's source reference, `source.ref`.
+- Derivation is a node's upstream graph in the map.
+
+A lineage can also be shared as a link on its own, with no store or server. The
+record is light and lineage-identified: its identity comes from its `lineage`
+field (a map node when known, else a template with its hyperparameters and setup
+values), and heavy artifacts are optional pointers to
 [MaterialsCodeGraph](https://materialscodegraph.com/), never embedded. Because
 it is light, the whole record gzips into a `#x=` link fragment that opens in the
 playground's Lineage tab:
