@@ -170,11 +170,11 @@ print(node_id(THERMAL_CONDUCTIVITY)[:12], THERMAL_CONDUCTIVITY.fields[0].dimensi
 
   <section class="gsec" id="mermaid">
     <h2>Export a sub-map as Mermaid</h2>
-    <p>Any lineage or map view renders natively wherever markdown does (GitHub,
+    <p>Any derivation or map view renders natively wherever markdown does (GitHub,
       issues, PRs): the playground's Map tab has a Copy as Mermaid button, and
       the exporter runs from Python:</p>
     <div class="snippet" data-snippet="python">
-      <div class="snippet-head"><span class="snippet-title">A node's lineage as a mermaid flowchart</span><span class="snippet-lang">python</span></div>
+      <div class="snippet-head"><span class="snippet-title">A node's derivation as a mermaid flowchart</span><span class="snippet-lang">python</span></div>
       <pre>from omai.mermaid import mermaid_lineage
 
 print(mermaid_lineage("PhononDOS"))
