@@ -1,6 +1,6 @@
 """The playground plain data view renders facts for a pinned structure.
 
-When a recipe's ``material.configuration`` pins a real cell, the view resolves
+When a lineage's ``material.configuration`` pins a real cell, the view resolves
 that uid against the configurations bundle and adds plain key-value rows for
 formula, space group, atom count, and lattice lengths. These tests pin the data
 contract, the page wiring, and the shipped JavaScript helper behavior.
@@ -73,9 +73,9 @@ def test_play_page_loads_and_renders_the_pinned_configuration():
     assert "function resolveConfiguration" in html
     assert "function configSummaryHTML" in html
 
-    render = _grab_function(html, "renderExperiment")
-    recipe_rows = render[render.index("// ---- THE RECIPE"):]
-    assert "configSummaryHTML(cfg)" in recipe_rows
+    render = _grab_function(html, "renderLineage")
+    lineage_rows = render[render.index("// ---- THE LINEAGE"):]
+    assert "configSummaryHTML(cfg)" in lineage_rows
 
     for label in ("formula", "space group", "atoms", "lattice a b c (Å)"):
         assert "row('%s'" % label in html, (

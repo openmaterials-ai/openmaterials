@@ -85,9 +85,9 @@ commitments of the initiative, not courtesies.
   underlying trajectories, wavefunctions, force sets, lab records, or
   datasets. Those remain wholly the owner's, under the owner's own
   terms, reachable through the provenance reference and nowhere else.
-* **Identity in the commons, bulk on the platform.** A simulation record
-  is light and recipe-identified: its identity is the recipe it was asked
-  (a map node when known, else a template with its hyperparameters and
+* **Identity in the commons, bulk on the platform.** A lineage record
+  is light and lineage-identified: its identity is its lineage, the X-to-Y
+  path from inputs to a result (a map node when known, else a template with its hyperparameters and
   setup values), and heavy artifacts are optional, pointer-only
   (`{path, role, url?, sha256?}`), never embedded and never hashed into
   identity. The format (the data structure) is the open-source,
@@ -97,7 +97,7 @@ commitments of the initiative, not courtesies.
   outside the identity, moving bytes, renaming a bucket, or adding a
   mirror never changes the record's identity or orphans a value that cites
   it. This is the operational form of the rule above: the open format
-  keeps the recipe and its identity, the platform keeps the bytes.
+  keeps the lineage and its identity, the platform keeps the bytes.
 * **Attribution flows both ways.** Downstream, reuse of map data must
   credit the map version and, through its provenance, the original
   sources: that is what the BY in CC BY 4.0 means. Upstream, every

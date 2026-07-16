@@ -144,7 +144,7 @@ function esc(s){
 /* ---- "Run on MaterialsCodeGraph" deep link (#25) --------------------------
    OPTIONAL, additive, storage-free: for a card whose node MCG can actually run,
    one more action-row link deep-links MCG's compute wizard at #/new/<node_id>
-   (materialscodegraph#65), prefilled from the recipe. Hidden otherwise: precision
+   (materialscodegraph#65), prefilled from the lineage. Hidden otherwise: precision
    over reach, only genuinely runnable nodes get the link, and the card is
    identical without it. Nothing here touches the store, a record, or identity. */
 var MCG_BASE = 'https://app.materialscodegraph.com';   // one place to change
@@ -191,7 +191,7 @@ function computableRec(recs){
 // params when trivially in scope so the wizard can prefill. Q1 (the canonical
 // card URL) is the owner's open call; where a back-link to this openmaterials
 // card is wanted, the PORTABLE #x= form is the self-contained shareable identity,
-// so a back-link would carry the recipe in the fragment rather than invent a
+// so a back-link would carry the lineage in the fragment rather than invent a
 // server route. It is left off the deep link here (the reciprocal seam (c) ships
 // MCG-side and Q1 is undecided); the const and the base node keep it a one-line
 // add if the owner decides to include it.
@@ -343,7 +343,7 @@ function renderDetail(ref){
   // prefilled from that record. Absent otherwise (the card is identical).
   var runRec = computableRec(recs);
   var runBtn = runRec ? '<a class="btn" href="' + esc(mcgRunUrl(runRec)) +
-    '" target="_blank" rel="noopener" title="Open this recipe in the MaterialsCodeGraph compute wizard">Run on MaterialsCodeGraph</a>' : '';
+    '" target="_blank" rel="noopener" title="Run this lineage as a simulation on MaterialsCodeGraph">Run this lineage as a simulation on MaterialsCodeGraph</a>' : '';
   document.getElementById('main').innerHTML =
     '<p class="crumb"><a href="#">&larr; All experiments</a></p>' +
     '<p class="eyebrow">Experiment</p>' +
