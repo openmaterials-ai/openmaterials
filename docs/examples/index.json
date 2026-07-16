@@ -1,0 +1,122 @@
+[
+  {
+    "slug": "si-kappa-kaldo-direct",
+    "id": "800d4897fbe9",
+    "node": "ThermalConductivity[bte_solver=direct_inverse]",
+    "material": "Si",
+    "value": {
+      "kappa": 26.908,
+      "units": "W/(m K)"
+    },
+    "code": "kaldo",
+    "fragment": "gH4sIAK4gWGoC_2VQwWrjMBD9laJTF9xYsmzHMvRQ0t3LQgtNYA-lmLE0qkVtS8hyaCn595WSzWnRYZg3857evG9iFGlJQ6kqG7HVPQpaVQUvOKNQFY0QWG1lBKlmvEAseCkEaEFlX-qm11XDq7oRJCMepXFI2m8yWxUrOQzoJxh3dlarDOZowtdrH7Bb7HhEf69MZITOzLFZ8C0qTBDQGxgjd29iP3w59A48TBgHS5KecBmS3c_44saBtJzSjDgbcA5X6iZtW63JKSNHGFc8Uz_AOSBtUW8EbTKyziZEnPzJb6eb3z_SbsDJjdFDRN1gZzt3ye6Fl52v6tZzWsBroThHUZe8F7rZ1nXPGJMKt4UsS91rXgLjgGWtNPScIYNYmSxYISSI9Bl-olyDsXPyJi-JfcCobBqCD0aDTAZf32Iwxnt7CeDX88vuZ7d7ftofHp4O-46_PCZ49en0IQS3tHkeHW-uYS5J-92DGzbSTrlf5yVfzN2_iO6uSTpvj0ahjyr_M8npdPoLF6KZTSkCAAA"
+  },
+  {
+    "slug": "si-kappa-kaldo-rta",
+    "id": "503522e76365",
+    "node": "ThermalConductivity[bte_solver=rta]",
+    "material": "Si",
+    "value": {
+      "kappa": 19.46,
+      "units": "W/(m K)"
+    },
+    "code": "kaldo",
+    "fragment": "gH4sIAK4gWGoC_2WQQWvcMBCF_0rRqQVnLVu2LBl6CJvkUkggu9BDCEaWxrWIbQlZXhLC_veOdptT0UFoZt7ove-TWENaUlNWlyU0nPG6KfvScDBSVn3d9JxS03AlS6Fq1mgpZAM9N8Ugh0LIYaBK8opkJIC2Hkj7SRZn8CbHEcKspr1bzKajPdn48dJH6FY3nSD8DFG9omxWEYJVEwoOFt_jh4fgVVAzYGNN-2ZYR2yLdzw4cSQtozQj3kVY4pd0l6bdMJBzRk5q2uAifVPeK9IWclfxjGyLjVgmv_Pv87dfP9JohNlPaAGrfnSLW7pk8SrLLkm67ULINNIIYWpWcq6LqgEljKBcm94wagZGZYHAuGR1AVCwXmtJK2QjmqqGXlfpM3gHvUXrlmRNXym9qcm41FQh2kHpZPDlFbnYENw1_8PT8_6-2z89Ho63j8dDx57vUnkLKfkYo1_bPEfHuy-Wa9r9Jyg_7rSb87Ata77am3-EbpA8ZvPBnayBgDv-15Hz-fwXUrFReRsCAAA"
+  },
+  {
+    "slug": "ge-kappa-kaldo",
+    "id": "db7ca927c773",
+    "node": "ThermalConductivity[bte_solver=direct_inverse]",
+    "material": "Ge",
+    "value": {
+      "kappa": 15.276,
+      "units": "W/(m K)"
+    },
+    "code": "kaldo",
+    "fragment": "gH4sIAK4gWGoC_2WQS2vcMBDHv0rRqQV3bT1WfkAPZfs4FBJIFnoIwYykcSxiW0KWl4Sw373SLnsqOgzz-I_-8_sg1pCOGFVraFmt65pXjKpGDW2tpNFAlTJtK4xkwKQBJppKyb1E3rBKNroRak9rQQoSUFuPpPsgizMpkuOIYYbp4Baz6WhPNr4_qYj96qYThm_GJkXs7ZKSFZ_ThhkiBgtT0v7GlI_vHoOHADOmxppXz7iOqd28pZcmjqTjVVUQ7yIu8Sbd5Wk3DORckBNMG16kr-A9kI7ud6yWBdkWG1Od_C0_z5_-fMmzEWc_JQ-p6ke3uKXPdq-64nJVv11oAZet4RxbKbhqh6aWUlFKtcGaaSEGNXABlAMKaQZQnCKFFKlmlLWJc_4M31Bv0bole9NXYq8wGZebEKIdQGeDT88JjA3BXQH8un84_OwP93ePx-93x8eeP_zI5S3k08cY_dqVZXK8u8Fc8-6XAH7caTeXYVvW8gW_3hAldsGdrMGQ9P9ryPl8_gf1ml5gIwIAAA"
+  },
+  {
+    "slug": "si-diamond-kappa-dfpt",
+    "id": "9adf5f9be27b",
+    "node": "ThermalConductivity[bte_solver=direct_inverse]",
+    "material": "Si (diamond)",
+    "value": {
+      "kappa": 147.0,
+      "units": "W/(m K)"
+    },
+    "code": "kaldo",
+    "fragment": "gH4sIAK4gWGoC_2VQXWvjMBD8K0FPLSRxZClyZLiHkrYvPdrjYriHUsxaWjWi_lBlObSU_PeTnN7TgWDR7szs7HwRq0lJJGizNbLBvGgaJgRlG7kDxhRqnmulBapcapQ7Btu8wK3UlApleMGLhishyZJ4VNYhKb9IP-hYSXVE30G7H3o9qWBPNnw-NwHrcWhP6H9oGxmhtn38jPgSFToI6C20kXuwiyttoYvc6zg5fjr0Djx0GCFjWvK-evWzdSo_5hdhFSnZZrMkbgjYh4vS7f2vavHz9iaOxwDBjsGqKEDeJ-jD1JHzkpygnXAWfQPngJSUF-soM_U2JOif7KpbPFwnaMDOtdFm7GoT6jbdcyEt57PrafYETEjNGErBWSPNrhCioZQqjUWuODeNYRwoA-RCG2gYRQqxUpXTXCqQaRV-oJqCHfpkTF0ifYNWD2kIPlgDKtl7fonJWe-HSy73T7_3d_X-6fFQ3TxWh9SafAriGIIbyyyLbtf_kh6T7qsHd1yrocv81I_ZaFffya-0cSEe5vxwshp9FPmfSM7n81-VxF81RQIAAA"
+  },
+  {
+    "slug": "ptse2-kappa-bte",
+    "id": "1c5616f3b290",
+    "node": "ThermalConductivity",
+    "material": "PtSe2 (bulk)",
+    "value": {
+      "kappa": 39.0,
+      "units": "W/(m K)"
+    },
+    "code": "first-principles BTE",
+    "fragment": "gH4sIAK4gWGoC_2WQTWvjMBCG_0rQqYU0lmzLH7l1Q_ey0JbGsIdlCSNp1Ij6Q8hy2BLy3ztK6GlPgplnZl49Z-YM2zKhZSUqW6i85S2gqsu2FMBFIyvIi5zXXPDKKhBQla0ubQOFLWSDEnQtJHC2ZgG188i2ZzZOhl7WHTEM0O-m0Sw6upOLn4QNEDE46Al4jXvMV3dq6T_uqXP89Bg8BBiQkDlt6ogK0zSsIg7UhLgEJNI4OhbdNFLbjQ--hxHZZc1O0C94HfwA74Fti3bD12wZXaQq-53dDatf94lM-3pKQlVj40FFPNxG1tf0h-VqBXhR5KUpDVpZVqK1okJsuNZW1JVqJci24Y0oRSWFQQVKESGEqrEAkRuZLuE_1Mst65npmxnrwhwffHAjKetxXv3onhILIToLOoX985dUuRCmm4ifL2-7p8Pu5XnfPT53-1RaQnJ4jNHP2yyj8JtvtXM68x7AHzd6GrKwjHPm44w5_c6H6eQMBhr9H2eXy-ULiwa9-RECAAA"
+  },
+  {
+    "slug": "tan-kappa-shengbte",
+    "id": "9c8a102b80c0",
+    "node": "ThermalConductivity",
+    "material": "TaN (I41md)",
+    "value": {
+      "kappa": 900.0,
+      "units": "W/(m K)"
+    },
+    "code": "ShengBTE",
+    "fragment": "gH4sIAK4gWGoC_2VRTWvcMBT8K0anBJy15G_trd0mtLRsIGvooRTzLD2vRW1ZyPKyIex_r-Skp56ERjPvzYzeiJJkT7iogdG0q6mgFJFjB3naCyypLDireJ9WkLEMZSVoiUJCWdQ9LSvknPGaI4mJRaEMkv0b0bP0J2kGtBOMh1nLVTh1Ue7V0yZwaBWMgQDH6O5bziZ57x-GV4PWgIUJPWMJg8Q8mVmjdp58vXrOIsAFuT57JHsww6xnHZlxXaL84xZWoBvmkOrLUxNH_TqO0Y_PzSO5xeQC44rb7D9gDJA9p3RHY7Jq5TxMfiZ3U_T9PlAdTmb0Zj0qe9eOncP2XRRvCdt1aw5olqW5zCX2RV4y3rMS0dcoelaVHS-g4DWtWc7Kgklfa9d5BmNdhRmwVBZhFV5RrE5581vorb3TgPr84RqsUz2I4PDXb59PWTu_N_T0_HJ4bA_Px1Pz6dic2rz5GuDVhn4H58yyTxJvevev9iWMP1sww863m9hVL4kD_aDCN_hkxs4XJdF6-f8Scrvd_gL7N8CSMQIAAA"
+  },
+  {
+    "slug": "a-si-kappa-qhgk",
+    "id": "b93603157d51",
+    "node": "ThermalConductivity[transport_model=qhgk]",
+    "material": "a-Si",
+    "value": {
+      "kappa": 2.2,
+      "units": "W/(m K)"
+    },
+    "code": "kaldo",
+    "fragment": "gH4sIAK4gWGoC_2VQTYvbMBD9K0GnFpJYlmzZCvRQQnsp7EJj6GFZwlgarUVsy5Wl0GXJf6-U0FNPQvM-5s37IFaTA-klF5SXdaPrsmp5K6huKlWipqo2hklFNdfYMlr3ZW0arqDqFQgpGRNUoCRb4lHZBcnhg8xOp5d0A_oJxqObdVTBXm14fwke5nVxPpynRBq__B7eLq9JPEFAb2FMMtidbJoM7wv6BTxMmKA1-3YJ9c5Nm4BTAiFEj4m5xvRROGZxRaXYQHDTmoDFBZzDw7VLHs4YctuSK4wR74YXWBYgB7ZnWxJnG9KQ_Co-TZsfnzMxrxlTsDTNOc8P-vZ-3znee2slZ8hVDxpNU0HLWsr6ihtdalZz1qq-oihKLpSk2vBeQAVSttg0Rtai6fMa_IMqBuvmHEk9urvAqF0GwQdrQOVoL6-pJ-u9e7Tx_fnn8dv5-Px06r4-dac8ij6fOoSwrIeiSGn3_3pds--bh2XYKzcVPs5rAbvV7vJhuSrvrlajT_L_JeR2u_0F2rianSgCAAA"
+  },
+  {
+    "slug": "sige-zt-qhgk",
+    "id": "8163ac13b5e9",
+    "node": "ZT",
+    "material": "Si0.5Ge0.5 (1/r-correlated disorder)",
+    "value": {
+      "ZT": 1.9,
+      "units": "dimensionless"
+    },
+    "code": "QHGK",
+    "fragment": "gH4sIAK4gWGoC_2VQy2rDMBD8laBTC2lsxbZs5VZKH1BoaZNTSwmytEoEfoiVXPog_95VQk696DG7s7Mzv8wZtmINF4XSvGgrkFIpaQW9hNHGlkIIawyUvGrqXDZlXVRag8xlJaDmErRUrWVzhqCdB7b6ZcNo6GZvG0J7FQGd6ui_dvmiugc6Zhc8wys9IkJHdTMzLoxoAC-Jsf_2gF6h6oGoIQ3cEJsv83z2SPVzb8IynJ2nuHFghzn7VN0ERxLJr_hCztk0uEgIEXsYAvV1EELqjdD7pE-1uAfsR-hAR3R6-xNJKNnYTsd4tCXz0iyB1_mytG0hhWkKIPc1b6qlFRooqVJYbanLQttwaKUsoQAhoFBJDb5AT8c1aTl9iujl4f4x1RRGZ5VOa75_UGgOcTxZv3t-vbnd3jw_rTfXT5t1giZMae5j9GGVZcr7xTnkkMbuUPn9Qo99htMQsuB2cHX043H8dKfg_hPY4XD4A9WiHM8MAgAA"
+  },
+  {
+    "slug": "si-elastic-c11-pimd",
+    "id": "64ebd9f54bda",
+    "node": "ElasticConstants",
+    "material": "Si (diamond)",
+    "value": {
+      "C11": 133.6,
+      "units": "GPa"
+    },
+    "code": "TDEP",
+    "fragment": "gH4sIAK4gWGoC_2VQ0YrbMBD8lUNPLU0Ty5LlyG8llztK6V1o8lZKWEvrRhBLQpaPO478e1cJpQ99kWB2Zndm3pmzrGNKYm_10MjeglFK20pYI1HJRvW9Rout5Zy3UvKhWau-5o1YD3pQQmjkska2YAmNi8i6d-aDpZ9tzzBlZzbBTxl8nogzQsbk4EzTvbv7YB2MwduPNDm9RUwREoxIlKmsORBLVNXdtyLEfArF6O7r9_tPh_vtjkATxhg8-kz4hnN2WbAXOM94VReg40Is1YLN3tH5jj3uoJAyjvFMTgiJbrTHbDEe8eaW1hb7x_laS8UrKYDi1oNdtyh70FILA0Nbaeg1tMaYtULTQlVJehpew8BrNMCN0BzLNXxFM2cXfHFlbtVcA9AMUnYDmGLu5y9K6VIKt_APzz822-Pm-Wl_-PJ02BdoTqW3U85x6lYriHH5t86prP2dIJ6W1MkqzX5aTe7zv0gxhRdnMZH-fw27XC5_ALC_PY0HAgAA"
+  },
+  {
+    "slug": "graphene-kappa-measured",
+    "id": "abee8959d3fe",
+    "node": "ThermalConductivity",
+    "material": "graphene (suspended)",
+    "value": {
+      "kappa": 5300.0,
+      "units": "W/(m K)"
+    },
+    "code": "measurement",
+    "fragment": "gH4sIAK4gWGoC_yWQzWrDMBCEX8XolIBptbYl_1x77K0EeiilrKR1LRLJQpYDIeTdKzWnhd1vZ4a5M2vYxFARDaMYTTvT2A3AdT-QHkFKUEM_S-BNCw1wqQQXjSGSmouOGtBkNGnJahZJ20BsujO_mjzZaaHo8PK2erPrZK823TLmMFG0eMnAb8SwkKfqsO1bIG_IHDOx3ALFgBEdZXQriqdMx3V1VSKXj5j2SEWL0rKW-B_o0FdrSGt6mrJHza542en__YwhIJtEy_kLr9nubcp79vl6cNX7sbAl8s_-rIK3bdOZztAsOgnjDDJ3w7WeoZdqFCjGgQ_QgRRgSKFSmQBQPbUIjRFFDmOyM-ri8vVds7P1RdkRbjm4I5_Y4w9IqQO3eQEAAA"
+  }
+]

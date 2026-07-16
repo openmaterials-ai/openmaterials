@@ -1,0 +1,28 @@
+{
+  "id": "800d4897fbe9055232310a52899e57ce900f132ee23499af90cb4f8bf5835689",
+  "recipe": {
+    "node": "ThermalConductivity[bte_solver=direct_inverse]",
+    "material": "Si",
+    "hyperparameters": {
+      "mesh": "8x8x8",
+      "T": 300,
+      "potential": "Si.tersoff"
+    },
+    "values": {
+      "kappa": 26.908,
+      "units": "W/(m K)"
+    },
+    "template": "phonon_bte_kappa",
+    "node_uid": "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9"
+  },
+  "execution": {
+    "code": "kaldo"
+  },
+  "artifacts": [],
+  "mirrors": {
+    "FORCE_CONSTANTS_3RD": {
+      "url": "https://app.materialscodegraph.com/runs/si-tersoff-8x8x8",
+      "provider": "materialscodegraph"
+    }
+  }
+}
