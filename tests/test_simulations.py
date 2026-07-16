@@ -1162,6 +1162,60 @@ def test_record_light_pins_live_node_uid_when_absent():
 
 
 # --------------------------------------------------------------------------
+# The configuration pin on the light path (the primary builder): material is
+# inside recipe_id, so an unresolved structure pin is an identity-contract
+# gap, not a cosmetic one. record_light/validate_light must catch it exactly
+# as the heavy writer does, without a caller having to opt in.
+# --------------------------------------------------------------------------
+
+def test_record_light_rejects_unknown_configuration():
+    """A light record pinning a configuration uid absent from the real
+    docs/data/configurations/ is rejected by record_light itself: config_dir
+    now defaults to the real directory, so this is caught without a caller
+    passing anything extra."""
+    recipe = _light_recipe(
+        material={"name": "Si", "configuration": "sha256:" + "9" * 64})
+    with pytest.raises(sim.SimulationError, match="configuration"):
+        sim.record_light(recipe=recipe, name_to_uid=_NAME_TO_UID)
+
+
+def test_record_light_accepts_the_committed_si_configuration():
+    """A light record pinning the real, committed Si configuration uid (the
+    si-diamond-primitive-mp-149 record under docs/data/configurations/)
+    resolves and passes, against the default config_dir."""
+    committed = json.loads(
+        Path("docs/data/configurations/si-diamond-primitive-mp-149.json")
+        .read_text())
+    uid = committed["canonical"]["uid"]
+    recipe = _light_recipe(material={"name": "Si", "configuration": uid})
+    rec = sim.record_light(recipe=recipe, name_to_uid=_NAME_TO_UID)
+    assert rec["id"] == sim.recipe_id(recipe)
+
+
+def test_record_light_bare_material_name_without_configuration_still_passes():
+    """The common case: a material with no configuration key at all is not
+    affected by the now-default config_dir (no regression). No node either,
+    so name_to_uid is never consulted."""
+    recipe = {"material": {"name": "Si"}, "template": "gpumd",
+              "conditions": {"T": 300.0}}
+    rec = sim.record_light(recipe=recipe)
+    assert rec["id"] == sim.recipe_id(recipe)
+    report = sim.validate_light(rec)
+    assert report["id"] == rec["id"]
+
+
+def test_record_light_nodeless_malformed_result_stub_rejected():
+    """A node-less light record (no map node named, so record_light never
+    builds a node_to_uid map on its own) still validates a results[] stub: a
+    stub missing the required instance keys is rejected, not silently let
+    through because there was no node to force the map build."""
+    recipe = {"template": "gpumd", "conditions": {"T": 300.0}}
+    bad_stub = {"variable": _NODE}  # missing material/conditions/value/units/source
+    with pytest.raises(sim.SimulationError, match="missing"):
+        sim.record_light(recipe=recipe, results=[bad_stub])
+
+
+# --------------------------------------------------------------------------
 # Artifact-pointer well-formedness (validate_light / _validate_pointers).
 # --------------------------------------------------------------------------
 
