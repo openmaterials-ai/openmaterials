@@ -1,10 +1,9 @@
 {
-  "id": "8163ac13b5e99aa9f6b5e6dcdf4666fdde415870984735cce90956e719ec9abf",
+  "id": "baef04bda450665c5f8890398d6feb987b080c5002bcd4c84b7c262b68501a36",
   "lineage": {
     "node": "ZT",
     "material": "Si0.5Ge0.5 (1/r-correlated disorder)",
     "hyperparameters": {
-      "T": "1200 K",
       "disorder": "1/r correlation"
     },
     "values": {
@@ -12,12 +11,21 @@
       "units": "dimensionless"
     },
     "template": "thermoelectric_zt",
-    "node_uid": "cf5879d2e17024fb396d83e19e71852f6cedf446fcf9d2feb81eb994e3e66e3a"
+    "node_uid": "cf5879d2e17024fb396d83e19e71852f6cedf446fcf9d2feb81eb994e3e66e3a",
+    "conditions": {
+      "T": "1200 K"
+    }
   },
   "execution": {
     "code": "QHGK"
   },
-  "artifacts": [],
+  "artifacts": [
+    {
+      "path": "FORCE_CONSTANTS",
+      "role": "force_constants",
+      "url": "https://app.materialscodegraph.com/runs/sige-zt"
+    }
+  ],
   "mirrors": {
     "FORCE_CONSTANTS": {
       "url": "https://app.materialscodegraph.com/runs/sige-zt",

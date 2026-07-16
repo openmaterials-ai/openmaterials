@@ -82,9 +82,12 @@ playground's Lineage tab:
 https://openmaterials.ai/play/#/play?tab=lineage&x=<gzipped record>
 ```
 
-Opening the link renders the record as a **plain data view**: a lineage is a
-data container, and OpenMaterials (the static site) is the container's viewer, so
-the view shows the information the record holds, plainly, not a dashboard. It
+Opening the link renders straight into a **full-width, dense, plain datasheet**:
+a lineage is a data container, and OpenMaterials (the static site) is the
+container's viewer, so the view shows the information the record holds, plainly,
+not a dashboard. Opening the Lineage tab without a record lazily loads the
+committed `si-kappa-kaldo-direct` lineage into the same datasheet, with plain
+links to the other nine committed examples. It
 presents what the record is (the kind, simulation or measurement, the output map
 node, the material, and the short lineage id), the lineage's every field as plain
 labelled key-values and a simple value-and-units table (node, node_uid, material
@@ -101,9 +104,10 @@ a plain **Run this lineage as a simulation on MaterialsCodeGraph** link when the
 node is one MCG can compute (simply absent otherwise) and a Copy link that re-mints
 the same `#x=` share URL, so the view is shareable and replayable. **Dashboards and compute live
 on MaterialsCodeGraph, not here**: the rich visualization and the running or
-replaying are MCG's job; this view is the faithful, plain record. Paste a record
-JSON on that tab, or drop a `.json` file (a record MCG serves pastes straight in),
-to open a data view of your own; the paste/drop ingress validates the record
+replaying are MCG's job; this view is the faithful, plain record. Use **paste
+another** in the datasheet, or return to the Lineage tools, to paste a record JSON
+or drop a `.json` file (a record MCG serves pastes straight in) and open a
+datasheet of your own; the paste/drop ingress validates the record
 client-side against the same light shape checks as `validate_light` (lineage
 present, artifact pointers well-formed) and is honest about gaps (a
 node-unresolved or measurement record still shows its data plainly, without a

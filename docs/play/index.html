@@ -82,62 +82,95 @@
   .lean-badge{color:#0f9d6b;font-weight:700;}
   .pg-node-panel .uid{font-family:var(--font-mono,monospace);font-size:.68rem;color:var(--muted);word-break:break-all;}
 
-  /* ---- the lineage DATA VIEW: a shared #x= record shown as plain information --
-     OpenMaterials is the data-container viewer: a shared lineage record is a
-     data container, and this view shows INFO ABOUT THE DATA, plainly. What the
-     record is, every field of the lineage, what the output node means on the map,
-     where the heavy bytes live, and a plain handoff to MaterialsCodeGraph for the
-     running/replaying. No dashboard: no hero graphics, no charts, no value bars,
-     no agreement plot (that visualization lives on MCG). Clean typography with
-     the site fonts (Inter, Source Serif, JetBrains Mono), the light palette,
-     readable key-value lists and small tables. It renders in the normal content
-     panel, not a full-width takeover. */
-  .rec{display:flex;flex-direction:column;gap:20px;}
+  /* ---- the lineage DATA VIEW: a full-width, plain scientific datasheet -------
+     A successful light record leaves the tool shell for a full-width typeset
+     datasheet. Density comes only from typography and layout: no dashboard, hero
+     graphics, charts, value bars, agreement plot, cards, or decorative chrome.
+     The record remains plain information built from the in-hand container and
+     the static map data, with the original ingress waiting behind it. */
+  body.lin-open .pg-main{display:none;}
+  .lin-stage{display:none;flex:1 1 auto;min-height:0;overflow-y:auto;background:var(--surface);}
+  body.lin-open .lin-stage{display:block;}
+  .lin-bar{min-height:40px;display:flex;align-items:center;justify-content:space-between;
+    gap:18px;padding:0 26px;}
+  .lin-bar a,.lin-bar button,.lin-ingress button{font:600 .78rem var(--font-sans);color:var(--accent);
+    background:none;border:0;padding:0;cursor:pointer;text-decoration:none;}
+  .lin-bar a:hover,.lin-bar button:hover,.lin-ingress button:hover{text-decoration:underline;}
+  .lin-actions{display:flex;align-items:baseline;justify-content:flex-end;gap:6px 20px;flex-wrap:wrap;}
+  .lin-ingress{max-width:1240px;margin:0 auto;padding:8px 26px 0;}
+  .lin-ingress[hidden]{display:none;}
+  .lin-ingress-row{display:grid;grid-template-columns:minmax(280px,1fr) minmax(220px,.55fr) auto;
+    gap:8px 14px;align-items:center;}
+  .lin-ingress .pg-input{padding:7px 9px;font-size:.72rem;line-height:1.35;}
+  .lin-ingress .xp-drop{padding:7px 10px;font-size:.72rem;}
+  .lin-content{max-width:1240px;margin:0 auto;padding:10px 26px 40px;}
+  .lin-examples{margin:0 0 8px;font-size:.74rem;line-height:1.4;color:var(--muted);}
+  .lin-examples[hidden]{display:none;}
+  .lin-examples p{margin:0 0 3px;color:var(--ink-2,#3d4149);}
+  .lin-example-links{display:flex;flex-wrap:wrap;gap:2px 14px;}
+  .lin-example-links a{color:var(--accent);text-decoration:none;}
+  .lin-example-links a:hover{text-decoration:underline;}
+  .rec{display:flex;flex-direction:column;gap:6px;}
+  .rec-head{display:flex;align-items:baseline;justify-content:space-between;gap:24px;min-width:0;}
+  .rec-head-meta{display:flex;align-items:baseline;justify-content:flex-end;flex-wrap:wrap;
+    gap:3px 12px;margin:0;min-width:0;text-align:right;font-family:var(--font-mono,monospace);
+    font-size:.68rem;line-height:1.35;}
+  .rec-head-meta>div{display:inline-flex;gap:4px;align-items:baseline;min-width:0;}
+  .rec-head-meta dt{color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
+  .rec-head-meta dd{margin:0;color:var(--ink);word-break:break-word;}
+  .rec-head-meta a{color:var(--accent);text-decoration:none;}
+  .rec-head-meta a:hover{text-decoration:underline;}
+  .rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));
+    gap:8px 34px;align-items:start;}
+  .rec-col{min-width:0;}
+  .rec-col>.rec-sec+.rec-sec{margin-top:8px;}
   /* a section: a small uppercase eyebrow over plain information, no card chrome */
   .rec-sec{}
   .rec-h{font-size:.66rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
-    color:var(--faint,#9aa0a8);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line);}
-  /* WHAT THIS IS: a short plain summary line + a labelled key-value list */
-  .rec-lede{font-family:var(--font-serif);font-weight:700;font-size:1.08rem;line-height:1.3;
-    color:var(--ink);margin:0 0 10px;letter-spacing:-.01em;}
+    color:var(--faint,#9aa0a8);margin:10px 0 4px;padding-bottom:3px;border-bottom:1px solid var(--line);}
+  /* the datasheet lede and compact header metadata replace What this is */
+  .rec-lede{font-family:var(--font-serif);font-weight:700;font-size:1.5rem;line-height:1.2;
+    color:var(--ink);margin:0;letter-spacing:-.01em;white-space:nowrap;}
   /* the key-value list used throughout: label on the left, value (mono) on the
      right, wrapping cleanly. Plain rows, not product cards. */
-  .rec-kv{display:grid;grid-template-columns:minmax(120px,auto) 1fr;gap:5px 16px;margin:0;align-items:baseline;}
-  .rec-kv dt{font-size:.82rem;color:var(--ink-2,#3d4149);font-weight:500;}
-  .rec-kv dd{margin:0;font-family:var(--font-mono,monospace);font-size:.82rem;color:var(--ink);
-    word-break:break-word;}
+  .rec-kv{display:grid;grid-template-columns:minmax(110px,max-content) 1fr;gap:3px 14px;margin:0;align-items:baseline;}
+  .rec-kv dt{font-size:.78rem;line-height:1.4;color:var(--ink-2,#3d4149);font-weight:500;}
+  .rec-kv dd{margin:0;font-family:var(--font-mono,monospace);font-size:.8rem;line-height:1.4;color:var(--ink);
+    word-break:break-word;min-width:0;}
   .rec-kv dd.wrap{word-break:break-all;}
   .rec-kv dd a{color:var(--accent);text-decoration:none;}
   .rec-kv dd a:hover{text-decoration:underline;}
   /* a labelled sub-group inside a section (Hyperparameters, Conditions, ...) */
-  .rec-grp{margin:0 0 12px;}
+  .rec-grp{margin:0 0 7px;}
   .rec-grp:last-child{margin-bottom:0;}
-  .rec-grp-lab{font-size:.72rem;font-weight:650;color:var(--ink-2,#3d4149);margin:0 0 5px;}
+  .rec-grp-lab{font-size:.7rem;font-weight:650;color:var(--ink-2,#3d4149);margin:7px 0 3px;}
   .rec-grp-lab .rec-grp-tag{font-family:var(--font-mono,monospace);font-size:.66rem;font-weight:400;
     color:var(--muted);margin-left:7px;}
   .rec-none{font-size:.8rem;color:var(--muted);font-style:italic;}
   /* the values table: value + units, no chart. A plain two-column table. */
-  .rec-vtable{width:100%;border-collapse:collapse;font-size:.83rem;}
+  .rec-vtable{width:100%;border-collapse:collapse;font-size:.78rem;}
   .rec-vtable th{text-align:left;font-size:.64rem;font-weight:700;letter-spacing:.05em;
-    text-transform:uppercase;color:var(--faint,#9aa0a8);padding:0 8px 5px 0;border-bottom:1px solid var(--line);}
+    text-transform:uppercase;color:var(--faint,#9aa0a8);padding:3px 10px;border-bottom:1px solid var(--line);}
   .rec-vtable th.num{text-align:right;padding-right:0;}
-  .rec-vtable td{padding:6px 8px 6px 0;border-bottom:1px solid var(--line);vertical-align:baseline;}
+  .rec-vtable th:first-child,.rec-vtable td:first-child{padding-left:0;}
+  .rec-vtable th:last-child,.rec-vtable td:last-child{padding-right:0;}
+  .rec-vtable td{padding:3px 10px;border-bottom:1px solid var(--line);vertical-align:baseline;}
   .rec-vtable tr:last-child td{border-bottom:none;}
   .rec-vtable .rec-vk{color:var(--ink-2,#3d4149);}
   .rec-vtable .rec-vv{font-family:var(--font-mono,monospace);font-variant-numeric:tabular-nums;
     color:var(--ink);text-align:right;white-space:nowrap;padding-right:0;}
   .rec-vtable .rec-vu{font-family:var(--font-mono,monospace);color:var(--muted);white-space:nowrap;}
   /* WHAT IT MEANS ON THE MAP: plain descriptive text, not a panel */
-  .rec-desc{font-size:.86rem;line-height:1.55;color:var(--ink-2,#3d4149);margin:0 0 8px;}
-  .rec-meta{font-size:.82rem;color:var(--muted);line-height:1.55;margin:0 0 4px;}
+  .rec-desc{font-size:.8rem;line-height:1.45;color:var(--ink-2,#3d4149);margin:0 0 5px;}
+  .rec-meta{font-size:.78rem;color:var(--muted);line-height:1.45;margin:0 0 3px;}
   .rec-meta b{color:var(--ink-2,#3d4149);font-weight:600;}
-  .rec-lineage{font-size:.84rem;line-height:1.6;color:var(--ink-2,#3d4149);margin:0;}
+  .rec-lineage{font-size:.8rem;line-height:1.45;color:var(--ink-2,#3d4149);margin:0;}
   .rec-lineage b{color:var(--ink);font-weight:600;}
   .rec-lineage a{color:var(--accent);text-decoration:none;}
   .rec-lineage a:hover{text-decoration:underline;}
   /* ARTIFACTS / where the data lives: a plain list of pointers and links */
-  .rec-arts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;}
-  .rec-art{font-size:.82rem;line-height:1.5;}
+  .rec-arts{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;}
+  .rec-art{font-size:.78rem;line-height:1.4;}
   .rec-art .rec-art-role{font-size:.6rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
     color:var(--muted);margin-right:8px;}
   .rec-art .rec-art-path{font-family:var(--font-mono,monospace);color:var(--ink-2,#3d4149);word-break:break-all;}
@@ -145,13 +178,13 @@
   .rec-art a:hover{text-decoration:underline;}
   .rec-art .rec-art-sha{display:block;font-family:var(--font-mono,monospace);font-size:.66rem;
     color:var(--muted);word-break:break-all;margin-top:2px;}
-  .rec-host{font-size:.82rem;color:var(--muted);margin:8px 0 0;}
+  .rec-host{font-size:.78rem;line-height:1.4;color:var(--muted);margin:5px 0 0;}
   .rec-host a{color:var(--accent);text-decoration:none;font-weight:600;}
   .rec-host a:hover{text-decoration:underline;}
   /* the plain handoff: a normal link to MCG + a Copy link, NOT product CTAs */
-  .rec-links{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:baseline;
-    padding-top:14px;border-top:1px solid var(--line);}
-  .rec-links a,.rec-links button{font:600 .85rem var(--font-sans);color:var(--accent);
+  .rec-links{display:flex;flex-wrap:wrap;gap:5px 16px;align-items:baseline;
+    margin-top:10px;padding-top:6px;border-top:1px solid var(--line);}
+  .rec-links a,.rec-links button{font:600 .78rem var(--font-sans);color:var(--accent);
     background:none;border:none;padding:0;cursor:pointer;text-decoration:none;}
   .rec-links a:hover,.rec-links button:hover{text-decoration:underline;}
   .rec-links .rec-link-note{font-size:.76rem;color:var(--muted);font-weight:400;}
@@ -162,6 +195,15 @@
     .pg-top .sub{display:none;}
     .pg-top .controls{gap:6px;}
     .pg-top .controls .om-btn{padding:9px 9px;font-size:.78rem;}
+    .lin-bar{align-items:flex-start;padding:9px 16px;}
+    .lin-actions{gap:4px 12px;}
+    .lin-ingress{padding:6px 16px 0;}
+    .lin-ingress-row{grid-template-columns:1fr;}
+    .lin-content{padding:10px 16px 32px;}
+    .rec-head{align-items:flex-start;flex-direction:column;gap:5px;}
+    .rec-head-meta{justify-content:flex-start;text-align:left;}
+    .rec-lede{white-space:normal;}
+    .rec-grid{grid-template-columns:1fr;}
   }
 </style>
 </head>
@@ -237,20 +279,23 @@
 
     <div class="pg-panel" data-panel="lineage">
       <h3>A lineage as a link</h3>
-      <p>A lineage record is a data container: light, and identified by its
-        lineage, the X-to-Y path from inputs to a result (a map node when known, else a template with its
-        hyperparameters and setup values) plus optional pointers to heavy
-        artifacts hosted on
-        <a href="https://materialscodegraph.com/">MaterialsCodeGraph</a>. Paste a
-        record, or drop a <code>.json</code> file (an MCG-served record pastes
-        straight in), to open a plain <b>data view</b> of it, then Copy link: the
-        whole record rides in the <code>#x=</code> fragment, no server, and
-        replays here as the same view. Nothing is stored or uploaded, it is a
-        client-side view. The data view shows what the container holds as plain
-        information: what the record is, every field of the lineage, what the
-        output node means on the map, and where the data lives, plus a plain link
-        to run this lineage as a simulation on MaterialsCodeGraph. Dashboards and compute live on
-        MaterialsCodeGraph, not here.</p>
+      <p>A lineage is a data container: the X-to-Y path from inputs to a result, and the whole record travels in the link, no server.</p>
+      <details><summary>How this works</summary>
+        <p>A lineage record is a data container: light, and identified by its
+          lineage, the X-to-Y path from inputs to a result (a map node when known, else a template with its
+          hyperparameters and setup values) plus optional pointers to heavy
+          artifacts hosted on
+          <a href="https://materialscodegraph.com/">MaterialsCodeGraph</a>. Paste a
+          record, or drop a <code>.json</code> file (an MCG-served record pastes
+          straight in), to open a plain <b>data view</b> of it, then Copy link: the
+          whole record rides in the <code>#x=</code> fragment, no server, and
+          replays here as the same view. Nothing is stored or uploaded, it is a
+          client-side view. The data view shows what the container holds as plain
+          information: what the record is, every field of the lineage, what the
+          output node means on the map, and where the data lives, plus a plain link
+          to run this lineage as a simulation on MaterialsCodeGraph. Dashboards and compute live on
+          MaterialsCodeGraph, not here.</p>
+      </details>
       <button class="om-btn om-btn-sm" id="loadXExample" type="button">Load an example</button>
       <p style="margin:12px 0 6px;font-size:.78rem;color:var(--muted)">the lineage, as a record:</p>
       <textarea class="pg-input" id="xInput" rows="9" placeholder='{"lineage": {"node": "ThermalConductivity[transport_model=hnemd]", "material": {"name": "Si"}, "hyperparameters": {"nep_cutoff": 8.0}}}' style="resize:vertical;font-family:var(--font-mono,monospace);font-size:.74rem"></textarea>
@@ -269,6 +314,29 @@
     <div id="pglabels"><div id="pglabelsInner"></div></div>
     <div class="pg-hint" id="pgHint">Type a method on the left, or trace a derivation, and the matching part of the map appears here.</div>
     <div class="pg-node-panel" id="pgNodePanel"></div>
+  </div>
+</div>
+
+<div id="linStage" class="lin-stage">
+  <div class="lin-bar">
+    <a id="linBack" href="#/play?tab=lineage">&#8249; playground tools</a>
+    <div class="lin-actions">
+      <button id="linCopy" type="button">Copy link</button>
+      <a id="linRun" href="https://app.materialscodegraph.com/" target="_blank" rel="noopener" hidden>Run this lineage as a simulation on MaterialsCodeGraph</a>
+      <button id="linPaste" type="button">paste another</button>
+    </div>
+  </div>
+  <div class="lin-ingress" id="linIngress" hidden>
+    <div class="lin-ingress-row">
+      <textarea class="pg-input" id="linInput" rows="3" placeholder='{"lineage": {"node": "ThermalConductivity", "material": {"name": "Si"}}}' spellcheck="false"></textarea>
+      <div class="xp-drop" id="linDrop">Drop a <b>.json</b> record here, or <b>click to choose a file</b>.
+        <input type="file" id="linFile" accept=".json,application/json" style="display:none"></div>
+      <button id="linRender" type="button">Render lineage</button>
+    </div>
+  </div>
+  <div class="lin-content">
+    <div class="lin-examples" id="linExamples" hidden></div>
+    <div id="linRecord"></div>
   </div>
 </div>
 
@@ -322,7 +390,7 @@ function resolveLabel(q){
 }
 
 /* ---- data load ----------------------------------------------------------- */
-Promise.all([
+var mapReady = Promise.all([
   fetch('../data/graph.json?v=' + Date.now()).then(function(r){ return r.json(); }),
   fetch('../data/semantics.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return []; }),
   fetch('../data/version.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; }),
@@ -559,9 +627,15 @@ document.getElementById('renderProposal').addEventListener('click', function(){
 /* ---- lineage: a light record rendered from #x= or a paste -----------------
    A record is light and lineage-identified (omai/lineages.py): identity is the
    lineage, artifacts are optional MCG pointers, and the whole thing rides in the
-   #x= fragment via the same gzip machinery as the map view. This renders the
-   lineage (node/material/template, hyperparameters, values), any artifact
-   pointers as links, and lights the lineage's map node when it names one. */
+   #x= fragment via the same gzip machinery as the map view. A valid record opens
+   the full-width datasheet stage; the original panel remains the ingress and the
+   visible home for validation errors. */
+var currentLineageRecord = null;
+var lineageHasRendered = false;
+var lineageGallery = null;
+var lineageFlagship = null;
+var lineageExamplesPromise = null;
+var skipNextHashApply = '';
 function fmtScalar(v){
   if (v == null) return '';
   if (typeof v === 'object') return JSON.stringify(v);
@@ -636,16 +710,18 @@ function ingestLineage(raw, sourceLabel){
   var box = document.getElementById('xResult');
   var text = (raw || '').trim();
   if (!text) { box.innerHTML = ''; renderSubmap([], {}); return; }
+  document.getElementById('xInput').value = text;
+  document.getElementById('linInput').value = text;
   var record;
   try { record = JSON.parse(text); }
   catch (e) {
-    box.innerHTML = '<div class="xp-err">Not valid JSON' +
-      (sourceLabel ? ' in ' + esc(sourceLabel) : '') + ': ' + esc(e.message) + '</div>';
+    showLineageError('<div class="xp-err">Not valid JSON' +
+      (sourceLabel ? ' in ' + esc(sourceLabel) : '') + ': ' + esc(e.message) + '</div>');
     renderSubmap([], {}); return;
   }
   var v = validateLightJS(record);
   if (!v.ok) {
-    box.innerHTML = '<div class="xp-err">' + esc(v.error) + '</div>';
+    showLineageError('<div class="xp-err">' + esc(v.error) + '</div>');
     renderSubmap([], {}); return;
   }
   // A one-line honest status above the render (client convenience; the Python
@@ -654,7 +730,7 @@ function ingestLineage(raw, sourceLabel){
     ? (v.nodeResolved ? 'Valid record: node <b>' + esc(v.node) + '</b> resolves on this map version.'
                       : 'Valid record: node <b>' + esc(v.node) + '</b> is not on this map version (node-unresolved, still valid).')
     : 'Valid record: no map node named (template only, node-unresolved). Whatever we have.';
-  renderLineage(v.record);
+  if (!renderLineage(v.record)) return;
   // Prepend the status banner WITHOUT re-parsing the box: insertAdjacentHTML
   // keeps the nodes renderLineage just built (and the Copy-link click handler
   // it wired to #rcCopy). Re-assigning box.innerHTML here would strip that
@@ -666,6 +742,94 @@ function ingestLineage(raw, sourceLabel){
 // The base node id, qualifier stripped: ThermalConductivity[bte_solver=direct_inverse]
 // -> ThermalConductivity. The runnable KIND (and the human title) key on the base.
 function baseNode(id){ return String(id == null ? '' : id).replace(/\[.*$/, ''); }
+
+function lineageHashHasRecord(){ return /[#?&]x=([^&]*)/.test(location.hash); }
+
+function setLineageInputs(record){
+  var text = JSON.stringify(record, null, 1);
+  document.getElementById('xInput').value = text;
+  document.getElementById('linInput').value = text;
+}
+
+function showLineageError(html){
+  document.body.classList.remove('lin-open');
+  document.getElementById('linIngress').hidden = true;
+  selectPlaygroundTab('lineage');
+  document.getElementById('xResult').innerHTML = html;
+}
+
+function galleryEntryFor(record){
+  if (!record || !Array.isArray(lineageGallery)) return null;
+  var id = record.id == null ? '' : String(record.id).slice(0, 12);
+  if (!id) return null;
+  return lineageGallery.filter(function(entry){ return entry && String(entry.id || '') === id; })[0] || null;
+}
+
+function renderLineageExampleNav(record){
+  var box = document.getElementById('linExamples');
+  var current = galleryEntryFor(record);
+  if (!current) { box.hidden = true; box.innerHTML = ''; return; }
+  var others = lineageGallery.filter(function(entry){ return entry && entry !== current && entry.fragment; });
+  box.innerHTML = '<p>Example lineage, real committed evidence. Paste your own, or pick another:</p>' +
+    '<div class="lin-example-links">' + others.map(function(entry){
+      var label = [entry.material, baseNode(entry.node)].filter(Boolean).join(' ');
+      if (entry.code) label += ' (' + entry.code + ')';
+      label = label || entry.slug || 'example';
+      return '<a href="#/play?tab=lineage&amp;x=' + esc(entry.fragment) + '">' + esc(label) + '</a>';
+    }).join('') + '</div>';
+  box.hidden = false;
+}
+
+function loadLineageExamples(){
+  if (lineageExamplesPromise) return lineageExamplesPromise;
+  var stamp = '?v=' + Date.now();
+  lineageExamplesPromise = Promise.all([
+    fetch('../examples/si-kappa-kaldo-direct.json' + stamp).then(function(r){
+      if (!r.ok) throw new Error('flagship example unavailable');
+      return r.json();
+    }).catch(function(){ return null; }),
+    fetch('../examples/index.json' + stamp).then(function(r){
+      if (!r.ok) throw new Error('example index unavailable');
+      return r.json();
+    }).catch(function(){ return null; })
+  ]).then(function(res){
+    lineageFlagship = res[0] && typeof res[0] === 'object' ? res[0] : null;
+    lineageGallery = Array.isArray(res[1]) ? res[1] : null;
+    renderLineageExampleNav(currentLineageRecord);
+    return res;
+  }).catch(function(){ return [null, null]; });
+  return lineageExamplesPromise;
+}
+
+function activateLineageDefault(){
+  var examples = loadLineageExamples();
+  Promise.all([mapReady, examples]).then(function(){
+    if (!GRAPH || lineageHasRendered || lineageHashHasRecord()) return;
+    if (!document.querySelector('.pg-tab.on[data-tab="lineage"]')) return;
+    if (!lineageFlagship) return;
+    renderLineage(lineageFlagship);
+  }).catch(function(){});
+}
+
+function openFlagshipLineage(){
+  Promise.all([mapReady, loadLineageExamples()]).then(function(){
+    if (GRAPH && lineageFlagship) renderLineage(lineageFlagship);
+  }).catch(function(){});
+}
+
+async function copyLineageLink(record, btn){
+  if (!record) return;
+  var hash = '#/play?tab=lineage&x=' + await gzipToB64url(record);
+  var url = location.origin + location.pathname + hash;
+  if (location.hash !== hash) { skipNextHashApply = hash; location.hash = hash; }
+  if (url.length > 8000) {
+    btn.textContent = 'Too large to link';
+    setTimeout(function(){ btn.textContent = 'Copy link'; }, 1600);
+    return;
+  }
+  var done = function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1200); };
+  if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, done); else done();
+}
 
 // The MCG-computable set, mirrored from docs/experiment/index.html (the shipped
 // allowlist): the base map nodes MCG has a wired engine for right now, so the
@@ -1089,65 +1253,84 @@ function mapContextHTML(node, material){
   return '<div class="rec-sec">' + body + '</div>';
 }
 
-/* renderLineage: the PLAIN DATA VIEW of a shared #x= record (and a pasted/
-   dropped/example one). OpenMaterials is the data-container viewer, so this
-   presents the record as information, NOT a dashboard: WHAT THIS IS (record kind,
-   output node, material, lineage id), THE LINEAGE (every field as plain labelled
-   key-values and a simple values table), WHAT IT MEANS ON THE MAP (the node's
-   plain-language description, units, tier, and the X->Y lineage as a plain
-   inputs/output statement), PROVENANCE (source ref, paper info), ARTIFACTS
-   (where the data lives, as links), and a plain handoff to MaterialsCodeGraph
-   (Run/replay) plus a Copy link. No hero graphics, no charts, no value bars, no
-   agreement plot: dashboards and compute live on MCG. It renders into the normal
-   content panel (#xResult), never a full-width takeover. Built only from the
-   in-hand record + the static catalog/tier data; never rejects: a node-unresolved
-   or measurement record still shows its data plainly, with no fabricated lineage
-   and no Run link. */
-function renderLineage(record){
-  var box = document.getElementById('xResult');   // the normal Lineage-tab panel
-  nodePanel.style.display = 'none';
-  try { record = normalizeLineageRecord(record); }
-  catch (e) {
-    box.innerHTML = '<div class="xp-err">' + esc(e.message) + '</div>';
-    renderSubmap([], {}); return;
-  }
-  var lineage = (record && record.lineage) || null;
-  if (!lineage || typeof lineage !== 'object' || Array.isArray(lineage)) {
-    box.innerHTML = '<div class="xp-err">Not a lineage record: identity is the lineage, so a record needs a <code>lineage</code> object. Legacy <code>recipe</code> records still open.</div>';
-    renderSubmap([], {}); return;
-  }
-  var node = lineage.node, template = lineage.template;
-  var base = baseNode(node);
-  var known = !!(node && nodeById[node]);
+function valuesHTML(lineage, node){
+  var picked = pickValues(lineage.values, node);
+  var isUnitMeta = function(k){ return k === 'units' || k === 'unit'; };
+  if (!picked.primary || isUnitMeta(picked.primary.key)) return '';
+  var unit = cleanUnit((lineage.units) || (lineage.values && lineage.values.units) || '');
+  var rows = [{ key: picked.primary.key, val: picked.primary.val }]
+    .concat(picked.rest.filter(function(r){ return !isUnitMeta(r.key); }));
+  return '<div class="rec-sec"><div class="rec-h">Values</div>' +
+    '<table class="rec-vtable"><thead><tr><th>Quantity</th><th class="num">Value</th><th>Units</th></tr></thead><tbody>' +
+    rows.map(function(row){
+      var u = row.key === picked.primary.key ? unit : '';
+      return '<tr><td class="rec-vk">' + esc(row.key) + '</td>' +
+        '<td class="rec-vv">' + esc(fmtValue(row.val)) + '</td>' +
+        '<td class="rec-vu">' + esc(u) + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
 
+function lineageLinksHTML(lineage, node, known){
+  var h = '<div class="rec-links">';
+  if (known && isComputable(node)) {
+    h += '<a href="' + esc(mcgRunUrl(lineage)) + '" target="_blank" rel="noopener"' +
+      ' title="Run this lineage as a simulation on MaterialsCodeGraph">Run this lineage as a simulation on MaterialsCodeGraph &rarr;</a>';
+  }
+  h += '<button id="rcCopy" type="button" title="Copy a link that carries this whole record in its #x= fragment: it reopens this data view.">Copy link</button>';
+  h += '<span class="rec-link-note">Dashboards and compute live on MaterialsCodeGraph; this is the data view.</span>';
+  return h + '</div>';
+}
+
+/* renderLineage: the PLAIN DATA VIEW of a shared #x= record (and a pasted,
+   dropped, gallery, or default example). A valid record opens the full-width
+   stage as a dense scientific datasheet: one compact identity header, then the
+   existing sections in three responsive text columns. It is still information,
+   not a dashboard. Node-unresolved and measurement records render honestly,
+   without a fabricated map section or Run link. Invalid records stay in the
+   Lineage tool panel so their validation banner is visible. */
+function renderLineage(record){
+  var panelBox = document.getElementById('xResult');
+  var box = document.getElementById('linRecord');
+  nodePanel.style.display = 'none';
+  var valid = validateLightJS(record);
+  if (!valid.ok) {
+    showLineageError('<div class="xp-err">' + esc(valid.error) + '</div>');
+    renderSubmap([], {});
+    return false;
+  }
+  record = valid.record;
+  var lineage = record.lineage;
+  var node = lineage.node;
+  var template = lineage.template;
+  var known = valid.nodeResolved;
   var prop = humanProperty(node, template);
   var mat = materialName(lineage.material);
   var kind = recordKind(record);
-  var picked = pickValues(lineage.values, node);
-  var shortId = record.id ? String(record.id).slice(0, 12) : '';
+  var shortId = record.id ? String(record.id).slice(0, 12) : 'not supplied';
+  var mapVersion = currentVersion() || 'not loaded';
+  var output = node
+    ? (known
+      ? '<a href="../map/#node=' + encodeURIComponent(node) + '" title="View this quantity on the full map">' + esc(node) + '</a>'
+      : esc(node) + ' (not on this map version)')
+    : 'node-unresolved (template only)';
 
   var h = '<div class="rec">';
 
-  // ---- WHAT THIS IS: the record kind, output node, material, lineage id ------
-  h += '<div class="rec-sec">';
-  h += '<div class="rec-h">What this is</div>';
+  // ---- COMPACT HEADER: lede + the merged What-this-is metadata ---------------
+  h += '<div class="rec-head">';
   h += '<p class="rec-lede">' + esc(prop) + (mat ? ' of ' + esc(mat) : '') + '</p>';
-  h += '<dl class="rec-kv">';
-  h += '<dt>Kind</dt><dd>' + (kind === 'measurement' ? 'Measurement' : 'Simulation') + '</dd>';
-  if (node) h += '<dt>Output node</dt><dd>' + (known
-      ? '<a href="../map/#node=' + encodeURIComponent(node) + '" title="View this quantity on the full map">' + esc(node) + '</a>'
-      : esc(node) + ' <span class="rec-link-note">(not on this map version)</span>') + '</dd>';
-  else h += '<dt>Output node</dt><dd>node-unresolved <span class="rec-link-note">(template only)</span></dd>';
-  if (mat) h += '<dt>Material</dt><dd>' + esc(mat) + '</dd>';
-  if (shortId) h += '<dt>Lineage id</dt><dd class="wrap" title="the lineage id (sha256, first 12)">' + esc(shortId) + '</dd>';
+  h += '<dl class="rec-head-meta">';
+  h += '<div><dt>Kind</dt><dd>' + (kind === 'measurement' ? 'Measurement' : 'Simulation') + '</dd></div>';
+  h += '<div><dt>Output node</dt><dd>' + output + '</dd></div>';
+  h += '<div><dt>Material</dt><dd>' + esc(mat || 'not supplied') + '</dd></div>';
+  h += '<div><dt>Lineage id</dt><dd title="lineage id, first 12 characters">' + esc(shortId) + '</dd></div>';
+  h += '<div><dt>Map</dt><dd>' + esc(mapVersion) + '</dd></div>';
   h += '</dl></div>';
 
   // ---- THE LINEAGE: every field, as plain labelled information ---------------
-  h += '<div class="rec-sec"><div class="rec-h">The lineage</div>';
-  // node / node_uid / material / configuration uid / template
+  var lineageHTML = '<div class="rec-sec"><div class="rec-h">The lineage</div>';
   var idRows = [];
   if (node) idRows.push('<dt>node</dt><dd class="wrap">' + esc(node) + '</dd>');
-  if (lineage.node_uid) idRows.push('<dt>node_uid</dt><dd class="wrap">' + esc(String(lineage.node_uid)) + '</dd>');
   var cfgUid = materialConfigUid(lineage.material);
   var cfg = resolveConfiguration(cfgUid);
   var matLabel = mat || (cfg && cfg.name) || '';
@@ -1159,75 +1342,54 @@ function renderLineage(record){
   }
   if (lineage.template != null && lineage.template !== '') {
     var tw = templateWords(lineage.template);
-    idRows.push('<dt>template</dt><dd>' + esc(String(lineage.template)) + (tw && tw !== String(lineage.template) ? ' <span class="rec-link-note">(' + esc(tw) + ')</span>' : '') + '</dd>');
+    idRows.push('<dt>template</dt><dd>' + esc(String(lineage.template)) +
+      (tw && tw !== String(lineage.template) ? ' <span class="rec-link-note">(' + esc(tw) + ')</span>' : '') + '</dd>');
   }
-  if (idRows.length) h += '<div class="rec-grp"><dl class="rec-kv">' + idRows.join('') + '</dl></div>';
-  // the lineage's grouped fields (hyperparameters, conditions, params, execution)
-  detailGroups(record, lineage).forEach(function(g){
-    if (g.label === 'Template') return;   // already shown above
-    h += '<div class="rec-grp"><div class="rec-grp-lab">' + esc(g.label) + '</div><dl class="rec-kv">' +
-      g.rows.map(function(row){
-        var v = row[1];
-        return '<dt>' + esc(row[0]) + '</dt><dd' + (v.wrap ? ' class="wrap"' : '') + '>' + esc(v.text) + '</dd>';
+  if (lineage.node_uid) idRows.push('<dt>node_uid</dt><dd class="wrap">' + esc(String(lineage.node_uid)) + '</dd>');
+  if (idRows.length) lineageHTML += '<div class="rec-grp"><dl class="rec-kv">' + idRows.join('') + '</dl></div>';
+  detailGroups(record, lineage).forEach(function(group){
+    if (group.label === 'Template') return;
+    lineageHTML += '<div class="rec-grp"><div class="rec-grp-lab">' + esc(group.label) + '</div><dl class="rec-kv">' +
+      group.rows.map(function(row){
+        var value = row[1];
+        return '<dt>' + esc(row[0]) + '</dt><dd' + (value.wrap ? ' class="wrap"' : '') + '>' + esc(value.text) + '</dd>';
       }).join('') + '</dl></div>';
   });
-  // values: a simple table of value + units, no chart. The 'units'/'unit' meta
-  // key is the primary value's unit, not a quantity of its own, so it is applied
-  // to the value column, never listed as its own row.
-  var isUnitMeta = function(k){ return k === 'units' || k === 'unit'; };
-  if (picked.primary && !isUnitMeta(picked.primary.key)) {
-    var unit = cleanUnit((lineage.units) || (lineage.values && lineage.values.units) || '');
-    var vrows = [{ key: picked.primary.key, val: picked.primary.val }]
-      .concat(picked.rest.filter(function(r){ return !isUnitMeta(r.key); }).map(function(r){ return { key: r.key, val: r.val }; }));
-    h += '<div class="rec-grp"><div class="rec-grp-lab">Values</div>' +
-      '<table class="rec-vtable"><thead><tr><th>Quantity</th><th class="num">Value</th><th>Units</th></tr></thead><tbody>' +
-      vrows.map(function(r){
-        var u = (r.key === picked.primary.key && unit) ? unit : '';
-        return '<tr><td class="rec-vk">' + esc(r.key) + '</td>' +
-          '<td class="rec-vv">' + esc(fmtValue(r.val)) + '</td>' +
-          '<td class="rec-vu">' + esc(u) + '</td></tr>';
-      }).join('') + '</tbody></table></div>';
-  }
-  h += '</div>';   // end The lineage
+  lineageHTML += '</div>';
 
-  // ---- WHAT IT MEANS ON THE MAP: plain description, units, tier, X->Y lineage
-  h += mapContextHTML(node, lineage.material);
+  var valueAndMap = valuesHTML(lineage, node) + (known ? mapContextHTML(node, lineage.material) : '');
+  var recordTail = provenanceHTML(record, lineage) + artifactsHTML(record) + lineageLinksHTML(lineage, node, known);
+  h += '<div class="rec-grid"><div class="rec-col">' + lineageHTML + '</div>';
+  if (valueAndMap) h += '<div class="rec-col">' + valueAndMap + '</div>';
+  if (recordTail) h += '<div class="rec-col">' + recordTail + '</div>';
+  h += '</div></div>';
 
-  // ---- PROVENANCE: source ref, and for a parsed-paper lineage the paper info -
-  h += provenanceHTML(record, lineage);
-
-  // ---- ARTIFACTS / WHERE THE DATA LIVES: pointers + host, as plain links -----
-  h += artifactsHTML(record);
-
-  // ---- POINTER TO MCG + Copy link: plain links, not product CTAs -------------
-  h += '<div class="rec-links">';
-  if (known && isComputable(node)) {
-    h += '<a href="' + esc(mcgRunUrl(lineage)) + '" target="_blank" rel="noopener"' +
-         ' title="Run this lineage as a simulation on MaterialsCodeGraph">Run this lineage as a simulation on MaterialsCodeGraph &rarr;</a>';
-  }
-  h += '<button id="rcCopy" type="button" title="Copy a link that carries this whole record in its #x= fragment: it reopens this data view.">Copy link</button>';
-  h += '<span class="rec-link-note">Dashboards and compute live on MaterialsCodeGraph; this is the data view.</span>';
-  h += '</div>';
-
-  h += '</div>';   // end .rec
-
+  panelBox.innerHTML = '';
   box.innerHTML = h;
+  currentLineageRecord = record;
+  lineageHasRendered = true;
+  setLineageInputs(record);
+  renderLineageExampleNav(record);
 
-  // wire Copy link: mint an #x= share URL that reopens this same data view
+  var runLink = document.getElementById('linRun');
+  if (known && isComputable(node)) {
+    runLink.href = mcgRunUrl(lineage);
+    runLink.hidden = false;
+  } else {
+    runLink.hidden = true;
+    runLink.removeAttribute('href');
+  }
+  document.getElementById('linIngress').hidden = true;
+  document.body.classList.add('lin-open');
+  document.getElementById('linStage').scrollTop = 0;
+
   var copyBtn = box.querySelector('#rcCopy');
-  if (copyBtn) copyBtn.addEventListener('click', async function(){
-    var btn = this;
-    var hash = '#/play?tab=lineage&x=' + await gzipToB64url(record);
-    var url = location.origin + location.pathname + hash;
-    location.hash = hash;
-    if (url.length > 8000) { btn.textContent = 'Too large to link'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1600); return; }
-    var done = function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1200); };
-    if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, done); else done();
-  });
+  if (copyBtn) copyBtn.addEventListener('click', function(){ copyLineageLink(record, this); });
 
-  // the shared-record render is the plain data view; the map canvas is cleared so
-  // it does not compete (the map still lives on the Map tab and the map/ page).
+  // The map still lives in the Map tab and map page; it does not compete with
+  // the datasheet while the stage is open.
   renderSubmap([], {});
+  return true;
 }
 
 // The PROVENANCE section: the source ref, the map version the record was checked
@@ -1255,22 +1417,27 @@ function provenanceHTML(record, lineage){
 document.getElementById('renderX').addEventListener('click', function(){
   ingestLineage(document.getElementById('xInput').value, null);
 });
-// The drop-a-record ingress: a dropped or chosen .json file is read, its text
-// dropped into the paste box, and rendered through the same validate+render
-// path as a paste. Nothing is uploaded or stored (FileReader is local).
-(function wireXDrop(){
-  var drop = document.getElementById('xDrop');
-  var file = document.getElementById('xFile');
+document.getElementById('linRender').addEventListener('click', function(){
+  ingestLineage(document.getElementById('linInput').value, null);
+});
+
+// Both ingress locations use this one local FileReader/drop path. A chosen or
+// dropped record is copied into both textareas, then enters the same validator
+// and renderer as a paste. Nothing is uploaded or stored.
+function wireLineageDrop(dropId, fileId, inputId){
+  var drop = document.getElementById(dropId);
+  var file = document.getElementById(fileId);
+  var input = document.getElementById(inputId);
   if (!drop || !file) return;
   function readFile(f){
     if (!f) return;
     var reader = new FileReader();
     reader.onload = function(){
-      document.getElementById('xInput').value = String(reader.result || '');
+      input.value = String(reader.result || '');
       ingestLineage(reader.result, f.name);
     };
     reader.onerror = function(){
-      document.getElementById('xResult').innerHTML = '<div class="xp-err">Could not read ' + esc(f.name) + '.</div>';
+      showLineageError('<div class="xp-err">Could not read ' + esc(f.name) + '.</div>');
     };
     reader.readAsText(f);
   }
@@ -1286,65 +1453,64 @@ document.getElementById('renderX').addEventListener('click', function(){
     var dt = e.dataTransfer; if (!dt) return;
     if (dt.files && dt.files.length) { readFile(dt.files[0]); return; }
     var txt = dt.getData && dt.getData('text');
-    if (txt) { document.getElementById('xInput').value = txt; ingestLineage(txt, 'the dropped text'); }
+    if (txt) { input.value = txt; ingestLineage(txt, 'the dropped text'); }
   });
-})();
-document.getElementById('loadXExample').addEventListener('click', function(){
-  // a computable, value-bearing, code-bearing record so the example shows the
-  // whole plain data view: what it is, the lineage fields, a values table, the
-  // map description/units/tier and the inputs->output lineage, the artifact
-  // pointers and host, and the plain Run-on-MCG link.
-  var ex = {
-    lineage: {
-      node: 'ThermalConductivity[transport_model=hnemd]',
-      material: { name: 'Silicon' },
-      template: 'gpumd',
-      conditions: { T: 300.0 },
-      hyperparameters: { potential: 'NEP', mesh: [4, 4, 4], nep_cutoff: 8.0 },
-      values: { kappa: 132.7 }
-    },
-    execution: { code: 'GPUMD', code_version: '3.9.5', seeds: [12345] },
-    artifacts: [
-      { path: 'results/thermal_summary.json', role: 'result', url: 'https://materialscodegraph.com/runs/demo/thermal_summary.json' },
-      { path: 'traj/dump.xyz', role: 'trajectory' }
-    ],
-    mirrors: {
-      'results/thermal_summary.json': { url: 'https://materialscodegraph.com/runs/demo/thermal_summary.json', provider: 'MaterialsCodeGraph' }
-    }
-  };
-  document.getElementById('xInput').value = JSON.stringify(ex, null, 1);
-  renderLineage(ex);
-});
+}
+wireLineageDrop('xDrop', 'xFile', 'xInput');
+wireLineageDrop('linDrop', 'linFile', 'linInput');
+
+document.getElementById('loadXExample').addEventListener('click', openFlagshipLineage);
 document.getElementById('copyXLink').addEventListener('click', async function(){
   var btn = this, raw = document.getElementById('xInput').value.trim();
   if (!raw) { btn.textContent = 'Nothing to copy'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1200); return; }
   var record;
   try { record = normalizeLineageRecord(JSON.parse(raw)); }
   catch (e) {
-    document.getElementById('xResult').innerHTML = '<div class="xp-err">' + esc(e.message) + '</div>';
+    showLineageError('<div class="xp-err">' + esc(e.message) + '</div>');
     btn.textContent = 'Invalid record'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1400); return;
   }
   var v = validateLightJS(record);
   if (!v.ok) {
-    document.getElementById('xResult').innerHTML = '<div class="xp-err">' + esc(v.error) + '</div>';
+    showLineageError('<div class="xp-err">' + esc(v.error) + '</div>');
     btn.textContent = 'Invalid record'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1400); return;
   }
-  record = v.record;
-  var hash = '#/play?tab=lineage&x=' + await gzipToB64url(record);
-  var url = location.origin + location.pathname + hash;
-  location.hash = hash;
-  if (url.length > 8000) { btn.textContent = 'Too large to link'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1600); return; }
-  var done = function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1200); };
-  if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, done); else done();
+  await copyLineageLink(v.record, btn);
+});
+
+document.getElementById('linCopy').addEventListener('click', function(){
+  copyLineageLink(currentLineageRecord, this);
+});
+document.getElementById('linPaste').addEventListener('click', function(){
+  var ingress = document.getElementById('linIngress');
+  ingress.hidden = !ingress.hidden;
+  if (!ingress.hidden) {
+    var input = document.getElementById('linInput');
+    input.focus();
+    input.select();
+  }
+});
+document.getElementById('linBack').addEventListener('click', function(e){
+  e.preventDefault();
+  document.body.classList.remove('lin-open');
+  document.getElementById('linIngress').hidden = true;
+  selectPlaygroundTab('lineage');
+  location.hash = '#/play?tab=lineage';
 });
 
 /* ---- tabs, share, hash --------------------------------------------------- */
+function selectPlaygroundTab(tab){
+  document.querySelectorAll('.pg-tab').forEach(function(x){ x.classList.remove('on'); });
+  document.querySelectorAll('.pg-panel').forEach(function(x){ x.classList.remove('on'); });
+  var tabButton = document.querySelector('.pg-tab[data-tab="' + tab + '"]');
+  var panel = document.querySelector('.pg-panel[data-panel="' + tab + '"]');
+  if (tabButton) tabButton.classList.add('on');
+  if (panel) panel.classList.add('on');
+}
 document.querySelectorAll('.pg-tab').forEach(function(t){
   t.addEventListener('click', function(){
-    document.querySelectorAll('.pg-tab').forEach(function(x){ x.classList.remove('on'); });
-    document.querySelectorAll('.pg-panel').forEach(function(x){ x.classList.remove('on'); });
-    t.classList.add('on');
-    document.querySelector('.pg-panel[data-panel="' + t.getAttribute('data-tab') + '"]').classList.add('on');
+    var tab = t.getAttribute('data-tab');
+    selectPlaygroundTab(tab);
+    if (tab === 'lineage') activateLineageDefault();
   });
 });
 document.getElementById('qInput').addEventListener('input', function(){ runQuery(this.value); });
@@ -1507,7 +1673,7 @@ document.getElementById('shareBtn').addEventListener('click', async function(){
         if (!sharedCheck.ok) throw new Error(sharedCheck.error);
         hash += '&x=' + await gzipToB64url(sharedCheck.record);
       } catch (e) {
-        document.getElementById('xResult').innerHTML = '<div class="xp-err">' + esc(e.message) + '</div>';
+        showLineageError('<div class="xp-err">' + esc(e.message) + '</div>');
         btn.textContent = 'Invalid lineage';
         setTimeout(function(){ btn.textContent = 'Share'; }, 1400);
         return;
@@ -1519,7 +1685,7 @@ document.getElementById('shareBtn').addEventListener('click', async function(){
   // above so the input box repopulates.)
   else if (svg.querySelector('.pg-node:not(.dim)')) hash += '&m=' + await gzipToB64url(currentMapViewJSON());
   var url = location.origin + location.pathname + hash;
-  location.hash = hash;
+  if (location.hash !== hash) { skipNextHashApply = hash; location.hash = hash; }
   if (url.length > 8000) { btn.textContent = 'Too large to link'; setTimeout(function(){ btn.textContent = 'Share'; }, 1600); return; }
   var done = function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Share'; }, 1200); };
   if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, done); else done();
@@ -1529,6 +1695,8 @@ async function applyHash(){
   var m = location.hash.match(/[#?&]tab=([a-z]+)/); if (!m) return;
   // Legacy tab=experiment is an alias; the UI and every newly minted link use lineage.
   var tab = m[1] === 'experiment' ? 'lineage' : m[1];
+  var xm = location.hash.match(/[#?&]x=([^&]*)/);
+  if (tab !== 'lineage' || !xm) document.body.classList.remove('lin-open');
   var tabBtn = document.querySelector('.pg-tab[data-tab="' + tab + '"]'); if (tabBtn) tabBtn.click();
   var q = location.hash.match(/[#?&]q=([^&]*)/);
   if (q) { var v = decodeURIComponent(q[1]); document.getElementById('qInput').value = v; runQuery(v); }
@@ -1543,12 +1711,21 @@ async function applyHash(){
     } catch (e) { hint.style.display = 'block'; hint.textContent = 'Could not open the shared map: ' + e.message; } }
   // the #x= lineage record: decode the light record, fill the box, and render
   // its plain data view. Same gzip fragment scheme as #m=.
-  var xm = location.hash.match(/[#?&]x=([^&]*)/);
-  if (xm) { try { var record = normalizeLineageRecord(await b64urlToObj(xm[1]));
-      document.getElementById('xInput').value = JSON.stringify(record, null, 1);
+  if (xm) { try { var record = await b64urlToObj(xm[1]);
+      setLineageInputs(record);
       renderLineage(record);
-    } catch (e) { hint.style.display = 'block'; hint.textContent = 'Could not open the shared lineage: ' + e.message; } }
+    } catch (e) {
+      showLineageError('<div class="xp-err">Could not open the shared lineage: ' + esc(e.message) + '</div>');
+    } }
 }
+window.addEventListener('hashchange', function(){
+  if (skipNextHashApply && location.hash === skipNextHashApply) {
+    skipNextHashApply = '';
+    return;
+  }
+  skipNextHashApply = '';
+  mapReady.then(applyHash);
+});
 window.addEventListener('resize', function(){ if (svg.querySelector('.pg-node')) { var ids = [], pos = {}, set = {};
   // cheap re-sync: recompute label transform against current viewBox (positions unchanged)
   var rect = svg.getBoundingClientRect(); var sc = Math.min(rect.width / VB.w, rect.height / VB.h);

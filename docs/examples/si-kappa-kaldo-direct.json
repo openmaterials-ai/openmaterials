@@ -1,5 +1,5 @@
 {
-  "id": "88385670f5e547cd3642492acf7c682cf9b864374478b4583ffebfbfb550a3b1",
+  "id": "3f05f7f351395de03cded2b450e6600922b6dcc302d574cfd8fe06201ba39af6",
   "lineage": {
     "node": "ThermalConductivity[bte_solver=direct_inverse]",
     "material": {
@@ -8,7 +8,6 @@
     },
     "hyperparameters": {
       "mesh": "8x8x8",
-      "T": 300,
       "potential": "Si.tersoff"
     },
     "values": {
@@ -16,12 +15,21 @@
       "units": "W/(m K)"
     },
     "template": "phonon_bte_kappa",
-    "node_uid": "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9"
+    "node_uid": "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9",
+    "conditions": {
+      "T": 300
+    }
   },
   "execution": {
     "code": "kaldo"
   },
-  "artifacts": [],
+  "artifacts": [
+    {
+      "path": "FORCE_CONSTANTS_3RD",
+      "role": "force_constants",
+      "url": "https://app.materialscodegraph.com/runs/si-tersoff-8x8x8"
+    }
+  ],
   "mirrors": {
     "FORCE_CONSTANTS_3RD": {
       "url": "https://app.materialscodegraph.com/runs/si-tersoff-8x8x8",

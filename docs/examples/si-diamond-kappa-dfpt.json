@@ -1,11 +1,10 @@
 {
-  "id": "9adf5f9be27bb36613098a33ced42dcd6ec29de983a527e59d116cf4747b4c69",
+  "id": "97d81ba72b407fa0fd98579c720e5e28793637bc390f208fc81dd2dbf6e7324c",
   "lineage": {
     "node": "ThermalConductivity[bte_solver=direct_inverse]",
     "material": "Si (diamond)",
     "hyperparameters": {
       "q-grid": "19x19x19",
-      "T": 300,
       "potential": "DFPT LDA",
       "statistics": "quantum"
     },
@@ -14,12 +13,21 @@
       "units": "W/(m K)"
     },
     "template": "dft_lbte_kappa",
-    "node_uid": "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9"
+    "node_uid": "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9",
+    "conditions": {
+      "T": 300
+    }
   },
   "execution": {
     "code": "kaldo"
   },
-  "artifacts": [],
+  "artifacts": [
+    {
+      "path": "FORCE_CONSTANTS",
+      "role": "force_constants",
+      "url": "https://app.materialscodegraph.com/runs/si-diamond-dfpt"
+    }
+  ],
   "mirrors": {
     "FORCE_CONSTANTS": {
       "url": "https://app.materialscodegraph.com/runs/si-diamond-dfpt",

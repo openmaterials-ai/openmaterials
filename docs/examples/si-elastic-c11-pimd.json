@@ -1,10 +1,9 @@
 {
-  "id": "64ebd9f54bdac669d03dc4e6456bb9ede7d1117441f586b21538f9f6339e142e",
+  "id": "076e902be85e51d123300e6f75299696d0e75b917b2a34dfdb4676dfd3d2aeb3",
   "lineage": {
     "node": "ElasticConstants",
     "material": "Si (diamond)",
     "hyperparameters": {
-      "T": "300 K",
       "method": "PIMD+TDEP",
       "component": "C11"
     },
@@ -13,12 +12,21 @@
       "units": "GPa"
     },
     "template": "pimd_tdep_elastic",
-    "node_uid": "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e"
+    "node_uid": "01043ab212fd87e4ba9493caf709ab9a7ccc86ec7a0047a0512af12eca1c391e",
+    "conditions": {
+      "T": "300 K"
+    }
   },
   "execution": {
     "code": "TDEP"
   },
-  "artifacts": [],
+  "artifacts": [
+    {
+      "path": "FORCE_CONSTANTS",
+      "role": "force_constants",
+      "url": "https://app.materialscodegraph.com/runs/si-elastic"
+    }
+  ],
   "mirrors": {
     "FORCE_CONSTANTS": {
       "url": "https://app.materialscodegraph.com/runs/si-elastic",
