@@ -8,13 +8,15 @@ No input files, no database: the whole lineage is in the file.
 
 Use them two ways:
 
-- **Upload**: open the Playground, Lineage tab, and drop or paste any of these `.json`
-  files to see the lineage as a plain data view: what it is, every lineage field, what it
-  means on the map, provenance, and where the data lives. Dashboards and compute live on
+- **Open or upload**: the Playground's Lineage tab opens the flagship committed
+  example as a full-width plain datasheet, with links to the other nine. Use
+  **paste another**, or return to the tools, to drop or paste any of these `.json`
+  files into the same view: what it is, every lineage field, what it means on the
+  map, provenance, and where the data lives. Dashboards and compute live on
   MaterialsCodeGraph.
 - **Share as a link**: `index.json` carries each lineage's gzipped URL fragment; a
   `https://openmaterials.ai/play/#/play?tab=lineage&x=<fragment>` link opens the same
-  data view with the lineage carried in the URL, no upload needed.
+  full-width datasheet with the lineage carried in the URL, no upload needed.
 
 | file | what it shows |
 |---|---|
