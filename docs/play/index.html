@@ -813,6 +813,8 @@ function mcgRunUrl(recipe){
     if (o && typeof o === 'object' && o.T != null && cond.indexOf('T = ' + o.T) === -1) cond.push('T = ' + o.T);
   });
   if (cond.length) qs.push('conditions=' + encodeURIComponent(cond.join(' · ')));
+  var cfgUid = materialConfigUid(recipe.material);
+  if (cfgUid) qs.push('configuration=' + encodeURIComponent(cfgUid));
   return qs.length ? url + '?' + qs.join('&') : url;
 }
 
@@ -822,7 +824,8 @@ function mcgRunUrl(recipe){
 // kept textual (a real structure viewer is a separate follow-up).
 function materialConfigUid(material){
   if (!material || typeof material !== 'object') return '';
-  var u = material.uid || material.config_uid || material.configuration_uid ||
+  var u = (typeof material.configuration === 'string' ? material.configuration : null) ||
+    material.uid || material.config_uid || material.configuration_uid ||
     (material.configuration && typeof material.configuration === 'object' && material.configuration.uid) ||
     (material.canonical && typeof material.canonical === 'object' && material.canonical.uid);
   return u ? String(u) : '';
