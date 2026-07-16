@@ -1,11 +1,10 @@
 {
-  "id": "db7ca927c773021b8bf97b6dca1bbd994d62a26da2480b656e382068c84b5174",
+  "id": "1e0e4ccad42d03eed0ee3b481926387c110e3ea008fed7791d604912c675ba14",
   "lineage": {
     "node": "ThermalConductivity[bte_solver=direct_inverse]",
     "material": "Ge",
     "hyperparameters": {
       "mesh": "8x8x8",
-      "T": 300,
       "potential": "Ge.tersoff"
     },
     "values": {
@@ -13,12 +12,21 @@
       "units": "W/(m K)"
     },
     "template": "phonon_bte_kappa",
-    "node_uid": "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9"
+    "node_uid": "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9",
+    "conditions": {
+      "T": 300
+    }
   },
   "execution": {
     "code": "kaldo"
   },
-  "artifacts": [],
+  "artifacts": [
+    {
+      "path": "FORCE_CONSTANTS_3RD",
+      "role": "force_constants",
+      "url": "https://app.materialscodegraph.com/runs/ge-tersoff"
+    }
+  ],
   "mirrors": {
     "FORCE_CONSTANTS_3RD": {
       "url": "https://app.materialscodegraph.com/runs/ge-tersoff",

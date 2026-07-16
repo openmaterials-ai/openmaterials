@@ -1,17 +1,19 @@
 {
-  "id": "abee8959d3fe94810c78ec91661b87f6102312106b5052dee6c054e21cedcec6",
+  "id": "deeed05446a129d9349cc36640da117dc048b7da241bd3e527b949558ff7bd01",
   "lineage": {
     "node": "ThermalConductivity",
     "material": "graphene (suspended)",
     "hyperparameters": {
-      "T": "room temperature",
       "method": "Raman optothermal"
     },
     "values": {
       "kappa": 5300.0,
       "units": "W/(m K)"
     },
-    "node_uid": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5"
+    "node_uid": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5",
+    "conditions": {
+      "T": "room temperature"
+    }
   },
   "artifacts": [],
   "kind": "measurement"

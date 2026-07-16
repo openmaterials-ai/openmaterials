@@ -1,7 +1,7 @@
 [
   {
     "slug": "si-kappa-kaldo-direct",
-    "id": "88385670f5e5",
+    "id": "3f05f7f35139",
     "node": "ThermalConductivity[bte_solver=direct_inverse]",
     "material": "Si",
     "value": {
@@ -9,11 +9,11 @@
       "units": "W/(m K)"
     },
     "code": "kaldo",
-    "fragment": "gH4sIAJTSWGoC_2WRQW_cIBCF_0rFqZU2u8ZgDCv1UG3bS6VESlbqIYqsMQxrFNtYGK8Srfa_F7zJqeKAeDBvHt9ciDNkT6RkshJ1YSuseK0NE7zkqgRtay1kqa1qpeCs5ryWLa8ksxZbm1ZVFcBaSjakdyPCCcn-QkZv0k6OHYYB-oMfzaKjO7v4_txGbGbfnzF8Ny6gjo0b02HGl2QxQMTgoF89YMgeTy7p2o_WnZYA0fkxiVXV2rLUIKkUUoqaFykp15iySFZYRQ1IrmVRKVVoVmvWGrDIWsVAKMoZuW5I9z5hmCCkNqnpnFsOOHeZxVtaqeuR7FlRbMjkI45xjZXibPNrb232OEO_4Fr6CtMEZF-KrSrkhiyji0knf3dfhy9_vuW3EYepT_9L6tT50Y9NRnGr26zEmmUdBTChDGOoEu9WWVkL0VJKtcG61Jwn6IwDZYBcGAsto0gh7VSXtFQaVG6Gb6iXG6xLordO4xV64_MlhOgs6Bzw-SVBdyH4G4DfD4-HX83h4f7p-OP--NSwx59ZXkL-ehfjNO93u5R4-zmoOXufAkzdVvthF5Zx3s3u7gPR3SfJKfizMxiSy_-V5Hq9_gNcxTWfhgIAAA"
+    "fragment": "gH4sIAFTpWGoC_6VRTYvbMBD9K0WnFrKJZNmKFeihpO2lsAu7gR6WxYylUSLWtowsh11C_ntHTntqb8UH4WHex7x3Yd6yHZOOV27rZCWkrixyaSzaoi0rjkpxrouiVdYYyQtbbUvjbO2Qq4KLFqQGp9iKdX5AOCLbXdgQLL3scMLYQ7cPg51N8mef3p_bhM0UujPGz9ZHNKnxA_1M-EIUPSSMHrqFA_rM8eRpbsLg_HGOkHwYaFhVrSsKA7WoVV2rbckLMKXBikMtudPCQl2amldacyO3RrYWHMpWS1BalJJdV-z0PmIcIZIMiU5ZssfpROz1G32kOoaEQ1rskI113grOZewZuhkXyCuMI7Bdodaa1ys2Dz7RnP3cfOw__PiUdxP2Y0d30XQ8hSEMTY7ghlstSTXzUgFIpa2UqFVJTl29VaoVQlAR28KUpWudLEFIwFJZB60UKIBeYQpRaAP6lpP1OaPF24HtJOdX8oBvaOZbdhdaWsp5hc6GbBBi8g5M9v18YSOknMH3h8f9t2b_cP90-HJ_eGrk41fij6HLUBeiwYbEpgQD4ejumEM6pTROu82Gblv_qXLKcscI42ltQr-J8zBtJn_3O8y7W9bXF-rexxhuPfxLnMb_KUKFxnD2FiOx_I1k1-v1FyboAxkNAwAA"
   },
   {
     "slug": "si-kappa-kaldo-rta",
-    "id": "503522e76365",
+    "id": "c77861ad6f31",
     "node": "ThermalConductivity[bte_solver=rta]",
     "material": "Si",
     "value": {
@@ -21,11 +21,11 @@
       "units": "W/(m K)"
     },
     "code": "kaldo",
-    "fragment": "gH4sIAJTSWGoC_2WQT2vcMBDFv0rRqQVnLVu2_hh6CJv2Ukggu9BDCEaWxrGILQlZXhLCfvdKu8mp6CA0M2_03u8DGY061GLS1jUwSmjL6qHWFLQQzdCygWKsGZWi5rIlTAkuGAxUV6MYKy7GEUtBG1Sg2ViQL4C6D2SdTjc6ThAWOe-d1ZuK5mTi-9MQoV_dfILwM0T5nHSLjBCMnJPgYNJ7evcQvAxygdRY874F1im1-Vs6aeKIOoJxgbyLYOOXdJen3Tiic4FOct7gIn2V3kvUVWLX0AJt1sRURn_L78u3Pz_yaITFz8lCqvrJWWf7bPEqKy5J-u2CSDOhOdctqSlVVcNAcs0xVXrQBOuRYFElYlSQtgKoyKCUwE2Cw1nTwqCa_Bm8gdqicTZbU1dKr3LWLjdliGaUKht8ek5cTAjumv_3w-P-V79_uD8cb--Ph5483uXyFnLyKUa_dmWZHO--WK5590uQftopt5Rhs2u5mptPQjeJfMrmgzsZDSHt-F-HzufzP1EAuFgcAgAA"
+    "fragment": "gH4sIAFTpWGoC_6VRTWvcMBD9K0WnBja7ciV_yJBD2baXQgLZhR5CMKOvWMS2hCwvCYv_e0e7zam9FR2EnubNe_PmTJwmLVF13VQF6Mqyghe1MgVTnAuhKy1kSa0tGVjOZKlLriTQkhWWSalVzVlDZU02ZHCTgRdD2jOZvMabHHsTRxj2ftKLSu7k0vuTTKab_XAy8S4meEbeCMlEBwMSDg7f_XswMUCE0eDHnPuNZu7xu3nDgxXBJzOlD8o2V3lrybohJxgWc6G8QghA2kJsebUhy-QSwuTX7vP46edNLk1mDANKIxp6P_mpy9autM1lgm65RKNroZtGl-xLVamC1wYa3dBKaakZ1ZZRUQjBK8HKwmBsUilBOQXR1Lw0UnHspjABl5yfLtaOpGWUrujBvBm1ZDzD6hraKwzaZ4MQk7Ogsu-nMwmQcgQ_Hh7337v9w_3h-PX-eOjY4zfsH_2QqdZHZToUmxNMyMO5Y86oTynM7W6Hs20_0p6z3EuE0G-VH3dxmebd7G7_ZHmLuyHrMy7HxeivS_iXNML_JYG7jP7ktInY428eWdf1N0JwXpmhAgAA"
   },
   {
     "slug": "ge-kappa-kaldo",
-    "id": "db7ca927c773",
+    "id": "1e0e4ccad42d",
     "node": "ThermalConductivity[bte_solver=direct_inverse]",
     "material": "Ge",
     "value": {
@@ -33,11 +33,11 @@
       "units": "W/(m K)"
     },
     "code": "kaldo",
-    "fragment": "gH4sIAJPSWGoC_2WQTWvjMBCG_0rRqQtubEmO_AF7KOnuHhZaaAN7KMWMpHEsaktGlkNLyX-vlJDTosMwH-_oneeLGE1aomWloGGVqipeMCpr2TeVFFoBlVI3TakFAyY0sLIupNgK5DUrRK3qUm5pVZKMjMYiHJC0X8Q6HSPZD-gnGHfO6lUFczTh81UG7BY3HtH_1MajCp2xMVnwLa6YIKA3MEbtH4z58Dmjn8HDhLGxpNUTLkNs1x_xxYk9aXlRZGR2AW24Sjdp2vU9OWXkCOOKZ-k7zDOQlm43rBIZWa0JsU7-5bfTzd8faTbgNI_RQ6zOg7POdsnuRZedr-rWMy7gotGcYyNKLpu-roSQlFKlsWKqLHvZ8xIoByyF7kFyihRipIpR1kTQ6TP8QLUG42zypi7E3mHULjXBB9ODSgZf3yIY4727APj99Lz71e2eHl_294_7l44_P6Ty6tPpQwjz0uZ5dLy5wlzS7oOHedgoN-V-tUt-wLsrosjOu6PR6KP-fw05nU7f1cp8ByQCAAA"
+    "fragment": "gH4sIAFPpWGoC_51RTWvcMBD9K0WnFrZry1LstaGHsv04FBJIFnoIwYyl8VrEloQsLwmL_3tHuySX9lR0EHqa9-bNmzMzmjWMY45SKdCy0LlA1Dmi6OSO10UpdpXiPEeBkOe7HnVV1VyXuax5ocrqpgMu2YaNxiIckTVnZp2mmx0GDBOMe2f1oqI5mfj62EVsZzeeMHzRJqCKrbH0mPGJJCaIGAyMxP2J9B5ePQYPASakjzlJTzgP9L17oUMV3kW08Y2yTVWu79m6YScYF7xQnsF7YA2_2RZVuWGLNZFw9jv7OH349SnVRpz8SL0J9YOzzrbJ5pW3uUzTLpeYQJS1FgLrUoqu7ndVWXacc6WxKpSUfdcLCVwAylL30AmOHOjmquBFraAmNUVpmGicvXg7sEbk-Uoe8AXVkvAEq2uAzzBqlwxCiKYHlXw_npmHmDL4cXe__97u724fDl9vDw-tuP9G-sGNidq7oLClZnMESzyaO6SQhhj93GQZzbZ9i3tO7Y4B_LBVbsrCYufsiJ_fw3yizZgQ3HUD_2pL8H_L0xKDOxmNgfh_c9i6rn8Aro7096UCAAA"
   },
   {
     "slug": "si-diamond-kappa-dfpt",
-    "id": "9adf5f9be27b",
+    "id": "97d81ba72b40",
     "node": "ThermalConductivity[bte_solver=direct_inverse]",
     "material": "Si (diamond)",
     "value": {
@@ -45,11 +45,11 @@
       "units": "W/(m K)"
     },
     "code": "kaldo",
-    "fragment": "gH4sIAJPSWGoC_2VQXWvjMBD8K0FPLSRxZClyZLiHkl5f7miPi-EeSjFraZWI-kOV5dBS8t9PcnpPB4JFuzOzs_NJrCYlkaDN1sgG86JpmBCUbeQOGFOoea6VFqhyqVHuGGzzArdSUyqU4QUvGq6EJEvS2h7hiKT8JP2gYyXVCX0H7X7o9aSCPdvw8dwErMehPaP_pq1HFWrbx8-IL1Gig4DeQhu5B7u40Ra6yL2Nk9OHQ-_AQ4cRMqYlb6ujn71T-T6_CKtIyTabJXFDwD5cle4fflWLn_d3cTwGCHYMVkUB8jZBH6aOXJbkDO2Es-grOAekpLxYR5mptyFB_2Q33eLHbYIG7FwbbcauNqFu0z1X0nI-u55mT8CE1IyhFJw10uwKIRpKqdJY5Ipz0xjGgTJALrSBhlGkECtVOc2lAplW4TuqKdihT8bUNdJXaPWQhuCDNaCSveeXmJz1frjm8vD0e_-93j89Hqq7x-qQWpNPQZxCcGOZZdHt-l_SY9I9enCntRq6zE_9mI129ZX8ShsX4mHOD2er0UeR_4nkcrn8BUdWJ2FGAgAA"
+    "fragment": "gH4sIAFPpWGoC_6VRwWrjMBD9laBTC0ljWa5lB_ZQ0u1ll3bZBPZQihlLo0TUtlxZDi3B_74jp3vZPS4IhJ7mvXlv5sysZhtWSl3wGmRaZ4k0kBhdFreyVDJN8BbTQpYiF7JWokxMmhRGFVzrVNcmRynSTLEla2yHcEC2ObPOabrZ_oi-hWbrOj2qYE82fDzXAavBNSf0X7T1qEJlO3oM-EISLQT0Fhri7uziSltoiXtNP8ePHn0PHlqkkiE2eVsd_Oydl-_zobLeBezCReH-4cd-8f3-juAhQLBDsIqI7G2ELowtm5bsBM2Is9gr9D2wDc_kTbJkY2dDLP21vmoX365jacC2b8geodqEqok5LqTlHLcaZy8g8lILgWWeibo0hczzmnOuNMpUZZmpjciAC8As1wZqwZED3VylPC0VxAyKIttgXTcb27ONSJKJHOA7qjHiEVaXCb9Co120Bz5YAyq6fj6zHsKRfh-efm6_Vtunx93-7nG_I23vmkgzziusqBENpiMOJfZxZMcQ-mGzXlOumz-7GGKrg4f-eKNcu_ZjN6wHu_rczUqbPrDphXZnvXeXzfzdl6D_06fFeneyGj2J_Etk0zT9Bj5b-c3IAgAA"
   },
   {
     "slug": "ptse2-kappa-bte",
-    "id": "1c5616f3b290",
+    "id": "efbc1b743090",
     "node": "ThermalConductivity",
     "material": "PtSe2 (bulk)",
     "value": {
@@ -57,7 +57,7 @@
       "units": "W/(m K)"
     },
     "code": "first-principles BTE",
-    "fragment": "gH4sIAJPSWGoC_2WQT2vjMBDFv0rQqYU0lmzLf3LbDd3LQls2hh7KEkbSqBG1ZSFLYUvId18poaeeBPN-8-bpnYlRZEuY5A1rdCXKnvaAoq37mgFlHW-grEraUkYbLYBBU_ey1h1UuuIdcpAt40DJmozGIrwj2Z6JnVV6yXBEP8G4m62KMpiTCZ-JmyCgNzAm4CXssVzdiTh-3Cfl-OnQO_AwYUKW7DQkys_ztAo4JRFC9JhIZTwmx9km2dgHN4JFclmTE4wRr4sf4ByQbdVv6JpEa0Kaktfiblr9vs9k9htTkjRVOhxEwMNtZX1Nf4jXWoBWVVmrWqHmdcN6zRrEjkqpWduIngPvO9qxmjWcKRQgRCIYEy1WwErF8yX8hzLesp6JvDWjjV_Cg_PGSuNGXFY_h8fMgg9Gg8xh3_6mqoz3862IX89_do-H3fPTfvjxNOzzKPrc4TEEt2yLIoXffFW75DPvHtxxI-ep8NEuhQsLlul3zs8no9Cn1e84uVwu_wEabqIIEgIAAA"
+    "fragment": "gH4sIAFPpWGoC_51Ry2rcQBD8lWVONsir92tv9uJcAnbICnwIQfRoeqzBkmZojZaYZf89LS25JLecBnqqqquqL8IocRCoZRfLMkujOsqgSnPMJMgyLyFDnaWywiLNI4VJmVSFquoUY62jpMyVrFVeFiIQg5kQ3lEcLmKyil_R9EgjDEc7qaXz5mz8J-NG8EgGBgZ88ydMdndyGT7u-af_dEgOCEZkyLwqKUPIVDsx2kwPboAJxTUQZxgW3BAf4ByIQ1rvo0Ask_E8FW_h3bj7er8iPY7M8qsfpX0rPbY3SrDZbJctP0RpmmQqU6jzrIhrHReIVdR1Oi4LWeeQ11VUxVlc5LFCrkYyIubGMIU4UTmrdRzTrFY3Ww2LkrXjbt2PBH4hNs5-8Bd2yy3RhTlbUdrQ7B8cmakzbsB599Q8r96BvNHQrZF-XIQD3zP4y-v343N7fH05NY8vzYk3kx02FUsdtmxj9jAxh-ugteXeezcfwpBT7_-UP6-b3wlcv-_sGNIyzaHzMybi-pNPZIjs7QB_b-PR_6gGwpE9G4XE1H_h3Mz1N0A7IxiKAgAA"
   },
   {
     "slug": "tan-kappa-shengbte",
@@ -69,11 +69,11 @@
       "units": "W/(m K)"
     },
     "code": "ShengBTE",
-    "fragment": "gH4sIAJTSWGoC_2VRTWvcMBT8K0anBJy15G_trd0mtLRsIGvooRTzLD2vRW1ZyPKyIex_r-Skp56ERjPvzYzeiJJkT7iogdG0q6mgFJFjB3naCyypLDireJ9WkLEMZSVoiUJCWdQ9LSvknPGaI4nJqDTCGcn-jehZ-pM0A9oJxsOs5Sqcuij36nkTOLQKxkCAY3T3LWeTvPcPw6tBa8DChJ6xhEFinsysUTtPvl49ZxHgglyfPZI9mGHWs47MuC5R_nELK9ANc4j15amJo34dx-jH5-aR3GJygXHFbfYfMAbInlO6ozFZtXIeJj-Tuyn6fh-oDiczerMelb1rx85h-y6Kt4TtulUHNMvSXOYS-yIvGe9Zieh7FD2ryo4XUPCa1ixnZcGk77XrPIOxrsIMWCqLsAqvKFanvPkt9NbeaUB9_nAN1qkeRHD467fPp6yd3xt6en45PLaH5-Op-XRsTm3efA3wakO_g3Nm2SeJN737V_sSxp8tmGHn203sqpfEgX5Q4Rt8MmPni5Jovfx_Cbndbn8BaBxqjTICAAA"
+    "fragment": "gH4sIAFTpWGoC_51RTYvbMBD9K0anXfAmUvyp3Np0l5aWLGwMPZRiZGkci9qSkOWQJeS_d5TdntpTT8aj9-Z9zIVoRbaEy1owuulqKikF4NCJfNNLKKkqOKt4v6lExjJQlaQlSCXKou5pWQHnjNccSEpGbUAcgWwvxFiFX9IM4Ccx7qxRiwz6pMMr4iYRwGsxRoDYJ3dfcjape3wYXh14J7yYABFzXCTt5KwBExB8PiNmliJEujniJHtwgzXWJG5c5iR__4sSEAYbY316atKkX8Yx-faxeSTXlJzEuMBt9y_hnCBbTumKpmQxOuCYfF_fTcnX-wgNMLkRzeJU9aEduwDtGym9JWyXW3WCZtkmV7mCvshLxntWAmCPsmdV2fFCFLymNctZWTCFvXYdIhjrKsgE26giSsEZ5BI0mr-FvrV3GMAc310LH3QvZHT440KcCAMCnp5fdo_t7nl_aD7sm0ObN5_RmbdjZPfWS2ilNXMQBnmY0MfKhxDcvF2vMcfqzyXmqHj0wg0rLHztFzOvkfWg42XI9ScWqr23byf5lyqO_3d7Spy3J63AI_1vCrler78B6Sss-qMCAAA"
   },
   {
     "slug": "a-si-kappa-qhgk",
-    "id": "b93603157d51",
+    "id": "fd750cf110e7",
     "node": "ThermalConductivity[transport_model=qhgk]",
     "material": "a-Si",
     "value": {
@@ -81,11 +81,11 @@
       "units": "W/(m K)"
     },
     "code": "kaldo",
-    "fragment": "gH4sIAJPSWGoC_2VQTWvjMBD9K0GnXUhiWbJlK7CHErqXQguNYQ-lhLE0ikVsyyvLoaXkv1dK2NOehOZ9zJv3RawmO9JKLijPy0qXeVHzWlBdFSpHTVVpDJOKaq6xZrRs89JUXEHRKhBSMiaoQEnWpLcjwgnJ7ouMTseXNB36Afq9G_Wigr3Y8PkWPIzz5Hw4DpHU__rbnc7vUT1AQG-hjzLYHGycdJ8T-gk8DBihOfk2EfXODauAQwQhLB4jc17iR2GfxAWVYgXBDXMEJhdwDHfXJno4Y8h1TS7QL3gzPMM0AdmxLVuTZbQhDsmf7MewevqZiGlNH4PFacp5vNPXt_uOy624WnKGXLWg0VQF1KymrC240blmJWe1aguKIudCSaoNbwUUIGWNVWVkKao2rcEPVEuwbkyR1L27M_TaJRB8sAZUivb2Hnuy3rt7G79fXvePx_3L86F5eG4OabT4dGoXwjTvsiym3f7rdU6-Jw9Tt1VuyPwyzhlsZrtJh6WqvLtYjT7K_5eQ6_X6DbIPgr4pAgAA"
+    "fragment": "gH4sIAFPpWGoC_51RTYvbMBT8K0GnFpL425IDPSxheynsQhPoYVnMs_QUi9iWKsuhS8h_71NCL-2tJ8Fo5s28eVdmFNsxrXiVSp1lKXJRlhxq0VSIqeayllJwzKDmUgIHkWLDm05w3qmsKrUGLXTB1mwwE8IJ2e7KJqvoZcce_QjD3k5qkcFcTPh4Cx6m2Vkf2pFIw5ef_en8TuoRAnoDA8lgczCE9B8OvQMPI9LXHOfOC0ESh8gq06ZeQbDjTFxnA07hIT8S2WrNbmt2gWHBu_IMzgHb5dt8zZbJBALZj-TTuPr2ORIDjm6gBITGQO2Dvr4v0i73hkRT5FjIDhRqXoLIRZp3ZaFVpvKqyIXsyhTrrKhlkypddDWU0DQCOddNVfOOpkkqwgRjp3ukIw311o6raI4ewuKR3SgM_kK5RFpkyUeVZxiUjUnBB6NBxgXersxB6On36-v3_XO7f305HJ9ejgey8naIMm2prpZ85wBTiE0tPnbUh-DmXZLQmts_zc_R6uTB9Vtpx8Qv05zAZjab2Ai7vdONjPf2cYm_HQn638l0PW8vRqEn-b8SquT2G53lTzClAgAA"
   },
   {
     "slug": "sige-zt-qhgk",
-    "id": "8163ac13b5e9",
+    "id": "baef04bda450",
     "node": "ZT",
     "material": "Si0.5Ge0.5 (1/r-correlated disorder)",
     "value": {
@@ -93,11 +93,11 @@
       "units": "dimensionless"
     },
     "code": "QHGK",
-    "fragment": "gH4sIAJTSWGoC_2VQy07DMBD8lconkEoTN4kT94YqKBISFbQnEKoce91ayktrBwFV_511q564-DG7s7MzR-YMW7CKi0xpntUFSKmUtIJewmhjcyGENQZyXlRlKqu8zAqtQaayEFByCVqq2rIpa1wHag9scWRdb-hm71uCWxUAnWrov3HprFgBHZMbnuCd7hGhobqZGOd7NIC3xDj8DICDQtUCUX0cuCU2n6fp5Jnq196IJTi5TnF9x05T9qWaEc4kkl_wmZyysXOBECK20Hnqa8D72BugHaI-1cIBsO2hAR3Q6d1vIKFoYzee89GW3EszB16m89zWmRSmyoDsl7wq5lZooKhyYbWlLgt1xaGWMocMhIBMRTX4Bj2e16Tl9CWi16fVc6wpDM4qHdf8-KTQHGJ_sf64fls-7Jbrl832_mW7idCIMc1DCINfJIkahtk1ZB_H7lENh5nu2wTHzife7eHu7GfA_stdgvtPYKfT6Q9V2SIgDQIAAA"
+    "fragment": "gH4sIAFTpWGoC_51RS4vbMBD-K0GnLWRj-SXLuZWl3cLCLt3ktKUEWRrFAtsyI3lpG_LfO0rIZXvrxcIz8z3mmxNzhm1Zp8DyqjOqqrkQta6tlC0vW2mEha6VTccl1zXnRadNpWXVNboQRSdkzXNVCrZmg5tAHYFtT2zyhl72tqfyqCKgUwP97xzf1I9An9VdnuG99ogwUN-sjAseDeAnQvS_Z8BZoRqBoCER3tpEQsDVDej8xM5r9q6GBS5zpLjNN-2aLZOLVCHgCFOguQFCSLMRxjlJUi_2gKOHAXREpw9_Imkn54flEom2tWxaU0De8KKyXdkKI0vIW2hyWRdWaDC2qoTVlqYoJZlTUm0FJQgBpSI27SfjksuLuX1yX3C-emJncgK_QC-XFainr4l9__b4lFwqjM4qnVb4cWKzij01v768Pnw5PLw87_afn_c74kc_JJT1qOFAYiGqiTC0Pqa8-xjnsM0yNc-b2xlCUjqimvuN9mOGyxSy4I5wT-uff9K5HKK_hv5Rj0r_x7tmM_p3d73fvwBK4_wXJlt7Q4cCAAA"
   },
   {
     "slug": "si-elastic-c11-pimd",
-    "id": "64ebd9f54bda",
+    "id": "076e902be85e",
     "node": "ElasticConstants",
     "material": "Si (diamond)",
     "value": {
@@ -105,11 +105,11 @@
       "units": "GPa"
     },
     "code": "TDEP",
-    "fragment": "gH4sIAJPSWGoC_2VQ0WobMRD8laCnhrr26aTTWfdWHCeU0sTEfivB7El7seBOJ3S60BL8713ZhDz0RYLZmd2ZeWfOsoYpia3VXSVbC0YpbQthjUQlK9W2Gi3WlnNeS8m7aq3akldi3elOCaGRyxLZgvXOI7wia96ZHy39bNvDlJzZjH5K4NNEpAESRgc9Tffu5ot1MIze3tLk9DdgDBBhQKJMec2BWKIobn5mIabTmJ3ufvy6-3q42-4INOMQRo8-Eb7hnJ0X7A36GS_qDDRciKVasNk7Ot-whx1kUsIh9OSEkOAGe0wWwxGvbmlttn-cL70UvJACKG_Z2XWNsgUttTDQ1YWGVkNtjFkrNDUUhaSn4iV0vEQD3AjNMV_DP2jm5EafXZlrNZcANIOYXAcmm_v9QildjOM1_P3T82Z73Dw97g_fHw_7DM0x93ZKKUzNagUhLD_qnPLa1wjhtKROVnH202py3z4jhTi-OYuR9P9r2Pl8_gfYxE0fCAIAAA"
+    "fragment": "gH4sIAFTpWGoC_52RT4vbMBDFv8qiU0vTxLL8J_KtZNNSSndDk9uymLE0XgtsScjy0hLy3TtKWCjtrRfLzJt58_TTmRnNGpbVFcos73BbYsk1z4XIMqz6usylrGSlM6zLTvK6y0EUutddUdUVnULngJ1gKzYai_CCrDkz6zSdbD_CHI3aOTtHsHGmpgkiBgMjqUdz904bmJzV70kZfnkMHgJMSC1zsqG_waV0h6_f7z-c7vcH6lNu8s6ijVTfcc4uK_YK44LXiVRouBDrasUWa2hlw74cIDVFnPxI26nizaTbqNG3eEtItilyu9xY8KwQ0OU87_W2xqIDWUihoK8zCZ2EWim1rVDVkGUFfUqeQ89zVMCVkByvIa020dDFU6oTmRLOu2_sQkHwJ6olaUlSN1LXu5EGIZoeVMr9dGYe4kDi58cfu327e3w4nj49nI5kH9yYpnoXFLbqD7xLSGSHGP3cbDbg_foN-Jw2vQTww5oIbsJi581sPr4BuDzT25gQ3I383yup9N_WK-aDezUaA83_O0NMLr8BhkGa7YUCAAA"
   },
   {
     "slug": "graphene-kappa-measured",
-    "id": "abee8959d3fe",
+    "id": "deeed05446a1",
     "node": "ThermalConductivity",
     "material": "graphene (suspended)",
     "value": {
@@ -117,6 +117,6 @@
       "units": "W/(m K)"
     },
     "code": "measurement",
-    "fragment": "gH4sIAJPSWGoC_yWQwWrDMBBEf8Xo1IBptbYlW7n22FsJ9FBKWUnrWMSSjSwHQsi_V2pOC7tvZ4a5M2fZkaEmGpRQth1JdQNw0w9kFEgJeuhHCbxpoQEuteCisUTScNFRA4asISNZzWYXCM_EjncWFpsnO00UPc7vS7C7Se7q0i1zHhNFh3MGzhHXiQJVL9u-rRQs2UMmpttKccWInjK6FcVTpuOy-CqRz0dMe6SiRWlaSv5P9BiqZU1LepqyR82uOO_0_37BdUV2FC3nr7xme3Ap79nX24uvPg6FLZF_92cXvG2bznaWRtFJUCPIXA43ZoReaiVQqIEP0IEUYEmj1pkA0D21CI0VRQ5jciOa4vL9U7OLC0XZE245uKeQ2OMP6cVBQnoBAAA"
+    "fragment": "gH4sIAFPpWGoC_yWQTWvDMAyG_0rwaYWw2YmdxL3uuNso7DDGkC2lMY3t4DiFUvrf53QnCfHwfujOHLIjQyJCrqTsQDQadSu1tW3XSY4gRI-Wy8H0CI0UBltSTW-01EoN49gb5ILVbHaB4EzseGchYpnsNFHyML_HgJvN7uryrXAeMiUHcwHOCZaJAlUv67YuFJDwUIjptlBaIIGngq67YtmmuAf9BA-hikuO-V-dPWp2hXmjJ3eBZQF2VC3nr7xmW3C53NnX24uvPg47u2f73Z6lgbdtI1EijUp2Qo-iIxq4taPoO6MVKD3wQUjRKYFkwJhCCGF6asuXUJWotnRz2cXwdD8V0RSjrzL5UgHylog9iimk7Eawe5bvn5pdXNj9PcFaCE8hs8cf2GdRmYkBAAA"
   }
 ]

@@ -1,10 +1,9 @@
 {
-  "id": "b93603157d51483860d74c1ed0c5ff29c0d3de8205b15f73ca4bca69922606e9",
+  "id": "fd750cf110e78447a6895ee0f7c6cc87e1a67cca7a80e979b877bd154ffaf8f3",
   "lineage": {
     "node": "ThermalConductivity[transport_model=qhgk]",
     "material": "a-Si",
     "hyperparameters": {
-      "T": "room temperature",
       "supercell": "4096 atoms",
       "potential": "Tersoff"
     },
@@ -13,12 +12,21 @@
       "units": "W/(m K)"
     },
     "template": "qhgk_kappa",
-    "node_uid": "8932e3cbadef74a82802b43fd1d25328cb40e6136c90df3b6a4a998e77f9567b"
+    "node_uid": "8932e3cbadef74a82802b43fd1d25328cb40e6136c90df3b6a4a998e77f9567b",
+    "conditions": {
+      "T": "room temperature"
+    }
   },
   "execution": {
     "code": "kaldo"
   },
-  "artifacts": [],
+  "artifacts": [
+    {
+      "path": "FORCE_CONSTANTS",
+      "role": "force_constants",
+      "url": "https://app.materialscodegraph.com/runs/a-si-qhgk"
+    }
+  ],
   "mirrors": {
     "FORCE_CONSTANTS": {
       "url": "https://app.materialscodegraph.com/runs/a-si-qhgk",
