@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>openmaterials.ai: the lineage of a shared experiment</title>
+<meta name="description" content="How one QHGK thermal-conductivity result travels: the map derivation, the learned shortcut, the lineage record, and the share links, on one page.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="openmaterials.ai">
+<meta property="og:title" content="openmaterials.ai: the lineage of a shared experiment">
+<meta property="og:description" content="One QHGK result, three layers: the derivation DAG, the lineage record, the share surfaces.">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../assets/vendor/inter/inter.css">
+<link rel="stylesheet" href="../assets/vendor/source-serif-4/source-serif-4.css">
+<link rel="stylesheet" href="../assets/vendor/jetbrains-mono/jetbrains-mono.css">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+  /* The lineage tour joins the light editorial identity: warm paper, indigo
+     observables, slate hidden nodes, amber for values and the learned edge,
+     serif headings, mono for ids. A document page: it scrolls. */
+  :root{
+    --font-serif:'Source Serif 4',Georgia,'Times New Roman',serif;
+    --font-sans:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+    --paper:#fdfcfa; --card:#ffffff; --wash:#f4f2ee; --line:#e8e6e1;
+    --ink:#16181d; --ink2:#3d4149; --muted:#6b7078; --faint:#9aa0a8;
+    --obs:#4f46e5; --obs2:#4338ca; --obs-bg:#eef2ff; --obs-ink:#312e81;
+    --hid-bg:#f4f6fa; --hid-line:#7c89a0; --hid-ink:#3d4149;
+    --val:#d98a14; --val-bg:#fdf6ea; --val-ink:#8a5a0d;
+    --edge:#cfcabf;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-sans);-webkit-font-smoothing:antialiased;}
+  .top{position:sticky;top:0;height:58px;display:flex;align-items:center;gap:14px;padding:0 clamp(14px,3vw,22px);
+    background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);box-shadow:0 1px 0 rgba(22,24,29,.04);z-index:10;}
+  .top .brand{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-serif);font-weight:700;font-size:1.06rem;letter-spacing:-.01em;color:var(--ink);text-decoration:none;white-space:nowrap;}
+  .top .brand .om-dot{width:6px;height:6px;border-radius:50%;background:var(--obs);flex:none;display:inline-block;margin-bottom:.28em;}
+  .top .sub{color:var(--faint);font-size:.82rem;font-weight:500;white-space:nowrap;}
+  .top .nav{display:flex;align-items:center;gap:16px;margin-left:auto;}
+  .top .nav a{color:var(--ink2);font-size:.86rem;font-weight:500;white-space:nowrap;text-decoration:none;padding:6px 0;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
+  .top .nav a:hover{color:var(--ink);}
+  @media (max-width:680px){ .top .nav a.opt{display:none;} .top .sub{display:none;} }
+
+  .wrap{max-width:1080px;margin:0 auto;padding:38px clamp(16px,3vw,26px) 80px;}
+  .eyebrow{font-size:.72rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;}
+  h1{font-family:var(--font-serif);font-weight:700;letter-spacing:-.015em;font-size:clamp(1.5rem,3.4vw,2.05rem);line-height:1.15;margin:0 0 10px;text-wrap:balance;}
+  .lede{color:var(--ink2);font-size:1rem;line-height:1.62;max-width:68ch;margin:0 0 8px;}
+  .lede .m{font-family:var(--font-mono);font-size:.86em;color:var(--obs2);}
+  h2{font-family:var(--font-serif);font-weight:700;font-size:1.16rem;letter-spacing:-.01em;margin:44px 0 6px;}
+  .sub{color:var(--muted);font-size:.84rem;margin:0 0 16px;max-width:70ch;line-height:1.55;}
+  .sub .m{font-family:var(--font-mono);font-size:.92em;}
+  .sub a{color:var(--obs2);text-decoration:none;}
+  .sub a:hover{text-decoration:underline;}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin:0 0 12px;font-size:.76rem;color:var(--ink2);}
+  .legend .sw{display:inline-block;width:14px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:1.4px solid;}
+  .legend .obs .sw{background:var(--obs-bg);border-color:var(--obs);}
+  .legend .hid .sw{background:var(--hid-bg);border-color:var(--hid-line);}
+  .legend .lrn .sw{background:var(--val-bg);border-color:var(--val);border-style:dashed;}
+  .dagbox{border:1px solid var(--line);border-radius:12px;background:var(--card);overflow-x:auto;}
+  .dagbox svg{display:block;}
+  .n rect{rx:7;stroke-width:1.4;}
+  .n.obs rect{fill:var(--obs-bg);stroke:var(--obs);}
+  .n.hid rect{fill:var(--hid-bg);stroke:var(--hid-line);}
+  .n text{font-family:var(--font-mono);font-size:10.6px;}
+  .n.obs text{fill:var(--obs-ink);}
+  .n.hid text{fill:var(--hid-ink);}
+  .n.amort rect{stroke:var(--val);stroke-dasharray:4 3;}
+  .e{fill:none;stroke:var(--edge);stroke-width:1.15;}
+  .e.learned{stroke:var(--val);stroke-width:1.7;stroke-dasharray:6 4;}
+  .taglab{font-family:var(--font-sans);font-size:9.5px;fill:var(--muted);letter-spacing:.08em;text-transform:uppercase;font-weight:600;}
+  .lrnlab{font-family:var(--font-sans);font-size:10.5px;font-weight:600;fill:var(--val-ink);}
+  .caption{color:var(--muted);font-size:.78rem;margin:10px 2px 0;line-height:1.5;}
+  .caption .m{font-family:var(--font-mono);font-size:.92em;}
+
+  .sheet{border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden;}
+  .sheet .hd{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:baseline;padding:14px 18px;border-bottom:1px solid var(--line);background:var(--wash);}
+  .sheet .hd .id{font-family:var(--font-mono);font-size:.72rem;color:var(--faint);word-break:break-all;}
+  .sheet .hd .nm{font-family:var(--font-mono);font-weight:600;font-size:.9rem;color:var(--obs2);}
+  .kv{display:grid;grid-template-columns:170px 1fr;font-size:.85rem;}
+  .kv>div{padding:9px 18px;border-bottom:1px solid var(--line);}
+  .kv>div:nth-last-child(-n+2){border-bottom:none;}
+  .kv .k{color:var(--muted);font-size:.72rem;font-weight:600;letter-spacing:.09em;text-transform:uppercase;padding-top:11px;}
+  .kv .v{font-family:var(--font-mono);font-size:.8rem;color:var(--ink2);word-break:break-all;}
+  .kv .v b{color:var(--val-ink);font-weight:700;}
+  .kv .v a{color:var(--obs2);text-decoration:none;}
+  .kv .v a:hover{text-decoration:underline;}
+  .kv .v .prov{display:inline-block;border:1px solid var(--line);background:var(--wash);border-radius:999px;padding:1px 9px;font-size:.68rem;margin-left:6px;color:var(--ink2);font-family:var(--font-sans);}
+  @media (max-width:560px){ .kv{grid-template-columns:1fr;} .kv .k{padding-bottom:0;border-bottom:none;} }
+
+  table.links{border-collapse:collapse;width:100%;font-size:.84rem;background:var(--card);}
+  .tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;}
+  .links th{font-size:.68rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-align:left;padding:10px 14px;border-bottom:1px solid var(--line);background:var(--wash);}
+  .links td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top;}
+  .links tr:last-child td{border-bottom:none;}
+  .links td.u{font-family:var(--font-mono);font-size:.74rem;word-break:break-all;}
+  .links td.u a{color:var(--obs2);text-decoration:none;}
+  .links td.u a:hover{text-decoration:underline;}
+  .links td.who{white-space:nowrap;}
+  .links td .why{color:var(--muted);font-size:.74rem;}
+  .pill{display:inline-block;border-radius:999px;padding:2px 10px;font-size:.7rem;font-weight:600;}
+  .pill.pub{background:var(--obs-bg);color:var(--obs-ink);border:1px solid var(--obs);}
+  .pill.gate{background:var(--val-bg);color:var(--val-ink);border:1px solid var(--val);}
+  details{margin-top:14px;border:1px solid var(--line);border-radius:10px;background:var(--card);}
+  summary{cursor:pointer;padding:11px 16px;font-size:.82rem;font-weight:600;color:var(--ink2);}
+  summary:focus-visible{outline:2px solid var(--obs);outline-offset:2px;}
+  details pre{margin:0;padding:14px 16px;border-top:1px solid var(--line);font-family:var(--font-mono);font-size:.7rem;line-height:1.55;color:var(--ink2);overflow-x:auto;}
+  .pin{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:.78rem;line-height:1.6;}
+  .pin .m{font-family:var(--font-mono);font-size:.9em;}
+  .pin a{color:var(--obs2);text-decoration:none;}
+  .pin a:hover{text-decoration:underline;}
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="../"><span class="om-dot"></span>openmaterials.ai</a>
+  <span class="sub">the lineage tour</span>
+  <nav class="nav">
+    <a href="../map/" class="opt">Map</a>
+    <a href="../map-trace/" class="opt">Tracer</a>
+    <a href="../experiment/">Experiments</a>
+    <a href="../play/" class="opt">Playground</a>
+  </nav>
+</header>
+<main class="wrap">
+  <p class="eyebrow">One result, three layers</p>
+  <h1>The lineage of a shared experiment</h1>
+  <p class="lede">How one QHGK thermal-conductivity result travels: the map derives
+    <span class="m">ThermalConductivity[transport_model=qhgk]</span> through typed edges,
+    a <b>lineage record</b> pins the run that produced the value, and each layer has a URL.
+    The graph below is the map's own export (<span class="m">python -m omai.mermaid</span>),
+    verbatim: 21 quantities, 30 edges.</p>
+
+  <h2>1 · The map lineage</h2>
+  <p class="sub">Left to right: sources, the DFT chain, harmonic objects, scattering channels, transport.
+    Indigo nodes are gauge-invariant observables, slate nodes are gauge-dependent scaffolding.
+    The dashed amber edge is a <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/omai/operator/learned.py">learned shortcut</a>:
+    a declared, non-authoritative surrogate that produces the same linewidth node while
+    amortizing the third-order force constants away. Explore the same lineage live in
+    <a href="../map-trace/#node=ThermalConductivity[transport_model=qhgk]">the tracer</a>.</p>
+  <div class="legend">
+    <span class="obs"><span class="sw"></span>observable</span>
+    <span class="hid"><span class="sw"></span>hidden (gauge-dependent)</span>
+    <span class="lrn"><span class="sw"></span>learned shortcut / amortized input</span>
+  </div>
+  <div class="dagbox"><svg id="dag" xmlns="http://www.w3.org/2000/svg" width="1250" height="580" viewBox="0 0 1250 580" role="img" aria-label="Derivation DAG of QHGK thermal conductivity"></svg></div>
+  <p class="caption">Reproduce this exact graph anywhere markdown renders:
+    <span class="m">python -m omai.mermaid "ThermalConductivity[transport_model=qhgk]"</span>
+    (source in the appendix). With the learned edge active, Φ₃ and its producing edge are
+    bypassed at inference: the third-order wall, stated as graph topology.</p>
+
+  <h2>2 · The lineage record</h2>
+  <p class="sub">The map stores the claim; the lineage record pins how the number was made and where
+    the bulk bytes live. This is the gallery example
+    <a href="../examples/a-si-kappa-qhgk.json"><span class="m">docs/examples/a-si-kappa-qhgk.json</span></a>,
+    rendered the way the playground's Lineage tab reads it. Raw artifacts never enter the store:
+    the record carries pointers, and the bytes stay with their provider.</p>
+  <div class="sheet">
+    <div class="hd">
+      <span class="nm">ThermalConductivity[transport_model=qhgk]</span>
+      <span class="id">lineage fd750cf110e7…faf8f3 · node_uid 8932e3cbadef…f9567b</span>
+    </div>
+    <div class="kv">
+      <div class="k">material</div><div class="v">a-Si (4096-atom cell)</div>
+      <div class="k">value</div><div class="v"><b>κ = 2.2 W/(m K)</b></div>
+      <div class="k">conditions</div><div class="v">T = room temperature</div>
+      <div class="k">hyperparameters</div><div class="v">potential = Tersoff · supercell = 4096 atoms · template = qhgk_kappa</div>
+      <div class="k">execution</div><div class="v">code = kaldo</div>
+      <div class="k">artifacts</div><div class="v">FORCE_CONSTANTS <span class="prov">role: force_constants</span></div>
+      <div class="k">mirror</div><div class="v"><a href="https://app.materialscodegraph.com/runs/a-si-qhgk" rel="noopener">app.materialscodegraph.com/runs/a-si-qhgk</a> <span class="prov">provider: materialscodegraph</span></div>
+    </div>
+  </div>
+
+  <h2>3 · The share surfaces</h2>
+  <p class="sub">Same experiment, one URL per layer, one audience per URL. Public links carry the claim
+    and its receipts; the provider link carries the bulk artifacts and re-execution, behind the
+    provider's own access control.</p>
+  <div class="tblwrap"><table class="links">
+    <thead><tr><th>Surface</th><th>Link</th><th>Audience</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Experiment permalink<br><span class="why">values + provenance quotes + map version</span></td>
+        <td class="u"><a href="../experiment/#ref=paper:qhgk-2019-isaeva">experiment/#ref=paper:qhgk-2019-isaeva</a></td>
+        <td class="who"><span class="pill pub">public</span></td>
+      </tr>
+      <tr>
+        <td>Coverage on the map<br><span class="why">lights exactly the evidence-bearing quantities</span></td>
+        <td class="u"><a href="../map/#experiment=paper:qhgk-2019-isaeva">map/#experiment=paper:qhgk-2019-isaeva</a></td>
+        <td class="who"><span class="pill pub">public</span></td>
+      </tr>
+      <tr>
+        <td>The run at its provider<br><span class="why">spec, stages, artifacts, re-execution</span></td>
+        <td class="u"><a href="https://app.materialscodegraph.com/runs/a-si-qhgk" rel="noopener">app.materialscodegraph.com/runs/a-si-qhgk</a></td>
+        <td class="who"><span class="pill gate">provider account</span></td>
+      </tr>
+    </tbody>
+  </table></div>
+  <p class="caption">The pattern generalizes: contribute values under one
+    <span class="m">source.ref</span> and the two public links exist; keep the bulk at any provider
+    and the record's mirror points at it. Unpublished work stays on the gated layer until its
+    owner promotes the values.</p>
+
+  <details>
+    <summary>Appendix: the verbatim Mermaid export</summary>
+    <pre>flowchart LR
+  HeatCapacity["HeatCapacity"]:::observable
+  ThermalConductivity_transport_model_qhgk["ThermalConductivity[transport_model=qhgk]"]:::hidden
+  Frequency["Frequency"]:::observable
+  GroupVelocity["GroupVelocity"]:::hidden
+  Linewidth_channel_total["Linewidth[channel=total]"]:::hidden
+  Temperature["Temperature"]:::observable
+  DynamicalMatrix["DynamicalMatrix"]:::observable
+  Eigenvectors["Eigenvectors"]:::hidden
+  Linewidth_channel_anharmonic_3ph["Linewidth[channel=anharmonic_3ph]"]:::hidden
+  Linewidth_channel_isotope["Linewidth[channel=isotope]"]:::hidden
+  Linewidth_channel_boundary["Linewidth[channel=boundary]"]:::hidden
+  BareDynamicalMatrix["BareDynamicalMatrix"]:::observable
+  BornCharges["BornCharges"]:::observable
+  DielectricTensor["DielectricTensor"]:::observable
+  ForceConstants_order_3["ForceConstants[order=3]"]:::observable
+  IsotopeAbundances["IsotopeAbundances"]:::observable
+  ForceConstants_order_2["ForceConstants[order=2]"]:::observable
+  Potential["Potential"]:::observable
+  Forces["Forces"]:::observable
+  Structure["Structure"]:::observable
+  TotalEnergy["TotalEnergy"]:::observable
+  HeatCapacity -- "compute kappa transport model qhgk" --> ThermalConductivity_transport_model_qhgk
+  Frequency -- "compute kappa transport model qhgk" --> ThermalConductivity_transport_model_qhgk
+  GroupVelocity -- "compute kappa transport model qhgk" --> ThermalConductivity_transport_model_qhgk
+  Linewidth_channel_total -- "compute kappa transport model qhgk" --> ThermalConductivity_transport_model_qhgk
+  Temperature -- "compute kappa transport model qhgk" --> ThermalConductivity_transport_model_qhgk
+  Frequency -- "compute heat capacity" --> HeatCapacity
+  Temperature -- "compute heat capacity" --> HeatCapacity
+  DynamicalMatrix -- "compute dispersion" --> Frequency
+  DynamicalMatrix -- "compute group velocity" --> GroupVelocity
+  Frequency -- "compute group velocity" --> GroupVelocity
+  Eigenvectors -- "compute group velocity" --> GroupVelocity
+  Linewidth_channel_anharmonic_3ph -- "sum linewidths" --> Linewidth_channel_total
+  Linewidth_channel_isotope -- "sum linewidths" --> Linewidth_channel_total
+  Linewidth_channel_boundary -- "sum linewidths" --> Linewidth_channel_total
+  BareDynamicalMatrix -- "identity dm" --> DynamicalMatrix
+  BareDynamicalMatrix -- "apply nac correction" --> DynamicalMatrix
+  BornCharges -- "apply nac correction" --> DynamicalMatrix
+  DielectricTensor -- "apply nac correction" --> DynamicalMatrix
+  DynamicalMatrix -- "compute dispersion" --> Eigenvectors
+  Frequency -- "compute linewidth channel anharmonic 3ph" --> Linewidth_channel_anharmonic_3ph
+  Eigenvectors -- "compute linewidth channel anharmonic 3ph" --> Linewidth_channel_anharmonic_3ph
+  ForceConstants_order_3 -- "compute linewidth channel anharmonic 3ph" --> Linewidth_channel_anharmonic_3ph
+  Temperature -- "compute linewidth channel anharmonic 3ph" --> Linewidth_channel_anharmonic_3ph
+  Frequency -- "compute isotope scattering" --> Linewidth_channel_isotope
+  Eigenvectors -- "compute isotope scattering" --> Linewidth_channel_isotope
+  IsotopeAbundances -- "compute isotope scattering" --> Linewidth_channel_isotope
+  Frequency -- "compute boundary scattering" --> Linewidth_channel_boundary
+  GroupVelocity -- "compute boundary scattering" --> Linewidth_channel_boundary
+  ForceConstants_order_2 -- "compute dynamical matrix" --> BareDynamicalMatrix
+  Potential -- "compute force constants order 3" --> ForceConstants_order_3
+  Potential -- "compute force constants order 2" --> ForceConstants_order_2
+  Forces -- "compute fc2 finite displacement" --> ForceConstants_order_2
+  Structure -- "compute fc2 finite displacement" --> ForceConstants_order_2
+  TotalEnergy -- "compute forces hf" --> Forces
+  Structure -- "compute forces hf" --> Forces
+  Structure -- "solve ground state" --> TotalEnergy
+  Potential -- "solve ground state" --> TotalEnergy
+  classDef observable fill:#eef2ff,stroke:#4f46e5,color:#312e81;
+  classDef hidden fill:#f4f6fa,stroke:#7c89a0,color:#3d4149;
+  classDef parameter fill:#f6f7f9,stroke:#94a3b8,color:#475569;</pre>
+  </details>
+
+  <p class="pin">The DAG regenerates with <span class="m">python -m omai.mermaid</span>; the lineage
+    example is <a href="../examples/a-si-kappa-qhgk.json"><span class="m">docs/examples/a-si-kappa-qhgk.json</span></a>;
+    the learned-shortcut layer is <span class="m">omai/operator/learned.py</span>.
+    Evidence stays its owner's: raw artifacts never enter the store
+    (<a href="https://github.com/openmaterials-ai/openmaterials/blob/main/GOVERNANCE.md">GOVERNANCE.md, Data ownership and fairness</a>).</p>
+</main>
+<script>
+(function(){
+  'use strict';
+  // Layered layout of the verbatim exporter edge list. Layers are derivation
+  // depth; positions are computed here so edges stay attached to their nodes.
+  var L = [
+    ['Structure','Potential','Temperature','IsotopeAbundances','BornCharges','DielectricTensor'],
+    ['TotalEnergy','Forces'],
+    ['ForceConstants[order=2]','ForceConstants[order=3]'],
+    ['BareDynamicalMatrix'],
+    ['DynamicalMatrix'],
+    ['Frequency','Eigenvectors'],
+    ['HeatCapacity','GroupVelocity','Linewidth[channel=anharmonic_3ph]','Linewidth[channel=isotope]','Linewidth[channel=boundary]'],
+    ['Linewidth[channel=total]'],
+    ['ThermalConductivity[transport_model=qhgk]']
+  ];
+  var OBS = {'Structure':1,'Potential':1,'Temperature':1,'IsotopeAbundances':1,'BornCharges':1,'DielectricTensor':1,
+    'TotalEnergy':1,'Forces':1,'ForceConstants[order=2]':1,'ForceConstants[order=3]':1,
+    'BareDynamicalMatrix':1,'DynamicalMatrix':1,'Frequency':1,'HeatCapacity':1};
+  var SHORT = {
+    'ForceConstants[order=2]':'Φ² ForceConstants[2]','ForceConstants[order=3]':'Φ³ ForceConstants[3]',
+    'Linewidth[channel=anharmonic_3ph]':'Γ 3ph linewidth','Linewidth[channel=isotope]':'Γ isotope',
+    'Linewidth[channel=boundary]':'Γ boundary','Linewidth[channel=total]':'Γ total',
+    'ThermalConductivity[transport_model=qhgk]':'κ QHGK','BareDynamicalMatrix':'bare D','DynamicalMatrix':'D',
+    'IsotopeAbundances':'isotope g','BornCharges':'Z*','DielectricTensor':'ε∞','GroupVelocity':'v group',
+    'HeatCapacity':'c heat capacity','TotalEnergy':'E total','Eigenvectors':'e eigenvectors','Frequency':'ω frequency'
+  };
+  var E = [
+    ['HeatCapacity','ThermalConductivity[transport_model=qhgk]'],['Frequency','ThermalConductivity[transport_model=qhgk]'],
+    ['GroupVelocity','ThermalConductivity[transport_model=qhgk]'],['Linewidth[channel=total]','ThermalConductivity[transport_model=qhgk]'],
+    ['Temperature','ThermalConductivity[transport_model=qhgk]'],
+    ['Frequency','HeatCapacity'],['Temperature','HeatCapacity'],
+    ['DynamicalMatrix','Frequency'],['DynamicalMatrix','GroupVelocity'],['Frequency','GroupVelocity'],['Eigenvectors','GroupVelocity'],
+    ['Linewidth[channel=anharmonic_3ph]','Linewidth[channel=total]'],['Linewidth[channel=isotope]','Linewidth[channel=total]'],
+    ['Linewidth[channel=boundary]','Linewidth[channel=total]'],
+    ['BareDynamicalMatrix','DynamicalMatrix'],['BornCharges','DynamicalMatrix'],['DielectricTensor','DynamicalMatrix'],
+    ['DynamicalMatrix','Eigenvectors'],
+    ['Frequency','Linewidth[channel=anharmonic_3ph]'],['Eigenvectors','Linewidth[channel=anharmonic_3ph]'],
+    ['ForceConstants[order=3]','Linewidth[channel=anharmonic_3ph]'],['Temperature','Linewidth[channel=anharmonic_3ph]'],
+    ['Frequency','Linewidth[channel=isotope]'],['Eigenvectors','Linewidth[channel=isotope]'],['IsotopeAbundances','Linewidth[channel=isotope]'],
+    ['Frequency','Linewidth[channel=boundary]'],['GroupVelocity','Linewidth[channel=boundary]'],
+    ['ForceConstants[order=2]','BareDynamicalMatrix'],
+    ['Potential','ForceConstants[order=3]'],['Potential','ForceConstants[order=2]'],
+    ['Forces','ForceConstants[order=2]'],['Structure','ForceConstants[order=2]'],
+    ['TotalEnergy','Forces'],['Structure','Forces'],
+    ['Structure','TotalEnergy'],['Potential','TotalEnergy']
+  ];
+  var W=1250,H=580,PADX=14,COLW=(W-2*PADX)/L.length,NH=26;
+  var pos={};
+  L.forEach(function(col,ci){
+    var gap=H/(col.length+1);
+    col.forEach(function(id,ri){
+      var label=SHORT[id]||id;
+      var w=Math.max(58,label.length*6.6+18);
+      pos[id]={x:PADX+COLW*ci+(COLW-w)/2,y:gap*(ri+1)-NH/2,w:w,h:NH,label:label};
+    });
+  });
+  var svg=document.getElementById('dag');
+  var NS='http://www.w3.org/2000/svg';
+  function el(t,attrs,parent){var e=document.createElementNS(NS,t);for(var k in attrs)e.setAttribute(k,attrs[k]);(parent||svg).appendChild(e);return e;}
+  var tiers=[['Sources',0,0],['DFT chain',1,2],['Harmonic',3,5],['Scattering',6,7],['Transport',8,8]];
+  tiers.forEach(function(t,i){
+    var x0=PADX+COLW*t[1], x1=PADX+COLW*(t[2]+1);
+    if(i%2===1){ el('rect',{x:x0,y:0,width:x1-x0,height:H,fill:'var(--wash)',opacity:.55}); }
+    var lab=el('text',{x:(x0+x1)/2,y:20,'text-anchor':'middle','class':'taglab'}); lab.textContent=t[0];
+  });
+  function edgePath(a,b){
+    var p=pos[a],q=pos[b];
+    var x0=p.x+p.w,y0=p.y+p.h/2,x1=q.x,y1=q.y+q.h/2;
+    var dx=Math.max(30,(x1-x0)/2);
+    return 'M'+x0+' '+y0+' C'+(x0+dx)+' '+y0+' '+(x1-dx)+' '+y1+' '+x1+' '+y1;
+  }
+  el('defs',{}).innerHTML='<marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#cfcabf"></path></marker>'+
+    '<marker id="arwv" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d98a14"></path></marker>';
+  E.forEach(function(ed){ el('path',{d:edgePath(ed[0],ed[1]),'class':'e','marker-end':'url(#arw)'}); });
+  el('path',{d:edgePath('Eigenvectors','Linewidth[channel=anharmonic_3ph]'),'class':'e learned','marker-end':'url(#arwv)'});
+  var lp=pos['ForceConstants[order=3]'];
+  var lab=el('text',{x:lp.x+lp.w/2,y:lp.y-8,'text-anchor':'middle','class':'lrnlab'});
+  lab.textContent='amortized by the learned edge';
+  Object.keys(pos).forEach(function(id){
+    var p=pos[id];
+    var g=el('g',{'class':'n '+(OBS[id]?'obs':'hid')+(id==='ForceConstants[order=3]'?' amort':'')});
+    el('rect',{x:p.x,y:p.y,width:p.w,height:p.h,rx:7},g);
+    var t=el('text',{x:p.x+p.w/2,y:p.y+p.h/2+3.6,'text-anchor':'middle'},g);
+    t.textContent=p.label;
+    var tt=el('title',{},g); tt.textContent=id;
+  });
+})();
+</script>
+</body>
+</html>
