@@ -1,8 +1,11 @@
 {
-  "id": "800d4897fbe9055232310a52899e57ce900f132ee23499af90cb4f8bf5835689",
+  "id": "88385670f5e547cd3642492acf7c682cf9b864374478b4583ffebfbfb550a3b1",
   "recipe": {
     "node": "ThermalConductivity[bte_solver=direct_inverse]",
-    "material": "Si",
+    "material": {
+      "name": "Si",
+      "configuration": "55bf22ca81868867402ac4ce50a830f91da84c805990c37c3bdafe3b93a69143"
+    },
     "hyperparameters": {
       "mesh": "8x8x8",
       "T": 300,
