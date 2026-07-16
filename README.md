@@ -79,41 +79,37 @@ playground's Experiment tab:
 https://openmaterials.ai/play/#/play?tab=experiment&x=<gzipped record>
 ```
 
-Opening the link renders the record as a full customer **recipe dashboard**: the
-experiment shown as a typed, verifiable path from its inputs to its result, with
-everything the recipe holds on one page, not a developer view. It leads with a
-hero (the property in plain words and the material, "Thermal conductivity of
-Silicon", a Simulation or Measurement badge, and the headline value with its
-units and condition), then the brand headline: **the experiment as an X&rarr;Y
-path**, the true upstream input nodes you feed the run (potential, force
-constants, structure, temperature) flowing through the physics milestones to the
-result node, each chip deep-linking the full map, with the complete node-by-node
-lineage one click away. Below that, panels lay out the rest: a **recipe details**
-panel with every field (material and its pinned configuration, all
-hyperparameters, conditions, execution: code, version, container digest, runner,
-wall time, seeds, and template); a **values** panel with the full value table and
-a small hand-rolled bar strip; a **map context and trust** panel that pulls the
-node's plain-language description, units, and map tier from the catalog and, when
-the map's agreement layer has a group for this observable and material, shows the
-**cross-code agreement** (for example kaldo and phono3py compared code-to-code at
-the same route, with the member values and a range plot) as a direct signal that
-the physics is validated; an **artifacts and host** panel linking heavy data out
-to MaterialsCodeGraph; and a quiet provenance row with the map node, the short
-recipe id, and a view-on-the-map link. A prominent actions bar offers **Run on
-MaterialsCodeGraph** when the node is one MCG can compute (and is simply absent
-otherwise) and a Copy link button that re-mints the same `#x=` share URL, so the
-dashboard is shareable and replayable. Paste a record JSON on that tab, or drop a
-`.json` file (a record MCG serves pastes straight in), to open a dashboard of
-your own; the paste/drop ingress validates the record client-side against the
-same light shape checks as `validate_light` (recipe present, artifact pointers
-well-formed) and is honest about gaps (a node-unresolved or measurement record
-still renders, without a fabricated path, and its provenance says so). It is a
-view only, nothing is uploaded or stored, and every reference file it reads
-(graph, catalog, agreement) is static. The fragment uses the same gzip+base64url
-scheme as the map-view share below, so a link a tool produces
-(`record_to_fragment`) and one the playground produces interoperate. It is the
-light path: a record with many artifact pointers may exceed a practical URL, and
-that is fine.
+Opening the link renders the record as a **plain data view**: an experiment is a
+data container, and OpenMaterials (the static site) is the container's viewer, so
+the view shows the information the record holds, plainly, not a dashboard. It
+presents what the record is (the kind, simulation or measurement, the output map
+node, the material, and the short recipe id), the recipe's every field as plain
+labelled key-values and a simple value-and-units table (node, node_uid, material
+and its pinned configuration, template, all hyperparameters, conditions, params,
+and the execution: code, version, container digest, runner, wall time, seeds),
+what it means on the map (the node's plain-language description, units, and map
+tier pulled from the catalog, and the X&rarr;Y lineage stated plainly as its
+inputs and its output, for example "Inputs: Potential, Force constants,
+Structure, Temperature. Output: Thermal conductivity."), its provenance (the
+source ref, and for a parsed paper the paper info), and where the data lives (the
+artifact pointers and the mirror host as plain links out, since the heavy bytes
+live on MaterialsCodeGraph or Zenodo and the container only points). It ends with
+a plain **Run or replay this on MaterialsCodeGraph** link when the node is one MCG
+can compute (simply absent otherwise) and a Copy link that re-mints the same `#x=`
+share URL, so the view is shareable and replayable. **Dashboards and compute live
+on MaterialsCodeGraph, not here**: the rich visualization and the running or
+replaying are MCG's job; this view is the faithful, plain record. Paste a record
+JSON on that tab, or drop a `.json` file (a record MCG serves pastes straight in),
+to open a data view of your own; the paste/drop ingress validates the record
+client-side against the same light shape checks as `validate_light` (recipe
+present, artifact pointers well-formed) and is honest about gaps (a
+node-unresolved or measurement record still shows its data plainly, without a
+fabricated lineage and without a Run link, and says so). It is a view only,
+nothing is uploaded or stored, and every reference file it reads (graph, catalog)
+is static. The fragment uses the same gzip+base64url scheme as the map-view share
+below, so a link a tool produces (`record_to_fragment`) and one the playground
+produces interoperate. It is the light path: a record with many artifact pointers
+may exceed a practical URL, and that is fine.
 
 The [cross-code agreement page](https://openmaterials.ai/agreement/) takes the
 other cut through the same instances: instead of grouping by source, it groups
@@ -137,10 +133,11 @@ and `#experiment=<source.ref>` to light up exactly the quantities an
 experiment's evidence covers,
 the tracer takes `#node=<id>` or `#from=<id>&to=<id>` for a derivation path,
 the playground serializes its whole state behind its Share button and takes
-`#x=<gzipped record>` to open a single light experiment record as a full recipe
-dashboard (the experiment as an X&rarr;Y path with all its details, values, map
-context and cross-code agreement, and Run on MaterialsCodeGraph), and the
-experiments index takes `#material=<name>`. Every page has a copy-link control.
+`#x=<gzipped record>` to open a single light experiment record as a plain data
+view (what the container holds: every recipe field, a value-and-units table, what
+the output node means on the map, where the data lives, and a plain link to run
+or replay it on MaterialsCodeGraph), and the experiments index takes
+`#material=<name>`. Every page has a copy-link control.
 
 ## A slice of the map, as Mermaid
 
