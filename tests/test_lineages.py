@@ -1367,16 +1367,13 @@ def test_record_with_lineage_and_legacy_recipe_keys_is_rejected():
         lin.validate_light(malformed)
 
 
-def test_simulations_compatibility_shim_exports_legacy_names():
-    from omai.simulations import (
-        SimulationError,
-        recipe_id,
-        validate_light,
-    )
-
-    assert recipe_id is lin.lineage_id
-    assert SimulationError is lin.LineageError
-    assert validate_light is lin.validate_light
+def test_simulations_shim_is_gone():
+    # The transition shim was removed once MaterialsCodeGraph confirmed its
+    # oracle imports omai.lineages directly (dvnclabs/materialscodegraph#109,
+    # #111). The WIRE still reads the legacy "recipe" key forever; only the
+    # legacy import path is retired.
+    with pytest.raises(ModuleNotFoundError):
+        import omai.simulations  # noqa: F401
 
 
 def test_fragment_unknown_mode_rejected():
