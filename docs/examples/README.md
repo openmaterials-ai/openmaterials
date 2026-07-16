@@ -30,3 +30,7 @@ Use them two ways:
 
 These are curated demonstration recipes. Their hyperparameters and hosted-data URLs are
 illustrative of the format; the reported values are grounded in the map's committed evidence.
+`si-kappa-kaldo-direct` also pins the committed Si diamond configuration
+(`si-diamond-primitive-mp-149`), so its data view resolves the pin and lists the cell's
+facts (formula, space group, atoms, lattice), and its Run link carries the pin to
+MaterialsCodeGraph.

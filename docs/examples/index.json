@@ -1,7 +1,7 @@
 [
   {
     "slug": "si-kappa-kaldo-direct",
-    "id": "800d4897fbe9",
+    "id": "88385670f5e5",
     "node": "ThermalConductivity[bte_solver=direct_inverse]",
     "material": "Si",
     "value": {
@@ -9,7 +9,7 @@
       "units": "W/(m K)"
     },
     "code": "kaldo",
-    "fragment": "gH4sIAK4gWGoC_2VQwWrjMBD9laJTF9xYsmzHMvRQ0t3LQgtNYA-lmLE0qkVtS8hyaCn595WSzWnRYZg3857evG9iFGlJQ6kqG7HVPQpaVQUvOKNQFY0QWG1lBKlmvEAseCkEaEFlX-qm11XDq7oRJCMepXFI2m8yWxUrOQzoJxh3dlarDOZowtdrH7Bb7HhEf69MZITOzLFZ8C0qTBDQGxgjd29iP3w59A48TBgHS5KecBmS3c_44saBtJzSjDgbcA5X6iZtW63JKSNHGFc8Uz_AOSBtUW8EbTKyziZEnPzJb6eb3z_SbsDJjdFDRN1gZzt3ye6Fl52v6tZzWsBroThHUZe8F7rZ1nXPGJMKt4UsS91rXgLjgGWtNPScIYNYmSxYISSI9Bl-olyDsXPyJi-JfcCobBqCD0aDTAZf32Iwxnt7CeDX88vuZ7d7ftofHp4O-46_PCZ49en0IQS3tHkeHW-uYS5J-92DGzbSTrlf5yVfzN2_iO6uSTpvj0ahjyr_M8npdPoLF6KZTSkCAAA"
+    "fragment": "gH4sIAMvIWGoC_2WRT2vcMBDFv0rRqYXNrmXJsrTQQ9m2l0IC2YUeQjBj_YlFbMvI8pKw7HfvyJucig5CT5o3T7-5EG_InkjJZCXqwlW24rU2TPCSqxK0q7WQpXaqlYKzmvNatrySzDnbOlxVVQBrKdmQaLWfLNlfyBgM7uTU2ThAfwijWXTyZ5_en9pkmzn0Zxu_G48VqfEjHmb7jA4DJBs99KsHDNnj6FHXYXT-ZYmQfBhRrKrWlaUGSaWQUtS8wKBcW4wiWeEUNSC5lkWlVKFZrVlrwFnWKgZCUc7IdUO698nGCSK2waZzbjnYucso3nBh1xPZs6LYkCkkO6Y1FsbZ5tfBuexxhn6xa-krTBOQfSm2qpAbsow-oU7-7r4OX_58y2-THaYe_4fq1IUxjE1GcavbrMSaZZ0EMKEMY1Yh7lY5WQvRUkq1sXWpOUfmjANlYLkwDlpGLQXcqS5pqTSo3My-Wb3cYF2Q3jqNV-hNyJcQk3egc8CnZ4TuYww3AL8fHg-_msPD_fH04_50bNjjzywvMX-9S2ma97sdJt5-DmrO3i8Rpm6rw7CLyzjvZn_3gejuk-QUw9kbG9Hl_0pyvV7_AcFSGwaFAgAA"
   },
   {
     "slug": "si-kappa-kaldo-rta",
