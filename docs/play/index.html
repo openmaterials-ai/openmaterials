@@ -294,7 +294,7 @@ var SVGNS = 'http://www.w3.org/2000/svg';
 
 var GRAPH = null, SEM = [], LEAN = {nodes:{},edges:{}}, semById = {}, nodeById = {}, children = {}, parents = {}, symHtml = {};
 var catalogById = {};   // node id -> {id, symbol, description}: the plain-language names for the recipe card
-var AGREEMENT = { groups: [] };   // cross-code / theory-vs-experiment agreement groups (docs/data/agreement.json)
+var configByUid = {};   // canonical.uid -> configuration bundle record for a pinned recipe cell
 var TIERS = [];         // the map's tiers: [{name, order, description}], for the map-context panel
 var VB = { x: 0, y: 0, w: 1000, h: 700 };
 
@@ -328,13 +328,16 @@ Promise.all([
   fetch('../data/version.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; }),
   fetch('../data/lean.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {nodes:{},edges:{}}; }),
   fetch('../data/catalog.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return []; }),
-  fetch('../data/agreement.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return { groups: [] }; })
+  fetch('../data/configurations.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; })
 ]).then(function(res){
   GRAPH = res[0]; SEM = res[1] || [];
   if (res[2] && res[2].version) window.__MAP_VERSION__ = res[2].version;
   LEAN = res[3] || {nodes:{},edges:{}};
   (res[4] || []).forEach(function(n){ if (n && n.id) catalogById[n.id] = n; });
-  AGREEMENT = res[5] && Array.isArray(res[5].groups) ? res[5] : { groups: [] };
+  (Array.isArray(res[5]) ? res[5] : []).forEach(function(c){
+    var uid = c && c.canonical && c.canonical.uid;
+    if (uid) configByUid[String(uid)] = c;
+  });
   TIERS = (GRAPH && Array.isArray(GRAPH.tiers)) ? GRAPH.tiers : [];
   SEM.forEach(function(e){ semById[e.id] = e; });
   var seen = {};
@@ -831,6 +834,38 @@ function materialConfigUid(material){
   return u ? String(u) : '';
 }
 
+// Resolve a pinned configuration uid against docs/data/configurations.json.
+// Pins may carry the content-addressing prefix used in serialized records.
+function resolveConfiguration(uid){
+  if (!uid) return null;
+  uid = String(uid);
+  if (uid.indexOf('sha256:') === 0) uid = uid.slice(7);
+  return configByUid[uid] || null;
+}
+
+// Render the available cell facts as plain dt/dd rows for The recipe section.
+// Every value comes from the configuration bundle; omitted fields stay omitted.
+function configSummaryHTML(rec){
+  if (!rec || typeof rec !== 'object') return '';
+  var canon = rec.canonical || {};
+  var rows = [];
+  var row = function(label, value){
+    rows.push('<dt>' + esc(label) + '</dt><dd>' + esc(value) + '</dd>');
+  };
+  if (rec.formula) row('formula', rec.formula);
+  if (canon.spacegroup != null) row('space group', canon.spacegroup);
+  var natoms = rec.natoms != null ? rec.natoms : canon.natoms_primitive;
+  if (natoms != null) {
+    row('atoms', String(natoms) + (rec.natoms == null && canon.natoms_primitive != null ? ' (primitive)' : ''));
+  }
+  var lattice = rec.structure && rec.structure.lattice;
+  if (lattice && lattice.a != null && lattice.b != null && lattice.c != null) {
+    var round3 = function(value){ return Math.round(Number(value) * 1000) / 1000; };
+    row('lattice a b c (Å)', round3(lattice.a) + ' · ' + round3(lattice.b) + ' · ' + round3(lattice.c));
+  }
+  return rows.join('');
+}
+
 // The recipe-details groups: EVERY field the recipe holds, organised for
 // scanning. Each group is {label, tag, rows:[[k,v],...]}; empty groups are
 // dropped by the caller. execution lives on the record (not recipe), so it is
@@ -1090,9 +1125,15 @@ function renderExperiment(record){
   var idRows = [];
   if (node) idRows.push('<dt>node</dt><dd class="wrap">' + esc(node) + '</dd>');
   if (recipe.node_uid) idRows.push('<dt>node_uid</dt><dd class="wrap">' + esc(String(recipe.node_uid)) + '</dd>');
-  if (mat) idRows.push('<dt>material</dt><dd>' + esc(mat) + '</dd>');
   var cfgUid = materialConfigUid(recipe.material);
-  if (cfgUid) idRows.push('<dt>configuration uid</dt><dd class="wrap">' + esc(cfgUid) + '</dd>');
+  var cfg = resolveConfiguration(cfgUid);
+  var matLabel = mat || (cfg && cfg.name) || '';
+  if (matLabel) idRows.push('<dt>material</dt><dd>' + esc(matLabel) + '</dd>');
+  if (cfgUid) {
+    idRows.push('<dt>configuration uid</dt><dd class="wrap">' + esc(cfgUid) + '</dd>');
+    var cfgRows = configSummaryHTML(cfg);
+    if (cfgRows) idRows.push(cfgRows);
+  }
   if (recipe.template != null && recipe.template !== '') {
     var tw = templateWords(recipe.template);
     idRows.push('<dt>template</dt><dd>' + esc(String(recipe.template)) + (tw && tw !== String(recipe.template) ? ' <span class="rec-link-note">(' + esc(tw) + ')</span>' : '') + '</dd>');
