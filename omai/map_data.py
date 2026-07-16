@@ -206,7 +206,7 @@ def build_codes(domains: tuple[Domain, ...]) -> dict:
 
 def build_instances(instances_dir: Path | None = None,
                     simulations_dir: Path | None = None) -> list[dict]:
-    from omai.simulations import _SHA256_RE, committed_ids
+    from omai.lineages import _SHA256_RE, committed_ids
 
     instances_dir = instances_dir or (_DOCS / "data" / "instances")
     # Name -> content-addressed uid over the unified map (spaces + promoted
@@ -396,7 +396,7 @@ def record_instance(*, domains, variable, material, value, units, source_kind,
     # records is the bundler's gate, since the record may land after this
     # instance does.
     if simulation is not None:
-        from omai.simulations import _SHA256_RE
+        from omai.lineages import _SHA256_RE
 
         if not isinstance(simulation, str) or not _SHA256_RE.match(simulation):
             raise ValueError(
@@ -476,15 +476,15 @@ def build_simulations(simulations_dir: Path | None = None,
                       instances_dir: Path | None = None) -> list[dict]:
     """The validated simulation-record index (docs/data/simulations.json).
 
-    A simulation record is a whole run as content-addressed evidence: its recipe
+    A lineage record is a whole run as content-addressed evidence: its lineage
     (map identity + material + conditions + params), the execution that ran it,
     an artifact manifest (path, bytes, sha256, role: bytes stay in object
     storage, the map holds identity and checksums), and the run's results. Each
     record is re-validated at bundle time against the live map by the same gates
-    the writer applied (recipe node resolves by id and uid pin, the execution
+    the writer applied (lineage node resolves by id and uid pin, the execution
     block names the code that ran, a named configuration exists, the manifest
     is well-formed, bundled result stubs pass the instance checks and backref
-    the record) and pinned to the live uid of its recipe node, so a record
+    the record) and pinned to the live uid of its lineage node, so a record
     travels with its node through supersede chains exactly like an instance. At
     bundle time a result given as a backref SLUG must also resolve: the named
     file exists under ``instances_dir`` (docs/data/instances/ by default) and
@@ -492,8 +492,8 @@ def build_simulations(simulations_dir: Path | None = None,
     the commons does not hold (build_instances closes the loop in the other
     direction). Identity excludes location: urls live in a ``mirrors`` resolver
     layer outside the hash, so moving bytes never re-mints the record
-    (omai.simulations states the protocol commitment)."""
-    from omai.simulations import _validate  # gate reused verbatim from the writer
+    (omai.lineages states the protocol commitment)."""
+    from omai.lineages import _validate, record_lineage
 
     simulations_dir = simulations_dir or (_DOCS / "data" / "simulations")
     instances_dir = instances_dir or (_DOCS / "data" / "instances")
@@ -505,10 +505,16 @@ def build_simulations(simulations_dir: Path | None = None,
         return out
     for f in sorted(simulations_dir.glob("*.json")):
         rec = json.loads(f.read_text())
+        lineage = record_lineage(rec, where=f.name)
+        if "recipe" in rec:
+            rec = {
+                ("lineage" if key == "recipe" else key): value
+                for key, value in rec.items()
+            }
         _validate(rec, name_to_uid=name_to_uid, config_dir=config_dir, where=f.name,
                   instances_dir=instances_dir)
-        node = rec["recipe"]["node"]
-        # Pin the record to the live uid of its recipe node (the instance/
+        node = lineage["node"]
+        # Pin the record to the live uid of its lineage node (the instance/
         # configuration node_uid discipline), and carry its own file so the site
         # can link the row to the raw per-record JSON.
         rec["node_uid"] = name_to_uid[node]
