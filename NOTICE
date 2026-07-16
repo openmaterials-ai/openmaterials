@@ -1,0 +1,18 @@
+OpenMaterials
+Copyright Giuseppe Barbalinardo and Davide Donadio.
+
+This product includes software developed as part of the OpenMaterials-AI
+initiative (https://github.com/openmaterials-ai/openmaterials).
+
+The source code in this repository (for example, the omai/ package) is licensed
+under the Apache License, Version 2.0. See the LICENSE file for the full terms.
+
+The map data (for example, the map/, docs/data/, and index/ directories) is
+licensed separately under the Creative Commons Attribution 4.0 International
+license (CC BY 4.0). See the LICENSE-DATA file for the full terms and the
+attribution requirements that apply to reuse of the data.
+
+Third-party components redistributed with this project (for example, the
+front-end libraries vendored under docs/assets/vendor/) are the property of
+their respective copyright holders and are licensed under their own terms. See
+the THIRD_PARTY_NOTICES file for details.
