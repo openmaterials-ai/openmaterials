@@ -266,6 +266,8 @@
   .rd-mat-uid{font-family:var(--font-mono,monospace);font-size:.7rem;color:var(--muted);word-break:break-all;}
   .rd-mat-uid a{color:var(--accent);text-decoration:none;}
   .rd-mat-uid a:hover{text-decoration:underline;}
+  /* the pinned cell's structure facts, sitting under the material name line */
+  .rd-mat-facts{margin-top:9px;}
   .rd-empty{font-size:.8rem;color:var(--muted);font-style:italic;}
 
   /* VALUES: the full recipe.values as a table, the primary row highlighted. When
@@ -534,6 +536,7 @@ var GRAPH = null, SEM = [], LEAN = {nodes:{},edges:{}}, semById = {}, nodeById =
 var catalogById = {};   // node id -> {id, symbol, description}: the plain-language names for the recipe card
 var AGREEMENT = { groups: [] };   // cross-code / theory-vs-experiment agreement groups (docs/data/agreement.json)
 var TIERS = [];         // the map's tiers: [{name, order, description}], for the map-context panel
+var configByUid = {};   // canonical.uid -> configuration bundle record (docs/data/configurations.json): the pinned cell a recipe's material.configuration names, so the card can show the exact structure a run consumes
 var VB = { x: 0, y: 0, w: 1000, h: 700 };
 
 function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
@@ -566,13 +569,20 @@ Promise.all([
   fetch('../data/version.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; }),
   fetch('../data/lean.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {nodes:{},edges:{}}; }),
   fetch('../data/catalog.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return []; }),
-  fetch('../data/agreement.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return { groups: [] }; })
+  fetch('../data/agreement.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return { groups: [] }; }),
+  fetch('../data/configurations.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return []; })
 ]).then(function(res){
   GRAPH = res[0]; SEM = res[1] || [];
   if (res[2] && res[2].version) window.__MAP_VERSION__ = res[2].version;
   LEAN = res[3] || {nodes:{},edges:{}};
   (res[4] || []).forEach(function(n){ if (n && n.id) catalogById[n.id] = n; });
   AGREEMENT = res[5] && Array.isArray(res[5].groups) ? res[5] : { groups: [] };
+  // index the configuration bundle by its content-addressed canonical uid, so a
+  // recipe's material.configuration pin resolves to the exact cell (build_configurations).
+  (Array.isArray(res[6]) ? res[6] : []).forEach(function(c){
+    var u = c && c.canonical && c.canonical.uid;
+    if (u) configByUid[String(u)] = c;
+  });
   TIERS = (GRAPH && Array.isArray(GRAPH.tiers)) ? GRAPH.tiers : [];
   SEM.forEach(function(e){ semById[e.id] = e; });
   var seen = {};
@@ -1361,15 +1371,55 @@ function agreementHTML(group){
 }
 
 // The material's configuration uid, when recipe.material carries one (a pinned
-// atomic configuration): {name, uid} or {name, configuration:{uid}} or a bare
-// uid field. Returns '' otherwise. This is the "note the configuration uid" ask,
-// kept textual (a real structure viewer is a separate follow-up).
+// atomic configuration). The format's own pin (omai/simulations validate_light)
+// is a bare uid string on material.configuration, accepted with or without a
+// "sha256:" prefix; the object forms ({name, uid}, {configuration:{uid}},
+// {canonical:{uid}}) are also read for tolerance. Returns the bare 64-hex uid,
+// or '' when there is none.
 function materialConfigUid(material){
   if (!material || typeof material !== 'object') return '';
-  var u = material.uid || material.config_uid || material.configuration_uid ||
+  var u = (typeof material.configuration === 'string' ? material.configuration : null) ||
+    material.uid || material.config_uid || material.configuration_uid ||
     (material.configuration && typeof material.configuration === 'object' && material.configuration.uid) ||
     (material.canonical && typeof material.canonical === 'object' && material.canonical.uid);
-  return u ? String(u) : '';
+  if (!u) return '';
+  u = String(u);
+  return u.indexOf('sha256:') === 0 ? u.slice(7) : u;
+}
+
+// Resolve a recipe's material to the pinned configuration record loaded from the
+// bundle (docs/data/configurations.json), by its canonical uid. Returns the
+// bundle record when the pin resolves, null otherwise (a bare-name material, or
+// a uid the bundle does not carry: both a normal, honest "no cell to show" state).
+function resolveConfiguration(material){
+  var uid = materialConfigUid(material);
+  return (uid && configByUid[uid]) || null;
+}
+
+// A compact structure summary of a pinned configuration, built ONLY from real
+// bundle fields (build_configurations): formula, spacegroup, atom count, and the
+// lattice edge lengths when the small-cell structure dict rode along. Reuses the
+// map-context .rd-fact chip idiom so the cell reads as scannable facts, not a
+// data dump. Any field the bundle omits is simply skipped. Returns '' when there
+// is nothing concrete to show.
+function configSummaryHTML(rec){
+  if (!rec || typeof rec !== 'object') return '';
+  var canon = rec.canonical || {};
+  var facts = [];
+  var fact = function(k, v){ facts.push('<span class="rd-fact"><span class="rd-fact-k">' + esc(k) +
+    '</span><span class="rd-fact-v">' + esc(v) + '</span></span>'); };
+  if (rec.formula) fact('Formula', rec.formula);
+  if (canon.spacegroup != null) fact('Space group', canon.spacegroup);
+  // the as-given cell size, else the canonical primitive count
+  var na = rec.natoms != null ? rec.natoms : canon.natoms_primitive;
+  if (na != null) fact('Atoms', na + (rec.natoms == null && canon.natoms_primitive != null ? ' (primitive)' : ''));
+  var lat = rec.structure && rec.structure.lattice;
+  if (lat && lat.a != null && lat.b != null && lat.c != null) {
+    var r3 = function(x){ return (Math.round(Number(x) * 1000) / 1000); };
+    fact('Lattice a b c (Å)', r3(lat.a) + ' · ' + r3(lat.b) + ' · ' + r3(lat.c));
+  }
+  if (!facts.length) return '';
+  return '<div class="rd-facts rd-mat-facts">' + facts.join('') + '</div>';
 }
 
 // The recipe-details groups: EVERY field the recipe holds, organised for
@@ -1724,14 +1774,23 @@ function renderExperiment(record){
 
   // RECIPE DETAILS: every field the recipe holds
   h += '<div class="rd-panel"><div class="rd-eyebrow">Recipe details</div>';
-  // material (with a configuration uid when the recipe pins one)
+  // material. When the recipe pins a configuration, resolve it to the committed
+  // cell and render the exact structure a run will consume (formula, spacegroup,
+  // atoms, lattice) instead of a bare name; when the pin is absent or does not
+  // resolve, this degrades to today's name + truncated-uid line (the card's
+  // "never rejects, provenance says so" ethos).
   var cfgUid = materialConfigUid(recipe.material);
+  var cfg = resolveConfiguration(recipe.material);
+  // a resolved cell's own name is a usable material label when the recipe left it bare
+  var matLabel = mat || (cfg && cfg.name) || '';
   h += '<div class="rd-group"><div class="rd-group-lab">Material</div>';
-  if (mat || cfgUid) {
-    h += '<div class="rd-mat">' + (mat ? '<span class="rd-mat-name">' + esc(mat) + '</span>' : '') +
+  if (matLabel || cfgUid) {
+    h += '<div class="rd-mat">' + (matLabel ? '<span class="rd-mat-name">' + esc(matLabel) + '</span>' : '') +
       (cfgUid ? '<span class="rd-mat-uid">configuration ' + esc(cfgUid.slice(0, 16)) +
         ' · <a href="../map/#node=' + encodeURIComponent(base || '') + '" title="See this quantity on the map">on the map &rarr;</a></span>' : '') +
       '</div>';
+    // the pinned cell, when the uid resolves in the loaded configuration bundle
+    h += configSummaryHTML(cfg);
   } else {
     h += '<div class="rd-empty">No material named on this recipe.</div>';
   }
