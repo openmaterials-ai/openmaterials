@@ -1,6 +1,6 @@
 {
   "id": "8163ac13b5e99aa9f6b5e6dcdf4666fdde415870984735cce90956e719ec9abf",
-  "recipe": {
+  "lineage": {
     "node": "ZT",
     "material": "Si0.5Ge0.5 (1/r-correlated disorder)",
     "hyperparameters": {

@@ -25,19 +25,19 @@
   .gsec p{line-height:1.7;margin:0 0 1rem;}
   .gsec ul{line-height:1.7;margin:0 0 1rem 1.2rem;}
   .gsec a{color:var(--accent);}
-  .recipe{margin:1.2rem 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
-  .recipe-head{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--line);}
-  .recipe-title{font-size:.8rem;font-weight:700;color:var(--ink-2,#3d4149);letter-spacing:.01em;}
-  .recipe-lang{font-family:var(--font-mono,monospace);font-size:.68rem;color:var(--faint,#9aa0a8);text-transform:uppercase;letter-spacing:.08em;}
-  .recipe pre{margin:0;padding:14px;overflow-x:auto;font-family:var(--font-mono,ui-monospace,monospace);font-size:.82rem;line-height:1.55;background:#fbfaf7;color:#2a2d33;}
-  .recipe .copy{border:1px solid var(--line);background:#fff;border-radius:6px;font-size:.68rem;padding:2px 9px;cursor:pointer;color:var(--ink-2,#3d4149);}
-  .recipe .copy:active{background:var(--accent-soft);}
+  .snippet{margin:1.2rem 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  .snippet-head{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--line);}
+  .snippet-title{font-size:.8rem;font-weight:700;color:var(--ink-2,#3d4149);letter-spacing:.01em;}
+  .snippet-lang{font-family:var(--font-mono,monospace);font-size:.68rem;color:var(--faint,#9aa0a8);text-transform:uppercase;letter-spacing:.08em;}
+  .snippet pre{margin:0;padding:14px;overflow-x:auto;font-family:var(--font-mono,ui-monospace,monospace);font-size:.82rem;line-height:1.55;background:#fbfaf7;color:#2a2d33;}
+  .snippet .copy{border:1px solid var(--line);background:#fff;border-radius:6px;font-size:.68rem;padding:2px 9px;cursor:pointer;color:var(--ink-2,#3d4149);}
+  .snippet .copy:active{background:var(--accent-soft);}
   .gtable{width:100%;border-collapse:collapse;font-size:.85rem;margin:0 0 1rem;display:block;overflow-x:auto;}
   .gtable th,.gtable td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
   .gtable th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--faint,#9aa0a8);font-weight:700;}
   .gtable code{font-family:var(--font-mono,monospace);font-size:.8rem;}
   .gnote{border-left:3px solid var(--accent);padding:.4rem 0 .4rem 1rem;margin:1.2rem 0;color:var(--ink-2,#3d4149);font-size:.92rem;}
-  @media (prefers-color-scheme: dark){ .recipe pre{background:#1a1c1f;color:#d6d9de;} .recipe .copy{background:#24262a;} }
+  @media (prefers-color-scheme: dark){ .snippet pre{background:#1a1c1f;color:#d6d9de;} .snippet .copy{background:#24262a;} }
 </style>
 </head>
 <body>
@@ -69,8 +69,8 @@
     <p>The map data is public and needs no install: fetch the JSON under
       <code>docs/data/</code>. To run the kernel, clone the commons and install
       the package in editable mode.</p>
-    <div class="recipe" data-recipe="shell">
-      <div class="recipe-head"><span class="recipe-title">Clone and install</span><span class="recipe-lang">shell</span></div>
+    <div class="snippet" data-snippet="shell">
+      <div class="snippet-head"><span class="snippet-title">Clone and install</span><span class="snippet-lang">shell</span></div>
       <pre>git clone https://github.com/openmaterials-ai/openmaterials.git
 cd openmaterials
 pip install -e .
@@ -99,8 +99,8 @@ python -m omai.map_data        # regenerate docs/data/*.json from the operator l
     <p>The semantic layer turns fuzzy natural-language method names into typed,
       content-addressed identities. This is the loop the playground's query tab
       renders live.</p>
-    <div class="recipe" data-recipe="python">
-      <div class="recipe-head"><span class="recipe-title">Resolve a fuzzy label to node ids</span><span class="recipe-lang">python</span></div>
+    <div class="snippet" data-snippet="python">
+      <div class="snippet-head"><span class="snippet-title">Resolve a fuzzy label to node ids</span><span class="snippet-lang">python</span></div>
       <pre>from omai.map_data import DOMAINS, build_graph_dict
 from omai.semantics import build_semantics, resolve
 
@@ -115,8 +115,8 @@ print([h["id"] for h in hits][:2])
 
   <section class="gsec" id="graph">
     <h2>Load the map</h2>
-    <div class="recipe" data-recipe="python">
-      <div class="recipe-head"><span class="recipe-title">Build the graph and count it</span><span class="recipe-lang">python</span></div>
+    <div class="snippet" data-snippet="python">
+      <div class="snippet-head"><span class="snippet-title">Build the graph and count it</span><span class="snippet-lang">python</span></div>
       <pre>from omai.map_data import DOMAINS, build_graph_dict
 
 g = build_graph_dict(DOMAINS)
@@ -130,8 +130,8 @@ print(len(g["nodes"]), "nodes,", len(g["links"]), "links")
 
   <section class="gsec" id="edges">
     <h2>A node's producing edges</h2>
-    <div class="recipe" data-recipe="python">
-      <div class="recipe-head"><span class="recipe-title">Which operators produce a quantity</span><span class="recipe-lang">python</span></div>
+    <div class="snippet" data-snippet="python">
+      <div class="snippet-head"><span class="snippet-title">Which operators produce a quantity</span><span class="snippet-lang">python</span></div>
       <pre>from omai.map_data import DOMAINS, build_graph_dict
 
 g = build_graph_dict(DOMAINS)
@@ -148,8 +148,8 @@ print([p for p in producers if p.startswith("compute")])
     <p>Every node has a content-addressed uid and a dimensional signature. The
       uid is what evidence pins to, so a value follows its quantity through the
       whole versioned history.</p>
-    <div class="recipe" data-recipe="python">
-      <div class="recipe-head"><span class="recipe-title">A node's uid and dimension</span><span class="recipe-lang">python</span></div>
+    <div class="snippet" data-snippet="python">
+      <div class="snippet-head"><span class="snippet-title">A node's uid and dimension</span><span class="snippet-lang">python</span></div>
       <pre>from omai.thermal_transport.operator.nodes import THERMAL_CONDUCTIVITY
 from omai.operator.identity import node_id
 
@@ -173,8 +173,8 @@ print(node_id(THERMAL_CONDUCTIVITY)[:12], THERMAL_CONDUCTIVITY.fields[0].dimensi
     <p>Any lineage or map view renders natively wherever markdown does (GitHub,
       issues, PRs): the playground's Map tab has a Copy as Mermaid button, and
       the exporter runs from Python:</p>
-    <div class="recipe" data-recipe="python">
-      <div class="recipe-head"><span class="recipe-title">A node's lineage as a mermaid flowchart</span><span class="recipe-lang">python</span></div>
+    <div class="snippet" data-snippet="python">
+      <div class="snippet-head"><span class="snippet-title">A node's lineage as a mermaid flowchart</span><span class="snippet-lang">python</span></div>
       <pre>from omai.mermaid import mermaid_lineage
 
 print(mermaid_lineage("PhononDOS"))
@@ -188,8 +188,8 @@ print(mermaid_lineage("PhononDOS"))
       by a verbatim quote and a page anchor, validated against the map and
       adversarially reviewed before a human accepts them. Try it in the browser
       on the <a href="../play/">playground's parse tab</a>, or run the CLI:</p>
-    <div class="recipe" data-recipe="shell">
-      <div class="recipe-head"><span class="recipe-title">Parse a PDF into a proposal</span><span class="recipe-lang">shell</span></div>
+    <div class="snippet" data-snippet="shell">
+      <div class="snippet-head"><span class="snippet-title">Parse a PDF into a proposal</span><span class="snippet-lang">shell</span></div>
       <pre># writes proposals/&lt;slug&gt;.json (dry: no map changes)
 python -m omai.paper_parser path/to/paper.pdf
 
@@ -244,9 +244,9 @@ python -m omai.paper_parser path/to/paper.pdf --apply --yes</pre>
 <div data-site-footer></div>
 <script src="../assets/site.js"></script>
 <script>
-  // copy buttons on every recipe (progressive: no-op if clipboard is absent)
-  document.querySelectorAll('.recipe').forEach(function(r){
-    var head = r.querySelector('.recipe-head');
+  // copy buttons on every snippet (progressive: no-op if clipboard is absent)
+  document.querySelectorAll('.snippet').forEach(function(r){
+    var head = r.querySelector('.snippet-head');
     var pre = r.querySelector('pre');
     var btn = document.createElement('button');
     btn.className = 'copy'; btn.type = 'button'; btn.textContent = 'copy';

@@ -63,45 +63,48 @@ the URL.
 For a card whose quantity [MaterialsCodeGraph](https://materialscodegraph.com/)
 can actually run, the page adds one more action: a **Run on MaterialsCodeGraph**
 link that deep-links MCG's compute wizard (`#/new/<node id>`) prefilled from the
-recipe. It is optional and storage-free: it appears only for genuinely runnable
+lineage. It is optional and storage-free: it appears only for genuinely runnable
 nodes and is simply absent otherwise, adds no data and touches no record, and
 the card is identical without it.
 
-A single experiment is also a link on its own, no store, no server. A simulation
-record is light and recipe-identified (`omai/simulations.py`): its identity is
-the recipe it was asked (a map node when known, else a template with its
-hyperparameters and setup values), and heavy artifacts are optional pointers to
+OpenMaterials provides templates and lineages; MaterialsCodeGraph stores
+experiments and runs simulations from lineages.
+
+A lineage is also a link on its own, no store, no server. A lineage record is
+light and lineage-identified (`omai/lineages.py`): its identity is its lineage,
+the X-to-Y path from inputs to a result (a map node when known, else a template
+with its hyperparameters and setup values), and heavy artifacts are optional pointers to
 [MaterialsCodeGraph](https://materialscodegraph.com/), never embedded. Because
 it is light, the whole record gzips into a `#x=` link fragment that opens in the
-playground's Experiment tab:
+playground's Lineage tab:
 
 ```
-https://openmaterials.ai/play/#/play?tab=experiment&x=<gzipped record>
+https://openmaterials.ai/play/#/play?tab=lineage&x=<gzipped record>
 ```
 
-Opening the link renders the record as a **plain data view**: an experiment is a
+Opening the link renders the record as a **plain data view**: a lineage is a
 data container, and OpenMaterials (the static site) is the container's viewer, so
 the view shows the information the record holds, plainly, not a dashboard. It
 presents what the record is (the kind, simulation or measurement, the output map
-node, the material, and the short recipe id), the recipe's every field as plain
+node, the material, and the short lineage id), the lineage's every field as plain
 labelled key-values and a simple value-and-units table (node, node_uid, material
 and its pinned configuration, template, all hyperparameters, conditions, params,
 and the execution: code, version, container digest, runner, wall time, seeds),
 what it means on the map (the node's plain-language description, units, and map
-tier pulled from the catalog, and the X&rarr;Y lineage stated plainly as its
+tier pulled from the catalog, and the lineage's X&rarr;Y path stated plainly as its
 inputs and its output, for example "Inputs: Potential, Force constants,
 Structure, Temperature. Output: Thermal conductivity."), its provenance (the
 source ref, and for a parsed paper the paper info), and where the data lives (the
 artifact pointers and the mirror host as plain links out, since the heavy bytes
 live on MaterialsCodeGraph or Zenodo and the container only points). It ends with
-a plain **Run or replay this on MaterialsCodeGraph** link when the node is one MCG
-can compute (simply absent otherwise) and a Copy link that re-mints the same `#x=`
-share URL, so the view is shareable and replayable. **Dashboards and compute live
+a plain **Run this lineage as a simulation on MaterialsCodeGraph** link when the
+node is one MCG can compute (simply absent otherwise) and a Copy link that re-mints
+the same `#x=` share URL, so the view is shareable and replayable. **Dashboards and compute live
 on MaterialsCodeGraph, not here**: the rich visualization and the running or
 replaying are MCG's job; this view is the faithful, plain record. Paste a record
 JSON on that tab, or drop a `.json` file (a record MCG serves pastes straight in),
 to open a data view of your own; the paste/drop ingress validates the record
-client-side against the same light shape checks as `validate_light` (recipe
+client-side against the same light shape checks as `validate_light` (lineage
 present, artifact pointers well-formed) and is honest about gaps (a
 node-unresolved or measurement record still shows its data plainly, without a
 fabricated lineage and without a Run link, and says so). It is a view only,
@@ -133,10 +136,10 @@ and `#experiment=<source.ref>` to light up exactly the quantities an
 experiment's evidence covers,
 the tracer takes `#node=<id>` or `#from=<id>&to=<id>` for a derivation path,
 the playground serializes its whole state behind its Share button and takes
-`#x=<gzipped record>` to open a single light experiment record as a plain data
-view (what the container holds: every recipe field, a value-and-units table, what
+`#x=<gzipped record>` to open a single light lineage record as a plain data
+view (what the container holds: every lineage field, a value-and-units table, what
 the output node means on the map, where the data lives, and a plain link to run
-or replay it on MaterialsCodeGraph), and the experiments index takes
+it as a simulation on MaterialsCodeGraph), and the experiments index takes
 `#material=<name>`. Every page has a copy-link control.
 
 ## A slice of the map, as Mermaid

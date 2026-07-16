@@ -1,6 +1,6 @@
 {
   "id": "db7ca927c773021b8bf97b6dca1bbd994d62a26da2480b656e382068c84b5174",
-  "recipe": {
+  "lineage": {
     "node": "ThermalConductivity[bte_solver=direct_inverse]",
     "material": "Ge",
     "hyperparameters": {

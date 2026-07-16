@@ -3,7 +3,7 @@
 MCG (app.materialscodegraph.com) accepts a ``configuration=<uid>`` query param on
 its ``#/new/<node>`` deep link: it resolves the uid against this repo's public
 configurations bundle, shows the pinned cell on the define form, and the launched
-experiment computes with that exact cell. So when a recipe/record pins an atomic
+experiment computes with that exact cell. So when a lineage record pins an atomic
 configuration, both Run-URL builders must append ``configuration=<uid>``; when it
 does not, the URL must be byte-identical to before (no stray param). The uid is
 kept verbatim (a ``sha256:`` prefix is passed through; MCG strips it server-side),
@@ -87,7 +87,7 @@ def test_run_url_builder_appends_the_configuration_param(page):
 # Behavior, page by page, under Node against the shipped builder.
 # --------------------------------------------------------------------------
 
-# A recipe whose material carries a pin. mcgRunUrl reads recipe.material, so both
+# A lineage whose material carries a pin. mcgRunUrl reads lineage.material, so both
 # pages take the same shape here; the property key differs (node vs variable) but
 # neither affects the configuration param under test.
 _UID = "a" * 64

@@ -1,6 +1,6 @@
 {
   "id": "64ebd9f54bdac669d03dc4e6456bb9ede7d1117441f586b21538f9f6339e142e",
-  "recipe": {
+  "lineage": {
     "node": "ElasticConstants",
     "material": "Si (diamond)",
     "hyperparameters": {

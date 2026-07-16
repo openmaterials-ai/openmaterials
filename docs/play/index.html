@@ -82,10 +82,10 @@
   .lean-badge{color:#0f9d6b;font-weight:700;}
   .pg-node-panel .uid{font-family:var(--font-mono,monospace);font-size:.68rem;color:var(--muted);word-break:break-all;}
 
-  /* ---- the recipe DATA VIEW: a shared #x= record shown as plain information ---
-     OpenMaterials is the data-container viewer: a shared experiment record is a
+  /* ---- the lineage DATA VIEW: a shared #x= record shown as plain information --
+     OpenMaterials is the data-container viewer: a shared lineage record is a
      data container, and this view shows INFO ABOUT THE DATA, plainly. What the
-     record is, every field of the recipe, what the output node means on the map,
+     record is, every field of the lineage, what the output node means on the map,
      where the heavy bytes live, and a plain handoff to MaterialsCodeGraph for the
      running/replaying. No dashboard: no hero graphics, no charts, no value bars,
      no agreement plot (that visualization lives on MCG). Clean typography with
@@ -183,7 +183,7 @@
       <button class="pg-tab" data-tab="trace" type="button">Trace</button>
       <button class="pg-tab" data-tab="map" type="button">Map</button>
       <button class="pg-tab" data-tab="parse" type="button">Parse</button>
-      <button class="pg-tab" data-tab="experiment" type="button">Experiment</button>
+      <button class="pg-tab" data-tab="lineage" type="button">Lineage</button>
     </div>
 
     <div class="pg-panel on" data-panel="query">
@@ -235,10 +235,10 @@
       <div id="parseResult" style="margin-top:14px"></div>
     </div>
 
-    <div class="pg-panel" data-panel="experiment">
-      <h3>An experiment as a link</h3>
-      <p>An experiment record is a data container: light, and identified by the
-        recipe it was asked (a map node when known, else a template with its
+    <div class="pg-panel" data-panel="lineage">
+      <h3>A lineage as a link</h3>
+      <p>A lineage record is a data container: light, and identified by its
+        lineage, the X-to-Y path from inputs to a result (a map node when known, else a template with its
         hyperparameters and setup values) plus optional pointers to heavy
         artifacts hosted on
         <a href="https://materialscodegraph.com/">MaterialsCodeGraph</a>. Paste a
@@ -247,18 +247,18 @@
         whole record rides in the <code>#x=</code> fragment, no server, and
         replays here as the same view. Nothing is stored or uploaded, it is a
         client-side view. The data view shows what the container holds as plain
-        information: what the record is, every field of the recipe, what the
+        information: what the record is, every field of the lineage, what the
         output node means on the map, and where the data lives, plus a plain link
-        to run or replay it on MaterialsCodeGraph. Dashboards and compute live on
+        to run this lineage as a simulation on MaterialsCodeGraph. Dashboards and compute live on
         MaterialsCodeGraph, not here.</p>
       <button class="om-btn om-btn-sm" id="loadXExample" type="button">Load an example</button>
-      <p style="margin:12px 0 6px;font-size:.78rem;color:var(--muted)">the experiment, as a record:</p>
-      <textarea class="pg-input" id="xInput" rows="9" placeholder='{"recipe": {"node": "ThermalConductivity[transport_model=hnemd]", "material": {"name": "Si"}, "hyperparameters": {"nep_cutoff": 8.0}}}' style="resize:vertical;font-family:var(--font-mono,monospace);font-size:.74rem"></textarea>
+      <p style="margin:12px 0 6px;font-size:.78rem;color:var(--muted)">the lineage, as a record:</p>
+      <textarea class="pg-input" id="xInput" rows="9" placeholder='{"lineage": {"node": "ThermalConductivity[transport_model=hnemd]", "material": {"name": "Si"}, "hyperparameters": {"nep_cutoff": 8.0}}}' style="resize:vertical;font-family:var(--font-mono,monospace);font-size:.74rem"></textarea>
       <div class="xp-drop" id="xDrop" style="margin-top:8px">Drop a <b>.json</b> record here, or <b>click to choose a file</b>.
         <input type="file" id="xFile" accept=".json,application/json" style="display:none"></div>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-        <button class="om-btn om-btn-sm" id="renderX" type="button">Render experiment</button>
-        <button class="om-btn om-btn-sm" id="copyXLink" type="button" title="Copy a link that carries this record in its #x= fragment: it reopens this experiment here.">Copy link</button>
+        <button class="om-btn om-btn-sm" id="renderX" type="button">Render lineage</button>
+        <button class="om-btn om-btn-sm" id="copyXLink" type="button" title="Copy a link that carries this record in its #x= fragment: it reopens this lineage here.">Copy link</button>
       </div>
       <div id="xResult" style="margin-top:14px"></div>
     </div>
@@ -293,8 +293,8 @@ var nodePanel = document.getElementById('pgNodePanel');
 var SVGNS = 'http://www.w3.org/2000/svg';
 
 var GRAPH = null, SEM = [], LEAN = {nodes:{},edges:{}}, semById = {}, nodeById = {}, children = {}, parents = {}, symHtml = {};
-var catalogById = {};   // node id -> {id, symbol, description}: the plain-language names for the recipe card
-var configByUid = {};   // canonical.uid -> configuration bundle record for a pinned recipe cell
+var catalogById = {};   // node id -> {id, symbol, description}: the plain-language names for the lineage view
+var configByUid = {};   // canonical.uid -> configuration bundle record for a pinned lineage cell
 var TIERS = [];         // the map's tiers: [{name, order, description}], for the map-context panel
 var VB = { x: 0, y: 0, w: 1000, h: 700 };
 
@@ -556,36 +556,54 @@ document.getElementById('renderProposal').addEventListener('click', function(){
   catch (e) { document.getElementById('parseResult').innerHTML = '<div class="pg-empty">Not valid JSON: ' + esc(e.message) + '</div>'; }
 });
 
-/* ---- experiment: a light record rendered from #x= or a paste --------------
-   A record is light and recipe-identified (omai/simulations.py): identity is the
-   recipe, artifacts are optional MCG pointers, and the whole thing rides in the
+/* ---- lineage: a light record rendered from #x= or a paste -----------------
+   A record is light and lineage-identified (omai/lineages.py): identity is the
+   lineage, artifacts are optional MCG pointers, and the whole thing rides in the
    #x= fragment via the same gzip machinery as the map view. This renders the
-   recipe (node/material/template, hyperparameters, values), any artifact
-   pointers as links, and lights the recipe's map node when it names one. */
+   lineage (node/material/template, hyperparameters, values), any artifact
+   pointers as links, and lights the lineage's map node when it names one. */
 function fmtScalar(v){
   if (v == null) return '';
   if (typeof v === 'object') return JSON.stringify(v);
   return String(v);
 }
-/* A client-side mirror of validate_light's SHAPE checks (omai/simulations.py):
+/* Normalize the one legacy key at the boundary. All reads and emitted links use
+   lineage; old records with recipe still open, while carrying both keys is
+   invalid because the identity would be ambiguous. */
+function normalizeLineageRecord(record){
+  if (!record || typeof record !== 'object' || Array.isArray(record)) return record;
+  var hasLineage = Object.prototype.hasOwnProperty.call(record, 'lineage');
+  var hasRecipe = Object.prototype.hasOwnProperty.call(record, 'recipe');
+  if (hasLineage && hasRecipe)
+    throw new Error('Invalid record: both "lineage" and legacy "recipe" keys are present.');
+  if (hasLineage || !hasRecipe) return record;
+  var normalized = {};
+  Object.keys(record).forEach(function(key){ if (key !== 'recipe') normalized[key] = record[key]; });
+  normalized.lineage = record.recipe;
+  return normalized;
+}
+
+/* A client-side mirror of validate_light's SHAPE checks (omai/lineages.py):
    a convenience for the upload/paste ingress, NOT the authoritative gate (the
    Python validate_light stays that for git entries). It is honest about gaps
-   the way validate_light is: recipe present; when a node is named it is checked
+   the way validate_light is: lineage present; when a node is named it is checked
    against THIS map version (node-unresolved is a normal, valid state, not an
    error); artifact pointers well-formed ({path, role} required, url/sha256
    optional and shape-checked). Returns {ok, error?, node, nodeResolved} so the
    caller can banner an error or annotate what we have. It never recomputes the
-   sha256 recipe id (a browser could, but the render path does not gate on it). */
+   sha256 lineage id (a browser could, but the render path does not gate on it). */
 var SHA256_RE = /^[0-9a-f]{64}$/;
 function validateLightJS(record){
   if (!record || typeof record !== 'object' || Array.isArray(record))
-    return { ok: false, error: 'Not an object: an experiment record is a JSON object.' };
-  var recipe = record.recipe;
-  if (!recipe || typeof recipe !== 'object' || Array.isArray(recipe))
-    return { ok: false, error: 'No recipe: identity is the recipe, so a record needs a "recipe" object.' };
-  var node = recipe.node;
+    return { ok: false, error: 'Not an object: a lineage record is a JSON object.' };
+  try { record = normalizeLineageRecord(record); }
+  catch (e) { return { ok: false, error: e.message }; }
+  var lineage = record.lineage;
+  if (!lineage || typeof lineage !== 'object' || Array.isArray(lineage))
+    return { ok: false, error: 'No lineage: identity is the lineage, so a record needs a "lineage" object. Legacy "recipe" records still open.' };
+  var node = lineage.node;
   if (node != null && typeof node !== 'string')
-    return { ok: false, error: 'recipe.node, when present, must be a string (a map node id).' };
+    return { ok: false, error: 'lineage.node, when present, must be a string (a map node id).' };
   var arts = record.artifacts;
   if (arts != null) {
     if (!Array.isArray(arts))
@@ -605,16 +623,16 @@ function validateLightJS(record){
     }
   }
   // node-unresolved is VALID (the honesty rule): a named-but-off-map node, or no
-  // node at all, is reported, never rejected. renderExperiment shows the flag.
+  // node at all, is reported, never rejected. renderLineage shows the flag.
   var nodeResolved = !!(node && nodeById[node]);
-  return { ok: true, node: node || null, nodeResolved: nodeResolved };
+  return { ok: true, record: record, node: node || null, nodeResolved: nodeResolved };
 }
 
 /* The upload/paste ingress: parse JSON, run the light shape check, banner an
    error (malformed JSON or a failed shape check) or a short "what we have" note,
    then hand the record to the existing render path. No git, no server, no
    storage: identical to pasting into the #x= box, just also fed by a file. */
-function ingestExperiment(raw, sourceLabel){
+function ingestLineage(raw, sourceLabel){
   var box = document.getElementById('xResult');
   var text = (raw || '').trim();
   if (!text) { box.innerHTML = ''; renderSubmap([], {}); return; }
@@ -636,15 +654,15 @@ function ingestExperiment(raw, sourceLabel){
     ? (v.nodeResolved ? 'Valid record: node <b>' + esc(v.node) + '</b> resolves on this map version.'
                       : 'Valid record: node <b>' + esc(v.node) + '</b> is not on this map version (node-unresolved, still valid).')
     : 'Valid record: no map node named (template only, node-unresolved). Whatever we have.';
-  renderExperiment(record);
+  renderLineage(v.record);
   // Prepend the status banner WITHOUT re-parsing the box: insertAdjacentHTML
-  // keeps the nodes renderExperiment just built (and the Copy-link click handler
+  // keeps the nodes renderLineage just built (and the Copy-link click handler
   // it wired to #rcCopy). Re-assigning box.innerHTML here would strip that
   // listener, leaving Copy link dead after a paste/drop.
   box.insertAdjacentHTML('afterbegin', '<div class="xp-ok">' + status + '</div>');
 }
 
-/* ---- the recipe card: helpers -------------------------------------------- */
+/* ---- the lineage view: helpers ------------------------------------------- */
 // The base node id, qualifier stripped: ThermalConductivity[bte_solver=direct_inverse]
 // -> ThermalConductivity. The runnable KIND (and the human title) key on the base.
 function baseNode(id){ return String(id == null ? '' : id).replace(/\[.*$/, ''); }
@@ -704,10 +722,10 @@ function humanProperty(node, template){
   if (base) return humanizeId(base);
   // node-unresolved: fall back to the template phrased for a human
   if (template) return templateWords(template);
-  return 'Experiment';
+  return 'Lineage';
 }
 // The trailing unit a catalog description ends with (many end in the SI unit,
-// e.g. "W/(m K)."): a fallback when recipe.values carries no unit of its own.
+// e.g. "W/(m K)."): a fallback when lineage.values carries no unit of its own.
 function unitFromDescription(desc){
   if (!desc) return '';
   var m = String(desc).replace(/\s+$/, '').replace(/\.$/, '')
@@ -748,7 +766,7 @@ function templateWords(t){
 // The kind: "Measurement" for an experimental value (an explicit measurement
 // marker on the record or in a result's source.kind, the same marker the store
 // uses), else "Simulation" when execution.code names the code that ran. Default
-// Simulation for a code-bearing recipe. Derived honestly from the record.
+// Simulation for a code-bearing lineage. Derived honestly from the record.
 function recordKind(record){
   var marker = record && (record.kind || (record.source && record.source.kind));
   if (marker === 'measurement') return 'measurement';
@@ -764,7 +782,7 @@ function materialName(material){
   return String(material);
 }
 
-// The primary value + the rest, from recipe.values. The primary is the entry
+// The primary value + the rest, from lineage.values. The primary is the entry
 // whose key matches the property (kappa for ThermalConductivity, ...) or the
 // first scalar; each remaining entry is a small labelled row. A vector value
 // (a list) renders compactly. Returns {primary:{val,key}|null, rest:[...]}.
@@ -787,7 +805,7 @@ function fmtValue(v){
 }
 // The provider + url for the heavy data host, from the mirrors resolver layer
 // (path -> {url, provider}) or an artifact pointer's own url. First hit wins;
-// the light recipe with no artifacts says nothing.
+// the light lineage with no artifacts says nothing.
 function heavyHost(record){
   var mirrors = record.mirrors;
   if (mirrors && typeof mirrors === 'object') {
@@ -803,25 +821,25 @@ function heavyHost(record){
   return null;
 }
 
-// The MCG compute deep link for a runnable recipe: #/new/<base node>, prefilled
+// The MCG compute deep link for a runnable lineage: #/new/<base node>, prefilled
 // with material and the temperature condition as query params so the wizard can
 // pre-populate. Mirrors the shipped experiment-page pattern.
-function mcgRunUrl(recipe){
-  var url = MCG_BASE + '/#/new/' + encodeURIComponent(baseNode(recipe.node));
+function mcgRunUrl(lineage){
+  var url = MCG_BASE + '/#/new/' + encodeURIComponent(baseNode(lineage.node));
   var qs = [];
-  var mat = materialName(recipe.material);
+  var mat = materialName(lineage.material);
   if (mat) qs.push('material=' + encodeURIComponent(mat));
   var cond = [];
-  [recipe.conditions, recipe.hyperparameters].forEach(function(o){
+  [lineage.conditions, lineage.hyperparameters].forEach(function(o){
     if (o && typeof o === 'object' && o.T != null && cond.indexOf('T = ' + o.T) === -1) cond.push('T = ' + o.T);
   });
   if (cond.length) qs.push('conditions=' + encodeURIComponent(cond.join(' · ')));
-  var cfgUid = materialConfigUid(recipe.material);
+  var cfgUid = materialConfigUid(lineage.material);
   if (cfgUid) qs.push('configuration=' + encodeURIComponent(cfgUid));
   return qs.length ? url + '?' + qs.join('&') : url;
 }
 
-// The material's configuration uid, when recipe.material carries one (a pinned
+// The material's configuration uid, when lineage.material carries one (a pinned
 // atomic configuration): {name, uid} or {name, configuration:{uid}} or a bare
 // uid field. Returns '' otherwise. This is the "note the configuration uid" ask,
 // kept textual (a real structure viewer is a separate follow-up).
@@ -843,7 +861,7 @@ function resolveConfiguration(uid){
   return configByUid[uid] || null;
 }
 
-// Render the available cell facts as plain dt/dd rows for The recipe section.
+// Render the available cell facts as plain dt/dd rows for The lineage section.
 // Every value comes from the configuration bundle; omitted fields stay omitted.
 function configSummaryHTML(rec){
   if (!rec || typeof rec !== 'object') return '';
@@ -866,22 +884,22 @@ function configSummaryHTML(rec){
   return rows.join('');
 }
 
-// The recipe-details groups: EVERY field the recipe holds, organised for
+// The lineage-details groups: EVERY field the lineage holds, organised for
 // scanning. Each group is {label, tag, rows:[[k,v],...]}; empty groups are
-// dropped by the caller. execution lives on the record (not recipe), so it is
+// dropped by the caller. execution lives on the record (not lineage), so it is
 // passed alongside. Values are formatted compactly; lists read as "a x b x c".
-function detailGroups(record, recipe){
+function detailGroups(record, lineage){
   var groups = [];
   var ex = (record && record.execution) || {};
 
   // hyperparameters: the knobs the run was set with
-  if (recipe.hyperparameters && typeof recipe.hyperparameters === 'object' && !Array.isArray(recipe.hyperparameters)) {
-    var hk = Object.keys(recipe.hyperparameters);
-    if (hk.length) groups.push({ label: 'Hyperparameters', tag: '', rows: hk.map(function(k){ return [k, detailVal(recipe.hyperparameters[k])]; }) });
+  if (lineage.hyperparameters && typeof lineage.hyperparameters === 'object' && !Array.isArray(lineage.hyperparameters)) {
+    var hk = Object.keys(lineage.hyperparameters);
+    if (hk.length) groups.push({ label: 'Hyperparameters', tag: '', rows: hk.map(function(k){ return [k, detailVal(lineage.hyperparameters[k])]; }) });
   }
   // conditions / params: the physical setup (temperature, pressure, direction...)
   ['conditions', 'params'].forEach(function(field){
-    var o = recipe[field];
+    var o = lineage[field];
     if (o && typeof o === 'object' && !Array.isArray(o)) {
       var ks = Object.keys(o);
       if (ks.length) groups.push({ label: field === 'conditions' ? 'Conditions' : 'Parameters', tag: '', rows: ks.map(function(k){ return [k, detailVal(o[k])]; }) });
@@ -903,8 +921,8 @@ function detailGroups(record, recipe){
   if (exRows.length) groups.push({ label: 'Execution', tag: '', rows: exRows });
 
   // template: the method blueprint, when named
-  if (recipe.template != null && recipe.template !== '') {
-    groups.push({ label: 'Template', tag: '', rows: [[String(recipe.template), templateWords(recipe.template) || '']] });
+  if (lineage.template != null && lineage.template !== '') {
+    groups.push({ label: 'Template', tag: '', rows: [[String(lineage.template), templateWords(lineage.template) || '']] });
   }
   return groups;
 }
@@ -949,12 +967,12 @@ function artifactsHTML(record){
   return '<div class="rec-sec">' + body + '</div>';
 }
 
-/* ---- the X -> Y path: an experiment is a typed lineage on the map ----------
-   An experiment goes from input node(s) X to a result node Y through the map's
+/* ---- the X -> Y path: a lineage is a typed path on the map -----------------
+   A lineage goes from input node(s) X to a result node Y through the map's
    operators. The lineage is already in graph.json: walking the PRODUCING edges
    upstream from Y (links whose op does NOT start with provide_, exactly as
    omai/mermaid.py mermaid_lineage does) reaches the true inputs. This block
-   derives, from a recipe's output node, (a) the true input leaves X, (b) a short
+   derives, from a lineage's output node, (a) the true input leaves X, (b) a short
    chain of milestone quantities the physics passes through, and (c) the full
    producing-edge lineage for the expander. All against the page's live GRAPH. */
 
@@ -975,7 +993,7 @@ function producersOf(){
 // Walk producing edges upstream from a node, capped (like mermaid_lineage's
 // max_edges). Returns {edges:[[from,op,to],...], visited:{id:1}, leaves:[ids]}.
 // A LEAF is a reached node with no producing edge of its own: the true input X
-// you FEED the experiment (Potential, ForceConstants, Structure, Temperature...).
+// of the lineage (Potential, ForceConstants, Structure, Temperature...).
 function upstreamLineage(nodeId, maxEdges){
   maxEdges = maxEdges || 60;
   var prod = producersOf();
@@ -1026,7 +1044,7 @@ function lineageStatement(node){
   return s;
 }
 
-// The map-context info for the recipe's output node, PLAIN: the node's
+// The map-context info for the lineage's output node, PLAIN: the node's
 // plain-language description and units from catalog.json, and its tier and
 // position on the map. This is descriptive info about what the data means, not a
 // dashboard panel (no agreement plot, no fact cards). Returns '' when there is
@@ -1071,10 +1089,10 @@ function mapContextHTML(node, material){
   return '<div class="rec-sec">' + body + '</div>';
 }
 
-/* renderExperiment: the PLAIN DATA VIEW of a shared #x= record (and a pasted/
+/* renderLineage: the PLAIN DATA VIEW of a shared #x= record (and a pasted/
    dropped/example one). OpenMaterials is the data-container viewer, so this
    presents the record as information, NOT a dashboard: WHAT THIS IS (record kind,
-   output node, material, recipe id), THE RECIPE (every field as plain labelled
+   output node, material, lineage id), THE LINEAGE (every field as plain labelled
    key-values and a simple values table), WHAT IT MEANS ON THE MAP (the node's
    plain-language description, units, tier, and the X->Y lineage as a plain
    inputs/output statement), PROVENANCE (source ref, paper info), ARTIFACTS
@@ -1085,27 +1103,32 @@ function mapContextHTML(node, material){
    in-hand record + the static catalog/tier data; never rejects: a node-unresolved
    or measurement record still shows its data plainly, with no fabricated lineage
    and no Run link. */
-function renderExperiment(record){
-  var box = document.getElementById('xResult');   // the normal Experiment-tab panel
+function renderLineage(record){
+  var box = document.getElementById('xResult');   // the normal Lineage-tab panel
   nodePanel.style.display = 'none';
-  var recipe = (record && record.recipe) || null;
-  if (!recipe || typeof recipe !== 'object') {
-    box.innerHTML = '<div class="xp-err">Not an experiment record: identity is the recipe, so a record needs a <code>recipe</code> object.</div>';
+  try { record = normalizeLineageRecord(record); }
+  catch (e) {
+    box.innerHTML = '<div class="xp-err">' + esc(e.message) + '</div>';
     renderSubmap([], {}); return;
   }
-  var node = recipe.node, template = recipe.template;
+  var lineage = (record && record.lineage) || null;
+  if (!lineage || typeof lineage !== 'object' || Array.isArray(lineage)) {
+    box.innerHTML = '<div class="xp-err">Not a lineage record: identity is the lineage, so a record needs a <code>lineage</code> object. Legacy <code>recipe</code> records still open.</div>';
+    renderSubmap([], {}); return;
+  }
+  var node = lineage.node, template = lineage.template;
   var base = baseNode(node);
   var known = !!(node && nodeById[node]);
 
   var prop = humanProperty(node, template);
-  var mat = materialName(recipe.material);
+  var mat = materialName(lineage.material);
   var kind = recordKind(record);
-  var picked = pickValues(recipe.values, node);
+  var picked = pickValues(lineage.values, node);
   var shortId = record.id ? String(record.id).slice(0, 12) : '';
 
   var h = '<div class="rec">';
 
-  // ---- WHAT THIS IS: the record kind, output node, material, recipe id -------
+  // ---- WHAT THIS IS: the record kind, output node, material, lineage id ------
   h += '<div class="rec-sec">';
   h += '<div class="rec-h">What this is</div>';
   h += '<p class="rec-lede">' + esc(prop) + (mat ? ' of ' + esc(mat) : '') + '</p>';
@@ -1116,16 +1139,16 @@ function renderExperiment(record){
       : esc(node) + ' <span class="rec-link-note">(not on this map version)</span>') + '</dd>';
   else h += '<dt>Output node</dt><dd>node-unresolved <span class="rec-link-note">(template only)</span></dd>';
   if (mat) h += '<dt>Material</dt><dd>' + esc(mat) + '</dd>';
-  if (shortId) h += '<dt>Recipe id</dt><dd class="wrap" title="the recipe id (sha256, first 12)">' + esc(shortId) + '</dd>';
+  if (shortId) h += '<dt>Lineage id</dt><dd class="wrap" title="the lineage id (sha256, first 12)">' + esc(shortId) + '</dd>';
   h += '</dl></div>';
 
-  // ---- THE RECIPE: every field, as plain labelled information ----------------
-  h += '<div class="rec-sec"><div class="rec-h">The recipe</div>';
+  // ---- THE LINEAGE: every field, as plain labelled information ---------------
+  h += '<div class="rec-sec"><div class="rec-h">The lineage</div>';
   // node / node_uid / material / configuration uid / template
   var idRows = [];
   if (node) idRows.push('<dt>node</dt><dd class="wrap">' + esc(node) + '</dd>');
-  if (recipe.node_uid) idRows.push('<dt>node_uid</dt><dd class="wrap">' + esc(String(recipe.node_uid)) + '</dd>');
-  var cfgUid = materialConfigUid(recipe.material);
+  if (lineage.node_uid) idRows.push('<dt>node_uid</dt><dd class="wrap">' + esc(String(lineage.node_uid)) + '</dd>');
+  var cfgUid = materialConfigUid(lineage.material);
   var cfg = resolveConfiguration(cfgUid);
   var matLabel = mat || (cfg && cfg.name) || '';
   if (matLabel) idRows.push('<dt>material</dt><dd>' + esc(matLabel) + '</dd>');
@@ -1134,13 +1157,13 @@ function renderExperiment(record){
     var cfgRows = configSummaryHTML(cfg);
     if (cfgRows) idRows.push(cfgRows);
   }
-  if (recipe.template != null && recipe.template !== '') {
-    var tw = templateWords(recipe.template);
-    idRows.push('<dt>template</dt><dd>' + esc(String(recipe.template)) + (tw && tw !== String(recipe.template) ? ' <span class="rec-link-note">(' + esc(tw) + ')</span>' : '') + '</dd>');
+  if (lineage.template != null && lineage.template !== '') {
+    var tw = templateWords(lineage.template);
+    idRows.push('<dt>template</dt><dd>' + esc(String(lineage.template)) + (tw && tw !== String(lineage.template) ? ' <span class="rec-link-note">(' + esc(tw) + ')</span>' : '') + '</dd>');
   }
   if (idRows.length) h += '<div class="rec-grp"><dl class="rec-kv">' + idRows.join('') + '</dl></div>';
-  // the recipe's grouped fields (hyperparameters, conditions, params, execution)
-  detailGroups(record, recipe).forEach(function(g){
+  // the lineage's grouped fields (hyperparameters, conditions, params, execution)
+  detailGroups(record, lineage).forEach(function(g){
     if (g.label === 'Template') return;   // already shown above
     h += '<div class="rec-grp"><div class="rec-grp-lab">' + esc(g.label) + '</div><dl class="rec-kv">' +
       g.rows.map(function(row){
@@ -1153,7 +1176,7 @@ function renderExperiment(record){
   // to the value column, never listed as its own row.
   var isUnitMeta = function(k){ return k === 'units' || k === 'unit'; };
   if (picked.primary && !isUnitMeta(picked.primary.key)) {
-    var unit = cleanUnit((recipe.units) || (recipe.values && recipe.values.units) || '');
+    var unit = cleanUnit((lineage.units) || (lineage.values && lineage.values.units) || '');
     var vrows = [{ key: picked.primary.key, val: picked.primary.val }]
       .concat(picked.rest.filter(function(r){ return !isUnitMeta(r.key); }).map(function(r){ return { key: r.key, val: r.val }; }));
     h += '<div class="rec-grp"><div class="rec-grp-lab">Values</div>' +
@@ -1165,13 +1188,13 @@ function renderExperiment(record){
           '<td class="rec-vu">' + esc(u) + '</td></tr>';
       }).join('') + '</tbody></table></div>';
   }
-  h += '</div>';   // end The recipe
+  h += '</div>';   // end The lineage
 
   // ---- WHAT IT MEANS ON THE MAP: plain description, units, tier, X->Y lineage
-  h += mapContextHTML(node, recipe.material);
+  h += mapContextHTML(node, lineage.material);
 
-  // ---- PROVENANCE: source ref, and for a parsed-paper recipe the paper info --
-  h += provenanceHTML(record, recipe);
+  // ---- PROVENANCE: source ref, and for a parsed-paper lineage the paper info -
+  h += provenanceHTML(record, lineage);
 
   // ---- ARTIFACTS / WHERE THE DATA LIVES: pointers + host, as plain links -----
   h += artifactsHTML(record);
@@ -1179,8 +1202,8 @@ function renderExperiment(record){
   // ---- POINTER TO MCG + Copy link: plain links, not product CTAs -------------
   h += '<div class="rec-links">';
   if (known && isComputable(node)) {
-    h += '<a href="' + esc(mcgRunUrl(recipe)) + '" target="_blank" rel="noopener"' +
-         ' title="Open this recipe on MaterialsCodeGraph to run or replay it">Run or replay this on MaterialsCodeGraph &rarr;</a>';
+    h += '<a href="' + esc(mcgRunUrl(lineage)) + '" target="_blank" rel="noopener"' +
+         ' title="Run this lineage as a simulation on MaterialsCodeGraph">Run this lineage as a simulation on MaterialsCodeGraph &rarr;</a>';
   }
   h += '<button id="rcCopy" type="button" title="Copy a link that carries this whole record in its #x= fragment: it reopens this data view.">Copy link</button>';
   h += '<span class="rec-link-note">Dashboards and compute live on MaterialsCodeGraph; this is the data view.</span>';
@@ -1194,7 +1217,7 @@ function renderExperiment(record){
   var copyBtn = box.querySelector('#rcCopy');
   if (copyBtn) copyBtn.addEventListener('click', async function(){
     var btn = this;
-    var hash = '#/play?tab=experiment&x=' + await gzipToB64url(record);
+    var hash = '#/play?tab=lineage&x=' + await gzipToB64url(record);
     var url = location.origin + location.pathname + hash;
     location.hash = hash;
     if (url.length > 8000) { btn.textContent = 'Too large to link'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1600); return; }
@@ -1208,15 +1231,15 @@ function renderExperiment(record){
 }
 
 // The PROVENANCE section: the source ref, the map version the record was checked
-// against, and, for a parsed-paper recipe, the paper info, all plainly. Returns
+// against, and, for a parsed-paper lineage, the paper info, all plainly. Returns
 // '' when there is nothing to say.
-function provenanceHTML(record, recipe){
+function provenanceHTML(record, lineage){
   var rows = [];
-  var src = record.source || (recipe && recipe.source) || null;
+  var src = record.source || (lineage && lineage.source) || null;
   var ref = src && src.ref;
   if (ref) rows.push('<dt>source ref</dt><dd class="wrap">' + esc(String(ref)) + '</dd>');
-  // paper info for a parsed-paper recipe: title / doi / authors / year, wherever present
-  var paper = record.paper || (src && src.paper) || (recipe && recipe.paper) || null;
+  // paper info for a parsed-paper lineage: title / doi / authors / year, wherever present
+  var paper = record.paper || (src && src.paper) || (lineage && lineage.paper) || null;
   if (paper && typeof paper === 'object') {
     if (paper.title) rows.push('<dt>paper</dt><dd>' + esc(String(paper.title)) + '</dd>');
     if (paper.authors) rows.push('<dt>authors</dt><dd>' + esc(Array.isArray(paper.authors) ? paper.authors.join(', ') : String(paper.authors)) + '</dd>');
@@ -1230,7 +1253,7 @@ function provenanceHTML(record, recipe){
   return '<div class="rec-sec"><div class="rec-h">Provenance</div><dl class="rec-kv">' + rows.join('') + '</dl></div>';
 }
 document.getElementById('renderX').addEventListener('click', function(){
-  ingestExperiment(document.getElementById('xInput').value, null);
+  ingestLineage(document.getElementById('xInput').value, null);
 });
 // The drop-a-record ingress: a dropped or chosen .json file is read, its text
 // dropped into the paste box, and rendered through the same validate+render
@@ -1244,7 +1267,7 @@ document.getElementById('renderX').addEventListener('click', function(){
     var reader = new FileReader();
     reader.onload = function(){
       document.getElementById('xInput').value = String(reader.result || '');
-      ingestExperiment(reader.result, f.name);
+      ingestLineage(reader.result, f.name);
     };
     reader.onerror = function(){
       document.getElementById('xResult').innerHTML = '<div class="xp-err">Could not read ' + esc(f.name) + '.</div>';
@@ -1263,16 +1286,16 @@ document.getElementById('renderX').addEventListener('click', function(){
     var dt = e.dataTransfer; if (!dt) return;
     if (dt.files && dt.files.length) { readFile(dt.files[0]); return; }
     var txt = dt.getData && dt.getData('text');
-    if (txt) { document.getElementById('xInput').value = txt; ingestExperiment(txt, 'the dropped text'); }
+    if (txt) { document.getElementById('xInput').value = txt; ingestLineage(txt, 'the dropped text'); }
   });
 })();
 document.getElementById('loadXExample').addEventListener('click', function(){
   // a computable, value-bearing, code-bearing record so the example shows the
-  // whole plain data view: what it is, the recipe fields, a values table, the
+  // whole plain data view: what it is, the lineage fields, a values table, the
   // map description/units/tier and the inputs->output lineage, the artifact
   // pointers and host, and the plain Run-on-MCG link.
   var ex = {
-    recipe: {
+    lineage: {
       node: 'ThermalConductivity[transport_model=hnemd]',
       material: { name: 'Silicon' },
       template: 'gpumd',
@@ -1290,15 +1313,24 @@ document.getElementById('loadXExample').addEventListener('click', function(){
     }
   };
   document.getElementById('xInput').value = JSON.stringify(ex, null, 1);
-  renderExperiment(ex);
+  renderLineage(ex);
 });
 document.getElementById('copyXLink').addEventListener('click', async function(){
   var btn = this, raw = document.getElementById('xInput').value.trim();
   if (!raw) { btn.textContent = 'Nothing to copy'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1200); return; }
   var record;
-  try { record = JSON.parse(raw); }
-  catch (e) { btn.textContent = 'Invalid JSON'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1400); return; }
-  var hash = '#/play?tab=experiment&x=' + await gzipToB64url(record);
+  try { record = normalizeLineageRecord(JSON.parse(raw)); }
+  catch (e) {
+    document.getElementById('xResult').innerHTML = '<div class="xp-err">' + esc(e.message) + '</div>';
+    btn.textContent = 'Invalid record'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1400); return;
+  }
+  var v = validateLightJS(record);
+  if (!v.ok) {
+    document.getElementById('xResult').innerHTML = '<div class="xp-err">' + esc(v.error) + '</div>';
+    btn.textContent = 'Invalid record'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1400); return;
+  }
+  record = v.record;
+  var hash = '#/play?tab=lineage&x=' + await gzipToB64url(record);
   var url = location.origin + location.pathname + hash;
   location.hash = hash;
   if (url.length > 8000) { btn.textContent = 'Too large to link'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1600); return; }
@@ -1464,11 +1496,23 @@ document.getElementById('shareBtn').addEventListener('click', async function(){
   var btn = this;
   if (tab === 'query') hash += '&q=' + encodeURIComponent(document.getElementById('qInput').value);
   if (tab === 'trace') hash += '&from=' + encodeURIComponent(document.getElementById('traceFrom').value) + '&to=' + encodeURIComponent(document.getElementById('traceTo').value);
-  // the Experiment tab shares the pasted record as an #x= fragment (its own
+  // the Lineage tab shares the pasted record as an #x= fragment (its own
   // Copy link does the same); everything else shares the lit sub-map as #m=.
-  if (tab === 'experiment') {
+  if (tab === 'lineage') {
     var xr = document.getElementById('xInput').value.trim();
-    if (xr) { try { hash += '&x=' + await gzipToB64url(JSON.parse(xr)); } catch (e) {} }
+    if (xr) {
+      try {
+        var sharedRecord = normalizeLineageRecord(JSON.parse(xr));
+        var sharedCheck = validateLightJS(sharedRecord);
+        if (!sharedCheck.ok) throw new Error(sharedCheck.error);
+        hash += '&x=' + await gzipToB64url(sharedCheck.record);
+      } catch (e) {
+        document.getElementById('xResult').innerHTML = '<div class="xp-err">' + esc(e.message) + '</div>';
+        btn.textContent = 'Invalid lineage';
+        setTimeout(function(){ btn.textContent = 'Share'; }, 1400);
+        return;
+      }
+    }
   }
   // query, trace, parse, and map all share the LIT sub-map as an edges+version
   // payload, so any view is a linkable map. (Query/trace also keep their inputs
@@ -1483,7 +1527,9 @@ document.getElementById('shareBtn').addEventListener('click', async function(){
 
 async function applyHash(){
   var m = location.hash.match(/[#?&]tab=([a-z]+)/); if (!m) return;
-  var tabBtn = document.querySelector('.pg-tab[data-tab="' + m[1] + '"]'); if (tabBtn) tabBtn.click();
+  // Legacy tab=experiment is an alias; the UI and every newly minted link use lineage.
+  var tab = m[1] === 'experiment' ? 'lineage' : m[1];
+  var tabBtn = document.querySelector('.pg-tab[data-tab="' + tab + '"]'); if (tabBtn) tabBtn.click();
   var q = location.hash.match(/[#?&]q=([^&]*)/);
   if (q) { var v = decodeURIComponent(q[1]); document.getElementById('qInput').value = v; runQuery(v); }
   var f = location.hash.match(/[#?&]from=([^&]*)/), t = location.hash.match(/[#?&]to=([^&]*)/);
@@ -1492,16 +1538,16 @@ async function applyHash(){
   // it also fills the code box; elsewhere it just lights the canvas.
   var mm = location.hash.match(/[#?&]m=([^&]*)/);
   if (mm) { try { var view = await b64urlToObj(mm[1]);
-      if (m[1] === 'map') { document.getElementById('mapInput').value = JSON.stringify(view, null, 1); renderMapView(view); }
+      if (tab === 'map') { document.getElementById('mapInput').value = JSON.stringify(view, null, 1); renderMapView(view); }
       else { var mv = mapViewFromEdges((view.e || []).filter(function(tr){ return Array.isArray(tr) && nodeById[tr[0]] && nodeById[tr[2]]; })); renderSubmap(mv.nodes, mv.eops); }
     } catch (e) { hint.style.display = 'block'; hint.textContent = 'Could not open the shared map: ' + e.message; } }
-  // the #x= experiment record: decode the light record, fill the box, and render
+  // the #x= lineage record: decode the light record, fill the box, and render
   // its plain data view. Same gzip fragment scheme as #m=.
   var xm = location.hash.match(/[#?&]x=([^&]*)/);
-  if (xm) { try { var record = await b64urlToObj(xm[1]);
+  if (xm) { try { var record = normalizeLineageRecord(await b64urlToObj(xm[1]));
       document.getElementById('xInput').value = JSON.stringify(record, null, 1);
-      renderExperiment(record);
-    } catch (e) { hint.style.display = 'block'; hint.textContent = 'Could not open the shared experiment: ' + e.message; } }
+      renderLineage(record);
+    } catch (e) { hint.style.display = 'block'; hint.textContent = 'Could not open the shared lineage: ' + e.message; } }
 }
 window.addEventListener('resize', function(){ if (svg.querySelector('.pg-node')) { var ids = [], pos = {}, set = {};
   // cheap re-sync: recompute label transform against current viewBox (positions unchanged)

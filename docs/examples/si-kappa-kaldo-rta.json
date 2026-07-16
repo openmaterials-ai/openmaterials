@@ -1,6 +1,6 @@
 {
   "id": "503522e7636572b2d6ed994b57b600d76a928a537c9897eb6d1f9f189ff0a964",
-  "recipe": {
+  "lineage": {
     "node": "ThermalConductivity[bte_solver=rta]",
     "material": "Si",
     "hyperparameters": {

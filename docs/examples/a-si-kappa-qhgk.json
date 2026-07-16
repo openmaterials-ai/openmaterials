@@ -1,6 +1,6 @@
 {
   "id": "b93603157d51483860d74c1ed0c5ff29c0d3de8205b15f73ca4bca69922606e9",
-  "recipe": {
+  "lineage": {
     "node": "ThermalConductivity[transport_model=qhgk]",
     "material": "a-Si",
     "hyperparameters": {

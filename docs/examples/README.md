@@ -1,19 +1,20 @@
-# Example recipes
+# Example lineages
 
-Ten real OpenMaterials recipe files, each a shareable, replayable simulation grounded
-in evidence on the map. Each JSON is a light SimulationRecord: the recipe (node, material,
-hyperparameters, values), its execution code, and pointers to where the heavy data is hosted
-on MaterialsCodeGraph. No input files, no database: the whole recipe is in the file.
+Ten real OpenMaterials lineage files, each shareable, replayable, and grounded
+in evidence on the map. Each JSON is a light record whose identity is its lineage:
+the X-to-Y path from inputs to a result, with its node, material, hyperparameters,
+values, execution metadata, and pointers to heavy data hosted on MaterialsCodeGraph.
+No input files, no database: the whole lineage is in the file.
 
 Use them two ways:
 
-- **Upload**: open the Playground, Experiment tab, and drop or paste any of these `.json`
-  files to see the recipe as a plain data view: what it is, every recipe field, what it
+- **Upload**: open the Playground, Lineage tab, and drop or paste any of these `.json`
+  files to see the lineage as a plain data view: what it is, every lineage field, what it
   means on the map, provenance, and where the data lives. Dashboards and compute live on
   MaterialsCodeGraph.
-- **Share as a link**: `index.json` carries each recipe's gzipped URL fragment; a
-  `https://openmaterials.ai/play/#/play?tab=experiment&x=<fragment>` link opens the same
-  data view with the recipe carried in the URL, no upload needed.
+- **Share as a link**: `index.json` carries each lineage's gzipped URL fragment; a
+  `https://openmaterials.ai/play/#/play?tab=lineage&x=<fragment>` link opens the same
+  data view with the lineage carried in the URL, no upload needed.
 
 | file | what it shows |
 |---|---|
@@ -28,7 +29,7 @@ Use them two ways:
 | si-elastic-c11-pimd | Silicon elastic constant from PIMD plus TDEP, a mechanical property |
 | graphene-kappa-measured | Graphene thermal conductivity, a measurement (Raman optothermal) |
 
-These are curated demonstration recipes. Their hyperparameters and hosted-data URLs are
+These are curated demonstration lineages. Their hyperparameters and hosted-data URLs are
 illustrative of the format; the reported values are grounded in the map's committed evidence.
 `si-kappa-kaldo-direct` also pins the committed Si diamond configuration
 (`si-diamond-primitive-mp-149`), so its data view resolves the pin and lists the cell's

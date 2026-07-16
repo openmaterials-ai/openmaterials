@@ -1,6 +1,6 @@
 {
   "id": "9c8a102b80c00ee9eba42fce60d59179f27a313ed7c06ecda658f067e991989e",
-  "recipe": {
+  "lineage": {
     "node": "ThermalConductivity",
     "material": "TaN (I41md)",
     "hyperparameters": {

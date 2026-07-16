@@ -1,6 +1,6 @@
 {
   "id": "1c5616f3b2909aeb74941a01856a232070106fba1a649c4f8a3f358e5ac715a0",
-  "recipe": {
+  "lineage": {
     "node": "ThermalConductivity",
     "material": "PtSe2 (bulk)",
     "hyperparameters": {

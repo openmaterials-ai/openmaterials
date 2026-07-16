@@ -1,6 +1,6 @@
 {
   "id": "9adf5f9be27bb36613098a33ced42dcd6ec29de983a527e59d116cf4747b4c69",
-  "recipe": {
+  "lineage": {
     "node": "ThermalConductivity[bte_solver=direct_inverse]",
     "material": "Si (diamond)",
     "hyperparameters": {
