@@ -8,11 +8,12 @@ on MaterialsCodeGraph. No input files, no database: the whole recipe is in the f
 Use them two ways:
 
 - **Upload**: open the Playground, Experiment tab, and drop or paste any of these `.json`
-  files to see the recipe as a full dashboard (the X to Y path, all details, values, map
-  context, cross-code agreement, and Run on MaterialsCodeGraph).
+  files to see the recipe as a plain data view: what it is, every recipe field, what it
+  means on the map, provenance, and where the data lives. Dashboards and compute live on
+  MaterialsCodeGraph.
 - **Share as a link**: `index.json` carries each recipe's gzipped URL fragment; a
   `https://openmaterials.ai/play/#/play?tab=experiment&x=<fragment>` link opens the same
-  dashboard with the recipe carried in the URL, no upload needed.
+  data view with the recipe carried in the URL, no upload needed.
 
 | file | what it shows |
 |---|---|
