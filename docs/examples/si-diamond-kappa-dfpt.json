@@ -1,5 +1,5 @@
 {
-  "id": "97d81ba72b407fa0fd98579c720e5e28793637bc390f208fc81dd2dbf6e7324c",
+  "id": "9212dc1c9ee20dd1a267c57daf21c795a4068b4e8f7605c786ed6362e6ee4340",
   "lineage": {
     "node": "ThermalConductivity[bte_solver=direct_inverse]",
     "material": "Si (diamond)",
@@ -16,7 +16,8 @@
     "node_uid": "a369d33e9643b9f8766b111cde72c44fbf34a13ae46dfab31e1afab1c2129ca9",
     "conditions": {
       "T": 300
-    }
+    },
+    "source": "paper:kaldo-2020-barbalinardo"
   },
   "execution": {
     "code": "kaldo"

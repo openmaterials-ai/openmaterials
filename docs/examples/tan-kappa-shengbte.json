@@ -1,5 +1,5 @@
 {
-  "id": "9c8a102b80c00ee9eba42fce60d59179f27a313ed7c06ecda658f067e991989e",
+  "id": "03cc6d411f3ee5c646838a4645227103b8151fc3c781d21778a30aca21739938",
   "lineage": {
     "node": "ThermalConductivity",
     "material": "TaN (I41md)",
@@ -13,7 +13,8 @@
       "units": "W/(m K)"
     },
     "template": "dft_lbte_kappa",
-    "node_uid": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5"
+    "node_uid": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5",
+    "source": "paper:kappa-limit-2025-donadio"
   },
   "execution": {
     "code": "ShengBTE"

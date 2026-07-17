@@ -1,5 +1,5 @@
 {
-  "id": "baef04bda450665c5f8890398d6feb987b080c5002bcd4c84b7c262b68501a36",
+  "id": "a6540ef5ca1aa16f3490c059fa6cfe78b48ac67bfcfc6d38981ece49c81dbe1d",
   "lineage": {
     "node": "ZT",
     "material": "Si0.5Ge0.5 (1/r-correlated disorder)",
@@ -14,7 +14,8 @@
     "node_uid": "cf5879d2e17024fb396d83e19e71852f6cedf446fcf9d2feb81eb994e3e66e3a",
     "conditions": {
       "T": "1200 K"
-    }
+    },
+    "source": "paper:sige-disorder-2024-donadio"
   },
   "execution": {
     "code": "QHGK"
