@@ -11,7 +11,10 @@ from omai.semantics import build_semantics, physlib_for, resolve
 from omai.map_data import DOMAINS, build_graph_dict
 
 _ART = Path("docs/data/physlib_crosswalk.json")
-_URL_PREFIX = "https://github.com/leanprover-community/physlib/blob/master/"
+# Every source link pins the frozen physlib rev the crosswalk was reviewed
+# against: master drifts, so line numbers are only true at the pinned commit.
+_PINNED_REV = json.loads(_ART.read_text())["version"]["physlib_rev"]
+_URL_PREFIX = f"https://github.com/leanprover-community/physlib/blob/{_PINNED_REV}/"
 _KINDS = {"def", "theorem", "lemma", "structure"}
 _CONFIDENCES = {"exact", "related"}
 

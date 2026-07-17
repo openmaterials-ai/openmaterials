@@ -12,15 +12,15 @@
     "module": "Physlib.Thermodynamics.Temperature.Basic",
     "kind": "structure",
     "informal": "Absolute temperature as a nonnegative real, the type used across physlib thermodynamics.",
-    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/Thermodynamics/Temperature/Basic.lean#L31",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/a74414af9cf713084dd59943fa706980cb7573de/Physlib/Thermodynamics/Temperature/Basic.lean#L31",
     "confidence": "exact"
    },
    {
-    "name": "Temperature.β",
+    "name": "Temperature.\u03b2",
     "module": "Physlib.Thermodynamics.Temperature.Basic",
     "kind": "def",
     "informal": "Inverse temperature beta = 1/(kB T) derived from a Temperature.",
-    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/Thermodynamics/Temperature/Basic.lean#L58",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/a74414af9cf713084dd59943fa706980cb7573de/Physlib/Thermodynamics/Temperature/Basic.lean#L58",
     "confidence": "related"
    }
   ],
@@ -32,11 +32,11 @@
   "DynamicalMatrix": [],
   "Frequency": [
    {
-    "name": "ClassicalMechanics.HarmonicOscillator.ω",
+    "name": "ClassicalMechanics.HarmonicOscillator.\u03c9",
     "module": "Physlib.ClassicalMechanics.HarmonicOscillator.Basic",
     "kind": "def",
     "informal": "Angular frequency of the classical harmonic oscillator, the model behind phonon modes.",
-    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/ClassicalMechanics/HarmonicOscillator/Basic.lean#L150",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/a74414af9cf713084dd59943fa706980cb7573de/Physlib/ClassicalMechanics/HarmonicOscillator/Basic.lean#L150",
     "confidence": "related"
    }
   ],
@@ -48,7 +48,7 @@
     "module": "Physlib.StatisticalMechanics.CanonicalEnsemble.Lemmas",
     "kind": "def",
     "informal": "Constant-volume heat capacity C_V = dU/dT of a canonical ensemble.",
-    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/CanonicalEnsemble/Lemmas.lean#L417",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/a74414af9cf713084dd59943fa706980cb7573de/Physlib/StatisticalMechanics/CanonicalEnsemble/Lemmas.lean#L417",
     "confidence": "exact"
    }
   ],
@@ -60,7 +60,7 @@
     "module": "Physlib.StatisticalMechanics.CanonicalEnsemble.Basic",
     "kind": "def",
     "informal": "Helmholtz free energy F = -kB T log Z of a canonical ensemble.",
-    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/CanonicalEnsemble/Basic.lean#L676",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/a74414af9cf713084dd59943fa706980cb7573de/Physlib/StatisticalMechanics/CanonicalEnsemble/Basic.lean#L676",
     "confidence": "exact"
    },
    {
@@ -68,7 +68,7 @@
     "module": "Physlib.StatisticalMechanics.MicroCanonicalEnsemble.ThermoQuantities",
     "kind": "def",
     "informal": "Helmholtz free energy A = -T log Z as a function of temperature.",
-    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/MicroCanonicalEnsemble/ThermoQuantities.lean#L85",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/a74414af9cf713084dd59943fa706980cb7573de/Physlib/StatisticalMechanics/MicroCanonicalEnsemble/ThermoQuantities.lean#L85",
     "confidence": "exact"
    }
   ],
@@ -78,7 +78,7 @@
     "module": "Physlib.StatisticalMechanics.CanonicalEnsemble.Basic",
     "kind": "def",
     "informal": "Thermodynamic entropy of a canonical ensemble as -kB times the mean log physical probability.",
-    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/CanonicalEnsemble/Basic.lean#L796",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/a74414af9cf713084dd59943fa706980cb7573de/Physlib/StatisticalMechanics/CanonicalEnsemble/Basic.lean#L796",
     "confidence": "exact"
    },
    {
@@ -86,7 +86,7 @@
     "module": "Physlib.StatisticalMechanics.MicroCanonicalEnsemble.ThermoQuantities",
     "kind": "def",
     "informal": "Entropy defined as minus the temperature derivative of the Helmholtz free energy.",
-    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/MicroCanonicalEnsemble/ThermoQuantities.lean#L89",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/a74414af9cf713084dd59943fa706980cb7573de/Physlib/StatisticalMechanics/MicroCanonicalEnsemble/ThermoQuantities.lean#L89",
     "confidence": "exact"
    },
    {
@@ -94,7 +94,7 @@
     "module": "Physlib.StatisticalMechanics.CanonicalEnsemble.Basic",
     "kind": "def",
     "informal": "Differential (Gibbs) entropy of the canonical distribution, entropy up to a phase-space constant.",
-    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/CanonicalEnsemble/Basic.lean#L565",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/a74414af9cf713084dd59943fa706980cb7573de/Physlib/StatisticalMechanics/CanonicalEnsemble/Basic.lean#L565",
     "confidence": "related"
    },
    {
@@ -102,7 +102,7 @@
     "module": "Physlib.Thermodynamics.IdealGas.Basic",
     "kind": "def",
     "informal": "Entropy S(U,V,N) of a monophase ideal gas, the Sackur-Tetrode-style model expression.",
-    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/Thermodynamics/IdealGas/Basic.lean#L34",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/a74414af9cf713084dd59943fa706980cb7573de/Physlib/Thermodynamics/IdealGas/Basic.lean#L34",
     "confidence": "related"
    }
   ],
@@ -112,7 +112,7 @@
     "module": "Physlib.StatisticalMechanics.CanonicalEnsemble.Basic",
     "kind": "def",
     "informal": "Mean energy U of a canonical ensemble, the ensemble average of the microstate energy.",
-    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/CanonicalEnsemble/Basic.lean#L518",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/a74414af9cf713084dd59943fa706980cb7573de/Physlib/StatisticalMechanics/CanonicalEnsemble/Basic.lean#L518",
     "confidence": "exact"
    },
    {
@@ -120,7 +120,7 @@
     "module": "Physlib.StatisticalMechanics.MicroCanonicalEnsemble.ThermoQuantities",
     "kind": "def",
     "informal": "Internal energy U defined as minus the beta derivative of log Z.",
-    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/MicroCanonicalEnsemble/ThermoQuantities.lean#L80",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/a74414af9cf713084dd59943fa706980cb7573de/Physlib/StatisticalMechanics/MicroCanonicalEnsemble/ThermoQuantities.lean#L80",
     "confidence": "exact"
    }
   ],
@@ -176,7 +176,7 @@
     "module": "Physlib.StatisticalMechanics.MicroCanonicalEnsemble.ThermoQuantities",
     "kind": "def",
     "informal": "Pressure as the volume conjugate, minus the volume derivative of the Helmholtz free energy.",
-    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/MicroCanonicalEnsemble/ThermoQuantities.lean#L219",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/a74414af9cf713084dd59943fa706980cb7573de/Physlib/StatisticalMechanics/MicroCanonicalEnsemble/ThermoQuantities.lean#L219",
     "confidence": "exact"
    },
    {
@@ -184,7 +184,7 @@
     "module": "Physlib.StatisticalMechanics.MicroCanonicalEnsemble.IdealGas",
     "kind": "theorem",
     "informal": "The ideal gas law PV = nRT proven for the formalized ideal gas.",
-    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/MicroCanonicalEnsemble/IdealGas.lean#L195",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/a74414af9cf713084dd59943fa706980cb7573de/Physlib/StatisticalMechanics/MicroCanonicalEnsemble/IdealGas.lean#L195",
     "confidence": "related"
    },
    {
@@ -192,7 +192,7 @@
     "module": "Physlib.Units.WithDim.Pressure",
     "kind": "def",
     "informal": "Pressure as a dimensionful quantity with units such as pascal, bar, and atmosphere.",
-    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/Units/WithDim/Pressure.lean#L24",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/a74414af9cf713084dd59943fa706980cb7573de/Physlib/Units/WithDim/Pressure.lean#L24",
     "confidence": "related"
    }
   ],
