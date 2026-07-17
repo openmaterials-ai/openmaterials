@@ -138,8 +138,64 @@ _ROUNDED_LINEAGE_KEYS = ("conditions", "params", "hyperparameters", "values")
 # backrefs are checked against this shape (a hex64), never guessed.
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 
+# The source of a lineage, when it has one, is a compact namespaced string
+# "scheme:ref" (paper:cnt-2021-barbalinardo, doi:10.1103/PhysRevLett.127.025902,
+# zotero:ABC123, ...). It lives INSIDE the lineage object, so it is
+# identity-bearing: the same claim from the same source mints the same id
+# (deduplication), while two values from one paper stay distinct records.
+# The scheme set is open; SOURCE_SCHEMES names the ones the ecosystem already
+# speaks. Legacy records carry a top-level record["source"] OUTSIDE identity;
+# that placement stays readable forever and never re-mints an old id.
+SOURCE_SCHEMES = ("paper", "doi", "zotero", "arxiv", "repo", "dataset")
+_SOURCE_RE = re.compile(r"^[a-z][a-z0-9+.-]*:.+$")
+
+# The machine-readable descriptor of the instance format: the half of THE
+# LINEAGE (the one versioned schema artifact; the other half is the derivation
+# graph) that states what an instance is. Assembled from this module's real
+# constants so it can never drift from the reference implementation; the site
+# builder folds it, with the graph, into docs/data/lineage.json and the rolling
+# lineage_version.
+FORMAT_DESCRIPTOR = {
+    "record_fields": ["id", "lineage", "kind", "execution", "artifacts",
+                      "mirrors", "results", "source"],
+    "identity": {
+        "rule": "sha256 of the canonical JSON of the lineage object alone",
+        "canonical_json": {"sort_keys": True, "separators": [",", ":"]},
+        "float_decimals": FLOAT_DECIMALS,
+        "rounded_lineage_keys": list(_ROUNDED_LINEAGE_KEYS),
+    },
+    "wire": {
+        "write_key": "lineage",
+        "read_keys": ["lineage", "recipe"],
+        "both_keys": "malformed",
+        "version_write_key": "lineage_version",
+        "version_read_keys": ["lineage_version", "map_version"],
+        "fragment": {"gzip_prefix": "g", "raw_prefix": "r",
+                     "encoding": "base64url"},
+    },
+    "source": {
+        "placement": "lineage.source (identity-bearing); legacy top-level "
+                     "record.source rides outside identity",
+        "shape": "scheme:ref",
+        "schemes": list(SOURCE_SCHEMES),
+        "open_scheme_set": True,
+    },
+}
+
+
+def format_rules_version() -> str:
+    """The content hash of :data:`FORMAT_DESCRIPTOR` (the format half of the
+    Lineage artifact's rolling version)."""
+    payload = json.dumps(FORMAT_DESCRIPTOR, sort_keys=True,
+                         separators=(",", ":")).encode()
+    return hashlib.sha256(payload).hexdigest()
+
+
 __all__ = [
     "LineageError",
+    "FORMAT_DESCRIPTOR",
+    "SOURCE_SCHEMES",
+    "format_rules_version",
     "canonical_id",
     "lineage_id",
     "record_lineage",
@@ -608,6 +664,24 @@ def validate_light(record: dict, *, name_to_uid: dict | None = None,
         _validate_lineage_node(lineage, name_to_uid, where=where)
         node_resolved = True
     # else: node-unresolved. Valid. The record carries its template + values.
+
+    # The source, when the lineage carries one, is a namespaced "scheme:ref"
+    # string inside the hash (see SOURCE_SCHEMES). The legacy placement, a
+    # top-level record["source"] object, stays readable outside identity; the
+    # two may coexist only when they agree (a conflicting pair is ambiguous
+    # about what the record IS, so it is malformed).
+    lin_source = lineage.get("source")
+    if lin_source is not None:
+        if not isinstance(lin_source, str) or not _SOURCE_RE.match(lin_source):
+            raise LineageError(
+                f"{where}: lineage.source must be a 'scheme:ref' string "
+                f"(e.g. paper:cnt-2021-barbalinardo, doi:10.1103/...)")
+        legacy_ref = (record.get("source") or {}).get("ref") \
+            if isinstance(record.get("source"), dict) else None
+        if legacy_ref is not None and legacy_ref != lin_source:
+            raise LineageError(
+                f"{where}: lineage.source ({lin_source}) conflicts with the "
+                f"legacy top-level source.ref ({legacy_ref})")
 
     artifacts = record.get("artifacts")
     _validate_pointers(artifacts, where=where)

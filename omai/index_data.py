@@ -36,7 +36,10 @@ def _name_to_uid(domains) -> dict[str, str]:
 
 def _index_docs(domains) -> dict[str, dict]:
     """Build the per-representation index documents (representation -> doc)."""
+    from omai.map_data import _lineage_version
+
     map_version = _map_version()
+    lineage_version = _lineage_version(map_version)
     name_to_uid = _name_to_uid(domains)
     codes = build_codes(domains)
     docs: dict[str, dict] = {}
@@ -53,6 +56,9 @@ def _index_docs(domains) -> dict[str, dict]:
         covers.sort(key=lambda e: e["node"])
         docs[rep] = {
             "representation": rep,
+            # the unified schema version (graph + format rules); map_version
+            # stays as the legacy key carrying the raw store head
+            "lineage_version": lineage_version,
             "map_version": map_version,
             "covers": covers,
         }

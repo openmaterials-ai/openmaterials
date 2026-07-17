@@ -733,19 +733,86 @@ def write_catalog(path: Path | None = None) -> Path:
     return path
 
 
+def _lineage_version(graph_version: str) -> str:
+    """The rolling version of THE LINEAGE, the one schema artifact: a content
+    hash over its two halves, the derivation graph (the store head) and the
+    instance-format rules (the descriptor in omai.lineages). Either half
+    changing advances it; nothing else can."""
+    import hashlib
+
+    from omai.lineages import format_rules_version
+
+    payload = json.dumps(
+        {"format_rules": format_rules_version(), "graph": graph_version},
+        sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(payload).hexdigest()
+
+
 def write_version(path: Path | None = None) -> Path:
-    """Write the P5 provenance stamp the site reads: the store head the data
-    was generated against, next to the frozen genesis hash."""
+    """Write the provenance stamp the site reads. Since the Lineage refactor
+    the stamped ``version`` is the unified lineage_version (graph + format
+    rules); the raw store head rides alongside as ``graph_version`` and the
+    frozen genesis stays what it always was."""
+    from omai.lineages import format_rules_version
     from omai.store import Store
 
     path = path or (_DOCS / "data" / "version.json")
     path.parent.mkdir(parents=True, exist_ok=True)
     store_root = Path(__file__).resolve().parents[1] / "map"
+    graph_version = Store(store_root).head
     payload = {
-        "version": Store(store_root).head,
+        "version": _lineage_version(graph_version),
+        "graph_version": graph_version,
+        "format_rules_version": format_rules_version(),
         "genesis": (store_root / "GENESIS").read_text().strip(),
     }
     path.write_text(json.dumps(payload))
+    return path
+
+
+def write_lineage(path: Path | None = None) -> Path:
+    """Emit THE LINEAGE artifact, docs/data/lineage.json: the normative bundle
+    of the schema. One object: the rolling ``lineage_version``, the machine
+    readable instance-format descriptor (generated from the reference
+    implementation, never hand-written), and the derivation graph. The site's
+    other bundles are derived conveniences; this is the thing itself.
+
+    Also maintains docs/data/versions.json, the append-only chain of the
+    artifact's own history: each entry {version, parent, graph_version,
+    format_rules_version}. No timestamps inside (builds must be byte
+    deterministic); dates live in git history. The chain's first parent is the
+    frozen genesis hash."""
+    from omai.lineages import FORMAT_DESCRIPTOR, format_rules_version
+    from omai.store import Store
+
+    path = path or (_DOCS / "data" / "lineage.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    store_root = Path(__file__).resolve().parents[1] / "map"
+    graph_version = Store(store_root).head
+    version = _lineage_version(graph_version)
+    graph = build_graph_dict(_domains())
+    payload = {
+        "lineage_version": version,
+        "graph_version": graph_version,
+        "format_rules_version": format_rules_version(),
+        "format": FORMAT_DESCRIPTOR,
+        "graph": graph,
+        "counts": {"nodes": len(graph["nodes"]), "edges": len(graph["links"])},
+    }
+    path.write_text(json.dumps(payload))
+
+    chain_path = path.parent / "versions.json"
+    chain = json.loads(chain_path.read_text()) if chain_path.exists() else []
+    head = chain[-1]["version"] if chain else None
+    if head != version:
+        parent = head or (store_root / "GENESIS").read_text().strip()
+        chain.append({
+            "version": version,
+            "parent": parent,
+            "graph_version": graph_version,
+            "format_rules_version": format_rules_version(),
+        })
+        chain_path.write_text(json.dumps(chain))
     return path
 
 
@@ -776,8 +843,9 @@ if __name__ == "__main__":
     import json as _json
     print("wrote", _write_semantics(_json.loads((_DOCS / "data" / "graph.json").read_text())))
     print("wrote", write_version())
+    print("wrote", write_lineage())
     # Cross-code agreement is derived from the instances (like instances.json
-    # itself is derived), and its summary stamps the map version, so it runs last,
-    # after write_version() has written docs/data/version.json.
+    # itself is derived), and its summary stamps the lineage version, so it runs
+    # last, after write_version() has written docs/data/version.json.
     from omai.cross_code import build_agreement as _build_agreement
     print("wrote", _build_agreement())
