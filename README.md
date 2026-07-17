@@ -72,7 +72,19 @@ experiments and runs simulations from lineages.
 
 Glossary:
 
-- Lineage is the shareable run record defined in `omai/lineages.py`.
+- THE LINEAGE (the schema) is one versioned artifact holding the derivation
+  graph and the instance-format rules, published as `docs/data/lineage.json`
+  with an append-only version chain in `docs/data/versions.json`. Its rolling
+  `lineage_version` is a content hash over both halves; the six gates are its
+  amendment process; the map is its visualization.
+- A lineage (an instance) is the shareable run record defined in
+  `omai/lineages.py`: a pinned path through the artifact, identified by the
+  hash of its `lineage` object alone.
+- Source is a lineage's namespaced origin, a `scheme:ref` string inside the
+  hash (`paper:...`, `doi:...`, `zotero:...`, `arxiv:...`): identity-bearing,
+  so the same claim from the same source mints the same id while one paper's
+  several results stay distinct records. Legacy top-level `source` objects on
+  old records ride outside the hash forever and never re-mint an id.
 - Provenance is a quantity instance's source reference, `source.ref`.
 - Derivation is a node's upstream graph in the map.
 

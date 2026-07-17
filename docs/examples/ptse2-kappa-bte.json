@@ -1,5 +1,5 @@
 {
-  "id": "efbc1b7430904a835e4bab757a4ef43b8e6350de27286d893e1ff0275db9d576",
+  "id": "d80eb7cae9d790807b5f7a5c22ac170aa1027f47e735c0df1a9e204ba7b118c5",
   "lineage": {
     "node": "ThermalConductivity",
     "material": "PtSe2 (bulk)",
@@ -14,7 +14,8 @@
     "node_uid": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5",
     "conditions": {
       "T": "room temperature"
-    }
+    },
+    "source": "paper:ptse2-2021-donadio"
   },
   "execution": {
     "code": "first-principles BTE"

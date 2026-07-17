@@ -1,5 +1,5 @@
 {
-  "id": "fd750cf110e78447a6895ee0f7c6cc87e1a67cca7a80e979b877bd154ffaf8f3",
+  "id": "1a28bb40b08f6410786685d8538db5ebe0e551d3e3e727ac536ec91063d71adf",
   "lineage": {
     "node": "ThermalConductivity[transport_model=qhgk]",
     "material": "a-Si",
@@ -15,7 +15,8 @@
     "node_uid": "8932e3cbadef74a82802b43fd1d25328cb40e6136c90df3b6a4a998e77f9567b",
     "conditions": {
       "T": "room temperature"
-    }
+    },
+    "source": "paper:amorphous-alloys-2020-lundgren"
   },
   "execution": {
     "code": "kaldo"

@@ -1,5 +1,5 @@
 {
-  "id": "deeed05446a129d9349cc36640da117dc048b7da241bd3e527b949558ff7bd01",
+  "id": "e63b664909dc08b697d5d6792ee78d9ef55aa7f887d920bfd9028b7c0208da73",
   "lineage": {
     "node": "ThermalConductivity",
     "material": "graphene (suspended)",
@@ -13,7 +13,8 @@
     "node_uid": "a03324d4def54619f16ee80ccf176b95a59808141651debabbf1611b7e3a12d5",
     "conditions": {
       "T": "room temperature"
-    }
+    },
+    "source": "paper:graphene-kappa-2008-balandin"
   },
   "artifacts": [],
   "kind": "measurement"
