@@ -1,0 +1,116 @@
+# Lean verification gate: proves the "verified" badge is live, not a README
+# claim. On every relevant PR (and on push to main) this compiles the generated
+# proof layer in lean/ against physlib, so a broken or newly-warning proof
+# turns the check red.
+#
+# Two independent re-checks run here, both required:
+#   1. The fast Python re-check (tests/test_physlean_export.py) needs no Lean
+#      toolchain and finishes in seconds: it re-derives every Tier 1 identity
+#      the exporter emits and asserts each one actually holds (the same thing
+#      Lean's `decide`/`simp` proves). A regression in the generator fails here
+#      first, in seconds, before the multi-minute Lean build even starts.
+#   2. The real `lake build` against physlib (the honest step). physlib is
+#      pinned by rev in lean/lakefile.toml; mathlib comes in transitively and
+#      is pulled from the mathlib build cache via `lake exe cache get`, so the
+#      runner compiles only openmaterials' own modules, not all of mathlib.
+#
+# Cost: a cold run (no cached toolchain, empty .lake) is roughly 20-30 min,
+# dominated by `lake exe cache get` downloading the mathlib oleans plus the
+# first compile. A warm run (toolchain cached, .lake restored, mathlib cache
+# hit) is a few minutes: only the openmaterials modules recompile. Caching is
+# what keeps the typical PR run in the minutes range, see the cache steps below.
+#
+# This runs only when files that can change the proof layer change (paths
+# filter). It is intentionally a separate workflow from ci.yml (the Python test
+# matrix): different triggers, a much longer runtime, and a Lean toolchain that
+# ci.yml has no reason to carry.
+name: lean
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "map/**"
+      - "omai/**"
+      - "lean/**"
+      - "docs/data/lean.json"
+      - ".github/workflows/lean.yml"
+  pull_request:
+    paths:
+      - "map/**"
+      - "omai/**"
+      - "lean/**"
+      - "docs/data/lean.json"
+      - ".github/workflows/lean.yml"
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Fast gate first: re-check the identities in pure Python (no toolchain).
+      # The test imports only omai + sympy (verified: nothing in its import
+      # chain needs the parser/dev extras), so the base package plus pytest is
+      # enough. Installing the full ".[dev]" extra would also pull anthropic and
+      # pypdf, which this test never touches, so we keep it lean.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install (base package + pytest)
+        run: pip install -e . pytest
+      - name: Python identity re-check
+        run: PYTHONPATH=. python -m pytest tests/test_physlean_export.py -q
+
+      # Cache elan and its installed toolchains keyed on the pinned toolchain
+      # file, so the leanprover/lean4 release does not re-download every run.
+      # lean-action also caches releases, but this explicit key on
+      # lean-toolchain makes the toolchain restore deterministic and additive.
+      - name: Cache elan (toolchain)
+        uses: actions/cache@v4
+        with:
+          path: ~/.elan
+          key: elan-${{ runner.os }}-${{ hashFiles('lean/lean-toolchain') }}
+          restore-keys: |
+            elan-${{ runner.os }}-
+
+      # Cache the lake build directory (openmaterials' own build plus the
+      # fetched mathlib/physlib deps under .lake) keyed on the manifest and the
+      # toolchain: a new pin busts the cache, an unchanged pin reuses it. The
+      # commit sha in the primary key gives a per-commit entry; restore-keys
+      # falls back to the newest cache for the same manifest+toolchain. This is
+      # the single owner of the .lake cache; lean-action's own github cache is
+      # turned off below (use-github-cache: false) so .lake is not saved twice.
+      - name: Cache lake build (.lake)
+        uses: actions/cache@v4
+        with:
+          path: lean/.lake
+          key: lake-${{ runner.os }}-${{ hashFiles('lean/lake-manifest.json', 'lean/lean-toolchain') }}-${{ github.sha }}
+          restore-keys: |
+            lake-${{ runner.os }}-${{ hashFiles('lean/lake-manifest.json', 'lean/lean-toolchain') }}-
+
+      # Install elan + the toolchain from lean/lean-toolchain, fetch the mathlib
+      # build cache (lake exe cache get), and run `lake build` in lean/.
+      #   - lake-package-directory: lean  -> the package lives in the subdir.
+      #   - use-mathlib-cache: true       -> always `lake exe cache get` so the
+      #     runner never recompiles all of mathlib (that would take hours).
+      #   - use-github-cache: false       -> we own the .lake cache in the step
+      #     above; disabling the action's built-in cache avoids saving .lake
+      #     twice under two different keys.
+      #   - build-args: --wfail           -> FAIL-ON-WARNING gate. --wfail is
+      #     lake's own flag (equivalent to --fail-level=warning): the build
+      #     exits nonzero if ANY warning is logged, not just on error. The
+      #     generated proofs are warning-clean and sorry-free by design, so a
+      #     new warning (or a stray `sorry`, which Lean reports as a warning) is
+      #     a regression and turns this job red. No separate grep gate is
+      #     needed: lake enforces it at the source of truth.
+      - name: Lean build against physlib (fail on warnings)
+        uses: leanprover/lean-action@v1
+        with:
+          lake-package-directory: lean
+          use-mathlib-cache: true
+          use-github-cache: false
+          build-args: --wfail
+          test: false
+          lint: false
