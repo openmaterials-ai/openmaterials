@@ -1,22 +1,24 @@
-"""PhysLean export (Tier 1): the map's dimensional layer, verified in Lean.
+"""physlib export (Tier 1): the map's dimensional layer, verified in Lean.
 
-PhysLean (Joseph Tooby-Smith, Apache 2.0) formalizes physical dimensions as a
-rational-exponent vector in Lean 4 / Mathlib. Our operator layer proves, for
-every executable edge, that the output's dimension equals the product of the
-input dimensions. This module exports that proven layer as a Lean file: each
-node a dimensioned constant, each dimension-proven edge a theorem stating the
-output dimension equals the product of the input dimensions, proved by
-extensionality plus simp with PhysLean's `*_mul` lemmas. The generated file
-COMPILES against PhysLean (Lean 4.29.1); the CI test re-checks each identity
-in Python so a regression fails fast even where a Lean toolchain is absent.
+physlib (leanprover-community/physlib, Apache 2.0, the successor of PhysLean
+by Joseph Tooby-Smith) formalizes physical dimensions as a rational-exponent
+vector in Lean 4 / Mathlib. Our operator layer proves, for every executable
+edge, that the output's dimension equals the product of the input dimensions.
+This module exports that proven layer as a Lean file: each node a dimensioned
+constant, each dimension-proven edge a theorem stating the output dimension
+equals the product of the input dimensions, proved by extensionality plus simp
+with physlib's `*_mul` lemmas. The generated file COMPILES against physlib
+(Lean 4.31.0) as part of the lake package in lean/; the CI test re-checks each
+identity in Python so a regression fails fast even where a Lean toolchain is
+absent.
 
-The bridge is honest about its boundary. PhysLean's Dimension has five base
+The bridge is honest about its boundary. physlib's Dimension has five base
 fields (length, time, mass, charge, temperature); ours has seven
 (M, L, T, Th, N, I, J). The four shared bases map directly. Nodes whose
 dimension uses amount-of-substance (mole, N) or luminous intensity (J), which
-PhysLean lacks, are OMITTED and recorded, not silently mangled: extending
-PhysLean's Dimension with a mole base is an upstreamable contribution for a
-later tier. Current (I) maps onto PhysLean's charge base only up to the
+physlib lacks, are OMITTED and recorded, not silently mangled: extending
+physlib's Dimension with a mole base is an upstreamable contribution for a
+later tier. Current (I) maps onto physlib's charge base only up to the
 charge-vs-current convention, so I-bearing nodes are omitted here too.
 
 CLI:  python -m omai.physlean_export   ->  writes lean/OpenMaterials.lean
@@ -30,17 +32,17 @@ from omai.map_data import DOMAINS, build_graph_dict
 
 _REPO = Path(__file__).resolve().parent.parent
 
-# our base order (M, L, T, Th, N, I, J) -> PhysLean field name, for the four we share.
-# Index in our exponent tuple -> PhysLean Dimension field. None = no PhysLean home.
+# our base order (M, L, T, Th, N, I, J) -> physlib field name, for the four we share.
+# Index in our exponent tuple -> physlib Dimension field. None = no physlib home.
 _OUR_BASE = ("M", "L", "T", "Th", "N", "I", "J")
-_PHYSLEAN_FIELD = {
+_PHYSLIB_FIELD = {
     0: "mass",         # M
     1: "length",       # L
     2: "time",         # T
     3: "temperature",  # Th
-    4: None,           # N  (amount of substance): PhysLean has no mole base
-    5: None,           # I  (current): PhysLean has charge, not current; omit for now
-    6: None,           # J  (luminous intensity): no PhysLean base
+    4: None,           # N  (amount of substance): physlib has no mole base
+    5: None,           # I  (current): physlib has charge, not current; omit for now
+    6: None,           # J  (luminous intensity): no physlib base
 }
 
 
@@ -70,15 +72,15 @@ def _q(n: int) -> str:
 
 
 def _dimension_expr(exps: tuple[int, ...]) -> str | None:
-    """A PhysLean `Dimension` literal ⟨length, time, mass, charge, temperature⟩,
-    or None if the exponents use a base PhysLean lacks."""
+    """A physlib `Dimension` literal ⟨length, time, mass, charge, temperature⟩,
+    or None if the exponents use a base physlib lacks."""
     fields = {"length": 0, "time": 0, "mass": 0, "charge": 0, "temperature": 0}
     for i, e in enumerate(exps):
         if e == 0:
             continue
-        pf = _PHYSLEAN_FIELD.get(i)
+        pf = _PHYSLIB_FIELD.get(i)
         if pf is None:
-            return None  # uses mole / current / luminous: no PhysLean home
+            return None  # uses mole / current / luminous: no physlib home
         fields[pf] = e
     return "⟨{length}, {time}, {mass}, {charge}, {temperature}⟩".format(
         length=_q(fields["length"]), time=_q(fields["time"]), mass=_q(fields["mass"]),
@@ -86,7 +88,7 @@ def _dimension_expr(exps: tuple[int, ...]) -> str | None:
 
 
 def _node_dimensions():
-    """Every node id -> (exponents, physlean_expr_or_None), from the live domains."""
+    """Every node id -> (exponents, physlib_expr_or_None), from the live domains."""
     out = {}
     for dom in DOMAINS:
         for n in dom.nodes:
@@ -115,7 +117,7 @@ def build_export():
     # We assert it only for edges every one of whose endpoints exported (so the
     # Lean statement is well-typed) and whose product actually holds (the
     # dimensional gate already proved this for executable edges; here we restate
-    # it as a Lean theorem proved by ext + simp with PhysLean's *_mul lemmas).
+    # it as a Lean theorem proved by ext + simp with physlib's *_mul lemmas).
     producers = {}
     for l in graph["links"]:
         if l.get("op"):
@@ -171,13 +173,14 @@ def _render_lean(nodes: dict, lemmas: list, node_dims: dict) -> str:
         "  OpenMaterials: the map's dimensional layer, verified in Lean.",
         "",
         "  Generated by omai.physlean_export from map version " + ver + ".",
-        "  This file COMPILES against PhysLean (Lean 4.29.1): each node is a",
-        "  PhysLean Dimension and each theorem states an edge's output dimension",
+        "  This file COMPILES against physlib (Lean 4.31.0): each node is a",
+        "  physlib Dimension and each theorem states an edge's output dimension",
         "  equals the product of its input dimensions, proved by ext + simp. Nodes whose",
         "  dimension uses amount-of-substance, current, or luminous intensity are",
-        "  omitted: PhysLean's Dimension has no base for them (see the module).",
+        "  omitted: physlib's Dimension has no base for them (see the module).",
         "",
-        "  PhysLean (c) Joseph Tooby-Smith, Apache 2.0.",
+        "  physlib (leanprover-community/physlib), successor of PhysLean by",
+        "  Joseph Tooby-Smith, Apache 2.0.",
         "-/",
         "import Physlib.Units.Dimension",
         "",
@@ -185,14 +188,14 @@ def _render_lean(nodes: dict, lemmas: list, node_dims: dict) -> str:
         "",
         "open Dimension",
         "",
-        "-- Nodes as dimensioned constants (PhysLean field order: length, time, mass, charge, temperature).",
+        "-- Nodes as dimensioned constants (physlib field order: length, time, mass, charge, temperature).",
     ]
     for name in sorted(nodes):
         lines.append(f"def {_lean_ident(name)} : Dimension := {nodes[name]}  -- {name}")
     lines.append("")
     lines.append("-- Edge dimensional identities: output dimension = product of input")
     lines.append("-- dimensions. Proved by extensionality on the five Dimension fields, then")
-    lines.append("-- simp with PhysLean's *_mul lemmas and the node definitions.")
+    lines.append("-- simp with physlib's *_mul lemmas and the node definitions.")
     for op, target, srcs, prod in lemmas:
         lem = "edge_" + _lean_ident(op) + "_to_" + _lean_ident(target)
         lines.append(f"theorem {lem} : {_lean_ident(target)} = {prod} := by")
@@ -203,11 +206,139 @@ def _render_lean(nodes: dict, lemmas: list, node_dims: dict) -> str:
     return "\n".join(lines)
 
 
+def _dim7_expr(exps: tuple[int, ...]) -> str:
+    """An OpenMaterials seven-base `Dimension7` literal ⟨M, L, T, Th, N, I, J⟩."""
+    return "⟨" + ", ".join(_q(e) for e in exps) + "⟩"
+
+
+def build_dimensions_export():
+    """Return (lean_source, stats) for the Mathlib-only seven-base module.
+
+    The physlib bridge (build_export) omits nodes whose dimension uses
+    amount-of-substance, current, or luminous intensity, since physlib's
+    Dimension has no base for them. This module covers exactly that remainder:
+    a seven-base Dimension7 structure (M, L, T, Th, N, I, J) with its own ext
+    lemma and Mul instance, one constant per omitted node, and a theorem per
+    dimension-product edge ALL of whose endpoints are omitted nodes (edges with
+    any physlib-exported endpoint stay in OpenMaterials.lean; keeping the two
+    files' namespaces disjoint means no duplicate declarations)."""
+    graph = build_graph_dict(DOMAINS)
+    node_dims = _node_dimensions()
+    omitted = {name: exps for name, (exps, expr) in node_dims.items() if expr is None}
+
+    producers = {}
+    for l in graph["links"]:
+        if l.get("op"):
+            producers.setdefault((l["op"], l["target"]), set()).add(l["source"])
+
+    lemmas = []
+    for (op, target), sources in sorted(producers.items()):
+        if op.startswith("provide_"):
+            continue  # parameter-promotion presentation links, not operators
+        srcs = sorted(sources)
+        endpoints = set(srcs) | {target}
+        if not endpoints <= set(omitted):
+            continue  # physlib-exported endpoints live in OpenMaterials.lean
+        tgt_exps = node_dims[target][0]
+        acc = [0] * len(tgt_exps)
+        for s in srcs:
+            for i, e in enumerate(node_dims[s][0]):
+                acc[i] += e
+        if tuple(acc) != tuple(tgt_exps):
+            continue  # not a pure dimensional product
+        prod = " * ".join(_lean_ident(s) for s in srcs)
+        lemmas.append((op, target, srcs, prod))
+
+    src = _render_dimensions({n: _dim7_expr(e) for n, e in omitted.items()}, lemmas)
+    stats = {
+        "nodes": len(omitted),
+        "lemmas": len(lemmas),
+        "map_version": (json_version() or "")[:12],
+    }
+    return src, stats
+
+
+def _render_dimensions(nodes: dict, lemmas: list) -> str:
+    ver = (json_version() or "unknown")[:12]
+    lines = [
+        "/-",
+        "  OpenMaterials: the seven-base dimensional layer, Mathlib only.",
+        "",
+        "  Generated by omai.physlean_export from map version " + ver + ".",
+        "  physlib's Dimension has five bases, so nodes whose dimension uses",
+        "  amount-of-substance (N), electric current (I), or luminous intensity (J)",
+        "  are omitted from OpenMaterials.lean. This module defines the map's full",
+        "  seven-base dimension vector (M, L, T, Th, N, I, J) and proves the",
+        "  dimensional identities for exactly those omitted nodes. Requires only",
+        "  Mathlib (Lean 4.31.0).",
+        "-/",
+        "import Mathlib.Tactic",
+        "",
+        "namespace OpenMaterials",
+        "",
+        "/-- The map's seven-base dimension vector, in the map's base order:",
+        "    mass, length, time, temperature, amount of substance, electric",
+        "    current, luminous intensity. -/",
+        "structure Dimension7 where",
+        "  /-- The mass dimension (M). -/",
+        "  M : ℚ",
+        "  /-- The length dimension (L). -/",
+        "  L : ℚ",
+        "  /-- The time dimension (T). -/",
+        "  T : ℚ",
+        "  /-- The temperature dimension (Th). -/",
+        "  Th : ℚ",
+        "  /-- The amount-of-substance dimension (N). -/",
+        "  N : ℚ",
+        "  /-- The electric-current dimension (I). -/",
+        "  I : ℚ",
+        "  /-- The luminous-intensity dimension (J). -/",
+        "  J : ℚ",
+        "",
+        "namespace Dimension7",
+        "",
+        "@[ext]",
+        "lemma ext {d1 d2 : Dimension7}",
+        "    (hM : d1.M = d2.M) (hL : d1.L = d2.L) (hT : d1.T = d2.T)",
+        "    (hTh : d1.Th = d2.Th) (hN : d1.N = d2.N) (hI : d1.I = d2.I)",
+        "    (hJ : d1.J = d2.J) : d1 = d2 := by",
+        "  cases d1",
+        "  cases d2",
+        "  congr",
+        "",
+        "instance : Mul Dimension7 where",
+        "  mul d1 d2 := ⟨d1.M + d2.M, d1.L + d2.L, d1.T + d2.T, d1.Th + d2.Th,",
+        "    d1.N + d2.N, d1.I + d2.I, d1.J + d2.J⟩",
+        "",
+    ]
+    for f in ("M", "L", "T", "Th", "N", "I", "J"):
+        lines.append("@[simp]")
+        lines.append(f"lemma {f}_mul (d1 d2 : Dimension7) : (d1 * d2).{f} = d1.{f} + d2.{f} := rfl")
+        lines.append("")
+    lines.append("end Dimension7")
+    lines.append("")
+    lines.append("-- The nodes physlib cannot express, as seven-base constants")
+    lines.append("-- (map base order: M, L, T, Th, N, I, J).")
+    for name in sorted(nodes):
+        lines.append(f"def {_lean_ident(name)} : Dimension7 := {nodes[name]}  -- {name}")
+    lines.append("")
+    lines.append("-- Edge dimensional identities among the omitted nodes: output dimension")
+    lines.append("-- = product of input dimensions, by ext + simp, as in OpenMaterials.lean.")
+    for op, target, srcs, prod in lemmas:
+        lem = "edge_" + _lean_ident(op) + "_to_" + _lean_ident(target)
+        lines.append(f"theorem {lem} : {_lean_ident(target)} = {prod} := by")
+        lines.append(f"  apply Dimension7.ext <;> simp [{_proof_defs(target, srcs)}]")
+    lines.append("")
+    lines.append("end OpenMaterials")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def build_lean_index():
     """A browser-consumable index of the Lean export, so the frontend can show
     the actual Lean for the element you are looking at. Keyed by node id and by
     edge op; a node/edge absent from the index simply was not exported (uses a
-    base PhysLean lacks, or is not a pure dimensional product)."""
+    base physlib lacks, or is not a pure dimensional product)."""
     graph = build_graph_dict(DOMAINS)
     node_dims = _node_dimensions()
 
@@ -261,6 +392,11 @@ def write_export(out: Path | None = None, index_out: Path | None = None):
     out.parent.mkdir(parents=True, exist_ok=True)
     src, stats = build_export()
     out.write_text(src)
+    # the seven-base companion module for the nodes physlib cannot express
+    dim_src, dim_stats = build_dimensions_export()
+    (out.parent / "OpenMaterialsDimensions.lean").write_text(dim_src)
+    stats["dim7_nodes"] = dim_stats["nodes"]
+    stats["dim7_lemmas"] = dim_stats["lemmas"]
     # the browser index (docs/data/lean.json), so the frontend can surface Lean
     import json
     index_out = index_out or (_REPO / "docs" / "data" / "lean.json")
