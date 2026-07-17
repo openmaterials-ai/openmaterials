@@ -1,0 +1,250 @@
+{
+ "version": {
+  "physlib_rev": "a74414af9cf713084dd59943fa706980cb7573de",
+  "generated": "2026-07-17",
+  "method": "manual scan of physlib source"
+ },
+ "nodes": {
+  "Potential": [],
+  "Temperature": [
+   {
+    "name": "Temperature",
+    "module": "Physlib.Thermodynamics.Temperature.Basic",
+    "kind": "structure",
+    "informal": "Absolute temperature as a nonnegative real, the type used across physlib thermodynamics.",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/Thermodynamics/Temperature/Basic.lean#L31",
+    "confidence": "exact"
+   },
+   {
+    "name": "Temperature.β",
+    "module": "Physlib.Thermodynamics.Temperature.Basic",
+    "kind": "def",
+    "informal": "Inverse temperature beta = 1/(kB T) derived from a Temperature.",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/Thermodynamics/Temperature/Basic.lean#L58",
+    "confidence": "related"
+   }
+  ],
+  "ForceConstants[order=2]": [],
+  "ForceConstants[order=3]": [],
+  "BornCharges": [],
+  "DielectricTensor": [],
+  "BareDynamicalMatrix": [],
+  "DynamicalMatrix": [],
+  "Frequency": [
+   {
+    "name": "ClassicalMechanics.HarmonicOscillator.ω",
+    "module": "Physlib.ClassicalMechanics.HarmonicOscillator.Basic",
+    "kind": "def",
+    "informal": "Angular frequency of the classical harmonic oscillator, the model behind phonon modes.",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/ClassicalMechanics/HarmonicOscillator/Basic.lean#L150",
+    "confidence": "related"
+   }
+  ],
+  "Eigenvectors": [],
+  "GroupVelocity": [],
+  "HeatCapacity": [
+   {
+    "name": "CanonicalEnsemble.heatCapacity",
+    "module": "Physlib.StatisticalMechanics.CanonicalEnsemble.Lemmas",
+    "kind": "def",
+    "informal": "Constant-volume heat capacity C_V = dU/dT of a canonical ensemble.",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/CanonicalEnsemble/Lemmas.lean#L417",
+    "confidence": "exact"
+   }
+  ],
+  "VolumetricHeatCapacity": [],
+  "MolarHeatCapacity": [],
+  "HelmholtzFreeEnergy": [
+   {
+    "name": "CanonicalEnsemble.helmholtzFreeEnergy",
+    "module": "Physlib.StatisticalMechanics.CanonicalEnsemble.Basic",
+    "kind": "def",
+    "informal": "Helmholtz free energy F = -kB T log Z of a canonical ensemble.",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/CanonicalEnsemble/Basic.lean#L676",
+    "confidence": "exact"
+   },
+   {
+    "name": "MicroHamiltonian.helmholtzA",
+    "module": "Physlib.StatisticalMechanics.MicroCanonicalEnsemble.ThermoQuantities",
+    "kind": "def",
+    "informal": "Helmholtz free energy A = -T log Z as a function of temperature.",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/MicroCanonicalEnsemble/ThermoQuantities.lean#L85",
+    "confidence": "exact"
+   }
+  ],
+  "Entropy": [
+   {
+    "name": "CanonicalEnsemble.thermodynamicEntropy",
+    "module": "Physlib.StatisticalMechanics.CanonicalEnsemble.Basic",
+    "kind": "def",
+    "informal": "Thermodynamic entropy of a canonical ensemble as -kB times the mean log physical probability.",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/CanonicalEnsemble/Basic.lean#L796",
+    "confidence": "exact"
+   },
+   {
+    "name": "MicroHamiltonian.entropyS",
+    "module": "Physlib.StatisticalMechanics.MicroCanonicalEnsemble.ThermoQuantities",
+    "kind": "def",
+    "informal": "Entropy defined as minus the temperature derivative of the Helmholtz free energy.",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/MicroCanonicalEnsemble/ThermoQuantities.lean#L89",
+    "confidence": "exact"
+   },
+   {
+    "name": "CanonicalEnsemble.differentialEntropy",
+    "module": "Physlib.StatisticalMechanics.CanonicalEnsemble.Basic",
+    "kind": "def",
+    "informal": "Differential (Gibbs) entropy of the canonical distribution, entropy up to a phase-space constant.",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/CanonicalEnsemble/Basic.lean#L565",
+    "confidence": "related"
+   },
+   {
+    "name": "entropy",
+    "module": "Physlib.Thermodynamics.IdealGas.Basic",
+    "kind": "def",
+    "informal": "Entropy S(U,V,N) of a monophase ideal gas, the Sackur-Tetrode-style model expression.",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/Thermodynamics/IdealGas/Basic.lean#L34",
+    "confidence": "related"
+   }
+  ],
+  "InternalEnergy": [
+   {
+    "name": "CanonicalEnsemble.meanEnergy",
+    "module": "Physlib.StatisticalMechanics.CanonicalEnsemble.Basic",
+    "kind": "def",
+    "informal": "Mean energy U of a canonical ensemble, the ensemble average of the microstate energy.",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/CanonicalEnsemble/Basic.lean#L518",
+    "confidence": "exact"
+   },
+   {
+    "name": "MicroHamiltonian.internalU",
+    "module": "Physlib.StatisticalMechanics.MicroCanonicalEnsemble.ThermoQuantities",
+    "kind": "def",
+    "informal": "Internal energy U defined as minus the beta derivative of log Z.",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/MicroCanonicalEnsemble/ThermoQuantities.lean#L80",
+    "confidence": "exact"
+   }
+  ],
+  "MolarHelmholtzFreeEnergy": [],
+  "MolarEntropy": [],
+  "MolarInternalEnergy": [],
+  "Linewidth[channel=anharmonic_3ph]": [],
+  "Linewidth[channel=isotope]": [],
+  "Linewidth[channel=boundary]": [],
+  "Linewidth[channel=total]": [],
+  "IsotopeAbundances": [],
+  "PhononDOS": [],
+  "Gruneisen": [],
+  "PhaseSpace3Phonon": [],
+  "MeanFreeDisplacement[bte_solver=rta]": [],
+  "MeanFreeDisplacement[bte_solver=direct_inverse]": [],
+  "ThermalConductivity[bte_solver=rta]": [],
+  "ThermalConductivity": [],
+  "ThermalConductivity[bte_solver=direct_inverse]": [],
+  "ThermalConductivity[transport_model=wigner_populations]": [],
+  "ThermalConductivity[transport_model=wigner_coherences]": [],
+  "ThermalConductivity[transport_model=wigner]": [],
+  "ThermalConductivity[transport_model=qhgk]": [],
+  "CumulativeKappa[wrt=omega]": [],
+  "CumulativeKappa[wrt=mfp]": [],
+  "Trajectory": [],
+  "HeatCurrent": [],
+  "HeatCurrentACF": [],
+  "VelocityAutocorrelation": [],
+  "MeanSquaredDisplacement": [],
+  "ThermalConductivity[transport_model=green_kubo]": [],
+  "ThermalConductivity[transport_model=nemd]": [],
+  "ThermalConductivity[transport_model=hnemd]": [],
+  "ParticipationRatio": [],
+  "ModalDiffusivity": [],
+  "PhononTransmission": [],
+  "ThermalConductance[transport_model=landauer]": [],
+  "QuantumKineticEnergy": [],
+  "HeatCapacity[method=pimd]": [],
+  "PotentialOfMeanForce": [],
+  "Structure": [],
+  "TotalEnergy": [],
+  "Forces": [],
+  "Stress": [],
+  "MagneticMoment": [],
+  "BandGap": [],
+  "ElasticConstants": [],
+  "BulkModulus": [],
+  "ShearModulus": [],
+  "Pressure": [
+   {
+    "name": "NVEHamiltonian.pressure",
+    "module": "Physlib.StatisticalMechanics.MicroCanonicalEnsemble.ThermoQuantities",
+    "kind": "def",
+    "informal": "Pressure as the volume conjugate, minus the volume derivative of the Helmholtz free energy.",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/MicroCanonicalEnsemble/ThermoQuantities.lean#L219",
+    "confidence": "exact"
+   },
+   {
+    "name": "IdealGas.ideal_gas_law",
+    "module": "Physlib.StatisticalMechanics.MicroCanonicalEnsemble.IdealGas",
+    "kind": "theorem",
+    "informal": "The ideal gas law PV = nRT proven for the formalized ideal gas.",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/StatisticalMechanics/MicroCanonicalEnsemble/IdealGas.lean#L195",
+    "confidence": "related"
+   },
+   {
+    "name": "DimPressure",
+    "module": "Physlib.Units.WithDim.Pressure",
+    "kind": "def",
+    "informal": "Pressure as a dimensionful quantity with units such as pascal, bar, and atmosphere.",
+    "source_url": "https://github.com/leanprover-community/physlib/blob/master/Physlib/Units/WithDim/Pressure.lean#L24",
+    "confidence": "related"
+   }
+  ],
+  "YoungsModulus": [],
+  "PoissonRatio": [],
+  "MassDensity": [],
+  "FormationEnergy": [],
+  "EnergyAboveHull": [],
+  "SurfaceEnergy": [],
+  "Voltage": [],
+  "AdsorptionEnergy": [],
+  "ReactionEnergy": [],
+  "GrainBoundaryEnergy": [],
+  "AssessedDatabase": [],
+  "MolarGibbsEnergy": [],
+  "MolarEnthalpy": [],
+  "ChemicalPotential": [],
+  "PhaseFraction": [],
+  "TransitionTemperature": [],
+  "CalphadMolarEntropy": [],
+  "QHAGibbsEnergy": [],
+  "ThermalExpansion": [],
+  "HeatCapacityConstantP": [],
+  "ThermalGruneisen": [],
+  "HOMOLUMOGap": [],
+  "ReactionBarrier[construction=neb_mep]": [],
+  "BondDissociationEnergy": [],
+  "MolecularFrequency": [],
+  "StaticDielectricTensor": [],
+  "ElectronicDOS": [],
+  "ElectricalConductivity[carrier=electronic]": [],
+  "SeebeckCoefficient": [],
+  "ElectronicThermalConductivity": [],
+  "CarrierMobility": [],
+  "Diffusivity": [],
+  "ActivationEnergy": [],
+  "ElectricalConductivity[carrier=ionic]": [],
+  "ConfigurationalEnergy": [],
+  "CarrierDensity": [],
+  "ThermalConductivity[contribution=total]": [],
+  "MolarVolume": [],
+  "PowerFactor": [],
+  "ZT": [],
+  "ThermalConductivity[role=matrix]": [],
+  "ThermalConductivity[role=filler]": [],
+  "InterfaceConductance": [],
+  "FillerVolumeFraction": [],
+  "DepolarizationFactor": [],
+  "ThermalConductivity[effective_medium=nan,orientation=random]": [],
+  "ThermalConductivity[effective_medium=nan,orientation=aligned]": [],
+  "CellVolume": [],
+  "AtomicMass": [],
+  "AtomCount": []
+ }
+}
