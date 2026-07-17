@@ -417,16 +417,20 @@ def load_instance_index(instances_dir: Path | None = None, domains=None) -> list
             rec = json.loads(f.read_text())
         except Exception:
             continue
-        var = rec.get("variable")
+        # Evidence files are lineage instances ({id, kind, lineage, source});
+        # the claim lives in the lineage object.
+        lineage = rec.get("lineage") or {}
+        var = lineage.get("node")
         uid = name_to_uid.get(var)
         if uid is None:
             continue
+        values = lineage.get("values") or {}
         out.append({
             "node_uid": uid,
             "variable": var,
-            "material_key": _norm_material(rec.get("material", "")),
-            "value": rec.get("value"),
-            "units": rec.get("units"),
+            "material_key": _norm_material(lineage.get("material") or ""),
+            "value": values.get("value"),
+            "units": values.get("units"),
             "file": f.name,
         })
     return out

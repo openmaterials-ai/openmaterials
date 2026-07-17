@@ -206,33 +206,50 @@ def build_codes(domains: tuple[Domain, ...]) -> dict:
 
 def build_instances(instances_dir: Path | None = None,
                     simulations_dir: Path | None = None) -> list[dict]:
-    from omai.lineages import _SHA256_RE, committed_ids
+    """Project the committed evidence, which since the Lineage refactor is
+    stored as LINEAGE INSTANCES (one construct: {id, kind, lineage, source}),
+    into the flat instances.json view the site and the derived layers read.
+    The projection is byte-stable with the pre-refactor bundle: the files
+    changed construct, the view did not."""
+    from omai.lineages import _SHA256_RE, committed_ids, lineage_id
 
     instances_dir = instances_dir or (_DOCS / "data" / "instances")
     # Name -> content-addressed uid over the unified map (spaces + promoted
-    # parameters). Each instance is pinned to the uid of the node its variable
-    # names, so a value can follow the element through supersede chains.
+    # parameters). The uid pin is injected AT BUILD TIME against the live map,
+    # never stored in the hashed lineage, so a value follows its node through
+    # supersede chains without stranding its identity.
     name_to_uid = {n["id"]: n["uid"] for n in build_graph_dict(_domains())["nodes"]}
     sim_ids: set[str] | None = None
     out = []
     for f in sorted(instances_dir.glob("*.json")):
         rec = json.loads(f.read_text())
-        for key in ("variable", "material", "conditions", "value", "units", "source"):
-            if key not in rec:
-                raise ValueError(f"{f.name}: missing '{key}'")
-        if rec["source"].get("kind") not in ("simulation", "measurement"):
-            raise ValueError(f"{f.name}: source.kind must be simulation|measurement")
-        if rec["variable"] not in name_to_uid:
-            raise ValueError(f"{f.name}: unknown variable {rec['variable']!r}")
+        lineage = rec.get("lineage")
+        if not isinstance(lineage, dict):
+            raise ValueError(f"{f.name}: an evidence record is a lineage "
+                             f"instance and must carry a 'lineage' object")
+        if rec.get("id") != lineage_id(lineage):
+            raise ValueError(f"{f.name}: stated id does not recompute from "
+                             f"the lineage (identity is the lineage alone)")
+        if rec.get("kind") not in ("simulation", "measurement"):
+            raise ValueError(f"{f.name}: kind must be simulation|measurement")
+        node = lineage.get("node")
+        if node not in name_to_uid:
+            raise ValueError(f"{f.name}: unknown node {node!r}")
+        values = lineage.get("values") or {}
+        if "value" not in values or "units" not in values:
+            raise ValueError(f"{f.name}: lineage.values must carry value and units")
+        legacy_source = rec.get("source")
+        if not isinstance(legacy_source, dict) or "ref" not in legacy_source:
+            raise ValueError(f"{f.name}: the verbatim source block "
+                             f"{{kind, ref, detail}} is required on evidence")
+        lin_src = lineage.get("source")
+        if lin_src is not None and lin_src != legacy_source["ref"]:
+            raise ValueError(f"{f.name}: lineage.source conflicts with source.ref")
         backref = rec.get("simulation")
         if backref is not None:
-            # The optional backref to the SimulationRecord that produced this
-            # value. A record id is the sha256 of the run's claim, so the shape
-            # is checkable, and the id must belong to a committed record under
-            # docs/data/simulations/: a value must not cite a run the commons
-            # does not hold. build_simulations enforces the same loop in the
-            # other direction (a record's result slugs must resolve to
-            # committed instances that backref it), so neither side dangles.
+            # The optional backref to the run record that produced this value:
+            # shape-checked here, membership-checked against the committed
+            # records so a value never cites a run the commons does not hold.
             if not isinstance(backref, str) or not _SHA256_RE.match(backref):
                 raise ValueError(
                     f"{f.name}: simulation backref must be a 64-hex sha256 "
@@ -243,8 +260,21 @@ def build_instances(instances_dir: Path | None = None,
                 raise ValueError(
                     f"{f.name}: simulation backref {backref[:12]} matches no "
                     f"committed simulation record")
-        rec["node_uid"] = name_to_uid[rec["variable"]]
-        out.append(rec)
+        flat = {
+            "variable": node,
+            "material": lineage.get("material"),
+            "conditions": lineage.get("conditions") or {},
+            "value": values["value"],
+            "units": values["units"],
+            "uncertainty": values.get("uncertainty"),
+            "source": legacy_source,
+        }
+        if rec.get("configuration") is not None:
+            flat["configuration"] = rec["configuration"]
+        if backref is not None:
+            flat["simulation"] = backref
+        flat["node_uid"] = name_to_uid[node]
+        out.append(flat)
     return out
 
 
@@ -381,8 +411,21 @@ def record_instance(*, domains, variable, material, value, units, source_kind,
         raise ValueError("source_kind must be 'simulation' or 'measurement'")
     instances_dir = Path(instances_dir) if instances_dir else (_DOCS / "data" / "instances")
     instances_dir.mkdir(parents=True, exist_ok=True)
-    rec = {"variable": variable, "material": material, "conditions": conditions or {},
-           "value": value, "units": units, "uncertainty": uncertainty,
+    # Evidence is written as a LINEAGE INSTANCE (the one construct): the claim
+    # lives in the hashed lineage; the verbatim source block (kind, ref, the
+    # quoted detail) rides outside the hash exactly as legacy records do. A
+    # scheme:ref source additionally enters the hash, so equal claims from the
+    # same source dedupe to the same id.
+    from omai.lineages import lineage_id
+
+    lineage = {"node": variable, "material": material,
+               "conditions": conditions or {},
+               "values": {"value": value, "units": units}}
+    if uncertainty is not None:
+        lineage["values"]["uncertainty"] = uncertainty
+    if ":" in source_ref:
+        lineage["source"] = source_ref
+    rec = {"id": lineage_id(lineage), "kind": source_kind, "lineage": lineage,
            "source": {"kind": source_kind, "ref": source_ref, "detail": detail}}
     # Optional link to a configuration record (spec section 5). material stays
     # the display string; configuration is the canonical uid when known.
@@ -824,6 +867,11 @@ if __name__ == "__main__":
     print("wrote", write_configurations())
     print("wrote", write_codes())
     print("wrote", write_catalog())
+    # The version stamp is written BEFORE the exports that cite it (the lean
+    # bundle stamps it), so every artifact of one build carries THIS build's
+    # lineage_version, never the previous one.
+    print("wrote", write_version())
+    print("wrote", write_lineage())
     # The semantic layer regenerates with the map: labels are metadata over
     # live uids, so a stale semantics.json is a lie about identity.
     from omai.physlean_export import write_export as _write_physlean
@@ -842,8 +890,6 @@ if __name__ == "__main__":
     from omai.semantics import write_semantics as _write_semantics
     import json as _json
     print("wrote", _write_semantics(_json.loads((_DOCS / "data" / "graph.json").read_text())))
-    print("wrote", write_version())
-    print("wrote", write_lineage())
     # Cross-code agreement is derived from the instances (like instances.json
     # itself is derived), and its summary stamps the lineage version, so it runs
     # last, after write_version() has written docs/data/version.json.
