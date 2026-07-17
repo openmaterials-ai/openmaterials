@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>openmaterials.ai: the verified layer</title>
+<meta name="description" content="The dimensional layer of the map, proven in Lean 4: each node a physics dimension, each executable edge a theorem checked against physlib, with honest coverage counts.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="openmaterials.ai">
+<meta property="og:title" content="openmaterials.ai: the verified layer">
+<meta property="og:description" content="The dimensional layer of the map, proven in Lean 4 and checked against physlib.">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+  .gwrap{max-width:820px;margin:0 auto;padding:2.5rem clamp(16px,4vw,24px) 5rem;overflow-x:hidden;}
+  .glead{font-size:1.15rem;color:var(--ink-2,#3d4149);line-height:1.6;margin:0 0 2.5rem;}
+  .gtoc{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 3rem;padding:1rem 1.2rem;border:1px solid var(--line);border-radius:12px;background:var(--surface);}
+  .gtoc a{font-size:.82rem;color:var(--accent);text-decoration:none;padding:3px 9px;border-radius:7px;}
+  .gtoc a:hover{background:var(--accent-soft);}
+  .gsec{margin:0 0 3rem;}
+  .gsec h2{font-family:var(--font-serif);font-size:1.5rem;font-weight:600;margin:0 0 1rem;scroll-margin-top:72px;}
+  .gsec h3{font-size:1.05rem;font-weight:650;margin:1.8rem 0 .6rem;}
+  .gsec p{line-height:1.7;margin:0 0 1rem;}
+  .gsec ul{line-height:1.7;margin:0 0 1rem 1.2rem;}
+  .gsec a{color:var(--accent);}
+  .recipe{margin:1.2rem 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  .recipe-head{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--line);}
+  .recipe-title{font-size:.8rem;font-weight:700;color:var(--ink-2,#3d4149);letter-spacing:.01em;}
+  .recipe-lang{font-family:var(--font-mono,monospace);font-size:.68rem;color:var(--faint,#9aa0a8);text-transform:uppercase;letter-spacing:.08em;}
+  .recipe pre{margin:0;padding:14px;overflow-x:auto;font-family:var(--font-mono,ui-monospace,monospace);font-size:.82rem;line-height:1.55;background:#fbfaf7;color:#2a2d33;}
+  .gtable{width:100%;border-collapse:collapse;font-size:.85rem;margin:0 0 1rem;display:block;overflow-x:auto;}
+  .gtable th,.gtable td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  .gtable th{font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--faint,#9aa0a8);font-weight:700;}
+  .gtable code{font-family:var(--font-mono,monospace);font-size:.8rem;}
+  .gnote{border-left:3px solid var(--accent);padding:.4rem 0 .4rem 1rem;margin:1.2rem 0;color:var(--ink-2,#3d4149);font-size:.92rem;}
+
+  /* coverage strip: the index stats band, scaled to this page */
+  .lstats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line);margin:0 0 1rem;}
+  .lstat{padding:18px 14px;border-left:1px solid var(--line);}
+  .lstat:first-child{border-left:none;}
+  .lstat .num{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-variant-numeric:tabular-nums;font-weight:500;font-size:1.4rem;color:var(--ink);line-height:1.1;}
+  .lstat .num .of{font-size:.8rem;color:var(--muted);font-weight:400;}
+  .lstat .num.ver{font-size:.92rem;color:var(--ink-2);word-break:break-all;}
+  .lstat .lbl{margin-top:7px;font-size:.7rem;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);}
+  @media (max-width:640px){
+    .lstats{grid-template-columns:repeat(2,1fr);}
+    .lstat{border-top:1px solid var(--line);}
+    .lstat:nth-child(-n+2){border-top:none;}
+    .lstat:nth-child(odd){border-left:none;}
+  }
+
+  /* theorem statements: the data voice, scrollable, never wrapping the page */
+  .stmt{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.78rem;white-space:nowrap;}
+  .thm{margin:1.2rem 0;border:1px solid var(--line);border-radius:12px;overflow:hidden;}
+  .thm-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 14px;background:var(--surface);border-bottom:1px solid var(--line);}
+  .thm-name{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.8rem;font-weight:600;color:var(--ink);word-break:break-all;}
+  .thm-kind{font-size:.68rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
+  .thm-src{margin-left:auto;font-size:.76rem;}
+  .thm pre{margin:0;padding:14px;overflow-x:auto;font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.78rem;line-height:1.6;background:#fbfaf7;color:#2a2d33;}
+  .thm .meaning{padding:10px 14px;font-size:.86rem;color:var(--ink-2);border-top:1px solid var(--line);line-height:1.55;}
+
+  /* per-node crosswalk block: plain labelled key-values, present only when
+     the crosswalk file carries an entry for the node */
+  .xwalk{margin-top:6px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--surface);font-size:.74rem;line-height:1.5;}
+  .xwalk .xh{font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-size:.64rem;margin-bottom:3px;}
+  .xwalk .kv{color:var(--ink-2);}
+  .xwalk .kv .k{color:var(--faint);}
+  .xwalk .kv code{font-size:.72rem;word-break:break-all;}
+  .nid{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.8rem;white-space:nowrap;}
+  .gtable td{white-space:nowrap;}
+  .gtable td:first-child{white-space:normal;}
+  .empty{color:var(--muted);}
+  #err{border-left:3px solid #991b1b;padding:.4rem 0 .4rem 1rem;margin:1.2rem 0;color:#991b1b;font-size:.92rem;display:none;}
+</style>
+</head>
+<body>
+<div data-site-header></div>
+
+<div class="gwrap">
+  <p class="glead">The verified layer of the map: the part a proof assistant has
+    checked. Tier 1 proves the map's dimensional structure in
+    <a href="https://lean-lang.org/">Lean 4</a> against physlib, the community
+    Lean 4 physics library; Tier 2 states the map's operator identities as
+    real-valued theorems against Mathlib. Every number on this page is computed
+    at load from <a href="../data/lean.json">the published export</a>, never
+    hardcoded, and every theorem links to its generated source.</p>
+
+  <noscript><p class="empty">This page renders the Lean export client-side and
+    needs JavaScript. The raw export is plain JSON in
+    <a href="../data/lean.json">../data/lean.json</a>, and the generated Lean
+    sources live in
+    <a href="https://github.com/openmaterials-ai/openmaterials/tree/main/lean">lean/</a>.</p></noscript>
+  <div id="err"></div>
+
+  <nav class="gtoc" aria-label="Contents">
+    <a href="#proven">What is proven</a>
+    <a href="#coverage">Coverage</a>
+    <a href="#edges">Edge theorems</a>
+    <a href="#identities">Identities</a>
+    <a href="#nodes">Nodes</a>
+    <a href="#reproduce">Reproduce this</a>
+  </nav>
+
+  <section class="gsec" id="proven">
+    <h2>What is proven, and what is not</h2>
+    <p><b>Tier 1, the dimensional layer.</b> Each exported map node is declared
+      as a physics dimension: five rational exponents over length, time, mass,
+      charge, and temperature. Each executable edge becomes a theorem stating
+      that the edge's output dimension equals the product of its input
+      dimensions. The Lean compiler checks every one against physlib
+      (Lean 4.31.0); a file that compiles with zero errors and zero
+      <code>sorry</code>s is the proof.</p>
+    <p><b>Tier 2, the operator identities.</b> The map's executable identities
+      are stated as theorems over real numbers and checked against Mathlib. A
+      <i>composition</i> theorem substitutes an upstream identity into a
+      downstream one and proves the chained form equals the flat form; a
+      <i>law</i> theorem states a single identity's formula as a well-typed
+      real equation.</p>
+    <p><b>Scope.</b> physlib's <code>Dimension</code> has five bases and no
+      base for amount of substance, electric current, or luminous intensity, so
+      map nodes whose dimension needs a mole, ampere, or candela base are
+      omitted from the export. Extending the dimension system upstream is a
+      later tier. The coverage counts below state exactly how much of the map
+      this leaves in.</p>
+    <p class="gnote">Honest limits: a theorem here checks dimensional
+      consistency or an algebraic identity, mechanically. It does not check
+      that a formula is the right physics, that a code implements it
+      faithfully, or that any value attached to the map is accurate. Those
+      live in the <a href="../experiment/">evidence</a> and
+      <a href="../agreement/">agreement</a> views.</p>
+  </section>
+
+  <section class="gsec" id="coverage">
+    <h2>Coverage</h2>
+    <div class="lstats" aria-label="Verified-layer coverage, computed from the published export">
+      <div class="lstat"><div class="num" id="c-nodes">&middot;</div><div class="lbl">Dimension nodes</div></div>
+      <div class="lstat"><div class="num" id="c-edges">&middot;</div><div class="lbl">Edge theorems</div></div>
+      <div class="lstat"><div class="num" id="c-idents">&middot;</div><div class="lbl">Operator identities</div></div>
+      <div class="lstat"><div class="num ver" id="c-version">&middot;</div><div class="lbl">Map version</div></div>
+    </div>
+    <p id="c-sentence" class="empty">Counting from <code>data/lean.json</code>
+      and <code>data/graph.json</code>&hellip;</p>
+  </section>
+
+  <section class="gsec" id="edges">
+    <h2>Edge theorems (Tier 1)</h2>
+    <p>One theorem per verified executable edge: the output's dimension equals
+      the product of its inputs' dimensions. Node names link to the quantity on
+      the map; every theorem lives in the generated
+      <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/OpenMaterials.lean">lean/OpenMaterials.lean</a>.</p>
+    <div id="edge-list"><p class="empty">Loading&hellip;</p></div>
+  </section>
+
+  <section class="gsec" id="identities">
+    <h2>Operator identities (Tier 2)</h2>
+    <p>Each identity is a theorem over real numbers, checked against Mathlib;
+      the statement below is the generated source, verbatim, from
+      <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/OpenMaterialsIdentities.lean">lean/OpenMaterialsIdentities.lean</a>.</p>
+    <div id="identity-list"><p class="empty">Loading&hellip;</p></div>
+  </section>
+
+  <section class="gsec" id="nodes">
+    <h2>Nodes</h2>
+    <p>Every exported map node and its proven dimension, as five exponents in
+      physlib field order (length, time, mass, charge, temperature). Where a
+      node has a counterpart formalized in physlib itself, the crosswalk entry
+      appears under it.</p>
+    <div id="node-list"><p class="empty">Loading&hellip;</p></div>
+  </section>
+
+  <section class="gsec" id="reproduce">
+    <h2>Reproduce this</h2>
+    <p>The Lean files are generated from the live map and re-checked two ways:
+      the Lean compiler proves them, and the Python suite re-derives every
+      dimensional identity so a regression fails fast even without a Lean
+      toolchain. From <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/README.md">lean/README.md</a>:</p>
+    <div class="recipe">
+      <div class="recipe-head"><span class="recipe-title">Rebuild the proof</span><span class="recipe-lang">shell</span></div>
+      <pre>git clone https://github.com/openmaterials-ai/openmaterials.git
+cd openmaterials
+
+# with elan/lake installed and PhysLean available:
+cp lean/OpenMaterials.lean PhysLean/ &amp;&amp; cd PhysLean &amp;&amp; lake env lean OpenMaterials.lean
+
+# or compile all three generated files in one pass:
+bash lean/check.sh /path/to/PhysLean
+
+# the Python re-check (no Lean toolchain needed):
+pip install -e . &amp;&amp; python -m pytest tests/test_physlean_export.py tests/test_lean_tier2.py -q</pre>
+    </div>
+    <p>The generated sources:
+      <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/OpenMaterials.lean">OpenMaterials.lean</a> (Tier 1 dimensions and edge theorems),
+      <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/OpenMaterialsIdentities.lean">OpenMaterialsIdentities.lean</a> (Tier 2 identities),
+      <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/OpenMaterialsUnits.lean">OpenMaterialsUnits.lean</a> (the units bridge).</p>
+  </section>
+</div>
+
+<div data-site-footer></div>
+<script src="../assets/site.js"></script>
+<script src="lib.js"></script>
+<script>
+/* The verified-layer view. Everything rendered here is read at load from the
+   published files: data/lean.json (the export), data/graph.json (for honest
+   coverage denominators), and data/physlib_crosswalk.json (optional; when the
+   file or an entry is absent, the crosswalk block simply does not render). */
+(function () {
+  'use strict';
+  var L = window.LeanLib;
+  var REPO = 'https://github.com/openmaterials-ai/openmaterials/blob/main/lean/';
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function fail(msg) {
+    var el = document.getElementById('err');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+  function setText(id, v) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = v;
+  }
+  function mapLink(id) {
+    return '<a class="nid" href="../map/#node=' + encodeURIComponent(id) +
+      '" title="Open this quantity on the map">' + esc(id) + '</a>';
+  }
+
+  // A node name in a theorem is the sanitized Lean name; render it as the map
+  // node id (linked) when the reverse index resolves it, plain mono otherwise.
+  function nodeRef(leanName, idx) {
+    var id = idx[leanName];
+    return id ? mapLink(id) : '<span class="nid">' + esc(leanName) + '</span>';
+  }
+
+  function renderStats(stats) {
+    var nodesEl = document.getElementById('c-nodes');
+    nodesEl.innerHTML = stats.nodes +
+      (stats.graphNodes ? ' <span class="of">of ' + stats.graphNodes + '</span>' : '');
+    var edgesEl = document.getElementById('c-edges');
+    edgesEl.innerHTML = stats.edges +
+      (stats.graphOps ? ' <span class="of">of ' + stats.graphOps + '</span>' : '');
+    setText('c-idents', String(stats.identities));
+    if (stats.version) setText('c-version', String(stats.version).slice(0, 12));
+    var parts = [
+      stats.nodes + (stats.graphNodes ? ' of the map’s ' + stats.graphNodes + ' nodes' : ' nodes') +
+        ' carry a proven dimension',
+      stats.edges + (stats.graphOps ? ' of ' + stats.graphOps + ' executable operators' : ' operators') +
+        ' carry an edge theorem',
+      stats.identities + (stats.identities === 1 ? ' operator identity is' : ' operator identities are') +
+        ' proven over the reals'
+    ];
+    var el = document.getElementById('c-sentence');
+    el.className = '';
+    el.innerHTML = parts.join('; ') + '. Generated from map version <code>' +
+      esc(stats.version || 'unknown') + '</code>.';
+  }
+
+  function renderEdges(lean, idx) {
+    var ops = Object.keys(lean.edges).sort();
+    var rows = ops.map(function (op) {
+      var e = L.parseEdge(lean.edges[op].lean);
+      var inputs = e.inputs.map(function (n) { return nodeRef(n, idx); }).join(' &middot; ');
+      return '<tr>' +
+        '<td><code>' + esc(op) + '</code></td>' +
+        '<td>' + nodeRef(e.output, idx) + '</td>' +
+        '<td>' + inputs + '</td>' +
+        '<td class="stmt">' + esc(e.statement) + '</td>' +
+        '<td><a href="' + REPO + 'OpenMaterials.lean" title="theorem ' +
+          esc(e.name) + '">source</a></td>' +
+        '</tr>';
+    }).join('');
+    document.getElementById('edge-list').innerHTML =
+      '<table class="gtable"><thead><tr>' +
+      '<th>Edge</th><th>Output</th><th>Inputs</th><th>Dimension statement</th><th>Lean</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  function renderIdentities(lean) {
+    var names = Object.keys(lean.identities).sort();
+    if (!names.length) {
+      document.getElementById('identity-list').innerHTML =
+        '<p class="empty">No identities in this export.</p>';
+      return;
+    }
+    var blocks = names.map(function (name) {
+      var entry = lean.identities[name];
+      var t = L.parseTheorem(entry.lean);
+      var meaning = entry.kind === 'composition'
+        ? 'A composition theorem: substituting the upstream identity into the ' +
+          'downstream one, the chained form equals the flat form, for all reals ' +
+          'satisfying the stated hypotheses.'
+        : 'A law theorem: the identity’s formula stated as a well-typed real equation.';
+      return '<div class="thm">' +
+        '<div class="thm-head"><span class="thm-name">' + esc(name) + '</span>' +
+        '<span class="thm-kind">' + esc(entry.kind || '') + '</span>' +
+        '<a class="thm-src" href="' + REPO + 'OpenMaterialsIdentities.lean">source</a></div>' +
+        '<pre>' + esc(entry.lean) + '</pre>' +
+        '<div class="meaning">' + meaning + '</div>' +
+        '</div>';
+    }).join('');
+    document.getElementById('identity-list').innerHTML = blocks;
+  }
+
+  // One crosswalk block: every field of the entry as a plain labelled
+  // key-value; URL-shaped strings become links, nothing else is interpreted.
+  function xwalkHtml(entry) {
+    var rows = Object.keys(entry).map(function (k) {
+      var v = entry[k];
+      var vh;
+      if (typeof v === 'string' && /^https?:\/\//.test(v)) {
+        vh = '<a href="' + esc(v) + '">' + esc(v) + '</a>';
+      } else if (v !== null && typeof v === 'object') {
+        vh = '<code>' + esc(JSON.stringify(v)) + '</code>';
+      } else {
+        vh = '<code>' + esc(v) + '</code>';
+      }
+      return '<div class="kv"><span class="k">' + esc(k) + ':</span> ' + vh + '</div>';
+    }).join('');
+    return '<div class="xwalk"><div class="xh">Formalized in physlib</div>' + rows + '</div>';
+  }
+
+  function renderNodes(lean, xwalk) {
+    var ids = Object.keys(lean.nodes).sort();
+    var rows = ids.map(function (id) {
+      var n = L.parseNodeDef(lean.nodes[id].lean);
+      var exps = n.exponents ? n.exponents.map(esc).join(', ') : '';
+      var extra = xwalk[id] ? xwalkHtml(xwalk[id]) : '';
+      return '<tr>' +
+        '<td>' + mapLink(id) + extra + '</td>' +
+        '<td class="stmt">&#10216;' + exps + '&#10217;</td>' +
+        '<td><code>' + esc(n.leanName || '') + '</code></td>' +
+        '</tr>';
+    }).join('');
+    document.getElementById('node-list').innerHTML =
+      '<table class="gtable"><thead><tr>' +
+      '<th>Map node</th><th>Dimension (L, T, M, Q, &Theta;)</th><th>Lean name</th>' +
+      '</tr></thead><tbody>' + rows + '</tbody></table>';
+  }
+
+  Promise.allSettled([
+    fetch('../data/lean.json').then(function (r) {
+      if (!r.ok) throw new Error('lean.json: HTTP ' + r.status);
+      return r.json();
+    }),
+    fetch('../data/graph.json').then(function (r) { return r.ok ? r.json() : null; }),
+    fetch('../data/physlib_crosswalk.json').then(function (r) { return r.ok ? r.json() : null; })
+  ]).then(function (res) {
+    if (res[0].status !== 'fulfilled') {
+      fail('Failed to load the Lean export (' + res[0].reason +
+        '). The raw file is ../data/lean.json.');
+      return;
+    }
+    var lean = res[0].value;
+    var graph = res[1].status === 'fulfilled' ? res[1].value : null;
+    var xwalk = L.normalizeCrosswalk(res[2].status === 'fulfilled' ? res[2].value : null);
+    var idx = L.leanNameIndex(lean.nodes);
+    renderStats(L.computeStats(lean, graph));
+    renderEdges(lean, idx);
+    renderIdentities(lean);
+    renderNodes(lean, xwalk);
+  });
+})();
+</script>
+</body>
+</html>
