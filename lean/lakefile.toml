@@ -1,0 +1,11 @@
+name = "openmaterials"
+defaultTargets = ["OpenMaterials"]
+
+[[require]]
+name = "physlib"
+git = "https://github.com/leanprover-community/physlib.git"
+rev = "a74414af9cf713084dd59943fa706980cb7573de"
+
+[[lean_lib]]
+name = "OpenMaterials"
+globs = ["OpenMaterials", "OpenMaterialsDimensions", "OpenMaterialsIdentities", "OpenMaterialsUnits"]

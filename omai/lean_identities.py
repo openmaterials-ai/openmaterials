@@ -1,4 +1,4 @@
-"""PhysLean export Tier 2: the executable identities as real-valued theorems.
+"""Lean export Tier 2: the executable identities as real-valued theorems.
 
 Tier 1 (omai.physlean_export) proves the map's DIMENSIONAL layer: each edge's
 output dimension is the product of its inputs. Tier 2 proves the ALGEBRAIC
@@ -132,13 +132,29 @@ def _theorem_list():
         except (ValueError, KeyError):
             skipped.append((op.name, "unrenderable"))
             continue
-        dens = _denominators(rhs) + _denominators(sp.together(flat))
+        # Collect denominators in the form the goal takes AFTER the upstream
+        # substitutions are applied (so `kappa_tot` becomes `kappa + kappa_e`
+        # before we read its denominators). Substituting first means two
+        # denominators that coincide post-substitution render identically and
+        # deduplicate, instead of emitting a redundant `≠ 0` hypothesis.
+        subst_map = {s: form for s, form in inters}
+        raw_dens = (_denominators(rhs.subs(subst_map))
+                    + _denominators(sp.together(flat)))
+        dens, seen = [], set()
+        for d in raw_dens:
+            key = _lean_expr(d, symmap)
+            if key not in seen:
+                seen.add(key)
+                dens.append(d)
         binders = " ".join(f"({symmap[str(x)]} : ℝ)" for x in all_syms)
         hyp_binders = "".join(f" (h_{hn} : {hn} = {he})" for hn, he in hyps)
         den_binders = "".join(f" (hd{i} : {_lean_expr(d, symmap)} ≠ 0)"
                               for i, d in enumerate(dens))
         subst_names = " ".join(f"h_{hn}" for hn, _ in hyps)
-        tail = "field_simp <;> ring" if dens else "ring"
+        # `field_simp` clears the (nonzero) denominators and closes these
+        # algebraic identities on its own; a chained `ring` would be a
+        # never-executed tactic and trips the unreachable-tactic linter.
+        tail = "field_simp" if dens else "ring"
         proof = f"by subst {subst_names}; {tail}"
         name = "identity_" + _lean_var(op.name)
         lean = (f"theorem {name} {binders}{hyp_binders}{den_binders} :\n"
@@ -185,7 +201,7 @@ def _render(theorems):
         "  one and proves the chained form equals the flat form (ring / field_simp).",
         "  A `law` theorem states a single identity's formula as a well-typed real",
         "  equation. Dimensional consistency is Tier 1 (OpenMaterials.lean).",
-        "  Compiles against Mathlib (Lean 4.29.1).",
+        "  Compiles against Mathlib (Lean 4.31.0).",
         "-/",
         "import Mathlib.Tactic",
         "",
