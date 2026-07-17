@@ -1324,7 +1324,7 @@ function renderLineage(record){
   h += '<div><dt>Output node</dt><dd>' + output + '</dd></div>';
   h += '<div><dt>Material</dt><dd>' + esc(mat || 'not supplied') + '</dd></div>';
   h += '<div><dt>Lineage id</dt><dd title="lineage id, first 12 characters">' + esc(shortId) + '</dd></div>';
-  h += '<div><dt>Map</dt><dd>' + esc(mapVersion) + '</dd></div>';
+  h += '<div><dt>Lineage</dt><dd title="the schema version this record was checked against: one rolling hash over the derivation graph and the instance-format rules">' + esc(mapVersion) + '</dd></div>';
   h += '</dl></div>';
 
   // ---- THE LINEAGE: every field, as plain labelled information ---------------
@@ -1397,8 +1397,11 @@ function renderLineage(record){
 // '' when there is nothing to say.
 function provenanceHTML(record, lineage){
   var rows = [];
-  var src = record.source || (lineage && lineage.source) || null;
-  var ref = src && src.ref;
+  // The identity-bearing form is lineage.source, a "scheme:ref" string; the
+  // legacy top-level record.source object (outside the hash) stays readable.
+  var linSrc = lineage && typeof lineage.source === 'string' ? lineage.source : null;
+  var src = record.source || null;
+  var ref = linSrc || (src && src.ref);
   if (ref) rows.push('<dt>source ref</dt><dd class="wrap">' + esc(String(ref)) + '</dd>');
   // paper info for a parsed-paper lineage: title / doi / authors / year, wherever present
   var paper = record.paper || (src && src.paper) || (lineage && lineage.paper) || null;
@@ -1410,7 +1413,7 @@ function provenanceHTML(record, lineage){
   } else if (typeof paper === 'string' && paper) {
     rows.push('<dt>paper</dt><dd>' + esc(paper) + '</dd>');
   }
-  if (window.__MAP_VERSION__) rows.push('<dt>map version</dt><dd class="wrap" title="the map version this record was checked against">' + esc(String(window.__MAP_VERSION__).slice(0, 12)) + '</dd>');
+  if (window.__MAP_VERSION__) rows.push('<dt>lineage version</dt><dd class="wrap" title="the schema version this record was checked against: one rolling hash over the derivation graph and the instance-format rules">' + esc(String(window.__MAP_VERSION__).slice(0, 12)) + '</dd>');
   if (!rows.length) return '';
   return '<div class="rec-sec"><div class="rec-h">Provenance</div><dl class="rec-kv">' + rows.join('') + '</dl></div>';
 }
