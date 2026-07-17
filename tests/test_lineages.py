@@ -578,10 +578,12 @@ def test_record_instance_refuses_malformed_backref(tmp_path):
 
 def _handwritten_instance(insts, backref):
     insts.mkdir(parents=True, exist_ok=True)
+    lineage = {"node": _LIVE_NODE, "material": "Si",
+               "conditions": {"T": "300 K"},
+               "values": {"value": 1.37, "units": "W/(m K)"}}
     (insts / "si-thermalconductivity-gpumd.json").write_text(json.dumps({
-        "variable": _LIVE_NODE, "material": "Si",
-        "conditions": {"T": "300 K"}, "value": 1.37, "units": "W/(m K)",
-        "uncertainty": None,
+        "id": lin.lineage_id(lineage), "kind": "simulation",
+        "lineage": lineage,
         "source": {"kind": "simulation", "ref": "gpumd", "detail": "HNEMD"},
         "simulation": backref}))
 

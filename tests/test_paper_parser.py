@@ -220,16 +220,21 @@ def test_value_finite():
 # dedup against a fixture instance corpus
 # --------------------------------------------------------------------------
 def _fixture_instances(tmp_path: Path) -> Path:
+    from omai.lineages import lineage_id
+
     d = tmp_path / "instances"
     d.mkdir()
+    lin1 = {"node": "ThermalConductivity[bte_solver=rta]", "material": "Si",
+            "conditions": {}, "values": {"value": 16.735, "units": "W/(m K)"}}
     (d / "si-kappa.json").write_text(json.dumps({
-        "variable": "ThermalConductivity[bte_solver=rta]", "material": "Si",
-        "conditions": {}, "value": 16.735, "units": "W/(m K)",
+        "id": lineage_id(lin1), "kind": "simulation", "lineage": lin1,
         "source": {"kind": "simulation", "ref": "x"},
     }))
+    lin2 = {"node": "ElectricalConductivity[carrier=ionic]",
+            "material": "LGPS", "conditions": {},
+            "values": {"value": 91.44, "units": "mS/cm"}}
     (d / "lgps-sigma.json").write_text(json.dumps({
-        "variable": "ElectricalConductivity[carrier=ionic]", "material": "LGPS",
-        "conditions": {}, "value": 91.44, "units": "mS/cm",
+        "id": lineage_id(lin2), "kind": "simulation", "lineage": lin2,
         "source": {"kind": "simulation", "ref": "y"},
     }))
     return d
@@ -689,7 +694,7 @@ def test_apply_proposal_excludes_condition_claims(tmp_path):
     # Only the kappa value instance is minted; the Temperature condition is not.
     assert len(written) == 1
     rec = json.loads(written[0].read_text())
-    assert rec["variable"] == "ThermalConductivity[bte_solver=rta]"
+    assert rec["lineage"]["node"] == "ThermalConductivity[bte_solver=rta]"
 
 
 def test_default_map_version_is_the_live_published_pin():
