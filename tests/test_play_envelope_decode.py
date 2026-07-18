@@ -131,9 +131,11 @@ def test_derivation_map_is_legible_and_explained():
     # natural-size floor: the svg pins its own width as an inline min-width
     assert "min-width:' + W + 'px" in deriv, "svg does not pin its natural width"
     assert "min-width:820px" not in html, "stale fixed min-width would re-shrink wide maps"
-    # legible geometry: the label font is a real UI size, not a thumbnail's
-    m = re.search(r'font-size="([\d.]+)"', deriv)
-    assert m and float(m.group(1)) >= 12, f"map label font too small: {m and m.group(1)}"
+    # legible geometry: the node-label font is a real UI size, not a thumbnail's
+    sizes = [float(x) for x in re.findall(r'font-size="([\d.]+)"', deriv)]
+    assert sizes and max(sizes) >= 12, f"map label font too small: {sizes}"
+    # every column is headed by the full map's numbered tier names
+    assert "tierNo" in deriv and "colHeads" in deriv, "no tier column headings"
     # the drawing explains itself where it is rendered
     assert "rec-maplegend" in html, "no color legend for the derivation drawing"
     assert "Read left to right" in html, "no how-to-read caption"
