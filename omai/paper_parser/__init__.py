@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 import json
+import re
 from pathlib import Path
 
 from . import catalog as _catalog
@@ -218,10 +219,30 @@ def run_pipeline(pdf_path: str | Path, *, client=None, map_version: str | None =
         verdicts=verdicts, stage_kills=stage_kills, cache_read_input_tokens=cache_read)
 
 
+# "a ± b" (and the ASCII spellings) frame a central value with a printed
+# uncertainty; the central value is the claim.
+_PM_RE = re.compile(r"^\s*([+-−]?[\d.,\s]+?)\s*(?:±|\+/-|\+-)\s*[\d.,\s]+\s*$")
+
+
 def _to_float(value_text: str):
-    """Parse a printed value string to float, or None if it is not numeric."""
+    """Parse a printed value string to float, or None if it is not numeric.
+
+    Printed numerals survive PDF extraction mangled, so normalization comes
+    first (the CNT paper alone lost three real claims to it before this):
+    thousands separators ("13,000"), the comma-space artifact of a line break
+    ("9, 960"), the unicode minus, and "a ± b" uncertainty forms, whose
+    central value is the claim (the printed uncertainty stays verbatim in the
+    quote; a structured uncertainty field is a follow-up). Decimal is DOT,
+    the map's convention: a comma between digits is always read as
+    formatting, never as a decimal mark."""
+    s = str(value_text).strip().replace("−", "-")
+    m = _PM_RE.match(s)
+    if m:
+        s = m.group(1)
+    s = re.sub(r"(?<=\d),\s*(?=\d)", "", s)
+    s = re.sub(r"\s+", "", s)
     try:
-        return float(str(value_text).strip())
+        return float(s)
     except (TypeError, ValueError):
         return None
 
