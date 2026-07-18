@@ -144,6 +144,13 @@
   .rec-grp{margin:0 0 7px;}
   .rec-grp:last-child{margin-bottom:0;}
   .rec-grp-lab{font-size:.7rem;font-weight:650;color:var(--ink-2,#3d4149);margin:7px 0 3px;}
+  /* the derivation drawn as a map excerpt: natural size, scrolling in its own
+     box when wider than the column (legible beats miniature); the datasheet's
+     one sanctioned graphic */
+  .rec-mapbox{overflow-x:auto;margin:6px 0 10px;border:1px solid var(--line);border-radius:8px;background:#fdfcf9;}
+  .rec-map{display:block;}
+  /* stacked member datasheets inside a bundle */
+  .bundle-member{border-top:1px solid var(--line);margin-top:22px;padding-top:14px;}
   .rec-grp-lab .rec-grp-tag{font-family:var(--font-mono,monospace);font-size:.66rem;font-weight:400;
     color:var(--muted);margin-left:7px;}
   .rec-none{font-size:.8rem;color:var(--muted);font-style:italic;}
@@ -1317,6 +1324,8 @@ function mapContextHTML(node, material){
   var gnode = (node && nodeById[node]) || (base && nodeById[base]);
   if (!cat && !gnode) return '';
   var body = '<div class="rec-h">What it means on the map</div>';
+  // the derivation drawn as a map excerpt, above the plain text statement
+  body += derivationSVG(node);
 
   // the plain-language description, trimmed of the trailing bare SI unit the
   // catalog appends (that unit is reported on its own line below).
@@ -1368,15 +1377,89 @@ function valuesHTML(lineage, node){
     }).join('') + '</tbody></table></div>';
 }
 
-function lineageLinksHTML(lineage, node, known){
+function lineageLinksHTML(lineage, node, known, memberIdx){
   var h = '<div class="rec-links">';
   if (known && isComputable(node)) {
     h += '<a href="' + esc(mcgRunUrl(lineage)) + '" target="_blank" rel="noopener"' +
       ' title="Run this lineage as a simulation on MaterialsCodeGraph">Run this lineage as a simulation on MaterialsCodeGraph &rarr;</a>';
   }
-  h += '<button id="rcCopy" type="button" title="Copy a link that carries this whole record in its #x= fragment: it reopens this data view.">Copy link</button>';
+  // class-based, never an id: a bundle stacks several datasheets on one page
+  h += '<button type="button" class="rcCopy"' +
+    (memberIdx != null ? ' data-idx="' + memberIdx + '"' : '') +
+    ' title="Copy a link that carries this record in its #x= fragment: it reopens this data view.">Copy link</button>';
   h += '<span class="rec-link-note">Dashboards and compute live on MaterialsCodeGraph; this is the data view.</span>';
   return h + '</div>';
+}
+
+/* The derivation drawn as a compact map excerpt: the record's upstream graph
+   (the DERIVATION, in the glossary's sense) laid out in layer columns, in the
+   map's own colors. Map-family visualization is the sanctioned visual on the
+   datasheet; value charts stay on MaterialsCodeGraph. Returns '' when the node
+   is unknown (node-unresolved records never get a fabricated drawing) or the
+   closure is degenerate. */
+function derivationSVG(nodeId){
+  if (!nodeId) return '';
+  var start = nodeById[nodeId] ? nodeId : baseNode(nodeId);
+  if (!nodeById[start]) return '';
+  // upstream closure over the parents adjacency the page already built
+  var seen = {}, order = [], queue = [start];
+  while (queue.length) {
+    var id = queue.shift();
+    if (seen[id]) continue;
+    seen[id] = true; order.push(id);
+    (parents[id] || []).forEach(function(p){ if (!seen[p]) queue.push(p); });
+    if (order.length > 60) return '';   // safety: fall back to the text statement
+  }
+  if (order.length < 2) return '';
+  // columns from the node layer, compacted to the layers actually present
+  var layers = {};
+  order.forEach(function(id){ layers[nodeById[id].layer] = true; });
+  var cols = Object.keys(layers).map(Number).sort(function(a, b){ return a - b; });
+  var colOf = {}; cols.forEach(function(l, i){ colOf[l] = i; });
+  var byCol = cols.map(function(){ return []; });
+  order.slice().sort().forEach(function(id){ byCol[colOf[nodeById[id].layer]].push(id); });
+  var CW = 168, RH = 34, PAD = 12, BW = 148, BH = 24;
+  var maxRows = Math.max.apply(null, byCol.map(function(c){ return c.length; }));
+  var W = PAD * 2 + cols.length * CW - (CW - BW);
+  var H = PAD * 2 + maxRows * RH - (RH - BH);
+  var pos = {};
+  byCol.forEach(function(colIds, ci){
+    var offset = (maxRows - colIds.length) * RH / 2;
+    colIds.forEach(function(id, ri){
+      pos[id] = { x: PAD + ci * CW, y: PAD + offset + ri * RH };
+    });
+  });
+  var s = '<svg class="rec-map" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H +
+    '" role="img" aria-label="Derivation of ' + esc(start) + ' on the map">';
+  // edges first (only those inside the closure)
+  order.forEach(function(id){
+    (parents[id] || []).forEach(function(p){
+      if (!pos[p] || !pos[id]) return;
+      var x1 = pos[p].x + BW, y1 = pos[p].y + BH / 2, x2 = pos[id].x, y2 = pos[id].y + BH / 2;
+      var mx = (x1 + x2) / 2;
+      s += '<path d="M' + x1 + ' ' + y1 + ' C' + mx + ' ' + y1 + ' ' + mx + ' ' + y2 + ' ' + x2 + ' ' + y2 +
+        '" fill="none" stroke="#c9c2b6" stroke-width="1.1"/>';
+    });
+  });
+  order.forEach(function(id){
+    var n = nodeById[id], p = pos[id];
+    var terminal = id === start;
+    var obs = n.type === 'observable';
+    var stroke = terminal ? '#4f46e5' : (obs ? '#4f46e5' : '#8a8177');
+    var fill = terminal ? '#eef2ff' : '#fdfcf9';
+    // a TeX-laden symbol is unreadable as raw text; fall back to the node id
+    var sym = n.symbol && n.symbol.indexOf('\\') === -1 ? n.symbol : '';
+    var label = sym && sym.length <= 14 ? sym : id;
+    if (label.length > 22) label = label.slice(0, 21) + '…';
+    s += '<a href="../map/#node=' + encodeURIComponent(id) + '">';
+    s += '<rect x="' + p.x + '" y="' + p.y + '" width="' + BW + '" height="' + BH +
+      '" rx="6" fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + (terminal ? 1.8 : 1.1) + '"/>';
+    s += '<text x="' + (p.x + BW / 2) + '" y="' + (p.y + BH / 2 + 3.5) +
+      '" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9.5" fill="#17130e">' +
+      esc(label) + '</text></a>';
+  });
+  s += '</svg>';
+  return '<div class="rec-mapbox">' + s + '</div>';
 }
 
 /* renderShared: the one decode dispatch for anything the #x= fragment (or a
@@ -1449,14 +1532,22 @@ function renderBundle(env){
     var val = picked.primary && !isUnitMeta ? fmtValue(picked.primary.val) : '';
     var unit = cleanUnit(lineage.units || (lineage.values && lineage.values.units) || '');
     var short = member.id ? String(member.id).slice(0, 12) : '';
-    h += '<tr><td class="rec-vk"><a href="#" class="rec-member" data-idx="' + idx + '" title="Open this lineage\'s full datasheet">' + esc(label + (mat ? ' of ' + mat : '')) + '</a></td>' +
+    h += '<tr><td class="rec-vk"><a href="#" class="rec-member" data-idx="' + idx + '" title="Jump to this lineage\'s datasheet below">' + esc(label + (mat ? ' of ' + mat : '')) + '</a></td>' +
       '<td class="rec-vv">' + esc(val) + '</td><td class="rec-vu">' + esc(unit) + '</td>' +
       '<td class="rec-vu">' + esc(short) + '</td></tr>';
   });
   h += '</tbody></table></div>';
   h += '<div class="rec-links"><button id="bundleCopy" type="button" title="Copy a link that carries this whole bundle in its #x= fragment.">Copy link</button>' +
-       '<span class="rec-link-note">Each lineage keeps its own id; open one for its full datasheet.</span></div>';
+       '<span class="rec-link-note">Each lineage keeps its own id; every datasheet is on this page.</span></div>';
   h += '</div>';
+
+  // ---- every member's FULL datasheet, stacked on this same page --------------
+  env.lineages.forEach(function(member, idx){
+    var mvalid = validateLightJS(member);   // revalidated above; carries nodeResolved
+    h += '<section class="rec bundle-member" id="member-' + idx + '">' +
+      datasheetHTML(mvalid.record, mvalid, { doc: doc, memberIdx: idx }) +
+      '</section>';
+  });
 
   panelBox.innerHTML = '';
   box.innerHTML = h;
@@ -1477,39 +1568,31 @@ function renderBundle(env){
   box.querySelectorAll('.rec-member').forEach(function(a){
     a.addEventListener('click', function(e){
       e.preventDefault();
-      renderLineage(currentBundle.lineages[Number(a.getAttribute('data-idx'))],
-                    { doc: currentBundle.doc, fromBundle: true });
+      // scrollIntoView, never a hash change: the router owns location.hash
+      var target = document.getElementById('member-' + a.getAttribute('data-idx'));
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   });
   var copyBtn = box.querySelector('#bundleCopy');
   if (copyBtn) copyBtn.addEventListener('click', function(){ copyBundleLink(currentBundle, this); });
+  // per-member Copy link: mints THAT record alone (each keeps its own id)
+  box.querySelectorAll('.rcCopy[data-idx]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      copyLineageLink(currentBundle.lineages[Number(btn.getAttribute('data-idx'))],
+                      btn, { fromBundle: true });
+    });
+  });
   renderSubmap([], {});
   return true;
 }
 
-/* renderLineage: the PLAIN DATA VIEW of a shared #x= record (and a pasted,
-   dropped, gallery, or default example). A valid record opens the full-width
-   stage as a dense scientific datasheet: one compact identity header, then the
-   existing sections in three responsive text columns. It is still information,
-   not a dashboard. Node-unresolved and measurement records render honestly,
-   without a fabricated map section or Run link. Invalid records stay in the
-   Lineage tool panel so their validation banner is visible. */
-function renderLineage(record, opts){
+/* datasheetHTML: ONE lineage's dense datasheet (header + three-column grid),
+   shared by the single view and the stacked bundle view so the two can never
+   drift. opts: {doc} for read-time source inheritance, {memberIdx} to make the
+   copy button addressable inside a stacked bundle. Still information, not a
+   dashboard; the only graphic is the derivation drawn as a map excerpt. */
+function datasheetHTML(record, valid, opts){
   opts = opts || {};
-  var panelBox = document.getElementById('xResult');
-  var box = document.getElementById('linRecord');
-  nodePanel.style.display = 'none';
-  var valid = validateLightJS(record);
-  if (!valid.ok) {
-    showLineageError('<div class="xp-err">' + esc(valid.error) + '</div>');
-    renderSubmap([], {});
-    return false;
-  }
-  record = valid.record;
-  if (!opts.fromBundle) { currentBundle = null; }
-  bundleViewOpen = false;
-  currentLineageDoc = opts.doc || null;
-  currentLineageFromBundle = !!opts.fromBundle;
   var lineage = record.lineage;
   var node = lineage.node;
   var template = lineage.template;
@@ -1525,13 +1608,7 @@ function renderLineage(record, opts){
       : esc(node) + ' (not on this map version)')
     : 'node-unresolved (template only)';
 
-  var h = '<div class="rec">';
-
-  // a member opened out of a bundle keeps one plain way back to the paper view
-  if (opts.fromBundle && currentBundle) {
-    h += '<p class="rec-meta"><a href="#" id="linBundleBack">&#8249; back to the shared bundle</a></p>';
-  }
-
+  var h = '';
   // ---- COMPACT HEADER: lede + the merged What-this-is metadata ---------------
   h += '<div class="rec-head">';
   h += '<p class="rec-lede">' + esc(prop) + (mat ? ' of ' + esc(mat) : '') + '</p>';
@@ -1574,11 +1651,50 @@ function renderLineage(record, opts){
   lineageHTML += '</div>';
 
   var valueAndMap = valuesHTML(lineage, node) + (known ? mapContextHTML(node, lineage.material) : '');
-  var recordTail = provenanceHTML(record, lineage, opts.doc) + artifactsHTML(record) + lineageLinksHTML(lineage, node, known);
+  var recordTail = provenanceHTML(record, lineage, opts.doc) + artifactsHTML(record) +
+    lineageLinksHTML(lineage, node, known, opts.memberIdx);
   h += '<div class="rec-grid"><div class="rec-col">' + lineageHTML + '</div>';
   if (valueAndMap) h += '<div class="rec-col">' + valueAndMap + '</div>';
   if (recordTail) h += '<div class="rec-col">' + recordTail + '</div>';
-  h += '</div></div>';
+  h += '</div>';
+  return h;
+}
+
+/* renderLineage: the PLAIN DATA VIEW of a shared #x= record (and a pasted,
+   dropped, gallery, or default example). A valid record opens the full-width
+   stage as a dense scientific datasheet: one compact identity header, then the
+   existing sections in three responsive text columns. It is still information,
+   not a dashboard. Node-unresolved and measurement records render honestly,
+   without a fabricated map section or Run link. Invalid records stay in the
+   Lineage tool panel so their validation banner is visible. */
+function renderLineage(record, opts){
+  opts = opts || {};
+  var panelBox = document.getElementById('xResult');
+  var box = document.getElementById('linRecord');
+  nodePanel.style.display = 'none';
+  var valid = validateLightJS(record);
+  if (!valid.ok) {
+    showLineageError('<div class="xp-err">' + esc(valid.error) + '</div>');
+    renderSubmap([], {});
+    return false;
+  }
+  record = valid.record;
+  if (!opts.fromBundle) { currentBundle = null; }
+  bundleViewOpen = false;
+  currentLineageDoc = opts.doc || null;
+  currentLineageFromBundle = !!opts.fromBundle;
+  var lineage = record.lineage;
+  var node = lineage.node;
+  var known = valid.nodeResolved;
+
+  var h = '<div class="rec">';
+
+  // a member opened out of a bundle keeps one plain way back to the paper view
+  if (opts.fromBundle && currentBundle) {
+    h += '<p class="rec-meta"><a href="#" id="linBundleBack">&#8249; back to the shared bundle</a></p>';
+  }
+  h += datasheetHTML(record, valid, opts);
+  h += '</div>';
 
   panelBox.innerHTML = '';
   box.innerHTML = h;
@@ -1601,7 +1717,7 @@ function renderLineage(record, opts){
   document.body.classList.add('lin-open');
   document.getElementById('linStage').scrollTop = 0;
 
-  var copyBtn = box.querySelector('#rcCopy');
+  var copyBtn = box.querySelector('.rcCopy');
   if (copyBtn) copyBtn.addEventListener('click', function(){ copyLineageLink(record, this, opts); });
   var backBtn = box.querySelector('#linBundleBack');
   if (backBtn) backBtn.addEventListener('click', function(e){
