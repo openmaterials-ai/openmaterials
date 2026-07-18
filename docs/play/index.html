@@ -757,6 +757,65 @@ function shareEnvelopeFor(record, opts){
   return out;
 }
 
+/* ---- #id=<hash>: the canonical lineage id IS the share link ---------------
+   A shared value is a SHARABLE HASH: its canonical lineage id (the sha256 of
+   the lineage, unique per value) is the link handle. The resolver reads the
+   same instances.json projection the site already serves same-origin (the map
+   page reads it too), finds the value whose id equals the hash, and opens it
+   through the exact single-datasheet path a one-element envelope uses. This is
+   the read side of the id the projection now carries (omai/map_data.py
+   build_instances); a node uid would not do, because a node uid names a MAP
+   NODE and repeats across every value on that node, while the lineage id is
+   one value's own identity. */
+
+/* One flat instances.json entry -> the light-record shape the renderer speaks.
+   The exact inverse of build_instances' projection: the flat entry is
+   {id, variable, material, conditions, value, units, uncertainty,
+   source:{kind,ref,detail}, node_uid, configuration?, simulation?}; the record
+   is {id, kind, lineage:{node, material, conditions, values, source?,
+   node_uid}, source, ...}. Reconstructed so the value flows through the SAME
+   validateLightJS/datasheetHTML path as a shared #x= record, never a parallel
+   renderer. lineage.source (the identity-bearing scheme:ref) is set only when
+   the verbatim source.ref is a scheme:ref, matching build_instances' rule that
+   a bare code ref (e.g. "kaldo") stays out of the hashed lineage. */
+function instanceToRecord(entry){
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return null;
+  var src = entry.source || {};
+  var values = { value: entry.value, units: entry.units };
+  if (entry.uncertainty != null) values.uncertainty = entry.uncertainty;
+  var lineage = {
+    node: entry.variable,
+    material: entry.material,
+    conditions: entry.conditions || {},
+    values: values
+  };
+  // the scheme:ref source rides inside the lineage (identity-bearing); a bare
+  // code ref does not, exactly as the projection's inverse in build_instances.
+  if (typeof src.ref === 'string' && /:/.test(src.ref)) lineage.source = src.ref;
+  if (entry.node_uid) lineage.node_uid = entry.node_uid;
+  var record = { id: entry.id, kind: src.kind, lineage: lineage, source: src };
+  if (entry.simulation != null) record.simulation = entry.simulation;
+  if (entry.configuration != null) record.configuration = entry.configuration;
+  return record;
+}
+
+/* Resolve a 64-hex lineage hash against a loaded instances projection. Returns
+   {ok:true, record} when the hash is valid and names a committed value,
+   {ok:false, reason:'malformed'} when it is not 64 hex characters (rejected,
+   never fetched or fabricated), and {ok:false, reason:'not-found', hash} when
+   it is well-formed but matches no value (the honest empty state's signal). A
+   pure function of the hash and the projection: no DOM, no fetch, so the wire
+   is testable under Node like the envelope decode. */
+function resolveInstanceById(hash, instances){
+  var h = String(hash == null ? '' : hash).trim().toLowerCase();
+  if (!SHA256_RE.test(h)) return { ok: false, reason: 'malformed', hash: h };
+  var list = Array.isArray(instances) ? instances : [];
+  for (var i = 0; i < list.length; i++) {
+    if (list[i] && list[i].id === h) return { ok: true, record: instanceToRecord(list[i]) };
+  }
+  return { ok: false, reason: 'not-found', hash: h };
+}
+
 /* A client-side mirror of validate_light's SHAPE checks (omai/lineages.py):
    a convenience for the upload/paste ingress, NOT the authoritative gate (the
    Python validate_light stays that for git entries). It is honest about gaps
@@ -964,6 +1023,24 @@ async function copySharedLink(obj, btn){
 async function copyLineageLink(record, btn, opts){
   if (!record) return;
   await copySharedLink(shareEnvelopeFor(record, opts), btn);
+}
+
+/* Copy PERMALINK: the canonical id IS the link. Where Copy link carries the
+   whole record in an #x= fragment, this emits the compact hash-addressed form
+   <site>/play/#id=<that member's id> for a value the commons holds by id. Each
+   bundle member carries its OWN id, so a member's permalink names that member,
+   never the bundle. It sets location.hash (guarded, so the router does not
+   re-render) and copies the absolute URL. */
+function permalinkFor(id){
+  return location.origin + location.pathname + '#id=' + String(id);
+}
+async function copyPermalink(id, btn){
+  if (!id) return;
+  var hash = '#id=' + String(id);
+  var url = permalinkFor(id);
+  if (location.hash !== hash) { skipNextHashApply = hash; location.hash = hash; }
+  var done = function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy permalink'; }, 1200); };
+  if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, done); else done();
 }
 function copyBundleLink(env, btn){
   if (!env) return;
@@ -1411,7 +1488,7 @@ function valuesHTML(lineage, node){
     }).join('') + '</tbody></table></div>';
 }
 
-function lineageLinksHTML(lineage, node, known, memberIdx){
+function lineageLinksHTML(lineage, node, known, memberIdx, recordId){
   var h = '<div class="rec-links">';
   if (known && isComputable(node)) {
     h += '<a href="' + esc(mcgRunUrl(lineage)) + '" target="_blank" rel="noopener"' +
@@ -1421,6 +1498,14 @@ function lineageLinksHTML(lineage, node, known, memberIdx){
   h += '<button type="button" class="rcCopy"' +
     (memberIdx != null ? ' data-idx="' + memberIdx + '"' : '') +
     ' title="Copy a link that carries this record in its #x= fragment: it reopens this data view.">Copy link</button>';
+  // Copy permalink: the canonical id AS the link (<site>/play/#id=<id>). Shown
+  // only when this record carries a committed 64-hex id (a value the commons
+  // holds by id); each bundle member carries its own, so data-id names THAT
+  // member. A record with no committed id (a pasted lineage) has no permalink.
+  if (recordId && SHA256_RE.test(String(recordId))) {
+    h += '<button type="button" class="rcPermalink" data-id="' + esc(String(recordId)) + '"' +
+      ' title="Copy this value’s permalink: its canonical id is the link (<site>/play/#id=<id>).">Copy permalink</button>';
+  }
   h += '<span class="rec-link-note">Dashboards and compute live on MaterialsCodeGraph; this is the data view.</span>';
   return h + '</div>';
 }
@@ -1652,6 +1737,12 @@ function renderBundle(env){
                       btn, { fromBundle: true });
     });
   });
+  // per-member Copy permalink: the member's OWN canonical id as the link
+  // (<site>/play/#id=<member id>). Members carry their own ids; data-id names
+  // the member, so a stacked bundle mints one permalink per value.
+  box.querySelectorAll('.rcPermalink[data-id]').forEach(function(btn){
+    btn.addEventListener('click', function(){ copyPermalink(btn.getAttribute('data-id'), btn); });
+  });
   renderSubmap([], {});
   return true;
 }
@@ -1790,7 +1881,7 @@ function datasheetHTML(record, valid, opts){
   var valueAndMap = valuesHTML(lineage, node) + (known ? mapContextHTML(node, lineage.material) : '');
   var recordTail = provenanceHTML(record, lineage, opts.doc) + artifactsHTML(record) +
     (known ? reproduceHTML(node, record.id) : '') +
-    lineageLinksHTML(lineage, node, known, opts.memberIdx);
+    lineageLinksHTML(lineage, node, known, opts.memberIdx, record.id);
   h += '<div class="rec-grid"><div class="rec-col">' + lineageHTML + '</div>';
   if (valueAndMap) h += '<div class="rec-col">' + valueAndMap + '</div>';
   if (recordTail) h += '<div class="rec-col">' + recordTail + '</div>';
@@ -1857,6 +1948,8 @@ function renderLineage(record, opts){
 
   var copyBtn = box.querySelector('.rcCopy');
   if (copyBtn) copyBtn.addEventListener('click', function(){ copyLineageLink(record, this, opts); });
+  var permaBtn = box.querySelector('.rcPermalink');
+  if (permaBtn) permaBtn.addEventListener('click', function(){ copyPermalink(this.getAttribute('data-id'), this); });
   var backBtn = box.querySelector('#linBundleBack');
   if (backBtn) backBtn.addEventListener('click', function(e){
     e.preventDefault();
@@ -1867,6 +1960,82 @@ function renderLineage(record, opts){
   // the datasheet while the stage is open.
   renderSubmap([], {});
   return true;
+}
+
+/* The instances projection, fetched once, cache-busted exactly like the map
+   page reads it (../data/instances.json?v=Date.now()): the resolver reads the
+   same same-origin view the site already serves. The promise is memoized so a
+   second #id= navigation does not refetch. */
+var playInstancesPromise = null;
+function loadPlayInstances(){
+  if (!playInstancesPromise) {
+    playInstancesPromise = fetch('../data/instances.json?v=' + Date.now())
+      .then(function(r){ return r.json(); });
+  }
+  return playInstancesPromise;
+}
+
+/* The datasheet page title for a resolved value: the material and its property,
+   the customer-facing pair (matching the datasheet lede), so a shared #id= link
+   names what it opens in the tab and in a preview. Restored to the site default
+   when the stage leaves a resolved value (a fresh navigation resets it). */
+var DEFAULT_PLAY_TITLE = document.title;
+function setInstanceTitle(record){
+  if (!record || !record.lineage) { document.title = DEFAULT_PLAY_TITLE; return; }
+  var lineage = record.lineage;
+  var prop = humanProperty(lineage.node, lineage.template);
+  var mat = materialName(lineage.material);
+  var name = prop + (mat ? ' of ' + mat : '');
+  document.title = name ? name + ' | openmaterials.ai' : DEFAULT_PLAY_TITLE;
+}
+
+/* The honest EMPTY STATE for a hash that resolves to nothing (the honesty rule:
+   name what was asked, fabricate nothing, offer the real next step). A
+   well-formed hash that matches no committed value names the hash verbatim and
+   links to the map; a malformed hash says so plainly. Nothing is invented: no
+   material, no value, no node is guessed for an id we do not hold. */
+function renderInstanceEmpty(reason, hash){
+  var h = '<div class="rec"><div class="rec-head">';
+  h += '<p class="rec-lede" style="white-space:normal">No shared value with this id</p>';
+  h += '</div><div class="rec-sec">';
+  if (reason === 'malformed') {
+    h += '<p class="rec-explain">A shared value opens by its canonical id, a 64-character ' +
+      'hex hash (the sha256 of its lineage). This link’s id is not that shape, so there ' +
+      'is nothing to resolve, and nothing is guessed.</p>';
+    h += '<dl class="rec-kv"><dt>id in the link</dt><dd class="wrap">' + esc(String(hash || '')) + '</dd></dl>';
+  } else {
+    h += '<p class="rec-explain">This id is well-formed, but no value with it is committed in ' +
+      'this build of the commons. It may live in a newer build, or the link may be stale. ' +
+      'Nothing is fabricated for an id we do not hold.</p>';
+    h += '<dl class="rec-kv"><dt>id</dt><dd class="wrap">' + esc(String(hash || '')) + '</dd></dl>';
+  }
+  h += '<p class="rec-explain"><a href="../map/">Open the map of physics</a> to browse the ' +
+    'quantities and values the commons does hold.</p>';
+  h += '</div></div>';
+  document.body.classList.remove('lin-open');
+  document.getElementById('linIngress').hidden = true;
+  document.title = DEFAULT_PLAY_TITLE;
+  selectPlaygroundTab('lineage');
+  document.getElementById('xResult').innerHTML = h;
+  renderSubmap([], {});
+}
+
+/* #id=<hash>: open the value the canonical hash names, through the SAME
+   single-datasheet path a one-element envelope uses. Load the projection, run
+   the pure resolver, and either render the resolved record (title set to the
+   value it opens) or the honest empty state (malformed vs not-found). A fetch
+   failure is reported plainly, never as a fabricated value. */
+function renderInstanceById(hash){
+  return loadPlayInstances().then(function(instances){
+    var res = resolveInstanceById(hash, instances);
+    if (res.ok) {
+      if (renderLineage(res.record)) setInstanceTitle(res.record);
+      return;
+    }
+    renderInstanceEmpty(res.reason, res.hash);
+  }).catch(function(e){
+    showLineageError('<div class="xp-err">Could not load the shared value: ' + esc(e.message) + '</div>');
+  });
 }
 
 // The PROVENANCE section: the source ref, the map version the record was checked
@@ -2200,6 +2369,16 @@ document.getElementById('shareBtn').addEventListener('click', async function(){
 });
 
 async function applyHash(){
+  // #id=<64-hex>: the canonical lineage id used as the share link. It opens the
+  // datasheet on the lineage stage and needs no tab= segment (a clean
+  // <site>/play/#id=<hash> permalink), so it is dispatched before the tab gate.
+  var idm = location.hash.match(/[#?&]id=([0-9a-fA-F]+)/);
+  if (idm) {
+    var idTabBtn = document.querySelector('.pg-tab[data-tab="lineage"]');
+    if (idTabBtn) idTabBtn.click();
+    await renderInstanceById(idm[1]);
+    return;
+  }
   var m = location.hash.match(/[#?&]tab=([a-z]+)/); if (!m) return;
   // Legacy tab=experiment is an alias; the UI and every newly minted link use lineage.
   var tab = m[1] === 'experiment' ? 'lineage' : m[1];

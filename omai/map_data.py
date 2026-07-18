@@ -209,8 +209,13 @@ def build_instances(instances_dir: Path | None = None,
     """Project the committed evidence, which since the Lineage refactor is
     stored as LINEAGE INSTANCES (one construct: {id, kind, lineage, source}),
     into the flat instances.json view the site and the derived layers read.
-    The projection is byte-stable with the pre-refactor bundle: the files
-    changed construct, the view did not."""
+    The projection is ADDITIVE over the pre-refactor bundle: every legacy key
+    (variable, material, conditions, value, units, uncertainty, source,
+    node_uid) is unchanged, and the canonical ``id`` (the sha256 of the lineage,
+    the value's own content-address) now rides alongside them so a value is
+    addressable same-origin by its identity. That id is the share handle behind
+    the playground's ``#id=<hash>`` permalink: unique per value, unlike node_uid
+    which names a map node and repeats across every value on that node."""
     from omai.lineages import _SHA256_RE, committed_ids, lineage_id
 
     instances_dir = instances_dir or (_DOCS / "data" / "instances")
@@ -261,6 +266,13 @@ def build_instances(instances_dir: Path | None = None,
                     f"{f.name}: simulation backref {backref[:12]} matches no "
                     f"committed simulation record")
         flat = {
+            # The canonical id IS the share handle: the sha256 of the lineage,
+            # already checked to recompute from the lineage above. Carried into
+            # the projection so a value is addressable same-origin by its own
+            # identity (docs/play/ #id=<hash>), never by a node uid (a node uid
+            # names a MAP NODE and is shared across every value on that node; the
+            # lineage id is unique per value). Additive to the legacy contract.
+            "id": rec["id"],
             "variable": node,
             "material": lineage.get("material"),
             "conditions": lineage.get("conditions") or {},

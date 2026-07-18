@@ -81,6 +81,37 @@ def _decode_on_page(fragment: str) -> dict:
     return json.loads(proc.stdout.strip().splitlines()[-1])
 
 
+# The page's #id= resolver, in dependency order: a flat instances.json entry ->
+# the record shape (instanceToRecord), then the pure hash lookup over the
+# projection (resolveInstanceById). Both are DOM-free and gzip-free, so a plain
+# Node runs them; SHA256_RE is a page global the resolver references, supplied
+# in the harness preamble exactly as the page hoists it.
+_RESOLVE_HELPERS = ("instanceToRecord", "resolveInstanceById")
+
+
+def _node_plain_or_skip() -> str:
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available; resolver agreement checked where present")
+    return node
+
+
+def _resolve_on_page(hash_: str, instances: list) -> dict:
+    """Run the page's real #id= resolver under Node against a projection,
+    returning the resolver result {ok, reason?, record?}."""
+    node = _node_plain_or_skip()
+    html = _PLAY.read_text()
+    src = "var SHA256_RE = /^[0-9a-f]{64}$/;\n" + \
+        "\n".join(_grab_function(html, n) for n in _RESOLVE_HELPERS)
+    script = src + """
+var res = resolveInstanceById(%s, %s);
+console.log(JSON.stringify(res));
+""" % (json.dumps(hash_), json.dumps(instances))
+    proc = subprocess.run([node, "-e", script], capture_output=True, text=True)
+    assert proc.returncode == 0, f"node failed: {proc.stderr}"
+    return json.loads(proc.stdout.strip().splitlines()[-1])
+
+
 def _member(node_id, mat, val):
     lineage = {"node": node_id, "material": {"name": mat},
                "conditions": {"T": 300.0},
@@ -184,3 +215,100 @@ def test_legacy_single_record_fragment_still_renders():
     assert got["count"] == len(ref["lineages"]) == 1
     assert got["ids"] == [record["id"]]
     assert got["doc_source"] is None and "doc" not in ref
+
+
+# --------------------------------------------------------------------------
+# #id=<hash>: the canonical lineage id is the share link.
+#
+# The projection now carries each value's canonical id (omai/map_data.py
+# build_instances), and the page resolves #id=<64-hex> against that same
+# instances.json the site serves, opening the value through the single-datasheet
+# path. These pin the resolver's wire the way the block above pins the envelope
+# decode: the page's real JS, driven under Node against the python reference.
+# --------------------------------------------------------------------------
+
+def test_projection_carries_the_canonical_id_as_the_share_handle():
+    """The share handle is the value's own identity: build_instances projects
+    the canonical lineage id onto every flat entry, unique per value (unlike
+    node_uid, which names a map node and repeats across its values), and equal to
+    lineage_id of that entry's reconstructed lineage."""
+    from omai.map_data import build_instances
+
+    insts = build_instances()
+    assert insts, "no instances projected"
+    ids = [e["id"] for e in insts]
+    assert all(re.fullmatch(r"[0-9a-f]{64}", i) for i in ids), "an id is not 64-hex"
+    assert len(set(ids)) == len(ids), "canonical ids must be unique per value"
+    # the id addresses the value, not its node: node_uid is strictly coarser
+    assert len(set(e["node_uid"] for e in insts)) < len(ids), \
+        "node_uid should repeat across values; the lineage id must not"
+
+
+def test_page_wires_the_id_permalink_resolver():
+    html = _PLAY.read_text()
+    assert "function resolveInstanceById" in html, "no #id= resolver on the page"
+    assert "function instanceToRecord" in html, "no instance->record normalizer"
+    assert "id=([0-9a-fA-F]+)" in html, "the router does not match the #id= fragment"
+    assert "renderInstanceById" in html, "the #id= route is not dispatched"
+    assert "instances.json?v=' + Date.now()" in html, \
+        "the resolver does not fetch the projection cache-busted like the map page"
+    # not-found is an honest empty state, never a fabricated value
+    assert "function renderInstanceEmpty" in html, "no empty state for an unresolved id"
+    assert "No shared value with this id" in html, "no honest not-found heading"
+    assert "nothing is guessed" in html or "Nothing is fabricated" in html, \
+        "the empty state must state that nothing is fabricated"
+    # the copy-permalink affordance: the canonical id AS the link, on every datasheet
+    assert "function copyPermalink" in html, "no copy-permalink control"
+    assert "'#id=' + String(id)" in html, "the permalink is not the #id= form"
+    assert "Copy permalink" in html, "no Copy permalink button label"
+    assert "rcPermalink" in html, "the permalink button is not class-marked"
+    # members carry their own ids: the per-member permalink is wired in the bundle
+    assert ".rcPermalink[data-id]" in html, \
+        "the stacked bundle does not wire a per-member permalink"
+
+
+def test_valid_hash_resolves_the_right_instance():
+    """A committed value's canonical id resolves, on the page, to that exact
+    value: same node, material, and headline value, reconstructed into the light
+    record shape the datasheet renderer speaks."""
+    from omai.map_data import build_instances
+
+    insts = build_instances()
+    entry = next(e for e in insts if e["source"]["ref"].startswith("paper:"))
+    got = _resolve_on_page(entry["id"], insts)
+    assert got["ok"] is True, got
+    rec = got["record"]
+    assert rec["id"] == entry["id"]
+    assert rec["lineage"]["node"] == entry["variable"]
+    assert rec["lineage"]["material"] == entry["material"]
+    assert rec["lineage"]["values"]["value"] == entry["value"]
+    assert rec["lineage"]["values"]["units"] == entry["units"]
+    assert rec["kind"] == entry["source"]["kind"]
+    # a scheme:ref source rides inside the lineage (identity-bearing), as it does
+    # in the python instance record; the verbatim block stays on record.source
+    assert rec["lineage"]["source"] == entry["source"]["ref"]
+    assert rec["source"]["ref"] == entry["source"]["ref"]
+
+
+def test_unknown_hash_renders_the_empty_state():
+    """A well-formed hash that names no committed value resolves to the honest
+    not-found signal (never a fabricated record)."""
+    from omai.map_data import build_instances
+
+    insts = build_instances()
+    absent = "0" * 64                       # 64-hex, but not a committed id
+    assert absent not in {e["id"] for e in insts}
+    got = _resolve_on_page(absent, insts)
+    assert got["ok"] is False and got["reason"] == "not-found", got
+    assert "record" not in got or got.get("record") is None
+
+
+def test_malformed_hash_is_rejected():
+    """A hash that is not 64 hex characters is rejected outright: not fetched, not
+    resolved, not fabricated."""
+    from omai.map_data import build_instances
+
+    insts = build_instances()
+    for bad in ("", "xyz", "g" * 64, "abc123", "0" * 63, "0" * 65):
+        got = _resolve_on_page(bad, insts)
+        assert got["ok"] is False and got["reason"] == "malformed", (bad, got)
