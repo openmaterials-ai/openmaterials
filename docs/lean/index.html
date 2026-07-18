@@ -172,27 +172,35 @@
 
   <section class="gsec" id="reproduce">
     <h2>Reproduce this</h2>
-    <p>The Lean files are generated from the live map and re-checked two ways:
-      the Lean compiler proves them, and the Python suite re-derives every
-      dimensional identity so a regression fails fast even without a Lean
-      toolchain. From <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/README.md">lean/README.md</a>:</p>
+    <p><a href="https://github.com/openmaterials-ai/openmaterials/actions/workflows/lean.yml"><img
+      src="https://github.com/openmaterials-ai/openmaterials/actions/workflows/lean.yml/badge.svg"
+      alt="Lean proof check status" style="vertical-align:middle"></a>
+      Every pull request that touches the map or the generators recompiles the
+      full proof against physlib in CI, with warnings promoted to errors, so
+      the badge above is the live state of the claim on this page.</p>
+    <p><code>lean/</code> is a standalone lake package (library
+      <code>OpenMaterials</code>) on toolchain Lean 4.31.0, depending on
+      <a href="https://github.com/leanprover-community/physlib">physlib</a>
+      pinned by rev in <code>lakefile.toml</code>. The files are generated from
+      the live map and re-checked two ways: the Lean compiler proves them, and
+      the Python suite re-derives every dimensional identity so a regression
+      fails fast even without a Lean toolchain. From
+      <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/README.md">lean/README.md</a>:</p>
     <div class="recipe">
       <div class="recipe-head"><span class="recipe-title">Rebuild the proof</span><span class="recipe-lang">shell</span></div>
       <pre>git clone https://github.com/openmaterials-ai/openmaterials.git
-cd openmaterials
+cd openmaterials/lean
 
-# with elan/lake installed and PhysLean available:
-cp lean/OpenMaterials.lean PhysLean/ &amp;&amp; cd PhysLean &amp;&amp; lake env lean OpenMaterials.lean
+lake exe cache get   # fetch the mathlib build cache (first build only)
+lake build           # compiles every generated module; zero errors, zero sorries
 
-# or compile all three generated files in one pass:
-bash lean/check.sh /path/to/PhysLean
-
-# the Python re-check (no Lean toolchain needed):
+# the Python re-check (no Lean toolchain needed), from the repo root:
 pip install -e . &amp;&amp; python -m pytest tests/test_physlean_export.py tests/test_lean_tier2.py -q</pre>
     </div>
     <p>The generated sources:
       <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/OpenMaterials.lean">OpenMaterials.lean</a> (Tier 1 dimensions and edge theorems),
       <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/OpenMaterialsIdentities.lean">OpenMaterialsIdentities.lean</a> (Tier 2 identities),
+      <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/OpenMaterialsDimensions.lean">OpenMaterialsDimensions.lean</a> (the seven-base dimensional closure),
       <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/OpenMaterialsUnits.lean">OpenMaterialsUnits.lean</a> (the units bridge).</p>
   </section>
 </div>
