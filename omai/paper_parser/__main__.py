@@ -53,6 +53,18 @@ def main(argv: list[str] | None = None) -> int:
           f"est_usd={result.usage.cost_estimate_usd()} "
           f"cache_read={result.cache_read_input_tokens}")
 
+    # The whole paper as one shareable link: the envelope fragment bundles a
+    # minimal lineage per claim clearing the apply bar, with the paper's source
+    # ref as shared document context. Advisory output only; no gate changes.
+    from .propose import proposal_envelope_fragment
+    fragment = proposal_envelope_fragment(result.proposal)
+    if fragment:
+        print(f"envelope: paste after #/play?tab=lineage&x= to share "
+              f"({len(fragment)} chars)")
+        print(f"envelope_fragment: {fragment}")
+    else:
+        print("envelope: no claims clear the apply bar, nothing to bundle")
+
     if args.apply:
         if not args.yes:
             print("refusing --apply without --yes (human review required)",

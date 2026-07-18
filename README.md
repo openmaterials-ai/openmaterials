@@ -242,6 +242,13 @@ It needs its own extras (`pip install -e ".[parser]"`, already included in
 `[dev]`) and an `ANTHROPIC_API_KEY` (environment or a repo-root `.env`); the
 key is never printed or logged.
 
+The CLI also prints the paper's share envelope: an `envelope_fragment` that
+bundles one minimal lineage per claim clearing the apply bar, with
+`paper:<slug>` as the shared document source. Paste it after
+`play/#/play?tab=lineage&x=` and the playground opens the whole parsed paper
+as its plain paper view; each member's id equals the id the applied instance
+would carry, so sharing before applying and applying then sharing agree.
+
 ## Run the tests
 
 ```bash

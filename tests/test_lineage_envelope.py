@@ -200,6 +200,79 @@ def test_member_own_source_stays_identity_bearing():
     assert env["lineages"][0]["id"] == sourced["id"]
 
 
+# ---- the proposal emitter (paper parser -> one shareable link) -------------
+
+def _claim(index, node_id="ThermalConductivity", material="Si",
+           value_text="148", unit="W/(m K)", kind="value", survives=True,
+           duplicate=None, verdict="confirmed", conditions=None):
+    return {"index": index, "node_id": node_id, "material": material,
+            "value_text": value_text, "unit": unit, "kind": kind,
+            "conditions": conditions or {"T": 300},
+            "validation": {"survives": survives, "duplicate": duplicate},
+            "review": {"verdict": verdict}}
+
+
+def _proposal(claims):
+    return {"paper_slug": "si-2021-demo", "claims": claims}
+
+
+def test_proposal_envelope_bundles_surviving_value_claims():
+    from omai.paper_parser import propose
+
+    prop = _proposal([
+        _claim(0),
+        _claim(1, material="Ge", value_text="62"),
+        _claim(2, kind="condition"),              # context, never minted
+        _claim(3, survives=False),                # killed by validation
+        _claim(4, duplicate=0),                   # duplicate
+        _claim(5, verdict="killed"),              # killed by review
+        _claim(6, node_id=None),                  # unmappable
+        _claim(7, value_text="not-a-number"),     # non-numeric
+    ])
+    env = propose.build_envelope_from_proposal(prop)
+    assert env["v"] == 1
+    assert env["doc"] == {"source": "paper:si-2021-demo"}
+    assert len(env["lineages"]) == 2
+    # the member lineage is exactly the record_instance shape, so the shared
+    # id equals the id apply-time minting would produce
+    lineage = env["lineages"][0]["lineage"]
+    assert lineage == {"node": "ThermalConductivity", "material": "Si",
+                       "conditions": {"T": 300},
+                       "values": {"value": 148.0, "units": "W/(m K)"},
+                       "source": "paper:si-2021-demo"}
+    assert env["lineages"][0]["id"] == lin.lineage_id(lineage)
+
+
+def test_proposal_envelope_doc_meta_enriches_the_doc():
+    from omai.paper_parser import propose
+
+    env = propose.build_envelope_from_proposal(
+        _proposal([_claim(0)]),
+        doc_meta={"title": "A demo", "year": 2021, "ignored_key": "x"})
+    assert env["doc"]["title"] == "A demo"
+    assert env["doc"]["year"] == 2021
+    assert env["doc"]["source"] == "paper:si-2021-demo"
+    assert "ignored_key" not in env["doc"]
+
+
+def test_proposal_with_nothing_to_bundle_returns_none():
+    from omai.paper_parser import propose
+
+    assert propose.build_envelope_from_proposal(
+        _proposal([_claim(0, kind="condition")])) is None
+    assert propose.proposal_envelope_fragment(
+        _proposal([_claim(0, kind="condition")])) is None
+
+
+def test_proposal_fragment_round_trips_to_the_same_envelope():
+    from omai.paper_parser import propose
+
+    prop = _proposal([_claim(0), _claim(1, material="Ge", value_text="62")])
+    frag = propose.proposal_envelope_fragment(prop)
+    assert lin.envelope_from_fragment(frag) == \
+        propose.build_envelope_from_proposal(prop)
+
+
 # ---- the descriptor states the contract ------------------------------------
 
 def test_format_descriptor_envelope_section_is_consistent():
