@@ -813,6 +813,35 @@ def write_version(path: Path | None = None) -> Path:
     return path
 
 
+def write_conformance_index(out: Path | None = None):
+    """Emit docs/data/conformance/index.json: a byte-stable projection of the
+    committed conformance targets (one row per ``*-target.json``, filename
+    order) so the site can list the pinned runs that reproduce a node without
+    globbing. Derived data, like instances.json: the target files stay the
+    source of truth, and the row carries only what a datasheet needs (the
+    identity id, the node, the material, the code, the expected value, and
+    the tolerance)."""
+    cdir = _DOCS / "data" / "conformance"
+    rows = []
+    for f in sorted(cdir.glob("*-target.json")):
+        t = json.loads(f.read_text())
+        lin = t.get("lineage") or {}
+        mat = lin.get("material")
+        rows.append({
+            "file": f.name,
+            "id": t.get("id"),
+            "node": lin.get("node"),
+            "material": mat if isinstance(mat, str) else (mat or {}).get("name"),
+            "code": t.get("code"),
+            "expected": t.get("expected"),
+            "tolerance": t.get("tolerance"),
+            "evidence": t.get("evidence"),
+        })
+    out = out or cdir / "index.json"
+    out.write_text(json.dumps({"targets": rows}))
+    return out, len(rows)
+
+
 def write_lineage(path: Path | None = None) -> Path:
     """Emit THE LINEAGE artifact, docs/data/lineage.json: the normative bundle
     of the schema. One object: the rolling ``lineage_version``, the machine
@@ -893,6 +922,8 @@ if __name__ == "__main__":
         print("wrote", _pr, "(" + str(_sr["rows"]) + " operators, " + str(_sr["proven"]) + " proven)")
     except Exception as _e:
         print("lean roadmap skipped:", _e)
+    _pc, _sc = write_conformance_index()
+    print("wrote", _pc, "(" + str(_sc) + " conformance targets)")
     from omai.semantics import write_semantics as _write_semantics
     import json as _json
     print("wrote", _write_semantics(_json.loads((_DOCS / "data" / "graph.json").read_text())))

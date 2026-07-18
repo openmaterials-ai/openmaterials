@@ -143,6 +143,22 @@ def test_derivation_map_is_legible_and_explained():
     assert html.count("rec-explain") >= 6, "section explainers missing"
 
 
+def test_datasheet_reproduce_section_names_codes_and_pinned_runs():
+    """A known-node datasheet must say how to reproduce the result: the codes
+    that compute the quantity (codes.json coverage) and the committed
+    conformance targets for the node, marking a target whose id equals the
+    record's id as this exact lineage (CEO direction 2026-07-18)."""
+    html = _PLAY.read_text()
+    assert "function reproduceHTML" in html, "no reproduce section builder"
+    assert "data/codes.json" in html, "the page does not load code coverage"
+    assert "data/conformance/index.json" in html, "the page does not load the conformance index"
+    assert "this exact lineage" in html, "no exact-lineage mark on matching targets"
+    assert "reproduceHTML(node, record.id)" in html, "the datasheet does not wire the section"
+    # the index the page reads is committed and non-empty
+    idx = json.loads((_REPO / "docs" / "data" / "conformance" / "index.json").read_text())
+    assert idx.get("targets"), "committed conformance index is empty"
+
+
 # --------------------------------------------------------------------------
 # Behavior, pinned to the python reference under Node.
 # --------------------------------------------------------------------------
