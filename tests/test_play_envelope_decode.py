@@ -121,6 +121,26 @@ def test_bundle_stacks_every_datasheet_on_one_page():
     assert all("rec-map" in c for c in svgs), f"unsanctioned svg classes: {svgs}"
 
 
+def test_derivation_map_is_legible_and_explained():
+    """The derivation excerpt must never shrink below its natural size (a wide
+    closure scrolls at full label legibility instead of compressing), and the
+    drawing carries its own explanation: a how-to-read caption and a color
+    legend (CEO direction 2026-07-18: the maps were too small and unexplained)."""
+    html = _PLAY.read_text()
+    deriv = _grab_function(html, "derivationSVG")
+    # natural-size floor: the svg pins its own width as an inline min-width
+    assert "min-width:' + W + 'px" in deriv, "svg does not pin its natural width"
+    assert "min-width:820px" not in html, "stale fixed min-width would re-shrink wide maps"
+    # legible geometry: the label font is a real UI size, not a thumbnail's
+    m = re.search(r'font-size="([\d.]+)"', deriv)
+    assert m and float(m.group(1)) >= 12, f"map label font too small: {m and m.group(1)}"
+    # the drawing explains itself where it is rendered
+    assert "rec-maplegend" in html, "no color legend for the derivation drawing"
+    assert "Read left to right" in html, "no how-to-read caption"
+    # the datasheet sections carry plain-language explainers
+    assert html.count("rec-explain") >= 6, "section explainers missing"
+
+
 # --------------------------------------------------------------------------
 # Behavior, pinned to the python reference under Node.
 # --------------------------------------------------------------------------
