@@ -248,7 +248,7 @@ shape is already here.
 \section{Where we are, and what is next}
 
 Today the framework is real and growing. It has an operator layer and a
-representation layer, 28 ingested representations (kaldo, phono3py, phonopy,
+representation layer, 31 ingested representations (kaldo, phono3py, phonopy,
 pymatgen, ShengBTE, Quantum ESPRESSO, VASP, LAMMPS, GPUMD, i-PI, the machine-learned
 potentials matgl / MACE / fairchem, the database rail mp-api, and the CALPHAD,
 amset, ORCA, OpenMM, and AtomisticSkills mat-* / chem-* workflows), and a
@@ -266,8 +266,10 @@ closes the map's formulas together, and a composites domain (composite effective
 thermal conductivity with interfacial resistance); the unified map of
 114 quantities and 114 operators is content-addressed in the log-first store
 (Part~\ref{part:kernel}), grown past its frozen genesis version through the
-contribution gates, and the whole is held together by a suite of 1489
-passing tests.
+contribution gates. Its dimensional layer is proven in Lean~4 against physlib
+and recompiled in CI on every change, its evidence carries pinned conformance
+targets a re-run must reproduce, and the whole is held together by a suite of
+1727 passing tests.
 
 What is next is mostly upward and outward. The upstream from the
 Born-Oppenheimer potential, the force constants from which everything descends, is
@@ -276,7 +278,10 @@ the approximation error carried by an operation and the discretization error
 carried by a representation, is designed and not yet built. And the largest reach,
 the one this document is really about, is to ingest not only codes but whole
 papers: to turn a published result into an object the substrate can hold, re-run,
-and check, the same way it already ingests a code.
+and check, the same way it already ingests a code. That reach has begun: the
+paper parser already turns a PDF into gated, quote-anchored evidence proposals
+and mints the share links that carry a whole paper's lineages; what remains is
+scale.
 
 \bigskip
 \begin{center}
@@ -546,18 +551,26 @@ new nodes and edges. Inputs to any new edge must resolve to nodes that already
 exist or are introduced by the same source in the same contribution, processed
 in dependency order. Reviewed before it lands in the canonical map.
 
-\paragraph{Value record (an instance).} The implemented schema, shown as a real
-committed instance, verbatim
+\paragraph{Value record (a lineage instance).} A committed value is a
+\emph{lineage instance}: one construct, \texttt{\{id, kind, lineage, source\}}.
+The \texttt{lineage} is the complete computational identity of the value: the
+node, the material, every condition that determines the number, and the values
+block. \texttt{id} is the sha256 of the lineage's canonical JSON, so two
+records with the same id are the same computation, and any changed condition
+mints a different id. The implemented schema, shown as a real committed
+instance, verbatim
 (\texttt{docs/data/instances/si-thermalconductivity-bte-solver-rta-kaldo.json}):
 
 \begin{verbatim}
 {
-  "variable": "ThermalConductivity[bte_solver=rta]",
-  "material": "Si",
-  "conditions": {"T": 300, "mesh": "8x8x8", "potential": "Si.tersoff"},
-  "value": 19.46,
-  "units": "W/(m K)",
-  "uncertainty": null,
+  "id": "04c6dbdb9b046aceefb0c7b44e4219574cb2259280bc6893c0180b620fbcea52",
+  "kind": "simulation",
+  "lineage": {
+    "node": "ThermalConductivity[bte_solver=rta]",
+    "material": "Si",
+    "conditions": {"T": 300, "mesh": "8x8x8", "potential": "Si.tersoff"},
+    "values": {"value": 19.46, "units": "W/(m K)"}
+  },
   "source": {
     "kind": "simulation",
     "ref": "kaldo",
@@ -567,9 +580,18 @@ committed instance, verbatim
 }
 \end{verbatim}
 
-\texttt{variable} always names a node, because a value belongs to a quantity;
-at bundle time each record is additionally pinned to that node's content uid
-(\texttt{node\_uid}). The material is deliberately NOT part of the map's
+\texttt{lineage.node} always names a node, because a value belongs to a
+quantity; at bundle time each record is additionally pinned to that node's
+content uid (\texttt{node\_uid}, injected into the flat, regenerated projection
+\texttt{docs/data/instances.json}, never into the hash). A lineage may also
+carry its own \texttt{source} as a namespaced \texttt{scheme:ref} string
+(\texttt{paper:...}, \texttt{doi:...}, \texttt{zotero:...},
+\texttt{arxiv:...}; the scheme set is open), and that in-hash source is
+identity-bearing: the same claim from the same source mints the same id, while
+one paper's claim and another paper's identical number stay distinct records.
+The top-level \texttt{source} block is display provenance and rides outside
+the hash forever; a record whose two sources conflict is malformed. The
+material is deliberately NOT part of the map's
 structure: the map's nodes are quantities of physics in general, and the
 material enters only here, on the value, as the point where the quantity was
 evaluated (with \texttt{conditions} carrying the rest of the evaluation
@@ -700,6 +722,38 @@ the same bytes-out-of-git rule the governance commits to (the open format holds
 the lineage and its identity, the platform holds the artifacts, referenced by
 pointer), made into a first-class record kind.
 
+\paragraph{The share envelope (multi-lineage bundles).} A parsed paper rarely
+yields one lineage, so the \texttt{\#x=} wire carries an \emph{envelope},
+\texttt{\{v: 1, doc, lineages: [...]\}}: shared document metadata
+(\texttt{doc.source} as a \texttt{scheme:ref}, plus title, authors, year,
+journal) and any number of lineage records, gzip-compressed and
+base64url-encoded into the fragment. The reader is dual forever: a bare single
+record decodes as a one-element envelope, so every link minted before bundles
+keeps rendering unchanged. A bundle opens as one page of stacked datasheets,
+one per lineage, each with its derivation drawn as an excerpt of the map;
+\texttt{doc.source} is inherited by members at read time for display only,
+never hashed into any member's id. The bundle itself is content-addressed
+(\texttt{bundle\_id}: the sha256 of the canonical document metadata plus the
+member ids in order). A link that would exceed 8000 characters is refused with
+a download-the-JSON fallback rather than silently truncated: the honesty rule,
+applied to the wire.
+
+\paragraph{Conformance target (a pinned expectation).} The check side of the
+evidence. A target is \texttt{\{id, lineage, code, expected, tolerance,
+evidence\}}: the number a named code is expected to reproduce for one
+committed computation, within a stated absolute or relative tolerance. A
+target never invents its lineage; it carries the evidence instance's lineage
+verbatim, so the hash of \texttt{target.lineage} equals \texttt{target.id}
+equals the instance's id, a cryptographic not-invented proof rather than an
+asserted link, and \texttt{expected} mirrors the instance's own values. The
+committed targets are projected into a byte-stable index that the playground
+datasheets read: a record's page lists, under \emph{Reproduce this}, the codes
+that can compute its quantity and the pinned runs for its node, with a target
+whose id equals the record's id marked as the same computation. The first
+engine-adapter targets (kaldo and phono3py silicon thermal conductivity, every
+knob pinned in-hash down to the sha256 of the potential file) landed
+2026-07-18.
+
 \paragraph{Parser contract.} Input: one artifact (a codebase, a paper, a run). Output:
 proposed structure and value records. Every proposal must pass validation below
 before a human confirms it into the index.
@@ -782,6 +836,10 @@ index.
   \item The architecture, how the operator and representation layers work:
   Part~\ref{part:architecture} (Part~III of this document).
   \item The map, live: \texttt{docs/map/} (openmaterials.ai/map).
+  \item The verified layer and its roadmap, live: \texttt{docs/lean/}
+  (openmaterials.ai/lean and /lean/roadmap/).
+  \item This document as browsable HTML with the PDF as a download:
+  \texttt{docs/document/} (openmaterials.ai/document).
   \item The deck, a short walkthrough: \texttt{docs/deck/}.
 \end{itemize}
 
@@ -2391,23 +2449,31 @@ gate, downstream through the map version's provenance.
 Three longer-term directions follow naturally from the design:
 
 \begin{itemize}[leftmargin=2em]
-  \item \textbf{Verification.} Project the operator layer into Lean (via PhysLean or alongside
-        it), allowing approximation theorems to be formally proved rather than asserted. The
+  \item \textbf{Verification.} Project the operator layer into Lean, allowing
+        approximation theorems to be formally proved rather than asserted. The
         provenance mechanism makes this projection well-defined: each operation in $\pi$
         corresponds to a Lean lemma whose statement is the operation's error formula.
-The first tier is built and verified (2026-07-12): \texttt{omai.physlean\_export} generates
-        a Lean file in which every node is a PhysLean \texttt{Dimension} and every
-        dimension-proven edge is a theorem stating the output dimension equals the product of
-        the input dimensions. The file \emph{compiles} against PhysLean (Lean~4.29.1): 80
-        nodes, 11 edge theorems, zero errors. The four bases PhysLean shares with the map
-        (length, time, mass, temperature) map directly; nodes carrying amount-of-substance,
-        current, or luminous intensity are omitted, since PhysLean's \texttt{Dimension} has no
-        base for them. So the dimensional layer type-checks in a proof assistant today. A second tier
-        also compiles: the chained thermodynamic identities (the thermoelectric
-        figure of merit through the power factor, the constant-pressure heat capacity
-        through the molar volume) are proved equal to their expanded forms, and a
-        units file anchors the map's SI convention against PhysLean's conversion
-        structure. The approximation-error theorems remain future work.
+        The first tiers are built, verified, and CI-gated (2026-07-17): \texttt{lean/}
+        is a standalone lake package on Lean~4.31.0 depending on physlib, the
+        community Lean~4 physics library, pinned by revision. Tier~1 declares every
+        exported node as a physics \texttt{Dimension} and proves one theorem per
+        verified executable edge: 89 nodes and 12 edge theorems compile against
+        physlib's five bases, and a generated seven-base extension closes the
+        remaining amount-of-substance, current, and luminous-intensity quantities, so
+        every one of the map's 114 nodes carries a machine-checked dimension. Tier~2
+        states the map's executable identities as real-valued theorems against
+        Mathlib, 13 in all: composition theorems that substitute an upstream identity
+        into a downstream one and prove the chained form equals the flat form, and
+        law theorems for standalone rational operators; a units file anchors the
+        map's SI convention. A CI gate recompiles the full proof on every pull
+        request that touches the map or the generators, with warnings promoted to
+        errors, so the verified badge is the live state of the claim. A public
+        formalization roadmap rates all 114 operators by what a proof of the formula
+        would take (12 rational identities closed by the generator, 44 needing real
+        analysis, 18 trivially reflexive, 40 opaque code outputs with nothing
+        algebraic to prove), and a hand-reviewed crosswalk links map nodes to the
+        physlib declarations that formalize the same concepts. The
+        approximation-error theorems remain future work.
   \item \textbf{Theory-experiment integration.} Extend the representation functor to ingest
         experimental observables. The operator layer's graph-alignment machinery applies uniformly,
         so a measured $\kappa$ becomes another representation of the abstract $\kappa$, and
@@ -2907,7 +2973,13 @@ The map is at store head version
 \texttt{9802d9e854c915eb47d867575730a556ab7f4a565e392bf5b29da58338f08434}
 (2026-07-13, 239 records), one hundred thirty-nine change records past the frozen genesis hash
 \texttt{e6e8044e92039696417b53b220b0f3f10559a286b0eaabbe7ea4167ff510f6cd}
-(2026-07-07, the untouched 100-record prefix). The live numbers:
+(2026-07-07, the untouched 100-record prefix). Since the lineage became the one
+named artifact, the published stamp also carries the unified \emph{lineage
+version} (\texttt{f69b18c18fb7\ldots}): one rolling content hash over the
+derivation graph and the instance-format rules together, appended to a chain
+whose root is the genesis, so a change to either the physics or the record
+format moves the one version every page and every record cites. The live
+numbers:
 
 \begin{itemize}[leftmargin=2em, itemsep=0.25em]
   \item \textbf{Structure.} 114 nodes (111 observable and hidden quantities plus 3
@@ -2932,7 +3004,7 @@ The map is at store head version
         mat-diffusion-analysis 2, mescal 2, plumed 2, smol 2,
         mat-equation-of-state 1, mat-surface-adsorption 1, rxn-network 1,
         diffcsp 1, mattergen 1.
-  \item \textbf{Instances.} 87 recorded values, 83 simulation and 4 measurement.
+  \item \textbf{Instances.} 91 recorded values, 87 simulation and 4 measurement.
         They span the newer domains (formation and hull energies, elastic and
         equation-of-state moduli, CALPHAD Gibbs energies, quasi-harmonic thermal
         expansion, molecular NEB barriers and bond dissociation energies) as
@@ -2945,7 +3017,13 @@ The map is at store head version
         Esfarjani 2011). The two measurements are the Glassbrenner--Slack 1964
         steady-state thermal conductivities of bulk single-crystal silicon
         ($156\,\mathrm{W/(m\,K)}$) and germanium ($60.2\,\mathrm{W/(m\,K)}$) at
-        $300\,\mathrm{K}$ and natural isotopic abundance.
+        $300\,\mathrm{K}$ and natural isotopic abundance. The four newest
+        simulation values (2026-07-18) are fully-specified engine-adapter
+        evidence: kaldo and phono3py silicon thermal conductivities, RTA and
+        direct-inverse, with every knob in-hash down to the sha256 of the
+        vendored Tersoff potential, each paired with a committed conformance
+        target (eight targets total) that a re-run must reproduce within its
+        stated tolerance.
   \item \textbf{Dimensional gate.} Of the 114 operator edges the gate walks, 43
         are ok, 2 are documented-schematic violations
         (\texttt{compute\_gruneisen} and \texttt{compute\_phase\_space\_3phonon},
@@ -2962,7 +3040,13 @@ The map is at store head version
         $C_P - C_V$ relation, the power factor, and $ZT$) and the three composite
         effective-medium edges (the Nan random and aligned mixing formulas and
         the Hasselman-Johnson spherical cross-check).
-  \item \textbf{Tests.} The suite is 1425 passing.
+  \item \textbf{Verified layer.} 89 nodes and 12 edge theorems compile against
+        physlib (Lean~4.31.0, pinned by revision), the generated seven-base
+        extension covers all 114 nodes, and 13 identity theorems check against
+        Mathlib; a CI gate recompiles the proof on every relevant pull request
+        with warnings promoted to errors. The formalization roadmap page rates
+        every operator by what proving its formula would take.
+  \item \textbf{Tests.} The suite is 1727 passing.
 \end{itemize}
 
 \begin{center}
