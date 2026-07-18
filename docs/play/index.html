@@ -150,7 +150,18 @@
      The datasheet's one sanctioned graphic. */
   .rec-maprow{margin-top:4px;}
   .rec-mapbox{overflow-x:auto;margin:6px 0 10px;border:1px solid var(--line);border-radius:8px;background:#fdfcf9;}
-  .rec-map{display:block;width:100%;height:auto;min-width:820px;}
+  /* the svg never renders below its natural size: a wide derivation scrolls
+     inside .rec-mapbox at full legibility instead of shrinking its labels
+     (each svg carries its natural width as an inline min-width) */
+  .rec-map{display:block;width:100%;height:auto;}
+  .rec-explain{font-size:.8rem;color:var(--muted);line-height:1.55;margin:2px 0 8px;max-width:72ch;}
+  .rec-maplegend{display:flex;flex-wrap:wrap;gap:4px 18px;align-items:center;
+    font-size:.78rem;color:var(--muted);margin:2px 0 10px;}
+  .rec-maplegend i{display:inline-block;width:15px;height:11px;border-radius:3px;
+    margin-right:6px;vertical-align:-1px;}
+  .lg-this{background:#eef2ff;border:1.6px solid #4f46e5;}
+  .lg-obs{background:#fdfcf9;border:1.6px solid #4f46e5;}
+  .lg-step{background:#fdfcf9;border:1.6px solid #8a8177;}
   /* stacked member datasheets inside a bundle */
   .bundle-member{border-top:1px solid var(--line);margin-top:22px;padding-top:14px;}
   .rec-grp-lab .rec-grp-tag{font-family:var(--font-mono,monospace);font-size:.66rem;font-weight:400;
@@ -1368,6 +1379,8 @@ function valuesHTML(lineage, node){
   var rows = [{ key: picked.primary.key, val: picked.primary.val }]
     .concat(picked.rest.filter(function(r){ return !isUnitMeta(r.key); }));
   return '<div class="rec-sec"><div class="rec-h">Values</div>' +
+    '<p class="rec-explain">What the computation produced, in the units the record itself ' +
+    'declares. The first row is the headline quantity; the rest are companions it shipped with.</p>' +
     '<table class="rec-vtable"><thead><tr><th>Quantity</th><th class="num">Value</th><th>Units</th></tr></thead><tbody>' +
     rows.map(function(row){
       var u = row.key === picked.primary.key ? unit : '';
@@ -1418,7 +1431,7 @@ function derivationSVG(nodeId){
   var colOf = {}; cols.forEach(function(l, i){ colOf[l] = i; });
   var byCol = cols.map(function(){ return []; });
   order.slice().sort().forEach(function(id){ byCol[colOf[nodeById[id].layer]].push(id); });
-  var CW = 168, RH = 34, PAD = 12, BW = 148, BH = 24;
+  var CW = 216, RH = 46, PAD = 16, BW = 196, BH = 34;
   var maxRows = Math.max.apply(null, byCol.map(function(c){ return c.length; }));
   var W = PAD * 2 + cols.length * CW - (CW - BW);
   var H = PAD * 2 + maxRows * RH - (RH - BH);
@@ -1430,7 +1443,7 @@ function derivationSVG(nodeId){
     });
   });
   var s = '<svg class="rec-map" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H +
-    '" role="img" aria-label="Derivation of ' + esc(start) + ' on the map">';
+    '" style="min-width:' + W + 'px" role="img" aria-label="Derivation of ' + esc(start) + ' on the map">';
   // edges first (only those inside the closure)
   order.forEach(function(id){
     (parents[id] || []).forEach(function(p){
@@ -1438,7 +1451,7 @@ function derivationSVG(nodeId){
       var x1 = pos[p].x + BW, y1 = pos[p].y + BH / 2, x2 = pos[id].x, y2 = pos[id].y + BH / 2;
       var mx = (x1 + x2) / 2;
       s += '<path d="M' + x1 + ' ' + y1 + ' C' + mx + ' ' + y1 + ' ' + mx + ' ' + y2 + ' ' + x2 + ' ' + y2 +
-        '" fill="none" stroke="#c9c2b6" stroke-width="1.1"/>';
+        '" fill="none" stroke="#c9c2b6" stroke-width="1.4"/>';
     });
   });
   order.forEach(function(id){
@@ -1450,12 +1463,12 @@ function derivationSVG(nodeId){
     // a TeX-laden symbol is unreadable as raw text; fall back to the node id
     var sym = n.symbol && n.symbol.indexOf('\\') === -1 ? n.symbol : '';
     var label = sym && sym.length <= 14 ? sym : id;
-    if (label.length > 22) label = label.slice(0, 21) + '…';
+    if (label.length > 24) label = label.slice(0, 23) + '…';
     s += '<a href="../map/#node=' + encodeURIComponent(id) + '">';
     s += '<rect x="' + p.x + '" y="' + p.y + '" width="' + BW + '" height="' + BH +
-      '" rx="6" fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + (terminal ? 1.8 : 1.1) + '"/>';
-    s += '<text x="' + (p.x + BW / 2) + '" y="' + (p.y + BH / 2 + 3.5) +
-      '" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9.5" fill="#17130e">' +
+      '" rx="7" fill="' + fill + '" stroke="' + stroke + '" stroke-width="' + (terminal ? 2 : 1.2) + '"/>';
+    s += '<text x="' + (p.x + BW / 2) + '" y="' + (p.y + BH / 2 + 4.5) +
+      '" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="12.5" fill="#17130e">' +
       esc(label) + '</text></a>';
   });
   s += '</svg>';
@@ -1521,7 +1534,9 @@ function renderBundle(env){
   }
   if (rows.length) h += '<div class="rec-sec"><div class="rec-h">The shared document</div><dl class="rec-kv">' + rows.join('') + '</dl></div>';
 
-  h += '<div class="rec-sec"><div class="rec-h">The lineages in this bundle</div>';
+  h += '<div class="rec-sec"><div class="rec-h">The lineages in this bundle</div>' +
+    '<p class="rec-explain">Every lineage this document carries, each rendered below as a ' +
+    'full datasheet on this same page. The rows here jump to the matching datasheet.</p>';
   h += '<table class="rec-vtable"><thead><tr><th>Lineage</th><th class="num">Value</th><th>Units</th><th>Id</th></tr></thead><tbody>';
   env.lineages.forEach(function(member, idx){
     var lineage = member.lineage || {};
@@ -1621,7 +1636,11 @@ function datasheetHTML(record, valid, opts){
   h += '</dl></div>';
 
   // ---- THE LINEAGE: every field, as plain labelled information ---------------
-  var lineageHTML = '<div class="rec-sec"><div class="rec-h">The lineage</div>';
+  var lineageHTML = '<div class="rec-sec"><div class="rec-h">The lineage</div>' +
+    '<p class="rec-explain">The complete computational identity of this value: the output ' +
+    'quantity, the material, and every condition that determines the number. These fields, ' +
+    'and nothing else, are hashed into the lineage id, so two records with the same id are ' +
+    'the same computation.</p>';
   var idRows = [];
   if (node) idRows.push('<dt>node</dt><dd class="wrap">' + esc(node) + '</dd>');
   var cfgUid = materialConfigUid(lineage.material);
@@ -1654,7 +1673,20 @@ function datasheetHTML(record, valid, opts){
   // the columns (CEO direction), never squeezed into a column
   if (known) {
     var deriv = derivationSVG(node);
-    if (deriv) h += '<div class="rec-sec rec-maprow"><div class="rec-h">The derivation on the map</div>' + deriv + '</div>';
+    if (deriv) {
+      h += '<div class="rec-sec rec-maprow"><div class="rec-h">The derivation on the map</div>' +
+        '<p class="rec-explain">Every quantity this value depends on, drawn from the map itself. ' +
+        'Read left to right: the leftmost boxes are the provided inputs, each arrow is an operator ' +
+        'carrying one quantity into the next computation, and the highlighted box at the end is ' +
+        'this record’s quantity. Wide derivations scroll sideways. Click any box to open that ' +
+        'quantity on the full map.</p>' +
+        deriv +
+        '<div class="rec-maplegend">' +
+        '<span><i class="lg-this"></i>this record’s quantity</span>' +
+        '<span><i class="lg-obs"></i>observable (measurable) quantity</span>' +
+        '<span><i class="lg-step"></i>internal step of the computation</span>' +
+        '</div></div>';
+    }
   }
 
   var valueAndMap = valuesHTML(lineage, node) + (known ? mapContextHTML(node, lineage.material) : '');
@@ -1768,7 +1800,11 @@ function provenanceHTML(record, lineage, doc){
   }
   if (window.__MAP_VERSION__) rows.push('<dt>lineage version</dt><dd class="wrap" title="the schema version this record was checked against: one rolling hash over the derivation graph and the instance-format rules">' + esc(String(window.__MAP_VERSION__).slice(0, 12)) + '</dd>');
   if (!rows.length) return '';
-  return '<div class="rec-sec"><div class="rec-h">Provenance</div><dl class="rec-kv">' + rows.join('') + '</dl></div>';
+  return '<div class="rec-sec"><div class="rec-h">Provenance</div>' +
+    '<p class="rec-explain">Where this claim comes from (the paper, dataset, or code that ' +
+    'produced it) and which schema version checked it. Provenance travels with the record ' +
+    'but only a source declared inside the lineage counts toward its id.</p>' +
+    '<dl class="rec-kv">' + rows.join('') + '</dl></div>';
 }
 document.getElementById('renderX').addEventListener('click', function(){
   ingestLineage(document.getElementById('xInput').value, null);
