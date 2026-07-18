@@ -1033,3 +1033,29 @@ def test_review_batches_and_concatenates_verdicts():
     # batch 2 refuses: batch 3 never runs, batch 1's verdicts survive
     assert rc.batch_sizes == [40, 40] and stop == "refusal"
     assert len(verdicts) == 40
+
+
+# --------------------------------------------------------------------------
+# Numeral normalization before the value gate (the CNT lesson: "9, 960",
+# "13,000", and "2408 ± 83" are real claims wearing printed formatting)
+# --------------------------------------------------------------------------
+def test_to_float_normalizes_printed_numerals():
+    from omai.paper_parser import _to_float
+
+    assert _to_float("13,000") == 13000.0
+    assert _to_float("9, 960") == 9960.0
+    assert _to_float("1,234,567") == 1234567.0
+    assert _to_float("2408 ± 83") == 2408.0
+    assert _to_float("2408 +/- 83") == 2408.0
+    assert _to_float("−5.2") == -5.2
+    assert _to_float("3.14") == 3.14
+    assert _to_float("42") == 42.0
+
+
+def test_to_float_still_refuses_non_numerals():
+    from omai.paper_parser import _to_float
+
+    assert _to_float("about 3190") is None
+    assert _to_float("") is None
+    assert _to_float(None) is None
+    assert _to_float("6 mm (QM)") is None
