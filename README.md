@@ -188,6 +188,28 @@ the output node means on the map, where the data lives, and a plain link to run
 it as a simulation on MaterialsCodeGraph), and the experiments index takes
 `#material=<name>`. Every page has a copy-link control.
 
+## The verified layer (Lean 4)
+
+[![Lean proof check](https://github.com/openmaterials-ai/openmaterials/actions/workflows/lean.yml/badge.svg)](https://github.com/openmaterials-ai/openmaterials/actions/workflows/lean.yml)
+
+The map's dimensional structure and its rational identities are proven in
+Lean 4: every exported node is a physics dimension checked against
+[physlib](https://github.com/leanprover-community/physlib) (the community
+Lean 4 physics library, pinned by rev on toolchain 4.31.0), and every
+mechanically provable operator identity is a real-valued theorem checked
+against Mathlib. `lean/` is a standalone lake package; `cd lean && lake exe
+cache get && lake build` reproduces the proof, and CI recompiles it on every
+change with warnings promoted to errors. The
+[verified layer](https://openmaterials.ai/lean/) page renders what is proven
+with honest coverage counts, and the
+[formalization roadmap](https://openmaterials.ai/lean/roadmap/) rates every
+operator on the map by what a proof of its formula would take, from
+generator-provable algebra to the open analysis frontier (Brillouin-zone
+sums, correlation integrals). A hand-reviewed
+[crosswalk](https://openmaterials.ai/data/physlib_crosswalk.json) links map
+nodes to the physlib declarations that formalize the same concept, so
+`resolve()` can hand an agent the formal lemma alongside the formula.
+
 ## A slice of the map, as Mermaid
 
 Any sub-map exports as a Mermaid flowchart (`python -m omai.mermaid <node>`),
