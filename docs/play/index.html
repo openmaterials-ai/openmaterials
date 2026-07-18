@@ -160,6 +160,8 @@
   .rec-vtable .rec-vv{font-family:var(--font-mono,monospace);font-variant-numeric:tabular-nums;
     color:var(--ink);text-align:right;white-space:nowrap;padding-right:0;}
   .rec-vtable .rec-vu{font-family:var(--font-mono,monospace);color:var(--muted);white-space:nowrap;}
+  .rec-vtable a{color:var(--accent);text-decoration:none;}
+  .rec-vtable a:hover{text-decoration:underline;}
   /* WHAT IT MEANS ON THE MAP: plain descriptive text, not a panel */
   .rec-desc{font-size:.8rem;line-height:1.45;color:var(--ink-2,#3d4149);margin:0 0 5px;}
   .rec-meta{font-size:.78rem;color:var(--muted);line-height:1.45;margin:0 0 3px;}
@@ -293,7 +295,10 @@
           client-side view. The data view shows what the container holds as plain
           information: what the record is, every field of the lineage, what the
           output node means on the map, and where the data lives, plus a plain link
-          to run this lineage as a simulation on MaterialsCodeGraph. Dashboards and compute live on
+          to run this lineage as a simulation on MaterialsCodeGraph. One link can
+          also carry a whole set of lineages from one paper (a bundle envelope with
+          the publication metadata stated once): it opens as a plain paper view
+          listing each lineage, one click from its full datasheet. Dashboards and compute live on
           MaterialsCodeGraph, not here.</p>
       </details>
       <button class="om-btn om-btn-sm" id="loadXExample" type="button">Load an example</button>
@@ -631,6 +636,10 @@ document.getElementById('renderProposal').addEventListener('click', function(){
    the full-width datasheet stage; the original panel remains the ingress and the
    visible home for validation errors. */
 var currentLineageRecord = null;
+var currentLineageDoc = null;        // the shared doc a single-lineage envelope carried, for re-minting
+var currentLineageFromBundle = false; // true when the open datasheet is a member of currentBundle
+var currentBundle = null;            // the normalized envelope behind the open bundle or member view
+var bundleViewOpen = false;          // true while the paper (bundle) view is the visible stage
 var lineageHasRendered = false;
 var lineageGallery = null;
 var lineageFlagship = null;
@@ -655,6 +664,56 @@ function normalizeLineageRecord(record){
   Object.keys(record).forEach(function(key){ if (key !== 'recipe') normalized[key] = record[key]; });
   normalized.lineage = record.recipe;
   return normalized;
+}
+
+/* The share ENVELOPE (the JS mirror of omai/lineages.py envelope_from_fragment):
+   a fragment payload is EITHER a bare record (every link ever minted, forever)
+   or an envelope {v: 1, doc?: {...}, lineages: [record, ...]} where doc is the
+   shared document context (publication metadata: source, title, authors, year,
+   journal, extras tolerated) and each member is an ordinary light record. This
+   normalizes both shapes to {v, doc, lineages}: a bare record becomes a
+   one-element envelope with no doc, so every decode path downstream speaks one
+   shape. A payload carrying both an envelope "lineages" list and a bare
+   record's key is ambiguous and rejected, like the lineage+recipe pair. */
+function normalizeEnvelope(payload){
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload))
+    throw new Error('Not an object: a shared payload is a JSON object.');
+  var hasLineages = Object.prototype.hasOwnProperty.call(payload, 'lineages');
+  var hasBare = Object.prototype.hasOwnProperty.call(payload, 'lineage') ||
+                Object.prototype.hasOwnProperty.call(payload, 'recipe');
+  if (hasLineages && hasBare)
+    throw new Error('Ambiguous payload: it carries both an envelope "lineages" list and a bare record key.');
+  if (!hasLineages)
+    return { v: 1, doc: null, lineages: [normalizeLineageRecord(payload)] };
+  if (payload.v !== 1)
+    throw new Error('Unknown envelope version ' + JSON.stringify(payload.v) + ' (this page speaks v=1).');
+  if (!Array.isArray(payload.lineages) || !payload.lineages.length)
+    throw new Error('An envelope needs a non-empty "lineages" list.');
+  var doc = payload.doc;
+  if (doc != null && (typeof doc !== 'object' || Array.isArray(doc)))
+    throw new Error('The envelope "doc", when present, must be an object.');
+  return { v: 1, doc: doc || null, lineages: payload.lineages.map(normalizeLineageRecord) };
+}
+
+/* The envelope as EMITTED: {v: 1, doc?, lineages}. Encoders always emit the
+   envelope (a single-lineage share is a one-element envelope); the doc key is
+   simply absent when there is no shared document context. */
+function mintEnvelope(env){
+  var out = { v: 1 };
+  if (env.doc) out.doc = env.doc;
+  out.lineages = env.lineages;
+  return out;
+}
+
+/* The one-element envelope a single record is shared as. The doc travels along
+   only when the record was opened WITH a shared document of its own (a
+   single-lineage envelope): a member picked out of a multi-lineage bundle is
+   shared as that record alone. */
+function shareEnvelopeFor(record, opts){
+  var out = { v: 1 };
+  if (opts && opts.doc && !opts.fromBundle) out.doc = opts.doc;
+  out.lineages = [record];
+  return out;
 }
 
 /* A client-side mirror of validate_light's SHAPE checks (omai/lineages.py):
@@ -718,6 +777,14 @@ function ingestLineage(raw, sourceLabel){
     showLineageError('<div class="xp-err">Not valid JSON' +
       (sourceLabel ? ' in ' + esc(sourceLabel) : '') + ': ' + esc(e.message) + '</div>');
     renderSubmap([], {}); return;
+  }
+  // a pasted or dropped ENVELOPE takes the shared-payload dispatch: a
+  // multi-lineage bundle opens the paper view, a one-element envelope the
+  // ordinary datasheet (renderShared banners its own errors)
+  if (record && typeof record === 'object' && !Array.isArray(record) &&
+      Object.prototype.hasOwnProperty.call(record, 'lineages')) {
+    renderShared(record);
+    return;
   }
   var v = validateLightJS(record);
   if (!v.ok) {
@@ -817,18 +884,49 @@ function openFlagshipLineage(){
   }).catch(function(){});
 }
 
-async function copyLineageLink(record, btn){
-  if (!record) return;
-  var hash = '#/play?tab=lineage&x=' + await gzipToB64url(record);
+/* The length rule, stated plainly: a link longer than 8000 characters is not a
+   reliable link, so none is minted (the fragment never enters location.hash: no
+   broken links) and the envelope is offered as a JSON download instead. Below
+   the threshold, behavior is unchanged. */
+function showLengthFallback(obj, len, btn, resetLabel){
+  var label = resetLabel || 'Copy link';
+  btn.textContent = 'Too long to link';
+  setTimeout(function(){ btn.textContent = label; }, 1600);
+  var host = document.body.classList.contains('lin-open')
+    ? document.getElementById('linRecord') : document.getElementById('xResult');
+  var old = document.getElementById('linLenNote'); if (old) old.remove();
+  var note = document.createElement('div');
+  note.id = 'linLenNote';
+  note.className = 'xp-err';
+  note.textContent = 'This share is ' + len + ' characters as a link, longer than the 8000 a link carries reliably, so no link was minted. ';
+  var a = document.createElement('a');
+  a.textContent = 'Download the envelope as JSON instead';
+  a.download = 'lineage-envelope.json';
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(obj, null, 1)], { type: 'application/json' }));
+  note.appendChild(a);
+  host.insertBefore(note, host.firstChild);
+}
+
+async function copySharedLink(obj, btn){
+  if (!obj) return;
+  var hash = '#/play?tab=lineage&x=' + await gzipToB64url(obj);
   var url = location.origin + location.pathname + hash;
+  if (url.length > 8000) { showLengthFallback(obj, url.length, btn); return; }
   if (location.hash !== hash) { skipNextHashApply = hash; location.hash = hash; }
-  if (url.length > 8000) {
-    btn.textContent = 'Too large to link';
-    setTimeout(function(){ btn.textContent = 'Copy link'; }, 1600);
-    return;
-  }
   var done = function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1200); };
   if (navigator.clipboard) navigator.clipboard.writeText(url).then(done, done); else done();
+}
+
+/* Copy link on a datasheet mints THAT record (as a one-element envelope; the
+   shared doc rides along only per shareEnvelopeFor's rule). Copy link on a
+   bundle re-mints the WHOLE envelope. */
+async function copyLineageLink(record, btn, opts){
+  if (!record) return;
+  await copySharedLink(shareEnvelopeFor(record, opts), btn);
+}
+function copyBundleLink(env, btn){
+  if (!env) return;
+  return copySharedLink(mintEnvelope(env), btn);
 }
 
 // The MCG-computable set, mirrored from docs/experiment/index.html (the shipped
@@ -1281,6 +1379,114 @@ function lineageLinksHTML(lineage, node, known){
   return h + '</div>';
 }
 
+/* renderShared: the one decode dispatch for anything the #x= fragment (or a
+   paste/drop) carries. Normalizes the payload to an envelope (a bare record
+   becomes a one-element envelope, so every legacy link renders exactly as
+   before), then: a MULTI-lineage bundle opens the paper view, a single lineage
+   opens the ordinary datasheet (with the shared doc, when one rides along,
+   available for read-time source inheritance). */
+function renderShared(payload){
+  var env;
+  try { env = normalizeEnvelope(payload); }
+  catch (e) {
+    showLineageError('<div class="xp-err">' + esc(e.message) + '</div>');
+    renderSubmap([], {});
+    return false;
+  }
+  if (env.lineages.length > 1) return renderBundle(env);
+  return renderLineage(env.lineages[0], { doc: env.doc });
+}
+
+/* renderBundle: the PAPER VIEW of a multi-lineage envelope. A plain header
+   from the shared doc (title, authors, year, journal, the doc source as a
+   labelled row) above a plain list of the member lineages, one row each:
+   the property of the material, its value and units, its short id. Clicking a
+   member opens its normal full datasheet with a back-to-bundle link. Plain
+   dt/dd and a table in the existing .rec-* idiom: information, not a
+   dashboard. Copy link here re-mints the WHOLE envelope. */
+function renderBundle(env){
+  var panelBox = document.getElementById('xResult');
+  var box = document.getElementById('linRecord');
+  nodePanel.style.display = 'none';
+  // each member is held to the same light shape check as a single record
+  for (var i = 0; i < env.lineages.length; i++) {
+    var chk = validateLightJS(env.lineages[i]);
+    if (!chk.ok) {
+      showLineageError('<div class="xp-err">Lineage ' + (i + 1) + ' of the bundle: ' + esc(chk.error) + '</div>');
+      renderSubmap([], {});
+      return false;
+    }
+    env.lineages[i] = chk.record;
+  }
+  var doc = env.doc || null;
+  var title = doc && doc.title ? String(doc.title) : 'A shared set of lineages';
+
+  var h = '<div class="rec">';
+  h += '<div class="rec-head">';
+  h += '<p class="rec-lede" style="white-space:normal">' + esc(title) + '</p>';
+  h += '<dl class="rec-head-meta">';
+  h += '<div><dt>Kind</dt><dd>Lineage bundle</dd></div>';
+  h += '<div><dt>Lineages</dt><dd>' + env.lineages.length + '</dd></div>';
+  h += '</dl></div>';
+
+  var rows = [];
+  if (doc) {
+    if (doc.authors) rows.push('<dt>authors</dt><dd>' + esc(Array.isArray(doc.authors) ? doc.authors.join(', ') : String(doc.authors)) + '</dd>');
+    if (doc.year != null) rows.push('<dt>year</dt><dd>' + esc(String(doc.year)) + '</dd>');
+    if (doc.journal) rows.push('<dt>journal</dt><dd>' + esc(String(doc.journal)) + '</dd>');
+    if (typeof doc.source === 'string' && doc.source) rows.push('<dt>source ref</dt><dd class="wrap">' + esc(doc.source) + '</dd>');
+  }
+  if (rows.length) h += '<div class="rec-sec"><div class="rec-h">The shared document</div><dl class="rec-kv">' + rows.join('') + '</dl></div>';
+
+  h += '<div class="rec-sec"><div class="rec-h">The lineages in this bundle</div>';
+  h += '<table class="rec-vtable"><thead><tr><th>Lineage</th><th class="num">Value</th><th>Units</th><th>Id</th></tr></thead><tbody>';
+  env.lineages.forEach(function(member, idx){
+    var lineage = member.lineage || {};
+    var label = humanProperty(lineage.node, lineage.template);
+    var mat = materialName(lineage.material);
+    var picked = pickValues(lineage.values, lineage.node);
+    var isUnitMeta = picked.primary && (picked.primary.key === 'units' || picked.primary.key === 'unit');
+    var val = picked.primary && !isUnitMeta ? fmtValue(picked.primary.val) : '';
+    var unit = cleanUnit(lineage.units || (lineage.values && lineage.values.units) || '');
+    var short = member.id ? String(member.id).slice(0, 12) : '';
+    h += '<tr><td class="rec-vk"><a href="#" class="rec-member" data-idx="' + idx + '" title="Open this lineage\'s full datasheet">' + esc(label + (mat ? ' of ' + mat : '')) + '</a></td>' +
+      '<td class="rec-vv">' + esc(val) + '</td><td class="rec-vu">' + esc(unit) + '</td>' +
+      '<td class="rec-vu">' + esc(short) + '</td></tr>';
+  });
+  h += '</tbody></table></div>';
+  h += '<div class="rec-links"><button id="bundleCopy" type="button" title="Copy a link that carries this whole bundle in its #x= fragment.">Copy link</button>' +
+       '<span class="rec-link-note">Each lineage keeps its own id; open one for its full datasheet.</span></div>';
+  h += '</div>';
+
+  panelBox.innerHTML = '';
+  box.innerHTML = h;
+  currentBundle = env;
+  bundleViewOpen = true;
+  currentLineageRecord = null;
+  currentLineageDoc = null;
+  currentLineageFromBundle = false;
+  lineageHasRendered = true;
+  setLineageInputs(mintEnvelope(env));
+  renderLineageExampleNav(null);
+  var runLink = document.getElementById('linRun');
+  runLink.hidden = true;
+  runLink.removeAttribute('href');
+  document.getElementById('linIngress').hidden = true;
+  document.body.classList.add('lin-open');
+  document.getElementById('linStage').scrollTop = 0;
+  box.querySelectorAll('.rec-member').forEach(function(a){
+    a.addEventListener('click', function(e){
+      e.preventDefault();
+      renderLineage(currentBundle.lineages[Number(a.getAttribute('data-idx'))],
+                    { doc: currentBundle.doc, fromBundle: true });
+    });
+  });
+  var copyBtn = box.querySelector('#bundleCopy');
+  if (copyBtn) copyBtn.addEventListener('click', function(){ copyBundleLink(currentBundle, this); });
+  renderSubmap([], {});
+  return true;
+}
+
 /* renderLineage: the PLAIN DATA VIEW of a shared #x= record (and a pasted,
    dropped, gallery, or default example). A valid record opens the full-width
    stage as a dense scientific datasheet: one compact identity header, then the
@@ -1288,7 +1494,8 @@ function lineageLinksHTML(lineage, node, known){
    not a dashboard. Node-unresolved and measurement records render honestly,
    without a fabricated map section or Run link. Invalid records stay in the
    Lineage tool panel so their validation banner is visible. */
-function renderLineage(record){
+function renderLineage(record, opts){
+  opts = opts || {};
   var panelBox = document.getElementById('xResult');
   var box = document.getElementById('linRecord');
   nodePanel.style.display = 'none';
@@ -1299,6 +1506,10 @@ function renderLineage(record){
     return false;
   }
   record = valid.record;
+  if (!opts.fromBundle) { currentBundle = null; }
+  bundleViewOpen = false;
+  currentLineageDoc = opts.doc || null;
+  currentLineageFromBundle = !!opts.fromBundle;
   var lineage = record.lineage;
   var node = lineage.node;
   var template = lineage.template;
@@ -1315,6 +1526,11 @@ function renderLineage(record){
     : 'node-unresolved (template only)';
 
   var h = '<div class="rec">';
+
+  // a member opened out of a bundle keeps one plain way back to the paper view
+  if (opts.fromBundle && currentBundle) {
+    h += '<p class="rec-meta"><a href="#" id="linBundleBack">&#8249; back to the shared bundle</a></p>';
+  }
 
   // ---- COMPACT HEADER: lede + the merged What-this-is metadata ---------------
   h += '<div class="rec-head">';
@@ -1358,7 +1574,7 @@ function renderLineage(record){
   lineageHTML += '</div>';
 
   var valueAndMap = valuesHTML(lineage, node) + (known ? mapContextHTML(node, lineage.material) : '');
-  var recordTail = provenanceHTML(record, lineage) + artifactsHTML(record) + lineageLinksHTML(lineage, node, known);
+  var recordTail = provenanceHTML(record, lineage, opts.doc) + artifactsHTML(record) + lineageLinksHTML(lineage, node, known);
   h += '<div class="rec-grid"><div class="rec-col">' + lineageHTML + '</div>';
   if (valueAndMap) h += '<div class="rec-col">' + valueAndMap + '</div>';
   if (recordTail) h += '<div class="rec-col">' + recordTail + '</div>';
@@ -1368,7 +1584,9 @@ function renderLineage(record){
   box.innerHTML = h;
   currentLineageRecord = record;
   lineageHasRendered = true;
-  setLineageInputs(record);
+  // the input boxes hold what a Share would mint: the one-element envelope with
+  // its doc for a doc-bearing single-lineage share, else the record itself
+  setLineageInputs(opts.doc && !opts.fromBundle ? shareEnvelopeFor(record, opts) : record);
   renderLineageExampleNav(record);
 
   var runLink = document.getElementById('linRun');
@@ -1384,7 +1602,12 @@ function renderLineage(record){
   document.getElementById('linStage').scrollTop = 0;
 
   var copyBtn = box.querySelector('#rcCopy');
-  if (copyBtn) copyBtn.addEventListener('click', function(){ copyLineageLink(record, this); });
+  if (copyBtn) copyBtn.addEventListener('click', function(){ copyLineageLink(record, this, opts); });
+  var backBtn = box.querySelector('#linBundleBack');
+  if (backBtn) backBtn.addEventListener('click', function(e){
+    e.preventDefault();
+    if (currentBundle) renderBundle(currentBundle);
+  });
 
   // The map still lives in the Map tab and map page; it does not compete with
   // the datasheet while the stage is open.
@@ -1395,7 +1618,7 @@ function renderLineage(record){
 // The PROVENANCE section: the source ref, the map version the record was checked
 // against, and, for a parsed-paper lineage, the paper info, all plainly. Returns
 // '' when there is nothing to say.
-function provenanceHTML(record, lineage){
+function provenanceHTML(record, lineage, doc){
   var rows = [];
   // The identity-bearing form is lineage.source, a "scheme:ref" string; the
   // legacy top-level record.source object (outside the hash) stays readable.
@@ -1403,6 +1626,13 @@ function provenanceHTML(record, lineage){
   var src = record.source || null;
   var ref = linSrc || (src && src.ref);
   if (ref) rows.push('<dt>source ref</dt><dd class="wrap">' + esc(String(ref)) + '</dd>');
+  // Read-time inheritance: a member with no source of its own shows the shared
+  // document's source, labelled plainly. DISPLAY ONLY: nothing is written onto
+  // the record and its id is untouched (identity is the member's own lineage).
+  else if (doc && typeof doc.source === 'string' && doc.source) {
+    rows.push('<dt>source ref</dt><dd class="wrap">' + esc(doc.source) +
+      ' <span class="rec-link-note">(from the shared document)</span></dd>');
+  }
   // paper info for a parsed-paper lineage: title / doi / authors / year, wherever present
   var paper = record.paper || (src && src.paper) || (lineage && lineage.paper) || null;
   if (paper && typeof paper === 'object') {
@@ -1466,22 +1696,29 @@ document.getElementById('loadXExample').addEventListener('click', openFlagshipLi
 document.getElementById('copyXLink').addEventListener('click', async function(){
   var btn = this, raw = document.getElementById('xInput').value.trim();
   if (!raw) { btn.textContent = 'Nothing to copy'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1200); return; }
-  var record;
-  try { record = normalizeLineageRecord(JSON.parse(raw)); }
+  // envelope-aware: a bare record wraps to a one-element envelope, an envelope
+  // ships whole; every member is held to the same light shape check
+  var env;
+  try { env = normalizeEnvelope(JSON.parse(raw)); }
   catch (e) {
     showLineageError('<div class="xp-err">' + esc(e.message) + '</div>');
     btn.textContent = 'Invalid record'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1400); return;
   }
-  var v = validateLightJS(record);
-  if (!v.ok) {
-    showLineageError('<div class="xp-err">' + esc(v.error) + '</div>');
-    btn.textContent = 'Invalid record'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1400); return;
+  for (var i = 0; i < env.lineages.length; i++) {
+    var v = validateLightJS(env.lineages[i]);
+    if (!v.ok) {
+      showLineageError('<div class="xp-err">' + esc(v.error) + '</div>');
+      btn.textContent = 'Invalid record'; setTimeout(function(){ btn.textContent = 'Copy link'; }, 1400); return;
+    }
+    env.lineages[i] = v.record;
   }
-  await copyLineageLink(v.record, btn);
+  await copySharedLink(mintEnvelope(env), btn);
 });
 
 document.getElementById('linCopy').addEventListener('click', function(){
-  copyLineageLink(currentLineageRecord, this);
+  if (bundleViewOpen) { copyBundleLink(currentBundle, this); return; }
+  copyLineageLink(currentLineageRecord, this,
+    { doc: currentLineageDoc, fromBundle: currentLineageFromBundle });
 });
 document.getElementById('linPaste').addEventListener('click', function(){
   var ingress = document.getElementById('linIngress');
@@ -1667,14 +1904,21 @@ document.getElementById('shareBtn').addEventListener('click', async function(){
   if (tab === 'trace') hash += '&from=' + encodeURIComponent(document.getElementById('traceFrom').value) + '&to=' + encodeURIComponent(document.getElementById('traceTo').value);
   // the Lineage tab shares the pasted record as an #x= fragment (its own
   // Copy link does the same); everything else shares the lit sub-map as #m=.
+  var sharedObj = null;
   if (tab === 'lineage') {
     var xr = document.getElementById('xInput').value.trim();
     if (xr) {
       try {
-        var sharedRecord = normalizeLineageRecord(JSON.parse(xr));
-        var sharedCheck = validateLightJS(sharedRecord);
-        if (!sharedCheck.ok) throw new Error(sharedCheck.error);
-        hash += '&x=' + await gzipToB64url(sharedCheck.record);
+        // envelope-aware: a bare record wraps to a one-element envelope, an
+        // envelope ships whole (encoders always emit the envelope)
+        var sharedEnv = normalizeEnvelope(JSON.parse(xr));
+        for (var si = 0; si < sharedEnv.lineages.length; si++) {
+          var sharedCheck = validateLightJS(sharedEnv.lineages[si]);
+          if (!sharedCheck.ok) throw new Error(sharedCheck.error);
+          sharedEnv.lineages[si] = sharedCheck.record;
+        }
+        sharedObj = mintEnvelope(sharedEnv);
+        hash += '&x=' + await gzipToB64url(sharedObj);
       } catch (e) {
         showLineageError('<div class="xp-err">' + esc(e.message) + '</div>');
         btn.textContent = 'Invalid lineage';
@@ -1688,6 +1932,9 @@ document.getElementById('shareBtn').addEventListener('click', async function(){
   // above so the input box repopulates.)
   else if (svg.querySelector('.pg-node:not(.dim)')) hash += '&m=' + await gzipToB64url(currentMapViewJSON());
   var url = location.origin + location.pathname + hash;
+  // a lineage share that would exceed a reliable URL is refused honestly: no
+  // hash is set (no broken links) and the envelope is offered as a download
+  if (sharedObj && url.length > 8000) { showLengthFallback(sharedObj, url.length, btn, 'Share'); return; }
   if (location.hash !== hash) { skipNextHashApply = hash; location.hash = hash; }
   if (url.length > 8000) { btn.textContent = 'Too large to link'; setTimeout(function(){ btn.textContent = 'Share'; }, 1600); return; }
   var done = function(){ btn.textContent = 'Copied'; setTimeout(function(){ btn.textContent = 'Share'; }, 1200); };
@@ -1712,11 +1959,10 @@ async function applyHash(){
       if (tab === 'map') { document.getElementById('mapInput').value = JSON.stringify(view, null, 1); renderMapView(view); }
       else { var mv = mapViewFromEdges((view.e || []).filter(function(tr){ return Array.isArray(tr) && nodeById[tr[0]] && nodeById[tr[2]]; })); renderSubmap(mv.nodes, mv.eops); }
     } catch (e) { hint.style.display = 'block'; hint.textContent = 'Could not open the shared map: ' + e.message; } }
-  // the #x= lineage record: decode the light record, fill the box, and render
-  // its plain data view. Same gzip fragment scheme as #m=.
-  if (xm) { try { var record = await b64urlToObj(xm[1]);
-      setLineageInputs(record);
-      renderLineage(record);
+  // the #x= payload: a bare record (every legacy link) or an envelope, both
+  // decoded by the one dual-read dispatch. Same gzip fragment scheme as #m=.
+  if (xm) { try { var payload = await b64urlToObj(xm[1]);
+      renderShared(payload);
     } catch (e) {
       showLineageError('<div class="xp-err">Could not open the shared lineage: ' + esc(e.message) + '</div>');
     } }
