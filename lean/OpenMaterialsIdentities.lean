@@ -6,7 +6,7 @@
   one and proves the chained form equals the flat form (ring / field_simp).
   A `law` theorem states a single identity's formula as a well-typed real
   equation. Dimensional consistency is Tier 1 (OpenMaterials.lean).
-  Compiles against Mathlib (Lean 4.29.1).
+  Compiles against Mathlib (Lean 4.31.0).
 -/
 import Mathlib.Tactic
 
@@ -17,7 +17,7 @@ theorem identity_contract_heat_capacity_p_identity (C_V_mol : ℝ) (K : ℝ) (N_
     (C_V_mol + (K * T * V_m * alpha_V ^ 2)) = (C_V_mol + (K * N_A * T * V_cell * alpha_V ^ 2)) := by subst h_V_m; ring
 
 -- contract_zt (composition)
-theorem identity_contract_zt (PF : ℝ) (S : ℝ) (T : ℝ) (kappa : ℝ) (kappa_e : ℝ) (kappa_tot : ℝ) (sigma_el : ℝ) (h_PF : PF = (sigma_el * S ^ 2)) (h_kappa_tot : kappa_tot = (kappa + kappa_e)) (hd0 : kappa_tot ≠ 0) (hd1 : (kappa + kappa_e) ≠ 0) :
-    (PF * T) / (kappa_tot) = (T * sigma_el * S ^ 2) / ((kappa + kappa_e)) := by subst h_PF h_kappa_tot; field_simp <;> ring
+theorem identity_contract_zt (PF : ℝ) (S : ℝ) (T : ℝ) (kappa : ℝ) (kappa_e : ℝ) (kappa_tot : ℝ) (sigma_el : ℝ) (h_PF : PF = (sigma_el * S ^ 2)) (h_kappa_tot : kappa_tot = (kappa + kappa_e)) (hd0 : (kappa + kappa_e) ≠ 0) :
+    (PF * T) / (kappa_tot) = (T * sigma_el * S ^ 2) / ((kappa + kappa_e)) := by subst h_PF h_kappa_tot; field_simp
 
 end OpenMaterials.Identities

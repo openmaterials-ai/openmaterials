@@ -1,18 +1,19 @@
-"""The PhysLean export (Tier 1): the map's dimensional layer as Lean.
+"""The physlib export (Tier 1): the map's dimensional layer as Lean.
 
-The generated file compiles against PhysLean (verified on a machine with a
-Lean toolchain, 2026-07-12). CI has no toolchain, so here we re-verify the two
-things that make the generated file correct: (1) every node's PhysLean
-Dimension has the right shared-base exponents, and (2) every emitted lemma
-states a dimensional identity that ACTUALLY HOLDS, which is exactly what
-Lean's `decide` checks. A false lemma would fail `decide` in Lean; here it
-fails this test first. The real `lake build` against PhysLean is the honest
-remaining step, run outside CI."""
+The generated file compiles against physlib (verified on a machine with a
+Lean toolchain via `cd lean && lake build`). CI has no toolchain, so here we
+re-verify the two things that make the generated file correct: (1) every
+node's physlib Dimension has the right shared-base exponents, and (2) every
+emitted lemma states a dimensional identity that ACTUALLY HOLDS, which is
+exactly what Lean's `decide` checks. A false lemma would fail `decide` in
+Lean; here it fails this test first. The real `lake build` against physlib is
+the honest remaining step, run outside CI (lean/check.sh)."""
 import re
 
 from omai.map_data import DOMAINS
 from omai.physlean_export import (
-    _PHYSLEAN_FIELD, _dimension_expr, _node_dimensions, build_export,
+    _PHYSLIB_FIELD, _dimension_expr, _node_dimensions, build_dimensions_export,
+    build_export,
 )
 
 
@@ -21,14 +22,14 @@ def _node_exps():
 
 
 def test_shared_base_dimensions_translate_correctly():
-    # energy = M L^2 T^-2 -> PhysLean <length=2, time=-2, mass=1, charge=0, temp=0>
+    # energy = M L^2 T^-2 -> physlib <length=2, time=-2, mass=1, charge=0, temp=0>
     exps = _node_exps()["TotalEnergy"] if "TotalEnergy" in _node_exps() else _node_exps()["ActivationEnergy"]
     expr = _dimension_expr(exps)
     assert expr == "⟨2, (-2 : ℚ), 1, 0, 0⟩"
 
 
 def test_mole_and_luminous_nodes_are_omitted_not_mangled():
-    # a molar node uses the N base PhysLean lacks: it must produce None, not a
+    # a molar node uses the N base physlib lacks: it must produce None, not a
     # wrong 5-field literal.
     exps = _node_exps().get("MolarHeatCapacity")
     assert exps is not None
@@ -67,3 +68,37 @@ def test_export_pins_the_map_version():
     assert stats["map_version"] and stats["map_version"] in src
     assert stats["nodes_exported"] > 50
     assert stats["nodes_omitted"] >= 1  # the honest boundary is real
+
+
+def test_seven_base_module_covers_exactly_the_omitted_nodes():
+    # every node the physlib bridge omits gets a Dimension7 constant, with the
+    # full seven-exponent vector, in the Mathlib-only companion module.
+    from omai.physlean_export import _dim7_expr, _lean_ident
+    src, stats = build_dimensions_export()
+    omitted = {name: exps for name, (exps, expr) in _node_dimensions().items()
+               if expr is None}
+    assert stats["nodes"] == len(omitted) >= 1
+    for name, exps in omitted.items():
+        line = f"def {_lean_ident(name)} : Dimension7 := {_dim7_expr(exps)}"
+        assert line in src, f"omitted node {name} missing from Dimension7 module"
+
+
+def test_every_seven_base_lemma_is_a_true_dimensional_identity():
+    from omai.physlean_export import _lean_ident
+    src, stats = build_dimensions_export()
+    ident_to_exps = {_lean_ident(n): e for n, e in _node_exps().items()}
+    lemma_re = re.compile(r"theorem \S+ : (\w+) = (.+?) := by\s*$")
+    checked = 0
+    for line in src.splitlines():
+        m = lemma_re.match(line.strip())
+        if not m:
+            continue
+        target, prod = m.group(1), m.group(2)
+        factors = [f.strip() for f in prod.split("*")]
+        acc = [0] * 7
+        for f in factors:
+            acc = [a + b for a, b in zip(acc, ident_to_exps[f])]
+        assert tuple(acc) == tuple(ident_to_exps[target]), \
+            f"Dimension7 lemma would FAIL: {target} != product of {factors}"
+        checked += 1
+    assert checked == stats["lemmas"] and checked >= 1
