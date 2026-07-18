@@ -1431,19 +1431,53 @@ function derivationSVG(nodeId){
   var colOf = {}; cols.forEach(function(l, i){ colOf[l] = i; });
   var byCol = cols.map(function(){ return []; });
   order.slice().sort().forEach(function(id){ byCol[colOf[nodeById[id].layer]].push(id); });
-  var CW = 216, RH = 46, PAD = 16, BW = 196, BH = 34;
+  var CW = 216, RH = 46, PAD = 16, BW = 196, BH = 34, HH = 26;
   var maxRows = Math.max.apply(null, byCol.map(function(c){ return c.length; }));
   var W = PAD * 2 + cols.length * CW - (CW - BW);
-  var H = PAD * 2 + maxRows * RH - (RH - BH);
+  var H = PAD * 2 + HH + maxRows * RH - (RH - BH);
   var pos = {};
   byCol.forEach(function(colIds, ci){
     var offset = (maxRows - colIds.length) * RH / 2;
     colIds.forEach(function(id, ri){
-      pos[id] = { x: PAD + ci * CW, y: PAD + offset + ri * RH };
+      pos[id] = { x: PAD + ci * CW, y: PAD + HH + offset + ri * RH };
     });
+  });
+  // column headings: the same numbered tier names the full map uses for its
+  // bands, taken from each column's own nodes (a column with nodes from two
+  // tiers names both)
+  var tierNo = {};
+  (TIERS || []).slice().sort(function(a, b){ return a.order - b.order; })
+    .forEach(function(t, i){ tierNo[t.name] = (i + 1 < 10 ? '0' : '') + (i + 1); });
+  var colHeads = byCol.map(function(colIds){
+    var seen = {}, names = [];
+    colIds.forEach(function(id){
+      var t = nodeById[id].tier;
+      if (t && !seen[t]) { seen[t] = true; names.push(t); }
+    });
+    names.sort(function(a, b){ return (tierNo[a] || '99') < (tierNo[b] || '99') ? -1 : 1; });
+    var parts = names.slice(0, 2).map(function(t){
+      return (tierNo[t] ? tierNo[t] + ' ' : '') + t;
+    });
+    if (names.length > 2) parts.push('…');
+    return parts.join(' · ');
   });
   var s = '<svg class="rec-map" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H +
     '" style="min-width:' + W + 'px" role="img" aria-label="Derivation of ' + esc(start) + ' on the map">';
+  // dotted column separators (the full map's band rules, miniaturized)
+  cols.forEach(function(_, ci){
+    if (!ci) return;
+    var xs = PAD + ci * CW - (CW - BW) / 2;
+    s += '<line x1="' + xs + '" y1="' + PAD + '" x2="' + xs + '" y2="' + (H - PAD) +
+      '" stroke="#e2ddd2" stroke-width="1" stroke-dasharray="1.5 4"/>';
+  });
+  colHeads.forEach(function(head, ci){
+    if (!head) return;
+    var label = head.length > 30 ? head.slice(0, 29) + '…' : head;
+    s += '<text x="' + (PAD + ci * CW + BW / 2) + '" y="' + (PAD + 9) +
+      '" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700"' +
+      ' letter-spacing="0.08em" fill="#8a8177" style="text-transform:uppercase">' +
+      esc(label) + '</text>';
+  });
   // edges first (only those inside the closure)
   order.forEach(function(id){
     (parents[id] || []).forEach(function(p){
@@ -1678,7 +1712,8 @@ function datasheetHTML(record, valid, opts){
         '<p class="rec-explain">Every quantity this value depends on, drawn from the map itself. ' +
         'Read left to right: the leftmost boxes are the provided inputs, each arrow is an operator ' +
         'carrying one quantity into the next computation, and the highlighted box at the end is ' +
-        'this record’s quantity. Wide derivations scroll sideways. Click any box to open that ' +
+        'this record’s quantity. The column headings are the same numbered physics tiers the ' +
+        'full map is organized by. Wide derivations scroll sideways. Click any box to open that ' +
         'quantity on the full map.</p>' +
         deriv +
         '<div class="rec-maplegend">' +
