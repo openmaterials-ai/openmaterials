@@ -33,7 +33,7 @@
     ['Guide', site('guide/'), 'guide/', false],
     ['Play', site('play/'), 'play/', false],
     ['Learn', site('learn/'), 'learn/', false],
-    ['Document', site('openmaterials.pdf'), 'openmaterials.pdf', false],
+    ['Document', site('document/'), 'document/', false],
     ['Source', REPO, null, true]
   ];
 

@@ -22,6 +22,10 @@ holding 105 typed quantities and 104 operators mapped across 29 codes. The
 project's single source of truth (vision, product, architecture, kernel, status,
 and the ingest/extend/encode procedures) is
 [docs/openmaterials.pdf](docs/openmaterials.pdf) (LaTeX source alongside it).
+The same document is readable as HTML at
+[openmaterials.ai/document/](https://openmaterials.ai/document/), with the PDF
+downloadable there; the page is generated from the LaTeX source by
+`PYTHONPATH=. python -m omai.doc_html`.
 
 The database is just files in this repo: the versioned map lives in `map/`
 (log-first, content-addressed); the site reads `docs/data/graph.json`
