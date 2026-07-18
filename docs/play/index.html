@@ -144,11 +144,13 @@
   .rec-grp{margin:0 0 7px;}
   .rec-grp:last-child{margin-bottom:0;}
   .rec-grp-lab{font-size:.7rem;font-weight:650;color:var(--ink-2,#3d4149);margin:7px 0 3px;}
-  /* the derivation drawn as a map excerpt: natural size, scrolling in its own
-     box when wider than the column (legible beats miniature); the datasheet's
-     one sanctioned graphic */
+  /* the derivation drawn as a map excerpt: LANDSCAPE, its own full row.
+     Scales to fit the row on wide screens (the whole derivation visible at
+     once); keeps a legible minimum and scrolls inside its box on narrow ones.
+     The datasheet's one sanctioned graphic. */
+  .rec-maprow{margin-top:4px;}
   .rec-mapbox{overflow-x:auto;margin:6px 0 10px;border:1px solid var(--line);border-radius:8px;background:#fdfcf9;}
-  .rec-map{display:block;}
+  .rec-map{display:block;width:100%;height:auto;min-width:820px;}
   /* stacked member datasheets inside a bundle */
   .bundle-member{border-top:1px solid var(--line);margin-top:22px;padding-top:14px;}
   .rec-grp-lab .rec-grp-tag{font-family:var(--font-mono,monospace);font-size:.66rem;font-weight:400;
@@ -1324,8 +1326,6 @@ function mapContextHTML(node, material){
   var gnode = (node && nodeById[node]) || (base && nodeById[base]);
   if (!cat && !gnode) return '';
   var body = '<div class="rec-h">What it means on the map</div>';
-  // the derivation drawn as a map excerpt, above the plain text statement
-  body += derivationSVG(node);
 
   // the plain-language description, trimmed of the trailing bare SI unit the
   // catalog appends (that unit is reported on its own line below).
@@ -1649,6 +1649,13 @@ function datasheetHTML(record, valid, opts){
       }).join('') + '</dl></div>';
   });
   lineageHTML += '</div>';
+
+  // the derivation drawn as a map excerpt: landscape, its own FULL row above
+  // the columns (CEO direction), never squeezed into a column
+  if (known) {
+    var deriv = derivationSVG(node);
+    if (deriv) h += '<div class="rec-sec rec-maprow"><div class="rec-h">The derivation on the map</div>' + deriv + '</div>';
+  }
 
   var valueAndMap = valuesHTML(lineage, node) + (known ? mapContextHTML(node, lineage.material) : '');
   var recordTail = provenanceHTML(record, lineage, opts.doc) + artifactsHTML(record) +
