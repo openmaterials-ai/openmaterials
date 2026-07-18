@@ -887,6 +887,12 @@ if __name__ == "__main__":
         _pu, _su = _write_units(); print("wrote", _pu, "(" + str(_su["theorems"]) + " unit theorems)")
     except Exception as _e:
         print("lean tier2/units export skipped:", _e)
+    from omai.lean_roadmap import write_roadmap as _write_roadmap
+    try:
+        _pr, _sr = _write_roadmap()
+        print("wrote", _pr, "(" + str(_sr["rows"]) + " operators, " + str(_sr["proven"]) + " proven)")
+    except Exception as _e:
+        print("lean roadmap skipped:", _e)
     from omai.semantics import write_semantics as _write_semantics
     import json as _json
     print("wrote", _write_semantics(_json.loads((_DOCS / "data" / "graph.json").read_text())))
