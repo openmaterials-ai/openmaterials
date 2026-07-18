@@ -96,3 +96,27 @@ def test_every_target_code_maps_its_node_in_codes_json():
         node = tgt["lineage"]["node"]
         assert node in codes[code], \
             f"{f.name}: rail {code!r} does not cover node {node!r}"
+
+
+def test_committed_index_is_the_projection_of_the_target_files():
+    """docs/data/conformance/index.json is derived data (like instances.json):
+    it must byte-equal a fresh projection of the committed target files, and
+    each row must mirror its file's id, node, code, expected, and tolerance."""
+    import json
+
+    from omai.map_data import write_conformance_index
+
+    index_path = _DATA / "conformance" / "index.json"
+    assert index_path.exists(), "conformance index not committed"
+    committed = index_path.read_text()
+    fresh_path, n = write_conformance_index()
+    assert fresh_path.read_text() == committed, "index.json is stale; run python -m omai.map_data"
+    rows = json.loads(committed)["targets"]
+    assert len(rows) == n == len(_FILES)
+    for row in rows:
+        t = json.loads((_DATA / "conformance" / row["file"]).read_text())
+        assert row["id"] == t["id"]
+        assert row["node"] == t["lineage"]["node"]
+        assert row["code"] == t["code"]
+        assert row["expected"] == t["expected"]
+        assert row["tolerance"] == t["tolerance"]

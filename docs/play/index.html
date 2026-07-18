@@ -159,6 +159,11 @@
     font-size:.78rem;color:var(--muted);margin:2px 0 10px;}
   .rec-maplegend i{display:inline-block;width:15px;height:11px;border-radius:3px;
     margin-right:6px;vertical-align:-1px;}
+  .rec-conf{font-size:.82rem;color:var(--ink-2,#3d4149);line-height:1.5;margin:6px 0;
+    padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:#fdfcf9;}
+  .rec-conf-exact{border-color:#4f46e5;background:#eef2ff;}
+  .rec-conf-code{font-family:var(--font-mono);font-size:.76rem;font-weight:600;}
+  .rec-conf-mark{font-size:.7rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#4f46e5;}
   .lg-this{background:#eef2ff;border:1.6px solid #4f46e5;}
   .lg-obs{background:#fdfcf9;border:1.6px solid #4f46e5;}
   .lg-step{background:#fdfcf9;border:1.6px solid #8a8177;}
@@ -387,6 +392,8 @@ var SVGNS = 'http://www.w3.org/2000/svg';
 
 var GRAPH = null, SEM = [], LEAN = {nodes:{},edges:{}}, semById = {}, nodeById = {}, children = {}, parents = {}, symHtml = {};
 var catalogById = {};   // node id -> {id, symbol, description}: the plain-language names for the lineage view
+var codesByNode = {};   // node id -> [{code, api, url}]: which codes compute the quantity
+var CONFORMANCE = [];   // conformance/index.json targets: the pinned reproduce runs
 var configByUid = {};   // canonical.uid -> configuration bundle record for a pinned lineage cell
 var TIERS = [];         // the map's tiers: [{name, order, description}], for the map-context panel
 var VB = { x: 0, y: 0, w: 1000, h: 700 };
@@ -421,7 +428,9 @@ var mapReady = Promise.all([
   fetch('../data/version.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; }),
   fetch('../data/lean.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {nodes:{},edges:{}}; }),
   fetch('../data/catalog.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return []; }),
-  fetch('../data/configurations.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; })
+  fetch('../data/configurations.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; }),
+  fetch('../data/codes.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {}; }),
+  fetch('../data/conformance/index.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {targets:[]}; })
 ]).then(function(res){
   GRAPH = res[0]; SEM = res[1] || [];
   if (res[2] && res[2].version) window.__MAP_VERSION__ = res[2].version;
@@ -432,6 +441,18 @@ var mapReady = Promise.all([
     if (uid) configByUid[String(uid)] = c;
   });
   TIERS = (GRAPH && Array.isArray(GRAPH.tiers)) ? GRAPH.tiers : [];
+  // codes.json: code -> {node id -> {api, url, ...}}; invert to node -> codes
+  var codesData = res[6] || {};
+  Object.keys(codesData).forEach(function(code){
+    Object.keys(codesData[code] || {}).forEach(function(nid){
+      (codesByNode[nid] = codesByNode[nid] || []).push(
+        { code: code, api: codesData[code][nid].api || '', url: codesData[code][nid].url || '' });
+    });
+  });
+  Object.keys(codesByNode).forEach(function(nid){
+    codesByNode[nid].sort(function(a, b){ return a.code.localeCompare(b.code); });
+  });
+  CONFORMANCE = (res[7] && Array.isArray(res[7].targets)) ? res[7].targets : [];
   SEM.forEach(function(e){ semById[e.id] = e; });
   var seen = {};
   GRAPH.nodes.forEach(function(n){ nodeById[n.id] = n; symHtml[n.id] = tex(n.symbol); });
@@ -1640,6 +1661,48 @@ function renderBundle(env){
    drift. opts: {doc} for read-time source inheritance, {memberIdx} to make the
    copy button addressable inside a stacked bundle. Still information, not a
    dashboard; the only graphic is the derivation drawn as a map excerpt. */
+/* reproduceHTML: the simulation-facing section the CEO asked for. Which codes
+   on the map compute this record's quantity (from codes.json, the same
+   coverage layer the full map shows), and any pinned conformance runs for the
+   node: committed targets a re-run must reproduce within a stated tolerance.
+   A target whose id equals this record's id IS this exact lineage. */
+function reproduceHTML(node, recordId){
+  if (!node) return '';
+  var codes = codesByNode[node] || codesByNode[baseNode(node)] || [];
+  var targets = CONFORMANCE.filter(function(t){ return t.node === node; });
+  if (!codes.length && !targets.length) return '';
+  var h = '<div class="rec-sec"><div class="rec-h">Reproduce this</div>' +
+    '<p class="rec-explain">The codes the map knows can compute this quantity, and the ' +
+    'committed conformance runs a re-run is expected to reproduce within the stated ' +
+    'tolerance, with every knob pinned in the target’s own lineage.</p>';
+  if (codes.length) {
+    h += '<dl class="rec-kv">' + codes.map(function(c){
+      var name = c.url
+        ? '<a href="' + esc(c.url) + '" target="_blank" rel="noopener">' + esc(c.code) + '</a>'
+        : esc(c.code);
+      return '<dt>' + name + '</dt><dd class="wrap">' + esc(c.api || 'covers this node') + '</dd>';
+    }).join('') + '</dl>';
+  }
+  targets.forEach(function(t){
+    var exact = recordId && t.id === recordId;
+    var exp = t.expected || {};
+    var tol = t.tolerance || {};
+    var tolText = tol.kind === 'relative'
+      ? 'within ' + fmtValue((tol.value || 0) * 100) + '%'
+      : 'within ±' + fmtValue(tol.value) + (exp.units ? ' ' + exp.units : '');
+    h += '<div class="rec-conf' + (exact ? ' rec-conf-exact' : '') + '">' +
+      '<span class="rec-conf-code">' + esc(t.code || '?') + '</span> pinned run: ' +
+      '<b>' + esc(fmtValue(exp.value)) + '</b>' + (exp.units ? ' ' + esc(exp.units) : '') +
+      ', ' + esc(tolText) +
+      (exact ? ' <span class="rec-conf-mark">this exact lineage</span>'
+             : (t.material ? ' <span class="rec-link-note">(' + esc(t.material) + ')</span>' : '')) +
+      ' <a href="../data/conformance/' + esc(t.file) + '" title="The committed conformance target, identity-cited to its evidence instance">target &rarr;</a>' +
+      '</div>';
+  });
+  h += '</div>';
+  return h;
+}
+
 function datasheetHTML(record, valid, opts){
   opts = opts || {};
   var lineage = record.lineage;
@@ -1726,6 +1789,7 @@ function datasheetHTML(record, valid, opts){
 
   var valueAndMap = valuesHTML(lineage, node) + (known ? mapContextHTML(node, lineage.material) : '');
   var recordTail = provenanceHTML(record, lineage, opts.doc) + artifactsHTML(record) +
+    (known ? reproduceHTML(node, record.id) : '') +
     lineageLinksHTML(lineage, node, known, opts.memberIdx);
   h += '<div class="rec-grid"><div class="rec-col">' + lineageHTML + '</div>';
   if (valueAndMap) h += '<div class="rec-col">' + valueAndMap + '</div>';
