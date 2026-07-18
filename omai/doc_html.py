@@ -204,6 +204,7 @@ class Heading:
         self.id = m.group(1) if m else ""
         self.unnumbered = "unnumbered" in attrs
         self.number = ""
+        self.refnum = ""
 
 
 def collect_headings(body: str) -> list[Heading]:
@@ -266,9 +267,17 @@ def rewrite_refs(body: str, headings: list[Heading]) -> str:
 
     pandoc numbers sections with its own counters (and leaves part refs
     empty); replace each resolvable reference text with the computed
-    number so 'Part IV' and 'Appendix A' read correctly.
+    number so 'Part IV' and 'Appendix A' read correctly. A label on an
+    unnumbered heading (the source labels one \\paragraph) resolves to
+    the nearest preceding numbered heading, which is what LaTeX's \\ref
+    prints for it.
     """
-    numbers = {h.id: h.number for h in headings if h.id and h.number}
+    last = ""
+    for h in headings:
+        if h.number:
+            last = h.number
+        h.refnum = h.number or last
+    numbers = {h.id: h.refnum for h in headings if h.id and h.refnum}
     return re.sub(
         r'(<a href="#([^"]+)"[^>]*data-reference-type="ref"[^>]*>)([^<]*)</a>',
         lambda m: (m.group(1) + numbers[m.group(2)] + "</a>")
