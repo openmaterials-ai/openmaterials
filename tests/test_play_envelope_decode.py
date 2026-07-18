@@ -102,6 +102,25 @@ def test_page_wires_the_envelope_dispatch():
     assert "Download the envelope as JSON" in html, "no JSON download fallback"
 
 
+def test_bundle_stacks_every_datasheet_on_one_page():
+    """A bundle shows every member's FULL datasheet on the same page (the CEO's
+    same-page rule), built by the one shared datasheetHTML so the single and
+    stacked views can never drift, with the derivation drawn as a map excerpt
+    (the only sanctioned graphic; value charts stay on MCG)."""
+    html = _PLAY.read_text()
+    assert "function datasheetHTML" in html, "no shared datasheet builder"
+    assert 'class="rec bundle-member"' in html, "bundle does not stack member datasheets"
+    assert "datasheetHTML(mvalid.record, mvalid" in html, \
+        "the stacked members do not reuse the shared builder"
+    assert "function derivationSVG" in html, "no derivation map excerpt"
+    assert 'class="rec-map"' in html, "the derivation svg is not class-marked"
+    assert "scrollIntoView" in html, "member rows must jump on-page, not re-render"
+    # the only svg the datasheet may emit is the sanctioned map excerpt
+    import re
+    svgs = re.findall(r"<svg[^>]*class=\\?\"([^\"\\]*)", html)
+    assert all("rec-map" in c for c in svgs), f"unsanctioned svg classes: {svgs}"
+
+
 # --------------------------------------------------------------------------
 # Behavior, pinned to the python reference under Node.
 # --------------------------------------------------------------------------

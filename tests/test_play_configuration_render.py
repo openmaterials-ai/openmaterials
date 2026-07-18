@@ -73,7 +73,9 @@ def test_play_page_loads_and_renders_the_pinned_configuration():
     assert "function resolveConfiguration" in html
     assert "function configSummaryHTML" in html
 
-    render = _grab_function(html, "renderLineage")
+    # the lineage-rows logic lives in datasheetHTML, the builder shared by the
+    # single view and the stacked bundle view
+    render = _grab_function(html, "datasheetHTML")
     lineage_rows = render[render.index("// ---- THE LINEAGE"):]
     assert "configSummaryHTML(cfg)" in lineage_rows
 
