@@ -96,9 +96,26 @@ id comes from the lineage regardless. :func:`verify_bundle_bytes` then reports
 present and the bytes are locally or fetchably reachable. A full checksummed
 bundle therefore ENRICHES a record with verifiable bytes but is never REQUIRED.
 
+The share ENVELOPE (multi-lineage bundles): one link can carry SEVERAL records
+plus shared document context. :func:`envelope` builds
+``{"v": 1, "doc"?: {...}, "lineages": [record, ...]}`` (``doc`` is publication
+metadata for a parsed paper: ``source`` as a "scheme:ref" string, ``title``,
+``authors``, ``year``, ``journal``, extras tolerated);
+:func:`envelope_to_fragment` / :func:`envelope_from_fragment` are the transport
+(same gzip+base64url+mode-prefix scheme, unchanged). The read side is DUAL:
+:func:`envelope_from_fragment` also accepts every legacy bare-record fragment,
+normalizing it to a one-element envelope with no doc, so no existing link ever
+breaks. Each member keeps its own lineage-derived id (bundling never re-mints
+one); the BUNDLE gets a derived :func:`bundle_id`, the sha256 of the canonical
+JSON of ``{"doc": doc-or-null, "ids": [member ids in order]}``. A member with
+no source inherits ``doc.source`` at read/display time only, never into its
+hash: sharing a record solo or inside a bundle mints the same id.
+
 Entry points: :func:`record_light` (build a light, lineage-identified record; the
 primary builder), :func:`record_to_fragment` / :func:`record_from_fragment` (the
 URL round-trip, interoperable with the playground's gzip fragment),
+:func:`envelope` / :func:`bundle_id` / :func:`envelope_to_fragment` /
+:func:`envelope_from_fragment` (the multi-lineage share bundle),
 :func:`record_simulation` (write a record to ``docs/data/simulations/``,
 idempotent on identical content, refusing a silent overwrite, the
 ``record_instance`` discipline), :func:`record_from_bundle` (build a record from
@@ -149,6 +166,19 @@ _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 SOURCE_SCHEMES = ("paper", "doi", "zotero", "arxiv", "repo", "dataset")
 _SOURCE_RE = re.compile(r"^[a-z][a-z0-9+.-]*:.+$")
 
+# The share ENVELOPE: the multi-lineage bundle a link fragment carries. One
+# parsed paper reports several values; the envelope lets one link carry them
+# all, with the publication metadata stated ONCE as shared context. Version 1
+# is {"v": 1, "doc": {...}?, "lineages": [record, ...]}: "doc" (optional) is
+# the shared document context (recognized keys: source, title, authors, year,
+# journal; extras tolerated), "lineages" a non-empty list of ordinary light
+# records. Decoders accept BOTH a bare record (every existing link, forever)
+# and the envelope, normalizing a bare record to a one-element envelope with
+# no doc; encoders always emit the envelope. Bundling NEVER changes a member's
+# id (identity stays the member's own lineage), and a member with no source
+# inherits doc.source at read/display time only, never into its hash.
+ENVELOPE_VERSION = 1
+
 # The machine-readable descriptor of the instance format: the half of THE
 # LINEAGE (the one versioned schema artifact; the other half is the derivation
 # graph) that states what an instance is. Assembled from this module's real
@@ -180,6 +210,29 @@ FORMAT_DESCRIPTOR = {
         "schemes": list(SOURCE_SCHEMES),
         "open_scheme_set": True,
     },
+    "envelope": {
+        "v": ENVELOPE_VERSION,
+        "keys": ["v", "doc", "lineages"],
+        "doc": {
+            "keys": ["source", "title", "authors", "year", "journal"],
+            "extra_keys": "tolerated",
+            "source_shape": "scheme:ref (the lineage source grammar)",
+        },
+        "lineages": "a non-empty list of light records, each keeping its own "
+                    "lineage-derived id",
+        "bundle_id": {
+            "rule": "sha256 of the canonical JSON of "
+                    "{\"doc\": doc-or-null, \"ids\": [member ids in order]}",
+            "canonical_json": {"sort_keys": True, "separators": [",", ":"]},
+            "member_ids": "bundling never changes a member's id: identity "
+                          "stays the member's own lineage",
+        },
+        "inheritance": "a member with no source inherits doc.source at "
+                       "read/display time only, never into its hash",
+        "dual_read": "decoders accept a bare record or an envelope; a bare "
+                     "record normalizes to a one-element envelope with no "
+                     "doc; encoders always emit the envelope",
+    },
 }
 
 
@@ -193,6 +246,7 @@ def format_rules_version() -> str:
 
 __all__ = [
     "LineageError",
+    "ENVELOPE_VERSION",
     "FORMAT_DESCRIPTOR",
     "SOURCE_SCHEMES",
     "format_rules_version",
@@ -205,6 +259,10 @@ __all__ = [
     "record_from_bundle",
     "record_to_fragment",
     "record_from_fragment",
+    "envelope",
+    "bundle_id",
+    "envelope_to_fragment",
+    "envelope_from_fragment",
     "validate_light",
     "verify_simulation",
     "verify_bundle_bytes",
@@ -887,6 +945,178 @@ def record_from_fragment(fragment: str) -> dict:
         raise LineageError(
             f"unknown fragment mode {mode!r} (expected 'g' gzip or 'r' raw)")
     return json.loads(raw.decode("utf-8"))
+
+
+# --------------------------------------------------------------------------
+# The share ENVELOPE: a multi-lineage bundle in one link fragment.
+# --------------------------------------------------------------------------
+
+def _normalize_member(record, *, where: str) -> dict:
+    """One envelope member, normalized and shape-checked (the WIRE bar).
+
+    A member is an ordinary light record. The check here is deliberately the
+    wire-tolerant subset of :func:`validate_light`: the lineage must be a
+    non-empty object (via :func:`record_lineage`, which also rejects the
+    ambiguous lineage+recipe pair), a stated ``id`` must equal the id recomputed
+    from the lineage (identity honesty), ``lineage.source`` when present must
+    match the source grammar, and artifact pointers when present must be
+    well-formed (:func:`_validate_pointers`). It does NOT resolve the node
+    against the live map: a shared link minted against an older map version must
+    stay decodable forever (the dual-read promise), and node resolution is a
+    display/validation concern, not a wire one. A legacy ``recipe`` key is
+    upgraded to ``lineage`` in the returned member, exactly as
+    :func:`record_to_fragment` upgrades it on emit.
+    """
+    lineage = record_lineage(record, where=where)
+    if not isinstance(lineage, dict) or not lineage:
+        raise LineageError(f"{where}: lineage must be a non-empty object")
+    stated = record.get("id")
+    computed = lineage_id(lineage)
+    if stated is not None and stated != computed:
+        raise LineageError(
+            f"{where}: stated id {str(stated)[:12]} does not match the id "
+            f"recomputed from the lineage {computed[:12]}")
+    src = lineage.get("source")
+    if src is not None and (not isinstance(src, str) or not _SOURCE_RE.match(src)):
+        raise LineageError(
+            f"{where}: lineage.source must be a 'scheme:ref' string")
+    _validate_pointers(record.get("artifacts"), where=where)
+    if "recipe" in record:
+        record = {("lineage" if key == "recipe" else key): value
+                  for key, value in record.items()}
+    return record
+
+
+def _validate_doc(doc, *, where: str) -> None:
+    """The envelope's shared document context is well-formed.
+
+    ``doc`` is publication metadata stated once for the whole bundle. The
+    recognized keys are ``source`` (a "scheme:ref" string, the lineage source
+    grammar), ``title``, ``authors`` (a list), ``year``, ``journal``; anything
+    else rides along tolerated (the open-context rule). Only the recognized
+    keys are shape-checked, and none is required.
+    """
+    if not isinstance(doc, dict):
+        raise LineageError(f"{where}: doc must be an object")
+    src = doc.get("source")
+    if src is not None and (not isinstance(src, str) or not _SOURCE_RE.match(src)):
+        raise LineageError(
+            f"{where}: doc.source must be a 'scheme:ref' string "
+            f"(e.g. doi:10.1103/PhysRevLett.127.025902)")
+    for key in ("title", "journal"):
+        if doc.get(key) is not None and not isinstance(doc[key], str):
+            raise LineageError(f"{where}: doc.{key}, when present, must be a string")
+    if doc.get("authors") is not None and not isinstance(doc["authors"], list):
+        raise LineageError(f"{where}: doc.authors, when present, must be a list")
+
+
+def envelope(records, doc: dict | None = None) -> dict:
+    """Build a share envelope: ``{"v": 1, "doc"?: {...}, "lineages": [...]}``.
+
+    ``records`` is a non-empty list of ordinary light records (each member is
+    normalized and shape-checked by :func:`_normalize_member`; a single-lineage
+    share is a one-element envelope). ``doc`` (optional) is the shared document
+    context, publication metadata for a parsed paper, validated by
+    :func:`_validate_doc` and omitted from the envelope when None. Bundling
+    never touches a member: each keeps its own lineage-derived id, and a member
+    with no source inherits ``doc.source`` at read/display time only, never
+    into its hash.
+    """
+    if not isinstance(records, list) or not records:
+        raise LineageError("envelope: records must be a non-empty list")
+    members = [_normalize_member(r, where=f"envelope member {i}")
+               for i, r in enumerate(records)]
+    env: dict = {"v": ENVELOPE_VERSION}
+    if doc is not None:
+        _validate_doc(doc, where="envelope")
+        env["doc"] = doc
+    env["lineages"] = members
+    return env
+
+
+def _validate_envelope(env, *, where: str = "<envelope>") -> dict:
+    """Validate an envelope in place and return it with normalized members.
+
+    The gate: ``v`` must be a known envelope version, ``lineages`` a non-empty
+    list of valid-shaped members, ``doc`` (when present) well-formed. A dict
+    carrying BOTH the envelope's ``lineages`` key and a bare record's
+    ``lineage``/``recipe`` key is ambiguous about what it is, so it is
+    malformed (the both-keys rule, mirroring the lineage/recipe pair).
+    """
+    if not isinstance(env, dict):
+        raise LineageError(f"{where}: envelope must be an object")
+    if "lineage" in env or "recipe" in env:
+        raise LineageError(
+            f"{where}: an envelope must not also carry a bare record's "
+            f"'lineage' or 'recipe' key (ambiguous payload)")
+    v = env.get("v")
+    if v != ENVELOPE_VERSION:
+        raise LineageError(
+            f"{where}: unknown envelope version {v!r} "
+            f"(this reader speaks v={ENVELOPE_VERSION})")
+    lineages = env.get("lineages")
+    if not isinstance(lineages, list) or not lineages:
+        raise LineageError(f"{where}: lineages must be a non-empty list")
+    doc = env.get("doc")
+    if doc is not None:
+        _validate_doc(doc, where=where)
+    members = [_normalize_member(r, where=f"{where}: member {i}")
+               for i, r in enumerate(lineages)]
+    out = dict(env)
+    out["lineages"] = members
+    return out
+
+
+def bundle_id(env: dict) -> str:
+    """The derived id of a BUNDLE: sha256 of the canonical JSON of
+    ``{"doc": doc-or-null, "ids": [member ids in order]}``.
+
+    Canonical means sorted keys and compact separators, the same rule as
+    :func:`lineage_id`. Each member id is the member's own lineage-derived id
+    (:func:`lineage_id` over its lineage), so bundling never changes a member's
+    id and the bundle id changes exactly when the shared doc or the member set
+    (or its order) does.
+    """
+    env = _validate_envelope(env, where="bundle_id")
+    ids = [lineage_id(record_lineage(m, where=f"bundle_id: member {i}"))
+           for i, m in enumerate(env["lineages"])]
+    payload = json.dumps({"doc": env.get("doc"), "ids": ids},
+                         sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def envelope_to_fragment(env: dict) -> str:
+    """Encode an envelope into a URL fragment payload, gzip+base64url.
+
+    The exact transport :func:`record_to_fragment` uses (a ``g`` mode prefix,
+    gzip, base64url, ``=`` stripped), unchanged: only the payload shape differs.
+    The envelope is validated first (members normalized, any legacy ``recipe``
+    key upgraded), so every emitted fragment is a well-formed v1 envelope.
+    Encoders emit the envelope; the bare-record encoder stays available for the
+    legacy single-record path.
+    """
+    env = _validate_envelope(env, where="envelope_to_fragment")
+    blob = json.dumps(env, separators=(",", ":")).encode("utf-8")
+    packed = gzip.compress(blob)
+    b64 = base64.urlsafe_b64encode(packed).decode("ascii").rstrip("=")
+    return "g" + b64
+
+
+def envelope_from_fragment(fragment: str) -> dict:
+    """Decode a URL fragment payload to a NORMALIZED envelope (the dual read).
+
+    Accepts everything :func:`record_from_fragment` accepts: every legacy
+    single-record fragment ever minted decodes here, forever. A payload that is
+    an envelope is validated and returned with normalized members; a payload
+    that is a bare record is normalized to a one-element envelope with no doc.
+    A payload carrying both shapes at once is ambiguous and rejected. The
+    return is always ``{"v": 1, "doc"?: {...}, "lineages": [...]}``.
+    """
+    payload = record_from_fragment(fragment)
+    if isinstance(payload, dict) and "lineages" in payload:
+        return _validate_envelope(payload, where="envelope_from_fragment")
+    member = _normalize_member(payload, where="envelope_from_fragment")
+    return {"v": ENVELOPE_VERSION, "lineages": [member]}
 
 
 def record_simulation(*, lineage, execution, artifacts, results=None, mirrors=None,

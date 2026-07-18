@@ -136,6 +136,26 @@ below, so a link a tool produces (`record_to_fragment`) and one the playground
 produces interoperate. It is the light path: a record with many artifact pointers
 may exceed a practical URL, and that is fine.
 
+One link can also carry SEVERAL lineages at once: the share **envelope**
+(`omai/lineages.py`: `envelope`, `envelope_to_fragment`,
+`envelope_from_fragment`). An envelope is
+`{"v": 1, "doc": {...}, "lineages": [record, ...]}`, where `doc` is shared
+document context, publication metadata for a parsed paper (`source` as a
+`scheme:ref` string, `title`, `authors`, `year`, `journal`, extras tolerated),
+and each member is an ordinary light record. The read side is dual: every
+legacy single-record fragment ever minted still decodes, normalized to a
+one-element envelope with no doc, so no existing link breaks; new encoders
+emit the envelope. Bundling never changes a member's id (identity stays each
+member's own lineage), the bundle gets a derived `bundle_id` (the sha256 of the
+canonical JSON of `{"doc": doc-or-null, "ids": [member ids in order]}`), and a
+member with no source of its own inherits `doc.source` at read/display time
+only, never into its hash. Opening a multi-lineage link in the playground
+renders a plain paper view (the doc header over the member list, each member
+one click from its full datasheet); a single-lineage envelope or a bare record
+renders the datasheet exactly as before. When a minted link would exceed a
+practical URL length (8000 characters), the playground says so plainly and
+offers the envelope as a JSON download instead of a broken link.
+
 The [cross-code agreement page](https://openmaterials.ai/agreement/) takes the
 other cut through the same instances: instead of grouping by source, it groups
 by the physical question. It finds every set of values that are the same
@@ -221,6 +241,13 @@ python -m omai.paper_parser <pdf> --apply --yes  # human-confirmed: writes insta
 It needs its own extras (`pip install -e ".[parser]"`, already included in
 `[dev]`) and an `ANTHROPIC_API_KEY` (environment or a repo-root `.env`); the
 key is never printed or logged.
+
+The CLI also prints the paper's share envelope: an `envelope_fragment` that
+bundles one minimal lineage per claim clearing the apply bar, with
+`paper:<slug>` as the shared document source. Paste it after
+`play/#/play?tab=lineage&x=` and the playground opens the whole parsed paper
+as its plain paper view; each member's id equals the id the applied instance
+would carry, so sharing before applying and applying then sharing agree.
 
 ## Run the tests
 

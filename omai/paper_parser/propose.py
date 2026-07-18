@@ -182,6 +182,78 @@ def write_proposal(proposal: dict, proposals_dir: Path | None = None) -> Path:
     return path
 
 
+def _claim_lineage(claim: dict, slug: str) -> dict | None:
+    """The minimal LINEAGE one surviving value claim mints, or None.
+
+    Exactly the shape record_instance writes inside ``lineage`` (node, material,
+    conditions, values{value, units}, plus the identity-bearing scheme:ref
+    source), so an envelope member's id equals the id the instance minted at
+    apply time would carry: sharing before applying and applying then sharing
+    agree on identity. Returns None for a claim the apply bar excludes (a
+    condition claim, a killed or duplicate one, an unmappable node, a
+    non-numeric value): the envelope carries what apply would mint, no more.
+    """
+    v = claim.get("validation") or {}
+    review = claim.get("review") or {}
+    if claim.get("kind") == "condition":
+        return None
+    if not v.get("survives") or v.get("duplicate") is not None:
+        return None
+    if review.get("verdict") == "killed":
+        return None
+    if claim.get("node_id") is None:
+        return None
+    try:
+        value = float(claim["value_text"])
+    except (TypeError, ValueError):
+        return None
+    return {"node": claim["node_id"], "material": claim.get("material"),
+            "conditions": claim.get("conditions") or {},
+            "values": {"value": value, "units": claim.get("unit") or ""},
+            "source": f"paper:{slug}"}
+
+
+def build_envelope_from_proposal(proposal: dict, *, doc_meta: dict | None = None):
+    """The proposal as a SHARE ENVELOPE: one link for the whole paper.
+
+    ``doc`` is the shared document context: the paper's source ref
+    (``paper:<slug>``, the same ref apply writes on every instance) plus any
+    bibliographic metadata the caller supplies (``doc_meta``: title, authors,
+    year, journal; the proposal itself carries only the slug). ``lineages`` is
+    one minimal record per claim clearing the apply bar, each identified by its
+    own lineage hash exactly as record_instance would mint it. Returns None
+    when no claim clears the bar (an envelope needs at least one lineage).
+    Read-only over the proposal: the parser's gates are untouched.
+    """
+    from omai.lineages import envelope, lineage_id
+
+    slug = proposal["paper_slug"]
+    members = []
+    for c in proposal.get("claims") or []:
+        lineage = _claim_lineage(c, slug)
+        if lineage is None:
+            continue
+        members.append({"id": lineage_id(lineage), "lineage": lineage})
+    if not members:
+        return None
+    doc = {"source": f"paper:{slug}"}
+    for key in ("title", "authors", "year", "journal"):
+        if doc_meta and doc_meta.get(key) is not None:
+            doc[key] = doc_meta[key]
+    return envelope(members, doc=doc)
+
+
+def proposal_envelope_fragment(proposal: dict, *,
+                               doc_meta: dict | None = None) -> str | None:
+    """The shareable ``#x=`` fragment of the proposal's envelope, or None when
+    no claim clears the apply bar. The CLI prints this; opening
+    ``play/#/play?tab=lineage&x=<fragment>`` renders the paper view."""
+    from omai.lineages import envelope_to_fragment
+
+    env = build_envelope_from_proposal(proposal, doc_meta=doc_meta)
+    return None if env is None else envelope_to_fragment(env)
+
+
 def apply_proposal(proposal: dict, *, source_kind: str = "measurement",
                    instances_dir: Path | None = None) -> list[Path]:
     """Write instances for every surviving, non-duplicate, review-confirmed claim.
