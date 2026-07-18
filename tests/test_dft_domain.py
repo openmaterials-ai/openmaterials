@@ -703,10 +703,20 @@ def test_instances_bundle_32_records_all_uid_pinned():
     # the a-Si fixed density 2.32 g/cm3 in the NVT ensemble, pinned to
     # MassDensity, the one uncurated own-result value from that parse (its
     # delta and spectral-marker claims are killed by the deterministic gate).
+    # 91 after the mapengine engine-adapter evidence (2026-07-18): four
+    # fully-specified Si thermal-conductivity values from the mapengine adapters
+    # wave-1 conformance runs (dvnclabs/mapengine, tag adapters-v0.2.0), the
+    # kaldo RTA/direct-inverse pair (224.641894 / 254.466183 W/(m K)) and the
+    # phono3py RTA/direct-inverse pair (356.921882 / 379.916683 W/(m K)), each
+    # pinned to its bte_solver node with the complete conditions (lattice
+    # constant, FC supercells, mesh, displacement/delta shift, temperature,
+    # occupation, and the vendored Si.tersoff potential sha256) carried in-hash;
+    # these supersede, without replacing, the under-specified kaldo/phono3py
+    # instances whose mesh-only conditions leave the value unreproducible.
     from omai.map_data import build_instances
 
     insts = build_instances()
-    assert len(insts) == 87
+    assert len(insts) == 91
     for it in insts:
         assert it.get("node_uid"), f"instance for {it['variable']} lacks node_uid"
 
