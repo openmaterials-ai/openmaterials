@@ -1,0 +1,19 @@
+{
+ "representation": "mescal",
+ "lineage_version": "f69b18c18fb7637aa6e07dbcc2a037a77c201826ae88ebcc4bfe5b464ffbee7e",
+ "map_version": "9802d9e854c915eb47d867575730a556ab7f4a565e392bf5b29da58338f08434",
+ "covers": [
+  {
+   "node": "PhononTransmission",
+   "uid": "1e8b145f7ea4fc232aac842c985a46fee4a6d2b2a04118a38d67dce470ed1b50",
+   "api": "Transport(...).transmission",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "ThermalConductance[transport_model=landauer]",
+   "uid": "50084cef8405999bb14c2ff71b98f70f982d71254e3ec35bed543a10bbbbf542",
+   "api": "Transport(...).conductance([T])",
+   "unit": "nW_per_K"
+  }
+ ]
+}

@@ -1,0 +1,37 @@
+{
+ "representation": "materialscodegraph",
+ "lineage_version": "f69b18c18fb7637aa6e07dbcc2a037a77c201826ae88ebcc4bfe5b464ffbee7e",
+ "map_version": "9802d9e854c915eb47d867575730a556ab7f4a565e392bf5b29da58338f08434",
+ "covers": [
+  {
+   "node": "DepolarizationFactor",
+   "uid": "297b3254a09037f017769b771e19ad849443911048f77078a804cbc334c38309",
+   "api": "emt.depolarization_factors(aspect)[0]",
+   "unit": "dimensionless"
+  },
+  {
+   "node": "MolarHeatCapacity",
+   "uid": "4fa2d8e16bde42f794f150f5d149e5d645d63f7ddaac59cef79bd41771b13c17",
+   "api": "molecular_thermo.cp_harmonic_J_per_molK (GFN2-xTB RRHO)",
+   "unit": "J_per_K_per_mol"
+  },
+  {
+   "node": "ReactionEnergy",
+   "uid": "a5736aa4760c27562f9e189829763a891b6fed83fe4a030a7e306b8d909d825c",
+   "api": "reaction_thermo.dh298 (GFN2-xTB, per reaction event)",
+   "unit": "eV"
+  },
+  {
+   "node": "ThermalConductivity[effective_medium=nan,orientation=aligned]",
+   "uid": "fc292985123b709c76547dc02721e60797cf5693fbad40b874826291314d5dd3",
+   "api": "emt.effective_kappa(...).kappa_aligned_33_W_per_mK",
+   "unit": "W_per_m_per_K"
+  },
+  {
+   "node": "ThermalConductivity[effective_medium=nan,orientation=random]",
+   "uid": "8cee68745e003909cd8e65688628af53a35c0803ace3f330394bbf0edf338d7b",
+   "api": "emt.effective_kappa(...).kappa_random_W_per_mK",
+   "unit": "W_per_m_per_K"
+  }
+ ]
+}
