@@ -1,6 +1,7 @@
 {
  "representation": "smol",
- "map_version": "8aea09f90c24ae29137be4860452b9085d5b1e1a502493bffd8f956a9c382a8f",
+ "lineage_version": "f69b18c18fb7637aa6e07dbcc2a037a77c201826ae88ebcc4bfe5b464ffbee7e",
+ "map_version": "9802d9e854c915eb47d867575730a556ab7f4a565e392bf5b29da58338f08434",
  "covers": [
   {
    "node": "ConfigurationalEnergy",
