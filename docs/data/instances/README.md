@@ -35,6 +35,27 @@ To append one, add a JSON file (one record per file) and open a pull request:
 - The node uid pin is injected at build time against the live map, so a value
   follows its node through supersede chains without stranding its identity.
 
+## Engine-run provenance
+
+A value computed by an execution engine follows the same shape with three
+conventions, generalizing what the existing materialscodegraph instances do:
+
+- `source.ref` is the engine's key in `../codes.json` (for example
+  `materialscodegraph`), optionally suffixed for a specific tool or campaign
+  (`materialscodegraph-<slug>`). A bare code ref stays only in the verbatim
+  `source` block, exactly like a bare `kaldo`.
+- `source.detail` names the tool and the pin that stands behind the number
+  (the module or stage that produced it, and the test or eval target that
+  pins the value), so the claim is checkable against the engine's own repo.
+- When the engine publishes the run as a shareable record, add the
+  `simulation` backref (the record's sha256) and let the record's `mirrors`
+  carry the public artifact URLs; a revoked mirror makes the record stale,
+  never invalid. `execution.code` inside the record names the engine that
+  actually ran, which may differ from the one requested.
+
+An engine-run instance with no public record is still valid evidence, the
+same honesty rule as everywhere else: state what you have, invent nothing.
+
 The easiest way to write one correctly is `omai.map_data.record_instance`,
 which the paper parser also uses. The build projects every `*.json` here into
 the flat `../instances.json` view the site reads (byte-stable across the
