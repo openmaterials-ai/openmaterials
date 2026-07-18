@@ -191,7 +191,7 @@ $10^{-6}\,\mathrm{W/(m\,K)}$ on a value of order $100$, because the two routes a
 views of one object and the substrate holds them to it.
 
 The repository ships a smaller version you can run in seconds.
-\texttt{examples/quickstart.py} builds the operator graph (46 quantities, 47
+\texttt{examples/quickstart.py} builds the operator graph (54 quantities, 55
 operators), derives the molar heat capacity of a crystal from a phonon frequency
 array, $11.83\,\mathrm{J/(K\,mol)}$ at $300\,\mathrm{K}$, and cross-checks two
 independent inputs at a gauge-invariant observable; the validation report returns
@@ -256,7 +256,7 @@ validation engine that executes the graph, composes
 edges symbolically, and cross-checks redundant routes. Units reconcile
 automatically from the typed dimensions, and a dimensional gate checks every
 closed-form edge mechanically. The worked domains are lattice thermal
-transport (46 quantities, 47 operators), the Quantum ESPRESSO DFT ground
+transport (54 quantities, 55 operators), the Quantum ESPRESSO DFT ground
 state (the first contribution to land through the protocol gates), the
 mechanics domain (the elastic tensor, its Voigt moduli, and the pressure), the
 stability, thermochemistry, quasi-harmonic, molecular, and electronic-transport
@@ -267,7 +267,7 @@ thermal conductivity with interfacial resistance); the unified map of
 114 quantities and 114 operators is content-addressed in the log-first store
 (Part~\ref{part:kernel}), grown past its frozen genesis version through the
 contribution gates. Its dimensional layer is proven in Lean~4 against physlib
-and recompiled in CI on every change, its evidence carries pinned conformance
+and recompiled in CI on every change to the map or its generators, its evidence carries pinned conformance
 targets a re-run must reproduce, and the whole is held together by a suite of
 1727 passing tests.
 
@@ -391,7 +391,7 @@ Concept & Canonical term & Notes \\
 A typed quantity on the map    & \textbf{node} & \texttt{Space} is the code class. \\
 A relation producing a node    & \textbf{edge} & \texttt{Operator} is the code class. \\
 A code's mapping onto the map  & \textbf{representation} & its on-map rendering is a \emph{rail}. \\
-One run of a representation     & \textbf{instance} & serialized as a \emph{value record}. \\
+A committed value               & \textbf{instance} & the \texttt{\{id, kind, lineage, source\}} record. \\
 A semantic type parameter       & \textbf{label} & e.g.\ \texttt{bte\_solver=rta}, not a ``variant''. \\
 A content hash                  & \textbf{uid} & sha256; a 12-hex prefix is displayed. \\
 \bottomrule
@@ -499,7 +499,7 @@ three exists today; the other two are designed and not yet built.
   \item The code parser will import a codebase as a representation: mapping the
   code's input, output, and intermediate files and key lines onto the nodes and
   edges the code implements (structure), and letting a run of the code be recorded
-  as an instance (values). The 27 representations on today's map were authored by
+  as an instance (values). The 31 representations on today's map were authored by
   hand against this contract; the parser that automates the mapping is not yet
   built.
   \item The run parser will read a concrete run and record its inputs (from the
@@ -556,11 +556,13 @@ in dependency order. Reviewed before it lands in the canonical map.
 The \texttt{lineage} is the complete computational identity of the value: the
 node, the material, every condition that determines the number, and the values
 block. \texttt{id} is the sha256 of the lineage's canonical JSON, so two
-records with the same id are the same computation, and any changed condition
-mints a different id. The implemented schema, shown as a real committed
-instance, verbatim
+records with the same id are the same computation, and any change to the
+canonicalized lineage (floats are rounded to six decimals before hashing, so
+re-serialization noise never re-mints) yields a different id. The implemented schema, shown as the committed
+instance, with the one long \texttt{detail} string wrapped for print
 (\texttt{docs/data/instances/si-thermalconductivity-bte-solver-rta-kaldo.json}):
 
+{\small
 \begin{verbatim}
 {
   "id": "04c6dbdb9b046aceefb0c7b44e4219574cb2259280bc6893c0180b620fbcea52",
@@ -579,6 +581,7 @@ instance, verbatim
   }
 }
 \end{verbatim}
+}
 
 \texttt{lineage.node} always names a node, because a value belongs to a
 quantity; at bundle time each record is additionally pinned to that node's
@@ -649,8 +652,9 @@ views of a configuration.
 \paragraph{Spectrum record (function-valued evidence).} Some nodes are
 function-valued in practice (a phonon density of states, a diffraction pattern,
 a dielectric function): the evidence is not one scalar but an array of ordinates
-against a monotonic axis. A spectrum record is the value record with the scalar
-replaced by an axis and an array, attached to the same nodes and pinned the same
+against a monotonic axis. A spectrum record keeps the flat pre-lineage shape
+(its migration to the lineage construct is pending): the scalar is replaced by
+an axis and an array, attached to the same nodes and pinned the same
 way (\texttt{node\_uid} at bundle time). Each spectrum-capable node's
 representation declares a \emph{canonical axis} (a registered unit and its
 dimension) so the axis and value units can be validated against a fixed
@@ -726,7 +730,7 @@ pointer), made into a first-class record kind.
 yields one lineage, so the \texttt{\#x=} wire carries an \emph{envelope},
 \texttt{\{v: 1, doc, lineages: [...]\}}: shared document metadata
 (\texttt{doc.source} as a \texttt{scheme:ref}, plus title, authors, year,
-journal) and any number of lineage records, gzip-compressed and
+journal) and one or more lineage records, gzip-compressed and
 base64url-encoded into the fragment. The reader is dual forever: a bare single
 record decodes as a one-element envelope, so every link minted before bundles
 keeps rendering unchanged. A bundle opens as one page of stacked datasheets,
@@ -742,10 +746,13 @@ applied to the wire.
 evidence. A target is \texttt{\{id, lineage, code, expected, tolerance,
 evidence\}}: the number a named code is expected to reproduce for one
 committed computation, within a stated absolute or relative tolerance. A
-target never invents its lineage; it carries the evidence instance's lineage
+target never invents its lineage: it carries the evidence instance's lineage
 verbatim, so the hash of \texttt{target.lineage} equals \texttt{target.id}
 equals the instance's id, a cryptographic not-invented proof rather than an
-asserted link, and \texttt{expected} mirrors the instance's own values. The
+asserted link, and \texttt{expected} mirrors the instance's own values. (A
+literature target may carry no evidence instance; its lineage then names a
+\texttt{doi:} or other \texttt{scheme:ref} source in-hash, and the citation
+itself is the provenance.) The
 committed targets are projected into a byte-stable index that the playground
 datasheets read: a record's page lists, under \emph{Reproduce this}, the codes
 that can compute its quantity and the pinned runs for its node, with a target
@@ -771,7 +778,12 @@ adjacent page. MAP aligns each detected value against the node catalog via
 structured outputs; a claim that lands on a source or parameter node
 (\texttt{Structure}, \texttt{Temperature}, \texttt{AtomCount}, and the rest of
 the input set, flagged \texttt{evidence\_target: false} in one place in the
-catalog builder) is classified as a run \emph{condition}, not a value. Such
+catalog builder) is classified as a run \emph{condition}, not a value. Printed
+numerals are normalized before the value gate (thousands separators, the
+comma-space artifact of a line break, the unicode minus, and $a \pm b$ forms,
+whose central value is the claim), because PDF extraction mangles real numbers
+into shapes a bare parser rejects; on the first paper this recovered a dozen
+true claims that formatting alone had killed. Such
 claims survive into the proposal as context and are counted separately, but are
 excluded from instance minting at apply time: an atom count or a temperature is a
 condition of a run, whose structural home is the configuration record and the
@@ -838,7 +850,7 @@ index.
   \item The map, live: \texttt{docs/map/} (openmaterials.ai/map).
   \item The verified layer and its roadmap, live: \texttt{docs/lean/}
   (openmaterials.ai/lean and /lean/roadmap/).
-  \item This document as browsable HTML with the PDF as a download:
+  \item This document, browsable with a PDF download:
   \texttt{docs/document/} (openmaterials.ai/document).
   \item The deck, a short walkthrough: \texttt{docs/deck/}.
 \end{itemize}
@@ -1717,7 +1729,7 @@ transport equation.
 
 \subsection{The operator DAG}
 
-The operator DAG has 46 nodes and 47 edges. Two source nodes (\texttt{Potential},
+The operator DAG has 54 nodes and 55 edges. Two source nodes (\texttt{Potential},
 \texttt{Temperature}) are produced by nullary \texttt{provide\_*} operations; the
 \texttt{MeanFreeDisplacement} and \texttt{ThermalConductivity} states are each split
 into two parameterized variants by the upstream \texttt{bte\_solver} choice (one
@@ -2025,7 +2037,7 @@ adapter-level steps recorded as provenance, not modeled by the framework.
 \end{tikzpicture}%
 }
 \caption{Core $\kappa$ chain of the operator DAG for lattice thermal transport
-(12 nodes / 14 edges shown; the full DAG has 46 nodes / 47 edges once the
+(12 nodes / 14 edges shown; the full DAG has 54 nodes / 55 edges once the
 derived-observable tier --- PhononDOS, Grüneisen, PhaseSpace, VolumetricHeatCapacity,
 MolarHeatCapacity, the thermodynamic siblings (HelmholtzFreeEnergy, Entropy,
 InternalEnergy and their molar contractions), the polar-correction inputs
@@ -2292,9 +2304,9 @@ plus one per domain:
     Code-agnostic.
   \item \texttt{omai.thermal\_transport} --- the lattice-thermal-transport domain.
     \begin{itemize}[leftmargin=1.2em]
-      \item \texttt{operator/nodes.py}: the 46 spaces as \texttt{ObservableSpace} or
+      \item \texttt{operator/nodes.py}: the domain's 54 spaces as \texttt{ObservableSpace} or
             \texttt{HiddenSpace} instances with their fields.
-      \item \texttt{operator/edges.py}: the 47 operators with sympy formulas
+      \item \texttt{operator/edges.py}: the domain's 55 operators with sympy formulas
             and \texttt{auxiliary\_formulas} (the \texttt{compute\_linewidth}
             $|V_3|^2$ kernel and the \texttt{solve\_bte[direct\_inverse]}
             collision matrix $M$); sympy symbols and \texttt{IndexedBase}
@@ -2458,9 +2470,11 @@ Three longer-term directions follow naturally from the design:
         community Lean~4 physics library, pinned by revision. Tier~1 declares every
         exported node as a physics \texttt{Dimension} and proves one theorem per
         verified executable edge: 89 nodes and 12 edge theorems compile against
-        physlib's five bases, and a generated seven-base extension closes the
-        remaining amount-of-substance, current, and luminous-intensity quantities, so
-        every one of the map's 114 nodes carries a machine-checked dimension. Tier~2
+        physlib's five bases, and a generated seven-base extension adds the
+        amount-of-substance, current, and luminous-intensity quantities, so 106 of
+        the map's 114 nodes carry a machine-checked dimension (the eight left out,
+        \texttt{Structure}, \texttt{Potential}, and their fieldless kin, have no
+        dimensional content to prove). Tier~2
         states the map's executable identities as real-valued theorems against
         Mathlib, 13 in all: composition theorems that substitute an upstream identity
         into a downstream one and prove the chained form equals the flat form, and
@@ -2978,7 +2992,10 @@ named artifact, the published stamp also carries the unified \emph{lineage
 version} (\texttt{f69b18c18fb7\ldots}): one rolling content hash over the
 derivation graph and the instance-format rules together, appended to a chain
 whose root is the genesis, so a change to either the physics or the record
-format moves the one version every page and every record cites. The live
+format moves the one version the published stamp and every page cite (records
+themselves stay version-free: the projection stamps each value with the live
+node uid at build time, so committed values follow the current map; a
+per-record frozen pin is designed, not yet carried on the records). The live
 numbers:
 
 \begin{itemize}[leftmargin=2em, itemsep=0.25em]
@@ -3000,7 +3017,7 @@ numbers:
         kaldo 34, phono3py 31, phonopy 22, pymatgen 22, ShengBTE 20, mp-api 13,
         Quantum ESPRESSO 13, LAMMPS 12, VASP 10, GPUMD 8, pycalphad 7, matgl 5,
         mat-elasticity 5, amset 5, ORCA 5, pymatgen-analysis-diffusion 5,
-        i-PI 4, fairchem 4, MACE 4, OpenMM 4, ASE 3, materialscodegraph 3,
+        i-PI 4, fairchem 4, MACE 4, OpenMM 4, materialscodegraph 5, ASE 3,
         mat-diffusion-analysis 2, mescal 2, plumed 2, smol 2,
         mat-equation-of-state 1, mat-surface-adsorption 1, rxn-network 1,
         diffcsp 1, mattergen 1.
@@ -3010,14 +3027,19 @@ numbers:
         expansion, molecular NEB barriers and bond dissociation energies) as
         well as the original thermal-transport and ground-state values from the
         Si and Ge cross-checks (the SCF total energy and the $\Gamma$ optical
-        frequency). Fourteen of the simulation values are the first
-        paper-sourced evidence: thermal conductivities and one mass density
-        parsed from three published papers, each landed with a verbatim,
-        page-located quote (kaldo 2020, the QHGK/Green-Kubo Isaeva 2019, and
-        Esfarjani 2011). The two measurements are the Glassbrenner--Slack 1964
+        frequency). Thirty-five of the values are paper-sourced evidence,
+        carrying an identity-bearing \texttt{paper:} source in the lineage and
+        landed with a verbatim, page-located quote; they come from ten
+        published papers (kaldo 2020, the QHGK/Green-Kubo Isaeva 2019,
+        Esfarjani 2011, the 2021 carbon-nanotube and 2025 kappa-limit BTE
+        studies, PtSe$_2$ 2021, quantum-elastic PIMD/TDEP 2024, SiGe disorder
+        2024, amorphous alloys 2020, and the Balandin 2008 graphene
+        measurement). The four measurements are the Glassbrenner--Slack 1964
         steady-state thermal conductivities of bulk single-crystal silicon
         ($156\,\mathrm{W/(m\,K)}$) and germanium ($60.2\,\mathrm{W/(m\,K)}$) at
-        $300\,\mathrm{K}$ and natural isotopic abundance. The four newest
+        $300\,\mathrm{K}$ and natural isotopic abundance, the Balandin 2008
+        suspended-graphene Raman value, and the PtSe$_2$ 2021 in-plane FDTR
+        value. The four newest
         simulation values (2026-07-18) are fully-specified engine-adapter
         evidence: kaldo and phono3py silicon thermal conductivities, RTA and
         direct-inverse, with every knob in-hash down to the sha256 of the
@@ -3042,7 +3064,9 @@ numbers:
         the Hasselman-Johnson spherical cross-check).
   \item \textbf{Verified layer.} 89 nodes and 12 edge theorems compile against
         physlib (Lean~4.31.0, pinned by revision), the generated seven-base
-        extension covers all 114 nodes, and 13 identity theorems check against
+        extension lifts dimensional coverage to 106 of 114 nodes (the eight
+        remaining are fieldless or opaque, with nothing dimensional to prove),
+        and 13 identity theorems check against
         Mathlib; a CI gate recompiles the proof on every relevant pull request
         with warnings promoted to errors. The formalization roadmap page rates
         every operator by what proving its formula would take.
@@ -3062,7 +3086,7 @@ ShengBTE                     & 20 & GPL-3.0 \\
 mp-api                       & 13 & BSD-3-Clause \\
 Quantum ESPRESSO             & 13 & GPL-2.0 \\
 LAMMPS                       & 12 & GPL-2.0 \\
-VASP                         & 9  & Proprietary \\
+VASP                         & 10 & Proprietary \\
 GPUMD                        & 8  & GPL-3.0 \\
 pycalphad                    & 7  & MIT \\
 matgl                        & 5  & BSD-3-Clause \\
@@ -3070,12 +3094,15 @@ mat-elasticity               & 5  & MIT \\
 amset                        & 5  & BSD-3-Clause \\
 ORCA                         & 5  & Proprietary \\
 pymatgen-analysis-diffusion  & 5  & BSD-3-Clause \\
+materialscodegraph           & 5  & Apache-2.0 \\
 i-PI                         & 4  & GPL-2.0 / MIT \\
 fairchem                     & 4  & MIT \\
 MACE                         & 4  & MIT \\
 OpenMM                       & 4  & MIT \\
 ASE                          & 3  & LGPL-2.1 \\
 mat-diffusion-analysis       & 2  & MIT \\
+mescal                       & 2  & MIT \\
+plumed                       & 2  & LGPL-3.0 \\
 smol                         & 2  & BSD-3-Clause \\
 mat-equation-of-state        & 1  & MIT \\
 mat-surface-adsorption       & 1  & MIT \\
@@ -3469,8 +3496,8 @@ in \texttt{tests/test\_shengbte.py}. Notable decisions made during that ingestio
         (volumetric $\mathrm{J/m^3K}$), not a per-mode form. Recorded the gap in the
         adapter docstring.
   \item \textbf{Added \texttt{KM\_PER\_S = Unit(...)}} to \texttt{units.py} with
-        \texttt{to\_operator = 10.0} ($1\,\mathrm{km/s} = 10\,\mathrm{\AA\cdot
-        THz}$). This kind of one-line addition to \texttt{units.py} is routine:
+        \texttt{to\_operator = 10.0} ($1\,\mathrm{km/s} =
+        10\,\text{\AA}\cdot\mathrm{THz}$). This kind of one-line addition to \texttt{units.py} is routine:
         most codes drop a single new unit.
   \item \textbf{\texttt{compute\_force\_constants\_*} is upstream.} ShengBTE reads
         FC2/FC3 from files written by another code (phonopy or QE for harmonic,
