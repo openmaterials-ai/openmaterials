@@ -1054,6 +1054,12 @@ if __name__ == "__main__":
         print("lean roadmap skipped:", _e)
     _pc, _sc = write_conformance_index()
     print("wrote", _pc, "(" + str(_sc) + " conformance targets)")
+    try:
+        from omai.distance_data import write_distances as _write_distances
+        _pd, _sd = _write_distances()
+        print("wrote", _pd, "(" + str(_sd["distances"]) + " metrics, " + str(_sd["zoo_rows"]) + " zoo rows)")
+    except Exception as _e:
+        print("distance data skipped:", _e)
     from omai.semantics import write_semantics as _write_semantics
     import json as _json
     print("wrote", _write_semantics(_json.loads((_DOCS / "data" / "graph.json").read_text())))

@@ -170,6 +170,13 @@ renders the datasheet exactly as before. When a minted link would exceed a
 practical URL length (8000 characters), the playground says so plainly and
 offers the envelope as a JSON download instead of a broken link.
 
+The playground's Distance tab presents the `omdc` layer the same way the rest
+of the site presents its data: the metric registry and the illustrative
+silicon zoo render from `docs/data/distances.json`, emitted by the build from
+the registry itself (`omai/distance_data.py`, skipped without the distance
+extras), and pairwise committed-configuration distances appear automatically
+as configurations land.
+
 The [cross-code agreement page](https://openmaterials.ai/agreement/) takes the
 other cut through the same instances: instead of grouping by source, it groups
 by the physical question. It finds every set of values that are the same
