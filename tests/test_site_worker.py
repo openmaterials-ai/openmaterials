@@ -86,3 +86,17 @@ def test_short_link_store_contract():
         [node, "--test", str(_SITE / "src" / "shortlinks.test.mjs")],
         capture_output=True, text=True)
     assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+def test_source_first_identifier_routes():
+    """The paper goes first in the URL: /l/<scheme:ref> lists the source's
+    committed family, /l/<scheme:ref>/<hash> names one value gated by the
+    in-hash source (a speaking identifier that cannot lie), and the play badge
+    shows the source chip. Pinned here; the logic runs under node."""
+    src = (_SITE / "src" / "index.js").read_text()
+    assert "parseLPath" in src and "sourceMismatchHTML" in src, "no source routes"
+    assert "409" in src, "a mismatched namespace must refuse, never redirect silently"
+    play = (_REPO / "docs" / "play" / "index.html").read_text()
+    assert "rec-doi-src" in play, "the badge does not show the source namespace chip"
+    resolve = (_SITE / "src" / "resolve.js").read_text()
+    assert "SOURCE_REF_RE" in resolve and "canonical" in resolve

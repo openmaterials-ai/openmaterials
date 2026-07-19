@@ -130,6 +130,9 @@
     border:1px solid var(--line);background:none;border-radius:5px;padding:1px 7px;
     cursor:pointer;color:var(--muted);}
   .rec-doi-un{color:var(--muted);}
+  .rec-doi-src{color:var(--muted);text-decoration:none;border:1px solid var(--line);
+    border-radius:999px;padding:0 8px;font-size:.7rem;}
+  .rec-doi-src:hover{color:var(--accent);border-color:var(--accent);}
   .rec-doi-mint{font-family:var(--font-sans,'Inter',sans-serif);font-size:.72rem;
     border:1px dashed var(--line);background:none;border-radius:5px;padding:1px 8px;
     cursor:pointer;color:var(--accent);}
@@ -1086,10 +1089,19 @@ function lineageDoiHTML(record){
   var id = record && record.id ? String(record.id).toLowerCase() : '';
   if (!/^[0-9a-f]{64}$/.test(id)) return '';
   var short = id.slice(0, 12);
+  // the in-hash source is the value's namespace: shown paper-first beside the
+  // hash, linking to the source's whole committed family
+  var srcRef = record.lineage && typeof record.lineage.source === 'string' &&
+    /^[a-z][a-z0-9+.-]*:.+$/.test(record.lineage.source) ? record.lineage.source : null;
+  var chip = srcRef
+    ? ' <a class="rec-doi-src" href="../experiment/#ref=' + encodeURIComponent(srcRef) +
+      '" title="Every committed value from this source (also resolves at openmaterials.ai/l/' + esc(srcRef) + ')">' + esc(srcRef) + '</a>'
+    : '';
   if (INSTANCE_IDS && INSTANCE_IDS.has(id)) {
     return '<div class="rec-doi"><span class="rec-doi-lab">lineage id</span>' +
       '<a href="#id=' + short + '" title="The canonical short id of this committed value: the first 12 characters of its sha256, resolving at openmaterials.ai/l/' + short + '.">openmaterials.ai/l/' + short + '</a>' +
-      '<button type="button" class="rec-doi-copy" data-copy="https://openmaterials.ai/l/' + short + '" title="Copy the canonical short link">copy</button></div>';
+      '<button type="button" class="rec-doi-copy" data-copy="https://openmaterials.ai/l/' + short + '" title="Copy the canonical short link">copy</button>' +
+      chip + '</div>';
   }
   return '<div class="rec-doi"><span class="rec-doi-lab">lineage id</span>' +
     '<span class="rec-doi-un" title="The content id of this lineage. It is not committed to the map, so no short link resolves to it yet; landing it through a pull request mints one.">' + short + ' (uncommitted)</span></div>';

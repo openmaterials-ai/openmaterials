@@ -6,7 +6,7 @@ import assert from "node:assert";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { parseHash, parsePrefix, resolveId, resolvePrefix, permalinkHTML, notFoundHTML, ambiguousHTML, humanProperty } from "./resolve.js";
+import { parseHash, parsePrefix, resolveId, resolvePrefix, permalinkHTML, notFoundHTML, ambiguousHTML, humanProperty, parseLPath, entriesBySource, entrySourceRef, sourceListingHTML, sourceMismatchHTML } from "./resolve.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const instances = JSON.parse(
@@ -69,5 +69,34 @@ test("prefixes resolve git-style at the edge: unique, ambiguous, none", () => {
     assert.ok(!amb.ok && Array.isArray(amb.ambiguous) && amb.ambiguous.length > 1);
     const page = ambiguousHTML(shared.id.slice(0, 8), amb.ambiguous, "https://openmaterials.ai");
     for (const id of amb.ambiguous) assert.ok(page.includes(id.slice(0, 12)));
+  }
+});
+
+test("source-first paths parse and resolve: listing, pair, mismatch honesty", () => {
+  const withSrc = instances.find((e) => e.source && /^[a-z][a-z0-9+.-]*:/.test(e.source.ref || ""));
+  assert.ok(withSrc, "corpus has at least one scheme-sourced value");
+  const ref = withSrc.source.ref;
+  // path forms
+  assert.deepStrictEqual(parseLPath(withSrc.id), { hash: withSrc.id });
+  assert.deepStrictEqual(parseLPath(ref), { ref });
+  assert.deepStrictEqual(parseLPath(`${ref}/${withSrc.id.slice(0, 12)}`),
+    { ref, hash: withSrc.id.slice(0, 12) });
+  assert.strictEqual(parseLPath("no-scheme-here"), null);
+  // a DOI-style ref with a slash keeps the whole ref together
+  assert.deepStrictEqual(parseLPath("doi:10.1063/5.0020443"), { ref: "doi:10.1063/5.0020443" });
+  assert.deepStrictEqual(parseLPath(`doi:10.1063/5.0020443/${"a".repeat(12)}`),
+    { ref: "doi:10.1063/5.0020443", hash: "a".repeat(12) });
+  // the family listing carries every member and no one else's
+  const family = entriesBySource(instances, ref);
+  assert.ok(family.length >= 1 && family.every((e) => e.source.ref === ref));
+  const page = sourceListingHTML(ref, family, "https://openmaterials.ai");
+  for (const e of family) assert.ok(page.includes(e.id.slice(0, 12)));
+  assert.ok(page.includes(`${family.length} committed value`));
+  // the honesty gate: a claimed namespace that is not the id's own refuses
+  const other = instances.find((e) => entrySourceRef(e) !== ref);
+  if (other) {
+    const mism = sourceMismatchHTML(ref, other, "https://openmaterials.ai");
+    assert.ok(mism.includes(other.id.slice(0, 12)));
+    assert.ok(mism.includes("does not belong"));
   }
 });

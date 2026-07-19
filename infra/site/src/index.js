@@ -13,6 +13,8 @@
 
 import {
   parsePrefix, resolvePrefix, permalinkHTML, notFoundHTML, ambiguousHTML,
+  parseLPath, entriesBySource, entrySourceRef,
+  sourceListingHTML, sourceEmptyHTML, sourceMismatchHTML,
 } from "./resolve.js";
 import {
   MINTS_PER_DAY, randomCode, parseCode, validateMintBody,
@@ -63,9 +65,9 @@ export default {
     }
 
     if (url.pathname.startsWith("/l/")) {
-      const hash = parsePrefix(url.pathname.slice(3).replace(/\/$/, ""));
-      if (!hash) {
-        return html("<!doctype html><p>Malformed id: a permalink is /l/&lt;sha256 or its first 8+ hex chars&gt;.</p>", 400);
+      const parsed = parseLPath(decodeURIComponent(url.pathname.slice(3)));
+      if (!parsed) {
+        return html("<!doctype html><p>Malformed id: a permalink is /l/&lt;sha256 or 8+ hex prefix&gt;, /l/&lt;scheme:ref&gt;, or /l/&lt;scheme:ref&gt;/&lt;hash&gt;.</p>", 400);
       }
       let instances;
       try {
@@ -73,10 +75,21 @@ export default {
       } catch (e) {
         return html("<!doctype html><p>The instance projection is unavailable.</p>", 503);
       }
-      const r = resolvePrefix(instances, hash);
-      if (r.ok) return html(permalinkHTML(r.entry, url.origin), 200);
-      if (r.ambiguous) return html(ambiguousHTML(hash, r.ambiguous, url.origin), 300);
-      return html(notFoundHTML(hash, url.origin), 404);
+      if (parsed.ref && !parsed.hash) {
+        const family = entriesBySource(instances, parsed.ref);
+        return family.length
+          ? html(sourceListingHTML(parsed.ref, family, url.origin), 200)
+          : html(sourceEmptyHTML(parsed.ref, url.origin), 404);
+      }
+      const r = resolvePrefix(instances, parsed.hash);
+      if (r.ok) {
+        if (parsed.ref && entrySourceRef(r.entry) !== parsed.ref) {
+          return html(sourceMismatchHTML(parsed.ref, r.entry, url.origin), 409);
+        }
+        return html(permalinkHTML(r.entry, url.origin), 200);
+      }
+      if (r.ambiguous) return html(ambiguousHTML(parsed.hash, r.ambiguous, url.origin), 300);
+      return html(notFoundHTML(parsed.hash, url.origin), 404);
     }
 
     if (url.pathname === "/s" || url.pathname.startsWith("/s/")) {
