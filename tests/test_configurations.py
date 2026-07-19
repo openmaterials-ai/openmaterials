@@ -220,7 +220,9 @@ def test_from_mp_mocked(tmp_path, monkeypatch):
             assert mp_id == "mp-149"
             return si
 
-    import mp_api.client as mpc
+    mpc = pytest.importorskip(
+        "mp_api.client", reason="mp_api is not implied by pymatgen (distance extra installs pymatgen without it)"
+    )
 
     monkeypatch.setattr(mpc, "MPRester", _FakeMPRester)
     monkeypatch.setenv("MP_API_KEY", "fake-key")

@@ -32,19 +32,35 @@ parser = [
     # developed and tested against, and older SDKs predate output_config.
     "anthropic>=0.116",
 ]
+# The distance layer (omdc/): graded distances between atomic configurations.
+# Core stays torch-free; tests/distance skips itself when these are absent, so
+# a base `pip install -e ".[dev]" && pytest` still passes.
+distance = [
+    "pymatgen>=2024.1.1",
+    "ase>=3.22",
+    "scipy>=1.11",
+    "POT>=0.9",
+    "pyarrow>=15",
+]
+# The default traversal encoder (MACE-MP-0) and the amd geometry channel;
+# install alongside distance: pip install -e ".[distance,mace]".
+mace = ["mace-torch>=0.3.6"]
+amd = ["average-minimum-distance>=1.5"]
 # dev carries the parser deps too: tests/test_paper_parser.py imports pypdf
 # unconditionally, so a fresh `pip install -e ".[dev]" && pytest` must pass.
+# hypothesis drives the metric-axiom property tests in tests/distance.
 dev = [
     "pytest>=8.0",
     "ruff>=0.4",
     "mypy>=1.8",
     "pypdf>=6.1",
     "anthropic>=0.116",
+    "hypothesis>=6",
 ]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["omai*"]
+include = ["omai*", "omdc*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
