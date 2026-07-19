@@ -104,6 +104,13 @@ playground's Lineage tab:
 https://openmaterials.ai/play/#/play?tab=lineage&x=<gzipped record>
 ```
 
+A committed value also has a canonical permalink, `/l/<lineage id>`, resolved
+at the edge by the site Worker (`infra/site`: the same `docs/` served as
+Cloudflare assets plus this one resolver and `/healthz`; everything else is
+static fallthrough, so the Worker is additive over the static site). The
+permalink unfurls with the value's own Open Graph card and redirects to the
+playground datasheet.
+
 Opening the link renders straight into a **full-width, dense, plain datasheet**:
 a lineage is a data container, and OpenMaterials (the static site) is the
 container's viewer, so the view shows the information the record holds, plainly,

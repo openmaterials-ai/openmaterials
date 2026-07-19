@@ -1,0 +1,16 @@
+{
+  // The site Worker: serves the whole static site (docs/) as edge assets,
+  // byte-identical to the GitHub Pages deployment, and adds the dynamic
+  // routes a fragment-only site cannot express. Everything not matched by
+  // run_worker_first falls through to the assets directly, so the Worker is
+  // additive: removing it returns the site to plain static hosting.
+  "name": "openmaterials-site",
+  "main": "src/index.js",
+  "compatibility_date": "2026-06-18",
+  "assets": {
+    "directory": "../../docs",
+    "binding": "ASSETS",
+    "run_worker_first": ["/l/*", "/healthz"]
+  },
+  "observability": { "enabled": true }
+}
