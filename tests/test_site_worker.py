@@ -30,7 +30,7 @@ def test_worker_is_additive_over_the_static_site():
     cfg = _wrangler_config()
     assert cfg["assets"]["directory"] == "../../docs", \
         "the Worker must serve the SAME docs/ the static site publishes"
-    assert set(cfg["assets"]["run_worker_first"]) == {"/l/*", "/healthz"}, \
+    assert set(cfg["assets"]["run_worker_first"]) == {"/l/*", "/s", "/s/*", "/healthz"}, \
         "only the named dynamic routes may bypass the assets"
     assert cfg["name"] == "openmaterials-site"
 
@@ -49,5 +49,40 @@ def test_resolver_logic_under_node():
         pytest.skip("node not available; resolver checked where present")
     proc = subprocess.run(
         [node, "--test", str(_SITE / "src" / "resolve.test.mjs")],
+        capture_output=True, text=True)
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+
+
+def test_short_link_store_contract():
+    """The /s short-link store (the one write surface): worker-first routes,
+    the KV binding, origin-gated minting, open-CORS immutable raw reads, and
+    the playground's #s= route all pinned; the pure logic runs under node
+    against the real validation and shell builders."""
+    cfg = _wrangler_config()
+    assert "/s" in cfg["assets"]["run_worker_first"]
+    assert "/s/*" in cfg["assets"]["run_worker_first"]
+    assert any(k["binding"] == "SHORTLINKS" for k in cfg.get("kv_namespaces", [])), \
+        "no KV namespace bound for the short-link store"
+
+    src = (_SITE / "src" / "index.js").read_text()
+    assert "isMintOrigin" in src, "minting must be origin-gated"
+    assert "MINTS_PER_DAY" in src, "minting must be rate-limited"
+    assert "access-control-allow-origin\": \"*\"" in src or "'access-control-allow-origin': '*'" in src.replace('"', "'"), \
+        "raw reads must carry open CORS (a minted payload is public)"
+    assert "immutable" in src, "stored payloads never change; raw reads must say so"
+
+    play = (_REPO / "docs" / "play" / "index.html").read_text()
+    assert "fetchShortlink" in play and "#s=" in play.replace("\\", ""), \
+        "the playground must resolve #s= through the short-link store"
+    assert "mintShortlink" in play and "bundleShort" in play, \
+        "the bundle view must offer Copy short link"
+    assert "public to anyone with the code" in play, \
+        "the mint control must state the public-by-construction rule"
+
+    node = shutil.which("node")
+    if not node:
+        pytest.skip("node not available; short-link logic checked where present")
+    proc = subprocess.run(
+        [node, "--test", str(_SITE / "src" / "shortlinks.test.mjs")],
         capture_output=True, text=True)
     assert proc.returncode == 0, proc.stdout + proc.stderr

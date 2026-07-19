@@ -10,7 +10,10 @@
   "assets": {
     "directory": "../../docs",
     "binding": "ASSETS",
-    "run_worker_first": ["/l/*", "/healthz"]
+    "run_worker_first": ["/l/*", "/s", "/s/*", "/healthz"]
   },
+  "kv_namespaces": [
+    { "binding": "SHORTLINKS", "id": "a234499878ab4e558c00ed9209012ed0" }
+  ],
   "observability": { "enabled": true }
 }

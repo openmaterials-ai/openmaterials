@@ -1,0 +1,1 @@
+{"v":1,"doc":{"title":"CNT paper","source":"paper:cnt-2021-barbalinardo"},"lineages":[{"id":"7d83a018b0fddff199d8f649dcf65416d5f1fc5a959b49b91b758c6c74d0ff49","lineage":{"node":"MeanFreeDisplacement[bte_solver=direct_inverse]","material":"(10,0) SWCNT","values":{"value":0.9,"units":"mm"}}}]}

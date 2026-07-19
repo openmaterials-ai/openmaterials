@@ -1050,6 +1050,50 @@ function copyBundleLink(env, btn){
   return copySharedLink(mintEnvelope(env), btn);
 }
 
+/* ---- the short-link store (/s on the site Worker) ----------------------- */
+// The Worker origin that holds the KV store. Same-origin when the site is
+// served by the Worker; the staging Worker is the fallback when the page is
+// served statically (GitHub Pages, local http.server), so short links work
+// on every deployment of the SAME site.
+var SHORTLINK_ORIGIN = 'https://openmaterials-site.giuseppe-barbalinardo.workers.dev';
+async function fetchShortlink(code){
+  var paths = [location.origin + '/s/' + code + '/raw', SHORTLINK_ORIGIN + '/s/' + code + '/raw'];
+  var lastErr = null;
+  for (var i = 0; i < paths.length; i++) {
+    try {
+      var r = await fetch(paths[i]);
+      if (r.status === 404) throw new Error('no shared set lives at this code');
+      if (r.ok) return await r.json();
+      lastErr = new Error('the short-link store answered ' + r.status);
+    } catch (e) { lastErr = e; }
+  }
+  throw lastErr || new Error('the short-link store is unreachable');
+}
+async function mintShortlink(env, btn){
+  if (!env) return;
+  var label = btn ? btn.textContent : '';
+  if (btn) btn.textContent = 'Minting…';
+  try {
+    var endpoints = [location.origin + '/s', SHORTLINK_ORIGIN + '/s'];
+    var res = null, lastErr = null;
+    for (var i = 0; i < endpoints.length && !res; i++) {
+      try {
+        var r = await fetch(endpoints[i], { method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(mintEnvelope(env)) });
+        if (r.ok) res = await r.json();
+        else if (r.status === 429) throw new Error('daily short-link limit reached');
+        else lastErr = new Error('the store answered ' + r.status);
+      } catch (e) { lastErr = e; }
+    }
+    if (!res) throw lastErr || new Error('unreachable');
+    await navigator.clipboard.writeText(res.url);
+    if (btn) { btn.textContent = 'Short link copied'; setTimeout(function(){ btn.textContent = label; }, 1600); }
+  } catch (e) {
+    if (btn) { btn.textContent = String(e.message || 'failed').slice(0, 40); setTimeout(function(){ btn.textContent = label; }, 2500); }
+  }
+}
+
 // The MCG-computable set, mirrored from docs/experiment/index.html (the shipped
 // allowlist): the base map nodes MCG has a wired engine for right now, so the
 // "Run on MaterialsCodeGraph" button appears only for a genuinely runnable node
@@ -1697,6 +1741,7 @@ function renderBundle(env){
   });
   h += '</tbody></table></div>';
   h += '<div class="rec-links"><button id="bundleCopy" type="button" title="Copy a link that carries this whole bundle in its #x= fragment.">Copy link</button>' +
+    '<button id="bundleShort" type="button" title="Store this bundle and copy a short link (openmaterials.ai/s/...). A stored bundle is public to anyone with the code.">Copy short link</button>' +
        '<span class="rec-link-note">Each lineage keeps its own id; every datasheet is on this page.</span></div>';
   h += '</div>';
 
@@ -1734,6 +1779,8 @@ function renderBundle(env){
   });
   var copyBtn = box.querySelector('#bundleCopy');
   if (copyBtn) copyBtn.addEventListener('click', function(){ copyBundleLink(currentBundle, this); });
+  var shortBtn = box.querySelector('#bundleShort');
+  if (shortBtn) shortBtn.addEventListener('click', function(){ mintShortlink(currentBundle, this); });
   // per-member Copy link: mints THAT record alone (each keeps its own id)
   box.querySelectorAll('.rcCopy[data-idx]').forEach(function(btn){
     btn.addEventListener('click', function(){
@@ -2381,6 +2428,21 @@ async function applyHash(){
     var idTabBtn = document.querySelector('.pg-tab[data-tab="lineage"]');
     if (idTabBtn) idTabBtn.click();
     await renderInstanceById(idm[1]);
+    return;
+  }
+  // #s=<code>: a stored short link. The payload lives in the Worker's KV, so
+  // the page fetches /s/<code>/raw (same origin behind the Worker; the staging
+  // Worker origin is the fallback when the page is served statically) and
+  // renders it through the SAME dual-read dispatch a #x= link uses.
+  var sm = location.hash.match(/[#?&]s=([1-9A-HJ-NP-Za-km-z]{9})/);
+  if (sm) {
+    var sTabBtn = document.querySelector('.pg-tab[data-tab="lineage"]');
+    if (sTabBtn) sTabBtn.click();
+    try {
+      renderShared(await fetchShortlink(sm[1]));
+    } catch (e) {
+      showLineageError('<div class="xp-err">Could not open the short link: ' + esc(e.message) + '</div>');
+    }
     return;
   }
   var m = location.hash.match(/[#?&]tab=([a-z]+)/); if (!m) return;
