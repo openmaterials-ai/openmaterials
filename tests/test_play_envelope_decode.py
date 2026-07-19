@@ -304,11 +304,48 @@ def test_unknown_hash_renders_the_empty_state():
 
 
 def test_malformed_hash_is_rejected():
-    """A hash that is not 64 hex characters is rejected outright: not fetched, not
-    resolved, not fabricated."""
+    """A hash that is neither a full sha256 nor a legal 8+ hex prefix is
+    rejected outright: not fetched, not resolved, not fabricated."""
     from omai.map_data import build_instances
 
     insts = build_instances()
-    for bad in ("", "xyz", "g" * 64, "abc123", "0" * 63, "0" * 65):
+    for bad in ("", "xyz", "g" * 64, "abc123", "0" * 65, "1234567"):
         got = _resolve_on_page(bad, insts)
         assert got["ok"] is False and got["reason"] == "malformed", (bad, got)
+
+
+def test_prefix_resolves_git_style():
+    """The DOI-like short form: a unique 8+ hex prefix resolves to its one
+    committed value; a matching-nothing prefix is not-found; an ambiguous
+    prefix refuses and names the candidates."""
+    from omai.map_data import build_instances
+
+    insts = build_instances()
+    full = insts[0]["id"]
+    for prefix in (full[:12], full[:8], full[:63]):
+        got = _resolve_on_page(prefix, insts)
+        assert got["ok"] is True, (prefix, got)
+        assert got["record"]["id"] == full
+    ghost = _resolve_on_page("0" * 63, insts)
+    assert ghost["ok"] is False and ghost["reason"] == "not-found"
+    # a shared prefix among ids (when one exists) must refuse, never guess
+    shared = [
+        (a["id"], b["id"]) for i, a in enumerate(insts) for b in insts[i + 1:]
+        if a["id"][:8] == b["id"][:8]
+    ]
+    if shared:
+        got = _resolve_on_page(shared[0][0][:8], insts)
+        assert got["ok"] is False and got["reason"] == "ambiguous"
+
+
+def test_datasheet_shows_the_lineage_badge():
+    """Every datasheet carries its visible recognizer (CEO direction: the short
+    id shown like a DOI): committed values show the canonical /l/ short link,
+    uncommitted records their honest prefix, bundles their /s/ code."""
+    html = _PLAY.read_text()
+    assert "function lineageDoiHTML" in html, "no badge builder"
+    assert "lineageDoiHTML(record)" in html, "the datasheet header does not show the badge"
+    assert "function bundleDoiHTML" in html and "bundleDoi" in html, "no bundle short-link badge"
+    assert "openmaterials.ai/l/" in html, "the canonical short form is not displayed"
+    assert "(uncommitted)" in html, "no honest uncommitted state"
+    assert "INSTANCE_IDS" in html, "committed test set missing"

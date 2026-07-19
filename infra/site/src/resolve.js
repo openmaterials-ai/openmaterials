@@ -3,6 +3,10 @@
 // Worker (index.js) supplies the data; nothing here fabricates a record.
 
 const SHA256_RE = /^[0-9a-f]{64}$/;
+// A short id is a PREFIX of the full sha256, git-style: at least 8 hex chars
+// so a handle is never guessy, displayed at 12 (the UI's prefix convention).
+const PREFIX_MIN = 8;
+const PREFIX_RE = new RegExp(`^[0-9a-f]{${PREFIX_MIN},64}$`);
 
 // Validate and normalize a candidate hash from the path. Returns the
 // lowercase hash or null when malformed (a malformed hash is rejected
@@ -12,6 +16,12 @@ function parseHash(segment) {
   return SHA256_RE.test(h) ? h : null;
 }
 
+// Validate a full id OR a short prefix (>= PREFIX_MIN hex chars).
+function parsePrefix(segment) {
+  const h = String(segment == null ? "" : segment).trim().toLowerCase();
+  return PREFIX_RE.test(h) ? h : null;
+}
+
 // Find the flat projection entry whose canonical id equals the hash.
 // {ok: true, entry} or {ok: false}. Never invents an entry.
 function resolveId(instances, hash) {
@@ -19,6 +29,23 @@ function resolveId(instances, hash) {
   for (const entry of list) {
     if (entry && entry.id === hash) return { ok: true, entry };
   }
+  return { ok: false };
+}
+
+// Resolve a full id or prefix against the projection, git-style.
+// {ok: true, entry} on a unique match; {ok: false, ambiguous: [ids...]} when
+// the prefix names several (honesty over guessing); {ok: false} on none.
+function resolvePrefix(instances, prefix) {
+  const list = Array.isArray(instances) ? instances : [];
+  const matches = [];
+  for (const entry of list) {
+    if (entry && typeof entry.id === "string" && entry.id.startsWith(prefix)) {
+      matches.push(entry);
+      if (matches.length > 8) break;
+    }
+  }
+  if (matches.length === 1) return { ok: true, entry: matches[0] };
+  if (matches.length > 1) return { ok: false, ambiguous: matches.map((e) => e.id) };
   return { ok: false };
 }
 
@@ -87,4 +114,23 @@ map.</p>
 `;
 }
 
-export { parseHash, resolveId, permalinkHTML, notFoundHTML, humanProperty };
+// The honest fork for an ambiguous prefix: name every match, pick nothing.
+function ambiguousHTML(prefix, ids, origin) {
+  const rows = ids
+    .map((id) => `<li><a href="${esc(origin)}/l/${esc(id)}"><code>${esc(id.slice(0, 12))}</code></a></li>`)
+    .join("");
+  return `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Ambiguous id</title></head>
+<body>
+<p>The prefix <code>${esc(prefix)}</code> names more than one committed value:</p>
+<ul>${rows}</ul>
+</body>
+</html>
+`;
+}
+
+export {
+  parseHash, parsePrefix, resolveId, resolvePrefix,
+  permalinkHTML, notFoundHTML, ambiguousHTML, humanProperty, PREFIX_MIN,
+};
