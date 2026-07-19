@@ -106,10 +106,13 @@ https://openmaterials.ai/play/#/play?tab=lineage&x=<gzipped record>
 
 A committed value also has a canonical permalink, `/l/<lineage id>`, resolved
 at the edge by the site Worker (`infra/site`: the same `docs/` served as
-Cloudflare assets plus this one resolver and `/healthz`; everything else is
-static fallthrough, so the Worker is additive over the static site). The
-permalink unfurls with the value's own Open Graph card and redirects to the
-playground datasheet.
+Cloudflare assets plus the dynamic routes; everything else is static
+fallthrough, so the Worker is additive over the static site). The permalink
+unfurls with the value's own Open Graph card and redirects to the playground
+datasheet. An uncommitted bundle can be stored for a short link instead:
+`Copy short link` on the bundle view mints `<site>/s/<code>` (a public,
+rate-limited KV store on the Worker), which unfurls from the stored envelope
+and reopens the full datasheet page anywhere, with no URL-length limit.
 
 Opening the link renders straight into a **full-width, dense, plain datasheet**:
 a lineage is a data container, and OpenMaterials (the static site) is the

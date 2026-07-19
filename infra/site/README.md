@@ -16,10 +16,24 @@ static site cannot express:
   committed value gets an honest 404 naming the hash; a malformed id gets a
   400 before any data is read.
 
+- `POST /s` and `GET /s/<code>[/raw]`: the short-link store, the Worker's one
+  write surface. Minting stores a lineage envelope (or a bare record,
+  normalized to a one-element envelope) in the `SHORTLINKS` KV namespace and
+  returns `<origin>/s/<code>`; the code is 9 unambiguous base58 characters.
+  Minting is origin-gated (the site plus localhost) and rate-limited per IP
+  per day; payloads are capped at 64 KB and 64 lineages, and a stored payload
+  is PUBLIC by construction (anyone with the code can read it). `GET
+  /s/<code>` serves a crawlable shell built only from the stored envelope and
+  redirects into `/play/#s=<code>`, where the playground fetches
+  `/s/<code>/raw` (open CORS, immutable) and renders through the same
+  dual-read path as a `#x=` link. Unknown codes 404 naming the code;
+  malformed codes 400 before any read.
+
 Everything else falls through to the assets, so removing the Worker returns
-the site to plain static hosting. The Worker holds no state, no secrets, and
-no data of its own: the resolver reads the same committed projection the site
-serves, so it can never disagree with the map.
+the site to plain static hosting. The Worker holds no secrets and, outside
+the explicitly public short-link store, no data of its own: the permalink
+resolver reads the same committed projection the site serves, so it can never
+disagree with the map.
 
 ## Develop
 
