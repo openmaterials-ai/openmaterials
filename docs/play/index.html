@@ -119,6 +119,17 @@
   .rec-head-meta dt{color:var(--muted);text-transform:uppercase;letter-spacing:.04em;}
   .rec-head-meta dd{margin:0;color:var(--ink);word-break:break-word;}
   .rec-head-meta a{color:var(--accent);text-decoration:none;}
+  /* the visible lineage identifier, the DOI-like recognizer under every title */
+  .rec-doi{display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+    font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.78rem;
+    margin:6px 0 0;color:var(--ink-2,#3d4149);}
+  .rec-doi-lab{font-size:.64rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--muted);font-family:var(--font-sans,'Inter',sans-serif);}
+  .rec-doi a{color:var(--accent);text-decoration:none;}
+  .rec-doi-copy{font-family:var(--font-sans,'Inter',sans-serif);font-size:.68rem;
+    border:1px solid var(--line);background:none;border-radius:5px;padding:1px 7px;
+    cursor:pointer;color:var(--muted);}
+  .rec-doi-un{color:var(--muted);}
   .rec-head-meta a:hover{text-decoration:underline;}
   .rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));
     gap:8px 34px;align-items:start;}
@@ -392,6 +403,7 @@ var SVGNS = 'http://www.w3.org/2000/svg';
 
 var GRAPH = null, SEM = [], LEAN = {nodes:{},edges:{}}, semById = {}, nodeById = {}, children = {}, parents = {}, symHtml = {};
 var catalogById = {};   // node id -> {id, symbol, description}: the plain-language names for the lineage view
+var INSTANCE_IDS = null; // Set of committed lineage ids: the badge's committed test
 var codesByNode = {};   // node id -> [{code, api, url}]: which codes compute the quantity
 var CONFORMANCE = [];   // conformance/index.json targets: the pinned reproduce runs
 var configByUid = {};   // canonical.uid -> configuration bundle record for a pinned lineage cell
@@ -430,7 +442,8 @@ var mapReady = Promise.all([
   fetch('../data/catalog.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return []; }),
   fetch('../data/configurations.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; }),
   fetch('../data/codes.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {}; }),
-  fetch('../data/conformance/index.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {targets:[]}; })
+  fetch('../data/conformance/index.json?v=' + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return {targets:[]}; }),
+  loadPlayInstances().catch(function(){ return []; })
 ]).then(function(res){
   GRAPH = res[0]; SEM = res[1] || [];
   if (res[2] && res[2].version) window.__MAP_VERSION__ = res[2].version;
@@ -453,6 +466,8 @@ var mapReady = Promise.all([
     codesByNode[nid].sort(function(a, b){ return a.code.localeCompare(b.code); });
   });
   CONFORMANCE = (res[7] && Array.isArray(res[7].targets)) ? res[7].targets : [];
+  INSTANCE_IDS = new Set((Array.isArray(res[8]) ? res[8] : [])
+    .map(function(e){ return e && e.id; }).filter(Boolean));
   SEM.forEach(function(e){ semById[e.id] = e; });
   var seen = {};
   GRAPH.nodes.forEach(function(n){ nodeById[n.id] = n; symHtml[n.id] = tex(n.symbol); });
@@ -808,11 +823,18 @@ function instanceToRecord(entry){
    is testable under Node like the envelope decode. */
 function resolveInstanceById(hash, instances){
   var h = String(hash == null ? '' : hash).trim().toLowerCase();
-  if (!SHA256_RE.test(h)) return { ok: false, reason: 'malformed', hash: h };
+  // a full sha256 or its first 8+ chars, git-style; anything else is malformed
+  if (!/^[0-9a-f]{8,64}$/.test(h)) return { ok: false, reason: 'malformed', hash: h };
   var list = Array.isArray(instances) ? instances : [];
+  var matches = [];
   for (var i = 0; i < list.length; i++) {
-    if (list[i] && list[i].id === h) return { ok: true, record: instanceToRecord(list[i]) };
+    if (!list[i] || typeof list[i].id !== 'string') continue;
+    if (list[i].id === h) return { ok: true, record: instanceToRecord(list[i]) };
+    if (list[i].id.indexOf(h) === 0) matches.push(list[i]);
   }
+  if (matches.length === 1) return { ok: true, record: instanceToRecord(matches[0]) };
+  if (matches.length > 1) return { ok: false, reason: 'ambiguous', hash: h,
+    ids: matches.map(function(e){ return e.id; }) };
   return { ok: false, reason: 'not-found', hash: h };
 }
 
@@ -1050,6 +1072,40 @@ function copyBundleLink(env, btn){
   return copySharedLink(mintEnvelope(env), btn);
 }
 
+/* ---- the visible lineage identifier (the DOI-like badge) ----------------- */
+// Every datasheet shows its recognizer. A COMMITTED value's badge is the
+// canonical short id, openmaterials.ai/l/<first 12 hex> (deterministic, no
+// registry: the id IS the identity, git-style). An uncommitted record shows
+// its id prefix, honestly labeled: committing through a PR is what mints the
+// resolving short link. The href resolves locally (#id=), so the badge works
+// on every host; the copy button copies the canonical URL.
+function lineageDoiHTML(record){
+  var id = record && record.id ? String(record.id).toLowerCase() : '';
+  if (!/^[0-9a-f]{64}$/.test(id)) return '';
+  var short = id.slice(0, 12);
+  if (INSTANCE_IDS && INSTANCE_IDS.has(id)) {
+    return '<div class="rec-doi"><span class="rec-doi-lab">lineage id</span>' +
+      '<a href="#id=' + short + '" title="The canonical short id of this committed value: the first 12 characters of its sha256, resolving at openmaterials.ai/l/' + short + '.">openmaterials.ai/l/' + short + '</a>' +
+      '<button type="button" class="rec-doi-copy" data-copy="https://openmaterials.ai/l/' + short + '" title="Copy the canonical short link">copy</button></div>';
+  }
+  return '<div class="rec-doi"><span class="rec-doi-lab">lineage id</span>' +
+    '<span class="rec-doi-un" title="The content id of this lineage. It is not committed to the map, so no short link resolves to it yet; landing it through a pull request mints one.">' + short + ' (uncommitted)</span></div>';
+}
+function bundleDoiHTML(code){
+  return '<span class="rec-doi-lab">short link</span>' +
+    '<a href="#s=' + code + '" title="The stored short link of this shared set.">openmaterials.ai/s/' + code + '</a>' +
+    '<button type="button" class="rec-doi-copy" data-copy="https://openmaterials.ai/s/' + code + '" title="Copy the short link">copy</button>';
+}
+var currentShortCode = null;   // set when the open bundle came from (or minted) /s/<code>
+document.addEventListener('click', function(ev){
+  var b = ev.target && ev.target.closest ? ev.target.closest('.rec-doi-copy') : null;
+  if (!b) return;
+  navigator.clipboard.writeText(b.getAttribute('data-copy')).then(function(){
+    var t = b.textContent; b.textContent = 'copied';
+    setTimeout(function(){ b.textContent = t; }, 1400);
+  });
+});
+
 /* ---- the short-link store (/s on the site Worker) ----------------------- */
 // The Worker origin that holds the KV store. Same-origin when the site is
 // served by the Worker; the staging Worker is the fallback when the page is
@@ -1087,6 +1143,9 @@ async function mintShortlink(env, btn){
       } catch (e) { lastErr = e; }
     }
     if (!res) throw lastErr || new Error('unreachable');
+    currentShortCode = res.code;
+    var doiRow = document.getElementById('bundleDoi');
+    if (doiRow) doiRow.innerHTML = bundleDoiHTML(res.code);
     await navigator.clipboard.writeText(res.url);
     if (btn) { btn.textContent = 'Short link copied'; setTimeout(function(){ btn.textContent = label; }, 1600); }
   } catch (e) {
@@ -1711,7 +1770,8 @@ function renderBundle(env){
   h += '<dl class="rec-head-meta">';
   h += '<div><dt>Kind</dt><dd>Lineage bundle</dd></div>';
   h += '<div><dt>Lineages</dt><dd>' + env.lineages.length + '</dd></div>';
-  h += '</dl></div>';
+  h += '</dl><div class="rec-doi" id="bundleDoi">' +
+    (currentShortCode ? bundleDoiHTML(currentShortCode) : '') + '</div></div>';
 
   var rows = [];
   if (doc) {
@@ -1872,7 +1932,7 @@ function datasheetHTML(record, valid, opts){
   h += '<div><dt>Material</dt><dd>' + esc(mat || 'not supplied') + '</dd></div>';
   h += '<div><dt>Lineage id</dt><dd title="lineage id, first 12 characters">' + esc(shortId) + '</dd></div>';
   h += '<div><dt>Lineage</dt><dd title="the schema version this record was checked against: one rolling hash over the derivation graph and the instance-format rules">' + esc(mapVersion) + '</dd></div>';
-  h += '</dl></div>';
+  h += '</dl>' + lineageDoiHTML(record) + '</div>';
 
   // ---- THE LINEAGE: every field, as plain labelled information ---------------
   var lineageHTML = '<div class="rec-sec"><div class="rec-h">The lineage</div>' +
@@ -2081,6 +2141,13 @@ function renderInstanceById(hash){
     var res = resolveInstanceById(hash, instances);
     if (res.ok) {
       if (renderLineage(res.record)) setInstanceTitle(res.record);
+      return;
+    }
+    if (res.reason === 'ambiguous') {
+      showLineageError('<div class="xp-err">The prefix ' + esc(res.hash) + ' names ' +
+        res.ids.length + ' committed values: ' +
+        res.ids.map(function(id){ return '<a href="#id=' + id + '">' + esc(id.slice(0, 12)) + '</a>'; }).join(' ') +
+        '</div>');
       return;
     }
     renderInstanceEmpty(res.reason, res.hash);
@@ -2439,7 +2506,9 @@ async function applyHash(){
     var sTabBtn = document.querySelector('.pg-tab[data-tab="lineage"]');
     if (sTabBtn) sTabBtn.click();
     try {
-      renderShared(await fetchShortlink(sm[1]));
+      var sPayload = await fetchShortlink(sm[1]);
+      currentShortCode = sm[1];
+      renderShared(sPayload);
     } catch (e) {
       showLineageError('<div class="xp-err">Could not open the short link: ' + esc(e.message) + '</div>');
     }
@@ -2465,6 +2534,7 @@ async function applyHash(){
   // the #x= payload: a bare record (every legacy link) or an envelope, both
   // decoded by the one dual-read dispatch. Same gzip fragment scheme as #m=.
   if (xm) { try { var payload = await b64urlToObj(xm[1]);
+      currentShortCode = null;
       renderShared(payload);
     } catch (e) {
       showLineageError('<div class="xp-err">Could not open the shared lineage: ' + esc(e.message) + '</div>');

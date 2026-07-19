@@ -11,7 +11,9 @@
 // are read from the same assets every browser reads, so the resolver can
 // never disagree with the site.
 
-import { parseHash, resolveId, permalinkHTML, notFoundHTML } from "./resolve.js";
+import {
+  parsePrefix, resolvePrefix, permalinkHTML, notFoundHTML, ambiguousHTML,
+} from "./resolve.js";
 import {
   MINTS_PER_DAY, randomCode, parseCode, validateMintBody,
   shortlinkHTML, shortlinkNotFoundHTML,
@@ -61,9 +63,9 @@ export default {
     }
 
     if (url.pathname.startsWith("/l/")) {
-      const hash = parseHash(url.pathname.slice(3).replace(/\/$/, ""));
+      const hash = parsePrefix(url.pathname.slice(3).replace(/\/$/, ""));
       if (!hash) {
-        return html("<!doctype html><p>Malformed id: a permalink is /l/&lt;64-hex sha256&gt;.</p>", 400);
+        return html("<!doctype html><p>Malformed id: a permalink is /l/&lt;sha256 or its first 8+ hex chars&gt;.</p>", 400);
       }
       let instances;
       try {
@@ -71,10 +73,10 @@ export default {
       } catch (e) {
         return html("<!doctype html><p>The instance projection is unavailable.</p>", 503);
       }
-      const r = resolveId(instances, hash);
-      return r.ok
-        ? html(permalinkHTML(r.entry, url.origin), 200)
-        : html(notFoundHTML(hash, url.origin), 404);
+      const r = resolvePrefix(instances, hash);
+      if (r.ok) return html(permalinkHTML(r.entry, url.origin), 200);
+      if (r.ambiguous) return html(ambiguousHTML(hash, r.ambiguous, url.origin), 300);
+      return html(notFoundHTML(hash, url.origin), 404);
     }
 
     if (url.pathname === "/s" || url.pathname.startsWith("/s/")) {

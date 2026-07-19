@@ -6,7 +6,7 @@ import assert from "node:assert";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { parseHash, resolveId, permalinkHTML, notFoundHTML, humanProperty } from "./resolve.js";
+import { parseHash, parsePrefix, resolveId, resolvePrefix, permalinkHTML, notFoundHTML, ambiguousHTML, humanProperty } from "./resolve.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const instances = JSON.parse(
@@ -53,4 +53,21 @@ test("the permalink shell carries real OG metadata and redirects to the datashee
 test("humanProperty reads the node spelling", () => {
   assert.strictEqual(humanProperty("ThermalConductivity[bte_solver=rta]"), "Thermal conductivity");
   assert.strictEqual(humanProperty("MassDensity"), "Mass density");
+});
+
+test("prefixes resolve git-style at the edge: unique, ambiguous, none", () => {
+  const full = instances[0].id;
+  assert.strictEqual(parsePrefix(full.slice(0, 12)), full.slice(0, 12));
+  assert.strictEqual(parsePrefix(full.slice(0, 7)), null, "below the 8-char floor");
+  const r = resolvePrefix(instances, full.slice(0, 12));
+  assert.ok(r.ok && r.entry.id === full);
+  assert.strictEqual(resolvePrefix(instances, "0".repeat(12)).ok, false);
+  const shared = instances.find((a) =>
+    instances.some((b) => b !== a && b.id.slice(0, 8) === a.id.slice(0, 8)));
+  if (shared) {
+    const amb = resolvePrefix(instances, shared.id.slice(0, 8));
+    assert.ok(!amb.ok && Array.isArray(amb.ambiguous) && amb.ambiguous.length > 1);
+    const page = ambiguousHTML(shared.id.slice(0, 8), amb.ambiguous, "https://openmaterials.ai");
+    for (const id of amb.ambiguous) assert.ok(page.includes(id.slice(0, 12)));
+  }
 });
