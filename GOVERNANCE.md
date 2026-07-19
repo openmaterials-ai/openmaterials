@@ -41,8 +41,8 @@ provenance. Contributions that cannot cite their source do not enter.
 
 ## Decision making, today and later
 
-Today the project has two scientific authors (Giuseppe Barbalinardo and
-Davide Donadio) and maintainer-led review: honest BDFL-with-gates. The
+Today the project has a small set of scientific authors and maintainer-led
+review: honest BDFL-with-gates. The
 stated intent, in order:
 
 1. Now: public governance (this file), open licenses, the gates as the

@@ -564,7 +564,7 @@ PAGE_TEMPLATE = """<!DOCTYPE html>
   <div class="om-overline"><span>The document</span><span aria-hidden="true">/</span><span>Single source of truth</span></div>
   <h1>openmaterials.ai</h1>
   <p class="doc-tagline">Git for science: a versioned map of physics</p>
-  <p class="doc-byline">Giuseppe Barbalinardo and Davide Donadio, University of California, Davis</p>
+  <p class="doc-byline">The OpenMaterials project</p>
   <div class="doc-actions">
     <a class="om-btn" href="../openmaterials.pdf" id="download-pdf">Download the PDF</a>
     <span class="hint">This page is generated from the LaTeX source; the PDF is the typeset original.</span>
