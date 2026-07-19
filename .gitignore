@@ -79,3 +79,6 @@ proposals/
 papers_local/
 physlean/.lake/
 .router/
+
+# wrangler local dev state (miniflare KV/cache/sqlite), never committed
+infra/site/.wrangler/
