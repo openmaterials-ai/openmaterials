@@ -1025,14 +1025,17 @@ async function copyLineageLink(record, btn, opts){
   await copySharedLink(shareEnvelopeFor(record, opts), btn);
 }
 
-/* Copy PERMALINK: the canonical id IS the link. Where Copy link carries the
-   whole record in an #x= fragment, this emits the compact hash-addressed form
-   <site>/play/#id=<that member's id> for a value the commons holds by id. Each
+/* Copy PERMALINK: the canonical id IS the link. The SHARED url is the static
+   unfurl stub the build emits per value, <site>/i/<that member's id>/: a crawler
+   (Slack, a social card) reads its OG metadata and a human is redirected on into
+   the live datasheet. That stub redirects to /play/#id=<id>, so #id= stays the
+   resolver, unchanged; the stub is just the crawlable front door to it. Each
    bundle member carries its OWN id, so a member's permalink names that member,
-   never the bundle. It sets location.hash (guarded, so the router does not
-   re-render) and copies the absolute URL. */
+   never the bundle. Clicking Copy also opens the value in place: it sets
+   location.hash to #id=<id> (guarded, so the router does not re-render) while
+   copying the /i/<id>/ url. */
 function permalinkFor(id){
-  return location.origin + location.pathname + '#id=' + String(id);
+  return location.origin + '/i/' + String(id) + '/';
 }
 async function copyPermalink(id, btn){
   if (!id) return;
@@ -1498,13 +1501,14 @@ function lineageLinksHTML(lineage, node, known, memberIdx, recordId){
   h += '<button type="button" class="rcCopy"' +
     (memberIdx != null ? ' data-idx="' + memberIdx + '"' : '') +
     ' title="Copy a link that carries this record in its #x= fragment: it reopens this data view.">Copy link</button>';
-  // Copy permalink: the canonical id AS the link (<site>/play/#id=<id>). Shown
-  // only when this record carries a committed 64-hex id (a value the commons
-  // holds by id); each bundle member carries its own, so data-id names THAT
-  // member. A record with no committed id (a pasted lineage) has no permalink.
+  // Copy permalink: the canonical id AS the link, the unfurling stub form
+  // (<site>/i/<id>/), which redirects into /play/#id=<id>. Shown only when this
+  // record carries a committed 64-hex id (a value the commons holds by id); each
+  // bundle member carries its own, so data-id names THAT member. A record with
+  // no committed id (a pasted lineage) has no permalink.
   if (recordId && SHA256_RE.test(String(recordId))) {
     h += '<button type="button" class="rcPermalink" data-id="' + esc(String(recordId)) + '"' +
-      ' title="Copy this value’s permalink: its canonical id is the link (<site>/play/#id=<id>).">Copy permalink</button>';
+      ' title="Copy this value’s permalink (<site>/i/<id>/): a link that unfurls a card and opens the datasheet.">Copy permalink</button>';
   }
   h += '<span class="rec-link-note">Dashboards and compute live on MaterialsCodeGraph; this is the data view.</span>';
   return h + '</div>';
@@ -1737,9 +1741,9 @@ function renderBundle(env){
                       btn, { fromBundle: true });
     });
   });
-  // per-member Copy permalink: the member's OWN canonical id as the link
-  // (<site>/play/#id=<member id>). Members carry their own ids; data-id names
-  // the member, so a stacked bundle mints one permalink per value.
+  // per-member Copy permalink: the member's OWN canonical id as the link, the
+  // unfurling stub form (<site>/i/<member id>/). Members carry their own ids;
+  // data-id names the member, so a stacked bundle mints one permalink per value.
   box.querySelectorAll('.rcPermalink[data-id]').forEach(function(btn){
     btn.addEventListener('click', function(){ copyPermalink(btn.getAttribute('data-id'), btn); });
   });
