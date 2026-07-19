@@ -134,3 +134,97 @@ export {
   parseHash, parsePrefix, resolveId, resolvePrefix,
   permalinkHTML, notFoundHTML, ambiguousHTML, humanProperty, PREFIX_MIN,
 };
+
+// ---- source-first identifiers (the paper goes first in the URL) ----------
+// /l/<scheme:ref> lists a source's committed values; /l/<scheme:ref>/<hash
+// prefix> names one value WITH a mechanical consistency check: the visible
+// namespace must match the id's own in-hash source, so a speaking identifier
+// can never lie. Bare /l/<hash> stays the canonical form (values without an
+// in-hash source have no namespace to speak).
+const SOURCE_REF_RE = /^[a-z][a-z0-9+.-]*:.+$/;
+
+// Split the path after /l/ into {hash} | {ref} | {ref, hash} | null.
+// A DOI ref may itself contain slashes, so the hash is only split off when
+// the LAST segment parses as one and the rest still parses as a ref.
+function parseLPath(rest) {
+  const p = String(rest == null ? "" : rest).replace(/\/$/, "");
+  const bare = parsePrefix(p);
+  if (bare) return { hash: bare };
+  if (!p.includes("/")) return SOURCE_REF_RE.test(p) ? { ref: p } : null;
+  const i = p.lastIndexOf("/");
+  const head = p.slice(0, i), tail = parsePrefix(p.slice(i + 1));
+  if (tail && SOURCE_REF_RE.test(head)) return { ref: head, hash: tail };
+  return SOURCE_REF_RE.test(p) ? { ref: p } : null;
+}
+
+const entrySourceRef = (e) =>
+  e && e.source && typeof e.source.ref === "string" && SOURCE_REF_RE.test(e.source.ref)
+    ? e.source.ref : null;
+
+function entriesBySource(instances, ref) {
+  return (Array.isArray(instances) ? instances : []).filter((e) => entrySourceRef(e) === ref);
+}
+
+// The source page: one paper's (or dataset's) committed family, each value a
+// short-id row. Built only from the committed projection.
+function sourceListingHTML(ref, entries, origin) {
+  const n = entries.length;
+  const rows = entries.map((e) => {
+    const short = e.id.slice(0, 12);
+    const label = `${humanProperty(e.variable)}${e.material ? " of " + e.material : ""}`;
+    const val = e.value != null ? ` : ${e.value}${e.units ? " " + e.units : ""}` : "";
+    return `<li><a href="${esc(origin)}/l/${short}"><code>${short}</code></a> ${esc(label)}${esc(val)}</li>`;
+  }).join("");
+  const title = `${ref}`;
+  const desc = `${n} committed value${n === 1 ? "" : "s"} from ${ref} on the openmaterials map.`;
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>${esc(title)}</title>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="openmaterials.ai">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta name="twitter:card" content="summary">
+<link rel="canonical" href="${esc(origin)}/l/${esc(ref)}">
+</head>
+<body>
+<p>${esc(desc)}</p>
+<ul>${rows}</ul>
+<p><a href="${esc(origin)}/experiment/#ref=${esc(ref)}">Open this source on the experiments page</a></p>
+</body>
+</html>
+`;
+}
+
+function sourceEmptyHTML(ref, origin) {
+  return `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>No committed values</title></head>
+<body>
+<p>No committed value carries the source <code>${esc(ref)}</code> on this map
+version.</p>
+<p><a href="${esc(origin)}/map/">Open the map</a></p>
+</body>
+</html>
+`;
+}
+
+// The honesty gate for the speaking form: the namespace in the URL must be
+// the id's own in-hash source.
+function sourceMismatchHTML(claimedRef, entry, origin) {
+  const actual = entrySourceRef(entry);
+  return `<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Source mismatch</title></head>
+<body>
+<p>The value <code>${esc(entry.id.slice(0, 12))}</code> does not belong to
+<code>${esc(claimedRef)}</code>${actual ? `; its committed source is <code>${esc(actual)}</code>` : `; it carries no in-hash source`}.
+The canonical link is <a href="${esc(origin)}/l/${esc(entry.id)}">${esc(origin)}/l/${esc(entry.id.slice(0, 12))}</a>.</p>
+</body>
+</html>
+`;
+}
+
+export { parseLPath, entriesBySource, entrySourceRef, sourceListingHTML, sourceEmptyHTML, sourceMismatchHTML };
