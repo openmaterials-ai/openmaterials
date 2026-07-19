@@ -1959,7 +1959,7 @@ function renderBundle(env){
    drift. opts: {doc} for read-time source inheritance, {memberIdx} to make the
    copy button addressable inside a stacked bundle. Still information, not a
    dashboard; the only graphic is the derivation drawn as a map excerpt. */
-/* reproduceHTML: the simulation-facing section the CEO asked for. Which codes
+/* reproduceHTML: the simulation-facing section. Which codes
    on the map compute this record's quantity (from codes.json, the same
    coverage layer the full map shows), and any pinned conformance runs for the
    node: committed targets a re-run must reproduce within a stated tolerance.
@@ -2065,7 +2065,7 @@ function datasheetHTML(record, valid, opts){
   lineageHTML += '</div>';
 
   // the derivation drawn as a map excerpt: landscape, its own FULL row above
-  // the columns (CEO direction), never squeezed into a column
+  // the columns, never squeezed into a column
   if (known) {
     var deriv = derivationSVG(node);
     if (deriv) {

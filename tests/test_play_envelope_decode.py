@@ -134,7 +134,7 @@ def test_page_wires_the_envelope_dispatch():
 
 
 def test_bundle_stacks_every_datasheet_on_one_page():
-    """A bundle shows every member's FULL datasheet on the same page (the CEO's
+    """A bundle shows every member's FULL datasheet on the same page (the
     same-page rule), built by the one shared datasheetHTML so the single and
     stacked views can never drift, with the derivation drawn as a map excerpt
     (the only sanctioned graphic; value charts stay on MCG)."""
@@ -156,7 +156,7 @@ def test_derivation_map_is_legible_and_explained():
     """The derivation excerpt must never shrink below its natural size (a wide
     closure scrolls at full label legibility instead of compressing), and the
     drawing carries its own explanation: a how-to-read caption and a color
-    legend (CEO direction 2026-07-18: the maps were too small and unexplained)."""
+    legend (2026-07-18: the maps were too small and unexplained)."""
     html = _PLAY.read_text()
     deriv = _grab_function(html, "derivationSVG")
     # natural-size floor: the svg pins its own width as an inline min-width
@@ -178,7 +178,7 @@ def test_datasheet_reproduce_section_names_codes_and_pinned_runs():
     """A known-node datasheet must say how to reproduce the result: the codes
     that compute the quantity (codes.json coverage) and the committed
     conformance targets for the node, marking a target whose id equals the
-    record's id as this exact lineage (CEO direction 2026-07-18)."""
+    record's id as this exact lineage (2026-07-18)."""
     html = _PLAY.read_text()
     assert "function reproduceHTML" in html, "no reproduce section builder"
     assert "data/codes.json" in html, "the page does not load code coverage"
@@ -339,7 +339,7 @@ def test_prefix_resolves_git_style():
 
 
 def test_datasheet_shows_the_lineage_badge():
-    """Every datasheet carries its visible recognizer (CEO direction: the short
+    """Every datasheet carries its visible recognizer (the short
     id shown like a DOI): committed values show the canonical /l/ short link,
     uncommitted records their honest prefix, bundles their /s/ code."""
     html = _PLAY.read_text()
