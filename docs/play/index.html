@@ -32,6 +32,11 @@
   .pg-panel.on{display:block;}
   .pg-panel h3{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--faint,#9aa0a8);margin:0 0 8px;font-weight:700;}
   .pg-panel p{font-size:.88rem;line-height:1.6;color:var(--ink-2,#3d4149);margin:0 0 12px;}
+  .pg-table{width:100%;border-collapse:collapse;font-size:.8rem;margin:0 0 12px;display:block;overflow-x:auto;}
+  .pg-table th,.pg-table td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  .pg-table th{font-size:.68rem;text-transform:uppercase;letter-spacing:.06em;color:var(--faint,#9aa0a8);}
+  .pg-table td:nth-child(2){white-space:normal;min-width:22ch;}
+  .pg-note{font-size:.8rem;color:var(--muted);}
   .pg-input{width:100%;box-sizing:border-box;padding:11px 13px;font-size:.95rem;border:1px solid var(--line);border-radius:9px;font-family:inherit;background:#fff;color:var(--ink);}
   .pg-input:focus{outline:none;border-color:var(--accent);}
   .pg-examples{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0;}
@@ -270,6 +275,7 @@
       <button class="pg-tab" data-tab="map" type="button">Map</button>
       <button class="pg-tab" data-tab="parse" type="button">Parse</button>
       <button class="pg-tab" data-tab="lineage" type="button">Lineage</button>
+      <button class="pg-tab" data-tab="distance" type="button">Distance</button>
     </div>
 
     <div class="pg-panel on" data-panel="query">
@@ -306,6 +312,20 @@
       <button class="om-btn om-btn-sm" id="renderMap" type="button" style="margin-top:8px">Render map</button>
       <button class="om-btn om-btn-sm" id="copyMermaid" type="button" style="margin-top:8px" title="Copy this map as a mermaid flowchart: paste it into any markdown (GitHub renders it natively)">Copy as Mermaid</button>
       <div id="mapResult" style="margin-top:12px"></div>
+    </div>
+
+    <div class="pg-panel" data-panel="distance">
+      <h3>How far apart are two structures?</h3>
+      <p>The hash answers <b>same or different</b>; the distance layer answers
+        <b>how far</b>. Named, versioned metrics over atomic configurations,
+        one default, no silent fallbacks: everything below is read live from
+        <a href="../data/distances.json">the published registry</a>, computed
+        by the same build that writes the map data.</p>
+      <div id="distRegistry"></div>
+      <h3 style="margin-top:18px">The channels on a silicon zoo</h3>
+      <p id="distZooNote"></p>
+      <div id="distZoo"></div>
+      <p id="distCommitted" class="pg-note"></p>
     </div>
 
     <div class="pg-panel" data-panel="parse">
@@ -1077,6 +1097,58 @@ function copyBundleLink(env, btn){
   if (!env) return;
   return copySharedLink(mintEnvelope(env), btn);
 }
+
+/* ---- the Distance tab: the omdc layer, read from its published data ------ */
+var distLoaded = false;
+function renderDistanceTab(){
+  if (distLoaded) return;
+  distLoaded = true;
+  fetch('../data/distances.json?v=' + Date.now()).then(function(r){ return r.json(); }).then(function(d){
+    var reg = d.registry || {distances: []};
+    var html = '<table class="pg-table"><thead><tr><th>metric</th><th>what it is</th>' +
+      '<th>true metric</th><th>ANN index</th><th>invariances</th><th>cost</th></tr></thead><tbody>';
+    reg.distances.forEach(function(m){
+      var isDefault = reg.default && reg.default.indexOf(m.id) === 0;
+      html += '<tr><td><code>' + esc(m.key) + '</code>' + (isDefault ? ' <b>(default)</b>' : '') + '</td>' +
+        '<td>' + esc(m.description) + '</td>' +
+        '<td>' + (m.metric ? 'yes' : 'no') + '</td>' +
+        '<td>' + (m.ann_indexable ? 'yes' : 'no') + '</td>' +
+        '<td>' + esc((m.invariances || []).join(', ')) + '</td>' +
+        '<td>' + esc(m.cost || '') + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    document.getElementById('distRegistry').innerHTML = html;
+
+    var zoo = d.zoo || {rows: []};
+    document.getElementById('distZooNote').textContent =
+      (zoo.illustrative ? 'ILLUSTRATIVE: ' : '') + (zoo.note || '') +
+      (zoo.reference ? ' Reference: ' + zoo.reference + '.' : '');
+    var ids = reg.distances.map(function(m){ return m.id; });
+    var zh = '<table class="pg-table"><thead><tr><th>vs ' + esc(zoo.reference || 'reference') + '</th>' +
+      ids.map(function(id){ return '<th>' + esc(id) + '</th>'; }).join('') + '</tr></thead><tbody>';
+    (zoo.rows || []).forEach(function(row){
+      zh += '<tr><td>' + esc(row.name) + '</td>' + ids.map(function(id){
+        var v = row.distances ? row.distances[id] : null;
+        return '<td>' + (v == null ? '∞' : esc(String(v))) + '</td>';
+      }).join('') + '</tr>';
+    });
+    zh += '</tbody></table>';
+    document.getElementById('distZoo').innerHTML = zh;
+
+    var c = d.committed || {};
+    document.getElementById('distCommitted').textContent = c.pairs && c.pairs.length
+      ? 'Committed configurations, pairwise ' + (c.metric || '') + ': ' +
+        c.pairs.map(function(p){ return p.a.name + ' to ' + p.b.name + ' = ' + p.distance; }).join('; ')
+      : 'The commons holds ' + (c.configurations || 0) + ' committed configuration' +
+        ((c.configurations || 0) === 1 ? '' : 's') + ' today; pairwise committed distances appear here as more land.';
+  }).catch(function(e){
+    document.getElementById('distRegistry').innerHTML =
+      '<p>Could not load the distance registry: ' + esc(e.message) + '</p>';
+  });
+}
+document.querySelectorAll('.pg-tab[data-tab="distance"]').forEach(function(btn){
+  btn.addEventListener('click', renderDistanceTab);
+});
 
 /* ---- the visible lineage identifier (the DOI-like badge) ----------------- */
 // Every datasheet shows its recognizer. A COMMITTED value's badge is the
