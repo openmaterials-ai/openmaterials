@@ -1,6 +1,7 @@
 """Unified map data builders over one or more Domains."""
 from __future__ import annotations
 
+import html as _html
 import importlib
 import json
 import pkgutil
@@ -639,6 +640,119 @@ def write_instances(path: Path | None = None) -> Path:
     return path
 
 
+# The unfurl surface for a shared value: /i/<id>/. The playground datasheet at
+# /play/#id=<hash> is client-side (a crawler that pastes the link into Slack or
+# a social card never runs the JS, so the permalink unfurls to nothing). These
+# tiny static pages, one per committed value, carry the OG metadata a crawler
+# reads and then redirect a human to the live datasheet: the SAME resolver the
+# playground already speaks (#id=<hash>), so /i/<id>/ is a static shell over the
+# one renderer, never a second one. Byte-consistent with the /l/<id> Worker
+# route (infra/site): both name the value the same way, one at request time for
+# the edge deployment, one at build time for any static host (GitHub Pages).
+def _share_prop(variable: str) -> str:
+    """A base node id -> a human property phrase, e.g.
+    "ThermalConductivity[bte_solver=rta]" -> "Thermal conductivity". The route
+    qualifier ([...]) is dropped: the title names the physical quantity a reader
+    recognizes, method-neutral, matching the /l/ Worker's humanProperty."""
+    base = re.sub(r"\[.*$", "", str(variable or ""))
+    words = re.sub(r"([a-z0-9])([A-Z])", r"\1 \2", base).lower()
+    return (words[:1].upper() + words[1:]) if words else "Property"
+
+
+def _esc(s: object) -> str:
+    """HTML-escape an interpolated field, quotes included, for the stub pages."""
+    return _html.escape(str(s), quote=True)
+
+
+# A canonical lineage id is a 64-hex sha256; only directories named like one are
+# treated as our stubs (so the pruner never touches anything else under docs/i).
+_SHARE_ID_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+def build_share_stubs(instances: list[dict] | None = None) -> dict[str, str]:
+    """One crawler-facing stub page per committed value, keyed by canonical id.
+
+    Projects the same flat instances the site serves into a compact static
+    document each: an ``og:title`` naming the property and material (e.g.
+    "Thermal conductivity of Si"), an ``og:description`` carrying the value with
+    units and its provenance (computed by a code, or the measurement source), a
+    ``canonical`` link and an instant redirect to the ``/play/#id=<id>``
+    datasheet, plus a ``<noscript>`` link so a reader with no JS still lands on
+    the live value. Every interpolated field is HTML-escaped. Pure: a function of
+    the projection alone, so the wire is testable without touching the tree."""
+    if instances is None:
+        instances = build_instances()
+    stubs: dict[str, str] = {}
+    for e in instances:
+        rid = e["id"]
+        prop = _share_prop(e.get("variable"))
+        mat = e.get("material")
+        mat_name = mat.get("name") if isinstance(mat, dict) else mat
+        mat_name = str(mat_name) if mat_name else ""
+        title = prop + (f" of {mat_name}" if mat_name else "")
+        value = ""
+        if e.get("value") is not None:
+            units = e.get("units")
+            value = f"{e['value']}{(' ' + str(units)) if units else ''}"
+        # Provenance, honestly from the record: a measurement names its source,
+        # a simulation is computed by its code (the source ref names it) or, when
+        # only the scheme:ref is on hand, cites that. Nothing is invented.
+        src = e.get("source") or {}
+        ref = str(src.get("ref") or "")
+        kind = src.get("kind")
+        if kind == "measurement":
+            provenance = f"measured, source {ref}" if ref else "a measured value"
+        else:
+            provenance = f"computed by {ref}" if ref else "a simulated value"
+        desc = (f"{value + ', ' if value else ''}{provenance}, "
+                f"on the openmaterials map.")
+        target = f"/play/#id={rid}"
+        canonical = f"https://openmaterials.ai/i/{rid}/"
+        stubs[rid] = (
+            "<!DOCTYPE html>\n"
+            "<html lang=\"en\">\n"
+            "<head>\n"
+            "<meta charset=\"utf-8\">\n"
+            f"<title>{_esc(title)}</title>\n"
+            "<meta property=\"og:type\" content=\"website\">\n"
+            "<meta property=\"og:site_name\" content=\"openmaterials.ai\">\n"
+            f"<meta property=\"og:title\" content=\"{_esc(title)}\">\n"
+            f"<meta property=\"og:description\" content=\"{_esc(desc)}\">\n"
+            "<meta name=\"twitter:card\" content=\"summary\">\n"
+            f"<link rel=\"canonical\" href=\"{_esc(canonical)}\">\n"
+            f"<meta http-equiv=\"refresh\" content=\"0;url={_esc(target)}\">\n"
+            f"<script>location.replace({json.dumps(target)});</script>\n"
+            "</head>\n"
+            "<body>\n"
+            f"<noscript><a href=\"{_esc(target)}\">Open the datasheet: "
+            f"{_esc(title)}</a></noscript>\n"
+            "</body>\n"
+            "</html>\n"
+        )
+    return stubs
+
+
+def write_share_stubs(out_dir: Path | None = None) -> Path:
+    """Write docs/i/<id>/index.html for every committed value, and prune any
+    stale stub so the served set is EXACTLY the instance set (a removed value
+    leaves no orphan permalink behind). Deterministic: same instances in, same
+    tree out, byte for byte."""
+    out_dir = out_dir or (_DOCS / "i")
+    stubs = build_share_stubs()
+    out_dir.mkdir(parents=True, exist_ok=True)
+    keep = set(stubs)
+    for child in out_dir.iterdir():
+        # only our own <64-hex>/ stub dirs are pruned; anything else stays put
+        if child.is_dir() and _SHARE_ID_RE.match(child.name) and child.name not in keep:
+            (child / "index.html").unlink(missing_ok=True)
+            child.rmdir()
+    for rid, doc in stubs.items():
+        d = out_dir / rid
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "index.html").write_text(doc)
+    return out_dir
+
+
 def write_spectra(path: Path | None = None) -> Path:
     path = path or (_DOCS / "data" / "spectra.json")
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -903,6 +1017,10 @@ def write_lineage(path: Path | None = None) -> Path:
 if __name__ == "__main__":
     print("wrote", write_graph())
     print("wrote", write_instances())
+    # The per-value share stubs (docs/i/<id>/) are projected from the same
+    # instances, so they regenerate right after instances.json: a crawler-facing
+    # unfurl surface that redirects into the #id= resolver the playground speaks.
+    print("wrote", write_share_stubs())
     print("wrote", write_spectra())
     print("wrote", write_simulations())
     print("wrote", write_configurations())
