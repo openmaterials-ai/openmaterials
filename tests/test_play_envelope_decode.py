@@ -346,6 +346,8 @@ def test_datasheet_shows_the_lineage_badge():
     assert "function lineageDoiHTML" in html, "no badge builder"
     assert "lineageDoiHTML(record)" in html, "the datasheet header does not show the badge"
     assert "function bundleDoiHTML" in html and "bundleDoi" in html, "no bundle short-link badge"
+    assert "bundleDoiPlaceholderHTML" in html and "none yet" in html, \
+        "an unminted bundle must show the create-one affordance, never a blank row"
     assert "openmaterials.ai/l/" in html, "the canonical short form is not displayed"
     assert "(uncommitted)" in html, "no honest uncommitted state"
     assert "INSTANCE_IDS" in html, "committed test set missing"

@@ -130,6 +130,9 @@
     border:1px solid var(--line);background:none;border-radius:5px;padding:1px 7px;
     cursor:pointer;color:var(--muted);}
   .rec-doi-un{color:var(--muted);}
+  .rec-doi-mint{font-family:var(--font-sans,'Inter',sans-serif);font-size:.72rem;
+    border:1px dashed var(--line);background:none;border-radius:5px;padding:1px 8px;
+    cursor:pointer;color:var(--accent);}
   .rec-head-meta a:hover{text-decoration:underline;}
   .rec-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));
     gap:8px 34px;align-items:start;}
@@ -1091,6 +1094,13 @@ function lineageDoiHTML(record){
   return '<div class="rec-doi"><span class="rec-doi-lab">lineage id</span>' +
     '<span class="rec-doi-un" title="The content id of this lineage. It is not committed to the map, so no short link resolves to it yet; landing it through a pull request mints one.">' + short + ' (uncommitted)</span></div>';
 }
+// Before a bundle is minted it HAS no short link (the data lives only in the
+// long URL); the badge row says so and offers the mint in place, so the
+// recognizer is visible-or-creatable at first sight, never silently blank.
+function bundleDoiPlaceholderHTML(){
+  return '<span class="rec-doi-lab">short link</span>' +
+    '<button type="button" class="rec-doi-mint" title="Store this bundle and mint its short link (openmaterials.ai/s/...). A stored bundle is public to anyone with the code.">none yet: create one</button>';
+}
 function bundleDoiHTML(code){
   return '<span class="rec-doi-lab">short link</span>' +
     '<a href="#s=' + code + '" title="The stored short link of this shared set.">openmaterials.ai/s/' + code + '</a>' +
@@ -1098,6 +1108,8 @@ function bundleDoiHTML(code){
 }
 var currentShortCode = null;   // set when the open bundle came from (or minted) /s/<code>
 document.addEventListener('click', function(ev){
+  var mintBtn = ev.target && ev.target.closest ? ev.target.closest('.rec-doi-mint') : null;
+  if (mintBtn) { mintShortlink(currentBundle, mintBtn); return; }
   var b = ev.target && ev.target.closest ? ev.target.closest('.rec-doi-copy') : null;
   if (!b) return;
   navigator.clipboard.writeText(b.getAttribute('data-copy')).then(function(){
@@ -1771,7 +1783,7 @@ function renderBundle(env){
   h += '<div><dt>Kind</dt><dd>Lineage bundle</dd></div>';
   h += '<div><dt>Lineages</dt><dd>' + env.lineages.length + '</dd></div>';
   h += '</dl><div class="rec-doi" id="bundleDoi">' +
-    (currentShortCode ? bundleDoiHTML(currentShortCode) : '') + '</div></div>';
+    (currentShortCode ? bundleDoiHTML(currentShortCode) : bundleDoiPlaceholderHTML()) + '</div></div>';
 
   var rows = [];
   if (doc) {
