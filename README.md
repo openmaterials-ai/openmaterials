@@ -2,6 +2,7 @@
 
 # openmaterials-ai
 
+[![status: beta](https://img.shields.io/badge/status-beta-4f46e5)](https://openmaterials.ai/)
 [![tests](https://github.com/openmaterials-ai/openmaterials/actions/workflows/ci.yml/badge.svg)](https://github.com/openmaterials-ai/openmaterials/actions/workflows/ci.yml)
 [![lean](https://github.com/openmaterials-ai/openmaterials/actions/workflows/lean.yml/badge.svg)](https://github.com/openmaterials-ai/openmaterials/actions/workflows/lean.yml)
 [![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-4f46e5)](LICENSE)

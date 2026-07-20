@@ -66,6 +66,7 @@
       '<a class="om-brand" href="' + site('index.html') + '" aria-label="openmaterials home">' +
       '<img class="om-mark" src="' + new URL('logo.svg', assetsBase).href + '" alt="" width="22" height="22">' +
       '<span>openmaterials.ai</span></a>' +
+      '<span class="om-beta" title="Beta: the map and its schema are still growing. Every committed value is content-addressed, so its identifier stays resolvable across versions.">beta</span>' +
       '<nav class="om-nav" aria-label="Primary">' + links + '</nav>' +
       '</header>'
     );

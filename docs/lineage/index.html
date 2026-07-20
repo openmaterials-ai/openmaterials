@@ -114,11 +114,12 @@
   .pin a{color:var(--obs2);text-decoration:none;}
   .pin a:hover{text-decoration:underline;}
   @media (prefers-reduced-motion: reduce){ *{transition:none !important;} }
+  .om-beta{font-family:var(--font-mono);font-size:.58rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);border:1px solid currentColor;border-radius:999px;padding:1px 7px;flex:none;line-height:1.5;cursor:default;}
 </style>
 </head>
 <body>
 <header class="top">
-  <a class="brand" href="../"><img class="om-mark" src="../assets/logo.svg" alt="" width="20" height="20">openmaterials.ai</a>
+  <a class="brand" href="../"><img class="om-mark" src="../assets/logo.svg" alt="" width="20" height="20">openmaterials.ai</a><span class="om-beta" title="Beta: the map and its schema are still growing. Every committed value is content-addressed, so its identifier stays resolvable across versions.">beta</span>
   <span class="sub">the lineage tour</span>
   <nav class="nav">
     <a href="../map/" class="opt">Map</a>
