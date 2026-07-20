@@ -181,6 +181,7 @@
     /* viewBox writes are not CSS animation; the panel/tip
        transitions are the only motion, and they are disabled above. */
   }
+  .om-beta{font-family:var(--font-mono);font-size:.58rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);border:1px solid currentColor;border-radius:999px;padding:1px 7px;flex:none;line-height:1.5;cursor:default;}
 </style>
 </head>
 <body>
@@ -189,6 +190,7 @@
   <a class="brand" href="../index.html" aria-label="openmaterials home">
     <img class="om-mark" src="../assets/logo.svg" alt="" width="20" height="20"><span>openmaterials.ai</span>
   </a>
+  <span class="om-beta" title="Beta: the map and its schema are still growing. Every committed value is content-addressed, so its identifier stays resolvable across versions.">beta</span>
   <span class="om-search"><svg class="om-search-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input class="om-input" id="q" placeholder="Search by name or method" aria-label="Find a quantity on the map"></span>
   <nav class="nav" aria-label="Primary">
     <a href="../map/" class="active" aria-current="page">Map</a>
