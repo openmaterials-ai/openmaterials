@@ -431,38 +431,29 @@
         <label style="margin-left:12px">source B <select id="distPaperB"></select></label>
       </p>
       <div id="distPapers"></div>
-      <h3 style="margin-top:18px">Try a distance</h3>
-      <p class="pg-note">Computed in this page by the same rules as the python
-        registry, stated by id. Chemistry: two formulas under
-        <code>comp@1</code> (Element Mover's Distance, Pettifor scale). Data:
-        two series of <code>x y</code> pairs (one per line) under
-        <code>spectrum@1</code> when they are mass-like (a DOS: nonnegative,
-        shape-compared) or <code>curve@1</code> when they are property curves
-        (kappa vs T: relative L2 on the shared range). Nothing is uploaded;
-        nothing leaves the page.</p>
+      <h3 style="margin-top:18px">How far apart are two materials?</h3>
+      <p class="pg-note">Type any two formulas: <code>comp@1</code> (the
+        Element Mover&#39;s Distance on the Pettifor scale, the registry&#39;s
+        chemistry channel) answers instantly, in this page. Zero means the
+        same chemistry in any structure: diamond and graphite are both C.</p>
       <p>
-        <label>formula A <input id="distTryFa" size="12" value="GaAs"></label>
-        <label style="margin-left:12px">formula B <input id="distTryFb" size="12" value="GaP"></label>
-        <span id="distTryComp" style="margin-left:12px"></span>
+        <input id="distTryFa" size="10" value="NaCl">
+        <span style="opacity:.6">vs</span>
+        <input id="distTryFb" size="10" value="KCl">
+        <b id="distTryComp" style="margin-left:10px"></b>
       </p>
-      <p style="display:flex;gap:12px;flex-wrap:wrap">
-        <label style="flex:1;min-width:220px">series A<br>
-          <textarea id="distTrySa" rows="5" style="width:100%">100 100
-300 33
-500 20
-700 14</textarea></label>
-        <label style="flex:1;min-width:220px">series B<br>
-          <textarea id="distTrySb" rows="5" style="width:100%">100 90
-300 30
-500 18
-700 13</textarea></label>
-      </p>
-      <p>
-        <label><input type="radio" name="distTryKind" value="curve" checked>
-          property curve (<code>curve@1</code>)</label>
-        <label style="margin-left:12px"><input type="radio" name="distTryKind" value="spectrum">
-          mass distribution (<code>spectrum@1</code>)</label>
-        <span id="distTrySeries" style="margin-left:12px"></span>
+      <div id="distTryBar" style="max-width:420px;height:8px;border:1px solid currentColor;border-radius:4px;overflow:hidden;opacity:.9">
+        <div id="distTryFill" style="height:100%;width:0;background:currentColor"></div>
+      </div>
+      <p class="pg-note" id="distTryWord"></p>
+      <p>Try:
+        <a href="#" class="dist-try-pair" data-a="NaCl" data-b="KCl">salt vs sylvite</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="C" data-b="C">diamond vs graphite</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="Si" data-b="Ge">Si vs Ge</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="GaAs" data-b="GaP">GaAs vs GaP</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="SiO2" data-b="GeO2">quartz vs its Ge twin</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="Fe" data-b="Au">iron vs gold</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="Si" data-b="C3H8O" data-note="yes, rubbing alcohol is a material">Si vs rubbing alcohol</a>
       </p>
     </div>
 
@@ -1293,50 +1284,45 @@ document.querySelectorAll('.pg-tab[data-tab="distance"]').forEach(function(btn){
   btn.addEventListener('click', initTryDistance);
 });
 
-/* ---- try a distance: live client-side calculators ------------------------ */
+/* ---- how far apart are two materials: the one-number toy ----------------- */
 var tryWired = false;
-function parseSeries(text){
-  var xs = [], ys = [];
-  var lines = String(text).split(/\n+/);
-  for (var i = 0; i < lines.length; i++) {
-    var s = lines[i].trim();
-    if (!s) continue;
-    var parts = s.split(/[\s,;]+/).map(Number);
-    if (parts.length < 2 || parts.some(isNaN)) return null;
-    xs.push(parts[0]); ys.push(parts[1]);
-  }
-  return xs.length >= 2 ? [xs, ys] : null;
-}
 function renderTryDistance(){
+  var out = document.getElementById('distTryComp');
+  var word = document.getElementById('distTryWord');
+  var fill = document.getElementById('distTryFill');
   var fa = window.omdcJS.parseFormula(document.getElementById('distTryFa').value);
   var fb = window.omdcJS.parseFormula(document.getElementById('distTryFb').value);
-  var compEl = document.getElementById('distTryComp');
-  compEl.textContent = (fa && fb)
-    ? 'comp@1 = ' + window.omdcJS.compElmd(fa, fb).toFixed(3)
-    : 'not a parseable formula';
-  var A = parseSeries(document.getElementById('distTrySa').value);
-  var B = parseSeries(document.getElementById('distTrySb').value);
-  var kind = document.querySelector('input[name="distTryKind"]:checked').value;
-  var out = document.getElementById('distTrySeries');
-  if (!A || !B) { out.textContent = 'each series needs two or more "x y" lines'; return; }
-  if (kind === 'spectrum') {
-    var d = window.omdcJS.spectrumW1(A[0], A[1], B[0], B[1]);
-    out.textContent = d === null ? 'a mass distribution needs y >= 0 with positive total'
-      : 'spectrum@1 = ' + d.toFixed(4);
-  } else {
-    var d2 = window.omdcJS.curveRel(A[0], A[1], B[0], B[1]);
-    out.textContent = d2 === null ? 'the two curves share no x range'
-      : 'curve@1 = ' + d2.toFixed(4);
+  if (!fa || !fb) {
+    out.textContent = '';
+    fill.style.width = '0';
+    word.textContent = 'not a formula I can parse; element symbols only (Si, GaAs, SiO2)';
+    return;
   }
+  var d = window.omdcJS.compElmd(fa, fb);
+  out.textContent = 'comp@1 = ' + (d === 0 ? '0' : d.toFixed(2));
+  fill.style.width = (Math.min(d, 20) / 20 * 100).toFixed(1) + '%';
+  word.textContent =
+    d === 0 ? 'identical chemistry: every polymorph of one is chemistry-twin to the other' :
+    d <= 1 ? 'chemical neighbors: swap an element for the one next door' :
+    d < 4 ? 'same neighborhood of the periodic table' :
+    d < 10 ? 'different chemical families' :
+    'different worlds';
 }
 function initTryDistance(){
   if (tryWired) return;
   tryWired = true;
-  ['distTryFa', 'distTryFb', 'distTrySa', 'distTrySb'].forEach(function(id){
+  ['distTryFa', 'distTryFb'].forEach(function(id){
     document.getElementById(id).addEventListener('input', renderTryDistance);
   });
-  document.querySelectorAll('input[name="distTryKind"]').forEach(function(r){
-    r.addEventListener('change', renderTryDistance);
+  document.querySelectorAll('.dist-try-pair').forEach(function(a){
+    a.addEventListener('click', function(ev){
+      ev.preventDefault();
+      document.getElementById('distTryFa').value = a.getAttribute('data-a');
+      document.getElementById('distTryFb').value = a.getAttribute('data-b');
+      renderTryDistance();
+      var note = a.getAttribute('data-note');
+      if (note) document.getElementById('distTryWord').textContent += ' (' + note + ')';
+    });
   });
   renderTryDistance();
 }
