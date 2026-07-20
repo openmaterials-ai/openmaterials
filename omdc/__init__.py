@@ -8,6 +8,7 @@ from omdc.envset import embed as _embed_envset
 from omdc.errors import MissingExtraError
 from omdc.index import funnel_search
 from omdc.metrics.traj import keyframes
+from omdc.profile import layer_profile, scale_profile
 from omdc.registry import (
     DEFAULT_ALIAS,
     DEFAULT_ENCODER,
@@ -36,7 +37,9 @@ __all__ = [
     "funnel_search",
     "get_encoder",
     "keyframes",
+    "layer_profile",
     "resolve",
+    "scale_profile",
     "structure_key",
     "to_structure",
     "__version__",

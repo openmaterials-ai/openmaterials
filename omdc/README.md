@@ -108,6 +108,19 @@ environments (dilute and different from the host modes) per atom, so
 `omdc.index.PooledIndex` serves nearest-neighbor retrieval over pooled
 vectors; `omdc.store` persists embeddings to parquet.
 
+## Scale profiles
+
+Distance is also a function of scale: `omdc.scale_profile(a, b)` returns
+env-ot at a ladder of interaction radii (2.5, 5, 10 A by default), so the
+answer becomes "far at which scale". A strained crystal is near locally and
+far at long range; two realizations of one glass stay near at every rung;
+missing medium-range order appears at 10 A and not before.
+`omdc.layer_profile` gives the same ladder from MACE receptive fields
+(mace extra), and `omdc.metrics.amdmetric.amd_profile` exposes the AMD
+vector's k index as nested lower bounds of the full amd distance (amd
+extra). Every rung mints its own encoder hyperparameter hash, so embeddings
+at different scales never mix in the cache.
+
 ## Limitations
 
 - Charge states of defects are invisible to every encoder here.
