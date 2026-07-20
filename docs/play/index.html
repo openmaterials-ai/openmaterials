@@ -326,6 +326,20 @@
       <p id="distZooNote"></p>
       <div id="distZoo"></div>
       <p id="distCommitted" class="pg-note"></p>
+      <h3 style="margin-top:18px">Distance between papers</h3>
+      <p class="pg-note">Pick two committed sources: every quantity and material
+        they share compares with <code>curve@1</code> (symmetric relative L2 on
+        the shared temperature range, computed in this page by the same rule as
+        omdc), and their materials compare with <code>comp@1</code> (Element
+        Mover's Distance on the Pettifor scale) where a material name is a
+        parseable formula (a-Si parses to Si; SWCNT honestly refuses). Single
+        shared points list side by side without a distance; nothing is
+        inferred.</p>
+      <p>
+        <label>source A <select id="distPaperA"></select></label>
+        <label style="margin-left:12px">source B <select id="distPaperB"></select></label>
+      </p>
+      <div id="distPapers"></div>
     </div>
 
     <div class="pg-panel" data-panel="parse">
@@ -407,6 +421,7 @@
   </div>
 </div>
 
+<script src="distance.js"></script>
 <script src="../assets/vendor/dagre.min.js"></script>
 <script src="../assets/vendor/katex/dist/katex.min.js"></script>
 <script>
@@ -1149,7 +1164,100 @@ function renderDistanceTab(){
 }
 document.querySelectorAll('.pg-tab[data-tab="distance"]').forEach(function(btn){
   btn.addEventListener('click', renderDistanceTab);
+  btn.addEventListener('click', initPapersCompare);
 });
+
+/* ---- distance between papers: the committed instances, compared ---------- */
+var papersRows = null;
+function initPapersCompare(){
+  if (papersRows) return;
+  papersRows = [];
+  fetch('../data/instances.json?v=' + Date.now()).then(function(r){ return r.json(); }).then(function(rows){
+    papersRows = rows.filter(function(r){ return r && r.source && r.source.ref; });
+    var refs = Array.from(new Set(papersRows.map(function(r){ return r.source.ref; })));
+    refs.sort(function(a, b){
+      var pa = a.indexOf('paper:') === 0 ? 0 : 1;
+      var pb = b.indexOf('paper:') === 0 ? 0 : 1;
+      return pa !== pb ? pa - pb : (a < b ? -1 : 1);
+    });
+    var opts = refs.map(function(r){ return '<option value="' + esc(r) + '">' + esc(r) + '</option>'; }).join('');
+    var selA = document.getElementById('distPaperA');
+    var selB = document.getElementById('distPaperB');
+    selA.innerHTML = opts; selB.innerHTML = opts;
+    if (refs.length > 1) selB.value = refs[1];
+    selA.addEventListener('change', renderPapersCompare);
+    selB.addEventListener('change', renderPapersCompare);
+    renderPapersCompare();
+  }).catch(function(e){
+    document.getElementById('distPapers').innerHTML = '<p>Could not load instances: ' + esc(e.message) + '</p>';
+  });
+}
+function seriesOf(ref){
+  var out = {};
+  papersRows.forEach(function(r){
+    if (r.source.ref !== ref) return;
+    var T = r.conditions ? r.conditions.T : null;
+    if (typeof r.value !== 'number') return;
+    var key = (r.variable || '?') + ' | ' + (r.material || '?') + ' | ' + (r.units || '');
+    (out[key] = out[key] || {pts: [], material: r.material}).pts.push(
+      {x: typeof T === 'number' ? T : null, y: r.value});
+  });
+  return out;
+}
+function renderPapersCompare(){
+  var refA = document.getElementById('distPaperA').value;
+  var refB = document.getElementById('distPaperB').value;
+  var A = seriesOf(refA), B = seriesOf(refB);
+  var shared = Object.keys(A).filter(function(k){ return k in B; });
+  var html = '';
+  if (shared.length) {
+    html += '<table class="pg-table"><thead><tr><th>shared quantity | material | units</th>' +
+      '<th>' + esc(refA) + '</th><th>' + esc(refB) + '</th><th>curve@1</th></tr></thead><tbody>';
+    shared.forEach(function(k){
+      var pa = A[k].pts.filter(function(p){ return p.x !== null; });
+      var pb = B[k].pts.filter(function(p){ return p.x !== null; });
+      var cell = 'single points: shown side by side';
+      var matches = [];
+      pa.forEach(function(pp){ pb.forEach(function(q){ if (pp.x === q.x) matches.push([pp.x, pp.y, q.y]); }); });
+      if (matches.length && !(pa.length > 1 && pb.length > 1)) {
+        cell = matches.map(function(m){
+          var scale = (Math.abs(m[1]) + Math.abs(m[2])) / 2 || 1;
+          return 'at T=' + m[0] + ': relative difference ' + (Math.abs(m[1] - m[2]) / scale * 100).toFixed(1) + '%';
+        }).join('; ');
+      }
+      if (pa.length > 1 && pb.length > 1) {
+        var d = window.omdcJS.curveRel(pa.map(function(p){ return p.x; }), pa.map(function(p){ return p.y; }),
+                                       pb.map(function(p){ return p.x; }), pb.map(function(p){ return p.y; }));
+        cell = d === null ? 'no shared T range' : d.toFixed(4);
+      }
+      html += '<tr><td>' + esc(k) + '</td><td>' + A[k].pts.length + ' value' + (A[k].pts.length === 1 ? '' : 's') + '</td>' +
+        '<td>' + B[k].pts.length + ' value' + (B[k].pts.length === 1 ? '' : 's') + '</td><td>' + cell + '</td></tr>';
+    });
+    html += '</tbody></table>';
+  } else {
+    html += '<p class="pg-note">These two sources share no (quantity, material, units) key; there is nothing to compare curve-wise.</p>';
+  }
+  var mats = function(S){
+    var seen = {};
+    Object.keys(S).forEach(function(k){ var m = S[k].material; if (m) seen[m] = window.omdcJS.parseFormula(m); });
+    return seen;
+  };
+  var ma = mats(A), mb = mats(B);
+  var rows = [];
+  Object.keys(ma).forEach(function(a){
+    Object.keys(mb).forEach(function(b){
+      if (ma[a] && mb[b]) rows.push([a, b, window.omdcJS.compElmd(ma[a], mb[b]).toFixed(3)]);
+      else rows.push([a, b, 'not a parseable formula']);
+    });
+  });
+  if (rows.length) {
+    var cap = 12;
+    html += '<table class="pg-table" style="margin-top:10px"><thead><tr><th>material of A</th><th>material of B</th><th>comp@1</th></tr></thead><tbody>' +
+      rows.slice(0, cap).map(function(r){ return '<tr><td>' + esc(r[0]) + '</td><td>' + esc(r[1]) + '</td><td>' + esc(r[2]) + '</td></tr>'; }).join('') +
+      '</tbody></table>' + (rows.length > cap ? '<p class="pg-note">Showing ' + cap + ' of ' + rows.length + ' material pairs.</p>' : '');
+  }
+  document.getElementById('distPapers').innerHTML = html;
+}
 
 /* ---- the visible lineage identifier (the DOI-like badge) ----------------- */
 // Every datasheet shows its recognizer. A COMMITTED value's badge is the
