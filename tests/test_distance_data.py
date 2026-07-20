@@ -46,7 +46,8 @@ def test_zoo_is_labeled_illustrative_and_complete():
     d = json.loads(_DATA.read_text())
     zoo = d["zoo"]
     assert zoo["illustrative"] is True, "constructed cells must be labeled"
-    ids = {m["id"] for m in d["registry"]["distances"]}
+    ids = {m["id"] for m in d["registry"]["distances"]
+           if m.get("input", "structure") == "structure"}
     for row in zoo["rows"]:
         assert set(row["distances"].keys()) == ids, row["name"]
 

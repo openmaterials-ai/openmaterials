@@ -47,6 +47,8 @@ def _registry():
             "invariances": sorted(spec.invariances),
             "cost": spec.cost,
             "extra": spec.extra,
+            "input": spec.input,
+            "lower_bounds": sorted(spec.lower_bounds),
         })
     rows.sort(key=lambda r: r["key"])
     return {"default": omdc.DEFAULT_ALIAS, "distances": rows}
@@ -71,7 +73,8 @@ def _zoo():
     vacancy.remove_sites([0])
 
     zoo = [("strained 1%", strained), ("fcc", fcc), ("glass", glass), ("vacancy", vacancy)]
-    channels = list(omdc.DISTANCES.values())
+    # the zoo feeds STRUCTURES; only structure-input channels belong in it
+    channels = [s for s in omdc.DISTANCES.values() if s.input == "structure"]
     rows = []
     for name, s in zoo:
         cells = {}
