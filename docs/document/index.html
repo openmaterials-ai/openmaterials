@@ -21,6 +21,7 @@
   .doc-hero{max-width:1240px;margin:0 auto;padding:44px clamp(16px,3vw,26px) 8px;}
   .doc-hero .om-overline{margin-bottom:12px;}
   .doc-hero h1{font-size:clamp(1.9rem,4vw,2.6rem);margin:0 0 6px;}
+  .doc-mark{width:46px;height:46px;border-radius:10px;display:block;margin:2px 0 14px;}
   .doc-tagline{font-family:var(--font-serif);font-size:1.15rem;color:var(--ink-2);margin:0 0 10px;}
   .doc-byline{color:var(--muted);font-size:.92rem;margin:0 0 20px;}
   .doc-actions{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:0 0 10px;}
@@ -114,9 +115,12 @@
 
 <header class="doc-hero">
   <div class="om-overline"><span>The document</span><span aria-hidden="true">/</span><span>Single source of truth</span></div>
+  <img class="doc-mark" src="../assets/logo.svg" alt="" width="46" height="46">
   <h1>openmaterials.ai</h1>
   <p class="doc-tagline">Git for science: a versioned map of physics</p>
-  <p class="doc-byline">The OpenMaterials project</p>
+  <p class="doc-byline">The OpenMaterials project &middot; open source: map data
+    <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/LICENSE-DATA">CC BY 4.0</a>, code
+    <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/LICENSE">Apache 2.0</a></p>
   <div class="doc-actions">
     <a class="om-btn" href="../openmaterials.pdf" id="download-pdf">Download the PDF</a>
     <span class="hint">This page is generated from the LaTeX source; the PDF is the typeset original.</span>
