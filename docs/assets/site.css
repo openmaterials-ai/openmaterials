@@ -107,8 +107,8 @@ a:focus-visible{outline-offset:3px;}
   letter-spacing:-.01em;color:var(--ink);white-space:nowrap;
 }
 .om-brand:hover{text-decoration:none;}
-/* the brand node: a 6px indigo dot after the wordmark */
-.om-brand .om-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none;display:inline-block;margin-bottom:.28em;}
+/* the mark: the addressed-derivation tile before the wordmark */
+.om-brand .om-mark{width:22px;height:22px;border-radius:5px;flex:none;display:block;}
 .om-nav{margin-left:auto;display:flex;align-items:center;gap:clamp(12px,2.5vw,24px);}
 .om-nav a{
   font-family:var(--font-sans);color:var(--ink-2);font-size:.86rem;font-weight:500;

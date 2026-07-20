@@ -36,7 +36,7 @@
   #err{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;font:13px/1.4 monospace;padding:8px 12px;z-index:60;display:none;white-space:pre-wrap;}
   .top{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;gap:13px;padding:0 clamp(14px,3vw,22px);background:rgba(255,255,255,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);z-index:20;}
   .top .brand{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-serif);font-weight:700;font-size:1.06rem;letter-spacing:-.01em;white-space:nowrap;color:var(--ink);text-decoration:none;}
-  .top .brand .om-dot{width:6px;height:6px;border-radius:50%;background:var(--obs);flex:none;display:inline-block;margin-bottom:.28em;}
+  .top .brand .om-mark{width:20px;height:20px;border-radius:4.5px;flex:none;display:block;}
   .top .sub{color:var(--faint);font-size:.82rem;font-weight:500;white-space:nowrap;}
   /* search + controls sizing is page-specific; the field itself is .om-input,
      the buttons are .om-btn .om-btn-sm (see markup) */
@@ -167,9 +167,9 @@
      home-linking dot so the search stays usable and every control stays on
      screen. (The tracer keeps its wordmark: it has a single control button.) */
   @media (max-width:480px){
-    .top .brand span:not(.om-dot){display:none;}
+    .top .brand span{display:none;}
     .top .brand{gap:0;}
-    .top .brand .om-dot{width:9px;height:9px;margin-bottom:0;}
+    .top .brand .om-mark{width:22px;height:22px;}
     .top .om-search{margin-left:0;}
     .top .controls{gap:7px;}
     .top .controls .om-btn{padding:11px 11px;}
@@ -187,7 +187,7 @@
 <div id="err"></div>
 <div class="top">
   <a class="brand" href="../index.html" aria-label="openmaterials home">
-    <span>openmaterials.ai</span><span class="om-dot" aria-hidden="true"></span>
+    <img class="om-mark" src="../assets/logo.svg" alt="" width="20" height="20"><span>openmaterials.ai</span>
   </a>
   <span class="om-search"><svg class="om-search-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input class="om-input" id="q" placeholder="Search by name or method" aria-label="Find a quantity on the map"></span>
   <nav class="nav" aria-label="Primary">

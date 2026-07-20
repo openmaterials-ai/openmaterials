@@ -64,7 +64,8 @@
     return (
       '<header class="om-header">' +
       '<a class="om-brand" href="' + site('index.html') + '" aria-label="openmaterials home">' +
-      '<span>openmaterials.ai</span><span class="om-dot" aria-hidden="true"></span></a>' +
+      '<img class="om-mark" src="' + new URL('logo.svg', assetsBase).href + '" alt="" width="22" height="22">' +
+      '<span>openmaterials.ai</span></a>' +
       '<nav class="om-nav" aria-label="Primary">' + links + '</nav>' +
       '</header>'
     );

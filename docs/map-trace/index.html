@@ -47,7 +47,7 @@
   .top{position:fixed;top:0;left:0;right:0;height:58px;display:flex;align-items:center;gap:14px;padding:0 clamp(14px,3vw,22px);
     background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);box-shadow:0 1px 0 rgba(22,24,29,.04);z-index:10;}
   .top .brand{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-serif);font-weight:700;font-size:1.06rem;letter-spacing:-.01em;color:var(--ink);text-decoration:none;white-space:nowrap;}
-  .top .brand .om-dot{width:6px;height:6px;border-radius:50%;background:var(--obs);flex:none;display:inline-block;margin-bottom:.28em;}
+  .top .brand .om-mark{width:20px;height:20px;border-radius:4.5px;flex:none;display:block;}
   .top .sub{color:var(--faint);font-size:.82rem;font-weight:500;white-space:nowrap;}
   .top .om-search{margin-left:12px;flex:1;max-width:320px;}
   .top .nav{display:flex;align-items:center;gap:16px;margin-left:6px;}
@@ -147,7 +147,7 @@
 <div id="err"></div>
 <div class="top">
   <a class="brand" href="../index.html" aria-label="openmaterials home">
-    <span>openmaterials.ai</span><span class="om-dot" aria-hidden="true"></span>
+    <img class="om-mark" src="../assets/logo.svg" alt="" width="20" height="20"><span>openmaterials.ai</span>
   </a>
   <span class="sub">derivation tracer</span>
   <span class="om-search"><svg class="om-search-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input class="om-input" id="q" placeholder="Find a quantity" aria-label="Find a quantity to trace"></span>
