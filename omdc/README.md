@@ -71,8 +71,7 @@ automatically.
 `omdc.funnel_search(query, entries, k)` returns exact env-ot nearest neighbors
 while pruning with the certified `latent-lb` bound (no false dismissals on
 symmetry-exact sets); the `lower_bounds` field in the registry is what makes
-that funnel assemblable mechanically. The multiscale design behind these
-entries lives in `docs/distance/2026-07-19-multiscale-design.md`.
+that funnel assemblable mechanically.
 
 ### The alias doctrine
 
@@ -132,6 +131,27 @@ missing medium-range order appears at 10 A and not before.
 vector's k index as nested lower bounds of the full amd distance (amd
 extra). Every rung mints its own encoder hyperparameter hash, so embeddings
 at different scales never mix in the cache.
+
+## The encoder benchmark
+
+`PYTHONPATH=. python -m omdc.benchmark --encoders hist,mace` scores
+encoders on a deterministic corpus with identical structures and
+estimators per encoder; only the environment vectors differ. Lower is
+better on the four criteria; separation is the same-glass vs
+glass-crystal margin, higher is better. Gate: realization < 0.5,
+size < 0.5, defect and polymorph in (0, 1). Measured 2026-07-20 (rep=3):
+
+| encoder | realization | size | defect | polymorph | separation | pass |
+|---|---|---|---|---|---|---|
+| `hist@1` | 0.099 | 0.080 | 0.0068 | 0.127 | 10.1 | yes |
+| `mace-mp-0-small@1` | 0.076 | 0.112 | 0.0097 | 0.041 | 13.2 | yes |
+
+MACE separates the regimes more sharply (separation 13.2 vs 10.1,
+polymorph 0.041 vs 0.127); hist is marginally better on size invariance.
+Both pass, so `mace-mp-0-small@1` remains the pinned default traversal
+encoder, now with measured backing. Open before the pin is final: rerun
+on the real a-Si corpus, and a MatterSim adapter (it joins by encoder
+name; unknown names fail loudly rather than skipping).
 
 ## Limitations
 
