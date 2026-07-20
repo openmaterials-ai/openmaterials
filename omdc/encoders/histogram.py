@@ -29,8 +29,28 @@ SPECIES_WEIGHT = 20.0
 
 
 class HistogramEncoder(Encoder):
-    def __init__(self) -> None:
-        hp = {"cutoff": CUTOFF, "nbins": NBINS, "sigma": SIGMA, "species_weight": SPECIES_WEIGHT}
+    """The module constants are the defaults; a custom cutoff gives the
+    scale-profile ladder (omdc.profile). Bin width is held fixed, so nbins
+    scales with the cutoff (capped at 128), and every parameter set mints its
+    own hyperparams hash: embeddings at different scales never mix."""
+
+    def __init__(
+        self,
+        cutoff: float = CUTOFF,
+        nbins: int | None = None,
+        sigma: float = SIGMA,
+        species_weight: float = SPECIES_WEIGHT,
+    ) -> None:
+        self.cutoff = float(cutoff)
+        self.nbins = int(nbins) if nbins else max(16, min(128, round(NBINS * self.cutoff / CUTOFF)))
+        self.sigma = float(sigma)
+        self.species_weight = float(species_weight)
+        hp = {
+            "cutoff": self.cutoff,
+            "nbins": self.nbins,
+            "sigma": self.sigma,
+            "species_weight": self.species_weight,
+        }
         self.pin = EncoderPin(
             encoder_id="hist",
             version=1,
@@ -41,19 +61,19 @@ class HistogramEncoder(Encoder):
         )
 
     def _atom_vectors(self, structure: Structure) -> np.ndarray:
-        centers = np.linspace(0.0, CUTOFF, NBINS, endpoint=False) + CUTOFF / NBINS / 2
-        out = np.zeros((len(structure), 2 * NBINS + 2), dtype=np.float64)
-        for i, shell in enumerate(structure.get_all_neighbors(CUTOFF)):
-            plain = np.zeros(NBINS)
-            zweighted = np.zeros(NBINS)
+        centers = np.linspace(0.0, self.cutoff, self.nbins, endpoint=False) + self.cutoff / self.nbins / 2
+        out = np.zeros((len(structure), 2 * self.nbins + 2), dtype=np.float64)
+        for i, shell in enumerate(structure.get_all_neighbors(self.cutoff)):
+            plain = np.zeros(self.nbins)
+            zweighted = np.zeros(self.nbins)
             for n in shell:
-                w = np.exp(-0.5 * ((centers - n.nn_distance) / SIGMA) ** 2)
+                w = np.exp(-0.5 * ((centers - n.nn_distance) / self.sigma) ** 2)
                 plain += w
                 zweighted += w * (n.specie.Z / 100.0)
             site = structure[i].specie
             scalars = [
-                SPECIES_WEIGHT * site.Z / 100.0,
-                SPECIES_WEIGHT * float(site.mendeleev_no or site.Z) / 103.0,
+                self.species_weight * site.Z / 100.0,
+                self.species_weight * float(site.mendeleev_no or site.Z) / 103.0,
             ]
             out[i] = np.concatenate([plain, zweighted, scalars])
         return out
