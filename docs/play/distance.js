@@ -102,10 +102,46 @@
     return Math.sqrt(acc / n);
   }
 
+  function spectrumW1(xa, ya, xb, yb) {
+    var A = sortedXY(xa, ya);
+    var B = sortedXY(xb, yb);
+    var norm = function (ys) {
+      var s = 0;
+      for (var i = 0; i < ys.length; i++) { if (ys[i] < 0) return null; s += ys[i]; }
+      if (s <= 0) return null;
+      return ys.map(function (y) { return y / s; });
+    };
+    var na = norm(A[1]);
+    var nb = norm(B[1]);
+    if (na === null || nb === null) return null; // a mass curve needs y >= 0 with positive total
+    var xs = A[0].concat(B[0]).sort(function (a, b) { return a - b; })
+      .filter(function (x, i, arr) { return i === 0 || x !== arr[i - 1]; });
+    if (xs.length < 2) return 0;
+    var cum = function (X, Y) {
+      var c = [];
+      var s = 0;
+      for (var i = 0; i < Y.length; i++) { s += Y[i]; c.push(s); }
+      return xs.map(function (x) {
+        if (x < X[0]) return 0;
+        if (x >= X[X.length - 1]) return 1;
+        var j = 1;
+        while (X[j] < x) j++;
+        var t2 = (x - X[j - 1]) / (X[j] - X[j - 1]);
+        return c[j - 1] + t2 * (c[j] - c[j - 1]);
+      });
+    };
+    var ca = cum(A[0], na);
+    var cb = cum(B[0], nb);
+    var d = 0;
+    for (var i = 0; i < xs.length - 1; i++) d += Math.abs(ca[i] - cb[i]) * (xs[i + 1] - xs[i]);
+    return d;
+  }
+
   window.omdcJS = {
-    ids: { comp: 'comp@1', curve: 'curve@1' },
+    ids: { comp: 'comp@1', curve: 'curve@1', spectrum: 'spectrum@1' },
     parseFormula: parseFormula,
     compElmd: compElmd,
-    curveRel: curveRel
+    curveRel: curveRel,
+    spectrumW1: spectrumW1
   };
 })();
