@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="openmaterials">
+  <rect width="64" height="64" rx="15" fill="#4f46e5"/>
+  <!-- The addressed derivation: two typed sources flow through one hidden
+       step into the one value that carries an address. Direction is the
+       taper; the bullseye is the identity. -->
+  <path d="M18.50 21.85 L27.15 27.14 L28.46 25.38 L20.89 18.63 Z" fill="#ffffff"/><path d="M18.92 40.05 L28.33 32.51 L27.08 30.69 L16.66 36.75 Z" fill="#ffffff"/><path d="M34.73 32.94 L39.20 33.94 L40.22 31.76 L36.60 28.96 Z" fill="#ffffff"/>
+  <circle cx="16.0" cy="17.5" r="4.6" fill="#ffffff"/>
+  <circle cx="14.0" cy="41.0" r="4.6" fill="#ffffff"/>
+  <circle cx="31.5" cy="29.0" r="4.6" fill="none" stroke="#ffffff" stroke-width="2.4"/>
+  <circle cx="47.5" cy="36.5" r="8.6" fill="#ffffff"/>
+  <circle cx="47.5" cy="36.5" r="3.7" fill="#4f46e5"/>
+</svg>

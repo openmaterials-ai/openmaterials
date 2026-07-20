@@ -46,7 +46,7 @@
   .top{position:fixed;top:0;left:0;right:0;height:56px;display:flex;align-items:center;gap:13px;padding:0 clamp(14px,3vw,22px);
     background:rgba(255,255,255,.82);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);z-index:20;}
   .top .brand{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-serif);font-weight:700;font-size:1.06rem;letter-spacing:-.01em;white-space:nowrap;color:var(--ink);text-decoration:none;}
-  .top .brand .om-dot{width:6px;height:6px;border-radius:50%;background:var(--obs);flex:none;display:inline-block;margin-bottom:.28em;}
+  .top .brand .om-mark{width:20px;height:20px;border-radius:4.5px;flex:none;display:block;}
   .top .sub{color:var(--faint);font-size:.82rem;font-weight:500;white-space:nowrap;}
   .top .om-search{margin-left:16px;flex:1;max-width:320px;}
   .top .nav{display:flex;align-items:center;gap:16px;margin-left:6px;}
@@ -55,9 +55,9 @@
   .top .nav a.active{color:var(--ink);border-bottom-color:var(--obs);}
   .top .controls{margin-left:auto;display:flex;gap:9px;align-items:center;}
   @media (max-width:480px){
-    .top .brand span:not(.om-dot){display:none;}
+    .top .brand span{display:none;}
     .top .brand{gap:0;}
-    .top .brand .om-dot{width:9px;height:9px;margin-bottom:0;}
+    .top .brand .om-mark{width:22px;height:22px;}
     .top .controls{gap:7px;}
     .top .controls .om-btn{padding:11px 10px;}
   }
@@ -138,7 +138,7 @@
 <div id="err"></div>
 <div class="top">
   <a class="brand" href="../index.html" aria-label="openmaterials home">
-    <span>openmaterials.ai</span><span class="om-dot" aria-hidden="true"></span>
+    <img class="om-mark" src="../assets/logo.svg" alt="" width="20" height="20"><span>openmaterials.ai</span>
   </a>
   <span class="sub">the map in 3D</span>
   <span class="om-search"><svg class="om-search-ic" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.5" y2="16.5"></line></svg><input class="om-input" id="q" placeholder="Find a quantity" aria-label="Find a quantity and fly to it"></span>

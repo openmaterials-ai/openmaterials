@@ -1,12 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="openmaterials">
-  <rect width="64" height="64" rx="15" fill="#4f46e5"/>
-  <g stroke="#ffffff" stroke-width="3.4" stroke-linecap="round" fill="none" opacity="0.92">
-    <line x1="19" y1="20" x2="41" y2="32"/>
-    <line x1="41" y1="32" x2="19" y2="45"/>
-  </g>
-  <g fill="#ffffff">
-    <circle cx="19" cy="20" r="6.2"/>
-    <circle cx="41" cy="32" r="6.2"/>
-    <circle cx="19" cy="45" r="6.2"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" role="img" aria-label="openmaterials">
+  <rect width="16" height="16" rx="4" fill="#4f46e5"/>
+  <path d="M4 4.5 L8 7.5 L4 10.5" stroke="#ffffff" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="11" cy="8" r="2.6" fill="#ffffff"/>
+  <circle cx="11" cy="8" r="1.1" fill="#4f46e5"/>
 </svg>
