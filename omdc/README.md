@@ -60,9 +60,19 @@ automatically.
 | `comp`   | Element Mover's Distance on the Pettifor scale                | nothing      | chemistry only; a true metric; deterministic forever |
 | `amd`    | Average Minimum Distance (Chebyshev)                          | `[amd]`      | geometry only, species-blind; deterministic forever |
 | `exact`  | pymatgen StructureMatcher RMSD (inf when cells do not match)  | nothing      | re-rank of top-k only |
+| `latent-lb` | euclidean between weighted-mean environment vectors        | `[mace]`*    | certified lower bound of `env-ot` on symmetry-exact sets; powers `funnel_search` |
+| `spectrum` | Wasserstein-1 between 1D mass distributions                 | nothing      | DOS and spectra, mass-normalized; input is `(x, y)` |
+| `curve`  | symmetric relative L2 between property curves                 | nothing      | function-valued curves like kappa(T); input is `(x, y)` |
+| `traj-ot` | sqrt energy distance between trajectories                    | `[mace]`*    | trajectory identity, dedup, and `keyframes()` thinning; input is a frame sequence |
 
-*both run on the dependency-free `hist` reference encoder too:
+*these run on the dependency-free `hist` reference encoder too:
 `omdc.distance(a, b, metric="env-ot", encoder="hist")`.
+
+`omdc.funnel_search(query, entries, k)` returns exact env-ot nearest neighbors
+while pruning with the certified `latent-lb` bound (no false dismissals on
+symmetry-exact sets); the `lower_bounds` field in the registry is what makes
+that funnel assemblable mechanically. The multiscale design behind these
+entries lives in `docs/distance/2026-07-19-multiscale-design.md`.
 
 ### The alias doctrine
 

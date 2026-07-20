@@ -24,6 +24,33 @@ def _unit(v: np.ndarray) -> np.ndarray:
     return v / n
 
 
+def funnel_search(query, entries, k: int = 10, margin: float = 1.0, stats: dict | None = None):
+    """Exact env-ot kNN with latent-lb pruning, assembled from the certified
+    bound. Candidates are visited in ascending bound order; once k exact
+    distances are held, a candidate whose bound exceeds the kth best is
+    pruned, and so is everything after it. No false dismissals when every
+    set is symmetry-exact and margin == 1; pass margin > 1 as slack when
+    sampled sets make the bound heuristic. Returns [(key, env_ot distance)]
+    ascending; stats (optional dict) receives {"exact_evals": n}."""
+    from omdc.metrics.ot import env_ot
+    from omdc.metrics.pooled import latent_lb
+
+    bounds = sorted((latent_lb(query, es), key) for key, es in entries.items())
+    best: list[tuple[float, str]] = []
+    evals = 0
+    for bound, key in bounds:
+        if len(best) == k and bound > best[-1][0] * margin:
+            break
+        d = env_ot(query, entries[key])
+        evals += 1
+        best.append((d, key))
+        best.sort()
+        del best[k:]
+    if stats is not None:
+        stats["exact_evals"] = evals
+    return [(key, d) for d, key in best]
+
+
 def host_modes(es: EnvironmentSet) -> np.ndarray:
     return es.vectors[es.weights >= MOTIF_HOST_WEIGHT]
 

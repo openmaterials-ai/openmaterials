@@ -31,6 +31,14 @@ class DistanceSpec:
     extra: str | None  # pip extra its default configuration needs
     needs_encoder: bool
     fn: Callable[..., float] = field(repr=False)
+    # What the two inputs ARE: "structure" (default), "spectrum" (mass curve
+    # (x, y)), "curve" (function curve (x, y)), "trajectory" (sequence of
+    # structures). Metadata for callers; each fn validates its own inputs.
+    input: str = "structure"
+    # Full ids this distance certifiably lower-bounds (on symmetry-exact
+    # sets); machine-readable so a funnel search can be assembled from the
+    # registry alone.
+    lower_bounds: tuple = ()
 
     @property
     def full_id(self) -> str:
@@ -69,6 +77,31 @@ def _exact(s1, s2):
     return exact_rmsd(to_structure(s1), to_structure(s2))
 
 
+def _latent_lb(s1, s2, encoder):
+    from omdc.metrics.pooled import latent_lb
+
+    enc = get_encoder(encoder)
+    return latent_lb(_embed(to_structure(s1), enc), _embed(to_structure(s2), enc))
+
+
+def _spectrum(s1, s2):
+    from omdc.metrics.spectrum import spectrum_w1
+
+    return spectrum_w1(s1, s2)
+
+
+def _curve(s1, s2):
+    from omdc.metrics.spectrum import curve_rel
+
+    return curve_rel(s1, s2)
+
+
+def _traj(s1, s2, encoder):
+    from omdc.metrics.traj import traj_ot
+
+    return traj_ot(s1, s2, encoder=encoder)
+
+
 DISTANCES: dict[str, DistanceSpec] = {
     s.full_id: s
     for s in [
@@ -77,6 +110,10 @@ DISTANCES: dict[str, DistanceSpec] = {
         DistanceSpec("comp", 1, "Element Mover's Distance on the Pettifor scale, chemistry only", True, True, _GEOM | {"geometry"}, "fast", None, False, _comp),
         DistanceSpec("amd", 1, "Average Minimum Distance, Chebyshev; geometry only, species-blind", True, True, _GEOM, "fast", "amd", False, _amd),
         DistanceSpec("exact", 1, "StructureMatcher RMSD, inf when cells do not match; re-rank only", False, False, _GEOM, "heavy", None, False, _exact),
+        DistanceSpec("latent-lb", 1, "euclidean between weighted-mean environment vectors; certified lower bound of env-ot on symmetry-exact sets", True, True, _GEOM, "medium", "mace", True, _latent_lb, lower_bounds=("env-ot@1",)),
+        DistanceSpec("spectrum", 1, "Wasserstein-1 between 1D mass distributions (DOS, spectra); mass-normalized", True, True, frozenset(), "fast", None, False, _spectrum, input="spectrum"),
+        DistanceSpec("curve", 1, "symmetric relative L2 between property curves on the shared x range", False, False, frozenset(), "fast", None, False, _curve, input="curve"),
+        DistanceSpec("traj-ot", 1, "sqrt energy distance between trajectories over frame embeddings", True, False, _GEOM, "heavy", "mace", True, _traj, input="trajectory"),
     ]
 }
 
