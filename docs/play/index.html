@@ -1123,7 +1123,8 @@ function renderDistanceTab(){
     document.getElementById('distZooNote').textContent =
       (zoo.illustrative ? 'ILLUSTRATIVE: ' : '') + (zoo.note || '') +
       (zoo.reference ? ' Reference: ' + zoo.reference + '.' : '');
-    var ids = reg.distances.map(function(m){ return m.id; });
+    var ids = reg.distances.filter(function(m){ return !m.input || m.input === 'structure'; })
+      .map(function(m){ return m.id; });
     var zh = '<table class="pg-table"><thead><tr><th>vs ' + esc(zoo.reference || 'reference') + '</th>' +
       ids.map(function(id){ return '<th>' + esc(id) + '</th>'; }).join('') + '</tr></thead><tbody>';
     (zoo.rows || []).forEach(function(row){
