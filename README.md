@@ -1,4 +1,12 @@
+<p align="center"><img src="docs/assets/logo.svg" width="72" alt="the openmaterials mark"></p>
+
 # openmaterials-ai
+
+[![tests](https://github.com/openmaterials-ai/openmaterials/actions/workflows/ci.yml/badge.svg)](https://github.com/openmaterials-ai/openmaterials/actions/workflows/ci.yml)
+[![lean](https://github.com/openmaterials-ai/openmaterials/actions/workflows/lean.yml/badge.svg)](https://github.com/openmaterials-ai/openmaterials/actions/workflows/lean.yml)
+[![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-4f46e5)](LICENSE)
+[![data: CC BY 4.0](https://img.shields.io/badge/map%20data-CC%20BY%204.0-4f46e5)](LICENSE-DATA)
+
 
 A typed substrate for computational materials science. Workflows are directed
 acyclic graphs of typed physics *spaces* connected by *operators* that carry
@@ -15,10 +23,11 @@ dimensional proof, the producing codes with citations, and the evidence with
 provenance. Fuzzy language in, checkable identity out.
 
 Browse the map as an interactive [3D view](https://openmaterials.ai/map/). The
-map spans ten physics domains (thermal transport, DFT ground state, mechanics,
-stability, thermochemistry, quasi-harmonic, molecular, electronic transport,
-materials, and the thermodynamic identities that close its formulas together),
-holding 105 typed quantities and 104 operators mapped across 29 codes. The
+map spans eleven physics domains (thermal transport, DFT ground state,
+mechanics, stability, thermochemistry, quasi-harmonic, molecular, electronic
+transport, materials, composites, and the thermodynamic identities that close
+its formulas together), holding 114 typed quantities and 114 operators mapped
+across 31 codes. The
 project's single source of truth (vision, product, architecture, kernel, status,
 and the ingest/extend/encode procedures) is
 [docs/openmaterials.pdf](docs/openmaterials.pdf) (LaTeX source alongside it).
