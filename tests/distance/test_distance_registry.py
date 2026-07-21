@@ -11,7 +11,7 @@ HAS_MACE = importlib.util.find_spec("mace") is not None
 def test_registry_contents_and_metadata():
     assert set(omdc.DISTANCES) == {
         "env-ot@1", "latent@1", "comp@1", "amd@1", "exact@1",
-        "latent-lb@1", "spectrum@1", "curve@1", "traj-ot@1",
+        "latent-lb@1", "spectrum@1", "curve@1", "traj-ot@1", "phonon-ot@1",
     }
     assert "default" not in omdc.DISTANCES
     spec = omdc.resolve("default")

@@ -108,6 +108,18 @@ environments (dilute and different from the host modes) per atom, so
 `omdc.index.PooledIndex` serves nearest-neighbor retrieval over pooled
 vectors; `omdc.store` persists embeddings to parquet.
 
+## Phonon distance
+
+`phonon-ot@1` compares two mode populations: each mode is a point in
+(frequency, velocity magnitude, bandwidth) space, heat-capacity weighted
+when available, z-scored jointly, compared by the sampled-regime estimator
+(sqrt energy distance). It sees "same kappa, different mechanism":
+boundary-limited and anharmonicity-limited transport differ loudly here
+while agreeing in the scalar. `ModeSet.from_kaldo(folder)` reads a kaldo
+output folder directly; `ModeSet.from_arrays` takes any code's arrays.
+Harmonic-only runs (no bandwidth) compare on the shared axes for both
+sides.
+
 ## Scale profiles
 
 Distance is also a function of scale: `omdc.scale_profile(a, b)` returns

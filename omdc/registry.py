@@ -102,6 +102,12 @@ def _traj(s1, s2, encoder):
     return traj_ot(s1, s2, encoder=encoder)
 
 
+def _phonon(s1, s2):
+    from omdc.metrics.phonon import phonon_ot
+
+    return phonon_ot(s1, s2)
+
+
 DISTANCES: dict[str, DistanceSpec] = {
     s.full_id: s
     for s in [
@@ -114,6 +120,7 @@ DISTANCES: dict[str, DistanceSpec] = {
         DistanceSpec("spectrum", 1, "Wasserstein-1 between 1D mass distributions (DOS, spectra); mass-normalized", True, True, frozenset(), "fast", None, False, _spectrum, input="spectrum"),
         DistanceSpec("curve", 1, "symmetric relative L2 between property curves on the shared x range", False, False, frozenset(), "fast", None, False, _curve, input="curve"),
         DistanceSpec("traj-ot", 1, "sqrt energy distance between trajectories over frame embeddings", True, False, _GEOM, "heavy", "mace", True, _traj, input="trajectory"),
+        DistanceSpec("phonon-ot", 1, "sqrt energy distance between mode populations in (frequency, velocity, bandwidth) space, heat-capacity weighted", True, False, frozenset({"mode-order", "k-sampling"}), "medium", None, False, _phonon, input="modeset"),
     ]
 }
 
