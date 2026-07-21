@@ -431,6 +431,30 @@
         <label style="margin-left:12px">source B <select id="distPaperB"></select></label>
       </p>
       <div id="distPapers"></div>
+      <h3 style="margin-top:18px">How far apart are two materials?</h3>
+      <p class="pg-note">Type any two formulas: <code>comp@1</code> (the
+        Element Mover&#39;s Distance on the Pettifor scale, the registry&#39;s
+        chemistry channel) answers instantly, in this page. Zero means the
+        same chemistry in any structure: diamond and graphite are both C.</p>
+      <p>
+        <input id="distTryFa" size="10" value="NaCl">
+        <span style="opacity:.6">vs</span>
+        <input id="distTryFb" size="10" value="KCl">
+        <b id="distTryComp" style="margin-left:10px"></b>
+      </p>
+      <div id="distTryBar" style="max-width:420px;height:8px;border:1px solid currentColor;border-radius:4px;overflow:hidden;opacity:.9">
+        <div id="distTryFill" style="height:100%;width:0;background:currentColor"></div>
+      </div>
+      <p class="pg-note" id="distTryWord"></p>
+      <p>Try:
+        <a href="#" class="dist-try-pair" data-a="NaCl" data-b="KCl">salt vs sylvite</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="C" data-b="C">diamond vs graphite</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="Si" data-b="Ge">Si vs Ge</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="GaAs" data-b="GaP">GaAs vs GaP</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="SiO2" data-b="GeO2">quartz vs its Ge twin</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="Fe" data-b="Au">iron vs gold</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="Si" data-b="C3H8O" data-note="yes, rubbing alcohol is a material">Si vs rubbing alcohol</a>
+      </p>
     </div>
 
     <div class="pg-panel" data-panel="parse">
@@ -1257,7 +1281,51 @@ function renderDistanceTab(){
 document.querySelectorAll('.pg-tab[data-tab="distance"]').forEach(function(btn){
   btn.addEventListener('click', renderDistanceTab);
   btn.addEventListener('click', initPapersCompare);
+  btn.addEventListener('click', initTryDistance);
 });
+
+/* ---- how far apart are two materials: the one-number toy ----------------- */
+var tryWired = false;
+function renderTryDistance(){
+  var out = document.getElementById('distTryComp');
+  var word = document.getElementById('distTryWord');
+  var fill = document.getElementById('distTryFill');
+  var fa = window.omdcJS.parseFormula(document.getElementById('distTryFa').value);
+  var fb = window.omdcJS.parseFormula(document.getElementById('distTryFb').value);
+  if (!fa || !fb) {
+    out.textContent = '';
+    fill.style.width = '0';
+    word.textContent = 'not a formula I can parse; element symbols only (Si, GaAs, SiO2)';
+    return;
+  }
+  var d = window.omdcJS.compElmd(fa, fb);
+  out.textContent = 'comp@1 = ' + (d === 0 ? '0' : d.toFixed(2));
+  fill.style.width = (Math.min(d, 20) / 20 * 100).toFixed(1) + '%';
+  word.textContent =
+    d === 0 ? 'identical chemistry: every polymorph of one is chemistry-twin to the other' :
+    d <= 1 ? 'chemical neighbors: swap an element for the one next door' :
+    d < 4 ? 'same neighborhood of the periodic table' :
+    d < 10 ? 'different chemical families' :
+    'different worlds';
+}
+function initTryDistance(){
+  if (tryWired) return;
+  tryWired = true;
+  ['distTryFa', 'distTryFb'].forEach(function(id){
+    document.getElementById(id).addEventListener('input', renderTryDistance);
+  });
+  document.querySelectorAll('.dist-try-pair').forEach(function(a){
+    a.addEventListener('click', function(ev){
+      ev.preventDefault();
+      document.getElementById('distTryFa').value = a.getAttribute('data-a');
+      document.getElementById('distTryFb').value = a.getAttribute('data-b');
+      renderTryDistance();
+      var note = a.getAttribute('data-note');
+      if (note) document.getElementById('distTryWord').textContent += ' (' + note + ')';
+    });
+  });
+  renderTryDistance();
+}
 
 /* ---- distance between papers: the committed instances, compared ---------- */
 var papersRows = null;
