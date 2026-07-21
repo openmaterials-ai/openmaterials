@@ -186,7 +186,7 @@
     margin-right:6px;vertical-align:-1px;}
   .rec-complete{border:1px solid var(--accent);background:var(--accent-soft,#eef2ff);border-radius:9px;padding:12px 16px;margin:12px 0 4px;}
   .rec-complete-act{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:4px;}
-  .rec-complete-act a{font-size:.8rem;color:var(--accent);}
+  .rec-complete-act a{font-size:.8rem;color:var(--accent);min-width:0;overflow-wrap:anywhere;}
   .rec-complete-go{background:var(--accent);border:1px solid var(--accent);color:#fffdf8;border-radius:7px;padding:5px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;}
   .rec-complete-go:hover{background:var(--accent-2,#4338ca);border-color:var(--accent-2,#4338ca);}
   .rec-conf{font-size:.82rem;color:var(--ink-2,#3d4149);line-height:1.5;margin:6px 0;
@@ -1467,7 +1467,7 @@ function bundleDoiHTML(code){
 var currentShortCode = null;   // set when the open bundle came from (or minted) /s/<code>
 document.addEventListener('click', function(ev){
   var goBtn = ev.target && ev.target.closest ? ev.target.closest('.rec-complete-go') : null;
-  if (goBtn) { selectPlaygroundTab('learn'); window.scrollTo({top: 0, behavior: 'smooth'}); return; }
+  if (goBtn) { location.hash = '#/play?tab=learn'; window.scrollTo({top: 0, behavior: 'smooth'}); return; }
   var mintBtn = ev.target && ev.target.closest ? ev.target.closest('.rec-doi-mint') : null;
   if (mintBtn) { mintShortlink(currentBundle, mintBtn); return; }
   var b = ev.target && ev.target.closest ? ev.target.closest('.rec-doi-copy') : null;
@@ -1581,6 +1581,12 @@ function humanProperty(node, template){
   // node-unresolved: fall back to the template phrased for a human
   if (template) return templateWords(template);
   return 'Lineage';
+}
+// The catch-all template names no quantity, so display composition drops the
+// property entirely and lets the material lead ("other of X" reads broken).
+function displayProp(node, template){
+  if (!node && (!template || String(template) === 'other')) return '';
+  return humanProperty(node, template);
 }
 // The trailing unit a catalog description ends with (many end in the SI unit,
 // e.g. "W/(m K)."): a fallback when lineage.values carries no unit of its own.
@@ -2160,14 +2166,14 @@ function renderBundle(env){
   h += '<table class="rec-vtable"><thead><tr><th>Lineage</th><th class="num">Value</th><th>Units</th><th>Id</th></tr></thead><tbody>';
   env.lineages.forEach(function(member, idx){
     var lineage = member.lineage || {};
-    var label = humanProperty(lineage.node, lineage.template);
+    var label = displayProp(lineage.node, lineage.template);
     var mat = materialName(lineage.material);
     var picked = pickValues(lineage.values, lineage.node);
     var isUnitMeta = picked.primary && (picked.primary.key === 'units' || picked.primary.key === 'unit');
     var val = picked.primary && !isUnitMeta ? fmtValue(picked.primary.val) : '';
     var unit = cleanUnit(lineage.units || (lineage.values && lineage.values.units) || '');
     var short = member.id ? String(member.id).slice(0, 12) : '';
-    h += '<tr><td class="rec-vk"><a href="#" class="rec-member" data-idx="' + idx + '" title="Jump to this lineage\'s datasheet below">' + esc(label + (mat ? ' of ' + mat : '')) + '</a></td>' +
+    h += '<tr><td class="rec-vk"><a href="#" class="rec-member" data-idx="' + idx + '" title="Jump to this lineage\'s datasheet below">' + esc(label ? label + (mat ? ' of ' + mat : '') : (mat || 'lineage record')) + '</a></td>' +
       '<td class="rec-vv">' + esc(val) + '</td><td class="rec-vu">' + esc(unit) + '</td>' +
       '<td class="rec-vu">' + esc(short) + '</td></tr>';
   });
@@ -2283,12 +2289,8 @@ function datasheetHTML(record, valid, opts){
   var node = lineage.node;
   var template = lineage.template;
   var known = valid.nodeResolved;
-  var prop = humanProperty(node, template);
+  var prop = displayProp(node, template);
   var mat = materialName(lineage.material);
-  // a template-only record with the catch-all template has no quantity to
-  // name; "other of X" reads broken, so the material leads and the kind row
-  // already says node-unresolved
-  if (!node && (!template || String(template) === 'other')) prop = '';
   var kind = recordKind(record);
   var shortId = record.id ? String(record.id).slice(0, 12) : 'not supplied';
   var mapVersion = currentVersion() || 'not loaded';
@@ -2318,17 +2320,21 @@ function datasheetHTML(record, valid, opts){
   // the parser lives on the Learn tab of this same page.
   var thinValues = lineage.values && Object.keys(lineage.values).length;
   var thinConds = lineage.conditions && Object.keys(lineage.conditions).length;
-  if (!known && !thinValues && !thinConds) {
+  var thinParams = lineage.params && Object.keys(lineage.params).length;
+  if (!node && (!template || String(template) === 'other') &&
+      !thinValues && !thinConds && !thinParams) {
     var srcRef = (typeof lineage.source === 'string' && lineage.source) ||
       (opts.doc && typeof opts.doc.source === 'string' && opts.doc.source) ||
-      (record.source && record.source.ref) || '';
+      (record.source && typeof record.source.ref === 'string' && record.source.ref) || '';
     var mArx = /^arxiv:(.+)$/i.exec(srcRef);
     var mDoi = /^doi:(.+)$/i.exec(srcRef);
     var pdfHref = mArx ? 'https://arxiv.org/pdf/' + encodeURIComponent(mArx[1])
       : (mDoi ? 'https://doi.org/' + encodeURIComponent(mDoi[1]) : '');
     h += '<div class="rec-sec rec-complete">' +
       '<div class="rec-h">This record is nearly empty</div>' +
-      '<p class="rec-explain">It names a material' + (template ? ' and a template' : '') +
+      '<p class="rec-explain">It names ' +
+      (mat ? 'a material' + (template ? ' and a template' : '')
+        : (template ? 'only a template' : 'almost nothing')) +
       ', but no mapped quantity, no value, and no conditions, so there is nothing to ' +
       'draw or compare yet. If it comes from a paper, the parser can complete it: drop ' +
       'the PDF on the Learn tab and every reported value comes back mapped onto the ' +
@@ -2499,9 +2505,9 @@ var DEFAULT_PLAY_TITLE = document.title;
 function setInstanceTitle(record){
   if (!record || !record.lineage) { document.title = DEFAULT_PLAY_TITLE; return; }
   var lineage = record.lineage;
-  var prop = humanProperty(lineage.node, lineage.template);
+  var prop = displayProp(lineage.node, lineage.template);
   var mat = materialName(lineage.material);
-  var name = prop + (mat ? ' of ' + mat : '');
+  var name = prop ? prop + (mat ? ' of ' + mat : '') : (mat || '');
   document.title = name ? name + ' | openmaterials.ai' : DEFAULT_PLAY_TITLE;
 }
 

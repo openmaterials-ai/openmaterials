@@ -57,10 +57,35 @@ def test_thin_record_offers_the_completion_path():
     link when the lineage carries an arxiv: or doi: source."""
     assert "rec-complete" in _PLAY, "no thin-record recovery panel"
     assert "Complete it from the paper" in _PLAY, "no completion affordance"
-    assert "selectPlaygroundTab('learn')" in _PLAY.replace('"', "'"), \
-        "the completion button must land on the Learn tab"
+    # The button must actually LEAVE the datasheet: body.lin-open hides the
+    # tab strip, and only the hash router removes that class, so the handler
+    # must navigate by hash exactly like the back link does.
+    assert "location.hash = '#/play?tab=learn'" in _PLAY, \
+        "the completion button must navigate by hash so lin-open is cleared"
+    assert "document.body.classList.remove('lin-open')" in _PLAY
     assert "arxiv.org/pdf" in _PLAY and "doi.org" in _PLAY, \
         "arxiv:/doi: sources must yield a direct PDF link"
     assert "'other of'" not in _PLAY
-    assert "String(template) === 'other'" in _PLAY, \
-        "the catch-all template must not masquerade as a quantity in the title"
+
+
+def test_thin_record_detector_is_narrow():
+    """The recovery panel is for the nodeless catch-all shape only. A record
+    with an explicit node that merely is not on this map version, or one that
+    carries values, conditions, or params, keeps the normal datasheet."""
+    detector = (
+        "if (!node && (!template || String(template) === 'other') &&\n"
+        "      !thinValues && !thinConds && !thinParams) {"
+    )
+    assert detector in _PLAY, "detector must require nodeless catch-all + empty data"
+    assert "!known && !thinValues" not in _PLAY, \
+        "an unresolved explicit node must not trigger the panel"
+
+
+def test_catch_all_template_never_masquerades_as_a_quantity():
+    """One shared rule (displayProp) drops the property for the nodeless
+    catch-all template everywhere a display name is composed: the datasheet
+    lede, bundle member rows, and the document title."""
+    assert "function displayProp(node, template)" in _PLAY
+    assert _PLAY.count("displayProp(") >= 4, \
+        "lede, member rows, and title must all use displayProp"
+    assert "String(template) === 'other'" in _PLAY
