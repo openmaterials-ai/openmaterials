@@ -48,3 +48,44 @@ def test_old_learn_url_redirects_to_the_playground():
     assert "../play/#tab=learn" in _LEARN, "learn/ must redirect to the play Learn tab"
     assert "location.replace" in _LEARN and "http-equiv=\"refresh\"" in _LEARN
     assert "dropzone" not in _LEARN, "the parser must have ONE implementation (the play tab)"
+
+
+def test_thin_record_offers_the_completion_path():
+    """A record arriving with no mapped quantity, no values, and no conditions
+    (the thin MCG handoff) must not dead-end: the datasheet says what is
+    missing and offers the parser one click away, with a direct source-PDF
+    link when the lineage carries an arxiv: or doi: source."""
+    assert "rec-complete" in _PLAY, "no thin-record recovery panel"
+    assert "Complete it from the paper" in _PLAY, "no completion affordance"
+    # The button must actually LEAVE the datasheet: body.lin-open hides the
+    # tab strip, and only the hash router removes that class, so the handler
+    # must navigate by hash exactly like the back link does.
+    assert "location.hash = '#/play?tab=learn'" in _PLAY, \
+        "the completion button must navigate by hash so lin-open is cleared"
+    assert "document.body.classList.remove('lin-open')" in _PLAY
+    assert "arxiv.org/pdf" in _PLAY and "doi.org" in _PLAY, \
+        "arxiv:/doi: sources must yield a direct PDF link"
+    assert "'other of'" not in _PLAY
+
+
+def test_thin_record_detector_is_narrow():
+    """The recovery panel is for the nodeless catch-all shape only. A record
+    with an explicit node that merely is not on this map version, or one that
+    carries values, conditions, or params, keeps the normal datasheet."""
+    detector = (
+        "if (!node && (!template || String(template) === 'other') &&\n"
+        "      !thinValues && !thinConds && !thinParams) {"
+    )
+    assert detector in _PLAY, "detector must require nodeless catch-all + empty data"
+    assert "!known && !thinValues" not in _PLAY, \
+        "an unresolved explicit node must not trigger the panel"
+
+
+def test_catch_all_template_never_masquerades_as_a_quantity():
+    """One shared rule (displayProp) drops the property for the nodeless
+    catch-all template everywhere a display name is composed: the datasheet
+    lede, bundle member rows, and the document title."""
+    assert "function displayProp(node, template)" in _PLAY
+    assert _PLAY.count("displayProp(") >= 4, \
+        "lede, member rows, and title must all use displayProp"
+    assert "String(template) === 'other'" in _PLAY
