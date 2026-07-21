@@ -48,3 +48,19 @@ def test_old_learn_url_redirects_to_the_playground():
     assert "../play/#tab=learn" in _LEARN, "learn/ must redirect to the play Learn tab"
     assert "location.replace" in _LEARN and "http-equiv=\"refresh\"" in _LEARN
     assert "dropzone" not in _LEARN, "the parser must have ONE implementation (the play tab)"
+
+
+def test_thin_record_offers_the_completion_path():
+    """A record arriving with no mapped quantity, no values, and no conditions
+    (the thin MCG handoff) must not dead-end: the datasheet says what is
+    missing and offers the parser one click away, with a direct source-PDF
+    link when the lineage carries an arxiv: or doi: source."""
+    assert "rec-complete" in _PLAY, "no thin-record recovery panel"
+    assert "Complete it from the paper" in _PLAY, "no completion affordance"
+    assert "selectPlaygroundTab('learn')" in _PLAY.replace('"', "'"), \
+        "the completion button must land on the Learn tab"
+    assert "arxiv.org/pdf" in _PLAY and "doi.org" in _PLAY, \
+        "arxiv:/doi: sources must yield a direct PDF link"
+    assert "'other of'" not in _PLAY
+    assert "String(template) === 'other'" in _PLAY, \
+        "the catch-all template must not masquerade as a quantity in the title"

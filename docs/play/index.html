@@ -184,6 +184,11 @@
     font-size:.78rem;color:var(--muted);margin:2px 0 10px;}
   .rec-maplegend i{display:inline-block;width:15px;height:11px;border-radius:3px;
     margin-right:6px;vertical-align:-1px;}
+  .rec-complete{border:1px solid var(--accent);background:var(--accent-soft,#eef2ff);border-radius:9px;padding:12px 16px;margin:12px 0 4px;}
+  .rec-complete-act{display:flex;gap:16px;align-items:center;flex-wrap:wrap;margin-top:4px;}
+  .rec-complete-act a{font-size:.8rem;color:var(--accent);}
+  .rec-complete-go{background:var(--accent);border:1px solid var(--accent);color:#fffdf8;border-radius:7px;padding:5px 14px;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;}
+  .rec-complete-go:hover{background:var(--accent-2,#4338ca);border-color:var(--accent-2,#4338ca);}
   .rec-conf{font-size:.82rem;color:var(--ink-2,#3d4149);line-height:1.5;margin:6px 0;
     padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:#fdfcf9;}
   .rec-conf-exact{border-color:#4f46e5;background:#eef2ff;}
@@ -1461,6 +1466,8 @@ function bundleDoiHTML(code){
 }
 var currentShortCode = null;   // set when the open bundle came from (or minted) /s/<code>
 document.addEventListener('click', function(ev){
+  var goBtn = ev.target && ev.target.closest ? ev.target.closest('.rec-complete-go') : null;
+  if (goBtn) { selectPlaygroundTab('learn'); window.scrollTo({top: 0, behavior: 'smooth'}); return; }
   var mintBtn = ev.target && ev.target.closest ? ev.target.closest('.rec-doi-mint') : null;
   if (mintBtn) { mintShortlink(currentBundle, mintBtn); return; }
   var b = ev.target && ev.target.closest ? ev.target.closest('.rec-doi-copy') : null;
@@ -2278,6 +2285,10 @@ function datasheetHTML(record, valid, opts){
   var known = valid.nodeResolved;
   var prop = humanProperty(node, template);
   var mat = materialName(lineage.material);
+  // a template-only record with the catch-all template has no quantity to
+  // name; "other of X" reads broken, so the material leads and the kind row
+  // already says node-unresolved
+  if (!node && (!template || String(template) === 'other')) prop = '';
   var kind = recordKind(record);
   var shortId = record.id ? String(record.id).slice(0, 12) : 'not supplied';
   var mapVersion = currentVersion() || 'not loaded';
@@ -2290,7 +2301,8 @@ function datasheetHTML(record, valid, opts){
   var h = '';
   // ---- COMPACT HEADER: lede + the merged What-this-is metadata ---------------
   h += '<div class="rec-head">';
-  h += '<p class="rec-lede">' + esc(prop) + (mat ? ' of ' + esc(mat) : '') + '</p>';
+  h += '<p class="rec-lede">' + (prop ? esc(prop) + (mat ? ' of ' + esc(mat) : '')
+    : esc(mat || 'A lineage record')) + '</p>';
   h += '<dl class="rec-head-meta">';
   h += '<div><dt>Kind</dt><dd>' + (kind === 'measurement' ? 'Measurement' : 'Simulation') + '</dd></div>';
   h += '<div><dt>Output node</dt><dd>' + output + '</dd></div>';
@@ -2298,6 +2310,34 @@ function datasheetHTML(record, valid, opts){
   h += '<div><dt>Lineage id</dt><dd title="lineage id, first 12 characters">' + esc(shortId) + '</dd></div>';
   h += '<div><dt>Lineage</dt><dd title="the schema version this record was checked against: one rolling hash over the derivation graph and the instance-format rules">' + esc(mapVersion) + '</dd></div>';
   h += '</dl>' + lineageDoiHTML(record) + '</div>';
+
+  // THE RECOVERY POINT for the sharing loop: a record that arrives with no
+  // mapped quantity, no values, and no conditions (the thin handoff, e.g. an
+  // under-parsed export from MCG) must not dead-end as an honest-but-naked
+  // page. Say what is missing and hand over the one-click completion path:
+  // the parser lives on the Learn tab of this same page.
+  var thinValues = lineage.values && Object.keys(lineage.values).length;
+  var thinConds = lineage.conditions && Object.keys(lineage.conditions).length;
+  if (!known && !thinValues && !thinConds) {
+    var srcRef = (typeof lineage.source === 'string' && lineage.source) ||
+      (opts.doc && typeof opts.doc.source === 'string' && opts.doc.source) ||
+      (record.source && record.source.ref) || '';
+    var mArx = /^arxiv:(.+)$/i.exec(srcRef);
+    var mDoi = /^doi:(.+)$/i.exec(srcRef);
+    var pdfHref = mArx ? 'https://arxiv.org/pdf/' + encodeURIComponent(mArx[1])
+      : (mDoi ? 'https://doi.org/' + encodeURIComponent(mDoi[1]) : '');
+    h += '<div class="rec-sec rec-complete">' +
+      '<div class="rec-h">This record is nearly empty</div>' +
+      '<p class="rec-explain">It names a material' + (template ? ' and a template' : '') +
+      ', but no mapped quantity, no value, and no conditions, so there is nothing to ' +
+      'draw or compare yet. If it comes from a paper, the parser can complete it: drop ' +
+      'the PDF on the Learn tab and every reported value comes back mapped onto the ' +
+      'graph, each backed by a verbatim quote you accept or reject.</p>' +
+      '<div class="rec-complete-act">' +
+      '<button type="button" class="rec-complete-go">Complete it from the paper</button>' +
+      (pdfHref ? '<a href="' + esc(pdfHref) + '" target="_blank" rel="noopener">Get the source PDF (' + esc(srcRef) + ')</a>' : '') +
+      '</div></div>';
+  }
 
   // ---- THE LINEAGE: every field, as plain labelled information ---------------
   var lineageHTML = '<div class="rec-sec"><div class="rec-h">The lineage</div>' +
