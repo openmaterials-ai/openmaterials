@@ -60,7 +60,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["omai*", "omdc*"]
+include = ["omai*", "omdc*", "omds*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
