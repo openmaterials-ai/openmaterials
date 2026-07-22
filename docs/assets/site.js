@@ -33,6 +33,7 @@
     ['Guide', site('guide/'), 'guide/', false],
     ['Play', site('play/'), 'play/', false],
     ['Learn', site('learn/'), 'learn/', false],
+    ['Codes', site('codes/'), 'codes/', false],
     ['Document', site('document/'), 'document/', false],
     ['Source', REPO, null, true]
   ];
@@ -81,6 +82,8 @@
       '<p class="om-desc">A versioned map of physics: typed quantities as nodes, executable formulas as edges, every element content-addressed.</p></div>' +
       '<div><h4>Explore</h4><ul>' +
       '<li><a href="' + site('map/') + '">The map</a></li>' +
+      '<li><a href="' + site('codes/') + '">The codes bibliography</a></li>' +
+      '<li><a href="' + site('lean/') + '">The verified layer</a></li>' +
       '<li><a href="' + site('openmaterials.pdf') + '">The document (PDF)</a></li>' +
       '<li><a href="' + site('map-lab/') + '">Labs</a></li>' +
       '<li><a href="' + REPO + '" target="_blank" rel="noopener">Source</a></li>' +

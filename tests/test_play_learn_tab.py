@@ -40,7 +40,7 @@ def test_playground_navigation_matches_the_site():
     nav = re.search(r'<nav class="pg-nav"[^>]*>(.*?)</nav>', _PLAY, re.S)
     assert nav, "no site navigation on the playground top bar"
     labels = re.findall(r">([A-Za-z]+)</a>", nav.group(1))
-    assert labels == ["Map", "Guide", "Play", "Learn", "Document", "Source"], labels
+    assert labels == ["Map", "Guide", "Play", "Learn", "Codes", "Document", "Source"], labels
     assert 'class="active" href="./"' in nav.group(1), "Play must be marked active"
 
 
