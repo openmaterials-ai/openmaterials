@@ -26,10 +26,12 @@
   .pg-nav a{font-size:.82rem;color:var(--muted);text-decoration:none;letter-spacing:.02em;border-bottom:2px solid transparent;padding:2px 0;white-space:nowrap;}
   .pg-nav a:hover{color:var(--accent);}
   .pg-nav a.active{color:var(--ink);border-bottom-color:var(--accent);}
-  .pg-main{flex:1 1 auto;display:flex;min-height:0;min-width:0;max-width:100vw;overflow:hidden;}
+  .pg-main{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;min-width:0;max-width:100vw;overflow:hidden;}
+  .pg-body{flex:1 1 auto;display:flex;min-height:0;min-width:0;overflow:hidden;}
   .pg-left{flex:0 0 380px;max-width:42vw;display:flex;flex-direction:column;border-right:1px solid var(--line);background:var(--surface);min-height:0;}
-  .pg-tabs{display:flex;border-bottom:1px solid var(--line);flex:0 0 auto;}
-  .pg-tab{flex:1;padding:12px 8px;font-size:.82rem;font-weight:650;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;}
+  .pg-tabs{display:flex;align-items:stretch;border-bottom:1px solid var(--line);flex:0 0 auto;overflow-x:auto;background:var(--surface);}
+  .pg-tab{flex:0 0 auto;padding:12px 18px;font-size:.82rem;font-weight:650;color:var(--muted);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;}
+  .pg-tabsep{width:1px;flex:0 0 auto;background:var(--line);margin:9px 6px;}
   .pg-tab.on{color:var(--accent);border-bottom-color:var(--accent);background:#fff;}
   .pg-panel{flex:1 1 auto;overflow-y:auto;padding:18px;display:none;min-height:0;}
   .pg-panel.on{display:block;}
@@ -96,7 +98,8 @@
      graphics, charts, value bars, agreement plot, cards, or decorative chrome.
      The record remains plain information built from the in-hand container and
      the static map data, with the original ingress waiting behind it. */
-  body.lin-open .pg-main{display:none;}
+  body.lin-open .pg-body{display:none;}
+  body.lin-open .pg-main{flex:0 0 auto;}
   .lin-stage{display:none;flex:1 1 auto;min-height:0;overflow-y:auto;background:var(--surface);}
   body.lin-open .lin-stage{display:block;}
   .lin-bar{min-height:40px;display:flex;align-items:center;justify-content:space-between;
@@ -247,7 +250,7 @@
   .rec-links .rec-link-note{font-size:.76rem;color:var(--muted);font-weight:400;}
   @media (max-width:720px){
     .pg-left{flex-basis:100%;max-width:none;border-right:none;border-bottom:1px solid var(--line);max-height:44vh;}
-    .pg-main{flex-direction:column;}
+    .pg-body{flex-direction:column;}
     .pg-top{gap:8px;padding:0 12px;}
     .pg-top .sub{display:none;}
     .pg-nav{gap:8px;}
@@ -339,16 +342,17 @@
 </div>
 
 <div class="pg-main">
+  <div class="pg-tabs">
+    <button class="pg-tab on" data-tab="learn" type="button">Learn</button>
+    <button class="pg-tab" data-tab="lineage" type="button">Lineage</button>
+    <button class="pg-tab" data-tab="distance" type="button">Distance</button>
+    <span class="pg-tabsep" aria-hidden="true"></span>
+    <button class="pg-tab" data-tab="query" type="button">Query</button>
+    <button class="pg-tab" data-tab="trace" type="button">Trace</button>
+    <button class="pg-tab" data-tab="map" type="button">Map</button>
+  </div>
+  <div class="pg-body">
   <div class="pg-left">
-    <div class="pg-tabs">
-      <button class="pg-tab on" data-tab="learn" type="button">Learn</button>
-      <button class="pg-tab" data-tab="query" type="button">Query</button>
-      <button class="pg-tab" data-tab="trace" type="button">Trace</button>
-      <button class="pg-tab" data-tab="map" type="button">Map</button>
-      <button class="pg-tab" data-tab="parse" type="button">Parse</button>
-      <button class="pg-tab" data-tab="lineage" type="button">Lineage</button>
-      <button class="pg-tab" data-tab="distance" type="button">Distance</button>
-    </div>
 
     <div class="pg-panel on" data-panel="learn">
       <h3>Learn a paper</h3>
@@ -372,6 +376,17 @@
         <div id="resultReview" class="review-section"></div>
         <div id="resultAttention" class="attention-section"></div>
         <div id="resultExport" class="export-section"></div>
+      </div>
+      <div class="learn-proposal">
+        <h4>Already have a proposal?</h4>
+        <p>A parsed paper reports quantities; the map knows how each is
+          produced. Load a proposal (or paste one) and its method dataflow
+          draws below, with the same lineage lit on the map.</p>
+        <button class="om-btn om-btn-primary" id="loadExample" type="button" style="display:inline-block">Load an example</button>
+        <p style="margin:14px 0 6px;font-size:.78rem;color:var(--muted)">or paste a proposal JSON:</p>
+        <textarea class="pg-input" id="proposalInput" rows="4" placeholder='{"claims": [{"node_id": "...", ...}]}' style="resize:vertical;font-family:var(--font-mono,monospace);font-size:.78rem"></textarea>
+        <button class="om-btn om-btn-sm" id="renderProposal" type="button" style="margin-top:8px">Draw lineage</button>
+        <div id="parseResult" style="margin-top:14px"></div>
       </div>
     </div>
 
@@ -463,19 +478,6 @@
       </p>
     </div>
 
-    <div class="pg-panel" data-panel="parse">
-      <h3>A paper's lineage</h3>
-      <p>A parsed paper reports quantities; the map knows how each is produced.
-        Load a proposal to see the paper's method dataflow drawn as a graph,
-        with the same lineage lit on the map. Drop a PDF on the
-        <a href="../learn/">learn page</a> to make a proposal of your own.</p>
-      <button class="om-btn om-btn-primary" id="loadExample" type="button" style="display:inline-block">Load an example</button>
-      <p style="margin:14px 0 6px;font-size:.78rem;color:var(--muted)">or paste a proposal JSON:</p>
-      <textarea class="pg-input" id="proposalInput" rows="4" placeholder='{"claims": [{"node_id": "...", ...}]}' style="resize:vertical;font-family:var(--font-mono,monospace);font-size:.78rem"></textarea>
-      <button class="om-btn om-btn-sm" id="renderProposal" type="button" style="margin-top:8px">Draw lineage</button>
-      <div id="parseResult" style="margin-top:14px"></div>
-    </div>
-
     <div class="pg-panel" data-panel="lineage">
       <h3>A lineage as a link</h3>
       <p>A lineage is a data container: the X-to-Y path from inputs to a result, and the whole record travels in the link, no server.</p>
@@ -514,8 +516,9 @@
   <div class="pg-canvas">
     <svg id="pgsvg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="A focused sub-map of the quantities matching the current query or trace."></svg>
     <div id="pglabels"><div id="pglabelsInner"></div></div>
-    <div class="pg-hint" id="pgHint">Type a method on the left, or trace a derivation, and the matching part of the map appears here.</div>
+    <div class="pg-hint" id="pgHint">Parse a paper (or draw a proposal below the dropzone) and its claims light up here as the paper's sub-map.</div>
     <div class="pg-node-panel" id="pgNodePanel"></div>
+  </div>
   </div>
 </div>
 
@@ -2695,6 +2698,14 @@ document.getElementById('linBack').addEventListener('click', function(e){
 });
 
 /* ---- tabs, share, hash --------------------------------------------------- */
+var PG_HINTS = {
+  learn: 'Parse a paper (or draw a proposal below the dropzone) and its claims light up here as the paper\'s sub-map.',
+  lineage: 'Open a record on the left and it renders as a full-width datasheet.',
+  distance: 'Distances compute in the panel; pick two materials and compare.',
+  query: 'Type a method on the left, or trace a derivation, and the matching part of the map appears here.',
+  trace: 'Pick a source and a target on the left; the derivation path the map knows draws here.',
+  map: 'A shared sub-map renders here; paste a view code or follow a shared link.'
+};
 function selectPlaygroundTab(tab){
   document.querySelectorAll('.pg-tab').forEach(function(x){ x.classList.remove('on'); });
   document.querySelectorAll('.pg-panel').forEach(function(x){ x.classList.remove('on'); });
@@ -2702,10 +2713,15 @@ function selectPlaygroundTab(tab){
   var panel = document.querySelector('.pg-panel[data-panel="' + tab + '"]');
   if (tabButton) tabButton.classList.add('on');
   if (panel) panel.classList.add('on');
+  var hint = document.getElementById('pgHint');
+  if (hint && PG_HINTS[tab]) hint.textContent = PG_HINTS[tab];
 }
 document.querySelectorAll('.pg-tab').forEach(function(t){
   t.addEventListener('click', function(){
     var tab = t.getAttribute('data-tab');
+    // the tab strip stays visible over an open datasheet; picking any other
+    // tool closes the sheet so its panel is actually shown
+    if (tab !== 'lineage') document.body.classList.remove('lin-open');
     selectPlaygroundTab(tab);
     if (tab === 'lineage') activateLineageDefault();
   });
@@ -2928,7 +2944,8 @@ async function applyHash(){
   }
   var m = location.hash.match(/[#?&]tab=([a-z]+)/); if (!m) return;
   // Legacy tab=experiment is an alias; the UI and every newly minted link use lineage.
-  var tab = m[1] === 'experiment' ? 'lineage' : m[1];
+  // Legacy tab=parse folded into the Learn tab, which owns proposals now.
+  var tab = m[1] === 'experiment' ? 'lineage' : (m[1] === 'parse' ? 'learn' : m[1]);
   var xm = location.hash.match(/[#?&]x=([^&]*)/);
   if (tab !== 'lineage' || !xm) document.body.classList.remove('lin-open');
   var tabBtn = document.querySelector('.pg-tab[data-tab="' + tab + '"]'); if (tabBtn) tabBtn.click();

@@ -188,7 +188,7 @@ print(mermaid_lineage("PhononDOS"))
     <p>The paper parser reads a PDF and proposes values for the map, each backed
       by a verbatim quote and a page anchor, validated against the map and
       adversarially reviewed before a human accepts them. Try it in the browser
-      on the <a href="../play/">playground's parse tab</a>, or run the CLI:</p>
+      on the <a href="../play/">playground's Learn tab</a>, or run the CLI:</p>
     <div class="snippet" data-snippet="shell">
       <div class="snippet-head"><span class="snippet-title">Parse a PDF into a proposal</span><span class="snippet-lang">shell</span></div>
       <pre># writes proposals/&lt;slug&gt;.json (dry: no map changes)
@@ -201,7 +201,7 @@ python -m omai.paper_db --show &lt;slug&gt;
 python -m omai.paper_parser path/to/paper.pdf --apply --yes</pre>
     </div>
     <p class="gnote">The parser needs an Anthropic API key in a repo-root
-      <code>.env</code> (never logged, never committed). The browser parse tab
+      <code>.env</code> (never logged, never committed). The browser Learn tab
       runs on the project's key behind a cost-gated relay, so no key is needed
       to try it.</p>
   </section>
