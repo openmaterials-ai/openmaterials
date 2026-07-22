@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>openmaterials.ai: the codes bibliography</title>
+<meta name="description" content="The codes the map cites: one entry per code, rendered from the same data file the map reads, with the interface it serves, a citation, a DOI where verifiable, and the code's license.">
+<link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="openmaterials.ai">
+<meta property="og:title" content="openmaterials.ai: the codes bibliography">
+<meta property="og:description" content="Citations, not dependencies: the bibliography of the codes the map cites.">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../assets/site.css">
+<style>
+  .gwrap{max-width:820px;margin:0 auto;padding:2.5rem clamp(16px,4vw,24px) 5rem;overflow-x:hidden;}
+  .geyebrow{font-family:var(--font-mono);font-size:.7rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin:0 0 .7rem;}
+  .gwrap h1{font-family:var(--font-serif);font-size:clamp(1.9rem,5vw,2.5rem);font-weight:700;letter-spacing:-.02em;margin:0 0 1.1rem;}
+  .glead{font-size:1.15rem;color:var(--ink-2,#3d4149);line-height:1.6;margin:0 0 2.5rem;}
+  .gtoc{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 3rem;padding:1rem 1.2rem;border:1px solid var(--line);border-radius:12px;background:var(--surface);}
+  .gtoc a{font-size:.82rem;color:var(--accent);text-decoration:none;padding:3px 9px;border-radius:7px;}
+  .gtoc a:hover{background:var(--accent-soft);}
+  .gsec{margin:0 0 3rem;}
+  .gsec h2{font-family:var(--font-serif);font-size:1.5rem;font-weight:600;margin:0 0 1rem;scroll-margin-top:72px;}
+  .gsec p{line-height:1.7;margin:0 0 1rem;}
+  .gsec ul{line-height:1.7;margin:0 0 1rem 1.2rem;}
+  .gsec a{color:var(--accent);}
+  .gnote{border-left:3px solid var(--accent);padding:.4rem 0 .4rem 1rem;margin:1.2rem 0;color:var(--ink-2,#3d4149);font-size:.92rem;}
+  .gdl{margin:1.2rem 0;display:grid;grid-template-columns:auto 1fr;gap:0;border-top:1px solid var(--line);}
+  .gdl dt{grid-column:1;padding:9px 14px 9px 0;font-family:var(--font-mono);font-size:.78rem;color:var(--ink-2);border-bottom:1px solid var(--line);white-space:nowrap;}
+  .gdl dd{grid-column:2;margin:0;padding:9px 0;font-size:.9rem;color:var(--ink-2);line-height:1.55;border-bottom:1px solid var(--line);}
+
+  /* bibliography entries: light editorial cards, one per code */
+  .bib{display:flex;flex-direction:column;gap:14px;margin:1.4rem 0 0;}
+  .bib-card{border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:16px 18px;}
+  .bib-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 10px;}
+  .bib-name{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:1.02rem;font-weight:600;color:var(--ink);text-decoration:none;word-break:break-word;}
+  .bib-name:hover{color:var(--accent);}
+  .bib-count{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.72rem;font-weight:500;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 9px;white-space:nowrap;}
+  .bib-lic{font-size:.68rem;font-weight:600;letter-spacing:.04em;color:var(--ink-2);background:var(--accent-soft);border-radius:999px;padding:2px 9px;white-space:nowrap;}
+  .bib-cite{margin:.7rem 0 .5rem;font-size:.9rem;line-height:1.6;color:var(--ink-2);}
+  .bib-links{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.82rem;margin:0 0 .2rem;}
+  .bib-links a{color:var(--accent);text-decoration:none;}
+  .bib-links a:hover{text-decoration:underline;}
+  .bib-nodoi{color:var(--faint);font-size:.82rem;}
+  .bib details{margin-top:.7rem;border-top:1px solid var(--line);padding-top:.6rem;}
+  .bib details summary{cursor:pointer;font-size:.8rem;color:var(--muted);font-weight:500;}
+  .bib details summary:hover{color:var(--accent);}
+  .bib-serves{list-style:none;margin:.7rem 0 0;padding:0;display:flex;flex-direction:column;gap:7px;}
+  .bib-serves li{display:flex;flex-direction:column;gap:2px;padding-bottom:7px;border-bottom:1px solid var(--line);}
+  .bib-serves li:last-child{border-bottom:0;padding-bottom:0;}
+  .bib-node{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.78rem;color:var(--ink);word-break:break-word;}
+  .bib-api{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.72rem;color:var(--muted);word-break:break-word;line-height:1.5;}
+  .empty{color:var(--muted);}
+  #biberr{border-left:3px solid #991b1b;padding:.4rem 0 .4rem 1rem;margin:1.2rem 0;color:#991b1b;font-size:.92rem;}
+  @media (max-width:640px){
+    .gdl{grid-template-columns:1fr;}
+    .gdl dt{border-bottom:0;padding-bottom:0;}
+    .gdl dd{grid-column:1;padding-top:2px;}
+  }
+</style>
+</head>
+<body>
+<div data-site-header></div>
+
+<div class="gwrap">
+  <p class="geyebrow">Citations, not dependencies</p>
+  <h1>The codes the map cites</h1>
+  <p class="glead">The map does not run these codes and does not contain them: it
+    cites them. Every representation rail on the map records which code serves a
+    quantity, through which interface, with a citation, a DOI where verifiable,
+    and the code's license. This page is that bibliography, rendered from the
+    same data file the map reads (<a href="../data/codes.json">docs/data/codes.json</a>).</p>
+
+  <nav class="gtoc" aria-label="Contents">
+    <a href="#lean">Lean, the one we verify with</a>
+    <a href="#bibliography">The bibliography</a>
+    <a href="#posture">What the map takes from a code</a>
+  </nav>
+
+  <section class="gsec" id="lean">
+    <h2>Lean, the one we verify with</h2>
+    <p>Most codes on this page compute numbers; Lean 4 checks reasoning. The map's
+      dimensional structure and operator identities are stated as
+      <a href="https://lean-lang.org/">Lean</a> theorems and compiled against
+      Mathlib and physlib, so a slice of the map is not just tested but proven
+      (zero <code>sorry</code>s is the proof). Read
+      <a href="../lean/">the verified layer</a> for the tiers and the honest
+      limits: a proof here checks dimensional consistency or an algebraic
+      identity, not that a formula is the right physics or that any value is
+      accurate.</p>
+    <p>The three works this rests on:</p>
+    <ul>
+      <li>L. de Moura and S. Ullrich, "The Lean 4 theorem prover and programming
+        language", CADE-28 (2021), DOI
+        <a href="https://doi.org/10.1007/978-3-030-79876-5_37">10.1007/978-3-030-79876-5_37</a>.</li>
+      <li>The mathlib Community, "The Lean mathematical library", CPP 2020, DOI
+        <a href="https://doi.org/10.1145/3372885.3373824">10.1145/3372885.3373824</a>.</li>
+      <li>J. Tooby-Smith and contributors, physlib, the community Lean 4
+        physics library (the successor of PhysLean), Apache 2.0,
+        <a href="https://github.com/leanprover-community/physlib">github.com/leanprover-community/physlib</a>.
+        The library carries no DOI of its own, so it is cited by name and URL.</li>
+    </ul>
+  </section>
+
+  <section class="gsec" id="bibliography">
+    <h2>The bibliography</h2>
+    <p>One entry per code, straight from <code>codes.json</code>. The count after
+      each name is how many quantities that code serves on the map; every entry
+      links to the map filtered to that code's rails. Entries sort by rail count,
+      then by name.</p>
+    <noscript><p class="empty">This bibliography renders client-side from the
+      published data and needs JavaScript. The raw file is plain JSON in
+      <a href="../data/codes.json">../data/codes.json</a>.</p></noscript>
+    <div id="bib" class="bib"><p class="empty" id="bib-loading">Loading the bibliography from <code>../data/codes.json</code>&hellip;</p></div>
+  </section>
+
+  <section class="gsec" id="posture">
+    <h2>What the map takes from a code</h2>
+    <p>A rail records interface facts (keywords, file formats, units), citations,
+      and published equations, written in our own words. The map never vendors or
+      copies a code's source, so no code's license flows into this repository: the
+      kernel is Apache 2.0, the map data is CC BY 4.0. Copyleft codes, GPUMD under
+      GPL-3.0 among them, are cited and described exactly like permissively
+      licensed ones. Describing an interface for interoperability and citing a
+      paper are not acts the GPL restricts.</p>
+    <p>Running any code stays under that code's own license, on the runner's side.
+      Every rail's recorded license is enforced in CI:
+      <code>tests/test_code_credits.py</code> reads
+      <code>omai/representation/credits.py</code>, licenses come from the codes'
+      own <code>LICENSE</code> files, and DOIs are never invented.</p>
+    <dl class="gdl">
+      <dt>The map records</dt><dd>Interface facts, citations, and equations, in our own words.</dd>
+      <dt>The map never records</dt><dd>A code's source. Nothing is vendored or copied, so no code license enters this repo.</dd>
+      <dt>This repository</dt><dd>Kernel Apache 2.0; map data CC BY 4.0.</dd>
+      <dt>Running a code</dt><dd>Stays under that code's own license, on the runner's side.</dd>
+    </dl>
+  </section>
+</div>
+
+<div data-site-footer></div>
+<script>
+/* The codes bibliography. Every entry is read at load from the published
+   ../data/codes.json, the same file the map reads. The shape is
+   { codeName: { NodeName: { api, unit, citation, doi, license, url }, ... }, ... };
+   entries within one code share citation, license, and url. Nothing about the
+   data is assumed: every string is escaped, and doi or url may be absent. */
+(function () {
+  'use strict';
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function fail(msg) {
+    var box = document.getElementById('bib');
+    box.innerHTML =
+      '<p id="biberr">' + esc(msg) + ' The raw file is ' +
+      '<a href="../data/codes.json">../data/codes.json</a>.</p>';
+  }
+
+  // One code -> one card. `entries` is the { NodeName: spec } object; shared
+  // fields (citation, license, url) are taken from the first entry that has them.
+  function card(name, entries) {
+    var nodes = Object.keys(entries);
+    var count = nodes.length;
+
+    var citation = '', license = '', url = '', doi = '';
+    nodes.forEach(function (n) {
+      var e = entries[n] || {};
+      if (!citation && e.citation) citation = e.citation;
+      if (!license && e.license) license = e.license;
+      if (!url && e.url) url = e.url;
+      if (!doi && e.doi) doi = e.doi;
+    });
+
+    var safeUrl = /^https?:\/\//i.test(url) ? url : '';
+    var nameHtml = safeUrl
+      ? '<a class="bib-name" href="' + esc(safeUrl) + '" rel="noopener">' + esc(name) + '</a>'
+      : '<span class="bib-name">' + esc(name) + '</span>';
+
+    var top = '<div class="bib-top">' + nameHtml +
+      '<span class="bib-count">' + count + ' quantit' + (count === 1 ? 'y' : 'ies') + '</span>' +
+      (license ? '<span class="bib-lic">' + esc(license) + '</span>' : '') +
+      '</div>';
+
+    var cite = citation
+      ? '<p class="bib-cite">' + esc(citation) + '</p>'
+      : '<p class="bib-cite empty">No citation recorded.</p>';
+
+    var mapHref = '../map/#code=' + encodeURIComponent(name);
+    var links = '<div class="bib-links">' +
+      (doi
+        ? '<a href="https://doi.org/' + esc(doi) + '" rel="noopener">doi.org/' + esc(doi) + '</a>'
+        : '<span class="bib-nodoi">no DOI recorded</span>') +
+      '<a href="' + esc(mapHref) + '">rails on the map &rarr;</a>' +
+      '</div>';
+
+    var serves = nodes.slice().sort().map(function (n) {
+      var e = entries[n] || {};
+      var api = e.api ? '<span class="bib-api">' + esc(e.api) + '</span>' : '';
+      return '<li><span class="bib-node">' + esc(n) + '</span>' + api + '</li>';
+    }).join('');
+    var details = '<details><summary>' + count + ' quantit' +
+      (count === 1 ? 'y' : 'ies') + ' served</summary>' +
+      '<ul class="bib-serves">' + serves + '</ul></details>';
+
+    return '<div class="bib-card">' + top + cite + links + details + '</div>';
+  }
+
+  fetch('../data/codes.json')
+    .then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function (data) {
+      if (!data || typeof data !== 'object') { fail('The bibliography could not be loaded (unexpected shape).'); return; }
+      var codes = Object.keys(data);
+      if (!codes.length) { fail('The bibliography is empty.'); return; }
+      // rail count descending, then name ascending
+      codes.sort(function (a, b) {
+        var d = Object.keys(data[b]).length - Object.keys(data[a]).length;
+        return d !== 0 ? d : (a < b ? -1 : a > b ? 1 : 0);
+      });
+      document.getElementById('bib').innerHTML =
+        codes.map(function (c) { return card(c, data[c]); }).join('');
+    })
+    .catch(function (err) {
+      fail('The bibliography could not be loaded (' + err.message + ').');
+    });
+})();
+</script>
+<script src="../assets/site.js"></script>
+</body>
+</html>

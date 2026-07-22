@@ -32,15 +32,6 @@
   html,body{margin:0;background:var(--paper);color:var(--ink);
     font-family:var(--font-sans);-webkit-font-smoothing:antialiased;}
   #err{position:fixed;top:0;left:0;right:0;background:#7f1d1d;color:#fff;font:13px/1.4 var(--font-mono);padding:8px 12px;z-index:40;display:none;white-space:pre-wrap;}
-  .top{position:sticky;top:0;height:58px;display:flex;align-items:center;gap:14px;padding:0 clamp(14px,3vw,22px);
-    background:rgba(255,255,255,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line);box-shadow:0 1px 0 rgba(22,24,29,.04);z-index:10;}
-  .top .brand{display:inline-flex;align-items:center;gap:7px;font-family:var(--font-serif);font-weight:700;font-size:1.06rem;letter-spacing:-.01em;color:var(--ink);text-decoration:none;white-space:nowrap;}
-  .top .brand .om-mark{width:20px;height:20px;border-radius:4.5px;flex:none;display:block;}
-  .top .sub{color:var(--faint);font-size:.82rem;font-weight:500;white-space:nowrap;}
-  .top .nav{display:flex;align-items:center;gap:16px;margin-left:auto;}
-  .top .nav a{color:var(--ink2);font-size:.86rem;font-weight:500;white-space:nowrap;text-decoration:none;padding:6px 0;border-bottom:2px solid transparent;transition:color .15s,border-color .15s;}
-  .top .nav a:hover{color:var(--ink);}
-  @media (max-width:680px){ .top .nav a.opt{display:none;} .top .sub{display:none;} }
 
   .wrap{max-width:960px;margin:0 auto;padding:34px clamp(14px,3vw,22px) 72px;}
   .crumb{font-size:.82rem;color:var(--muted);margin:0 0 18px;}
@@ -104,17 +95,7 @@
 </head>
 <body>
 <div id="err"></div>
-<header class="top">
-  <a class="brand" href="../"><img class="om-mark" src="../assets/logo.svg" alt="" width="20" height="20">openmaterials.ai</a><span class="om-beta" title="Beta: the map and its schema are still growing. Every committed value is content-addressed, so its identifier stays resolvable across versions.">beta</span>
-  <span class="sub">cross-code agreement</span>
-  <nav class="nav">
-    <a href="../map/" class="opt">Map</a>
-    <a href="../map-trace/" class="opt">Tracer</a>
-    <a href="../experiment/">Experiments</a>
-    <a href="../play/">Playground</a>
-    <a href="../learn/" class="opt">Learn</a>
-  </nav>
-</header>
+<div data-site-header></div>
 <main class="wrap" id="main">
   <noscript><p class="empty">This page renders the agreement layer client-side and needs JavaScript.
     The raw groups are plain JSON in <a href="../data/agreement.json">../data/agreement.json</a>.</p></noscript>
@@ -228,5 +209,7 @@ function render(){
 
 load().then(render, function(e){ fail('Failed to load the agreement layer: ' + e); });
 </script>
+<div data-site-footer></div>
+<script src="../assets/site.js"></script>
 </body>
 </html>

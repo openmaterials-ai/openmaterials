@@ -28,7 +28,8 @@ map spans eleven physics domains (thermal transport, DFT ground state,
 mechanics, stability, thermochemistry, quasi-harmonic, molecular, electronic
 transport, materials, composites, and the thermodynamic identities that close
 its formulas together), holding 114 typed quantities and 114 operators mapped
-across 31 codes. The
+across [31 cited codes](https://openmaterials.ai/codes/) (the codes
+bibliography lists each one with its interface, citation, and license). The
 project's single source of truth (vision, product, architecture, kernel, status,
 and the ingest/extend/encode procedures) is
 [docs/openmaterials.pdf](docs/openmaterials.pdf) (LaTeX source alongside it).

@@ -197,7 +197,8 @@
     <a href="../guide/">Guide</a>
     <a href="../play/">Play</a>
     <a href="../learn/">Learn</a>
-    <a href="../openmaterials.pdf">Document</a>
+    <a href="../codes/">Codes</a>
+    <a href="../document/">Document</a>
     <a href="https://github.com/openmaterials-ai/openmaterials" target="_blank" rel="noopener">Source</a>
   </nav>
   <span class="controls">
@@ -598,6 +599,7 @@ function selectEdge(key, op){
 
 // ---- deep links: #node=<id> selects and frames a quantity -------------------
 function nodeFromHash(){ const m=location.hash.match(/[#?&]node=([^&]*)/); return m?decodeURIComponent(m[1]):null; }
+function codeFromHash(){ const m=location.hash.match(/[#?&]code=([^&]*)/); return m?decodeURIComponent(m[1]):null; }
 function syncHash(id){
   const h=id?('#node='+encodeURIComponent(id)):'';
   if(location.hash===h||(!h&&!location.hash)) return;
@@ -632,6 +634,10 @@ function showExperiment(ref, recs){
 function applyHash(){
   const ref=expFromHash();
   if(ref){ loadInstances().then(recs=>showExperiment(ref,recs)); return; }
+  // #code=<name>: land with one code's rails lit (the codes bibliography links here)
+  const codeRef=codeFromHash();
+  if(codeRef && codesData[codeRef]){ if(activeCode!==codeRef) toggleCode(codeRef); return; }
+  if(activeCode) toggleCode(activeCode); // the hash no longer names a code: clear the filter
   let id=nodeFromHash(); if(!id) return;
   if(!nodeById[id]){ const b=id.split('[')[0]; if(!nodeById[b]) return; id=b; }
   selectNode(nodeById[id]);
