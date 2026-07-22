@@ -347,23 +347,31 @@
         chemistry channel) answers instantly, in this page. Zero means the
         same chemistry in any structure: diamond and graphite are both C.</p>
       <p>
-        <input id="distTryFa" size="10" value="NaCl">
+        <input id="distTryFa" size="10" value="C">
         <span style="opacity:.6">vs</span>
-        <input id="distTryFb" size="10" value="KCl">
+        <input id="distTryFb" size="10" value="C">
         <b id="distTryComp" style="margin-left:10px"></b>
       </p>
       <div id="distTryBar" style="max-width:420px;height:8px;border:1px solid currentColor;border-radius:4px;overflow:hidden;opacity:.9">
         <div id="distTryFill" style="height:100%;width:0;background:currentColor"></div>
       </div>
       <p class="pg-note" id="distTryWord"></p>
+      <p class="pg-note" id="distTryNote" style="font-style:italic"></p>
       <p>Try:
-        <a href="#" class="dist-try-pair" data-a="NaCl" data-b="KCl">salt vs sylvite</a> &middot;
-        <a href="#" class="dist-try-pair" data-a="C" data-b="C">diamond vs graphite</a> &middot;
-        <a href="#" class="dist-try-pair" data-a="Si" data-b="Ge">Si vs Ge</a> &middot;
-        <a href="#" class="dist-try-pair" data-a="GaAs" data-b="GaP">GaAs vs GaP</a> &middot;
-        <a href="#" class="dist-try-pair" data-a="SiO2" data-b="GeO2">quartz vs its Ge twin</a> &middot;
-        <a href="#" class="dist-try-pair" data-a="Fe" data-b="Au">iron vs gold</a> &middot;
-        <a href="#" class="dist-try-pair" data-a="Si" data-b="C3H8O" data-note="yes, rubbing alcohol is a material">Si vs rubbing alcohol</a>
+        <a href="#" class="dist-try-pair" data-a="C" data-b="C"
+          data-note="Diamond and graphite are both pure carbon: chemistry distance is zero by design, whatever the structure. Telling them apart is the structure channels&#39; job (env-ot, amd), not this one.">diamond vs graphite</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="SiO2" data-b="GeO2"
+          data-note="Quartz with every silicon swapped for germanium: the same one-step swap as Si vs Ge, but only one atom in three changes, so the distance dilutes to a third.">quartz vs its Ge twin</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="NaCl" data-b="KCl"
+          data-note="Table salt and sylvite: swap sodium for potassium, its neighbor down the alkali column. Half the atoms move one step on the Pettifor scale, so the distance is one half.">salt vs sylvite</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="GaAs" data-b="GaP"
+          data-note="Two III-V semiconductors sharing gallium: arsenic swaps for phosphorus, its neighbor up the pnictogen column. Same arithmetic as salt vs sylvite: half the atoms, one step.">GaAs vs GaP</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="Si" data-b="Ge"
+          data-note="The classic semiconductor swap: germanium sits directly below silicon, one step apart on the Pettifor scale, and here every atom makes the move.">Si vs Ge</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="Fe" data-b="Au"
+          data-note="A workhorse transition metal against a noble metal: nine steps across the d block. Still metals, but chemically far.">iron vs gold</a> &middot;
+        <a href="#" class="dist-try-pair" data-a="Si" data-b="C3H8O"
+          data-note="A covalent semiconductor against rubbing alcohol (yes, a molecule is a material too): no shared elements, different corners of the periodic table, almost as far as this scale goes.">Si vs rubbing alcohol</a>
       </p>
     </div>
 
@@ -1195,12 +1203,14 @@ document.querySelectorAll('.pg-tab[data-tab="distance"]').forEach(function(btn){
 
 /* ---- how far apart are two materials: the one-number toy ----------------- */
 var tryWired = false;
-function renderTryDistance(){
+function renderTryDistance(note){
   var out = document.getElementById('distTryComp');
   var word = document.getElementById('distTryWord');
+  var noteEl = document.getElementById('distTryNote');
   var fill = document.getElementById('distTryFill');
   var fa = window.omdcJS.parseFormula(document.getElementById('distTryFa').value);
   var fb = window.omdcJS.parseFormula(document.getElementById('distTryFb').value);
+  noteEl.textContent = note || '';
   if (!fa || !fb) {
     out.textContent = '';
     fill.style.width = '0';
@@ -1221,19 +1231,23 @@ function initTryDistance(){
   if (tryWired) return;
   tryWired = true;
   ['distTryFa', 'distTryFb'].forEach(function(id){
-    document.getElementById(id).addEventListener('input', renderTryDistance);
+    document.getElementById(id).addEventListener('input', function(){ renderTryDistance(); });
   });
-  document.querySelectorAll('.dist-try-pair').forEach(function(a){
+  var pairs = document.querySelectorAll('.dist-try-pair');
+  pairs.forEach(function(a){
     a.addEventListener('click', function(ev){
       ev.preventDefault();
       document.getElementById('distTryFa').value = a.getAttribute('data-a');
       document.getElementById('distTryFb').value = a.getAttribute('data-b');
-      renderTryDistance();
-      var note = a.getAttribute('data-note');
-      if (note) document.getElementById('distTryWord').textContent += ' (' + note + ')';
+      renderTryDistance(a.getAttribute('data-note'));
     });
   });
-  renderTryDistance();
+  // The default pair is the first example, so the page opens with the
+  // number, the verdict, and its story already aligned.
+  var first = pairs[0];
+  document.getElementById('distTryFa').value = first.getAttribute('data-a');
+  document.getElementById('distTryFb').value = first.getAttribute('data-b');
+  renderTryDistance(first.getAttribute('data-note'));
 }
 
 /* ---- distance between papers: the committed instances, compared ---------- */
