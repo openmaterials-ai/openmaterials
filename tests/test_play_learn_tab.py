@@ -89,3 +89,42 @@ def test_catch_all_template_never_masquerades_as_a_quantity():
     assert _PLAY.count("displayProp(") >= 4, \
         "lede, member rows, and title must all use displayProp"
     assert "String(template) === 'other'" in _PLAY
+
+def test_parse_folded_into_learn():
+    """The Parse tab never parsed; it drew a proposal's dataflow. Its
+    renderer now lives at the bottom of the Learn tab, and the legacy
+    tab=parse hash lands on Learn."""
+    assert 'data-tab="parse"' not in _PLAY, "the Parse tab button must be gone"
+    assert 'data-panel="parse"' not in _PLAY, "the Parse panel must be gone"
+    learn_panel = _PLAY.split('data-panel="learn"', 1)[1].split('data-panel="', 1)[0]
+    for marker in ("loadExample", "proposalInput", "renderProposal", "parseResult"):
+        assert marker in learn_panel, marker + " must live inside the Learn panel"
+    assert "m[1] === 'parse' ? 'learn'" in _PLAY, "tab=parse must alias to learn"
+
+
+def test_tab_strip_survives_the_datasheet():
+    """Opening a record must not cost the page its navigation: the strip
+    sits above the working area, the sheet replaces only the panels, and
+    picking any other tool closes the sheet."""
+    assert "body.lin-open .pg-body{display:none;}" in _PLAY
+    assert "body.lin-open .pg-main{display:none;}" not in _PLAY
+    tabs_at = _PLAY.index('<div class="pg-tabs">')
+    body_at = _PLAY.index('<div class="pg-body">')
+    left_at = _PLAY.index('<div class="pg-left">')
+    assert tabs_at < body_at < left_at, "strip above the working area"
+    assert "document.body.classList.remove('lin-open');\n    selectPlaygroundTab(tab);" in _PLAY
+
+
+def test_tabs_group_by_intent():
+    """Learn leads, the record tools follow, the map tools close, with a
+    divider between the groups."""
+    tabs = re.findall(r'data-tab="(\w+)"[^>]*>', _PLAY.split('<div class="pg-tabs">', 1)[1].split("</div>", 1)[0])
+    assert tabs == ["learn", "lineage", "distance", "query", "trace", "map"], tabs
+    assert "pg-tabsep" in _PLAY
+
+
+def test_canvas_hint_speaks_per_tab():
+    assert "var PG_HINTS = {" in _PLAY
+    for key in ("learn:", "lineage:", "distance:", "query:", "trace:", "map:"):
+        assert key in _PLAY.split("var PG_HINTS = {", 1)[1].split("};", 1)[0], key
+    assert "PG_HINTS[tab]) hint.textContent" in _PLAY

@@ -99,6 +99,7 @@
      The record remains plain information built from the in-hand container and
      the static map data, with the original ingress waiting behind it. */
   body.lin-open .pg-body{display:none;}
+  body.lin-open .pg-main{flex:0 0 auto;}
   .lin-stage{display:none;flex:1 1 auto;min-height:0;overflow-y:auto;background:var(--surface);}
   body.lin-open .lin-stage{display:block;}
   .lin-bar{min-height:40px;display:flex;align-items:center;justify-content:space-between;
@@ -249,7 +250,7 @@
   .rec-links .rec-link-note{font-size:.76rem;color:var(--muted);font-weight:400;}
   @media (max-width:720px){
     .pg-left{flex-basis:100%;max-width:none;border-right:none;border-bottom:1px solid var(--line);max-height:44vh;}
-    .pg-main{flex-direction:column;}
+    .pg-body{flex-direction:column;}
     .pg-top{gap:8px;padding:0 12px;}
     .pg-top .sub{display:none;}
     .pg-nav{gap:8px;}
@@ -515,7 +516,7 @@
   <div class="pg-canvas">
     <svg id="pgsvg" preserveAspectRatio="xMidYMid meet" role="img" aria-label="A focused sub-map of the quantities matching the current query or trace."></svg>
     <div id="pglabels"><div id="pglabelsInner"></div></div>
-    <div class="pg-hint" id="pgHint">Type a method on the left, or trace a derivation, and the matching part of the map appears here.</div>
+    <div class="pg-hint" id="pgHint">Parse a paper (or draw a proposal below the dropzone) and its claims light up here as the paper's sub-map.</div>
     <div class="pg-node-panel" id="pgNodePanel"></div>
   </div>
   </div>
