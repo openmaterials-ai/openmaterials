@@ -91,7 +91,7 @@
     needs JavaScript. The raw export is plain JSON in
     <a href="../data/lean.json">../data/lean.json</a>, and the generated Lean
     sources live in
-    <a href="https://github.com/openmaterials-ai/openmaterials/tree/main/lean">lean/</a>.</p></noscript>
+    <a href="https://github.com/openmaterials-ai/openmaterials-ai/tree/main/lean">lean/</a>.</p></noscript>
   <div id="err"></div>
 
   <nav class="gtoc" aria-label="Contents">
@@ -150,7 +150,7 @@
     <p>One theorem per verified executable edge: the output's dimension equals
       the product of its inputs' dimensions. Node names link to the quantity on
       the map; every theorem lives in the generated
-      <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/OpenMaterials.lean">lean/OpenMaterials.lean</a>.</p>
+      <a href="https://github.com/openmaterials-ai/openmaterials-ai/blob/main/lean/OpenMaterials.lean">lean/OpenMaterials.lean</a>.</p>
     <div id="edge-list"><p class="empty">Loading&hellip;</p></div>
   </section>
 
@@ -158,7 +158,7 @@
     <h2>Operator identities (Tier 2)</h2>
     <p>Each identity is a theorem over real numbers, checked against Mathlib;
       the statement below is the generated source, verbatim, from
-      <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/OpenMaterialsIdentities.lean">lean/OpenMaterialsIdentities.lean</a>.</p>
+      <a href="https://github.com/openmaterials-ai/openmaterials-ai/blob/main/lean/OpenMaterialsIdentities.lean">lean/OpenMaterialsIdentities.lean</a>.</p>
     <div id="identity-list"><p class="empty">Loading&hellip;</p></div>
   </section>
 
@@ -173,8 +173,8 @@
 
   <section class="gsec" id="reproduce">
     <h2>Reproduce this</h2>
-    <p><a href="https://github.com/openmaterials-ai/openmaterials/actions/workflows/lean.yml"><img
-      src="https://github.com/openmaterials-ai/openmaterials/actions/workflows/lean.yml/badge.svg"
+    <p><a href="https://github.com/openmaterials-ai/openmaterials-ai/actions/workflows/lean.yml"><img
+      src="https://github.com/openmaterials-ai/openmaterials-ai/actions/workflows/lean.yml/badge.svg"
       alt="Lean proof check status" style="vertical-align:middle"></a>
       Every pull request that touches the map or the generators recompiles the
       full proof against physlib in CI, with warnings promoted to errors, so
@@ -186,10 +186,10 @@
       the live map and re-checked two ways: the Lean compiler proves them, and
       the Python suite re-derives every dimensional identity so a regression
       fails fast even without a Lean toolchain. From
-      <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/README.md">lean/README.md</a>:</p>
+      <a href="https://github.com/openmaterials-ai/openmaterials-ai/blob/main/lean/README.md">lean/README.md</a>:</p>
     <div class="recipe">
       <div class="recipe-head"><span class="recipe-title">Rebuild the proof</span><span class="recipe-lang">shell</span></div>
-      <pre>git clone https://github.com/openmaterials-ai/openmaterials.git
+      <pre>git clone https://github.com/openmaterials-ai/openmaterials-ai.git
 cd openmaterials/lean
 
 lake exe cache get   # fetch the mathlib build cache (first build only)
@@ -199,10 +199,10 @@ lake build           # compiles every generated module; zero errors, zero sorrie
 pip install -e . &amp;&amp; python -m pytest tests/test_physlean_export.py tests/test_lean_tier2.py -q</pre>
     </div>
     <p>The generated sources:
-      <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/OpenMaterials.lean">OpenMaterials.lean</a> (Tier 1 dimensions and edge theorems),
-      <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/OpenMaterialsIdentities.lean">OpenMaterialsIdentities.lean</a> (Tier 2 identities),
-      <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/OpenMaterialsDimensions.lean">OpenMaterialsDimensions.lean</a> (the seven-base dimensional closure),
-      <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/lean/OpenMaterialsUnits.lean">OpenMaterialsUnits.lean</a> (the units bridge).</p>
+      <a href="https://github.com/openmaterials-ai/openmaterials-ai/blob/main/lean/OpenMaterials.lean">OpenMaterials.lean</a> (Tier 1 dimensions and edge theorems),
+      <a href="https://github.com/openmaterials-ai/openmaterials-ai/blob/main/lean/OpenMaterialsIdentities.lean">OpenMaterialsIdentities.lean</a> (Tier 2 identities),
+      <a href="https://github.com/openmaterials-ai/openmaterials-ai/blob/main/lean/OpenMaterialsDimensions.lean">OpenMaterialsDimensions.lean</a> (the seven-base dimensional closure),
+      <a href="https://github.com/openmaterials-ai/openmaterials-ai/blob/main/lean/OpenMaterialsUnits.lean">OpenMaterialsUnits.lean</a> (the units bridge).</p>
   </section>
 </div>
 
@@ -217,7 +217,7 @@ pip install -e . &amp;&amp; python -m pytest tests/test_physlean_export.py tests
 (function () {
   'use strict';
   var L = window.LeanLib;
-  var REPO = 'https://github.com/openmaterials-ai/openmaterials/blob/main/lean/';
+  var REPO = 'https://github.com/openmaterials-ai/openmaterials-ai/blob/main/lean/';
 
   function esc(s) {
     return String(s == null ? '' : s)

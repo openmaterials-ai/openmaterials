@@ -108,10 +108,15 @@ def test_stat_badge_parity_with_the_worker():
         assert js.stdout == labeled_badge_svg(label, msg), label
 
 
-def test_readme_carries_the_stat_badges():
+def test_readme_carries_only_the_version_badge():
+    """One badge: the identity mark. The stat badges stay a public API
+    (the Worker and the static files keep serving them), but the README
+    shows only the version pin."""
     readme = (_ROOT / "README.md").read_text()
-    for name in ("nodes", "operators", "codes", "values"):
-        assert f"badge/stat/{name}.svg" in readme, name
+    assert "badge/stat/" not in readme
+    assert "img.shields.io" not in readme
+    assert "actions/workflows" not in readme.split("\n\n")[2], \
+        "no CI badges in the badge row"
 
 
 def test_python_and_worker_emit_identical_bytes():
