@@ -20,6 +20,7 @@ import {
   MINTS_PER_DAY, randomCode, parseCode, validateMintBody,
   shortlinkHTML, shortlinkNotFoundHTML,
 } from "./shortlinks.js";
+import { badgeSVG, BADGE_PATH_RE } from "./badge.js";
 
 // Origins allowed to mint (the read side is public by design). localhost
 // covers wrangler dev and the docs http.server used by tests.
@@ -62,6 +63,24 @@ export default {
       } catch (e) {
         return Response.json({ ok: false }, { status: 500 });
       }
+    }
+
+    // /badge/<hash>.svg: the version badge for any pinned map version, a
+    // pure function of the path (the badge asserts the embedder's pin; it
+    // does not certify the hash exists). /badge.svg itself is the static
+    // asset for the CURRENT version, written at map_data time.
+    if (url.pathname.startsWith("/badge/")) {
+      const m = url.pathname.match(BADGE_PATH_RE);
+      if (!m) {
+        return new Response("a version badge is /badge/<8-64 hex>.svg", { status: 400 });
+      }
+      return new Response(badgeSVG(m[1]), {
+        headers: {
+          "content-type": "image/svg+xml; charset=utf-8",
+          "cache-control": "public, max-age=31536000, immutable",
+          "access-control-allow-origin": "*",
+        },
+      });
     }
 
     if (url.pathname.startsWith("/l/")) {

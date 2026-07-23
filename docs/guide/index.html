@@ -79,7 +79,15 @@ python -m omai.map_data        # regenerate docs/data/*.json from the operator l
     </div>
     <p class="gnote">The kernel is Apache 2.0; the map data is CC BY 4.0. Cite
       the map version (<code>docs/data/version.json</code>) your work used;
-      see <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/CITATION.cff">CITATION.cff</a>.</p>
+      see <a href="https://github.com/openmaterials-ai/openmaterials/blob/main/CITATION.cff">CITATION.cff</a>.
+      A repository can state its pin as a badge, the way a CI badge states a
+      build: <code>https://openmaterials.ai/badge/&lt;version12&gt;.svg</code>
+      renders the version it names, and <code>/badge.svg</code> always shows
+      the current one.</p>
+    <div class="snippet" data-snippet="markdown">
+      <div class="snippet-head"><span class="snippet-title">Embed the version badge</span><span class="snippet-lang">markdown</span></div>
+      <pre>[![openmaterials map version](https://openmaterials.ai/badge/&lt;version12&gt;.svg)](https://openmaterials.ai/)</pre>
+    </div>
   </section>
 
   <section class="gsec" id="parts">

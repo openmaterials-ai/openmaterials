@@ -30,7 +30,7 @@ def test_worker_is_additive_over_the_static_site():
     cfg = _wrangler_config()
     assert cfg["assets"]["directory"] == "../../docs", \
         "the Worker must serve the SAME docs/ the static site publishes"
-    assert set(cfg["assets"]["run_worker_first"]) == {"/l/*", "/s", "/s/*", "/healthz"}, \
+    assert set(cfg["assets"]["run_worker_first"]) == {"/l/*", "/s", "/s/*", "/badge/*", "/healthz"}, \
         "only the named dynamic routes may bypass the assets"
     assert cfg["name"] == "openmaterials-site"
 
