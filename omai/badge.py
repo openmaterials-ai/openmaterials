@@ -119,3 +119,35 @@ def write_badge(path: Path | None = None) -> Path:
     out = path or docs / "badge.svg"
     out.write_text(badge_svg(version) + "\n", encoding="utf-8")
     return out
+
+
+import re as _re
+
+_README_BADGE_RE = _re.compile(
+    r"https://openmaterials\.ai/badge/[0-9a-f]{8,64}\.svg"
+)
+
+
+def pin_readme_badge(readme: Path | None = None) -> Path:
+    """Pin the README badge to the current map version.
+
+    The repository's own README carries the PINNED badge form, not the
+    live /badge.svg: an old commit's README then shows the version that
+    commit actually had. map_data calls this after write_version, so the
+    pin updates in the same commit that moves the version, and
+    tests/test_badge.py fails whenever README and version.json disagree,
+    so a stale pin cannot land."""
+    root = Path(__file__).resolve().parents[1]
+    version = json.loads(
+        (root / "docs" / "data" / "version.json").read_text())["version"][:12]
+    path = readme or root / "README.md"
+    text = path.read_text()
+    pinned = "https://openmaterials.ai/badge/" + version + ".svg"
+    new_text, n = _README_BADGE_RE.subn(pinned, text)
+    if n == 0:
+        raise RuntimeError(
+            "README.md carries no pinned badge URL to update "
+            "(expected https://openmaterials.ai/badge/<hash>.svg)")
+    if new_text != text:
+        path.write_text(new_text)
+    return path

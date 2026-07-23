@@ -74,6 +74,27 @@ def test_python_and_worker_emit_identical_bytes():
         assert js.stdout == badge_svg(h), f"parity broken for {h}"
 
 
+def test_readme_badge_is_pinned_to_the_current_version():
+    """The repository's own README carries the pinned badge, and the pin
+    must equal the committed version stamp. map_data refreshes it; this
+    test is the reminder that cannot be forgotten."""
+    import re
+    readme = (_ROOT / "README.md").read_text()
+    m = re.search(r"https://openmaterials\.ai/badge/([0-9a-f]{8,64})\.svg", readme)
+    assert m, "README.md carries no pinned badge"
+    version = json.loads((_DOCS / "data" / "version.json").read_text())["version"]
+    assert m.group(1) == version[:12], (
+        f"README badge pins {m.group(1)} but the committed map version is "
+        f"{version[:12]}: regenerate with PYTHONPATH=. python -c "
+        "'from omai.badge import pin_readme_badge; pin_readme_badge()' "
+        "and commit the result"
+    )
+    assert "openmaterials.ai/badge.svg" not in readme, (
+        "README must carry only the pinned form; the live badge would show "
+        "today's version on historical commits"
+    )
+
+
 def test_worker_route_accepts_only_hex_svg_paths():
     src = _BADGE_JS.read_text()
     assert "BADGE_PATH_RE" in src
