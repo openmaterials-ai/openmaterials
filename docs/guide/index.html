@@ -87,6 +87,9 @@ python -m omai.map_data        # regenerate docs/data/*.json from the operator l
     <div class="snippet" data-snippet="markdown">
       <div class="snippet-head"><span class="snippet-title">Embed the version badge</span><span class="snippet-lang">markdown</span></div>
       <pre>[![openmaterials map version](https://openmaterials.ai/badge/&lt;version12&gt;.svg)](https://openmaterials.ai/)</pre>
+      <p class="gnote">This repository pins its own README badge the same
+        way; <code>python -m omai.map_data</code> refreshes the pin whenever
+        the version moves, and the suite fails if they ever disagree.</p>
     </div>
   </section>
 

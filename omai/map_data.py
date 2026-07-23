@@ -1034,8 +1034,10 @@ if __name__ == "__main__":
     print("wrote", write_version())
     # the version badge re-renders whenever the stamp changes; embedders pin
     # their own hash through the Worker's /badge/<hash>.svg
+    from omai.badge import pin_readme_badge as _pin_readme_badge
     from omai.badge import write_badge as _write_badge
     print("wrote", _write_badge())
+    print("pinned", _pin_readme_badge())
     print("wrote", write_lineage())
     # The semantic layer regenerates with the map: labels are metadata over
     # live uids, so a stale semantics.json is a lie about identity.
