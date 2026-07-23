@@ -1,1 +1,32 @@
-{"id": "b13e25c6787b385f038dc27625126c29eb2db611237b680e0eae83067dd89e4e", "lineage": {"node": "ThermalConductivity[effective_medium=nan,orientation=random]", "material": "DGEBA epoxy + 5 vol% GNP (reference formulation)", "conditions": {"km_W_per_mK": 0.2, "k11_W_per_mK": 1200, "k33_W_per_mK": 6, "d1_um": 5, "d3_um": 0.02, "G_MW_per_m2K": 25, "f": 0.05, "orientation": "random", "kapitza_radius_nm": 8.0}, "values": {"value": 1.2452, "units": "W/(m K)"}}, "code": "materialscodegraph", "expected": {"value": 1.2452, "units": "W/(m K)"}, "tolerance": {"value": 0.001, "kind": "absolute"}, "evidence": "dgeba-epoxy-5-vol-gnp-reference-formulation-thermalconductivity-effective-medium-nan-orientation-random-materialscodegraph.json"}
+{
+ "id": "b13e25c6787b385f038dc27625126c29eb2db611237b680e0eae83067dd89e4e",
+ "lineage": {
+  "node": "ThermalConductivity[effective_medium=nan,orientation=random]",
+  "material": "DGEBA epoxy + 5 vol% GNP (reference formulation)",
+  "conditions": {
+   "km_W_per_mK": 0.2,
+   "k11_W_per_mK": 1200,
+   "k33_W_per_mK": 6,
+   "d1_um": 5,
+   "d3_um": 0.02,
+   "G_MW_per_m2K": 25,
+   "f": 0.05,
+   "orientation": "random",
+   "kapitza_radius_nm": 8.0
+  },
+  "values": {
+   "value": 1.2452,
+   "units": "W/(m K)"
+  }
+ },
+ "code": "closed-form",
+ "expected": {
+  "value": 1.2452,
+  "units": "W/(m K)"
+ },
+ "tolerance": {
+  "value": 0.001,
+  "kind": "absolute"
+ },
+ "evidence": "dgeba-epoxy-5-vol-gnp-reference-formulation-thermalconductivity-effective-medium-nan-orientation-random-materialscodegraph.json"
+}

@@ -1,1 +1,32 @@
-{"id": "c9de95163fd69a7672036f13a983faf560b8265880262c9b554809853a717888", "lineage": {"node": "ReactionEnergy", "material": "C9H10O2 (glycidyl phenyl ether)", "conditions": {"T": "298.15 K", "reaction": "glycidyl phenyl ether + methylamine -> 1-(methylamino)-3-phenoxy-2-propanol", "normalization": "per_reaction_event", "quantity": "reaction enthalpy dH(298 K)", "dh298_kJ_per_mol": -116.1, "model": "GFN2-xTB", "code": "xtb 6.7.1", "phase": "gas"}, "values": {"value": -1.203292, "units": "eV"}}, "code": "materialscodegraph", "expected": {"value": -1.203292, "units": "eV"}, "tolerance": {"value": 0.0622, "kind": "absolute"}, "evidence": "c9h10o2-glycidyl-phenyl-ether-reactionenergy-materialscodegraph-cure-dh-gpe-methylamine-gfn2.json", "note": "tolerance is the mcg eval's 6.0 kJ/mol per reaction event converted at 96.485 kJ/mol per eV"}
+{
+ "id": "c9de95163fd69a7672036f13a983faf560b8265880262c9b554809853a717888",
+ "lineage": {
+  "node": "ReactionEnergy",
+  "material": "C9H10O2 (glycidyl phenyl ether)",
+  "conditions": {
+   "T": "298.15 K",
+   "reaction": "glycidyl phenyl ether + methylamine -> 1-(methylamino)-3-phenoxy-2-propanol",
+   "normalization": "per_reaction_event",
+   "quantity": "reaction enthalpy dH(298 K)",
+   "dh298_kJ_per_mol": -116.1,
+   "model": "GFN2-xTB",
+   "code": "xtb 6.7.1",
+   "phase": "gas"
+  },
+  "values": {
+   "value": -1.203292,
+   "units": "eV"
+  }
+ },
+ "code": "xtb",
+ "expected": {
+  "value": -1.203292,
+  "units": "eV"
+ },
+ "tolerance": {
+  "value": 0.0622,
+  "kind": "absolute"
+ },
+ "evidence": "c9h10o2-glycidyl-phenyl-ether-reactionenergy-materialscodegraph-cure-dh-gpe-methylamine-gfn2.json",
+ "note": "tolerance is the mcg eval's 6.0 kJ/mol per reaction event converted at 96.485 kJ/mol per eV"
+}

@@ -87,9 +87,11 @@ def test_write_index_emits_one_file_per_representation(tmp_path):
     # lobsterpy / smact deliberately earned no rail); the Atomistic Cookbook
     # audit's nuclear-quantum-effects layer (i-PI slice) added the i-pi rail,
     # 28th (2026-07-11); the PLUMED slice added the plumed rail, 29th; the MESCAL
-    # onboarding added the mescal coherent-transport rail, 30th (2026-07-13); the
-    # composites domain added the materialscodegraph effective-medium rail, 31st
-    # (2026-07-13).
+    # onboarding added the mescal coherent-transport rail, 30th (2026-07-13).
+    # A platform rail registered by the composites domain (2026-07-13) was
+    # removed 2026-07-22 (the composite formulas are the map's own closed-form
+    # edges); the xtb rail (the engine the GFN2-xTB thermo evidence names
+    # in-hash) landed the same day, so the roster stands at 31.
     assert len(files) == len(reps)
     assert len(files) == 31
 

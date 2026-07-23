@@ -78,15 +78,18 @@ const body = script.slice(script.indexOf('function esc'), script.indexOf('fetch(
 const {card} = new Function(body + '; return {esc: esc, card: card};')();
 const codes = JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
 const assert = require('assert');
-const html = card('materialscodegraph', codes['materialscodegraph']);
-assert(html.includes('for MolarHeatCapacity'));
-assert(html.includes('for ReactionEnergy'));
-assert(html.includes('doi.org/10.1021/acs.jctc.8b01176'));
-assert(html.includes('doi.org/10.1063/1.365209'));
-assert(html.match(/for DepolarizationFactor/));
-assert(!html.includes('No citation recorded'));
+assert(!('materialscodegraph' in codes), 'the platform must not be a code rail');
 const k = card('kaldo', codes['kaldo']);
 assert(!k.includes('bib-cite-for'));
+assert(k.includes('doi.org/10.1063/5.0020443'));
+// per-node method split: synthetic, since no live code carries one today;
+// the mechanism stays (PER_NODE_CREDITS) and the renderer must keep it honest
+const split = {A:{citation:'Method One 2019',doi:'10.1/a',license:'MIT'},
+               B:{citation:'Method One 2019',doi:'10.1/a',license:'MIT'},
+               C:{citation:'Method Two 2021',doi:'10.1/b',license:'MIT'}};
+const sp = card('split', split);
+assert(sp.includes('for A, B') && sp.includes('for C'), 'coverage labels');
+assert(sp.includes('doi.org/10.1/b'), 'secondary method DOI linked');
 const synth = {A:{citation:'',license:'MIT'},B:{citation:'',license:'MIT'},
                C:{citation:'Real Paper 2020',doi:'10.1/x',license:'MIT'}};
 const sh = card('synth', synth);
