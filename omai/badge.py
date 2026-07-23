@@ -72,6 +72,61 @@ def _text_width(s: str) -> float:
     return _tenths(sum(_WIDTHS.get(c, _FALLBACK) for c in s))
 
 
+def labeled_badge_svg(label: str, message: str) -> str:
+    """A shields-style badge with an arbitrary label and message, sharing
+    the version badge's exact geometry, mark, and colors. Byte-identical
+    with badge.js statBadgeSVG for the same inputs (parity-pinned)."""
+    lw = _text_width(label)
+    rw = _text_width(message)
+    left = _round_half_up(5 + 14 + 4 + lw + 6)
+    right = _round_half_up(6 + rw + 6)
+    total = left + right
+    lx = _tenths(23 + lw / 2)
+    rx = _tenths(left + right / 2)
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="' + str(total) +
+        '" height="20" role="img" aria-label="' + label + ": " + message + '">' +
+        "<title>" + label + ": " + message + "</title>" +
+        '<linearGradient id="s" x2="0" y2="100%">' +
+        '<stop offset="0" stop-color="#bbb" stop-opacity=".1"/>' +
+        '<stop offset="1" stop-opacity=".1"/></linearGradient>' +
+        '<clipPath id="r"><rect width="' + str(total) +
+        '" height="20" rx="3" fill="#fff"/></clipPath>' +
+        '<g clip-path="url(#r)">' +
+        '<rect width="' + str(left) + '" height="20" fill="' + LEFT_BG + '"/>' +
+        '<rect x="' + str(left) + '" width="' + str(right) +
+        '" height="20" fill="' + RIGHT_BG + '"/>' +
+        '<rect width="' + str(total) + '" height="20" fill="url(#s)"/></g>' +
+        _MARK +
+        '<g fill="#fff" text-anchor="middle" ' +
+        'font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">' +
+        '<text x="' + _num(lx) + '" y="15" fill="#010101" fill-opacity=".3" ' +
+        'textLength="' + _num(lw) + '">' + label + "</text>" +
+        '<text x="' + _num(lx) + '" y="14" textLength="' + _num(lw) + '">' +
+        label + "</text>" +
+        '<text x="' + _num(rx) + '" y="15" fill="#010101" fill-opacity=".3" ' +
+        'textLength="' + _num(rw) + '">' + message + "</text>" +
+        '<text x="' + _num(rx) + '" y="14" textLength="' + _num(rw) + '">' +
+        message + "</text></g></svg>"
+    )
+
+
+def map_stats() -> dict[str, int]:
+    """The live map statistics the stat badges state, computed from the
+    same published data files every page reads: never hardcoded."""
+    docs = Path(__file__).resolve().parents[1] / "docs"
+    graph = json.loads((docs / "data" / "graph.json").read_text())
+    codes = json.loads((docs / "data" / "codes.json").read_text())
+    insts = json.loads((docs / "data" / "instances.json").read_text())
+    ops = {l["op"] for l in graph.get("links", []) if isinstance(l, dict) and l.get("op")}
+    return {
+        "nodes": len(graph.get("nodes", [])),
+        "operators": len(ops),
+        "codes": len(codes),
+        "values": len(insts if isinstance(insts, list) else insts.get("instances", [])),
+    }
+
+
 def badge_svg(version: str) -> str:
     """The badge SVG for one map version hash (shown at the canonical 12)."""
     v = str(version)[:12]
@@ -132,6 +187,13 @@ def write_badge(path: Path | None = None) -> Path:
     for stale in pin_dir.glob("*.svg"):
         if stale.name != pin.name:
             stale.unlink()
+    # the live stat badges, as static files for the Pages origin; the Worker
+    # computes the same numbers from the same data on /badge/stat/<name>.svg
+    stat_dir = pin_dir / "stat"
+    stat_dir.mkdir(exist_ok=True)
+    for name, count in map_stats().items():
+        (stat_dir / (name + ".svg")).write_text(
+            labeled_badge_svg(name, str(count)) + "\n", encoding="utf-8")
     return out
 
 
