@@ -20,7 +20,7 @@ import {
   MINTS_PER_DAY, randomCode, parseCode, validateMintBody,
   shortlinkHTML, shortlinkNotFoundHTML,
 } from "./shortlinks.js";
-import { badgeSVG, BADGE_PATH_RE } from "./badge.js";
+import { badgeSVG, statBadgeSVG, BADGE_PATH_RE, STAT_BADGE_PATH_RE } from "./badge.js";
 
 // Origins allowed to mint (the read side is public by design). localhost
 // covers wrangler dev and the docs http.server used by tests.
@@ -70,6 +70,36 @@ export default {
     // does not certify the hash exists). /badge.svg itself is the static
     // asset for the CURRENT version, written at map_data time.
     if (url.pathname.startsWith("/badge/")) {
+      // /badge/stat/<name>.svg: a live statistic of the published map,
+      // computed from the same data files every page reads. Short cache:
+      // the numbers move with deploys, not with wall clock.
+      const sm = url.pathname.match(STAT_BADGE_PATH_RE);
+      if (sm) {
+        try {
+          const name = sm[1];
+          let count;
+          if (name === "nodes" || name === "operators") {
+            const graph = await assetJSON(env, request, "/data/graph.json");
+            if (name === "nodes") count = (graph.nodes || []).length;
+            else count = new Set((graph.links || []).map((l) => l && l.op).filter(Boolean)).size;
+          } else if (name === "codes") {
+            const codes = await assetJSON(env, request, "/data/codes.json");
+            count = Object.keys(codes).length;
+          } else {
+            const insts = await assetJSON(env, request, "/data/instances.json");
+            count = (Array.isArray(insts) ? insts : insts.instances || []).length;
+          }
+          return new Response(statBadgeSVG(name, count), {
+            headers: {
+              "content-type": "image/svg+xml; charset=utf-8",
+              "cache-control": "public, max-age=300",
+              "access-control-allow-origin": "*",
+            },
+          });
+        } catch (e) {
+          return new Response("stat unavailable", { status: 503 });
+        }
+      }
       const m = url.pathname.match(BADGE_PATH_RE);
       if (!m) {
         return new Response("a version badge is /badge/<8-64 hex>.svg", { status: 400 });

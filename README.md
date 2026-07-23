@@ -3,6 +3,11 @@
 # openmaterials-ai
 
 [![openmaterials map version](https://openmaterials.ai/badge/f69b18c18fb7.svg)](https://openmaterials.ai/)
+[![nodes](https://openmaterials.ai/badge/stat/nodes.svg)](https://openmaterials.ai/map/)
+[![operators](https://openmaterials.ai/badge/stat/operators.svg)](https://openmaterials.ai/map/)
+[![codes](https://openmaterials.ai/badge/stat/codes.svg)](https://openmaterials.ai/codes/)
+[![values](https://openmaterials.ai/badge/stat/values.svg)](https://openmaterials.ai/experiment/)
+
 [![status: beta](https://img.shields.io/badge/status-beta-4f46e5)](https://openmaterials.ai/)
 [![tests](https://github.com/openmaterials-ai/openmaterials/actions/workflows/ci.yml/badge.svg)](https://github.com/openmaterials-ai/openmaterials/actions/workflows/ci.yml)
 [![lean](https://github.com/openmaterials-ai/openmaterials/actions/workflows/lean.yml/badge.svg)](https://github.com/openmaterials-ai/openmaterials/actions/workflows/lean.yml)

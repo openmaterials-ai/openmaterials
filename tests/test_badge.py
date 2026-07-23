@@ -78,6 +78,42 @@ def test_static_pin_exists_for_the_committed_version():
     )
 
 
+def test_stat_badges_exist_and_are_fresh():
+    """The four stat badges are static files for the Pages origin, computed
+    from the published data (never hardcoded); the Worker recomputes the
+    same numbers live. Stale files fail here."""
+    from omai.badge import labeled_badge_svg, map_stats
+    stats = map_stats()
+    assert set(stats) == {"nodes", "operators", "codes", "values"}
+    for name, count in stats.items():
+        f = _DOCS / "badge" / "stat" / (name + ".svg")
+        assert f.exists(), f"missing stat badge {name}: rerun write_badge"
+        assert f.read_text() == labeled_badge_svg(name, str(count)) + "\n", (
+            f"stat badge {name} is stale: rerun write_badge and commit"
+        )
+
+
+def test_stat_badge_parity_with_the_worker():
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node not available")
+    from omai.badge import labeled_badge_svg
+    for label, msg in [("nodes", "114"), ("operators", "109"), ("values", "9999")]:
+        js = subprocess.run(
+            [node, "--input-type=module", "-e",
+             "import {statBadgeSVG} from '" + _BADGE_JS.resolve().as_uri() + "';"
+             "process.stdout.write(statBadgeSVG('" + label + "', '" + msg + "'));"],
+            capture_output=True, text=True, timeout=60)
+        assert js.returncode == 0, js.stderr
+        assert js.stdout == labeled_badge_svg(label, msg), label
+
+
+def test_readme_carries_the_stat_badges():
+    readme = (_ROOT / "README.md").read_text()
+    for name in ("nodes", "operators", "codes", "values"):
+        assert f"badge/stat/{name}.svg" in readme, name
+
+
 def test_python_and_worker_emit_identical_bytes():
     node = shutil.which("node")
     if node is None:

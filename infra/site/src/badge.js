@@ -76,3 +76,44 @@ export function badgeSVG(version) {
 }
 
 export const BADGE_PATH_RE = /^\/badge\/([0-9a-f]{8,64})\.svg$/;
+
+/** A shields-style badge with an arbitrary label and message, sharing the
+ *  version badge's exact geometry, mark, and colors. Byte-identical with
+ *  omai/badge.py labeled_badge_svg for the same inputs (parity-pinned). */
+export function statBadgeSVG(label, message) {
+  const lw = textWidth(label);
+  const rw = textWidth(String(message));
+  const left = Math.round(5 + 14 + 4 + lw + 6);
+  const right = Math.round(6 + rw + 6);
+  const total = left + right;
+  const lx = Math.round((23 + lw / 2) * 10) / 10;
+  const rx = Math.round((left + right / 2) * 10) / 10;
+  const msg = String(message);
+  return (
+    '<svg xmlns="http://www.w3.org/2000/svg" width="' + total +
+    '" height="20" role="img" aria-label="' + label + ': ' + msg + '">' +
+    '<title>' + label + ': ' + msg + '</title>' +
+    '<linearGradient id="s" x2="0" y2="100%">' +
+    '<stop offset="0" stop-color="#bbb" stop-opacity=".1"/>' +
+    '<stop offset="1" stop-opacity=".1"/></linearGradient>' +
+    '<clipPath id="r"><rect width="' + total +
+    '" height="20" rx="3" fill="#fff"/></clipPath>' +
+    '<g clip-path="url(#r)">' +
+    '<rect width="' + left + '" height="20" fill="' + LEFT_BG + '"/>' +
+    '<rect x="' + left + '" width="' + right +
+    '" height="20" fill="' + RIGHT_BG + '"/>' +
+    '<rect width="' + total + '" height="20" fill="url(#s)"/></g>' +
+    MARK +
+    '<g fill="#fff" text-anchor="middle" ' +
+    'font-family="Verdana,Geneva,DejaVu Sans,sans-serif" font-size="11">' +
+    '<text x="' + lx + '" y="15" fill="#010101" fill-opacity=".3" ' +
+    'textLength="' + lw + '">' + label + '</text>' +
+    '<text x="' + lx + '" y="14" textLength="' + lw + '">' + label + '</text>' +
+    '<text x="' + rx + '" y="15" fill="#010101" fill-opacity=".3" ' +
+    'textLength="' + rw + '">' + msg + '</text>' +
+    '<text x="' + rx + '" y="14" textLength="' + rw + '">' + msg + '</text></g></svg>'
+  );
+}
+
+export const STAT_BADGE_PATH_RE = /^\/badge\/stat\/(nodes|operators|codes|values)\.svg$/;
+
