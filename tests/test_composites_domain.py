@@ -403,14 +403,16 @@ def test_reference_instance_pins_the_nan_random_node():
     assert rec["node_uid"] == uid
 
 
-def test_materialscodegraph_rail_present_and_credited():
+def test_no_platform_rail_on_the_map():
+    """The composite formulas are the map's own closed-form edges; the
+    partner platform is provenance on the evidence, never a code rail
+    (removed 2026-07-22). The instances keep their source refs."""
     from omai.map_data import build_codes
     from omai.representation.credits import CODE_CREDITS
 
     codes = build_codes(DOMAINS)
-    assert "materialscodegraph" in codes
-    assert CODE_CREDITS["materialscodegraph"]["license"] == "Apache-2.0"
-    assert CODE_CREDITS["materialscodegraph"]["citation"]
+    assert "materialscodegraph" not in codes
+    assert "materialscodegraph" not in CODE_CREDITS
 
 
 def test_graph_totals_after_the_composites_domain():

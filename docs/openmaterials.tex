@@ -251,9 +251,10 @@ shape is already here.
 
 Today the framework is real and growing. It has an operator layer and a
 representation layer, 31 ingested representations (kaldo, phono3py, phonopy,
-pymatgen, ShengBTE, Quantum ESPRESSO, VASP, LAMMPS, GPUMD, i-PI, the machine-learned
-potentials matgl / MACE / fairchem, the database rail mp-api, and the CALPHAD,
-amset, ORCA, OpenMM, and AtomisticSkills mat-* / chem-* workflows), and a
+pymatgen, ShengBTE, Quantum ESPRESSO, VASP, LAMMPS, GPUMD, i-PI, xtb, the
+machine-learned potentials matgl / MACE / fairchem, the database rail mp-api,
+and the CALPHAD, amset, ORCA, OpenMM, and AtomisticSkills mat-* / chem-*
+workflows), and a
 validation engine that executes the graph, composes
 edges symbolically, and cross-checks redundant routes. Units reconcile
 automatically from the typed dimensions, and a dimensional gate checks every
@@ -2863,7 +2864,8 @@ sympy the dimensional gate proves; the Hasselman-Johnson spherical-limit formula
 random effective conductivity that must agree with Nan at aspect ratio 1, a
 gate-level cross-check pinned to machine precision. The reference DGEBA epoxy +
 5\,vol\% graphene-nanoplatelet draft gives $\kappa_c = 1.2452\,\mathrm{W/(m\,K)}$
-from the materialscodegraph closed-form tool.
+from the map's own closed-form edges (the evidence instance keeps its
+contribution provenance in its source ref).
 
 \paragraph{Instance uid pinning.} Instances are additive JSON that attach a value
 to a node. The uid pin lives in the regenerated projection, not the committed
@@ -3038,8 +3040,8 @@ numbers:
         kaldo 34, phono3py 31, phonopy 22, pymatgen 22, ShengBTE 20, mp-api 13,
         Quantum ESPRESSO 13, LAMMPS 12, VASP 10, GPUMD 8, pycalphad 7, matgl 5,
         mat-elasticity 5, amset 5, ORCA 5, pymatgen-analysis-diffusion 5,
-        i-PI 4, fairchem 4, MACE 4, OpenMM 4, materialscodegraph 5, ASE 3,
-        mat-diffusion-analysis 2, mescal 2, plumed 2, smol 2,
+        i-PI 4, fairchem 4, MACE 4, OpenMM 4, ASE 3,
+        mat-diffusion-analysis 2, mescal 2, plumed 2, smol 2, xtb 2,
         mat-equation-of-state 1, mat-surface-adsorption 1, rxn-network 1,
         diffcsp 1, mattergen 1.
   \item \textbf{Instances.} 91 recorded values, 87 simulation and 4 measurement.
@@ -3115,7 +3117,6 @@ mat-elasticity               & 5  & MIT \\
 amset                        & 5  & BSD-3-Clause \\
 ORCA                         & 5  & Proprietary \\
 pymatgen-analysis-diffusion  & 5  & BSD-3-Clause \\
-materialscodegraph           & 5  & Apache-2.0 \\
 i-PI                         & 4  & GPL-2.0-or-later / MIT \\
 fairchem                     & 4  & MIT \\
 MACE                         & 4  & MIT \\
@@ -3124,6 +3125,7 @@ ASE                          & 3  & LGPL-2.1-or-later \\
 mat-diffusion-analysis       & 2  & MIT \\
 mescal                       & 2  & MIT \\
 plumed                       & 2  & LGPL-3.0 \\
+xtb                          & 2  & LGPL-3.0 \\
 smol                         & 2  & BSD-3-Clause \\
 mat-equation-of-state        & 1  & MIT \\
 mat-surface-adsorption       & 1  & MIT \\
@@ -3152,7 +3154,7 @@ citation or a license, so no future rail can land uncredited.
 \label{sec:code-citations}
 
 The principal code rails on the map are cited below (the remaining rails,
-i-PI, PLUMED, MESCAL, and materialscodegraph, carry their citations in
+i-PI, PLUMED, and MESCAL, carry their citations in
 \texttt{omai/representation/credits.py}, the single source of truth the
 enforcement test reads). Where one code serves nodes through different
 methods, a per-node override (\texttt{PER\_NODE\_CREDITS}) carries the

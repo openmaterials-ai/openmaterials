@@ -88,10 +88,16 @@ def test_every_target_node_resolves_against_the_live_map():
 
 
 def test_every_target_code_maps_its_node_in_codes_json():
+    """A target's reproducer is a codes.json rail covering its node, or the
+    literal sentinel "closed-form": the value of a closed-form edge is
+    reproduced by the map's own executable formula, not by an external
+    code, and the kernel is not a rail on its own map."""
     codes = json.loads((_DATA / "codes.json").read_text())
     for f in _FILES:
         tgt = json.loads(f.read_text())
         code = tgt["code"]
+        if code == "closed-form":
+            continue
         assert code in codes, f"{f.name}: code {code!r} is not a codes.json rail"
         node = tgt["lineage"]["node"]
         assert node in codes[code], \

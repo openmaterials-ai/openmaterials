@@ -106,17 +106,3 @@ def test_overrides_reach_the_emitted_data():
         for field in ("citation", "doi", "license", "url"):
             assert entry[field] == cr.get(field), (
                 f"({rail}, {node}) field {field} does not carry the override")
-
-
-def test_mcg_method_rails_cite_their_methods():
-    """The rails that run GFN2-xTB cite it; the composite rails keep the
-    effective-medium papers. One code, honestly different methods."""
-    codes = build_codes(DOMAINS)
-    mcg = codes["materialscodegraph"]
-    assert "GFN2-xTB" in mcg["MolarHeatCapacity"]["citation"]
-    assert "GFN2-xTB" in mcg["ReactionEnergy"]["citation"]
-    assert "10.1021/acs.jctc.8b01176" == mcg["ReactionEnergy"]["doi"]
-    for node, e in mcg.items():
-        if node in ("MolarHeatCapacity", "ReactionEnergy"):
-            continue
-        assert "Nan" in e["citation"], node

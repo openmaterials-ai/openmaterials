@@ -1,1 +1,32 @@
-{"id": "e63f4de3a73a9a868ff0b54c94848e3af7993c9d9e74ad83309c81ad797fc823", "lineage": {"node": "ReactionEnergy", "material": "C9H10O2 (glycidyl phenyl ether)", "conditions": {"T": "298.15 K", "reaction": "glycidyl phenyl ether + aniline -> 1-(phenylamino)-3-phenoxy-2-propanol", "normalization": "per_reaction_event", "quantity": "reaction enthalpy dH(298 K)", "dh298_kJ_per_mol": -106.3, "model": "GFN2-xTB", "code": "xtb 6.7.1", "phase": "gas"}, "values": {"value": -1.101722, "units": "eV"}}, "code": "materialscodegraph", "expected": {"value": -1.101722, "units": "eV"}, "tolerance": {"value": 0.0622, "kind": "absolute"}, "evidence": "c9h10o2-glycidyl-phenyl-ether-reactionenergy-materialscodegraph-cure-dh-gpe-aniline-gfn2.json", "note": "tolerance is the mcg eval's 6.0 kJ/mol per reaction event converted at 96.485 kJ/mol per eV"}
+{
+ "id": "e63f4de3a73a9a868ff0b54c94848e3af7993c9d9e74ad83309c81ad797fc823",
+ "lineage": {
+  "node": "ReactionEnergy",
+  "material": "C9H10O2 (glycidyl phenyl ether)",
+  "conditions": {
+   "T": "298.15 K",
+   "reaction": "glycidyl phenyl ether + aniline -> 1-(phenylamino)-3-phenoxy-2-propanol",
+   "normalization": "per_reaction_event",
+   "quantity": "reaction enthalpy dH(298 K)",
+   "dh298_kJ_per_mol": -106.3,
+   "model": "GFN2-xTB",
+   "code": "xtb 6.7.1",
+   "phase": "gas"
+  },
+  "values": {
+   "value": -1.101722,
+   "units": "eV"
+  }
+ },
+ "code": "xtb",
+ "expected": {
+  "value": -1.101722,
+  "units": "eV"
+ },
+ "tolerance": {
+  "value": 0.0622,
+  "kind": "absolute"
+ },
+ "evidence": "c9h10o2-glycidyl-phenyl-ether-reactionenergy-materialscodegraph-cure-dh-gpe-aniline-gfn2.json",
+ "note": "tolerance is the mcg eval's 6.0 kJ/mol per reaction event converted at 96.485 kJ/mol per eV"
+}
