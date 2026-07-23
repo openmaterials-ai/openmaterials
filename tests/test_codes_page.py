@@ -8,7 +8,9 @@ and never invent references (the physlib citation carries no DOI because
 none exists).
 """
 
+import json
 import re
+import subprocess
 from pathlib import Path
 
 DOCS = Path(__file__).resolve().parents[1] / "docs"
@@ -53,3 +55,59 @@ def test_no_hardcoded_roster():
     static = re.sub(r"<script>.*?</script>", "", body, flags=re.S)
     for code in ("kaldo", "phono3py", "lammps", "quantum"):
         assert code not in static.lower(), code + " is baked into the markup"
+
+
+def test_per_node_citations_are_never_hidden():
+    """A code serving nodes through different methods shows every distinct
+    citation on its card, with the quantities each one covers: the primary
+    included, and an entry without a citation can never outrank one that
+    has one."""
+    assert "bib-cite-more" in PAGE
+    assert "named.slice(1)" in PAGE
+    assert "groups.filter(function (g) { return g.citation; })" in PAGE, \
+        "the primary citation must be the largest NAMED group"
+    assert "primary && named.length > 1" in PAGE, \
+        "with several methods the primary must state its coverage too"
+
+
+NODE_HARNESS = r"""
+const fs = require('fs');
+const page = fs.readFileSync(process.argv[1],'utf8');
+const script = page.match(/<script>([\s\S]*?)<\/script>/)[1];
+const body = script.slice(script.indexOf('function esc'), script.indexOf('fetch('));
+const {card} = new Function(body + '; return {esc: esc, card: card};')();
+const codes = JSON.parse(fs.readFileSync(process.argv[2],'utf8'));
+const assert = require('assert');
+const html = card('materialscodegraph', codes['materialscodegraph']);
+assert(html.includes('for MolarHeatCapacity'));
+assert(html.includes('for ReactionEnergy'));
+assert(html.includes('doi.org/10.1021/acs.jctc.8b01176'));
+assert(html.includes('doi.org/10.1063/1.365209'));
+assert(html.match(/for DepolarizationFactor/));
+assert(!html.includes('No citation recorded'));
+const k = card('kaldo', codes['kaldo']);
+assert(!k.includes('bib-cite-for'));
+const synth = {A:{citation:'',license:'MIT'},B:{citation:'',license:'MIT'},
+               C:{citation:'Real Paper 2020',doi:'10.1/x',license:'MIT'}};
+const sh = card('synth', synth);
+assert(sh.includes('Real Paper 2020') && !sh.includes('No citation recorded'));
+console.log('ok');
+"""
+
+
+def test_card_renderer_behaves_on_real_data():
+    """The card function itself, run in node against the real codes.json:
+    per-node method citations render with their coverage, the primary is
+    the largest NAMED group even when an unnamed group is larger, and a
+    single-method card carries no coverage-label noise."""
+    import shutil
+    node = shutil.which("node")
+    if node is None:
+        import pytest
+        pytest.skip("node not available")
+    out = subprocess.run(
+        [node, "-e", NODE_HARNESS, str(DOCS / "codes/index.html"),
+         str(DOCS / "data/codes.json")],
+        capture_output=True, text=True, timeout=60)
+    assert out.returncode == 0, out.stderr
+    assert out.stdout.strip() == "ok"

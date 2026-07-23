@@ -234,8 +234,9 @@ CODE_CREDITS: dict[str, dict] = {
     "pymatgen-analysis-diffusion": {
         "citation": "I.-H. Chu, Z. Deng, H. Nguyen, et al., pymatgen-analysis-"
         "diffusion (pymatgen-diffusion add-on); method: Z. Deng, Z. Zhu, "
-        "I.-H. Chu, S. P. Ong, Data-driven first-principles methods for the "
-        "study of ionic conductivity, Chem. Mater. 29, 281 (2017)",
+        "I.-H. Chu, S. P. Ong, Data-Driven First-Principles Methods for the "
+        "Study and Design of Alkali Superionic Conductors, Chem. Mater. 29, "
+        "281 (2017)",
         "doi": "10.1021/acs.chemmater.6b02648",
         "license": "BSD-3-Clause",
         "license_source": "pymatgen-analysis-diffusion wheel METADATA "
@@ -244,8 +245,8 @@ CODE_CREDITS: dict[str, dict] = {
     },
     "rxn-network": {
         "citation": "M. J. McDermott, S. S. Dwaraknath, K. A. Persson, A "
-        "graph-based network for predicting inorganic reaction pathways, "
-        "Nat. Commun. 12, 3097 (2021)",
+        "graph-based network for predicting chemical reaction pathways in "
+        "solid-state materials synthesis, Nat. Commun. 12, 3097 (2021)",
         "doi": "10.1038/s41467-021-23339-x",
         "license": "modified BSD (BSD-3-Clause)",
         "license_source": "reaction-network wheel METADATA "
@@ -272,25 +273,31 @@ CODE_CREDITS: dict[str, dict] = {
     },
     # --- composites (effective medium) ---------------------------------------
     "materialscodegraph": {
-        # The composite effective-conductivity tool implements two published,
-        # validated formulas; the citation names both (the map author reproduced
-        # the pinned 1.2452 W/(m K) reference independently against them).
-        "citation": "C.-W. Nan, R. Birringer, D. R. Clarke, H. Gleiter, Effective "
-        "thermal conductivity of particulate composites with interfacial thermal "
-        "resistance, J. Appl. Phys. 81, 6692 (1997); spherical-limit cross-check "
-        "D. P. H. Hasselman, L. F. Johnson, Effective thermal conductivity of "
-        "composites with interfacial thermal barrier resistance, J. Compos. "
-        "Mater. 21, 508 (1987)",
+        # The software is cited per its own CITATION.cff (dvnclabs/
+        # materialscodegraph, G. Barbalinardo, type software, no DOI). The
+        # composite effective-conductivity tool implements two published,
+        # validated formulas; the citation names both (the map author
+        # reproduced the pinned 1.2452 W/(m K) reference independently
+        # against them). The non-composite rails carry their own method
+        # citations in PER_NODE_CREDITS below.
+        "citation": "G. Barbalinardo, materialscodegraph (mcg), "
+        "github.com/dvnclabs/materialscodegraph; the composite tool "
+        "implements C.-W. Nan, R. Birringer, D. R. Clarke, H. Gleiter, "
+        "Effective thermal conductivity of particulate composites with "
+        "interfacial thermal resistance, J. Appl. Phys. 81, 6692 (1997); "
+        "spherical-limit cross-check D. P. H. Hasselman, L. F. Johnson, "
+        "Effective thermal conductivity of composites with interfacial "
+        "thermal barrier resistance, J. Compos. Mater. 21, 508 (1987)",
         "doi": "10.1063/1.365209",
         "license": "Apache-2.0",
         # materialscodegraph is a private Da Vinci Labs repository (the repo
         # metadata endpoint is not public); its committed LICENSE file reads
         # Apache License 2.0, read directly from the file over the API.
-        "license_source": "materialscodegraph/materialscodegraph LICENSE (gh api "
-        "repos/materialscodegraph/materialscodegraph/contents/LICENSE -> Apache "
-        "License 2.0, spdx_id Apache-2.0; private Da Vinci Labs repo, verified "
-        "2026-07-13)",
-        "url": "https://github.com/materialscodegraph/materialscodegraph",
+        "license_source": "materialscodegraph LICENSE (gh api "
+        "contents/LICENSE -> Apache License 2.0, spdx_id Apache-2.0; private "
+        "Da Vinci Labs repo, verified 2026-07-13); citation per its "
+        "CITATION.cff (dvnclabs/materialscodegraph, read 2026-07-22)",
+        "url": "https://github.com/dvnclabs/materialscodegraph",
     },
     # --- thermochemistry -----------------------------------------------------
     "pycalphad": {
@@ -326,7 +333,7 @@ CODE_CREDITS: dict[str, dict] = {
     # --- AtomisticSkills skill rails (cite the AtomisticSkills paper) ---------
     "mat-elasticity": {
         "citation": "B. Deng, B. Li, M. Cox, et al., Harnessing AtomisticSkills "
-        "for Agentic Atomistic Research (2025), arXiv:2605.24002 "
+        "for Agentic Atomistic Research (2026), arXiv:2605.24002 "
         "(mat-elasticity skill)",
         "doi": "10.48550/arXiv.2605.24002",
         "license": "MIT",
@@ -336,7 +343,7 @@ CODE_CREDITS: dict[str, dict] = {
     },
     "mat-diffusion-analysis": {
         "citation": "B. Deng, B. Li, M. Cox, et al., Harnessing AtomisticSkills "
-        "for Agentic Atomistic Research (2025), arXiv:2605.24002 "
+        "for Agentic Atomistic Research (2026), arXiv:2605.24002 "
         "(mat-diffusion-analysis skill)",
         "doi": "10.48550/arXiv.2605.24002",
         "license": "MIT",
@@ -346,7 +353,7 @@ CODE_CREDITS: dict[str, dict] = {
     },
     "mat-equation-of-state": {
         "citation": "B. Deng, B. Li, M. Cox, et al., Harnessing AtomisticSkills "
-        "for Agentic Atomistic Research (2025), arXiv:2605.24002 "
+        "for Agentic Atomistic Research (2026), arXiv:2605.24002 "
         "(mat-equation-of-state skill)",
         "doi": "10.48550/arXiv.2605.24002",
         "license": "MIT",
@@ -356,7 +363,7 @@ CODE_CREDITS: dict[str, dict] = {
     },
     "mat-surface-adsorption": {
         "citation": "B. Deng, B. Li, M. Cox, et al., Harnessing AtomisticSkills "
-        "for Agentic Atomistic Research (2025), arXiv:2605.24002 "
+        "for Agentic Atomistic Research (2026), arXiv:2605.24002 "
         "(mat-surface-adsorption skill)",
         "doi": "10.48550/arXiv.2605.24002",
         "license": "MIT",
@@ -366,7 +373,7 @@ CODE_CREDITS: dict[str, dict] = {
     },
     # --- foundation library --------------------------------------------------
     "ase": {
-        "citation": "A. H. Larsen, J. J. Mortensen, J. Blomqvist, et al., The "
+        "citation": "A. Hjorth Larsen, J. J. Mortensen, J. Blomqvist, et al., The "
         "atomic simulation environment - a Python library for working with "
         "atoms, J. Phys. Condens. Matter 29, 273002 (2017)",
         "doi": "10.1088/1361-648X/aa680e",
@@ -374,5 +381,42 @@ CODE_CREDITS: dict[str, dict] = {
         "license_source": "ase pip metadata "
         "(pip show ase, License-Expression: LGPL-2.1-or-later)",
         "url": "https://ase-lib.org",
+    },
+}
+
+# Per-rail overrides: a code can serve nodes through DIFFERENT methods, and a
+# node's citation must name the method that actually produced it. Keyed by
+# (representation_name, node id as it appears on the map); each value meets the
+# same bar as a CODE_CREDITS entry. build_codes applies these after the
+# code-level credit, and the enforcement test fails on an override that points
+# at a rail/node pair not present on the map.
+PER_NODE_CREDITS: dict[tuple[str, str], dict] = {
+    ("materialscodegraph", "MolarHeatCapacity"): {
+        "citation": "G. Barbalinardo, materialscodegraph (mcg) molecular-thermo "
+        "tool, github.com/dvnclabs/materialscodegraph; method: C. Bannwarth, "
+        "S. Ehlert, S. Grimme, GFN2-xTB, an Accurate and Broadly Parametrized "
+        "Self-Consistent Tight-Binding Quantum Chemical Method with Multipole "
+        "Electrostatics and Density-Dependent Dispersion Contributions, "
+        "J. Chem. Theory Comput. 15, 1652 (2019)",
+        "doi": "10.1021/acs.jctc.8b01176",
+        "license": "Apache-2.0",
+        "license_source": "same repository as the materialscodegraph rail "
+        "(LICENSE Apache-2.0); method DOI verified via doi.org metadata "
+        "2026-07-22 (Bannwarth 2019, J. Chem. Theory Comput.)",
+        "url": "https://github.com/dvnclabs/materialscodegraph",
+    },
+    ("materialscodegraph", "ReactionEnergy"): {
+        "citation": "G. Barbalinardo, materialscodegraph (mcg) reaction-thermo "
+        "tool, github.com/dvnclabs/materialscodegraph; method: C. Bannwarth, "
+        "S. Ehlert, S. Grimme, GFN2-xTB, an Accurate and Broadly Parametrized "
+        "Self-Consistent Tight-Binding Quantum Chemical Method with Multipole "
+        "Electrostatics and Density-Dependent Dispersion Contributions, "
+        "J. Chem. Theory Comput. 15, 1652 (2019)",
+        "doi": "10.1021/acs.jctc.8b01176",
+        "license": "Apache-2.0",
+        "license_source": "same repository as the materialscodegraph rail "
+        "(LICENSE Apache-2.0); method DOI verified via doi.org metadata "
+        "2026-07-22 (Bannwarth 2019, J. Chem. Theory Comput.)",
+        "url": "https://github.com/dvnclabs/materialscodegraph",
     },
 }
