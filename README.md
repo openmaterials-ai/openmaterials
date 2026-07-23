@@ -3,16 +3,6 @@
 # openmaterials-ai
 
 [![openmaterials map version](https://openmaterials.ai/badge/f69b18c18fb7.svg)](https://openmaterials.ai/)
-[![nodes](https://openmaterials.ai/badge/stat/nodes.svg)](https://openmaterials.ai/map/)
-[![operators](https://openmaterials.ai/badge/stat/operators.svg)](https://openmaterials.ai/map/)
-[![codes](https://openmaterials.ai/badge/stat/codes.svg)](https://openmaterials.ai/codes/)
-[![values](https://openmaterials.ai/badge/stat/values.svg)](https://openmaterials.ai/experiment/)
-
-[![status: beta](https://img.shields.io/badge/status-beta-4f46e5)](https://openmaterials.ai/)
-[![tests](https://github.com/openmaterials-ai/openmaterials/actions/workflows/ci.yml/badge.svg)](https://github.com/openmaterials-ai/openmaterials/actions/workflows/ci.yml)
-[![lean](https://github.com/openmaterials-ai/openmaterials/actions/workflows/lean.yml/badge.svg)](https://github.com/openmaterials-ai/openmaterials/actions/workflows/lean.yml)
-[![code: Apache-2.0](https://img.shields.io/badge/code-Apache--2.0-4f46e5)](LICENSE)
-[![data: CC BY 4.0](https://img.shields.io/badge/map%20data-CC%20BY%204.0-4f46e5)](LICENSE-DATA)
 
 
 A typed substrate for computational materials science. Workflows are directed
@@ -224,7 +214,7 @@ it as a simulation on MaterialsCodeGraph), and the experiments index takes
 
 ## The verified layer (Lean 4)
 
-[![Lean proof check](https://github.com/openmaterials-ai/openmaterials/actions/workflows/lean.yml/badge.svg)](https://github.com/openmaterials-ai/openmaterials/actions/workflows/lean.yml)
+[![Lean proof check](https://github.com/openmaterials-ai/openmaterials-ai/actions/workflows/lean.yml/badge.svg)](https://github.com/openmaterials-ai/openmaterials-ai/actions/workflows/lean.yml)
 
 The map's dimensional structure and its rational identities are proven in
 Lean 4: every exported node is a physics dimension checked against

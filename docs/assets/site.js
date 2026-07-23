@@ -24,7 +24,7 @@
 
   function site(p) { return new URL(p, siteBase).href; }
 
-  var REPO = 'https://github.com/openmaterials-ai/openmaterials';
+  var REPO = 'https://github.com/openmaterials-ai/openmaterials-ai';
 
   // Nav items: [label, href, matchPrefix, isExternal]. The GitHub item is an
   // icon-less text link "Source".

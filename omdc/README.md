@@ -3,7 +3,7 @@
 Graded distances between atomic configurations. The OpenMaterials hash
 answers "same or different"; `omdc` answers "how far".
 
-[OpenMaterials](https://github.com/openmaterials-ai/openmaterials) gives every
+[OpenMaterials](https://github.com/openmaterials-ai/openmaterials-ai) gives every
 configuration a content-addressed identity (`canonical_uid`) and every
 computation a lineage. This library adds the continuous complement: named,
 versioned distance metrics over configurations, built to traverse large
@@ -166,7 +166,7 @@ name; unknown names fail loudly rather than skipping).
 ## Relation to the rest of OpenMaterials
 
 Identity and lineage live in
-[openmaterials](https://github.com/openmaterials-ai/openmaterials); heavy
+[openmaterials](https://github.com/openmaterials-ai/openmaterials-ai); heavy
 artifacts live on [MaterialsCodeGraph](https://materialscodegraph.com/) by
 pointer. The upcoming simulation-distance layer (`omds`) encodes lineage records
 and delegates its material leaf to this package.
