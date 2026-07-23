@@ -113,11 +113,25 @@ def badge_svg(version: str) -> str:
 
 def write_badge(path: Path | None = None) -> Path:
     """Write docs/badge.svg for the current map version, read from the
-    version stamp write_version() has already written (single source)."""
+    version stamp write_version() has already written (single source).
+
+    Also emits the PINNED form as a static file, docs/badge/<version12>.svg,
+    and prunes pins of other versions: before the DNS cutover the site is
+    served by GitHub Pages, which cannot run the Worker's /badge/<hash>.svg
+    route, so the pin the README carries must exist as real bytes. The
+    Worker serves the same bytes for the current version and generates any
+    other hash on demand; the static set is always exactly one file."""
     docs = Path(__file__).resolve().parents[1] / "docs"
     version = json.loads((docs / "data" / "version.json").read_text())["version"]
     out = path or docs / "badge.svg"
     out.write_text(badge_svg(version) + "\n", encoding="utf-8")
+    pin_dir = docs / "badge"
+    pin_dir.mkdir(exist_ok=True)
+    pin = pin_dir / (version[:12] + ".svg")
+    pin.write_text(badge_svg(version) + "\n", encoding="utf-8")
+    for stale in pin_dir.glob("*.svg"):
+        if stale.name != pin.name:
+            stale.unlink()
     return out
 
 

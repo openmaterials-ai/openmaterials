@@ -60,6 +60,24 @@ def test_committed_badge_matches_the_committed_version():
     )
 
 
+def test_static_pin_exists_for_the_committed_version():
+    """The pinned badge the README embeds must exist as real bytes:
+    before the DNS cutover, GitHub Pages serves the site and cannot run
+    the Worker's /badge/<hash>.svg route. Exactly one pin, the current
+    version's, byte-equal to the generator."""
+    version = json.loads((_DOCS / "data" / "version.json").read_text())["version"]
+    pin = _DOCS / "badge" / (version[:12] + ".svg")
+    assert pin.exists(), (
+        f"missing static pin {pin.name}: regenerate with PYTHONPATH=. python "
+        "-c 'from omai.badge import write_badge; write_badge()' and commit"
+    )
+    assert pin.read_text() == badge_svg(version) + "\n"
+    pins = sorted(p.name for p in (_DOCS / "badge").glob("*.svg"))
+    assert pins == [version[:12] + ".svg"], (
+        f"stale pins alongside the current one: {pins}"
+    )
+
+
 def test_python_and_worker_emit_identical_bytes():
     node = shutil.which("node")
     if node is None:
