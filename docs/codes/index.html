@@ -40,6 +40,9 @@
   .bib-count{font-family:var(--font-mono);font-feature-settings:"zero" 1;font-size:.72rem;font-weight:500;color:var(--muted);border:1px solid var(--line);border-radius:999px;padding:1px 9px;white-space:nowrap;}
   .bib-lic{font-size:.68rem;font-weight:600;letter-spacing:.04em;color:var(--ink-2);background:var(--accent-soft);border-radius:999px;padding:2px 9px;white-space:nowrap;}
   .bib-cite{margin:.7rem 0 .5rem;font-size:.9rem;line-height:1.6;color:var(--ink-2);}
+  .bib-cite-more{margin-top:0;font-size:.84rem;}
+  .bib-cite-more .bib-cite-for{font-family:var(--font-mono);font-size:.72rem;color:var(--muted);}
+  .bib-cite-more a{color:var(--accent);text-decoration:none;}
   .bib-links{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.82rem;margin:0 0 .2rem;}
   .bib-links a{color:var(--accent);text-decoration:none;}
   .bib-links a:hover{text-decoration:underline;}
@@ -162,20 +165,35 @@
       '<a href="../data/codes.json">../data/codes.json</a>.</p>';
   }
 
-  // One code -> one card. `entries` is the { NodeName: spec } object; shared
-  // fields (citation, license, url) are taken from the first entry that has them.
+  // One code -> one card. `entries` is the { NodeName: spec } object. A code
+  // can serve nodes through DIFFERENT methods (per-node credits), so the card
+  // shows every distinct citation it carries, largest coverage first.
   function card(name, entries) {
     var nodes = Object.keys(entries);
     var count = nodes.length;
 
-    var citation = '', license = '', url = '', doi = '';
+    var license = '', url = '';
     nodes.forEach(function (n) {
       var e = entries[n] || {};
-      if (!citation && e.citation) citation = e.citation;
       if (!license && e.license) license = e.license;
       if (!url && e.url) url = e.url;
-      if (!doi && e.doi) doi = e.doi;
     });
+    // distinct citations, each with its doi and the nodes it covers
+    var groups = [];
+    nodes.forEach(function (n) {
+      var e = entries[n] || {};
+      var c = e.citation || '';
+      var g = null;
+      for (var i = 0; i < groups.length; i++) if (groups[i].citation === c) { g = groups[i]; break; }
+      if (!g) { g = { citation: c, doi: e.doi || '', nodes: [] }; groups.push(g); }
+      g.nodes.push(n);
+    });
+    groups.sort(function (a, b) { return b.nodes.length - a.nodes.length; });
+    // the primary citation is the largest group that actually has one
+    var named = groups.filter(function (g) { return g.citation; });
+    var primary = named.length ? named[0] : null;
+    var citation = primary ? primary.citation : '';
+    var doi = primary ? primary.doi : '';
 
     var safeUrl = /^https?:\/\//i.test(url) ? url : '';
     var nameHtml = safeUrl
@@ -187,9 +205,20 @@
       (license ? '<span class="bib-lic">' + esc(license) + '</span>' : '') +
       '</div>';
 
+    // with more than one named method, every citation states its coverage,
+    // the primary included, so no quantity's credit is ambiguous
+    var primaryLabel = (primary && named.length > 1)
+      ? '<span class="bib-cite-for">for ' + esc(primary.nodes.join(', ')) + ':</span> '
+      : '';
     var cite = citation
-      ? '<p class="bib-cite">' + esc(citation) + '</p>'
+      ? '<p class="bib-cite">' + primaryLabel + esc(citation) + '</p>'
       : '<p class="bib-cite empty">No citation recorded.</p>';
+    named.slice(1).forEach(function (g) {
+      cite += '<p class="bib-cite bib-cite-more"><span class="bib-cite-for">for ' +
+        esc(g.nodes.join(', ')) + ':</span> ' + esc(g.citation) +
+        (g.doi ? ' <a href="https://doi.org/' + esc(g.doi) + '" rel="noopener">doi.org/' + esc(g.doi) + '</a>' : '') +
+        '</p>';
+    });
 
     var mapHref = '../map/#code=' + encodeURIComponent(name);
     var links = '<div class="bib-links">' +

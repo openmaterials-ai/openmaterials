@@ -3151,7 +3151,10 @@ citation or a license, so no future rail can land uncredited.
 The principal code rails on the map are cited below (the remaining rails,
 i-PI, PLUMED, MESCAL, and materialscodegraph, carry their citations in
 \texttt{omai/representation/credits.py}, the single source of truth the
-enforcement test reads). References were taken from each code's
+enforcement test reads). Where one code serves nodes through different
+methods, a per-node override (\texttt{PER\_NODE\_CREDITS}) carries the
+method citation, so a quantity is never credited to a formula that did not
+produce it. References were taken from each code's
 own citation guidance where it exists (kaldo, LAMMPS, phonopy, phono3py, and the
 AtomisticSkills paper were read this way) and otherwise from the canonical method
 paper, verified against the project's citation page.
@@ -3214,12 +3217,13 @@ paper, verified against the project's citation page.
         \emph{smol: A Python package for cluster expansions and beyond}, J. Open
         Source Softw. \textbf{7}, 4504 (2022). doi:10.21105/joss.04504.
   \item \textbf{pymatgen-analysis-diffusion}: Z. Deng, Z. Zhu, I.-H. Chu,
-        S. P. Ong, \emph{Data-driven first-principles methods for the study of
-        ionic conductivity}, Chem. Mater. \textbf{29}, 281 (2017).
-        doi:10.1021/acs.chemmater.6b02648.
+        S. P. Ong, \emph{Data-Driven First-Principles Methods for the Study and
+        Design of Alkali Superionic Conductors}, Chem. Mater. \textbf{29}, 281
+        (2017). doi:10.1021/acs.chemmater.6b02648.
   \item \textbf{rxn-network}: M. J. McDermott, S. S. Dwaraknath, K. A. Persson,
-        \emph{A graph-based network for predicting inorganic reaction pathways},
-        Nat. Commun. \textbf{12}, 3097 (2021). doi:10.1038/s41467-021-23339-x.
+        \emph{A graph-based network for predicting chemical reaction pathways in
+        solid-state materials synthesis}, Nat. Commun. \textbf{12}, 3097 (2021).
+        doi:10.1038/s41467-021-23339-x.
   \item \textbf{DiffCSP}: R. Jiao, W. Huang, P. Lin, J. Han, P. Chen, Y. Lu,
         Y. Liu, \emph{Crystal Structure Prediction by Joint Equivariant
         Diffusion}, NeurIPS 36 (2023), arXiv:2309.04475 (the map uses the
@@ -3237,14 +3241,14 @@ paper, verified against the project's citation page.
   \item \textbf{ORCA}: F. Neese, \emph{Software update: The ORCA program system,
         Version 6.0}, WIREs Comput. Mol. Sci. \textbf{15}, e70019 (2025).
         doi:10.1002/wcms.70019.
-  \item \textbf{ASE}: A. H. Larsen, J. J. Mortensen, J. Blomqvist, et al.,
+  \item \textbf{ASE}: A. Hjorth Larsen, J. J. Mortensen, J. Blomqvist, et al.,
         \emph{The atomic simulation environment: a Python library for working
         with atoms}, J. Phys. Condens. Matter \textbf{29}, 273002 (2017).
         doi:10.1088/1361-648X/aa680e.
   \item \textbf{mat-elasticity, mat-diffusion-analysis, mat-equation-of-state,
         mat-surface-adsorption} (AtomisticSkills skills): B. Deng, B. Li,
         M. Cox, et al., \emph{Harnessing AtomisticSkills for Agentic Atomistic
-        Research} (2025), arXiv:2605.24002. doi:10.48550/arXiv.2605.24002.
+        Research} (2026), arXiv:2605.24002. doi:10.48550/arXiv.2605.24002.
 \end{itemize}
 
 \section{The build order ahead}

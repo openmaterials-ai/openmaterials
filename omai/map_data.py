@@ -176,7 +176,7 @@ def build_codes(domains: tuple[Domain, ...]) -> dict:
     # uncredited. Credits attach to every per-space entry of the rail so the
     # site can read them from any of a rail's rows.
     from omai.representation.adapter import SpaceRepresentationSpec
-    from omai.representation.credits import CODE_CREDITS
+    from omai.representation.credits import CODE_CREDITS, PER_NODE_CREDITS
     codes: dict[str, dict[str, dict]] = {}
     for d in domains:
         pkg = d.representation_package
@@ -189,7 +189,9 @@ def build_codes(domains: tuple[Domain, ...]) -> dict:
                 if isinstance(obj, SpaceRepresentationSpec):
                     api = next(iter(obj.code_api.values()), None) if obj.code_api else None
                     unit = next(iter(obj.observable_units.values()), None) if obj.observable_units else None
-                    cr = CODE_CREDITS.get(obj.representation_name)
+                    cr = PER_NODE_CREDITS.get(
+                        (obj.representation_name, obj.space.name),
+                        CODE_CREDITS.get(obj.representation_name))
                     entry = {"api": api, "unit": unit}
                     if cr is not None:
                         entry["citation"] = cr["citation"]
